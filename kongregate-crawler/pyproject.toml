@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "dontcareijustwanttousepoetryfunctionally"
+description = "dontcareijustwanttousepoetryfunctionally"
+version = "0.0.0"
+
+authors = [
+    "Joshua Li <josh@jrl.ninja>",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+beautifulsoup4 = "4.8.2"
+httpx = "0.12.1"
