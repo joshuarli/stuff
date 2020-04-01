@@ -41,5 +41,8 @@ with open("swf_links.txt", "wt") as f:
             if path.startswith("//"):
                 path = "https:" + path
 
+            # TODO: investigate
+            # https://internal.kongregate.com/flash/GameShell_4ef1b0e3533afbd9c353a999a01b4ee6.swf
+            # https://chat.kongregate.com/flash/GameShell_4ef1b0e3533afbd9c353a999a01b4ee6.swf
             print(path)
-            f.write(path + "\n")
+            f.write(f"{game_id} {game_path} {path}\n")
