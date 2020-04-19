@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for i in 1 2; do
-    diff tests/$i/out <(./humansort < tests/$i/in)
+for i in 1 2 3; do
+    # diff tests/$i/out <(./humansort < tests/$i/in)
     diff tests/$i/out <(./natsort < tests/$i/in)
 done

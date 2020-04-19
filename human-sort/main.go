@@ -10,11 +10,12 @@ import (
 
 func isdigit(b byte) bool { return '0' <= b && b <= '9' }
 
-// TODO: consider leading zeroes
-
 // caveats:
+// does unnecessary int parsing; utf-8 compares bytewise-lexicographically
+//   - and so is inferior to fvbommel's natsort
 // only considers ascii digits 0-9 as numerics
 // does not deal with negative or decimal representations
+// does not consider leading zeroes as a tie-breaker
 
 func alphanumericLess(x, y string) bool {
 	if len(x) == 0 {
