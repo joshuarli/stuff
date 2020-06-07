@@ -1,0 +1,3 @@
+text archive all reddit bookmarks
+
+    firefox/bookmarks.py | egrep '^https:\/\/(www\.|old\.)?reddit\.com\/r\/.*' | xargs reddit/get.py
