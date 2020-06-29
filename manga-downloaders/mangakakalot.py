@@ -20,7 +20,10 @@ def alphanum_key(s):
     return [tryint(c) for c in re.split('([0-9]+)', s)]
 
 
-http = httpx.Client()
+http = httpx.Client(
+    headers={"Referer": "https://mangakakalot.com"},
+    timeout=None
+)
 
 page = "https://mangakakalot.com/manga/itsuyasan"
 #page = "https://mangakakalot.com/read-dl3ii158504902435"
