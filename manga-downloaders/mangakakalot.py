@@ -60,37 +60,54 @@ async def main(*, page, workers):
 
     chapters.sort(key=lambda x: alphanum_key(x[0]))
 
-    q_jobs = asyncio.Queue()  # (url, filepath)
+    q_chapter_jobs = asyncio.Queue()
 
     for c, link in chapters:
         c_p = title_p / c
         c_p.mkdir(exist_ok=True)
+        q_chapter_jobs.put_nowait((c_p, link, c))
 
-        print(f"Getting pages for chapter {c}")
-        r = await http.get(link)
-        r.raise_for_status()
+    q_image_jobs = asyncio.Queue()
 
-        chapter_soup = BeautifulSoup(r.content, 'html.parser')
-        reader = chapter_soup.find(id="vungdoc")
-        pages = [image["src"] for image in reader.find_all("img")]
-
-        for p in pages:
-            fn = p.split("/")[-1]
-            fp = c_p / fn
-            if fp.is_file():
-                print(f"{fp} already exists; skipping.")
-                continue
-
-            q_jobs.put_nowait((p, fp))
-
-    async def image_downloader_worker(wid):
+    async def page_downloader_worker():
         while True:
             try:
-                p, fp = q_jobs.get_nowait()
+                c_p, link, c = q_chapter_jobs.get_nowait()
+            except asyncio.QueueEmpty:
+                return
+
+            print(f"Getting pages for chapter {c}")
+            r = await http.get(link)
+            r.raise_for_status()
+
+            chapter_soup = BeautifulSoup(r.content, 'html.parser')
+            reader = chapter_soup.find(id="vungdoc")
+            pages = [image["src"] for image in reader.find_all("img")]
+
+            for p in pages:
+                fn = p.split("/")[-1]
+                fp = c_p / fn
+                if fp.is_file():
+                    print(f"{fp} already exists; skipping.")
+                    continue
+
+                q_image_jobs.put_nowait((p, fp))
+
+    # q_chapter_jobs should not be written to at this point.
+    # I looked and there weren't any methods to like, cap maxsize,
+    # or "close" the queue to be readonly.
+    await asyncio.gather(
+        *(page_downloader_worker() for _ in range(workers))
+    )
+
+    async def image_downloader_worker():
+        while True:
+            try:
+                p, fp = q_image_jobs.get_nowait()
             except asyncio.QueueEmpty:
                 return
             # resp = await http.get(path)
-            print(f"[worker {wid}] {p} -> {fp}")
+            print(f"{p} -> {fp}")
             await asyncio.sleep(1)
 
     #        print(f"Downloading page {fn} ({p})")
@@ -104,8 +121,9 @@ async def main(*, page, workers):
     #                for chunk in r.iter_bytes():
     #                    f.write(chunk)
 
+    # q_image_jobs should not be written to at this point.
     await asyncio.gather(
-        *(image_downloader_worker(i+1) for i in range(workers))
+        *(image_downloader_worker() for _ in range(workers))
     )
     await http.aclose()
 
