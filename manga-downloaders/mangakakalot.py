@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import asyncio
-import re
 import os
+import re
 import sys
 from pathlib import Path
 
 import httpx
-from bs4 import BeautifulSoup
 import uvloop
+from bs4 import BeautifulSoup
 
 
 def tryint(s):
@@ -22,19 +22,18 @@ def alphanum_key(s):
     """ Turn a string into a list of string and number chunks.
         "z23a" -> ["z", 23, "a"]
     """
-    return [tryint(c) for c in re.split('([0-9]+)', s)]
+    return [tryint(c) for c in re.split("([0-9]+)", s)]
 
 
 async def main(*, page, workers):
     http = httpx.AsyncClient(
-        headers={"Referer": "https://mangakakalot.com"},
-        timeout=None
+        headers={"Referer": "https://mangakakalot.com"}, timeout=None
     )
 
     r = await http.get(page)
     r.raise_for_status()
 
-    title_soup = BeautifulSoup(r.content, 'html.parser')
+    title_soup = BeautifulSoup(r.content, "html.parser")
 
     title = title_soup.find(class_="manga-info-text").find("h1").text
     if not title:
@@ -82,7 +81,7 @@ async def main(*, page, workers):
             r = await http.get(link)
             r.raise_for_status()
 
-            chapter_soup = BeautifulSoup(r.content, 'html.parser')
+            chapter_soup = BeautifulSoup(r.content, "html.parser")
             reader = chapter_soup.find(id="vungdoc")
             pages = [image["src"] for image in reader.find_all("img")]
 
@@ -99,9 +98,7 @@ async def main(*, page, workers):
     # q_chapter_jobs should not be written to at this point.
     # I looked and there weren't any methods to like, cap maxsize,
     # or "close" the queue to be readonly.
-    await asyncio.gather(
-        *(page_downloader_worker() for _ in range(workers))
-    )
+    await asyncio.gather(*(page_downloader_worker() for _ in range(workers)))
 
     async def image_downloader_worker():
         while True:
@@ -115,21 +112,19 @@ async def main(*, page, workers):
             r.raise_for_status()  # TODO: let's not fatal here, or be more graceful?
 
             with fp.open(mode="wb") as f:
+                # TODO: gracefully shut down on SIGINT and provide a --force-redownload
                 f.write(r.content)
-    #            with http.stream("GET", p) as r:
-    #                for chunk in r.iter_bytes():
-    #                    f.write(chunk)
 
     # q_image_jobs should not be written to at this point.
-    await asyncio.gather(
-        *(image_downloader_worker() for _ in range(workers))
-    )
+    await asyncio.gather(*(image_downloader_worker() for _ in range(workers)))
     await http.aclose()
 
 
 if len(sys.argv) < 2:
-    sys.exit(f"""usage: {sys.argv[0]} PAGE [# workers]
-""")
+    sys.exit(
+        f"""usage: {sys.argv[0]} PAGE [# workers]
+"""
+    )
 
 page = sys.argv[1]
 
@@ -143,7 +138,4 @@ except IndexError:
 assert num_workers > 0
 
 uvloop.install()
-asyncio.run(main(
-    page=page,
-    workers=num_workers,
-))
+asyncio.run(main(page=page, workers=num_workers))
