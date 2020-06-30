@@ -91,6 +91,7 @@ async def main(*, page, workers):
                     print(f"{fp} already exists; skipping.")
                     continue
 
+                # TODO: we should put this into a sorted list so image downloading is more natural
                 q_image_jobs.put_nowait((p, fp))
 
     # q_chapter_jobs should not be written to at this point.
@@ -106,17 +107,13 @@ async def main(*, page, workers):
                 p, fp = q_image_jobs.get_nowait()
             except asyncio.QueueEmpty:
                 return
-            # resp = await http.get(path)
-            print(f"{p} -> {fp}")
-            await asyncio.sleep(1)
 
-    #        print(f"Downloading page {fn} ({p})")
-    #        r = http.get(p)
-    #        r.raise_for_status()
+            print(f"Downloading {p}")
+            r = await http.get(p)
+            r.raise_for_status()  # TODO: let's not fatal here, or be more graceful?
 
-    #        with fp.open(mode="wb") as f:
-    #            f.write(r.content)
-
+            with fp.open(mode="wb") as f:
+                f.write(r.content)
     #            with http.stream("GET", p) as r:
     #                for chunk in r.iter_bytes():
     #                    f.write(chunk)
