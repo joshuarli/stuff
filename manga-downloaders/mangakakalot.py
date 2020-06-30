@@ -8,6 +8,7 @@ from pathlib import Path
 
 import httpx
 from bs4 import BeautifulSoup
+import uvloop
 
 
 def tryint(s):
@@ -141,6 +142,7 @@ except IndexError:
 
 assert num_workers > 0
 
+uvloop.install()
 asyncio.run(main(
     page=page,
     workers=num_workers,
