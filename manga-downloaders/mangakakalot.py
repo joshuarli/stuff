@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from signal import SIGTERM
+from functools import partial
 import asyncio
 import os
 import re
@@ -71,29 +73,33 @@ async def main(*, page, workers):
     q_image_jobs = asyncio.Queue()
 
     async def page_downloader_worker():
-        while True:
-            try:
-                c_p, link, c = q_chapter_jobs.get_nowait()
-            except asyncio.QueueEmpty:
-                return
+        try:
+            while True:
+                try:
+                    c_p, link, c = q_chapter_jobs.get_nowait()
+                except asyncio.QueueEmpty:
+                    return
 
-            print(f"Getting pages for chapter {c}")
-            r = await http.get(link)
-            r.raise_for_status()
+                print(f"Getting pages for chapter {c}")
+                r = await http.get(link)
+                r.raise_for_status()
 
-            chapter_soup = BeautifulSoup(r.content, "html.parser")
-            reader = chapter_soup.find(id="vungdoc")
-            pages = [image["src"] for image in reader.find_all("img")]
+                chapter_soup = BeautifulSoup(r.content, "html.parser")
+                reader = chapter_soup.find(id="vungdoc")
+                pages = [image["src"] for image in reader.find_all("img")]
 
-            for p in pages:
-                fn = p.split("/")[-1]
-                fp = c_p / fn
-                if fp.is_file():
-                    print(f"{fp} already exists; skipping.")
-                    continue
+                for p in pages:
+                    fn = p.split("/")[-1]
+                    fp = c_p / fn
+                    if fp.is_file():
+                        print(f"{fp} already exists; skipping.")
+                        continue
 
-                # TODO: we should put this into a sorted list so image downloading is more natural
-                q_image_jobs.put_nowait((p, fp))
+                    # TODO: we should put this into a sorted list so image downloading is more natural
+                    q_image_jobs.put_nowait((p, fp))
+        except asyncio.CancelledError:
+            await http.aclose()
+            return
 
     # q_chapter_jobs should not be written to at this point.
     # I looked and there weren't any methods to like, cap maxsize,
@@ -101,22 +107,30 @@ async def main(*, page, workers):
     await asyncio.gather(*(page_downloader_worker() for _ in range(workers)))
 
     async def image_downloader_worker():
-        while True:
-            try:
-                p, fp = q_image_jobs.get_nowait()
-            except asyncio.QueueEmpty:
-                return
+        fp = None
+        try:
+            while True:
+                try:
+                    p, fp = q_image_jobs.get_nowait()
+                except asyncio.QueueEmpty:
+                    return
 
-            print(f"Downloading {p}")
-            r = await http.get(p)
-            r.raise_for_status()  # TODO: let's not fatal here, or be more graceful?
+                print(f"Downloading {p}")
+                r = await http.get(p)
+                r.raise_for_status()  # TODO: let's not fatal here, or be more graceful?
 
-            with fp.open(mode="wb") as f:
-                # TODO: gracefully shut down on SIGINT and provide a --force-redownload
-                f.write(r.content)
+                with fp.open(mode="wb") as f:
+                    # provide a --force-redownload
+                    f.write(r.content)
+        except asyncio.CancelledError:
+            if fp:
+                fp.unlink()
+            await http.aclose()
+            return
 
     # q_image_jobs should not be written to at this point.
     await asyncio.gather(*(image_downloader_worker() for _ in range(workers)))
+
     await http.aclose()
 
 
@@ -138,4 +152,30 @@ except IndexError:
 assert num_workers > 0
 
 uvloop.install()
-asyncio.run(main(page=page, workers=num_workers))
+loop = asyncio.get_event_loop()
+
+async def graceful_shutdown(*, on, loop):
+    print("Trying to shut down gracefully.")
+#    this_task = asyncio.current_task(loop=loop)
+#    for task in asyncio.all_tasks(loop=loop):
+#        if task is this_task:
+#            continue
+#        await task.cancel()
+    loop.stop()
+    loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(loop=loop)))
+    print("Great success.")
+
+loop.add_signal_handler(
+    SIGTERM,
+    # lol what is functools partial?
+    partial(asyncio.ensure_future, graceful_shutdown(on=SIGTERM, loop=loop)),
+)
+
+# Is this the best way to plop an awaitable onto the loop?
+asyncio.ensure_future(main(page=page, workers=num_workers), loop=loop)
+
+try:
+    loop.run_forever()
+finally:
+    # lol what is finally?
+    loop.close()
