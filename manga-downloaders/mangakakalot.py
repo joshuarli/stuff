@@ -3,6 +3,7 @@
 import asyncio
 import re
 import os
+import sys
 from pathlib import Path
 
 import httpx
@@ -125,13 +126,21 @@ async def main(*, page, workers):
     await http.aclose()
 
 
-num_workers = os.cpu_count()
-if not num_workers:
-    raise RuntimeError("Couldn't determine CPU count.")
+if len(sys.argv) < 2:
+    sys.exit(f"""usage: {sys.argv[0]} PAGE [# workers]
+""")
 
-page = "https://mangakakalot.com/manga/itsuyasan"
-#page = "https://mangakakalot.com/read-dl3ii158504902435"
-#page = "https://mangakakalot.com/manga/waltz_oshimi_shuzo"
+page = sys.argv[1]
+
+try:
+    num_workers = int(sys.argv[2])
+except IndexError:
+    num_workers = os.cpu_count()
+    if not num_workers:
+        raise RuntimeError("Couldn't determine CPU count.")
+
+assert num_workers > 0
+
 asyncio.run(main(
     page=page,
     workers=num_workers,
