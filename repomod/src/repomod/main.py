@@ -28,7 +28,7 @@ import subprocess
 import sys
 import time
 import traceback
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import cast
@@ -266,18 +266,25 @@ def mark_interrupted(ctx: RunContext, name: str) -> None:
     set_status(ctx.all_status, ctx.status_file, name, status="interrupted")
 
 
-def process_repo(item: WorkItem, ctx: RunContext) -> None:
-    """Process a single repo: clone, fix, diff/push. Thread-safe."""
+def process_repo(
+    item: WorkItem, ctx: RunContext, *, push: bool = True
+) -> tuple[str, str] | None:
+    """Process a single repo: clone, fix, diff/push. Thread-safe.
+
+    Returns the diff and base sha when `push` is deferred so the caller can
+    refresh PR state once, after every fix, before any push.
+    """
     repo = item.repo
     if interrupt.is_set:
-        return
+        return None
 
     try:
-        execute_fix_on_repo(repo, ctx)
+        return execute_fix_on_repo(repo, ctx, push=push)
     except ShutdownError:
         # Don't call pd.finish() — interrupted repos are not done.
         ctx.pd.cancel(repo.name)
         mark_interrupted(ctx, repo.name)
+        return None
 
 
 # Spelled as a named tuple: the formatter rewrites `except (*A, B):` into
@@ -416,7 +423,9 @@ def _publish_review(ctx: RunContext, repo: Repo, diff: str, **fields: str) -> bo
     return True
 
 
-def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
+def execute_fix_on_repo(
+    repo: Repo, ctx: RunContext, *, push: bool = True
+) -> tuple[str, str] | None:
     """Inner processing — raises ShutdownError to signal interrupt."""
     repo_dir = ctx.repos_dir / repo.slug
 
@@ -436,7 +445,7 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
             reason="clone failed",
         )
         ctx.pd.finish(repo.name, f"{RED}clone failed{RST}", "failed")
-        return
+        return None
 
     if interrupt.is_set:
         raise ShutdownError
@@ -452,14 +461,14 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
             raise
         except (subprocess.TimeoutExpired, OSError) as exc:
             _record_failed(ctx, repo, "apply failed", exc)
-            return
+            return None
     else:
         reused = False
     if reused:
         checkout_branch(repo_dir, ctx.config.branch)
         stage_worktree(repo_dir)
     elif not run_fix_and_validate(repo, repo_dir, ctx):
-        return
+        return None
 
     try:
         diff = get_diff(repo_dir)
@@ -468,7 +477,7 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         raise
     except DIFF_SAVE_ERRORS as exc:
         _record_failed(ctx, repo, "diff failed", exc)
-        return
+        return None
 
     if not ctx.apply:
         unstage(repo_dir)
@@ -480,11 +489,24 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
             fix_hash=ctx.fix_hash,
             base_sha=base_sha,
         ):
-            return
+            return None
         ctx.pd.print(f"\n{format_diff_box(repo.name, diff)}")
         ctx.pd.finish(repo.name, "", "done")
-        return
+        return None
 
+    if interrupt.is_set:
+        raise ShutdownError
+
+    if not push:
+        return diff, base_sha
+
+    push_repo(repo, ctx, diff, base_sha)
+    return None
+
+
+def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
+    """Push one prepared repo and record the PR. Raises ShutdownError on ^C."""
+    repo_dir = ctx.repos_dir / repo.slug
     if interrupt.is_set:
         raise ShutdownError
 
@@ -592,28 +614,83 @@ def filter_work(
     return work, already_done
 
 
+def lookup_existing_prs(branch: str) -> dict[str, RolloutPR]:
+    """One batched search of PRs on `branch`. A failed lookup exits the run."""
+    try:
+        return pr_by_repo(search_prs(branch))
+    except ShutdownError:
+        raise
+    except SUBPROCESS_ERRORS as exc:
+        interrupt.check()
+        sys.exit(f"Could not look up existing PRs: {format_error(exc)}")
+
+
+def _map_work[T, R](
+    items: Sequence[T],
+    workers: int,
+    fn: Callable[[T], R | None],
+) -> list[R]:
+    """Run `fn` over `items`. Joins every worker before returning, including on ^C."""
+    results: list[R] = []
+    if workers == 1 or len(items) <= 1:
+        for item in items:
+            if interrupt.is_set:
+                break
+            result = fn(item)
+            if result is not None:
+                results.append(result)
+        return results
+
+    n = min(workers, len(items))
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        futures = [pool.submit(fn, item) for item in items]
+        for future in as_completed(futures):
+            if interrupt.is_set:
+                pool.shutdown(wait=False, cancel_futures=True)
+                break
+            result = future.result()
+            if result is not None:
+                results.append(result)
+    return results
+
+
 def run_work(ctx: RunContext, work: list[WorkItem], workers: int) -> bool:
     """Execute work items with progress display. Returns True if interrupted."""
 
     def _on_interrupt() -> None:
         ctx.pd.print(f"\n{YELLOW}Gracefully exiting, please wait...{RST}")
 
+    def _prepare(item: WorkItem) -> tuple[WorkItem, str, str] | None:
+        payload = process_repo(item, ctx, push=not ctx.apply)
+        if payload is None:
+            return None
+        diff, base_sha = payload
+        return item, diff, base_sha
+
+    def _push(prepared: tuple[WorkItem, str, str]) -> None:
+        item, diff, base_sha = prepared
+        if interrupt.is_set:
+            return
+        try:
+            push_repo(item.repo, ctx, diff, base_sha)
+        except ShutdownError:
+            ctx.pd.cancel(item.repo.name)
+            mark_interrupted(ctx, item.repo.name)
+
     interrupt.install(on_interrupt=_on_interrupt)
     try:
-        if workers == 1 or len(work) == 1:
-            for item in work:
-                if interrupt.is_set:
-                    break
-                process_repo(item, ctx)
-        else:
-            n = min(workers, len(work))
-            with ThreadPoolExecutor(max_workers=n) as pool:
-                futures = [pool.submit(process_repo, item, ctx) for item in work]
-                for future in as_completed(futures):
-                    if interrupt.is_set:
-                        pool.shutdown(wait=False, cancel_futures=True)
-                        break
-                    future.result()
+        prepared = _map_work(work, workers, _prepare)
+        # The opening search goes stale while fixes run. Refresh once, after
+        # every fix and before any push. A repo the refresh returns uses that
+        # state; one it omits keeps the opening PR.
+        if ctx.apply and prepared and not interrupt.is_set:
+            try:
+                refreshed = lookup_existing_prs(ctx.config.branch)
+            except ShutdownError:
+                pass
+            else:
+                ctx.existing_prs = {**ctx.existing_prs, **refreshed}
+                _map_work(prepared, workers, _push)
 
         if interrupt.is_set:
             for item in work:
@@ -897,12 +974,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     existing_prs: dict[str, RolloutPR] = {}
     if args.apply:
-        # One search for every repo's PR instead of a lookup per repo.
-        try:
-            existing_prs = pr_by_repo(search_prs(config.branch))
-        except SUBPROCESS_ERRORS as exc:
-            interrupt.check()
-            sys.exit(f"Could not look up existing PRs: {format_error(exc)}")
+        # Opening snapshot for the run, not a lookup per repo. The refresh
+        # after the fixes overrides this per repo and does not drop the rest.
+        existing_prs = lookup_existing_prs(config.branch)
 
     actual_workers = min(args.workers, len(work)) if args.workers > 1 else 1
     label = "" if args.apply else "dry run"

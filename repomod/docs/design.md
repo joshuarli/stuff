@@ -18,9 +18,12 @@ user's side, see [Re-running a fix](../README.md#re-running-a-fix).
 
 Keep GitHub API calls minimal. Batch them or look them up once per run, not once per repo.
 
-`--apply` does one search for every existing PR on the fix branch. Then it makes at most one
-`gh pr create` per new repo, which also sets reviewers and returns the URL. Repos that only
-need a push, or whose PR is already merged or closed, cost no API calls.
+`--apply` searches for existing PRs on the fix branch once before the fixes, then once more
+after every fix and before any push. The second snapshot overrides the first per repo. A
+repo only the first search saw keeps that PR, and a repo in neither is still pushed. It
+then makes at most one `gh pr create` per new repo, which also sets reviewers and returns
+the URL. Repos that only need a push, or whose PR is already merged or closed, cost no
+API calls.
 `tests/test_apply_gh_calls.py` asserts the exact calls. Keep it passing when you touch the PR
 path.
 
@@ -53,7 +56,9 @@ It never pushes to a branch whose PR is merged or closed, because that would res
 someone finished or rejected.
 
 `--apply` pushes the stored patch because a second fix run can resolve differently.
-The merged-or-closed check is GitHub issue search, which returns at most 1000 hits.
+The merged-or-closed check is the opening search overlaid with that second search, which
+returns at most 1000 hits. A hit in the second search wins. A PR that changes state after
+the refresh returns and before `git push` can still be force-pushed.
 
 ## Repo sync
 

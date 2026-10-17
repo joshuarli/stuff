@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-21 · P2 · A PR merged during the run is force-pushed and recorded as open
-
-- **Area:** Concurrency
-- **Where:** `src/repomod/main.py:841`, `src/repomod/git.py:152`, `src/repomod/git.py:200`
-- **Problem:** `--apply` takes one search snapshot of PRs on the fix branch. `commit_and_push` skips the push only when that snapshot is not `OPEN`. If the PR is merged after the search, the worker still `git push --force`, and `push_and_open_pr` returns the old URL with state `OPEN` when `known_pr` is set. Status becomes `pr_created`, so later runs skip the repo. The search returns at most 1000 hits (`git.py:379`). A repo missing from that map never hits the guard. The GitHub result of force-pushing a branch whose PR just merged was not executed.
-- **Recommendation:** Read that repo's PR state immediately before the push. Do not push when the live state is merged or closed.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### RPMD-22 · P2 · A fix branch named like the default branch is force-pushed
 
 - **Area:** Data

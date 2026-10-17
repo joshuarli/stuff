@@ -47,8 +47,9 @@ def test_existing_prs_are_looked_up_once_not_per_repo(
 ) -> None:
     """alpha has no PR, beta has an open one, gamma's was merged.
 
-    One search answers for all three, so beta and gamma cost zero API calls:
-    beta is just force-pushed, gamma is left alone entirely.
+    Two searches answer for all three, so beta and gamma cost zero API calls:
+    beta is just force-pushed, gamma is left alone entirely. The count stays
+    two however many repos are in the run.
     """
     fix_dir, origins = _setup(tmp_path)
     fake_gh.configure(
@@ -63,7 +64,7 @@ def test_existing_prs_are_looked_up_once_not_per_repo(
     with _mock_sync(repos=[REPO_A, REPO_B, REPO_C]), offline_clone():
         assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 0
 
-    assert fake_gh.count("api", "--method") == 1  # the search
+    assert fake_gh.count("api", "--method") == 2  # opening search, then the refresh
     assert fake_gh.count("api", "graphql") == 1  # alpha's new id, batched
     assert fake_gh.calls_for("acme/repo-beta") == []
     assert fake_gh.calls_for("acme/repo-gamma") == []
@@ -80,6 +81,93 @@ def test_existing_prs_are_looked_up_once_not_per_repo(
     assert (
         status["acme/repo-beta"]["pr_url"] == "https://github.com/acme/repo-beta/pull/7"
     )
+    assert status["acme/repo-gamma"]["status"] == "pr_merged"
+    assert (
+        status["acme/repo-gamma"]["pr_url"]
+        == "https://github.com/acme/repo-gamma/pull/9"
+    )
+
+
+def test_pr_merged_during_the_fix_is_not_force_pushed(
+    tmp_path: Path, fake_gh: FakeGh
+) -> None:
+    """The refresh is after the fix and before the push.
+
+    The fix rewrites the search snapshot from OPEN to MERGED. A second search
+    that ran before the fix would still see OPEN and force-push.
+    """
+    fix_dir, origins = _setup(tmp_path)
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from gh_harness import FakeGh, search_item\n"
+            f"    FakeGh(Path({str(fake_gh.root)!r})).configure(\n"
+            "        search_items=[\n"
+            "            search_item(\n"
+            '                "acme/repo-beta",\n'
+            "                7,\n"
+            '                "closed",\n'
+            '                merged_at="2026-10-02T00:00:00Z",\n'
+            "            )\n"
+            "        ]\n"
+            "    )\n"
+            "    (repo / 'README.md').write_text('changed')\n"
+            "    return True"
+        ),
+    )
+    fake_gh.configure(search_items=[search_item("acme/repo-beta", 7, "open")])
+
+    with _mock_sync(repos=[REPO_B]), offline_clone():
+        assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 0
+
+    assert fake_gh.count("api", "--method") == 2
+    assert fake_gh.calls_for("acme/repo-beta") == []
+    assert fake_gh.count("pr", "create") == 0
+    assert fake_gh.count("pr", "view") == 0
+    assert not branch_pushed(origins["acme/repo-beta"], BRANCH)
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/repo-beta"]["status"] == "pr_merged"
+    assert (
+        status["acme/repo-beta"]["pr_url"]
+        == "https://github.com/acme/repo-beta/pull/7"
+    )
+    assert status["acme/repo-beta"]["pr_node_id"] == node_id("acme/repo-beta", 7)
+
+
+def test_refresh_that_drops_a_merged_pr_does_not_push_it(
+    tmp_path: Path, fake_gh: FakeGh
+) -> None:
+    """A merged PR the refresh omits keeps the opening snapshot.
+
+    The fix clears the fake search. Replacing the map would forget gamma and
+    open a new PR.
+    """
+    fix_dir, origins = _setup(tmp_path)
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from gh_harness import FakeGh\n"
+            f"    FakeGh(Path({str(fake_gh.root)!r})).configure(search_items=[])\n"
+            "    (repo / 'README.md').write_text('changed')\n"
+            "    return True"
+        ),
+    )
+    fake_gh.configure(
+        search_items=[
+            search_item(
+                "acme/repo-gamma", 9, "closed", merged_at="2026-09-01T00:00:00Z"
+            ),
+        ]
+    )
+
+    with _mock_sync(repos=[REPO_C]), offline_clone():
+        assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 0
+
+    assert fake_gh.count("api", "--method") == 2
+    assert fake_gh.count("pr", "create") == 0
+    assert fake_gh.calls_for("acme/repo-gamma") == []
+    assert not branch_pushed(origins["acme/repo-gamma"], BRANCH)
+    status = load_status(fix_dir / "status.yaml")
     assert status["acme/repo-gamma"]["status"] == "pr_merged"
     assert (
         status["acme/repo-gamma"]["pr_url"]
@@ -131,8 +219,8 @@ def test_creating_a_pr_costs_exactly_one_api_call_and_records_its_url(
 ) -> None:
     """Per new PR: one `pr create`, whose output is the URL. Nothing else.
 
-    Plus, for the whole run, the single up-front search and one batched lookup
-    that caches the new PRs' node ids.
+    Plus, for the whole run, two searches (before the fixes, and again before
+    any push) and one batched lookup that caches the new PRs' node ids.
     """
     fix_dir, _ = _setup(tmp_path)
 
@@ -141,7 +229,9 @@ def test_creating_a_pr_costs_exactly_one_api_call_and_records_its_url(
 
     verbs = [args[:2] for args in (c["args"] for c in fake_gh.calls())]
     assert verbs == (
-        [["api", "--method"]] + [["pr", "create"]] * 3 + [["api", "graphql"]]
+        [["api", "--method"], ["api", "--method"]]
+        + [["pr", "create"]] * 3
+        + [["api", "graphql"]]
     )
 
     status = load_status(fix_dir / "status.yaml")
@@ -225,7 +315,12 @@ def test_node_ids_are_cached_for_every_pr_with_one_batched_lookup_for_new_ones(
     assert status["acme/repo-gamma"]["pr_node_id"] == node_id("acme/repo-gamma", 9)
 
     verbs = [c["args"][:2] for c in fake_gh.calls()]
-    assert verbs == [["api", "--method"], ["pr", "create"], ["api", "graphql"]]
+    assert verbs == [
+        ["api", "--method"],
+        ["api", "--method"],
+        ["pr", "create"],
+        ["api", "graphql"],
+    ]
 
 
 def test_a_second_run_with_everything_cached_makes_no_api_calls(

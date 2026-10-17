@@ -306,8 +306,9 @@ def commit_and_push(
 ) -> PRInfo:
     """Commit, push, and open a PR.
 
-    `known_pr` is the repo's existing PR on this branch, looked up once for the
-    whole run (see search_prs) rather than per repo to save API calls.
+    `known_pr` is the repo's existing PR on this branch: the refresh after the
+    fixes when that search returned the repo, otherwise the opening search.
+    Not a lookup per repo.
 
     Each step is idempotent so partial failures are safe to re-run. If the
     branch's PR was already merged or closed, nothing is pushed and that PR is
