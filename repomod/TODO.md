@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-15 · P3 · The legacy fix hash is not the hash the test uses
-
-- **Area:** Tests
-- **Where:** `tests/test_main.py:967`, `src/repomod/main.py:99`, `src/repomod/main.py:816`
-- **Problem:** `test_results_recorded_under_the_old_style_hash_still_count_as_current` passes `accepted_hashes` that contain the literal `"legacy-hash"`. It never calls `legacy_fix_hash`, and it never goes through `main`, which is where that hash is unioned with the current one. A wrong byte range in `legacy_fix_hash`, or dropping it at the `main` call site, leaves existing `status.yaml` rows stale and this test stays green. Skip-list invariance of the new hash is tested.
-- **Recommendation:** Write a status row whose `fix_hash` is `legacy_fix_hash(fix_dir)` of the real files and run `main`. That repo must not be redone. A byte change to `main.py` must.
-- **Fix with:** test-audit
-- **Effort:** S
-
 ### RPMD-16 · P3 · The fix hash does not cover modules a fix imports
 
 - **Area:** Architecture

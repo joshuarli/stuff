@@ -2041,6 +2041,41 @@ def test_results_recorded_under_the_old_style_hash_still_count_as_current() -> N
     assert done == 1
 
 
+def test_a_legacy_hash_of_the_real_fix_is_current_until_main_py_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """main must accept the hash of these files, and drop it once main.py changes."""
+    run_log = tmp_path / "runs.log"
+    monkeypatch.setenv("RUN_LOG", str(run_log))
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body=(
+            "    import os\n"
+            "    open(os.environ['RUN_LOG'], 'a').write('ran\\n')\n"
+            "    return False"
+        ),
+    )
+    repo = Repo(name="acme/backend", default_branch="main", topics=["rust"])
+    _make_git_repo(fix_dir / "repos" / repo.slug)
+    legacy = run_fix.legacy_fix_hash(fix_dir)
+    recorded = {"acme/backend": {"status": "skipped", "fix_hash": legacy}}
+    _write_status(fix_dir, recorded)
+
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        run_fix.main([str(fix_dir), "--workers", "1"])
+
+    assert not run_log.exists()
+
+    main_py = fix_dir / "main.py"
+    main_py.write_bytes(main_py.read_bytes() + b"\n")
+    _write_status(fix_dir, recorded)
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        run_fix.main([str(fix_dir), "--workers", "1"])
+
+    assert run_log.read_text() == "ran\n"
+
+
 def test_a_skip_list_edit_after_a_dry_run_does_not_redo_the_dry_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
