@@ -1,5 +1,5 @@
 Prefix: RPMD
-Next: 30
+Next: 31
 
 ### RPMD-8 · P2 · The dependency set is not pinned in git
 
@@ -28,4 +28,13 @@ Next: 30
 - **Fix with:** durable-state
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
+
+### RPMD-30 · P3 · Checkout, stage, and a clone OSError still abort the run
+
+- **Area:** Errors
+- **Where:** `src/repomod/main.py:357`, `src/repomod/main.py:358`, `src/repomod/main.py:469`
+- **Problem:** `has_changes`, `unstage`, a reused patch's checkout and stage, and an `OSError` from `commit_and_push` are caught and the run continues. `checkout_branch` when `--apply` is set, and `stage_worktree` before `has_changes`, are still outside that handler. `clone` catches `SUBPROCESS_ERRORS` and not `OSError`. Those errors escape `process_repo`. With one worker the rest of the run is neither finished nor marked interrupted. Walked from the source after RPMD-26.
+- **Recommendation:** Catch `DIFF_SAVE_ERRORS` on those calls the same way as `has_changes`. Keep an existing `pending` row. Let `ShutdownError` propagate, and do not `pd.finish` for it.
+- **Fix with:** error-model
+- **Effort:** S
 
