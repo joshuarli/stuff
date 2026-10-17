@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-4 · P2 · A scalar skip list fails open and the repo runs
-
-- **Area:** Types
-- **Where:** `src/repomod/types.py:123`, `src/repomod/main.py:500`, `src/repomod/git.py:71`, `src/repomod/git.py:205`
-- **Problem:** `FixConfig.from_yaml` checks only that `branch`, `pr_title`, and `pr_body` are present. `skip: acme/backend` loaded as a string. `set(config.skip)` was a set of characters, and `"acme/backend" in skip` was false, so the repo is not skipped. The same input turned `reviewers` into one flag per character and `sparse_paths` into `git sparse-checkout set` of each character. The dataclass says `list[str]`. Current fix configs happen to use lists.
-- **Recommendation:** In `from_yaml`, require `skip` and `reviewers` to be lists of strings, and `sparse_paths` to be `None` or a list of strings. Reject anything else.
-- **Fix with:** make-invalid-states-unrepresentable
-- **Effort:** S
-
 ### RPMD-5 · P2 · The reviewed diff ignores files that the push commits
 
 - **Area:** Data
