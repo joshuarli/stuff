@@ -29,15 +29,6 @@ Next: 30
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
 
-### RPMD-28 · P4 · A scalar branch, title, or body is coerced with str
-
-- **Area:** Types
-- **Where:** `src/repomod/types.py:139`
-- **Problem:** `skip`, `reviewers`, and `sparse_paths` reject a scalar. `branch`, `pr_title`, and `pr_body` still go through `str()`, so a number or a boolean loads as text instead of failing. Walked from the source.
-- **Recommendation:** Require those three fields to be strings in `from_yaml`, the same way the lists are required to be lists of strings.
-- **Fix with:** make-invalid-states-unrepresentable
-- **Effort:** S
-
 ### RPMD-29 · P4 · The YAML temp write does not fsync the directory
 
 - **Area:** Data

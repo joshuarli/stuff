@@ -123,3 +123,61 @@ def test_scalar_skip_cannot_be_constructed() -> None:
     skip: Any = "acme/backend"
     with pytest.raises(ValueError, match="skip must be a list of strings"):
         FixConfig(branch="b", pr_title="t", pr_body="p", skip=skip)
+
+
+def _write_raw(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "config.yaml"
+    path.write_text(body)
+    return path
+
+
+@pytest.mark.parametrize(
+    ("key", "body"),
+    [
+        ("branch", "branch: 1\npr_title: t\npr_body: p\n"),
+        ("pr_title", "branch: b\npr_title: 1\npr_body: p\n"),
+        ("pr_body", "branch: b\npr_title: t\npr_body: 1\n"),
+        ("branch", "branch: 1.5\npr_title: t\npr_body: p\n"),
+        ("pr_title", "branch: b\npr_title: 1.5\npr_body: p\n"),
+        ("pr_body", "branch: b\npr_title: t\npr_body: 1.5\n"),
+        ("branch", "branch: true\npr_title: t\npr_body: p\n"),
+        ("pr_title", "branch: b\npr_title: true\npr_body: p\n"),
+        ("pr_body", "branch: b\npr_title: t\npr_body: true\n"),
+        ("branch", "branch: false\npr_title: t\npr_body: p\n"),
+        ("pr_title", "branch: b\npr_title: false\npr_body: p\n"),
+        ("pr_body", "branch: b\npr_title: t\npr_body: false\n"),
+        ("branch", "branch: null\npr_title: t\npr_body: p\n"),
+        ("pr_title", "branch: b\npr_title: null\npr_body: p\n"),
+        ("pr_body", "branch: b\npr_title: t\npr_body: null\n"),
+    ],
+    ids=(
+        "branch-int",
+        "pr_title-int",
+        "pr_body-int",
+        "branch-float",
+        "pr_title-float",
+        "pr_body-float",
+        "branch-true",
+        "pr_title-true",
+        "pr_body-true",
+        "branch-false",
+        "pr_title-false",
+        "pr_body-false",
+        "branch-null",
+        "pr_title-null",
+        "pr_body-null",
+    ),
+)
+def test_string_fields_reject_non_strings(tmp_path: Path, key: str, body: str) -> None:
+    path = _write_raw(tmp_path, body)
+    with pytest.raises(ValueError, match=f"{key} must be a string"):
+        FixConfig.from_yaml(path)
+
+
+def test_empty_string_branch_title_and_body_load(tmp_path: Path) -> None:
+    config = FixConfig.from_yaml(
+        _write_raw(tmp_path, 'branch: ""\npr_title: ""\npr_body: ""\n')
+    )
+    assert config.branch == ""
+    assert config.pr_title == ""
+    assert config.pr_body == ""
