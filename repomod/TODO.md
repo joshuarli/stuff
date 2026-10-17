@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-1 · P2 · A workflow symlink is rewritten outside the clone and the diff stays empty
-
-- **Area:** Security
-- **Where:** `src/repomod/fixes/pin-gha/main.py:89`, `src/repomod/fixes/ubuntu-24/main.py:200`, `src/repomod/fixes/macos-15/main.py:112`, `src/repomod/git.py:81`
-- **Problem:** Each fix `rglob`s `*.yml` and `*.yaml` under `.github` and `write_text`s matches. On Python 3.14, `rglob` does not follow a symlinked `.github` directory (that listing was empty). It does return a symlinked file. `Path.write_text` follows it: an absolute symlink to a file outside the repo was overwritten, `git diff` was empty, and `has_changes` was false, so the repo is recorded as no work. `git clone` checks out committed symlinks. Whether any of the 109 repos in `repos.yaml` contains one was not checked.
-- **Recommendation:** Skip a path whose resolved file is outside the clone, or whose path has a symlink component. Write only through a file opened with `O_NOFOLLOW`.
-- **Fix with:** os-boundaries
-- **Effort:** S
-
 ### RPMD-2 · P2 · A failed sparse checkout is retried as a successful empty tree
 
 - **Area:** Data

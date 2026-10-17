@@ -121,3 +121,21 @@ def test_second_run_changes_nothing(tmp_path: Path) -> None:
     _workflow(tmp_path, "runs-on: [macos-14, macos-15]\n")
     assert macos_15.run(tmp_path, {}) is True
     assert macos_15.run(tmp_path, {}) is False
+
+
+def test_symlink_to_a_workflow_outside_the_clone_is_left_untouched(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "acme" / "mobile"
+    outside = tmp_path / "shared-macos-runners" / "ci.yml"
+    outside.parent.mkdir(parents=True)
+    original = "    runs-on: macos-14\n"
+    outside.write_text(original)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.symlink_to(outside.resolve())
+
+    assert macos_15.run(repo, {}) is False
+    assert outside.read_text() == original
+    assert workflow.is_symlink()
+    assert workflow.readlink().is_absolute()

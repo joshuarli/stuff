@@ -151,7 +151,7 @@ def test_pin_file_unpinned(tmp_path: Path) -> None:
     f.write_text(WORKFLOW_UNPINNED)
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     assert changed is True
     content = f.read_text()
@@ -168,7 +168,7 @@ def test_pin_file_already_pinned(tmp_path: Path) -> None:
     f.write_text(f"      - uses: actions/checkout@{sha} # v4\n")
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     # File should not be modified
     assert changed is False
@@ -181,7 +181,7 @@ def test_pin_file_mixed(tmp_path: Path) -> None:
     f.write_text(WORKFLOW_MIXED)
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     assert changed is True
     content = f.read_text()
@@ -197,7 +197,7 @@ def test_pin_file_pins_every_action_regardless_of_owner(tmp_path: Path) -> None:
     f.write_text("      - uses: myorg/action-release@v1\n")
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     assert changed is True
     assert f"myorg/action-release@{FAKE_SHA} # v1" in f.read_text()
@@ -209,7 +209,7 @@ def test_pin_file_strips_old_comment(tmp_path: Path) -> None:
     f.write_text("      - uses: actions/checkout@v4 # old comment\n")
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     assert changed is True
     content = f.read_text()
@@ -222,7 +222,7 @@ def test_pin_file_quoted_uses(tmp_path: Path) -> None:
     f.write_text('      - uses: "actions/checkout@v4"\n')
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        changed = pin_gha.pin_file(f)
+        changed = pin_gha.pin_file(f, tmp_path)
 
     assert changed is True
     assert f"actions/checkout@{FAKE_SHA} # v4" in f.read_text()
@@ -235,7 +235,7 @@ def test_pin_file_preserves_indentation(tmp_path: Path) -> None:
     f.write_text(content)
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        pin_gha.pin_file(f)
+        pin_gha.pin_file(f, tmp_path)
 
     result = f.read_text()
     # First line: 4-space indent preserved
@@ -249,7 +249,7 @@ def test_pin_file_empty_file(tmp_path: Path) -> None:
     f.write_text("")
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        assert pin_gha.pin_file(f) is False
+        assert pin_gha.pin_file(f, tmp_path) is False
 
     assert f.read_text() == ""
 
@@ -260,7 +260,7 @@ def test_pin_file_no_uses_lines(tmp_path: Path) -> None:
     f.write_text(content)
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
-        assert pin_gha.pin_file(f) is False
+        assert pin_gha.pin_file(f, tmp_path) is False
 
     assert f.read_text() == content
 
@@ -305,3 +305,24 @@ def test_run_no_changes(tmp_path: Path) -> None:
 
     with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
         assert pin_gha.run(tmp_path, {}) is False
+
+
+def test_symlink_to_a_workflow_outside_the_clone_is_left_untouched(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "acme" / "web"
+    outside = tmp_path / "shared-actions" / "ci.yml"
+    outside.parent.mkdir(parents=True)
+    original = "      - uses: actions/checkout@v4\n"
+    outside.write_text(original)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.symlink_to(outside.resolve())
+
+    with patch.object(pin_gha, "resolve_ref", side_effect=_mock_resolve):
+        changed = pin_gha.run(repo, {})
+
+    assert changed is False
+    assert outside.read_text() == original
+    assert workflow.is_symlink()
+    assert workflow.readlink().is_absolute()
