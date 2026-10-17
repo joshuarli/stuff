@@ -29,15 +29,6 @@ Next: 30
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
 
-### RPMD-26 · P3 · A few git calls outside the diff block still abort the run
-
-- **Area:** Errors
-- **Where:** `src/repomod/main.py:350`, `src/repomod/git.py:231`, `src/repomod/git.py:308`, `src/repomod/git.py:339`
-- **Problem:** A failure while saving the diff is recorded on that repo and the run continues. `has_changes`, `unstage`, `checkout_branch` and `stage_worktree` after a stored patch applies, and an `OSError` from `commit_and_push` still escape `process_repo`. With one worker the rest of the run is neither finished nor marked interrupted. Walked from the source.
-- **Recommendation:** Catch `SUBPROCESS_ERRORS` and `OSError` on those calls the same way as the diff-save path. Keep an existing `pending` row. Let `ShutdownError` propagate, and do not `pd.finish` for it.
-- **Fix with:** error-model
-- **Effort:** S
-
 ### RPMD-27 · P3 · A dry run still publishes a patch on the default branch
 
 - **Area:** Data

@@ -356,7 +356,14 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
         checkout_branch(repo_dir, ctx.config.branch)
     stage_worktree(repo_dir)
 
-    if not has_changes(repo_dir):
+    try:
+        changed = has_changes(repo_dir)
+    except ShutdownError:
+        raise
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "changes failed", exc)
+        return False
+    if not changed:
         set_status(
             ctx.all_status,
             ctx.status_file,
@@ -478,8 +485,20 @@ def execute_fix_on_repo(
     else:
         reused = False
     if reused:
-        checkout_branch(repo_dir, ctx.config.branch)
-        stage_worktree(repo_dir)
+        try:
+            checkout_branch(repo_dir, ctx.config.branch)
+        except ShutdownError:
+            raise
+        except DIFF_SAVE_ERRORS as exc:
+            _record_failed(ctx, repo, "checkout failed", exc)
+            return None
+        try:
+            stage_worktree(repo_dir)
+        except ShutdownError:
+            raise
+        except DIFF_SAVE_ERRORS as exc:
+            _record_failed(ctx, repo, "stage failed", exc)
+            return None
     elif not run_fix_and_validate(repo, repo_dir, ctx):
         return None
 
@@ -493,7 +512,13 @@ def execute_fix_on_repo(
         return None
 
     if not ctx.apply:
-        unstage(repo_dir)
+        try:
+            unstage(repo_dir)
+        except ShutdownError:
+            raise
+        except DIFF_SAVE_ERRORS as exc:
+            _record_failed(ctx, repo, "unstage failed", exc)
+            return None
         if not _publish_review(
             ctx,
             repo,
@@ -565,18 +590,8 @@ def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
             reason=str(exc),
         )
         ctx.pd.finish(repo.name, f"{RED}{exc}{RST}", "failed")
-    except SUBPROCESS_ERRORS as exc:
-        interrupt.check()
-        write_log(ctx.logs_dir, repo.slug, f"push/PR failed\n{format_error(exc)}")
-        if ctx.all_status.get(repo.name, {}).get("status") != "pending":
-            set_status(
-                ctx.all_status,
-                ctx.status_file,
-                repo.name,
-                status="failed",
-                reason="push/PR failed",
-            )
-        ctx.pd.finish(repo.name, f"{RED}push/PR failed{RST}", "failed")
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "push/PR failed", exc)
 
 
 def filter_work(

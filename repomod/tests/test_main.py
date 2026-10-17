@@ -1677,6 +1677,102 @@ def test_apply_push_error_keeps_the_reviewed_pair(tmp_path: Path) -> None:
     _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
 
 
+def test_has_changes_error_keeps_the_pending_row(tmp_path: Path) -> None:
+    """A failed change check is that repo's failure. A pending row stays."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "stage_worktree"),
+        patch.object(
+            run_fix,
+            "has_changes",
+            side_effect=subprocess.CalledProcessError(1, ["git", "diff", "--quiet"]),
+        ),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "changes failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_unstage_oserror_keeps_the_pending_row(tmp_path: Path) -> None:
+    """OSError while dropping the index does not replace a pending review."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "unstage", side_effect=OSError("reset failed")),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "unstage failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_reused_patch_checkout_error_keeps_the_pending_row(tmp_path: Path) -> None:
+    """A failed checkout of a reused dry-run patch does not replace that review."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "apply_patch", return_value=True),
+        patch.object(
+            run_fix,
+            "checkout_branch",
+            side_effect=subprocess.CalledProcessError(1, ["git", "switch"]),
+        ),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True) as rerun,
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    rerun.assert_not_called()
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "checkout failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_commit_and_push_oserror_keeps_the_pending_row(tmp_path: Path) -> None:
+    """OSError from commit_and_push stays on this repo and keeps a pending row."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with patch.object(run_fix, "commit_and_push", side_effect=OSError("push failed")):
+        run_fix.push_repo(repo, ctx, UNREVIEWED_DIFF, "abc123")
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "push/PR failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_has_changes_shutdown_does_not_finish(tmp_path: Path) -> None:
+    """ShutdownError from the change check is cancellation, not a finished repo."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "stage_worktree"),
+        patch.object(run_fix, "has_changes", side_effect=ShutdownError),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert not ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 0}
+    assert not (ctx.logs_dir / "acme-backend.log").exists()
+
+
 def test_apply_push_error_without_a_reviewed_pair_records_failure_and_no_patch(
     tmp_path: Path,
 ) -> None:
