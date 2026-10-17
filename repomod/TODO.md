@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-6 · P2 · The clone directory drops the owner, and reuse fetches the old origin
-
-- **Area:** Data
-- **Where:** `src/repomod/types.py:39`, `src/repomod/main.py:382`, `src/repomod/git.py:51`
-- **Problem:** Logs and patches use `Repo.slug` (`owner-name`). The checkout is `repos/<short name>`. `clone` on an existing dest fetches `origin` and never sets the remote URL. Running that command sequence against a dest whose origin was repo A, while the intended repo was B, left origin at A and the worktree on A's tree. `gh pr create --repo` still receives the second full name. `repos.yaml` has 109 repos, 87 under `joshuarli` and 22 under `laputa-systems`, and 0 shared short names today. The next shared name force-pushes the first repo, including with `--workers 1`.
-- **Recommendation:** Key the checkout by `Repo.slug`. Before fetch, set `origin` to `https://github.com/{name}.git`. Refuse a dest whose real path is not under that fix's `repos/` directory.
-- **Fix with:** os-boundaries
-- **Effort:** S
-
 ### RPMD-7 · P2 · A git failure while saving the diff aborts the run
 
 - **Area:** Errors

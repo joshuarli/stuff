@@ -35,9 +35,9 @@ def _setup(tmp_path: Path, config_extra: str = "") -> tuple[Path, dict[str, Path
             f.write(config_extra)
     origins: dict[str, Path] = {}
     for repo in (REPO_A, REPO_B, REPO_C):
-        clone, bare = make_repo_with_origin(tmp_path, repo.short_name)
+        clone, bare = make_repo_with_origin(tmp_path, repo.slug, repo.name)
         (fix_dir / "repos").mkdir(exist_ok=True)
-        clone.rename(fix_dir / "repos" / repo.short_name)
+        clone.rename(fix_dir / "repos" / repo.slug)
         origins[repo.name] = bare
     return fix_dir, origins
 

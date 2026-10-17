@@ -386,7 +386,7 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
 
 def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     """Inner processing — raises ShutdownError to signal interrupt."""
-    repo_dir = ctx.repos_dir / repo.short_name
+    repo_dir = ctx.repos_dir / repo.slug
 
     ctx.pd.set_phase(repo.name, "cloning")
     try:

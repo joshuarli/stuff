@@ -138,7 +138,7 @@ def _make_git_repo(dest: Path) -> None:
 
 
 def _mock_clone_git() -> Any:
-    """Return a subprocess.run side_effect that stubs out clone/fetch/reset."""
+    """Stub the clone reset. A real `git clean -fd` would delete fixture files."""
     original_run = subprocess.run
 
     def side_effect(cmd: Any, **kwargs: Any) -> subprocess.CompletedProcess[Any]:
@@ -151,6 +151,8 @@ def _mock_clone_git() -> Any:
                 "git reset --hard",
                 "git branch --list --format",
                 "git checkout --force",
+                "git remote set-url",
+                "git clean",
             )
         ):
             return subprocess.CompletedProcess(cmd, 0, stdout="main\n", stderr="")
@@ -344,7 +346,7 @@ def test_e2e_dry_run_shows_diff(tmp_path: Path, capsys: Any) -> None:
     """Dry-run shows diff box, doesn't write status."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -362,7 +364,7 @@ def test_e2e_dry_run_shows_diff(tmp_path: Path, capsys: Any) -> None:
 def test_e2e_dry_run_no_changes(tmp_path: Path, capsys: Any) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir, body="    return False")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -381,7 +383,7 @@ def test_e2e_dry_run_multiple_repos(tmp_path: Path, capsys: Any) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir, body="    return False")
     for repo in [REPO_A, REPO_B, REPO_C]:
-        _make_git_repo(fix_dir / "repos" / repo.short_name)
+        _make_git_repo(fix_dir / "repos" / repo.slug)
 
     with _mock_sync(repos=[REPO_A, REPO_B, REPO_C]), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -450,7 +452,7 @@ def test_e2e_stale_hash_reruns(tmp_path: Path, capsys: Any) -> None:
     """Repos with pr_created but stale fix_hash get re-processed."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     _write_status(
         fix_dir,
@@ -478,7 +480,7 @@ def test_e2e_fix_failure_writes_status_and_log(tmp_path: Path) -> None:
     """Fix exception: status=failed with reason, traceback in log file."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir, body="    raise RuntimeError('boom')")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -507,9 +509,9 @@ def test_e2e_failure_does_not_taint_other_repos(tmp_path: Path) -> None:
     return False
 """,
     )
-    _make_git_repo(fix_dir / "repos" / REPO_A.short_name)
-    _make_git_repo(fix_dir / "repos" / REPO_B.short_name)
-    (fix_dir / "repos" / REPO_B.short_name / ".fail").write_text("")
+    _make_git_repo(fix_dir / "repos" / REPO_A.slug)
+    _make_git_repo(fix_dir / "repos" / REPO_B.slug)
+    (fix_dir / "repos" / REPO_B.slug / ".fail").write_text("")
 
     with _mock_sync(repos=[REPO_A, REPO_B]), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -556,7 +558,7 @@ def test_e2e_new_workflow_errors_fail_the_repo_before_diff(
     """A fix that introduces workflow errors is failed, never shown or pushed."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
     finding = LintFinding(".github/workflows/ci.yml", 'undefined variable "foo"')
 
     with (
@@ -579,7 +581,7 @@ def test_e2e_dry_run_stores_patch_and_base_sha(tmp_path: Path) -> None:
     """The proposed diff is saved per fix hash, with the commit it applies to."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    repo_dir = fix_dir / "repos" / "test-repo"
+    repo_dir = fix_dir / "repos" / "acme-test-repo"
     _make_git_repo(repo_dir)
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -603,7 +605,7 @@ def test_e2e_dry_run_stores_patch_and_base_sha(tmp_path: Path) -> None:
 def test_e2e_no_changes_stores_no_patch(tmp_path: Path) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir, body="    return False")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -617,7 +619,7 @@ def test_e2e_apply_records_already_merged_pr_without_calling_it_created(
 ) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
     url = "https://github.com/acme/test-repo/pull/7"
 
     with (
@@ -695,7 +697,7 @@ def _write_fix_with_validate(fix_dir: Path, validate_body: str) -> None:
 def test_e2e_fix_defined_validation_errors_fail_the_repo(tmp_path: Path) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix_with_validate(fix_dir, "    return ['README.md: must not say changed']")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -710,7 +712,7 @@ def test_e2e_fix_defined_validation_errors_fail_the_repo(tmp_path: Path) -> None
 def test_e2e_passing_fix_validation_lets_the_diff_through(tmp_path: Path) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix_with_validate(fix_dir, "    return []")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -722,7 +724,7 @@ def test_e2e_passing_fix_validation_lets_the_diff_through(tmp_path: Path) -> Non
 def test_e2e_crashing_validate_fails_the_repo_with_a_traceback(tmp_path: Path) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix_with_validate(fix_dir, "    raise RuntimeError('validator bug')")
-    _make_git_repo(fix_dir / "repos" / "test-repo")
+    _make_git_repo(fix_dir / "repos" / "acme-test-repo")
 
     with _mock_sync(), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -736,8 +738,8 @@ def test_e2e_crashing_validate_fails_the_repo_with_a_traceback(tmp_path: Path) -
 def _dry_run_two_repos(tmp_path: Path) -> Path:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / REPO_A.short_name)
-    _make_git_repo(fix_dir / "repos" / REPO_B.short_name)
+    _make_git_repo(fix_dir / "repos" / REPO_A.slug)
+    _make_git_repo(fix_dir / "repos" / REPO_B.slug)
     with _mock_sync(repos=[REPO_B, REPO_A]), _mock_clone_git():
         run_fix.main([str(fix_dir), "--workers", "1"])
     return fix_dir
@@ -748,7 +750,7 @@ def test_dry_run_ends_with_each_pending_repos_diffstat(
 ) -> None:
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir)
-    _make_git_repo(fix_dir / "repos" / REPO_A.short_name)
+    _make_git_repo(fix_dir / "repos" / REPO_A.slug)
 
     with _mock_sync(repos=[REPO_A]), _mock_clone_git():
         run_fix.main([str(fix_dir)])
@@ -888,7 +890,7 @@ def test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupte
         ),
     )
     for repo in (REPO_A, REPO_B, REPO_C):
-        _make_git_repo(fix_dir / "repos" / repo.short_name)
+        _make_git_repo(fix_dir / "repos" / repo.slug)
     earlier = {
         "acme/repo-beta": {
             "status": "pending",
@@ -988,7 +990,7 @@ def _review_context(
     tmp_path: Path, edit: Any
 ) -> tuple[Repo, run_fix.RunContext, Path]:
     repo = Repo("acme/backend", "main", ["rust"])
-    repo_dir = tmp_path / "repos" / repo.short_name
+    repo_dir = tmp_path / "repos" / repo.slug
     _make_git_repo(repo_dir)
     logs_dir = tmp_path / "logs"
     logs_dir.mkdir()
@@ -1107,8 +1109,11 @@ def test_new_file_is_reviewed_and_committed_from_the_index(tmp_path: Path) -> No
     assert branch == "ci-fixes"
 
 
-def _repo_with_local_origin(tmp_path: Path, dest: Path) -> None:
-    """A clone whose origin is a local bare repo, so reuse can fetch offline."""
+def _repo_with_local_origin(tmp_path: Path, dest: Path, name: str) -> None:
+    """A clone whose origin is a local bare repo, so reuse can fetch offline.
+
+    `url.<bare>.insteadOf` sends the GitHub origin clone() pins back to that bare.
+    """
     seed = tmp_path / "seed"
     seed.mkdir()
     (seed / "README.md").write_text("hello\n")
@@ -1133,6 +1138,7 @@ def _repo_with_local_origin(tmp_path: Path, dest: Path) -> None:
     for args in (
         ["config", "user.email", "test@test.com"],
         ["config", "user.name", "Test"],
+        ["config", f"url.{bare}.insteadOf", f"https://github.com/{name}.git"],
     ):
         subprocess.run(["git", *args], cwd=dest, check=True, capture_output=True)
 
@@ -1148,8 +1154,8 @@ def test_apply_commits_the_stored_new_file_patch_without_rerunning_the_fix(
         (repo / "NOTES.md").write_text("shipped\n")
 
     repo = Repo("acme/backend", "main", ["rust"])
-    repo_dir = tmp_path / "repos" / repo.short_name
-    _repo_with_local_origin(tmp_path, repo_dir)
+    repo_dir = tmp_path / "repos" / repo.slug
+    _repo_with_local_origin(tmp_path, repo_dir, repo.name)
     outside = tmp_path / "repos" / "keep.txt"
     outside.write_text("keep\n")
     logs_dir = tmp_path / "logs"
@@ -1312,6 +1318,7 @@ def test_status_write_crash_keeps_the_reviewed_pair(tmp_path: Path) -> None:
     pending base_sha, and the other repos' patches stay put.
     """
     repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    _make_git_repo(ctx.repos_dir / repo.slug)
 
     def crash(*_args: object, **_kwargs: object) -> None:
         raise ShutdownError
@@ -1419,6 +1426,7 @@ def test_dry_run_publishes_a_new_pair_and_keeps_other_patches(
 ) -> None:
     """The new pending row and its patch show up together; other repos stay."""
     repo, ctx, _pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    _make_git_repo(ctx.repos_dir / repo.slug)
 
     def run_once(diff: str, base_sha: str) -> None:
         with (
@@ -1453,7 +1461,7 @@ def test_dry_run_publishes_a_new_pair_and_keeps_other_patches(
 def test_failed_get_diff_does_not_write_a_patch_or_status(tmp_path: Path) -> None:
     """git diff failing on the dry-run path must not become the reviewed patch."""
     repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
-    broken = ctx.repos_dir / repo.short_name
+    broken = ctx.repos_dir / repo.slug
     _make_git_repo(broken)
     (broken / ".git" / "index").write_bytes(b"not an index")
 
@@ -1564,7 +1572,7 @@ def test_a_skip_list_edit_after_a_dry_run_does_not_redo_the_dry_run(
     )
     (fix_dir / "config.yaml").write_text(BASE_CONFIG)
     for repo in (REPO_A, REPO_B):
-        _make_git_repo(fix_dir / "repos" / repo.short_name)
+        _make_git_repo(fix_dir / "repos" / repo.slug)
 
     with _mock_sync(repos=[REPO_A, REPO_B]), _mock_clone_git():
         run_fix.main([str(fix_dir), "--workers", "1"])

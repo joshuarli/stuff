@@ -220,12 +220,12 @@ def _run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _bare_repo(tmp_path: Path) -> Path:
+def _bare_repo(tmp_path: Path, readme: str = "hello\n") -> Path:
     """Local origin with a workflow, a root file, and a file outside both."""
     seed = tmp_path / "seed"
     (seed / ".github" / "workflows").mkdir(parents=True)
     (seed / ".github" / "workflows" / "ci.yml").write_text("name: ci\n")
-    (seed / "README.md").write_text("hello\n")
+    (seed / "README.md").write_text(readme)
     (seed / "src").mkdir()
     (seed / "src" / "main.py").write_text("print('hi')\n")
     for args in (
@@ -257,17 +257,19 @@ def _offline_clone(
     bare: Path,
     dest: Path,
     fail: Callable[[list[str]], bool] | None = None,
+    urls: dict[str, Path] | None = None,
 ) -> Generator[_CloneSpy]:
-    """Rewrite GitHub clone URLs to `bare` and skip retry sleeps."""
+    """Rewrite GitHub clone URLs to local bare repos and skip retry sleeps."""
     original = subprocess.run
     spy = _CloneSpy()
+    mapping = {_GITHUB: bare} if urls is None else urls
 
     def side_effect(cmd: Any, **kwargs: Any) -> subprocess.CompletedProcess[Any]:
         argv = [str(part) for part in cmd]
         spy.commands.append(argv)
         if fail is not None and fail(argv):
             raise subprocess.CalledProcessError(1, argv, stderr="git failed")
-        rewritten = [str(bare) if part == _GITHUB else part for part in argv]
+        rewritten = [str(mapping[part]) if part in mapping else part for part in argv]
         return original(rewritten, **kwargs)
 
     def wait(_seconds: float) -> None:
@@ -407,3 +409,79 @@ def test_failed_sparse_checkout_set_removes_the_dest_before_the_next_attempt(
 
     assert spy.dest_existed_before_retry == [False, False]
     assert not dest.exists()
+
+
+def test_clone_fetches_the_other_repo_when_the_short_name_is_shared(
+    tmp_path: Path,
+) -> None:
+    """Dest at the slug path still has acme/backend as origin.
+
+    other/backend shares the short name. Reuse must fetch that repo, into
+    repos/other-backend, and leave repos/backend on acme's tree.
+    """
+    repos = tmp_path / "repos"
+    repos.mkdir()
+    bare_a = _bare_repo(tmp_path / "acme", readme="from-acme\n")
+    bare_b = _bare_repo(tmp_path / "other", readme="from-other\n")
+    short = repos / "backend"
+    dest = repos / "other-backend"
+    _clone_local(bare_a, short, sparse=False)
+    _clone_local(bare_a, dest, sparse=False)
+    url_b = "https://github.com/other/backend.git"
+
+    with _offline_clone(bare_b, dest, urls={_GITHUB: bare_a, url_b: bare_b}) as spy:
+        git.clone("other/backend", BRANCH, dest, None)
+
+    origin = _run_git(dest, "remote", "get-url", "origin").stdout.strip()
+    assert origin == str(bare_b)
+    assert (dest / "README.md").read_text() == "from-other\n"
+    assert dest == repos / "other-backend"
+    assert (short / "README.md").read_text() == "from-acme\n"
+    assert _run_git(short, "remote", "get-url", "origin").stdout.strip() == str(bare_a)
+    set_url = [
+        cmd
+        for cmd in spy.commands
+        if cmd[:4] == ["git", "remote", "set-url", "origin"]
+    ]
+    assert set_url == [["git", "remote", "set-url", "origin", url_b]]
+    set_at = spy.commands.index(set_url[0])
+    fetch_at = next(
+        i for i, cmd in enumerate(spy.commands) if _git_subcommand(cmd, "fetch")
+    )
+    assert set_at < fetch_at
+
+
+def test_clone_refuses_a_dest_symlink_that_resolves_outside_repos(
+    tmp_path: Path,
+) -> None:
+    """A symlink checkout must not be fetched, reset, or cleaned."""
+    bare = _bare_repo(tmp_path / "origin")
+    repos = tmp_path / "repos"
+    repos.mkdir()
+    outside = tmp_path / "outside"
+    _clone_local(bare, outside, sparse=False)
+    canary = outside / "CANARY"
+    canary.write_text("keep\n")
+    dest = repos / "acme-backend"
+    dest.symlink_to(outside, target_is_directory=True)
+    head = _run_git(outside, "rev-parse", "HEAD").stdout
+
+    with (
+        _offline_clone(bare, dest) as spy,
+        pytest.raises(ValueError, match="resolves to"),
+    ):
+        git.clone(REPO, BRANCH, dest, None)
+
+    assert canary.read_text() == "keep\n"
+    assert (outside / "README.md").read_text() == "hello\n"
+    assert _run_git(outside, "rev-parse", "HEAD").stdout == head
+    assert dest.is_symlink()
+    assert [
+        cmd
+        for cmd in spy.commands
+        if _git_subcommand(cmd, "fetch")
+        or _git_subcommand(cmd, "clone")
+        or cmd[:3] == ["git", "reset", "--hard"]
+        or cmd[:3] == ["git", "clean", "-fd"]
+        or cmd[:3] == ["git", "checkout", "--force"]
+    ] == []

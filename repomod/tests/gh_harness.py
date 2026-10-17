@@ -232,8 +232,12 @@ def _repo_template() -> tuple[Path, Path]:
     return _templates[1], _templates[2]
 
 
-def make_repo_with_origin(base: Path, name: str) -> tuple[Path, Path]:
-    """A working clone whose `origin` is a local bare repo. Returns (clone, bare)."""
+def make_repo_with_origin(base: Path, name: str, github_name: str) -> tuple[Path, Path]:
+    """A working clone whose `origin` is a local bare repo. Returns (clone, bare).
+
+    clone() pins origin to `https://github.com/{github_name}.git` before fetch.
+    insteadOf sends that URL, and the later push, back to this bare.
+    """
     template_bare, template_clone = _repo_template()
     bare = base / "origins" / f"{name}.git"
     clone = base / "clones" / name
@@ -242,6 +246,12 @@ def make_repo_with_origin(base: Path, name: str) -> tuple[Path, Path]:
     shutil.copytree(template_bare, bare)
     shutil.copytree(template_clone, clone)
     _git(clone, "remote", "set-url", "origin", str(bare))
+    _git(
+        clone,
+        "config",
+        f"url.{bare}.insteadOf",
+        f"https://github.com/{github_name}.git",
+    )
     return clone, bare
 
 
@@ -262,6 +272,7 @@ def offline_clone() -> Any:
                 "git reset --hard",
                 "git checkout --force",
                 "git branch --list --format",
+                "git remote set-url",
             )
         ):
             return subprocess.CompletedProcess(cmd, 0, stdout="main\n", stderr="")

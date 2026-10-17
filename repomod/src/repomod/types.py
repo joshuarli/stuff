@@ -35,11 +35,6 @@ class Repo:
         """'acme/backend' → 'acme-backend'"""
         return self.name.replace("/", "-")
 
-    @property
-    def short_name(self) -> str:
-        """'acme/backend' → 'backend'"""
-        return self.name.split("/", 1)[1]
-
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Repo:
         return cls(

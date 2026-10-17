@@ -128,7 +128,22 @@ def _remove_clone(dest: Path) -> None:
         logger.warning("failed to remove incomplete clone at %s: %s", dest, exc)
 
 
-def _reset_existing_clone(default_branch: str, dest: Path) -> None:
+def _checkout_in_repos(dest: Path) -> Path:
+    # cwd and --work-tree follow a symlink, so a link planted at dest is not
+    # the path git may write. The parent is that fix's repos directory.
+    repos = dest.parent.resolve()
+    real = dest.resolve()
+    if repos not in real.parents:
+        raise ValueError(f"{dest} resolves to {real}, outside {repos}")
+    return real
+
+
+def _reset_existing_clone(name: str, default_branch: str, dest: Path) -> None:
+    interrupt.check()
+    git_run(
+        ["remote", "set-url", "origin", f"https://github.com/{name}.git"],
+        cwd=dest,
+    )
     interrupt.check()
     git_run(["checkout", "--force", default_branch], cwd=dest)
     interrupt.check()
@@ -179,7 +194,7 @@ def _clone_repo(
     if dest.exists() and not _reusable_clone(dest, sparse_paths):
         shutil.rmtree(dest)
     if dest.exists():
-        _reset_existing_clone(default_branch, dest)
+        _reset_existing_clone(name, default_branch, dest)
     else:
         _clone_fresh(name, dest, sparse_paths)
     _apply_sparse_cone(dest, sparse_paths)
@@ -194,7 +209,10 @@ def clone(
     Reuse `.git` only when HEAD resolves and the sparse cone matches. Apply that
     cone after a reuse, and clear it when `sparse_paths` is None. A failed
     attempt deletes the dest before the next try, including the last one.
+    The resolved dest must stay inside its parent. A reusable clone's origin is
+    set to `https://github.com/{name}.git` before fetch.
     """
+    dest = _checkout_in_repos(dest)
     try:
         _clone_repo(name, default_branch, dest, sparse_paths)
     except ShutdownError:
@@ -273,14 +291,13 @@ def checkout_branch(repo_dir: Path, branch: str) -> None:
 
 
 def stage_worktree(repo_dir: Path) -> None:
-    interrupt.check()
+    # No interrupt check: a dry run that already ran the fix still stages and
+    # publishes. ^C stops the next repo, and --apply stops before push.
     git_run(["add", "--all"], cwd=repo_dir)
-    interrupt.check()
 
 
 def unstage(repo_dir: Path) -> None:
     """Drop the index after the diff is saved. The worktree stays as the fix left it."""
-    interrupt.check()
     git_run(["reset", "--quiet"], cwd=repo_dir)
 
 

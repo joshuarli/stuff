@@ -144,7 +144,7 @@ def test_apply_reruns_the_fix_when_the_repo_moved_since_the_dry_run(
 ) -> None:
     """The stored diff was made against an older commit, so it can't be trusted."""
     fix_dir, run_log, origins = _logged_fix_setup(tmp_path, monkeypatch)
-    alpha = fix_dir / "repos" / "repo-alpha"
+    alpha = fix_dir / "repos" / "acme-repo-alpha"
 
     def upstream_moves() -> None:
         (alpha / "NEWS.md").write_text("new upstream work")
