@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-10 · P3 · --help says the repo cache expires after one hour
-
-- **Area:** Config
-- **Where:** `src/repomod/main.py:96`, `src/repomod/main.py:761`, `README.md:40`
-- **Problem:** `SYNC_MAX_AGE` is 24 hours, and the README matches it. The `--refresh` help says the cache is used when it is `<1h` old. An operator who trusts `--help` will not pass `--refresh` and will apply against a stale `repos.yaml`.
-- **Recommendation:** Build that help string from `SYNC_MAX_AGE`.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### RPMD-11 · P3 · Rollout state sits in the package and is not ignored
 
 - **Area:** Operability

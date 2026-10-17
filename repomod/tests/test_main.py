@@ -817,6 +817,16 @@ def test_diffs_with_nothing_pending_says_so(tmp_path: Path, capsys: Any) -> None
     assert "No pending dry-run changes" in capsys.readouterr().out
 
 
+def test_refresh_help_states_the_sync_cache_age(capsys: Any) -> None:
+    with pytest.raises(SystemExit) as raised:
+        run_fix.main(["--help"])
+
+    assert raised.value.code == 0
+    help_text = capsys.readouterr().out
+    assert run_fix.format_age(run_fix.SYNC_MAX_AGE) in help_text
+    assert "1h" not in help_text
+
+
 def _repos_file_aged(path: Path, hours: float) -> None:
     old = time.time() - hours * 3600
     os.utime(path, (old, old))

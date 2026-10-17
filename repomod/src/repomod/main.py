@@ -942,7 +942,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--refresh",
         action="store_true",
-        help="Force repo sync (default: use cache if <1h old)",
+        help=f"Force repo sync (default: use cache if <{format_age(SYNC_MAX_AGE)} old)",
     )
     args = parser.parse_args(argv)
 
