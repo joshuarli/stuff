@@ -589,8 +589,12 @@ def run_work(ctx: RunContext, work: list[WorkItem], workers: int) -> bool:
     return was_interrupted
 
 
+def _recorded_pr_url(info: dict[str, str]) -> str | None:
+    return info.get("pr_url")
+
+
 def cache_pr_node_ids(all_status: Status, status_file: Path) -> None:
-    """Record node ids for PRs whose id isn't known yet (ones just created).
+    """Record node ids for recorded PRs whose id isn't known yet.
 
     `gh pr create` only prints a URL. One batched lookup here means later
     commands (e.g. --undraft) can address PRs by id without searching.
@@ -598,9 +602,7 @@ def cache_pr_node_ids(all_status: Status, status_file: Path) -> None:
     missing = {
         name: info["pr_url"]
         for name, info in all_status.items()
-        if info.get("status") == "pr_created"
-        and info.get("pr_url") is not None
-        and info.get("pr_node_id") is None
+        if _recorded_pr_url(info) is not None and info.get("pr_node_id") is None
     }
     if not missing:
         return
@@ -631,8 +633,7 @@ def undraft_command(fix_dir: Path, args: argparse.Namespace) -> int:
     ours = {
         name: info
         for name, info in all_status.items()
-        if info.get("status") == "pr_created"
-        and info.get("pr_url") is not None
+        if _recorded_pr_url(info) is not None
         and (only_repos is None or name in only_repos)
     }
 

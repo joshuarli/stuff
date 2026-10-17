@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-3 · P2 · A later status write deletes the PR identity, so --undraft reports nothing
-
-- **Area:** Data
-- **Where:** `src/repomod/status.py:42`, `src/repomod/main.py:423`, `src/repomod/main.py:630`
-- **Problem:** `set_status` replaces the whole repo record. A follow-up `pending` write after `pr_created` dropped `pr_url` and `pr_node_id` (reproduced with `set_status`). That write happens whenever the fix hash changes and the repo is processed again. `--undraft` and the node-id cache select only `status == "pr_created"`, so those draft PRs stay open and the command exits 0.
-- **Recommendation:** Merge fields into the existing record so `pr_url` and `pr_node_id` survive a later attempt. Select undraft candidates by those fields, then keep the live open-and-draft check.
-- **Fix with:** make-invalid-states-unrepresentable
-- **Effort:** M
-
 ### RPMD-4 · P2 · A scalar skip list fails open and the repo runs
 
 - **Area:** Types

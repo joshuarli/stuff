@@ -88,7 +88,7 @@ def _replace_row(
 ) -> None:
     with _lock:
         previous = all_status.get(repo_name)
-        all_status[repo_name] = fields
+        all_status[repo_name] = _with_pr_identity(previous, fields)
         try:
             _publish(path.parent, all_status, patch_writes)
         except Exception:
@@ -97,6 +97,23 @@ def _replace_row(
             else:
                 all_status[repo_name] = previous
             raise
+
+
+def _with_pr_identity(
+    previous: dict[str, str] | None, fields: dict[str, str]
+) -> dict[str, str]:
+    if previous is None:
+        return fields
+    wrote_url = "pr_url" in fields
+    url_unchanged = not wrote_url or fields["pr_url"] == previous.get("pr_url")
+    kept: dict[str, str] = {}
+    if not wrote_url and "pr_url" in previous:
+        kept["pr_url"] = previous["pr_url"]
+    if url_unchanged and "pr_node_id" not in fields and "pr_node_id" in previous:
+        kept["pr_node_id"] = previous["pr_node_id"]
+    if not kept:
+        return fields
+    return {**fields, **kept}
 
 
 def _publish(

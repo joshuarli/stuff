@@ -8,7 +8,7 @@ from gh_harness import FakeGh, node_id, search_item
 from test_main import _write_fix
 
 from repomod import main as run_fix
-from repomod.status import atomic_write_yaml, load_status
+from repomod.status import atomic_write_yaml, load_status, publish_reviewed, set_status
 
 LOOKUP = "nodes(ids"
 MUTATION = "markPullRequestReadyForReview"
@@ -194,3 +194,219 @@ def test_nothing_recorded_means_nothing_to_do(
 
     assert "No draft PRs" in capsys.readouterr().out
     assert fake_gh.calls() == []
+
+
+def test_pending_rewrite_keeps_the_pr_and_undraft_still_lists_it(
+    tmp_path: Path, fake_gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The dry-run pending write must not forget a draft recorded earlier.
+
+    The fix hash changed, so the repo is processed again. The new row is
+    pending and carries no PR fields. The open draft is still that PR.
+    """
+    url = "https://github.com/acme/backend/pull/4"
+    node = node_id("acme/backend", 4)
+    fix_dir = _setup(
+        tmp_path,
+        {
+            "acme/backend": {
+                "status": "pr_created",
+                "pr_url": url,
+                "pr_node_id": node,
+                "reason": "stale",
+                "fix_hash": "oldhash",
+                "base_sha": "oldsha",
+            }
+        },
+    )
+    status_file = fix_dir / "status.yaml"
+    all_status = load_status(status_file)
+    publish_reviewed(
+        all_status,
+        status_file,
+        "acme/backend",
+        "diff --git a/README.md b/README.md\n",
+        status="pending",
+        fix_hash="newhash",
+        base_sha="newsha",
+    )
+
+    row = load_status(status_file)["acme/backend"]
+    assert row["pr_url"] == url
+    assert row["pr_node_id"] == node
+    assert row["status"] == "pending"
+    assert row["fix_hash"] == "newhash"
+    assert row["base_sha"] == "newsha"
+    assert "reason" not in row
+    assert all_status["acme/backend"] == row
+
+    fake_gh.configure(search_items=[search_item("acme/backend", 4, "open", draft=True)])
+    assert run_fix.main([str(fix_dir), "--undraft"]) == 0
+    out = capsys.readouterr().out
+    assert "acme/backend" in out
+    assert url in out
+    assert "No draft PRs" not in out
+
+
+def test_the_same_pr_url_keeps_the_node_id_and_a_new_id_replaces_it(
+    tmp_path: Path,
+) -> None:
+    """The same URL still names that PR. Setting the node id uses the new value."""
+    url = "https://github.com/acme/backend/pull/4"
+    old_node = node_id("acme/backend", 4)
+    new_node = node_id("acme/backend", 8)
+    fix_dir = _setup(
+        tmp_path,
+        {
+            "acme/backend": {
+                "status": "pr_created",
+                "pr_url": url,
+                "pr_node_id": old_node,
+                "reason": "stale",
+                "fix_hash": "oldhash",
+                "base_sha": "oldsha",
+            }
+        },
+    )
+    status_file = fix_dir / "status.yaml"
+    all_status = load_status(status_file)
+    publish_reviewed(
+        all_status,
+        status_file,
+        "acme/backend",
+        "diff --git a/README.md b/README.md\n",
+        status="pending",
+        pr_url=url,
+        fix_hash="newhash",
+        base_sha="newsha",
+    )
+
+    row = load_status(status_file)["acme/backend"]
+    assert row["pr_url"] == url
+    assert row["pr_node_id"] == old_node
+    assert row["status"] == "pending"
+    assert row["fix_hash"] == "newhash"
+    assert row["base_sha"] == "newsha"
+    assert "reason" not in row
+
+    set_status(
+        all_status,
+        status_file,
+        "acme/backend",
+        status="failed",
+        reason="clone failed",
+        pr_node_id=new_node,
+    )
+    row = load_status(status_file)["acme/backend"]
+    assert row == {
+        "status": "failed",
+        "reason": "clone failed",
+        "pr_node_id": new_node,
+        "pr_url": url,
+    }
+
+
+def test_undraft_resolves_a_pending_row_that_has_no_cached_node_id(
+    tmp_path: Path, fake_gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The PR URL is the candidate, even when the row is no longer pr_created."""
+    url = "https://github.com/acme/backend/pull/4"
+    fix_dir = _setup(
+        tmp_path,
+        {
+            "acme/backend": {
+                "status": "pending",
+                "pr_url": url,
+                "fix_hash": "abc123",
+                "base_sha": "abc",
+            }
+        },
+    )
+    fake_gh.configure(search_items=[search_item("acme/backend", 4, "open", draft=True)])
+
+    assert run_fix.main([str(fix_dir), "--undraft"]) == 0
+
+    out = capsys.readouterr().out
+    assert "acme/backend" in out
+    assert url in out
+    assert load_status(fix_dir / "status.yaml")["acme/backend"]["pr_node_id"] == (
+        node_id("acme/backend", 4)
+    )
+    assert len(fake_gh.graphql(RESOLVE)) == 1
+
+
+def test_a_different_pr_url_drops_the_previous_node_id(
+    tmp_path: Path, fake_gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """gh pr create returns a new URL and no node id. The old id must not stick.
+
+    Otherwise the cache sees an id and skips the new URL, and --undraft
+    addresses the previous PR.
+    """
+    old_url = "https://github.com/acme/backend/pull/4"
+    new_url = "https://github.com/acme/backend/pull/8"
+    fix_dir = _setup(
+        tmp_path,
+        {
+            "acme/backend": {
+                "status": "pr_created",
+                "pr_url": old_url,
+                "pr_node_id": node_id("acme/backend", 4),
+                "fix_hash": "oldhash",
+                "base_sha": "oldsha",
+            }
+        },
+    )
+    status_file = fix_dir / "status.yaml"
+    all_status = load_status(status_file)
+    publish_reviewed(
+        all_status,
+        status_file,
+        "acme/backend",
+        "diff --git a/README.md b/README.md\n",
+        status="pr_created",
+        pr_url=new_url,
+        fix_hash="newhash",
+        base_sha="newsha",
+    )
+
+    row = load_status(status_file)["acme/backend"]
+    assert row["pr_url"] == new_url
+    assert "pr_node_id" not in row
+    assert "pr_node_id" not in all_status["acme/backend"]
+
+    fake_gh.configure(search_items=[search_item("acme/backend", 8, "open", draft=True)])
+    run_fix.cache_pr_node_ids(all_status, status_file)
+    assert load_status(status_file)["acme/backend"]["pr_node_id"] == node_id(
+        "acme/backend", 8
+    )
+
+    assert run_fix.main([str(fix_dir), "--undraft"]) == 0
+    out = capsys.readouterr().out
+    assert new_url in out
+    assert old_url not in out
+
+
+def test_cache_pr_node_ids_uses_the_pr_url_not_the_status(
+    tmp_path: Path, fake_gh: FakeGh
+) -> None:
+    url = "https://github.com/acme/backend/pull/4"
+    fix_dir = _setup(
+        tmp_path,
+        {
+            "acme/backend": {
+                "status": "pending",
+                "pr_url": url,
+                "fix_hash": "abc123",
+            }
+        },
+    )
+    status_file = fix_dir / "status.yaml"
+    all_status = load_status(status_file)
+
+    run_fix.cache_pr_node_ids(all_status, status_file)
+
+    assert load_status(status_file)["acme/backend"]["pr_node_id"] == node_id(
+        "acme/backend", 4
+    )
+    assert len(fake_gh.graphql(RESOLVE)) == 1
