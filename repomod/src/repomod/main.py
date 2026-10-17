@@ -717,15 +717,18 @@ def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
         # their own statuses so they aren't reported as freshly created.
         pr_status = "pr_created" if pr.state == "OPEN" else f"pr_{pr.state.lower()}"
+        fields: dict[str, str] = {"status": pr_status, "pr_url": pr.url}
+        if pr.state == "OPEN":
+            fields["pushed_sha"] = head_sha(repo_dir)
+        fields["fix_hash"] = ctx.fix_hash
+        fields["base_sha"] = base_sha
+        if pr.node_id:
+            fields["pr_node_id"] = pr.node_id
         if not _publish_review(
             ctx,
             repo,
             diff,
-            status=pr_status,
-            pr_url=pr.url,
-            fix_hash=ctx.fix_hash,
-            base_sha=base_sha,
-            **({"pr_node_id": pr.node_id} if pr.node_id else {}),
+            **fields,
         ):
             return
         if pr.state == "OPEN":

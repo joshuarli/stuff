@@ -12,6 +12,7 @@ from test_apply_gh_calls import _setup
 from test_main import REPO_A, _mock_sync
 
 from repomod import main as run_fix
+from repomod.status import load_status
 
 
 def _record_git(commands: list[list[str]]) -> Any:
@@ -112,3 +113,13 @@ def test_normal_branch_is_fetched_checked_out_and_pushed(
     ).stdout
     assert pushed == "changed"
     assert fake_gh.count("pr", "create", repo=REPO_A.name) == 1
+    tip = subprocess.run(
+        ["git", "rev-parse", "test-branch"],
+        cwd=bare,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    row = load_status(fix_dir / "status.yaml")["acme/repo-alpha"]
+    assert row["pr_url"]
+    assert row["pushed_sha"] == tip

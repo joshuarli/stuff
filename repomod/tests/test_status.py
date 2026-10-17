@@ -22,6 +22,23 @@ from repomod.status import (
 from repomod.types import FixConfig, RolloutPR
 
 
+def test_load_status_accepts_a_pr_row_without_pushed_sha(tmp_path: Path) -> None:
+    """Rows written before pushed_sha existed still load, field absent."""
+    path = tmp_path / "status.yaml"
+    row = {
+        "status": "pr_created",
+        "fix_hash": "abc123",
+        "base_sha": "deadbeef",
+        "pr_url": "https://github.com/acme/backend/pull/7",
+    }
+    atomic_write_yaml({"acme/backend": row}, path)
+
+    loaded = load_status(path)["acme/backend"]
+
+    assert loaded == row
+    assert "pushed_sha" not in loaded
+
+
 def test_dump_then_load_repos_yaml(tmp_path: Path) -> None:
     repos = [
         {

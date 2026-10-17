@@ -10,16 +10,6 @@ Next: 31
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-24 · P3 · Force-push replaces commits added on an open fix branch
-
-- **Area:** Data
-- **Where:** `src/repomod/git.py:61`, `src/repomod/git.py:195`, `README.md:75`
-- **Problem:** `clone` fetches only the default branch and deletes every other local branch. The fix branch is recreated from that tip and pushed with `--force`. Nothing fetches the remote fix branch or uses `--force-with-lease`. A later `--apply` that is not skipped replaces reviewer commits on the open PR. The README now states that. Keeping the force-push is what makes a re-run idempotent. Switching to a lease changes that contract.
-- **Recommendation:** Keep the force-push unless you want reviewer commits to block the next apply. The choice is in the RFC.
-- **Fix with:** durable-state
-- **Effort:** M
-- **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
-
 ### RPMD-30 · P3 · Checkout, stage, and a clone OSError still abort the run
 
 - **Area:** Errors

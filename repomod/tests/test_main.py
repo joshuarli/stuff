@@ -679,6 +679,7 @@ def test_e2e_apply_records_already_merged_pr_without_calling_it_created(
     entry = load_status(fix_dir / "status.yaml")["acme/test-repo"]
     assert entry["status"] == "pr_merged"
     assert entry["pr_url"] == url
+    assert "pushed_sha" not in entry
 
 
 def test_filter_merged_and_closed_prs_are_done() -> None:

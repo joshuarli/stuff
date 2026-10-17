@@ -4,6 +4,7 @@ Runs the real pipeline (git against local bare origins) with a fake `gh` that
 records every call, so a run's call count is asserted exactly.
 """
 
+import subprocess
 from itertools import pairwise
 from pathlib import Path
 
@@ -86,6 +87,16 @@ def test_existing_prs_are_looked_up_once_not_per_repo(
         status["acme/repo-gamma"]["pr_url"]
         == "https://github.com/acme/repo-gamma/pull/9"
     )
+    assert "pushed_sha" not in status["acme/repo-gamma"]
+    for name in ("acme/repo-alpha", "acme/repo-beta"):
+        tip = subprocess.run(
+            ["git", "rev-parse", BRANCH],
+            cwd=origins[name],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        assert status[name]["pushed_sha"] == tip
 
 
 def test_pr_merged_during_the_fix_is_not_force_pushed(
@@ -131,6 +142,7 @@ def test_pr_merged_during_the_fix_is_not_force_pushed(
         status["acme/repo-beta"]["pr_url"]
         == "https://github.com/acme/repo-beta/pull/7"
     )
+    assert "pushed_sha" not in status["acme/repo-beta"]
     assert status["acme/repo-beta"]["pr_node_id"] == node_id("acme/repo-beta", 7)
 
 
@@ -173,6 +185,7 @@ def test_refresh_that_drops_a_merged_pr_does_not_push_it(
         status["acme/repo-gamma"]["pr_url"]
         == "https://github.com/acme/repo-gamma/pull/9"
     )
+    assert "pushed_sha" not in status["acme/repo-gamma"]
 
 
 def test_pr_missing_from_stale_search_falls_back_to_the_existing_pr(

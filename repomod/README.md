@@ -50,7 +50,7 @@ up where this one stopped. Press `^C` again to terminate immediately.
 repomod writes these files next to each fix:
 
 - `status.yaml`: each repo's status, the fix hash it ran with, the base commit `base_sha`,
-  and the PR URL.
+  the PR URL, and `pushed_sha` (the commit last force-pushed, only after a push).
 - `patches-{hash}/`: each repo's proposed diff.
 - `logs-{hash}/`: details for repos with status `failed`.
 - `repos/`: the clones.
@@ -80,8 +80,10 @@ are not run again. A dry run also skips `pending` repos. Repos with status `fail
 `--apply` pushes the stored diff from `patches-{hash}/` when HEAD is still `base_sha`.
 If HEAD moved, or the diff is missing or does not apply, repomod re-runs the fix.
 A push to an open PR is a force-push: commits added on that branch after the PR opened
-are replaced. repomod never pushes when that PR is merged or closed. To roll out again,
-change `branch` in `config.yaml`.
+are replaced. `pushed_sha` is the branch tip that push sent. repomod never pushes when
+that PR is merged or closed, and then it does not write `pushed_sha`. Branch names are
+compared exactly (`Main` is not `main`). To roll out again, change `branch` in
+`config.yaml`. Older rows without `pushed_sha` still load.
 
 ## Write a fix
 
