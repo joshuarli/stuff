@@ -356,7 +356,6 @@ def test_e2e_dry_run_shows_diff(tmp_path: Path, capsys: Any) -> None:
 
 
 def test_e2e_dry_run_no_changes(tmp_path: Path, capsys: Any) -> None:
-    """No-change repos show ✓, no status written, never marked interrupted."""
     fix_dir = tmp_path / "fix"
     _write_fix(fix_dir, body="    return False")
     _make_git_repo(fix_dir / "repos" / "test-repo")

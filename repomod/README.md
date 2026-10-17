@@ -37,8 +37,7 @@ repomod pin-gha --refresh          # re-sync repos.yaml even if the cache is fre
 repomod pin-gha --workers 1        # run one repo at a time, for debugging
 ```
 
-repomod reuses `repos.yaml` when it is less than 24 hours old. `--workers` defaults to 8 on
-machines with 4 or more CPUs.
+repomod reuses `repos.yaml` when it is less than 24 hours old.
 
 Go in stages: `--plan`, then `--limit 5`, then a full dry run, then `--apply`. Every PR opens
 as a draft. Run `--undraft --apply` after you review the rollout.
@@ -70,10 +69,11 @@ With a matching hash, repos with status `pr_created`, `pr_merged`, `pr_closed`, 
 are not run again. A dry run also skips `pending` repos. Repos with status `failed` or
 `interrupted` always run again.
 
-`--apply` pushes the stored dry-run diff from `patches-{hash}/` without re-running the fix,
-as long as the repo's HEAD is still `base_sha`. Otherwise it re-runs the fix. repomod never
-pushes to a branch whose PR is merged or closed. To roll out again, change `branch` in
-`config.yaml`.
+`--apply` pushes the stored diff from `patches-{hash}/` when HEAD is still `base_sha`.
+If HEAD moved, or the diff is missing or does not apply, repomod re-runs the fix.
+A push to an open PR is a force-push: commits added on that branch after the PR opened
+are replaced. repomod never pushes when that PR is merged or closed. To roll out again,
+change `branch` in `config.yaml`.
 
 ## Write a fix
 

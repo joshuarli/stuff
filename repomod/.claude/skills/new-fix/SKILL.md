@@ -31,8 +31,8 @@ Then run `make test`, `uv run ruff check src tests`, and `uv run ty check`.
 
 ## 3. Dry-run
 
-A dry run pushes nothing, but it clones real repos and writes `status.yaml` and `logs-*`, so
-go in stages:
+A dry run pushes nothing, but it clones real repos and writes `status.yaml` and
+`patches-{hash}/` (and `logs-{hash}/` for failures), so go in stages:
 
 1. `uv run repomod <name> --plan`
 2. `uv run repomod <name> --limit 5`, then inspect the diffs

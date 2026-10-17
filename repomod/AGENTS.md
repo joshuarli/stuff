@@ -14,6 +14,7 @@ uv run ty check
 
 - Usage, outputs, re-run behavior, and the fix interface: [README.md](README.md)
 - Reliability, API budget, interrupts, idempotency, and sync internals: [docs/design.md](docs/design.md)
+- Open decisions: [docs/rfc/](docs/rfc/)
 - Adding a fix: [.claude/skills/new-fix/SKILL.md](.claude/skills/new-fix/SKILL.md)
 
 ## Where things belong

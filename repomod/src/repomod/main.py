@@ -444,10 +444,6 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
         # their own statuses so they aren't reported as freshly created.
         pr_status = "pr_created" if pr.state == "OPEN" else f"pr_{pr.state.lower()}"
-        # Write status BEFORE finish — if ^C hits between, the interrupt
-        # handler sees repo NOT in _completed but status.yaml has pr_created.
-        # Safe: _completed check prevents overwriting with "interrupted".
-        # Reverse order would be worse: finish → set_status gap could lose data.
         set_status(
             ctx.all_status,
             ctx.status_file,

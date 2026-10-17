@@ -17,9 +17,6 @@ matrix values:
 This covers one-line lists ([a, b]), block lists (- a) and multi-line lists with one
 item per line. Anything more exotic can still end up with a duplicate; the pipeline's
 actionlint check then fails that repo instead of letting a broken workflow through.
-
-Deliberately self-contained, with no shared helpers: the fix hash covers only this
-directory, so behavior shared via another module could change without a new hash.
 """
 
 import re

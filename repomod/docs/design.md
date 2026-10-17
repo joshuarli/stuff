@@ -8,7 +8,7 @@ user's side, see [Re-running a fix](../README.md#re-running-a-fix).
 
 - Every subprocess call has a 120-second timeout (`SUBPROCESS_TIMEOUT` in `utils.py`).
 - Network calls in `git.py` and `sync.py` use `@retry`: 3 attempts with exponential backoff.
-- `github_rate_limiter` spaces GitHub calls made through `gh_run` and `clone` by 0.25 seconds.
+- `github_rate_limiter` spaces `gh_run` and `clone` by 0.25 seconds and holds its lock for the whole command, so those processes do not overlap.
 - `pr_create_limiter` spaces PR creation and marking ready by 2 seconds. GitHub's secondary
   rate limits on creating content are much tighter than on reads.
 - One repo failing doesn't stop the run.
@@ -47,12 +47,13 @@ overwrite a recorded result with `interrupted`.
 entries stay current.
 
 `commit_and_push` is safe to re-run after a partial failure. It reuses an existing local
-branch, commits only when something is staged, and force-pushes the branch of an open PR.
+branch, commits only when something is staged, and force-pushes the branch of an open PR
+([RPMD-24](rfc/RPMD-24-force-push.md)).
 It never pushes to a branch whose PR is merged or closed, because that would resurrect a PR
 someone finished or rejected.
 
-`--apply` pushes the stored dry-run patch because re-running a fix can resolve differently the
-second time. If the patch is stale, unreadable, or doesn't apply, repomod re-runs the fix.
+`--apply` pushes the stored patch because a second fix run can resolve differently.
+The merged-or-closed check is GitHub issue search, which returns at most 1000 hits.
 
 ## Repo sync
 
@@ -64,7 +65,6 @@ commit within `MAX_IDLE` (1 year) are dropped to cut PR noise. They are listed i
 
 ## Workflow validation
 
-`lint.py` validates a fix's output before repomod shows or pushes a diff. It runs actionlint
-on changed workflow files. If it finds errors, it lints the same files with the changes
-stashed, and only errors the fix introduced fail the repo. A fix can add its own checks with `validate`. `preflight`
-requires `actionlint` for every command that runs a fix.
+`lint.py` runs actionlint on changed workflow files before a diff is shown or pushed.
+It stashes the edits to measure the baseline, and only findings the fix introduced fail
+the repo. `preflight` requires `actionlint` for every command that runs a fix.
