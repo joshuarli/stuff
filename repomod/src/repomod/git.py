@@ -336,6 +336,13 @@ def require_branch_name(branch: str) -> None:
         raise InvalidBranchError(branch)
 
 
+def refuse_default_branch(branch: str, default_branch: str) -> None:
+    if branch == default_branch:
+        raise DefaultBranchError(
+            f"fix branch {branch} is the repo's default branch"
+        )
+
+
 def commit_and_push(
     repo_dir: Path,
     pr: PRSpec,
@@ -359,10 +366,7 @@ def commit_and_push(
     commit. Comparison is exact: `Main` and `main` are different branches.
     `git push --force` of the default branch would rewrite it.
     """
-    if pr.branch == default_branch:
-        raise DefaultBranchError(
-            f"fix branch {pr.branch} is the repo's default branch"
-        )
+    refuse_default_branch(pr.branch, default_branch)
 
     if known_pr and known_pr.state != "OPEN":
         return PRInfo(known_pr.url, known_pr.state, known_pr.node_id)

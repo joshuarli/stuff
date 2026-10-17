@@ -276,3 +276,63 @@ def test_fix_branch_equal_to_the_default_branch_is_not_pushed(
     assert fake_gh.calls_for("acme/backend") == []
     assert fake_gh.count("pr", "create", repo="acme/frontend") == 1
     assert fake_gh.count("api", "--method") == 2
+
+
+def test_dry_run_fix_branch_equal_to_the_default_branch_is_not_published(
+    tmp_path: Path, fake_gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A dry run must not publish a patch it will refuse to push.
+
+    acme/backend's fix branch is its default branch, so the run records failed
+    and writes no patch. acme/frontend's default is master, so the same branch
+    is still a pending patch. Nothing is pushed, and the run exits 0.
+    """
+    backend = Repo(name="acme/backend", default_branch="main", topics=["rust"])
+    frontend = Repo(name="acme/frontend", default_branch="master", topics=["rust"])
+    fix_dir = tmp_path / "fix"
+    _write_fix(fix_dir)
+    config_path = fix_dir / "config.yaml"
+    config_path.write_text(
+        config_path.read_text().replace("branch: test-branch\n", "branch: main\n", 1)
+    )
+
+    origins: dict[str, Path] = {}
+    for repo in (backend, frontend):
+        clone, bare = make_repo_with_origin(tmp_path, repo.slug, repo.name)
+        (fix_dir / "repos").mkdir(exist_ok=True)
+        clone.rename(fix_dir / "repos" / repo.slug)
+        origins[repo.name] = bare
+
+    frontend_clone = fix_dir / "repos" / frontend.slug
+    frontend_bare = origins[frontend.name]
+    _git_stdout(frontend_clone, "branch", "-m", "main", "master")
+    _git_stdout(frontend_clone, "push", "-u", "origin", "master")
+    _git_stdout(frontend_bare, "symbolic-ref", "HEAD", "refs/heads/master")
+    _git_stdout(frontend_bare, "update-ref", "-d", "refs/heads/main")
+
+    backend_tip = _git_stdout(origins[backend.name], "rev-parse", "main")
+    frontend_tip = _git_stdout(origins[frontend.name], "rev-parse", "master")
+    assert not branch_pushed(frontend_bare, "main")
+
+    with _mock_sync(repos=[backend, frontend]), offline_clone():
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+
+    assert _git_stdout(origins[backend.name], "rev-parse", "main") == backend_tip
+    assert _git_stdout(origins[frontend.name], "rev-parse", "master") == frontend_tip
+    assert not branch_pushed(frontend_bare, "main")
+    assert fake_gh.count("pr", "create") == 0
+    assert fake_gh.calls_for("acme/backend") == []
+
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/backend"]["status"] == "failed"
+    assert (
+        status["acme/backend"]["reason"]
+        == "fix branch main is the repo's default branch"
+    )
+    assert status["acme/frontend"]["status"] == "pending"
+    assert list(fix_dir.glob("patches-*/acme-backend.patch")) == []
+    frontend_patch = fix_dir.glob("patches-*/acme-frontend.patch")
+    assert "changed" in next(frontend_patch).read_text()
+    out = capsys.readouterr().out
+    assert "1 failed" in out
+    assert "interrupted" not in out

@@ -29,15 +29,6 @@ Next: 30
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
 
-### RPMD-27 · P3 · A dry run still publishes a patch on the default branch
-
-- **Area:** Data
-- **Where:** `src/repomod/main.py:346`, `src/repomod/git.py:339`
-- **Problem:** `--apply` refuses a fix branch that equals the repo's default branch before commit. The dry-run path stages, saves the diff, and publishes `pending` before that guard. The next `--apply` refuses the commit, so the published patch is a change that will not be pushed. Walked from the source.
-- **Recommendation:** When the fix branch equals `repo.default_branch`, record `failed` on the dry run too, and do not publish a patch.
-- **Fix with:** durable-state
-- **Effort:** S
-
 ### RPMD-28 · P4 · A scalar branch, title, or body is coerced with str
 
 - **Area:** Types

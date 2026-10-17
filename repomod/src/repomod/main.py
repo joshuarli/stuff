@@ -49,6 +49,7 @@ from repomod.git import (
     mark_ready,
     pr_by_repo,
     pr_states,
+    refuse_default_branch,
     require_branch_name,
     resolve_pr_node_ids,
     search_prs,
@@ -412,6 +413,17 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
     return True
 
 
+def _fail_default_branch(ctx: RunContext, repo: Repo, exc: DefaultBranchError) -> None:
+    set_status(
+        ctx.all_status,
+        ctx.status_file,
+        repo.name,
+        status="failed",
+        reason=str(exc),
+    )
+    ctx.pd.finish(repo.name, f"{RED}{exc}{RST}", "failed")
+
+
 def _record_failed(
     ctx: RunContext,
     repo: Repo,
@@ -519,6 +531,11 @@ def execute_fix_on_repo(
         except DIFF_SAVE_ERRORS as exc:
             _record_failed(ctx, repo, "unstage failed", exc)
             return None
+        try:
+            refuse_default_branch(ctx.config.branch, repo.default_branch)
+        except DefaultBranchError as exc:
+            _fail_default_branch(ctx, repo, exc)
+            return None
         if not _publish_review(
             ctx,
             repo,
@@ -582,14 +599,7 @@ def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
     except ShutdownError:
         raise
     except DefaultBranchError as exc:
-        set_status(
-            ctx.all_status,
-            ctx.status_file,
-            repo.name,
-            status="failed",
-            reason=str(exc),
-        )
-        ctx.pd.finish(repo.name, f"{RED}{exc}{RST}", "failed")
+        _fail_default_branch(ctx, repo, exc)
     except DIFF_SAVE_ERRORS as exc:
         _record_failed(ctx, repo, "push/PR failed", exc)
 
