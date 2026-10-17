@@ -4,3 +4,7 @@ __pycache__
 src/repomod.egg-info/
 
 logs/
+status.yaml
+patches-*/
+generations/
+.live

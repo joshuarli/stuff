@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-11 · P3 · Rollout state sits in the package and is not ignored
-
-- **Area:** Operability
-- **Where:** `.gitignore:1`, `src/repomod/main.py:794`
-- **Problem:** `repos/` and `logs/` are ignored. `status.yaml` and `patches-*/` are written under `src/repomod/fixes/<name>/` and are not. Committing a `status.yaml` makes the next clone skip every repo whose hash and status say done. The files are untracked until a run creates them.
-- **Recommendation:** Ignore `status.yaml` and `patches-*/` next to a fix. Keep ignoring `repos/` and `logs/`.
-- **Fix with:** none
-- **Effort:** S
-
 ### RPMD-12 · P3 · Status writes share one temp name and an in-process lock
 
 - **Area:** Data
