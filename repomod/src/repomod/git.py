@@ -1,6 +1,7 @@
 """Git and GitHub operations: clone, diff, push, PR creation."""
 
 import json
+import logging
 import shutil
 import subprocess
 from collections.abc import Generator
@@ -10,6 +11,7 @@ from typing import Any
 
 from repomod.types import OWNER_QUALIFIERS, PRInfo, PRSpec, RolloutPR
 from repomod.utils import (
+    RETRYABLE_ERRORS,
     SUBPROCESS_TIMEOUT,
     ShutdownError,
     github_rate_limiter,
@@ -17,6 +19,8 @@ from repomod.utils import (
     pr_create_limiter,
     retry,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
@@ -62,37 +66,92 @@ def gh_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
     return result
 
 
-@retry()
-def clone(
-    name: str, default_branch: str, dest: Path, sparse_paths: list[str] | None
-) -> None:
-    """Shallow-clone a repo, or reset an existing clone to its default branch."""
-    if dest.exists() and not (dest / ".git").exists():
-        shutil.rmtree(dest)
+def _text(result: subprocess.CompletedProcess[Any]) -> str:
+    stdout = result.stdout
+    if isinstance(stdout, str):
+        return stdout
+    return ""
 
-    if dest.exists():
-        interrupt.check()
-        git_run(["checkout", "--force", default_branch], cwd=dest)
-        interrupt.check()
-        with github_rate_limiter:
-            git_run(["fetch", "--depth=1", "origin", default_branch], cwd=dest)
-        interrupt.check()
-        git_run(["reset", "--hard", f"origin/{default_branch}"], cwd=dest)
-        interrupt.check()
-        result = git_run(
-            ["branch", "--list", "--format=%(refname:short)"], cwd=dest, text=True
-        )
-        for branch in result.stdout.splitlines():
-            branch = branch.strip()
-            if branch and branch != default_branch:
-                interrupt.check()
-                _run(
-                    ["git", "branch", "-D", branch],
-                    cwd=dest,
-                    capture_output=True,
-                )
+
+def _git_in(dest: Path, args: list[str]) -> subprocess.CompletedProcess[Any]:
+    # Absolute --git-dir: a relative one is resolved from cwd, and a missing
+    # or half-written .git makes git walk to a parent repository.
+    git_dir = (dest / ".git").absolute()
+    work_tree = dest.absolute()
+    return _run(
+        ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", *args],
+        cwd=work_tree,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _head_resolves(dest: Path) -> bool:
+    result = _git_in(dest, ["rev-parse", "--verify", "--quiet", "HEAD"])
+    return result.returncode == 0 and bool(_text(result).strip())
+
+
+def _sparse_checkout_enabled(dest: Path) -> bool:
+    result = _git_in(dest, ["config", "--type=bool", "--get", "core.sparseCheckout"])
+    return result.returncode == 0 and _text(result).strip() == "true"
+
+
+def _cone_matches(dest: Path, sparse_paths: list[str] | None) -> bool:
+    if not _sparse_checkout_enabled(dest):
+        return sparse_paths is None
+    if sparse_paths is None:
+        return False
+    interrupt.check()
+    listed = _git_in(dest, ["sparse-checkout", "list"])
+    if listed.returncode != 0:
+        return False
+    cone = {line.strip() for line in _text(listed).splitlines() if line.strip()}
+    return cone == set(sparse_paths)
+
+
+def _reusable_clone(dest: Path, sparse_paths: list[str] | None) -> bool:
+    if not (dest / ".git").is_dir():
+        return False
+    interrupt.check()
+    if not _head_resolves(dest):
+        return False
+    interrupt.check()
+    return _cone_matches(dest, sparse_paths)
+
+
+def _remove_clone(dest: Path) -> None:
+    if not dest.exists():
         return
+    try:
+        shutil.rmtree(dest)
+    except OSError as exc:
+        logger.warning("failed to remove incomplete clone at %s: %s", dest, exc)
 
+
+def _reset_existing_clone(default_branch: str, dest: Path) -> None:
+    interrupt.check()
+    git_run(["checkout", "--force", default_branch], cwd=dest)
+    interrupt.check()
+    with github_rate_limiter:
+        git_run(["fetch", "--depth=1", "origin", default_branch], cwd=dest)
+    interrupt.check()
+    git_run(["reset", "--hard", f"origin/{default_branch}"], cwd=dest)
+    interrupt.check()
+    result = git_run(
+        ["branch", "--list", "--format=%(refname:short)"], cwd=dest, text=True
+    )
+    for branch in result.stdout.splitlines():
+        branch = branch.strip()
+        if branch and branch != default_branch:
+            interrupt.check()
+            _run(
+                ["git", "branch", "-D", branch],
+                cwd=dest,
+                capture_output=True,
+            )
+
+
+def _clone_fresh(name: str, dest: Path, sparse_paths: list[str] | None) -> None:
     interrupt.check()
     cmd = ["git", "clone", "--depth=1", "--filter=blob:none", "--single-branch"]
     if sparse_paths is not None:
@@ -101,9 +160,44 @@ def clone(
     with github_rate_limiter:
         _run(cmd, check=True, capture_output=True)
 
-    if sparse_paths is not None:
-        interrupt.check()
-        git_run(["sparse-checkout", "set", *sparse_paths], cwd=dest)
+
+def _apply_sparse_cone(dest: Path, sparse_paths: list[str] | None) -> None:
+    interrupt.check()
+    if sparse_paths is None:
+        git_run(["sparse-checkout", "disable"], cwd=dest)
+        return
+    git_run(["sparse-checkout", "set", *sparse_paths], cwd=dest)
+
+
+def _clone_repo(
+    name: str, default_branch: str, dest: Path, sparse_paths: list[str] | None
+) -> None:
+    if dest.exists() and not _reusable_clone(dest, sparse_paths):
+        shutil.rmtree(dest)
+    if dest.exists():
+        _reset_existing_clone(default_branch, dest)
+    else:
+        _clone_fresh(name, dest, sparse_paths)
+    _apply_sparse_cone(dest, sparse_paths)
+
+
+@retry()
+def clone(
+    name: str, default_branch: str, dest: Path, sparse_paths: list[str] | None
+) -> None:
+    """Shallow-clone a repo, or reset a reusable clone to its default branch.
+
+    Reuse `.git` only when HEAD resolves and the sparse cone matches. Apply that
+    cone after a reuse, and clear it when `sparse_paths` is None. A failed
+    attempt deletes the dest before the next try, including the last one.
+    """
+    try:
+        _clone_repo(name, default_branch, dest, sparse_paths)
+    except ShutdownError:
+        raise
+    except RETRYABLE_ERRORS:
+        _remove_clone(dest)
+        raise
 
 
 def has_changes(repo_dir: Path) -> bool:

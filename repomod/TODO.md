@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-2 · P2 · A failed sparse checkout is retried as a successful empty tree
-
-- **Area:** Data
-- **Where:** `src/repomod/git.py:44`, `src/repomod/git.py:51`, `src/repomod/fixes/pin-gha/config.yaml:9`, `src/repomod/main.py:332`
-- **Problem:** `clone` is `@retry`. A new dest is `git clone --sparse` and then `sparse-checkout set`. If that set fails, the dest already has `.git`, and the retry takes the existing-clone branch, which fetches and returns without setting the cone. Calling `clone` on a sparse dest that had never had the cone applied returned success while the workflow file was in `git ls-files` and absent from the worktree. Every current fix sets `sparse_paths: [.github]`. The fix then sees no workflows, `has_changes` is false, and the repo is stored as `skipped` under the current hash, so later runs do not retry it. The same path ignores a later change to `sparse_paths`.
-- **Recommendation:** Apply `sparse-checkout set` on the existing-clone path too, and clear the cone when `sparse_paths` is `None`. If clone, fetch, or checkout fails, delete the dest before retrying. Treat `.git` as reusable only when `HEAD` resolves and the cone matches.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### RPMD-3 · P2 · A later status write deletes the PR identity, so --undraft reports nothing
 
 - **Area:** Data
