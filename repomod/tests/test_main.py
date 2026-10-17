@@ -380,11 +380,14 @@ def test_e2e_dry_run_no_changes(tmp_path: Path, capsys: Any) -> None:
 
     captured = capsys.readouterr()
     assert "no changes" in captured.out
-    if (fix_dir / "status.yaml").exists():
-        content = (fix_dir / "status.yaml").read_text()
-        assert "interrupted" not in content, (
-            "completed repos must not be marked interrupted"
-        )
+    status = load_status(fix_dir / "status.yaml")
+    entry = status["acme/test-repo"]
+    assert entry["status"] == "skipped"
+    assert entry["reason"] == "no changes"
+    assert entry["fix_hash"] == compute_fix_hash(fix_dir)
+    assert "interrupted" not in (fix_dir / "status.yaml").read_text(), (
+        "completed repos must not be marked interrupted"
+    )
 
 
 def test_e2e_dry_run_multiple_repos(tmp_path: Path, capsys: Any) -> None:

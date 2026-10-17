@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-14 · P3 · A no-change repo is not required to be stored as skipped
-
-- **Area:** Tests
-- **Where:** `tests/test_main.py:358`, `src/repomod/main.py:332`
-- **Problem:** `test_e2e_dry_run_no_changes` allows a missing `status.yaml`. The code writes `skipped` plus `fix_hash`, which is what lets the next run skip the clone. Removing that write leaves the test green, and the docstring that claimed no status was written was false. It was deleted.
-- **Recommendation:** Assert the repo is `skipped` with the current `fix_hash`.
-- **Fix with:** test-audit
-- **Effort:** S
-
 ### RPMD-15 · P3 · The legacy fix hash is not the hash the test uses
 
 - **Area:** Tests
