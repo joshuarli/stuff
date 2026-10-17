@@ -69,7 +69,6 @@ class PRSpec:
     title: str
     body: str
     reviewers: list[str]
-    labels: list[str] = field(default_factory=list)
 
 
 # Appended to every PR body so reviewers can tell where a PR came from. Mandatory:

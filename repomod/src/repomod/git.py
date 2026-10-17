@@ -417,7 +417,6 @@ def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> 
     # Reviewers go on the create call: a separate `pr edit` per reviewer would
     # cost an API call each, and re-requesting on later runs would re-ping people.
     reviewer_args = [arg for r in pr.reviewers for arg in ("--reviewer", r)]
-    label_args = [arg for label in pr.labels for arg in ("--label", label)]
     interrupt.check()
     with pr_create_limiter:
         result = gh_run(
@@ -437,7 +436,6 @@ def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> 
                 "--body",
                 pr.body,
                 *reviewer_args,
-                *label_args,
             ]
         )
     interrupt.check()

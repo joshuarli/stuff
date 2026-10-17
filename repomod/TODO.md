@@ -29,11 +29,3 @@ Next: 25
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
 
-### RPMD-18 · P4 · PR labels are accepted and never set
-
-- **Area:** Dead code
-- **Where:** `src/repomod/types.py:77`, `src/repomod/git.py:206`
-- **Problem:** `FixConfig` has no labels field. `pr_spec` leaves `PRSpec.labels` empty. `push_and_open_pr` still builds `--label` arguments. No config, status row, or caller supplies them.
-- **Recommendation:** Delete `labels` and the `--label` arguments.
-- **Fix with:** dead-code-archaeology
-- **Effort:** S
