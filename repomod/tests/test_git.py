@@ -53,7 +53,9 @@ def test_merged_or_closed_pr_is_returned_without_touching_the_repo(
 
     for state in ("MERGED", "CLOSED"):
         with patch.object(git, "push_and_open_pr") as push:
-            assert git.commit_and_push(repo, PR, _known(state)) == PRInfo(URL, state)
+            assert git.commit_and_push(
+                repo, PR, _known(state), default_branch="main"
+            ) == PRInfo(URL, state)
         push.assert_not_called()
 
     branch = subprocess.run(
@@ -93,6 +95,29 @@ def test_git_run_child_error_during_interrupt_is_shutdown(tmp_path: Path) -> Non
         interrupt.event.clear()
 
 
+def test_fix_branch_comparison_does_not_fold_case(tmp_path: Path) -> None:
+    """`Main` is not the default branch `main`, so checkout still uses `Main`."""
+    repo = tmp_path / "backend"
+    repo.mkdir()
+    pr = PRSpec(
+        repo_name="acme/backend",
+        branch="Main",
+        title=PR.title,
+        body=PR.body,
+        reviewers=[],
+    )
+    quiet = subprocess.CompletedProcess(["git"], 0)
+    with (
+        patch.object(git, "checkout_branch") as checkout,
+        patch.object(git, "_run", return_value=quiet),
+        patch.object(git, "push_and_open_pr", return_value=PRInfo(URL, "OPEN")) as push,
+    ):
+        info = git.commit_and_push(repo, pr, None, default_branch="main")
+    assert info == PRInfo(URL, "OPEN")
+    checkout.assert_called_once_with(repo, "Main")
+    push.assert_called_once()
+
+
 def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
     tmp_path: Path,
 ) -> None:
@@ -118,7 +143,7 @@ def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
             patch.object(git, "push_and_open_pr") as push,
             pytest.raises(ShutdownError),
         ):
-            git.commit_and_push(repo, PR, None)
+            git.commit_and_push(repo, PR, None, default_branch="main")
     finally:
         interrupt.event.clear()
 

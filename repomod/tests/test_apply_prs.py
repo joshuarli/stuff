@@ -9,12 +9,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from gh_harness import FakeGh, branch_pushed, offline_clone
+from gh_harness import FakeGh, branch_pushed, make_repo_with_origin, offline_clone
 from test_apply_gh_calls import BRANCH, _setup
-from test_main import REPO_A, REPO_B, _mock_sync
+from test_main import REPO_A, REPO_B, _mock_sync, _write_fix
 
 from repomod import main as run_fix
 from repomod.status import load_status
+from repomod.types import Repo
 
 FIX_THAT_LOGS_ITS_RUNS = """\
 import os
@@ -52,6 +53,16 @@ def _logged_fix_setup(
 
 def _calls(run_log: Path, kind: str) -> int:
     return run_log.read_text().splitlines().count(kind) if run_log.exists() else 0
+
+
+def _git_stdout(cwd: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
 def _dry_run_then_apply(fix_dir: Path, between: Any = None) -> None:
@@ -213,3 +224,55 @@ def test_apply_never_pushes_a_dry_run_diff_from_an_older_version_of_the_fix(
         check=True,
     ).stdout
     assert pushed == "changed v2"
+
+
+def test_fix_branch_equal_to_the_default_branch_is_not_pushed(
+    tmp_path: Path, fake_gh: FakeGh
+) -> None:
+    """A fix branch named like the default branch must not be committed or pushed.
+
+    acme/backend is on `main`, and that is the default branch the clone would
+    force-push. acme/frontend's default is `master`, so the same fix branch is
+    a new branch there and still gets a PR. The run does not abort.
+    """
+    backend = Repo(name="acme/backend", default_branch="main", topics=["rust"])
+    frontend = Repo(name="acme/frontend", default_branch="master", topics=["rust"])
+    fix_dir = tmp_path / "fix"
+    _write_fix(fix_dir)
+    config_path = fix_dir / "config.yaml"
+    config_path.write_text(
+        config_path.read_text().replace("branch: test-branch\n", "branch: main\n", 1)
+    )
+
+    origins: dict[str, Path] = {}
+    for repo in (backend, frontend):
+        clone, bare = make_repo_with_origin(tmp_path, repo.slug, repo.name)
+        (fix_dir / "repos").mkdir(exist_ok=True)
+        clone.rename(fix_dir / "repos" / repo.slug)
+        origins[repo.name] = bare
+
+    frontend_clone = fix_dir / "repos" / frontend.slug
+    frontend_bare = origins[frontend.name]
+    _git_stdout(frontend_clone, "branch", "-m", "main", "master")
+    _git_stdout(frontend_clone, "push", "-u", "origin", "master")
+    _git_stdout(frontend_bare, "symbolic-ref", "HEAD", "refs/heads/master")
+    _git_stdout(frontend_bare, "update-ref", "-d", "refs/heads/main")
+
+    backend_clone = fix_dir / "repos" / backend.slug
+    assert _git_stdout(backend_clone, "branch", "--show-current") == "main"
+    assert _git_stdout(frontend_clone, "branch", "--show-current") == "master"
+    assert not branch_pushed(frontend_bare, "main")
+    backend_tip = _git_stdout(origins[backend.name], "rev-parse", "main")
+
+    with _mock_sync(repos=[backend, frontend]), offline_clone():
+        assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 0
+
+    assert _git_stdout(origins[backend.name], "rev-parse", "main") == backend_tip
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/backend"]["status"] == "failed"
+    assert "default branch" in status["acme/backend"]["reason"]
+    assert status["acme/frontend"]["status"] == "pr_created"
+    assert branch_pushed(frontend_bare, "main")
+    assert fake_gh.calls_for("acme/backend") == []
+    assert fake_gh.count("pr", "create", repo="acme/frontend") == 1
+    assert fake_gh.count("api", "--method") == 2

@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-22 · P2 · A fix branch named like the default branch is force-pushed
-
-- **Area:** Data
-- **Where:** `src/repomod/git.py:155`, `src/repomod/git.py:195`, `src/repomod/main.py:386`
-- **Problem:** `clone` leaves HEAD on `default_branch`. If `config.branch` is that same name, `commit_and_push` does not create a new branch. `git push --force origin <branch>` then rewrites the default branch. Nothing compares the two names. The current fixes use other branch names.
-- **Recommendation:** Refuse the run when the fix branch equals the repo's default branch, before any commit.
-- **Fix with:** durable-state
-- **Effort:** S
-
 ### RPMD-23 · P2 · ^C on the main thread can deadlock the progress lock
 
 - **Area:** Concurrency

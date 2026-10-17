@@ -36,6 +36,7 @@ from typing import cast
 import yaml
 
 from repomod.git import (
+    DefaultBranchError,
     apply_patch,
     checkout_branch,
     clone,
@@ -516,6 +517,7 @@ def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
             repo_dir,
             ctx.config.pr_spec(repo.name),
             ctx.existing_prs.get(repo.name),
+            default_branch=repo.default_branch,
         )
         interrupt.check()
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
@@ -542,6 +544,15 @@ def push_repo(repo: Repo, ctx: RunContext, diff: str, base_sha: str) -> None:
             )
     except ShutdownError:
         raise
+    except DefaultBranchError as exc:
+        set_status(
+            ctx.all_status,
+            ctx.status_file,
+            repo.name,
+            status="failed",
+            reason=str(exc),
+        )
+        ctx.pd.finish(repo.name, f"{RED}{exc}{RST}", "failed")
     except SUBPROCESS_ERRORS as exc:
         interrupt.check()
         write_log(ctx.logs_dir, repo.slug, f"push/PR failed\n{format_error(exc)}")

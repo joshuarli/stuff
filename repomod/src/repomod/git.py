@@ -301,8 +301,16 @@ def unstage(repo_dir: Path) -> None:
     git_run(["reset", "--quiet"], cwd=repo_dir)
 
 
+class DefaultBranchError(Exception):
+    """Force-pushing this branch would rewrite the repo's default branch."""
+
+
 def commit_and_push(
-    repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None = None
+    repo_dir: Path,
+    pr: PRSpec,
+    known_pr: RolloutPR | None = None,
+    *,
+    default_branch: str,
 ) -> PRInfo:
     """Commit, push, and open a PR.
 
@@ -315,7 +323,16 @@ def commit_and_push(
     returned: force-pushing would silently resurrect a branch whose PR someone
     finished or deliberately rejected. Roll out a new generation by changing
     the branch name in config.yaml.
+
+    A fix branch equal to `default_branch` is refused before checkout or
+    commit. Comparison is exact: `Main` and `main` are different branches.
+    `git push --force` of the default branch would rewrite it.
     """
+    if pr.branch == default_branch:
+        raise DefaultBranchError(
+            f"fix branch {pr.branch} is the repo's default branch"
+        )
+
     if known_pr and known_pr.state != "OPEN":
         return PRInfo(known_pr.url, known_pr.state, known_pr.node_id)
 

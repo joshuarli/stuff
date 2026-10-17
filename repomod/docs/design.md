@@ -53,7 +53,9 @@ entries stay current.
 branch, commits only when something is staged, and force-pushes the branch of an open PR
 ([RPMD-24](rfc/RPMD-24-force-push.md)).
 It never pushes to a branch whose PR is merged or closed, because that would resurrect a PR
-someone finished or rejected.
+someone finished or rejected. It also refuses, before checkout or commit, when the fix
+branch is exactly the repo's default branch (`Main` is not `main`): force-pushing that
+name would rewrite it. That repo is recorded `failed` and the rest of the run continues.
 
 `--apply` pushes the stored patch because a second fix run can resolve differently.
 The merged-or-closed check is the opening search overlaid with that second search, which
