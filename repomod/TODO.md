@@ -29,12 +29,3 @@ Next: 30
 - **Effort:** M
 - **Design:** [docs/rfc/RPMD-24-force-push.md](docs/rfc/RPMD-24-force-push.md)
 
-### RPMD-29 · P4 · The YAML temp write does not fsync the directory
-
-- **Area:** Data
-- **Where:** `src/repomod/status.py:63`
-- **Problem:** `atomic_write_yaml` fsyncs the file and then `os.replace`s it. It does not fsync the destination directory. Generation publishes fsync the tree. `repos.yaml` and `repos-excluded.yaml` use this helper, so a crash after the replace can lose the directory entry. Walked from the source.
-- **Recommendation:** Fsync the parent directory after `os.replace` in `atomic_write_yaml`.
-- **Fix with:** durable-state
-- **Effort:** S
-

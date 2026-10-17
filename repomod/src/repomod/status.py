@@ -65,7 +65,8 @@ def atomic_write_yaml(data: Any, path: Path) -> None:
 
     The temporary file is created in the destination directory with O_EXCL and
     O_NOFOLLOW, so a symlink planted on a predictable temp name is not followed.
-    File contents are fsynced before the name is replaced.
+    File contents are fsynced before the name is replaced, and the parent
+    directory is fsynced after the replace.
     """
     tmp, fd = _create_exclusive_temp(path)
     try:
@@ -84,6 +85,7 @@ def atomic_write_yaml(data: Any, path: Path) -> None:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp)
         raise
+    _fsync(path.parent)
 
 
 def _create_exclusive_temp(path: Path) -> tuple[Path, int]:

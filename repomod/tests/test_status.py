@@ -1,5 +1,6 @@
 """Tests for YAML serialization contracts."""
 
+import os
 import subprocess
 import sys
 import threading
@@ -7,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 from repomod.status import (
@@ -101,6 +103,53 @@ def test_atomic_write_yaml_does_not_follow_a_tmp_symlink(tmp_path: Path) -> None
 
     assert outside.read_text() == "original\n"
     assert not dest.is_symlink()
+    assert yaml.safe_load(dest.read_text()) == document
+
+
+def test_atomic_write_yaml_fsyncs_the_parent_directory_after_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A crash after rename must not lose the new directory entry."""
+    dest = tmp_path / "repos.yaml"
+    document = {"acme/backend": {"status": "pending", "fix_hash": "abc123"}}
+    events: list[tuple[str, Path | None]] = []
+    fd_paths: dict[int, Path] = {}
+    real_open = os.open
+    real_fsync = os.fsync
+    real_replace = os.replace
+
+    def tracking_open(
+        path: str | os.PathLike[str], flags: int, *args: Any, **kwargs: Any
+    ) -> int:
+        fd = real_open(path, flags, *args, **kwargs)
+        fd_paths[fd] = Path(path)
+        return fd
+
+    def tracking_fsync(fd: int) -> None:
+        events.append(("fsync", fd_paths.get(fd)))
+        real_fsync(fd)
+
+    def tracking_replace(
+        src: str | os.PathLike[str], dst: str | os.PathLike[str]
+    ) -> None:
+        events.append(("replace", Path(dst)))
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "open", tracking_open)
+    monkeypatch.setattr(os, "fsync", tracking_fsync)
+    monkeypatch.setattr(os, "replace", tracking_replace)
+
+    atomic_write_yaml(document, dest)
+
+    parent = dest.parent.resolve()
+    replace_at = next(i for i, event in enumerate(events) if event[0] == "replace")
+    parent_fsyncs = [
+        i
+        for i, event in enumerate(events)
+        if event[0] == "fsync" and event[1] is not None and event[1].resolve() == parent
+    ]
+    assert parent_fsyncs, events
+    assert parent_fsyncs[0] > replace_at
     assert yaml.safe_load(dest.read_text()) == document
 
 
