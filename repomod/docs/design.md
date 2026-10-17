@@ -8,7 +8,7 @@ user's side, see [Re-running a fix](../README.md#re-running-a-fix).
 
 - Every subprocess call has a 120-second timeout (`SUBPROCESS_TIMEOUT` in `utils.py`).
 - Network calls in `git.py` and `sync.py` use `@retry`: 3 attempts with exponential backoff.
-- `github_rate_limiter` spaces `gh_run` and `clone` by 0.25 seconds and holds its lock for the whole command, so those processes do not overlap.
+- `github_rate_limiter` spaces `gh_run` by 0.25 seconds and holds its lock for the whole `gh` call, so those processes do not overlap. `git_transport_limiter` spaces starts of `clone`, `fetch`, `push`, and `git ls-remote` by the same 0.25 seconds, then releases its lock before the git command, so those commands can overlap.
 - `pr_create_limiter` spaces PR creation and marking ready by 2 seconds. GitHub's secondary
   rate limits on creating content are much tighter than on reads.
 - One repo failing doesn't stop the run.

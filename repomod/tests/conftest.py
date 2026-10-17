@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from gh_harness import GH_SCRIPT, FakeGh
 
-from repomod.utils import github_rate_limiter, pr_create_limiter
+from repomod.utils import git_transport_limiter, github_rate_limiter, pr_create_limiter
 
 
 @pytest.fixture(autouse=True)
@@ -33,5 +33,6 @@ def fake_gh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FakeGh:
 def _no_github_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """The real spacing would only slow tests down."""
     monkeypatch.setattr(github_rate_limiter, "_min_delay", 0)
+    monkeypatch.setattr(git_transport_limiter, "_min_delay", 0)
     monkeypatch.setattr(pr_create_limiter, "_min_delay", 0)
 

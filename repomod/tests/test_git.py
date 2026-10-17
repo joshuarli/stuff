@@ -2,6 +2,8 @@
 
 import json
 import subprocess
+import threading
+import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,7 +14,12 @@ import pytest
 
 from repomod import git
 from repomod.types import PRInfo, PRSpec, RolloutPR
-from repomod.utils import ShutdownError, interrupt
+from repomod.utils import (
+    ShutdownError,
+    git_transport_limiter,
+    github_rate_limiter,
+    interrupt,
+)
 
 PR = PRSpec(
     repo_name="acme/backend",
@@ -510,3 +517,97 @@ def test_clone_refuses_a_dest_symlink_that_resolves_outside_repos(
         or cmd[:3] == ["git", "clean", "-fd"]
         or cmd[:3] == ["git", "checkout", "--force"]
     ] == []
+
+
+def _spans_while_command_runs(
+    runs: list[Callable[[], None]],
+    critical: Callable[[list[str]], bool],
+) -> list[tuple[float, float]]:
+    """The first critical command waits until the other one has started."""
+    spans: list[tuple[float, float]] = []
+    spans_lock = threading.Lock()
+    errors: list[BaseException] = []
+    ready = threading.Barrier(len(runs))
+    other_started = threading.Event()
+
+    def fake_run(
+        args: list[object], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        argv = [str(part) for part in args]
+        if critical(argv):
+            start = time.monotonic()
+            with spans_lock:
+                first = not spans
+                spans.append((start, start))
+                index = len(spans) - 1
+            if first:
+                other_started.wait(timeout=2)
+            else:
+                other_started.set()
+            end = time.monotonic()
+            with spans_lock:
+                spans[index] = (start, end)
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    def worker(run: Callable[[], None]) -> None:
+        try:
+            ready.wait(timeout=2)
+            run()
+        except Exception as exc:
+            errors.append(exc)
+
+    with patch("repomod.git.subprocess.run", side_effect=fake_run):
+        threads = [threading.Thread(target=worker, args=(run,)) for run in runs]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5)
+
+    assert errors == []
+    assert all(not thread.is_alive() for thread in threads)
+    assert len(spans) == len(runs)
+    spans.sort()
+    return spans
+
+
+def test_two_git_clones_overlap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The second clone starts before the first returns. Starts stay spaced."""
+    spacing = 0.2
+    monkeypatch.setattr(git_transport_limiter, "_min_delay", spacing)
+    monkeypatch.setattr(git_transport_limiter, "_last_call", 0.0)
+    repos = tmp_path / "repos"
+    repos.mkdir()
+
+    def clone_to(dest: Path) -> None:
+        git.clone("acme/backend", "main", dest, None)
+
+    spans = _spans_while_command_runs(
+        [
+            lambda: clone_to(repos / "backend"),
+            lambda: clone_to(repos / "frontend"),
+        ],
+        lambda argv: argv[:2] == ["git", "clone"],
+    )
+    (first_start, first_end), (second_start, _) = spans
+    assert second_start < first_end
+    assert second_start - first_start >= spacing - 0.05
+
+
+def test_gh_run_holds_the_limiter_until_the_call_returns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """gh stays on github_rate_limiter, which is not released during the call."""
+    monkeypatch.setattr(github_rate_limiter, "_min_delay", 0.2)
+    monkeypatch.setattr(github_rate_limiter, "_last_call", 0.0)
+
+    def call_gh() -> None:
+        git.gh_run(["api", "user"])
+
+    spans = _spans_while_command_runs(
+        [call_gh, call_gh],
+        lambda argv: argv[:1] == ["gh"],
+    )
+    (_first_start, first_end), (second_start, _) = spans
+    assert second_start >= first_end

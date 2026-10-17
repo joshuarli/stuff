@@ -19,15 +19,6 @@ Next: 25
 - **Fix with:** comment-cleanup
 - **Effort:** M
 
-### RPMD-17 · P3 · The GitHub rate limiter also serializes git clones
-
-- **Area:** Performance
-- **Where:** `src/repomod/utils.py:134`, `src/repomod/git.py:39`, `src/repomod/git.py:74`
-- **Problem:** `RateLimiter.__enter__` holds `_lock` until the `with` body returns. `github_rate_limiter` wraps `git clone`, `git fetch`, `git push`, every `gh_run`, and `pin-gha`'s `git ls-remote`. `--workers` can be 8, and those commands still run one at a time. The 0.25s gap is only the pause between them. Magnitude unproven. Not measured. `docs/design.md` now says the lock is held for the whole command.
-- **Recommendation:** Keep the spacing. Do not drop the lock around `gh`. Use a separate limiter for git transport so clones can overlap, and leave `pr_create_limiter` at 2 seconds.
-- **Fix with:** make-it-fast
-- **Effort:** M
-
 ### RPMD-24 · P3 · Force-push replaces commits added on an open fix branch
 
 - **Area:** Data

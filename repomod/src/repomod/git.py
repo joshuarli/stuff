@@ -14,6 +14,7 @@ from repomod.utils import (
     RETRYABLE_ERRORS,
     SUBPROCESS_TIMEOUT,
     ShutdownError,
+    git_transport_limiter,
     github_rate_limiter,
     interrupt,
     pr_create_limiter,
@@ -148,7 +149,7 @@ def _reset_existing_clone(name: str, default_branch: str, dest: Path) -> None:
     # checkout treats "--" as a pathspec, so the branch follows switch's "--".
     git_run(["switch", "--discard-changes", "--", default_branch], cwd=dest)
     interrupt.check()
-    with github_rate_limiter:
+    with git_transport_limiter:
         git_run(["fetch", "--depth=1", "origin", "--", default_branch], cwd=dest)
     interrupt.check()
     # `reset --hard -- <rev>` is rejected as a path reset.
@@ -181,7 +182,7 @@ def _clone_fresh(name: str, dest: Path, sparse_paths: list[str] | None) -> None:
     if sparse_paths is not None:
         cmd.append("--sparse")
     cmd += [f"https://github.com/{name}.git", str(dest)]
-    with github_rate_limiter:
+    with git_transport_limiter:
         _run(cmd, check=True, capture_output=True)
 
 
@@ -394,7 +395,7 @@ def find_pr(name: str, branch: str) -> PRInfo | None:
 def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> PRInfo:
     """Push and ensure a PR exists. Retried on transient failures."""
     interrupt.check()
-    with github_rate_limiter:
+    with git_transport_limiter:
         git_run(
             [
                 "push",

@@ -132,14 +132,25 @@ def retry(
 
 
 class RateLimiter:
-    """Thread-safe rate limiter. Enforces minimum delay between GitHub API calls."""
+    """Thread-safe minimum delay between callers.
 
-    def __init__(self, min_delay: float = 0.25) -> None:
+    The lock is held until the body returns unless `hold_for_body` is false.
+    Then the delay is between starts and the lock is released before the body.
+    """
+
+    def __init__(self, min_delay: float = 0.25, *, hold_for_body: bool = True) -> None:
         self._min_delay = min_delay
         self._lock = threading.Lock()
         self._last_call = 0.0
+        self._hold_for_body = hold_for_body
 
     def __enter__(self) -> None:
+        if self._hold_for_body:
+            self._enter_holding()
+        else:
+            self._enter_for_start()
+
+    def _enter_holding(self) -> None:
         interrupt.check()
         self._lock.acquire()
         elapsed = time.monotonic() - self._last_call
@@ -149,14 +160,34 @@ class RateLimiter:
                 self._lock.release()
                 raise ShutdownError
 
+    def _enter_for_start(self) -> None:
+        interrupt.check()
+        self._lock.acquire()
+        try:
+            elapsed = time.monotonic() - self._last_call
+            if elapsed < self._min_delay:
+                remaining = self._min_delay - elapsed
+                if interrupt.event.wait(timeout=remaining):
+                    raise ShutdownError
+            self._last_call = time.monotonic()
+        finally:
+            self._lock.release()
+
     def __exit__(self, *args: object) -> None:
+        if not self._hold_for_body:
+            return
         self._last_call = time.monotonic()
         self._lock.release()
 
 
 # Global rate limiter — shared across all threads.
 # 0.25s minimum between GitHub API calls (4 req/s max).
+# The lock is held for the whole gh call, so those processes do not overlap.
 github_rate_limiter = RateLimiter(min_delay=0.25)
+
+# Same start spacing as API calls. The lock is not held while git runs: holding
+# it for the whole clone, fetch, push, or ls-remote ran those one at a time.
+git_transport_limiter = RateLimiter(min_delay=0.25, hold_for_body=False)
 
 # Creating PRs counts as content creation, which GitHub's secondary rate limits
 # police far more tightly than reads (guidance: well under 80/minute, 500/hour).

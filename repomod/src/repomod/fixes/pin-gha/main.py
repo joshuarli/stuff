@@ -8,7 +8,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from repomod.utils import SUBPROCESS_TIMEOUT, github_rate_limiter, retry
+from repomod.utils import SUBPROCESS_TIMEOUT, git_transport_limiter, retry
 
 ACTION_RE = re.compile(
     r"""(?<=uses: )["']?(?P<action>[^@\s"']+)@(?P<ref>[^#\s"']+)["']?"""
@@ -40,7 +40,7 @@ def resolve_ref(repo: str, ref: str) -> str:
         "--",
         ref,
     )
-    with github_rate_limiter:
+    with git_transport_limiter:
         result = subprocess.run(
             cmd,
             capture_output=True,
