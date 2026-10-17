@@ -39,4 +39,4 @@ uv run ty check
 - Prefer pure functions. `filter_work` filters and returns, with no side effects.
 - No lazy imports, no `nonlocal`, no section-divider comments, no dead code, and no `\033[B` for cursor movement.
 - Tests mirror `src` (`test_main.py` tests `main.py`) and use realistic names (`acme/backend`, not `"a"`).
-- Never hand-edit `repos.yaml`, `repos-excluded.yaml`, `status.yaml`, `logs-*/`, `patches-*/`, or `repos/`. They are generated, and patches must stay byte-exact, trailing whitespace included.
+- Never hand-edit `repos.yaml`, `repos-excluded.yaml`, `status.yaml`, `logs-*/`, `patches-*/`, or `repos/`. They are generated, and patches must stay byte-exact, trailing whitespace included. `repos-disabled.yaml` is the hand-maintained denylist. Sync does not write it.

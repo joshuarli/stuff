@@ -156,6 +156,26 @@ def test_cold_sync_applies_the_activity_filter_and_skips_provable_lookups() -> N
     assert result.repos[0].last_human_commit is None
 
 
+def test_a_disabled_repo_is_not_synced_or_listed_as_inactive() -> None:
+    gh = FakeGitHub(
+        items=[_item("relay"), _item("smolworld")],
+        histories={
+            "acme/relay": _history(_commit("octocat", 9)),
+            "acme/smolworld": _history(_commit("octocat", 1)),
+        },
+    )
+
+    with (
+        patch.object(sync, "search_page", gh.search_page),
+        patch.object(sync, "graphql", gh.graphql),
+    ):
+        result = sync.sync_repos(disabled={"acme/smolworld"})
+
+    assert [r.name for r in result.repos] == ["acme/relay"]
+    assert result.excluded == []
+    assert "acme/smolworld" not in gh.looked_up
+
+
 def test_a_remembered_recent_human_commit_means_no_history_lookup_at_all() -> None:
     gh = FakeGitHub(items=[_item("relay"), _item("snuba"), _item("brand-new")])
     known = {

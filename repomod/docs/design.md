@@ -71,7 +71,9 @@ the refresh returns and before `git push` can still be force-pushed.
 batched GraphQL queries, only for repos the activity filter can't decide from `pushed_at` or
 from the `last_human_commit` memo kept in `repos.yaml`. Repos with no non-bot default-branch
 commit within `MAX_IDLE` (1 year) are dropped to cut PR noise. They are listed in
-`repos-excluded.yaml`, which is checked in so you can audit the filter.
+`repos-excluded.yaml`, which is checked in so you can audit the filter. Names in
+`repos-disabled.yaml` are removed before that filter. Sync does not rewrite that file,
+and it does not list those repos as inactive.
 
 ## Workflow validation
 

@@ -213,10 +213,13 @@ def fetch_histories(names: list[str], cutoff: datetime) -> dict[str, dict[str, A
     return histories
 
 
-def sync_repos(known: dict[str, Repo] | None = None) -> SyncResult:
+def sync_repos(
+    known: dict[str, Repo] | None = None, *, disabled: set[str] | None = None
+) -> SyncResult:
     """Fetch non-archived repos owned by the configured owners that have had a
     non-bot default-branch commit within MAX_IDLE. Repos without are returned by
-    name as excluded, so the filter can be audited.
+    name as excluded, so the filter can be audited. Names in `disabled` are
+    omitted before that filter, and they are not listed as inactive.
 
     `known` is the previous sync's repos. Commit history is only fetched where
     it can't be ruled out:
@@ -225,8 +228,9 @@ def sync_repos(known: dict[str, Repo] | None = None) -> SyncResult:
         since activity only ages out.
     """
     known = known or {}
+    disabled = disabled or set()
     cutoff = datetime.now(UTC) - MAX_IDLE
-    nodes = list_repos()
+    nodes = [node for node in list_repos() if node["full_name"] not in disabled]
 
     verdicts: dict[str, tuple[bool, str | None]] = {}
     to_fetch: list[str] = []

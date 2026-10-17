@@ -536,6 +536,39 @@ def test_e2e_failure_does_not_taint_other_repos(tmp_path: Path) -> None:
     assert status.get("acme/repo-alpha", {}).get("status") != "interrupted"
 
 
+def test_read_repos_file_omits_a_disabled_repo(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    repos = tmp_path / "repos.yaml"
+    disabled = tmp_path / "repos-disabled.yaml"
+    atomic_write_yaml(
+        [
+            {"name": "acme/backend", "default_branch": "main", "topics": []},
+            {"name": "joshuarli/smolworld", "default_branch": "main", "topics": []},
+        ],
+        repos,
+    )
+    disabled.write_text("- joshuarli/smolworld\n")
+    monkeypatch.setattr(run_fix, "REPOS_FILE", repos)
+    monkeypatch.setattr(run_fix, "DISABLED_FILE", disabled)
+
+    loaded = run_fix.read_repos_file()
+
+    assert loaded is not None
+    assert [repo.name for repo in loaded] == ["acme/backend"]
+
+
+def test_disabled_file_rejects_a_scalar(tmp_path: Path) -> None:
+    path = tmp_path / "repos-disabled.yaml"
+    path.write_text("joshuarli/smolworld\n")
+    with pytest.raises(ValueError, match="list of repo names"):
+        run_fix.load_disabled(path)
+
+
+def test_a_missing_disabled_file_disables_nothing(tmp_path: Path) -> None:
+    assert run_fix.load_disabled(tmp_path / "repos-disabled.yaml") == set()
+
+
 def test_sync_command_writes_repos_yaml_without_running_a_fix(
     capsys: Any,
 ) -> None:

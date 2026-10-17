@@ -97,6 +97,7 @@ FIXES_DIR = HERE / "fixes"
 PROJECT_ROOT = HERE.parent.parent
 REPOS_FILE = PROJECT_ROOT / "repos.yaml"
 EXCLUDED_FILE_NAME = "repos-excluded.yaml"
+DISABLED_FILE = PROJECT_ROOT / "repos-disabled.yaml"
 
 REQUIRED_FUNCS = ("accept_repo", "run")
 DEFAULT_WORKERS = min(8, (os.cpu_count() or 4) + 4)  # tuned for I/O-bound work
@@ -208,13 +209,31 @@ def format_age(seconds: float) -> str:
     return f"{seconds / 3600:.0f}h"
 
 
+def load_disabled(path: Path) -> set[str]:
+    """Repo names in the hand-maintained denylist. A missing file disables none."""
+    if not path.exists():
+        return set()
+    raw = yaml.safe_load(path.read_text())
+    if raw is None:
+        return set()
+    if not isinstance(raw, list):
+        raise ValueError(f"{path.name} must be a list of repo names")
+    names: set[str] = set()
+    for item in raw:
+        if not isinstance(item, str) or item == "":
+            raise ValueError(f"{path.name} must be a list of repo names")
+        names.add(item)
+    return names
+
+
 def read_repos_file() -> list[Repo] | None:
     """Load repos.yaml regardless of age, if it exists."""
     if not REPOS_FILE.exists():
         return None
     with open(REPOS_FILE) as f:
         raw = yaml.safe_load(f) or []
-    return [Repo.from_dict(r) for r in raw]
+    disabled = load_disabled(DISABLED_FILE)
+    return [Repo.from_dict(r) for r in raw if r["name"] not in disabled]
 
 
 def sync_if_needed(force: bool) -> list[Repo] | None:
@@ -233,7 +252,10 @@ def sync_if_needed(force: bool) -> list[Repo] | None:
         with spinner("Syncing repos"):
             # The previous sync's memo lets sync skip re-checking repos it already
             # knows are active, even when the file is too old to use as a cache.
-            result = sync_repos({r.name: r for r in previous or []})
+            result = sync_repos(
+                {r.name: r for r in previous or []},
+                disabled=load_disabled(DISABLED_FILE),
+            )
             atomic_write_yaml([r.to_record() for r in result.repos], REPOS_FILE)
             # Checked in, so the diff shows which repos the activity filter
             # started or stopped excluding.
