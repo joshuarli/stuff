@@ -145,12 +145,17 @@ def _reset_existing_clone(name: str, default_branch: str, dest: Path) -> None:
         cwd=dest,
     )
     interrupt.check()
-    git_run(["checkout", "--force", default_branch], cwd=dest)
+    # checkout treats "--" as a pathspec, so the branch follows switch's "--".
+    git_run(["switch", "--discard-changes", "--", default_branch], cwd=dest)
     interrupt.check()
     with github_rate_limiter:
-        git_run(["fetch", "--depth=1", "origin", default_branch], cwd=dest)
+        git_run(["fetch", "--depth=1", "origin", "--", default_branch], cwd=dest)
     interrupt.check()
-    git_run(["reset", "--hard", f"origin/{default_branch}"], cwd=dest)
+    # `reset --hard -- <rev>` is rejected as a path reset.
+    git_run(
+        ["reset", "--hard", "--end-of-options", f"origin/{default_branch}"],
+        cwd=dest,
+    )
     interrupt.check()
     # reset --hard leaves untracked files. The next git apply cannot create one
     # the previous dry run already wrote.
@@ -164,7 +169,7 @@ def _reset_existing_clone(name: str, default_branch: str, dest: Path) -> None:
         if branch and branch != default_branch:
             interrupt.check()
             _run(
-                ["git", "branch", "-D", branch],
+                ["git", "branch", "-D", "--", branch],
                 cwd=dest,
                 capture_output=True,
             )
@@ -282,12 +287,15 @@ def checkout_branch(repo_dir: Path, branch: str) -> None:
     result = git_run(["branch", "--show-current"], cwd=repo_dir, text=True)
     if result.stdout.strip() != branch:
         interrupt.check()
-        existing = git_run(["branch", "--list", branch], cwd=repo_dir, text=True)
+        existing = git_run(
+            ["branch", "--list", "--", branch], cwd=repo_dir, text=True
+        )
         interrupt.check()
-        if existing.stdout.strip():
-            git_run(["checkout", branch], cwd=repo_dir)
-        else:
-            git_run(["checkout", "-b", branch], cwd=repo_dir)
+        if not existing.stdout.strip():
+            # `checkout -b -- <name>` would create a branch named "--".
+            git_run(["branch", "--", branch], cwd=repo_dir)
+            interrupt.check()
+        git_run(["switch", "--", branch], cwd=repo_dir)
 
 
 def stage_worktree(repo_dir: Path) -> None:
@@ -303,6 +311,28 @@ def unstage(repo_dir: Path) -> None:
 
 class DefaultBranchError(Exception):
     """Force-pushing this branch would rewrite the repo's default branch."""
+
+
+class InvalidBranchError(Exception):
+    """The configured fix branch is not a valid git branch name."""
+
+    def __init__(self, branch: str) -> None:
+        super().__init__(f"fix branch {branch} is not a valid branch name")
+
+
+def require_branch_name(branch: str) -> None:
+    """Reject a branch `git check-ref-format --branch` rejects.
+
+    The name is that option's argument. A leading `--upload-pack=` is not
+    itself an option, and this form rejects it and `main..bad`.
+    """
+    result = _run(
+        ["git", "check-ref-format", "--branch", branch],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise InvalidBranchError(branch)
 
 
 def commit_and_push(
@@ -366,7 +396,15 @@ def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> 
     interrupt.check()
     with github_rate_limiter:
         git_run(
-            ["push", "--set-upstream", "origin", pr.branch, "--force", "--quiet"],
+            [
+                "push",
+                "--set-upstream",
+                "--force",
+                "--quiet",
+                "origin",
+                "--",
+                pr.branch,
+            ],
             cwd=repo_dir,
         )
 

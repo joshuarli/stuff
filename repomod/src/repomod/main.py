@@ -37,6 +37,7 @@ import yaml
 
 from repomod.git import (
     DefaultBranchError,
+    InvalidBranchError,
     apply_patch,
     checkout_branch,
     clone,
@@ -48,6 +49,7 @@ from repomod.git import (
     mark_ready,
     pr_by_repo,
     pr_states,
+    require_branch_name,
     resolve_pr_node_ids,
     search_prs,
     stage_worktree,
@@ -975,6 +977,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     preflight()
 
     fix, config, fix_hash = load_fix(fix_dir)
+    try:
+        require_branch_name(config.branch)
+    except InvalidBranchError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     status_file = fix_dir / "status.yaml"
     repos_dir = fix_dir / "repos"
     logs_dir = fix_dir / f"logs-{fix_hash}"

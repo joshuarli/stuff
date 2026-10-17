@@ -32,7 +32,14 @@ def resolve_ref(repo: str, ref: str) -> str:
         else:
             return ref
 
-    cmd = ("git", "ls-remote", "--exit-code", f"https://github.com/{repo}", ref)
+    cmd = (
+        "git",
+        "ls-remote",
+        "--exit-code",
+        f"https://github.com/{repo}",
+        "--",
+        ref,
+    )
     with github_rate_limiter:
         result = subprocess.run(
             cmd,

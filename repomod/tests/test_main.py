@@ -1344,7 +1344,7 @@ def _commit_patch(repo_dir: Path) -> str:
 def _index_commands(commands: list[list[str]]) -> list[str]:
     kinds: list[str] = []
     for cmd in commands:
-        if cmd[:2] == ["git", "checkout"]:
+        if cmd[:2] in (["git", "checkout"], ["git", "switch"]):
             kinds.append("checkout")
         elif cmd[:3] == ["git", "add", "--all"]:
             kinds.append("add")

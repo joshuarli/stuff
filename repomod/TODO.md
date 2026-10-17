@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-13 · P3 · A branch that starts with a dash is a git option
-
-- **Area:** Security
-- **Where:** `src/repomod/git.py:52`, `src/repomod/git.py:54`, `src/repomod/git.py:195`
-- **Problem:** Arguments are a list, and there is no shell. There is also no `--` before the ref. `git fetch --depth=1 origin <ref>` with a ref of `--upload-pack=<local wrapper>` ran that wrapper (it wrote a marker file) and exited 0. `git check-ref-format` rejects that string, so a default branch from GitHub cannot be this. `branch` in `config.yaml` is passed through to checkout and to `git push ... origin <branch> --force`, which was not executed. A normal branch name is unaffected.
-- **Recommendation:** Insert `--` before every refspec and branch. Reject a configured branch that `git check-ref-format` rejects.
-- **Fix with:** os-boundaries
-- **Effort:** S
-
 ### RPMD-14 · P3 · A no-change repo is not required to be stored as skipped
 
 - **Area:** Tests
