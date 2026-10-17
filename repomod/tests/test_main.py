@@ -1,5 +1,7 @@
 """Integration tests for repomod.main pipeline."""
 
+import hashlib
+import json
 import os
 import signal
 import subprocess
@@ -2238,3 +2240,311 @@ def test_a_skip_list_edit_after_a_dry_run_does_not_redo_the_dry_run(
     assert run_log.read_text().count("ran") == 2  # nothing was re-processed
     status = load_status(fix_dir / "status.yaml")
     assert status["acme/repo-alpha"]["status"] == "pending"
+
+
+def _import_blind_fix_hash(fix_dir: Path) -> str:
+    """The pre-import hash: main.py plus the config, skip list omitted."""
+    h = hashlib.sha256()
+    main_py = fix_dir / "main.py"
+    if main_py.exists():
+        h.update(main_py.read_bytes())
+    config_path = fix_dir / "config.yaml"
+    if config_path.exists():
+        raw = yaml.safe_load(config_path.read_text())
+        if isinstance(raw, dict):
+            behavior = {k: v for k, v in raw.items() if k != "skip"}
+            h.update(json.dumps(behavior, sort_keys=True, default=str).encode())
+        else:
+            h.update(config_path.read_bytes())
+    return h.hexdigest()[:12]
+
+
+def _write_module(fix_dir: Path, name: str, source: str) -> None:
+    fix_dir.mkdir(parents=True, exist_ok=True)
+    (fix_dir / name).write_text(source)
+
+
+def _fix_importing(fix_dir: Path, main: str) -> None:
+    _write_module(fix_dir, "config.yaml", BASE_CONFIG)
+    _write_module(fix_dir, "main.py", main)
+
+
+@contextmanager
+def _appended(path: Path, suffix: bytes) -> Generator[None]:
+    original = path.read_bytes()
+    path.write_bytes(original + suffix)
+    try:
+        yield
+    finally:
+        path.write_bytes(original)
+
+
+def test_a_fix_that_imports_only_the_standard_library_keeps_its_hash(
+    tmp_path: Path,
+) -> None:
+    """No fix-directory or repomod import: the hash stays main.py plus config."""
+    fix_dir = tmp_path / "fix"
+    _write_fix(fix_dir)
+    assert compute_fix_hash(fix_dir) == _import_blind_fix_hash(fix_dir)
+
+
+def test_a_change_to_an_imported_fix_module_changes_the_fix_hash(
+    tmp_path: Path,
+) -> None:
+    fix_dir = tmp_path / "fix"
+    _fix_importing(
+        fix_dir,
+        "from helper import VALUE\n"
+        "def accept_repo(repo, config):\n"
+        "    return True\n"
+        "def run(repo, config):\n"
+        "    return bool(VALUE)\n",
+    )
+    _write_module(fix_dir, "helper.py", "VALUE = 1\n")
+    original = compute_fix_hash(fix_dir)
+    assert original == compute_fix_hash(fix_dir)
+
+    _write_module(fix_dir, "helper.py", "VALUE = 2\n")
+    assert compute_fix_hash(fix_dir) != original
+
+
+def test_a_relative_import_in_the_fix_is_part_of_the_hash(tmp_path: Path) -> None:
+    fix_dir = tmp_path / "fix"
+    _fix_importing(
+        fix_dir,
+        "from .helper import VALUE\n"
+        "def accept_repo(repo, config):\n"
+        "    return True\n"
+        "def run(repo, config):\n"
+        "    return bool(VALUE)\n",
+    )
+    _write_module(fix_dir, "helper.py", "VALUE = 1\n")
+    original = compute_fix_hash(fix_dir)
+
+    _write_module(fix_dir, "helper.py", "VALUE = 2\n")
+    assert compute_fix_hash(fix_dir) != original
+
+
+def test_a_change_to_a_transitive_import_changes_the_fix_hash(
+    tmp_path: Path,
+) -> None:
+    fix_dir = tmp_path / "fix"
+    _fix_importing(
+        fix_dir,
+        "import helper\n"
+        "def accept_repo(repo, config):\n"
+        "    return True\n"
+        "def run(repo, config):\n"
+        "    return helper.VALUE == 1\n",
+    )
+    _write_module(fix_dir, "helper.py", "from .dep import VALUE\n")
+    _write_module(fix_dir, "dep.py", "VALUE = 1\n")
+    original = compute_fix_hash(fix_dir)
+
+    _write_module(fix_dir, "dep.py", "VALUE = 2\n")
+    assert compute_fix_hash(fix_dir) != original
+
+
+def test_an_unimported_module_does_not_change_the_fix_hash(tmp_path: Path) -> None:
+    fix_dir = tmp_path / "fix"
+    _fix_importing(
+        fix_dir,
+        "from helper import VALUE\n"
+        "def accept_repo(repo, config):\n"
+        "    return True\n"
+        "def run(repo, config):\n"
+        "    return bool(VALUE)\n",
+    )
+    _write_module(fix_dir, "helper.py", "VALUE = 1\n")
+    _write_module(fix_dir, "notes.py", "VALUE = 1\n")
+    original = compute_fix_hash(fix_dir)
+
+    _write_module(fix_dir, "notes.py", "VALUE = 2\n")
+    assert compute_fix_hash(fix_dir) == original
+
+
+def test_importing_repomod_utils_is_not_an_import_blind_hash(tmp_path: Path) -> None:
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body="    from repomod.utils import interrupt\n    return False\n",
+    )
+    assert compute_fix_hash(fix_dir) != _import_blind_fix_hash(fix_dir)
+
+
+def test_a_change_to_repomod_utils_changes_the_fix_hash(tmp_path: Path) -> None:
+    """pin-gha imports utils. A retry or limiter edit has to invalidate results."""
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body="    from repomod.utils import interrupt\n    return False\n",
+    )
+    utils = Path(run_fix.__file__).resolve().parent / "utils.py"
+    original = compute_fix_hash(fix_dir)
+
+    with _appended(utils, b"\n# imported-module edit\n"):
+        changed = compute_fix_hash(fix_dir)
+
+    assert changed != original
+    assert compute_fix_hash(fix_dir) == original
+
+
+def test_a_change_to_repomod_utils_does_not_change_a_fix_that_does_not_import_it(
+    tmp_path: Path,
+) -> None:
+    fix_dir = tmp_path / "fix"
+    _write_fix(fix_dir)
+    utils = Path(run_fix.__file__).resolve().parent / "utils.py"
+    original = compute_fix_hash(fix_dir)
+
+    with _appended(utils, b"\n# imported-module edit\n"):
+        assert compute_fix_hash(fix_dir) == original
+
+
+def test_a_change_to_the_repomod_package_init_changes_an_importing_fix_hash(
+    tmp_path: Path,
+) -> None:
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body="    from repomod.utils import interrupt\n    return False\n",
+    )
+    package_init = Path(run_fix.__file__).resolve().parent / "__init__.py"
+    original = compute_fix_hash(fix_dir)
+
+    with _appended(package_init, b"\n# imported-module edit\n"):
+        changed = compute_fix_hash(fix_dir)
+
+    assert changed != original
+
+
+def test_the_fix_hash_does_not_read_site_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fix_dir = tmp_path / "fix"
+    _write_fix(fix_dir, body="    import yaml\n    return False\n")
+    _write_module(fix_dir, "helper.py", "import yaml\nVALUE = 1\n")
+    main = fix_dir / "main.py"
+    main.write_text("import helper\n" + main.read_text())
+    banned = Path(yaml.__file__).resolve().parent
+    real_read_bytes = Path.read_bytes
+    real_read_text = Path.read_text
+
+    def banned_path(path: Path) -> bool:
+        resolved = path.resolve()
+        return resolved == banned or banned in resolved.parents
+
+    def read_bytes(self: Path) -> bytes:
+        if banned_path(self):
+            raise AssertionError(f"read {self}")
+        return real_read_bytes(self)
+
+    def read_text(
+        self: Path,
+        encoding: str | None = None,
+        errors: str | None = None,
+        newline: str | None = None,
+    ) -> str:
+        if banned_path(self):
+            raise AssertionError(f"read {self}")
+        return real_read_text(
+            self, encoding=encoding, errors=errors, newline=newline
+        )
+
+    monkeypatch.setattr(Path, "read_bytes", read_bytes)
+    monkeypatch.setattr(Path, "read_text", read_text)
+    compute_fix_hash(fix_dir)
+
+
+def _skipped_backend(fix_dir: Path, fix_hash: str) -> Repo:
+    repo = Repo(name="acme/backend", default_branch="main", topics=["rust"])
+    _make_git_repo(fix_dir / "repos" / repo.slug)
+    _write_status(
+        fix_dir,
+        {"acme/backend": {"status": "skipped", "fix_hash": fix_hash}},
+    )
+    return repo
+
+
+def test_an_import_blind_hash_does_not_keep_a_skipped_repo_current(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A hash that ignores imported modules must not keep saved results."""
+    run_log = tmp_path / "runs.log"
+    monkeypatch.setenv("RUN_LOG", str(run_log))
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from repomod.utils import interrupt\n"
+            "    import os\n"
+            "    open(os.environ['RUN_LOG'], 'a').write('ran\\n')\n"
+            "    return False"
+        ),
+    )
+    repo = _skipped_backend(fix_dir, _import_blind_fix_hash(fix_dir))
+
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+
+    assert run_log.read_text() == "ran\n"
+
+
+def test_a_legacy_hash_does_not_keep_an_importing_fix_current(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The raw-byte hash misses imported modules, so it is not still current."""
+    run_log = tmp_path / "runs.log"
+    monkeypatch.setenv("RUN_LOG", str(run_log))
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from repomod.utils import interrupt\n"
+            "    import os\n"
+            "    open(os.environ['RUN_LOG'], 'a').write('ran\\n')\n"
+            "    return False"
+        ),
+    )
+    repo = _skipped_backend(fix_dir, run_fix.legacy_fix_hash(fix_dir))
+
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+
+    assert run_log.read_text() == "ran\n"
+
+
+def test_a_skipped_repo_runs_again_when_an_imported_module_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_log = tmp_path / "runs.log"
+    monkeypatch.setenv("RUN_LOG", str(run_log))
+    fix_dir = tmp_path / "fix"
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from repomod.utils import interrupt\n"
+            "    import os\n"
+            "    open(os.environ['RUN_LOG'], 'a').write('ran\\n')\n"
+            "    return False"
+        ),
+    )
+    repo = Repo(name="acme/backend", default_branch="main", topics=["rust"])
+    _make_git_repo(fix_dir / "repos" / repo.slug)
+    utils = Path(run_fix.__file__).resolve().parent / "utils.py"
+
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+    assert run_log.read_text() == "ran\n"
+
+    with _mock_sync(repos=[repo]), _mock_clone_git():
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+    assert run_log.read_text() == "ran\n"
+
+    with (
+        _appended(utils, b"\n# imported-module edit\n"),
+        _mock_sync(repos=[repo]),
+        _mock_clone_git(),
+    ):
+        assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
+    assert run_log.read_text() == "ran\nran\n"

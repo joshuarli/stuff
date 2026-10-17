@@ -10,15 +10,6 @@ Next: 31
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-16 · P3 · The fix hash does not cover modules a fix imports
-
-- **Area:** Architecture
-- **Where:** `src/repomod/main.py:113`, `src/repomod/fixes/pin-gha/main.py:9`, `src/repomod/fixes/ubuntu-24/main.py:1`
-- **Problem:** `compute_fix_hash` hashes that fix's `main.py` bytes plus the parsed config without `skip`. `pin-gha` imports `repomod.utils`. A change to retry or the rate limiter changes that fix's behavior and does not change the hash, so repos already marked `skipped` or `pr_created` are not run again. `macos-15` and `ubuntu-24` are copied apart for this reason. Nothing checks the imports. The self-contained sentence in the ubuntu module docstring was deleted. It was not enforced.
-- **Recommendation:** When loading a fix, reject an import of `repomod`, or add each imported module's bytes to the hash.
-- **Fix with:** comment-cleanup
-- **Effort:** M
-
 ### RPMD-24 · P3 · Force-push replaces commits added on an open fix branch
 
 - **Area:** Data

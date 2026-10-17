@@ -220,7 +220,6 @@ class RunContext:
     config: FixConfig
     config_dict: dict[str, Any]
     fix_hash: str
-    # Every hash that counts as current: fix_hash plus its legacy form.
     accepted_hashes: frozenset[str]
     repos_dir: Path
     logs_dir: Path

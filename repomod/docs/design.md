@@ -48,9 +48,12 @@ overwrite a recorded result with `interrupted`.
 
 ## Idempotency
 
-`compute_fix_hash` hashes `main.py` plus the parsed config without `skip`.
-`legacy_fix_hash`, the raw bytes of both files, is still accepted so older `status.yaml`
-entries stay current.
+`compute_fix_hash` hashes `main.py`, the parsed config without `skip`, and the source of
+every module the fix imports from its directory or the `repomod` package, following those
+imports and stopping at the standard library and third-party packages. `legacy_fix_hash`
+is the raw bytes of `main.py` and `config.yaml`. It is accepted only when that import set
+is empty, because otherwise it hides a change to an imported module. The previous
+import-blind hash is not accepted, so rows recorded under it run once.
 
 `commit_and_push` is safe to re-run after a partial failure. It reuses an existing local
 branch, commits only when something is staged, and force-pushes the branch of an open PR

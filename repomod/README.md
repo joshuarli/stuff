@@ -65,9 +65,13 @@ repo when an older `repos.yaml` still names it. Edit `repos-disabled.yaml` by ha
 
 ## Re-running a fix
 
-Each status entry records the fix hash: SHA-256 of `main.py` plus `config.yaml` without its
-`skip` list. YAML comments and formatting don't affect it. When you edit a fix, the hash
-changes and every repo runs again. Editing `skip` or comments keeps saved dry-run results.
+Each status entry records the fix hash: SHA-256 of `main.py`, of `config.yaml` without its
+`skip` list, and of every module that file imports from the fix directory or the `repomod`
+package, including what those modules import. The standard library and third-party packages
+are not part of the hash. YAML comments and formatting don't affect it. When you edit a fix
+or one of those modules, the hash changes and every repo runs again. Editing `skip` or
+comments keeps saved dry-run results. A hash recorded before imported modules were included
+is not current, so those repos run once more.
 
 With a matching hash, repos with status `pr_created`, `pr_merged`, `pr_closed`, or `skipped`
 are not run again. A dry run also skips `pending` repos. Repos with status `failed` or

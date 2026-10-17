@@ -18,6 +18,7 @@ Usage:
 """
 
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
@@ -105,10 +106,11 @@ SYNC_MAX_AGE = 24 * 3600  # seconds — re-sync repos.yaml if older than this
 
 
 def legacy_fix_hash(fix_dir: Path) -> str:
-    """The original hash: raw bytes of main.py + config.yaml.
+    """Raw bytes of main.py and config.yaml.
 
-    Still computed so results recorded under it (existing status.yaml files)
-    keep counting as current while the files are unchanged.
+    Accepted only when the fix imports nothing from its directory or the
+    repomod package. Those modules are absent here, so a change to one of
+    them would leave a saved result looking current.
     """
     h = hashlib.sha256()
     for name in ("main.py", "config.yaml"):
@@ -118,13 +120,127 @@ def legacy_fix_hash(fix_dir: Path) -> str:
     return h.hexdigest()[:12]
 
 
-def compute_fix_hash(fix_dir: Path) -> str:
-    """Hash what a fix does: main.py plus its config, minus the skip list.
+def _in_fix_or_package(path: Path, fix_dir: Path) -> bool:
+    resolved = path.resolve()
+    for root in (fix_dir.resolve(), HERE.resolve()):
+        if resolved == root or root in resolved.parents:
+            return True
+    return False
 
-    The skip list only chooses which repos run, and comments/formatting say
-    nothing about behavior, so none of them belong in the hash. Hashing raw
-    bytes meant adding a repo to the skip list invalidated every saved dry-run
-    and PR record.
+
+def _module_file(root: Path, parts: tuple[str, ...]) -> Path | None:
+    if not parts:
+        return None
+    rel = Path(*parts)
+    module = root / rel.with_suffix(".py")
+    if module.is_file():
+        return module
+    package = root / rel / "__init__.py"
+    if package.is_file():
+        return package
+    return None
+
+
+def _scoped_files(root: Path, parts: tuple[str, ...], fix_dir: Path) -> list[Path]:
+    found: list[Path] = []
+    for end in range(1, len(parts) + 1):
+        path = _module_file(root, parts[:end])
+        if path is not None and _in_fix_or_package(path, fix_dir):
+            found.append(path)
+    return found
+
+
+def _absolute_files(name: str, fix_dir: Path) -> list[Path]:
+    parts = tuple(name.split("."))
+    found: list[Path] = []
+    for root in (fix_dir, HERE.parent):
+        found.extend(_scoped_files(root, parts, fix_dir))
+    return found
+
+
+def _import_from(path: Path, node: ast.ImportFrom, fix_dir: Path) -> list[Path]:
+    names = [alias.name for alias in node.names if alias.name != "*"]
+    if node.level:
+        base = path.parent
+        for _level in range(node.level - 1):
+            base = base.parent
+        parts = tuple(node.module.split(".")) if node.module is not None else ()
+        found = _scoped_files(base, parts, fix_dir)
+        for name in names:
+            found.extend(_scoped_files(base, (*parts, name), fix_dir))
+        return found
+    if node.module is None:
+        return []
+    found = _absolute_files(node.module, fix_dir)
+    for name in names:
+        found.extend(_absolute_files(f"{node.module}.{name}", fix_dir))
+    return found
+
+
+def _imports_in(path: Path, fix_dir: Path) -> list[Path]:
+    try:
+        tree = ast.parse(path.read_bytes())
+    except SyntaxError:
+        return []
+    found: list[Path] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                found.extend(_absolute_files(alias.name, fix_dir))
+        elif isinstance(node, ast.ImportFrom):
+            found.extend(_import_from(path, node, fix_dir))
+    return found
+
+
+def _imported_sources(fix_dir: Path) -> tuple[Path, ...]:
+    entry = (fix_dir / "main.py").resolve()
+    if not entry.is_file():
+        return ()
+    seen: set[Path] = set()
+    found: list[Path] = []
+
+    def add(path: Path) -> None:
+        resolved = path.resolve()
+        if resolved in seen or resolved == entry:
+            return
+        if not _in_fix_or_package(resolved, fix_dir):
+            return
+        seen.add(resolved)
+        found.append(resolved)
+        for child in _imports_in(resolved, fix_dir):
+            add(child)
+
+    for path in _imports_in(entry, fix_dir):
+        add(path)
+
+    def sort_key(path: Path) -> tuple[int, str]:
+        fix_root = fix_dir.resolve()
+        if fix_root in path.parents:
+            return (0, path.relative_to(fix_root).as_posix())
+        return (1, path.relative_to(HERE.resolve()).as_posix())
+
+    return tuple(sorted(found, key=sort_key))
+
+
+def _accepted_hashes(fix_dir: Path, fix_hash: str) -> frozenset[str]:
+    """Hashes that still describe this fix.
+
+    The raw-byte hash is included only when it cannot hide an import. The
+    import-blind hash is not current: a utils change would not re-run.
+    """
+    if _imported_sources(fix_dir):
+        return frozenset({fix_hash})
+    return frozenset({fix_hash, legacy_fix_hash(fix_dir)})
+
+
+def compute_fix_hash(fix_dir: Path) -> str:
+    """Hash what a fix does.
+
+    main.py, the config without the skip list, and modules imported from
+    the fix directory or the repomod package, including what those import.
+    The skip list only chooses which repos run. Comments and formatting
+    say nothing about behavior. The standard library and third-party
+    packages are not hashed.
     """
     h = hashlib.sha256()
     main_py = fix_dir / "main.py"
@@ -141,6 +257,8 @@ def compute_fix_hash(fix_dir: Path) -> str:
             h.update(json.dumps(behavior, sort_keys=True, default=str).encode())
         else:
             h.update(config_path.read_bytes())
+    for source in _imported_sources(fix_dir):
+        h.update(source.read_bytes())
     return h.hexdigest()[:12]
 
 
@@ -639,8 +757,8 @@ def filter_work(
 ) -> tuple[list[WorkItem], int]:
     """Filter repos into work items. Returns (work, already_done_count).
 
-    accepted_hashes: every hash that counts as current (the fix hash, plus its
-    legacy form so older records stay valid). Defaults to just fix_hash.
+    accepted_hashes: hashes that still count as current. Defaults to fix_hash.
+    The raw-byte hash is added only when the fix imports nothing that hash misses.
     """
     current_hashes = accepted_hashes or frozenset({fix_hash})
     skip_repos = set(config.skip)
@@ -1061,7 +1179,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         fix_hash,
         only_repos,
         apply=args.apply,
-        accepted_hashes=frozenset({fix_hash, legacy_fix_hash(fix_dir)}),
+        accepted_hashes=_accepted_hashes(fix_dir, fix_hash),
     )
     if args.limit is not None:
         work = work[: args.limit]
@@ -1102,7 +1220,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             config=config,
             config_dict=config.as_dict(),
             fix_hash=fix_hash,
-            accepted_hashes=frozenset({fix_hash, legacy_fix_hash(fix_dir)}),
+            accepted_hashes=_accepted_hashes(fix_dir, fix_hash),
             repos_dir=repos_dir,
             logs_dir=logs_dir,
             patches_dir=patches_dir,
