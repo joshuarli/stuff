@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-9 · P2 · The interrupt test never locks an interrupted repo
-
-- **Area:** Tests
-- **Where:** `tests/test_main.py:868`, `src/repomod/main.py:254`, `src/repomod/main.py:266`
-- **Problem:** `test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupted` is a dry run. The fix sets `interrupt.event` and returns. Nothing raises `ShutdownError`, and `--apply` is not passed. Alpha still finishes as `pending` and calls `pd.finish`. The test does lock the keep-list: beta (`pending`) and gamma (`pr_created`) are preserved, and deleting the `RESULT_STATUSES` guard in `mark_interrupted` would fail it. It stays green if an unfinished repo is never written as `interrupted`, if that repo calls `pd.finish`, if an in-flight `--apply` pushes, or if the next run does not retry `interrupted`. Those are the behaviors `docs/design.md` states.
-- **Recommendation:** One `--apply` run where the in-flight repo raises `ShutdownError` before push. Assert that repo is `interrupted`, `pd.finish` was not used for it, no branch was pushed, the process exits 130, and a second run takes that repo again.
-- **Fix with:** test-audit
-- **Effort:** M
-
 ### RPMD-21 · P2 · A PR merged during the run is force-pushed and recorded as open
 
 - **Area:** Concurrency

@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from gh_harness import FakeGh
 
 from repomod import git
 from repomod import main as run_fix
@@ -912,6 +913,133 @@ def test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupte
     assert status["acme/repo-alpha"]["status"] == "pending"
     assert status["acme/repo-beta"] == earlier["acme/repo-beta"]
     assert status["acme/repo-gamma"] == earlier["acme/repo-gamma"]
+
+
+def test_ctrl_c_during_apply_marks_the_in_flight_repo_interrupted_and_retries_it(
+    tmp_path: Path, fake_gh: FakeGh
+) -> None:
+    """--apply must stop before push when the in-flight fix raises ShutdownError.
+
+    Alpha is not finished and is not pushed. Beta's pending row and gamma's PR
+    stay as they were. The next run, with the interrupt cleared and the fix no
+    longer raising, runs the fix on alpha again.
+    """
+    fix_dir = tmp_path / "fix"
+    gate = tmp_path / "raise-shutdown"
+    gate.write_text("yes")
+    ran = tmp_path / "fix-ran"
+    _write_fix(
+        fix_dir,
+        body=(
+            "    from repomod.utils import ShutdownError, interrupt\n"
+            "    (repo / 'README.md').write_text('changed')\n"
+            f"    if Path({str(gate)!r}).exists():\n"
+            "        interrupt.event.set()\n"
+            "        raise ShutdownError\n"
+            "    if repo.name == 'acme-repo-alpha':\n"
+            f"        Path({str(ran)!r}).write_text('acme/repo-alpha\\n')\n"
+            "    return True"
+        ),
+    )
+    for repo in (REPO_A, REPO_B, REPO_C):
+        _make_git_repo(fix_dir / "repos" / repo.slug)
+    atomic_write_yaml(
+        {
+            "acme/repo-beta": {
+                "status": "pending",
+                "fix_hash": "olderhash",
+                "base_sha": "abc123",
+            },
+            "acme/repo-gamma": {
+                "status": "pr_created",
+                "fix_hash": "olderhash",
+                "pr_url": "https://github.com/acme/repo-gamma/pull/9",
+            },
+        },
+        fix_dir / "status.yaml",
+    )
+    alpha = fix_dir / "repos" / REPO_A.slug
+    finished: list[str] = []
+    commands: list[list[str]] = []
+    real_finish = ProgressDisplay.finish
+
+    def spy_finish(
+        self: ProgressDisplay,
+        repo_name: str,
+        msg: str = "",
+        category: str = "done",
+    ) -> None:
+        finished.append(repo_name)
+        real_finish(self, repo_name, msg, category)
+
+    interrupt.event.clear()
+    try:
+        with (
+            _mock_sync(repos=[REPO_A, REPO_B, REPO_C]),
+            _mock_clone_git() as git_run,
+            patch.object(ProgressDisplay, "finish", spy_finish),
+        ):
+            record = git_run.side_effect
+
+            def recording(
+                cmd: Any, **kwargs: Any
+            ) -> subprocess.CompletedProcess[Any]:
+                commands.append([str(part) for part in cmd])
+                return record(cmd, **kwargs)
+
+            git_run.side_effect = recording
+            assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 130
+
+        status = load_status(fix_dir / "status.yaml")
+        assert status["acme/repo-alpha"] == {"status": "interrupted"}
+        assert status["acme/repo-beta"] == {
+            "status": "pending",
+            "fix_hash": "olderhash",
+            "base_sha": "abc123",
+        }
+        assert status["acme/repo-gamma"] == {
+            "status": "pr_created",
+            "fix_hash": "olderhash",
+            "pr_url": "https://github.com/acme/repo-gamma/pull/9",
+        }
+        assert finished == []
+        assert [argv for argv in commands if "push" in argv] == []
+        assert fake_gh.count("pr", "create") == 0
+        assert not ran.exists()
+        head = subprocess.run(
+            ["git", "log", "--format=%s", "HEAD"],
+            cwd=alpha,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert head.stdout.splitlines() == ["init"]
+        branch = subprocess.run(
+            ["git", "log", "--format=%s", "test-branch"],
+            cwd=alpha,
+            capture_output=True,
+            text=True,
+        )
+        commits = branch.stdout.splitlines() if branch.returncode == 0 else []
+        assert commits in ([], ["init"])
+
+        gate.unlink()
+        interrupt.event.clear()
+        with (
+            _mock_sync(repos=[REPO_A, REPO_B, REPO_C]),
+            _mock_clone_git(),
+            patch.object(
+                run_fix,
+                "commit_and_push",
+                return_value=PRInfo(
+                    "https://github.com/acme/repo-alpha/pull/4", "OPEN"
+                ),
+            ),
+        ):
+            assert run_fix.main([str(fix_dir), "--apply", "--workers", "1"]) == 0
+        assert ran.read_text() == "acme/repo-alpha\n"
+    finally:
+        interrupt.event.clear()
 
 
 def test_interrupted_commit_keeps_the_pending_row_and_does_not_finish(
