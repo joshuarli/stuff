@@ -26,7 +26,7 @@ uv run ty check
 - `ui.py`: all terminal output. No business logic.
 - `utils.py`: core infra (`interrupt`, `retry`, `RateLimiter`, `ShutdownError`). Not a dumping ground.
 - `lint.py`: validation of a fix's output before any diff is shown or pushed.
-- `sync.py`: the GitHub repo sync that writes `repos.yaml` and `repos-excluded.yaml`.
+- `sync.py`: the GitHub repo sync that writes `repos.yaml`.
 - `RunContext` groups state shared across worker threads. Don't pass 10 positional args.
 
 ## Rules
@@ -39,4 +39,4 @@ uv run ty check
 - Prefer pure functions. `filter_work` filters and returns, with no side effects.
 - No lazy imports, no `nonlocal`, no section-divider comments, no dead code, and no `\033[B` for cursor movement.
 - Tests mirror `src` (`test_main.py` tests `main.py`) and use realistic names (`acme/backend`, not `"a"`).
-- Never hand-edit `repos.yaml`, `repos-excluded.yaml`, `status.yaml`, `logs-*/`, `patches-*/`, or `repos/`. They are generated, and patches must stay byte-exact, trailing whitespace included. `repos-disabled.yaml` is the hand-maintained denylist. Sync does not write it.
+- Never hand-edit `repos.yaml`, `status.yaml`, `logs-*/`, `patches-*/`, or `repos/`. They are generated, and patches must stay byte-exact, trailing whitespace included. `repos-disabled.yaml` is the hand-maintained denylist. Sync does not write it.

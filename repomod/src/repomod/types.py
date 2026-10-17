@@ -173,13 +173,6 @@ class FixConfig:
         )
 
 
-class SyncResult(NamedTuple):
-    """Outcome of a repo sync: repos to run fixes on, and names dropped as inactive."""
-
-    repos: list[Repo]
-    excluded: list[str]
-
-
 class PRInfo(NamedTuple):
     """A pull request for a fix branch. state is GitHub's: OPEN, MERGED, CLOSED."""
 

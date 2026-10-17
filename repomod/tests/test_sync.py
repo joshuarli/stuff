@@ -135,28 +135,23 @@ def test_cold_sync_applies_the_activity_filter_and_skips_provable_lookups() -> N
         },
     )
 
-    result = gh.run()
+    repos = gh.run()
 
-    assert [r.name for r in result.repos] == [
+    assert [r.name for r in repos] == [
         "acme/long-bot-streak",
         "acme/relay",
     ]
-    assert result.excluded == [
-        "acme/dependabot-only",
-        "acme/empty-repo",
-        "acme/milksnake",
-    ]
     # Not pushed to for two years: provably inactive, so its history isn't fetched.
     assert "acme/milksnake" not in gh.looked_up
-    relay = result.repos[1]
+    relay = repos[1]
     assert relay.default_branch == "main"
     assert relay.topics == ["python", "rust"]
     assert relay.last_human_commit == _iso(9)
     # All-bot first page with more history is kept but has no date to remember.
-    assert result.repos[0].last_human_commit is None
+    assert repos[0].last_human_commit is None
 
 
-def test_a_disabled_repo_is_not_synced_or_listed_as_inactive() -> None:
+def test_a_disabled_repo_is_not_synced() -> None:
     gh = FakeGitHub(
         items=[_item("relay"), _item("smolworld")],
         histories={
@@ -169,10 +164,9 @@ def test_a_disabled_repo_is_not_synced_or_listed_as_inactive() -> None:
         patch.object(sync, "search_page", gh.search_page),
         patch.object(sync, "graphql", gh.graphql),
     ):
-        result = sync.sync_repos(disabled={"acme/smolworld"})
+        repos = sync.sync_repos(disabled={"acme/smolworld"})
 
-    assert [r.name for r in result.repos] == ["acme/relay"]
-    assert result.excluded == []
+    assert [r.name for r in repos] == ["acme/relay"]
     assert "acme/smolworld" not in gh.looked_up
 
 
@@ -188,7 +182,7 @@ def test_a_remembered_recent_human_commit_means_no_history_lookup_at_all() -> No
     # relay's remembered commit is inside the window; snuba's aged out, and
     # brand-new has no memory, so only those two are looked up.
     assert gh.looked_up == {"acme/snuba", "acme/brand-new"}
-    by_name = {r.name: r for r in result.repos}
+    by_name = {r.name: r for r in result}
     assert "acme/relay" in by_name
     assert by_name["acme/relay"].last_human_commit == _iso(40)
 
@@ -203,7 +197,7 @@ def test_a_fully_remembered_org_makes_no_history_calls() -> None:
     result = gh.run(known)
 
     assert gh.history_batches == []
-    assert len(result.repos) == 30
+    assert len(result) == 30
 
 
 def test_history_lookups_are_batched_and_run_concurrently() -> None:
@@ -221,7 +215,7 @@ def test_history_lookups_are_batched_and_run_concurrently() -> None:
     assert sorted(len(b) for b in gh.history_batches) == [5, 20, 20]
     assert gh.max_concurrent > 1
     assert elapsed < 0.25  # three 0.1s batches overlap instead of adding up
-    assert len(result.repos) == 45
+    assert len(result) == 45
 
 
 def test_search_pages_after_the_first_are_fetched_together_and_deduplicated() -> None:
@@ -242,7 +236,7 @@ def test_search_pages_after_the_first_are_fetched_together_and_deduplicated() ->
         result = sync.sync_repos()
 
     assert sorted(gh.pages) == [1, 2, 3]
-    assert len(result.excluded) == 250  # every repo once, none lost or doubled
+    assert result == []
 
 
 def test_a_partial_search_page_is_an_error_not_silently_truncated_repos() -> None:

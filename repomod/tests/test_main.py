@@ -30,7 +30,6 @@ from repomod.types import (
     PRInfo,
     Repo,
     RolloutPR,
-    SyncResult,
     WorkItem,
 )
 from repomod.ui import ProgressDisplay
@@ -99,7 +98,7 @@ def _mock_sync(repos: list[Repo] | None = None) -> Generator[None]:
             patch.object(
                 run_fix,
                 "sync_repos",
-                return_value=SyncResult(repos or DEFAULT_REPOS, []),
+                return_value=repos or DEFAULT_REPOS,
             ),
             patch.object(run_fix, "REPOS_FILE", tmp_repos),
         ):
@@ -581,7 +580,7 @@ def test_sync_command_writes_repos_yaml_without_running_a_fix(
             patch.object(
                 run_fix,
                 "sync_repos",
-                return_value=SyncResult([REPO_A, REPO_B], ["acme/legacy-tool"]),
+                return_value=[REPO_A, REPO_B],
             ),
             patch.object(run_fix, "REPOS_FILE", tmp_repos),
             patch.object(run_fix, "load_fix") as load_fix,
@@ -589,14 +588,11 @@ def test_sync_command_writes_repos_yaml_without_running_a_fix(
             assert run_fix.main(["sync"]) == 0
 
         saved = [r["name"] for r in yaml.safe_load(tmp_repos.read_text())]
-        excluded = yaml.safe_load((Path(td) / "repos-excluded.yaml").read_text())
 
     assert saved == ["acme/repo-alpha", "acme/repo-beta"]
-    assert excluded == ["acme/legacy-tool"]
     load_fix.assert_not_called()
     out = capsys.readouterr().out
     assert "Synced 2 repos" in out
-    assert "1 repos excluded as inactive" in out
 
 
 def test_e2e_new_workflow_errors_fail_the_repo_before_diff(
@@ -905,7 +901,7 @@ def test_a_stale_file_triggers_a_sync_that_inherits_its_activity_memo(
     with (
         patch.object(run_fix, "REPOS_FILE", repos_file),
         patch.object(
-            run_fix, "sync_repos", return_value=SyncResult([fresh], [])
+            run_fix, "sync_repos", return_value=[fresh]
         ) as sync,
     ):
         repos = run_fix.sync_if_needed(force=False)

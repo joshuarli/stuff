@@ -97,7 +97,6 @@ HERE = Path(__file__).parent
 FIXES_DIR = HERE / "fixes"
 PROJECT_ROOT = HERE.parent.parent
 REPOS_FILE = PROJECT_ROOT / "repos.yaml"
-EXCLUDED_FILE_NAME = "repos-excluded.yaml"
 DISABLED_FILE = PROJECT_ROOT / "repos-disabled.yaml"
 
 REQUIRED_FUNCS = ("accept_repo", "run")
@@ -370,19 +369,15 @@ def sync_if_needed(force: bool) -> list[Repo] | None:
         with spinner("Syncing repos"):
             # The previous sync's memo lets sync skip re-checking repos it already
             # knows are active, even when the file is too old to use as a cache.
-            result = sync_repos(
+            repos = sync_repos(
                 {r.name: r for r in previous or []},
                 disabled=load_disabled(DISABLED_FILE),
             )
-            atomic_write_yaml([r.to_record() for r in result.repos], REPOS_FILE)
-            # Checked in, so the diff shows which repos the activity filter
-            # started or stopped excluding.
-            atomic_write_yaml(result.excluded, REPOS_FILE.with_name(EXCLUDED_FILE_NAME))
+            atomic_write_yaml([r.to_record() for r in repos], REPOS_FILE)
         print(
-            f"  {DIM}{len(result.excluded)} repos excluded as inactive "
-            f"(see {EXCLUDED_FILE_NAME}){RST}"
+            f"  {DIM}Synced {len(repos)} active repos{RST}"
         )
-        return result.repos
+        return repos
     except KeyboardInterrupt:
         print(f"\n{YELLOW}Interrupted during sync.{RST}")
         return None

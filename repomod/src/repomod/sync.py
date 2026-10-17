@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from repomod.types import OWNER_QUALIFIERS, Repo, SyncResult
+from repomod.types import OWNER_QUALIFIERS, Repo
 from repomod.utils import SUBPROCESS_TIMEOUT, ShutdownError, interrupt, retry
 
 # Appearing in the search doesn't mean a repo is maintained. Repos with no human
@@ -215,11 +215,10 @@ def fetch_histories(names: list[str], cutoff: datetime) -> dict[str, dict[str, A
 
 def sync_repos(
     known: dict[str, Repo] | None = None, *, disabled: set[str] | None = None
-) -> SyncResult:
-    """Fetch non-archived repos owned by the configured owners that have had a
-    non-bot default-branch commit within MAX_IDLE. Repos without are returned by
-    name as excluded, so the filter can be audited. Names in `disabled` are
-    omitted before that filter, and they are not listed as inactive.
+) -> list[Repo]:
+    """Fetch non-archived, active repos owned by the configured owners.
+
+    Names in `disabled` are omitted before the activity filter.
 
     `known` is the previous sync's repos. Commit history is only fetched where
     it can't be ruled out:
@@ -249,12 +248,10 @@ def sync_repos(
         verdicts[name] = judge_history(history)
 
     repos: list[Repo] = []
-    excluded: list[str] = []
     for node in nodes:
         name = node["full_name"]
         keep, last_human_commit = verdicts[name]
         if not keep or not node.get("default_branch"):
-            excluded.append(name)
             continue
         repos.append(
             Repo(
@@ -266,4 +263,4 @@ def sync_repos(
         )
 
     repos.sort(key=lambda r: r.name)
-    return SyncResult(repos=repos, excluded=sorted(excluded))
+    return repos

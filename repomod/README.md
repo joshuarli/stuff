@@ -55,13 +55,12 @@ repomod writes these files next to each fix:
 - `logs-{hash}/`: details for repos with status `failed`.
 - `repos/`: the clones.
 
-At the repo root, `repomod sync` writes `repos.yaml` (the target repos) and
-`repos-excluded.yaml` (repos dropped as inactive). Both are checked in. Don't edit any of
-these files by hand.
+At the repo root, `repomod sync` writes `repos.yaml` (the target repos). Don't edit it by
+hand.
 
 `repos-disabled.yaml` is the list of repos you ignore for every fix. `sync` leaves a
-listed repo out of `repos.yaml` and out of `repos-excluded.yaml`. A run also skips that
-repo when an older `repos.yaml` still names it. Edit `repos-disabled.yaml` by hand.
+listed repo out of `repos.yaml`. A run also skips that repo when an older `repos.yaml` still
+names it. Edit `repos-disabled.yaml` by hand.
 
 ## Re-running a fix
 
