@@ -636,40 +636,74 @@ def lookup_existing_prs(branch: str) -> dict[str, RolloutPR]:
         sys.exit(f"Could not look up existing PRs: {format_error(exc)}")
 
 
+def _announce_shutdown(pd: ProgressDisplay, announced: list[bool]) -> None:
+    """Tell the user the run is stopping, once.
+
+    Printed from the worker loop. The signal handler must not print: it runs
+    on the thread that may already hold ProgressDisplay's lock. `announced`
+    is a one-element cell shared by both loops.
+    """
+    if announced[0] or not interrupt.is_set:
+        return
+    announced[0] = True
+    pd.print(f"\n{YELLOW}Gracefully exiting, please wait...{RST}")
+
+
+def _halt_pool(
+    pool: ThreadPoolExecutor, pd: ProgressDisplay, announced: list[bool]
+) -> bool:
+    """Cancel queued work once ^C has been noticed. Re-reads the event.
+
+    Worker threads set it during `future.result()`, so a read from earlier in
+    the same iteration is not still false.
+    """
+    if not interrupt.is_set:
+        return False
+    _announce_shutdown(pd, announced)
+    pool.shutdown(wait=False, cancel_futures=True)
+    return True
+
+
 def _map_work[T, R](
     items: Sequence[T],
     workers: int,
     fn: Callable[[T], R | None],
+    pd: ProgressDisplay,
+    announced: list[bool],
 ) -> list[R]:
     """Run `fn` over `items`. Joins every worker before returning, including on ^C."""
     results: list[R] = []
-    if workers == 1 or len(items) <= 1:
-        for item in items:
-            if interrupt.is_set:
-                break
-            result = fn(item)
-            if result is not None:
-                results.append(result)
-        return results
+    try:
+        if workers == 1 or len(items) <= 1:
+            for item in items:
+                if interrupt.is_set:
+                    break
+                result = fn(item)
+                if result is not None:
+                    results.append(result)
+            return results
 
-    n = min(workers, len(items))
-    with ThreadPoolExecutor(max_workers=n) as pool:
-        futures = [pool.submit(fn, item) for item in items]
-        for future in as_completed(futures):
-            if interrupt.is_set:
-                pool.shutdown(wait=False, cancel_futures=True)
-                break
-            result = future.result()
-            if result is not None:
-                results.append(result)
-    return results
+        n = min(workers, len(items))
+        with ThreadPoolExecutor(max_workers=n) as pool:
+            futures = [pool.submit(fn, item) for item in items]
+            for future in as_completed(futures):
+                # Before the pool join, so the line shows while workers finish.
+                if _halt_pool(pool, pd, announced):
+                    break
+                result = future.result()
+                if result is not None:
+                    results.append(result)
+                if _halt_pool(pool, pd, announced):
+                    break
+        return results
+    finally:
+        # Also after the last item, which has no following iteration to look.
+        _announce_shutdown(pd, announced)
 
 
 def run_work(ctx: RunContext, work: list[WorkItem], workers: int) -> bool:
     """Execute work items with progress display. Returns True if interrupted."""
-
-    def _on_interrupt() -> None:
-        ctx.pd.print(f"\n{YELLOW}Gracefully exiting, please wait...{RST}")
+    announced = [False]
 
     def _prepare(item: WorkItem) -> tuple[WorkItem, str, str] | None:
         payload = process_repo(item, ctx, push=not ctx.apply)
@@ -688,9 +722,9 @@ def run_work(ctx: RunContext, work: list[WorkItem], workers: int) -> bool:
             ctx.pd.cancel(item.repo.name)
             mark_interrupted(ctx, item.repo.name)
 
-    interrupt.install(on_interrupt=_on_interrupt)
+    interrupt.install()
     try:
-        prepared = _map_work(work, workers, _prepare)
+        prepared = _map_work(work, workers, _prepare, ctx.pd, announced)
         # The opening search goes stale while fixes run. Refresh once, after
         # every fix and before any push. A repo the refresh returns uses that
         # state; one it omits keeps the opening PR.
@@ -701,9 +735,10 @@ def run_work(ctx: RunContext, work: list[WorkItem], workers: int) -> bool:
                 pass
             else:
                 ctx.existing_prs = {**ctx.existing_prs, **refreshed}
-                _map_work(prepared, workers, _push)
+                _map_work(prepared, workers, _push, ctx.pd, announced)
 
         if interrupt.is_set:
+            _announce_shutdown(ctx.pd, announced)
             for item in work:
                 name = item.repo.name
                 if not ctx.pd.is_completed(name):

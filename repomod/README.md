@@ -43,7 +43,7 @@ Go in stages: `--plan`, then `--limit 5`, then a full dry run, then `--apply`. E
 as a draft. Run `--undraft --apply` after you review the rollout.
 
 Press `^C` to stop a run. Repos in progress are marked `interrupted`, and the next run picks
-up where this one stopped.
+up where this one stopped. Press `^C` again to terminate immediately.
 
 ## Output
 

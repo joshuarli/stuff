@@ -36,8 +36,11 @@ and merged state can change, so repomod never caches them.
 ## Resumability
 
 `^C` raises `ShutdownError` through `interrupt.wait()`, which uses `Event.wait()` so sleeping
-threads wake instantly. In-flight workers finish their current network call. Incomplete repos
-are marked `interrupted`, and the next run picks them up.
+threads wake instantly. The handler only sets that event. The worker loop prints
+`Gracefully exiting, please wait...` once when it notices. A second `^C` restores the
+default SIGINT action and re-raises it, which terminates the process. In-flight workers
+finish their current network call. Incomplete repos are marked `interrupted`, and the next
+run picks them up.
 
 Interrupted repos must not increment done counters, so never call `pd.finish()` for them.
 `execute_fix_on_repo` writes the status before `pd.finish()`, so a `^C` between the two can't

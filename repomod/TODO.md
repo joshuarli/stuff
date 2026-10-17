@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-23 · P2 · ^C on the main thread can deadlock the progress lock
-
-- **Area:** Concurrency
-- **Where:** `src/repomod/utils.py:52`, `src/repomod/main.py:540`, `src/repomod/ui.py:259`, `src/repomod/main.py:545`
-- **Problem:** The handler calls `pd.print`, which takes `ProgressDisplay._lock`. That lock is a `threading.Lock`. Signal handlers run on the main thread. With `--workers 1`, or a single repo, `process_repo` runs on that thread, and `print` / `finish` / `set_phase` hold the same lock. A handler that runs while the lock is held cannot acquire it: a same-thread `acquire` with a 0.3s timeout returned false in a reproduction of this pattern. The handler returns immediately once the event is set, and the previous SIGINT handler is not restored until `run_work`'s `finally`, which does not run if the handler is stuck. A second ^C does nothing.
-- **Recommendation:** The handler should only set the event. Print from the worker loop. On a second ^C, restore the default SIGINT handler.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### RPMD-10 · P3 · --help says the repo cache expires after one hour
 
 - **Area:** Config

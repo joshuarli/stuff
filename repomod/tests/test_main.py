@@ -1,13 +1,16 @@
 """Integration tests for repomod.main pipeline."""
 
 import os
+import signal
 import subprocess
 import tempfile
+import threading
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from typing import Any
+from types import FrameType
+from typing import Any, cast
 from unittest.mock import patch
 
 import pytest
@@ -30,6 +33,11 @@ from repomod.types import (
 )
 from repomod.ui import ProgressDisplay
 from repomod.utils import ShutdownError, interrupt
+
+
+def _call_handler(handler: object) -> None:
+    cast("Callable[[int, FrameType | None], object]", handler)(signal.SIGINT, None)
+
 
 REPO_TEST = Repo(
     name="acme/test-repo",
@@ -871,14 +879,139 @@ def test_fixes_still_see_only_the_stable_repo_facts_not_the_sync_memo() -> None:
     assert Repo.from_dict(repo.to_record()) == repo
 
 
+def test_sigint_handler_returns_while_progress_lock_is_held(tmp_path: Path) -> None:
+    """The installed handler must return while the caller holds the progress lock.
+
+    One worker runs the fix on the signal thread, and print holds that
+    non-reentrant lock. A handler that prints never returns, so the handler
+    captured at startup is never restored and a second ^C does nothing.
+    """
+    repo = Repo("acme/backend", "main", ["rust"])
+    _fix_dir, ctx = _no_review_context(tmp_path, apply=False)
+    prints: list[str] = []
+    original_print = ProgressDisplay.print
+
+    def spy(self: ProgressDisplay, text: str) -> None:
+        prints.append(text)
+        original_print(self, text)
+
+    class _Probe:
+        def __init__(self) -> None:
+            self.started = False
+            self.blocked = True
+            self.event = False
+            self.graceful = 1
+            self.joined = False
+            self.installed = False
+
+        def accept_repo(self, repo: dict[str, Any], config: dict[str, Any]) -> bool:
+            return True
+
+        def run(self, repo: Path, config: dict[str, Any]) -> bool:
+            handler = signal.getsignal(signal.SIGINT)
+            self.installed = callable(handler)
+            if not callable(handler):
+                raise ShutdownError
+            finished = threading.Event()
+            started = threading.Event()
+
+            def invoke() -> None:
+                started.set()
+                try:
+                    _call_handler(handler)
+                finally:
+                    finished.set()
+
+            worker = threading.Thread(target=invoke, daemon=True)
+            ctx.pd._lock.acquire()
+            try:
+                worker.start()
+                self.started = started.wait(1)
+                if self.started:
+                    self.blocked = not finished.wait(0.3)
+                    self.graceful = sum(
+                        "Gracefully exiting" in text for text in tuple(prints)
+                    )
+                    self.event = interrupt.is_set
+            finally:
+                ctx.pd._lock.release()
+                worker.join(timeout=1)
+                self.joined = not worker.is_alive()
+            raise ShutdownError
+
+    probe = _Probe()
+    ctx.fix = probe
+    previous = signal.getsignal(signal.SIGINT)
+    interrupt.event.clear()
+    try:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(ProgressDisplay, "print", spy),
+            patch("os.kill") as kill,
+        ):
+            assert run_fix.run_work(ctx, [WorkItem(repo)], 1) is True
+            assert not interrupt.is_set
+            assert signal.getsignal(signal.SIGINT) is previous
+            assert kill.call_count == 0
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        interrupt.event.clear()
+
+    assert probe.installed
+    assert probe.started
+    assert probe.joined
+    assert probe.event
+    assert probe.graceful == 0
+    assert not probe.blocked
+
+
+def test_workers_one_interrupt_prints_the_graceful_line_from_the_loop(
+    tmp_path: Path, capsys: Any
+) -> None:
+    """The shutdown line is printed when the loop notices, not by the handler.
+
+    The fix sets the event itself and raises. Nothing delivers SIGINT, so the
+    line is not from the handler. One repo means the loop notices only after
+    that fix returns.
+    """
+    repo = Repo("acme/backend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=False)
+
+    class _Stop:
+        def accept_repo(self, repo: dict[str, Any], config: dict[str, Any]) -> bool:
+            return True
+
+        def run(self, repo: Path, config: dict[str, Any]) -> bool:
+            interrupt.event.set()
+            raise ShutdownError
+
+    ctx.fix = _Stop()
+    previous = signal.getsignal(signal.SIGINT)
+    interrupt.event.clear()
+    try:
+        with patch.object(run_fix, "clone"):
+            assert run_fix.run_work(ctx, [WorkItem(repo)], 1) is True
+        assert not interrupt.is_set
+        assert signal.getsignal(signal.SIGINT) is previous
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        interrupt.event.clear()
+
+    assert load_status(fix_dir / "status.yaml")["acme/backend"] == {
+        "status": "interrupted",
+    }
+    assert capsys.readouterr().out.count("Gracefully exiting, please wait...") == 1
+
+
 def test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupted(
-    tmp_path: Path,
+    tmp_path: Path, capsys: Any
 ) -> None:
     """A dry run's saved diff (and an existing PR) survive an interrupted re-run.
 
     The first repo's fix triggers ^C. alpha completes before it is noticed; beta
     (a pending dry-run diff) and gamma (an existing PR) were queued behind it and
-    must keep their results rather than be downgraded to interrupted.
+    must keep their results rather than be downgraded to interrupted. The fix
+    sets the event itself, so the graceful line comes from the worker loop.
     """
     fix_dir = tmp_path / "fix"
     _write_fix(
@@ -913,16 +1046,18 @@ def test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupte
     assert status["acme/repo-alpha"]["status"] == "pending"
     assert status["acme/repo-beta"] == earlier["acme/repo-beta"]
     assert status["acme/repo-gamma"] == earlier["acme/repo-gamma"]
+    assert capsys.readouterr().out.count("Gracefully exiting, please wait...") == 1
 
 
 def test_ctrl_c_during_apply_marks_the_in_flight_repo_interrupted_and_retries_it(
-    tmp_path: Path, fake_gh: FakeGh
+    tmp_path: Path, fake_gh: FakeGh, capsys: Any
 ) -> None:
     """--apply must stop before push when the in-flight fix raises ShutdownError.
 
     Alpha is not finished and is not pushed. Beta's pending row and gamma's PR
     stay as they were. The next run, with the interrupt cleared and the fix no
-    longer raising, runs the fix on alpha again.
+    longer raising, runs the fix on alpha again. The fix sets the event itself,
+    so the graceful line comes from the worker loop.
     """
     fix_dir = tmp_path / "fix"
     gate = tmp_path / "raise-shutdown"
@@ -1022,6 +1157,7 @@ def test_ctrl_c_during_apply_marks_the_in_flight_repo_interrupted_and_retries_it
         )
         commits = branch.stdout.splitlines() if branch.returncode == 0 else []
         assert commits in ([], ["init"])
+        assert capsys.readouterr().out.count("Gracefully exiting, please wait...") == 1
 
         gate.unlink()
         interrupt.event.clear()

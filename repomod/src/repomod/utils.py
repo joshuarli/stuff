@@ -1,6 +1,7 @@
 """Shared utilities: retry, rate limiting, interrupt handling."""
 
 import logging
+import os
 import signal
 import subprocess
 import threading
@@ -27,33 +28,37 @@ class ShutdownError(Exception):
 
 
 class InterruptHandler:
-    """Encapsulates ^C handling: event, signal handler, and optional callback.
+    """Encapsulates ^C handling: event and signal handler.
 
     Single instance shared across the application. No mutable globals.
     All waits use event.wait(timeout) so they wake instantly on ^C.
+    The handler only sets the event. A second SIGINT terminates the process.
     """
 
     def __init__(self) -> None:
         self.event = threading.Event()
         self._original_sigint = signal.getsignal(signal.SIGINT)
-        self._on_interrupt: Callable[[], None] | None = None
 
     @property
     def is_set(self) -> bool:
         return self.event.is_set()
 
-    def install(self, on_interrupt: Callable[[], None] | None = None) -> None:
-        """Replace SIGINT with a handler that sets the event.
+    def install(self) -> None:
+        """Replace SIGINT with a handler that only sets the event.
 
-        on_interrupt: optional callback on first ^C (e.g., print a message).
+        The handler runs on the main thread. With one worker that thread may
+        already hold ProgressDisplay's lock, and a non-reentrant acquire from
+        the handler never returns, so the handler installed here would never
+        see a second SIGINT. The second SIGINT restores the default action and
+        re-raises it, which terminates the process.
         """
-        self._on_interrupt = on_interrupt
 
         def handler(signum: int, frame: object) -> None:
-            if not self.event.is_set():
-                self.event.set()
-                if self._on_interrupt is not None:
-                    self._on_interrupt()
+            if self.event.is_set():
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
+                os.kill(os.getpid(), signal.SIGINT)
+                return
+            self.event.set()
 
         signal.signal(signal.SIGINT, handler)
 
@@ -61,7 +66,6 @@ class InterruptHandler:
         """Restore the original SIGINT handler and clear the event."""
         signal.signal(signal.SIGINT, self._original_sigint)
         self.event.clear()
-        self._on_interrupt = None
 
     def check(self) -> None:
         """Raise ShutdownError if interrupted."""
