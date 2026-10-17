@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-7 · P2 · A git failure while saving the diff aborts the run
-
-- **Area:** Errors
-- **Where:** `src/repomod/main.py:332`, `src/repomod/main.py:417`, `src/repomod/main.py:272`, `src/repomod/main.py:558`, `src/repomod/git.py:119`
-- **Problem:** Clone, the fix, validation, and push each record a per-repo failure. `has_changes`, `get_diff`, `write_patch`, and `head_sha` sit outside those handlers. `apply_patch` catches `CalledProcessError` and not `TimeoutExpired`. `process_repo` only catches `ShutdownError`. With one worker that exception leaves the loop before the interrupt sweep, so later repos are neither run nor marked `interrupted`. With a pool, `future.result()` raises the same way: the repo is not stored as `failed`. `docs/design.md` says one repo failing does not stop the run. Walked from the source. Not executed.
-- **Recommendation:** Catch `SUBPROCESS_ERRORS` and `OSError` around the diff, patch, and `base_sha` block the same way as push, and record that repo as `failed`. Make `get_diff` use `git_run`.
-- **Fix with:** error-model
-- **Effort:** S
-
 ### RPMD-8 · P2 · The dependency set is not pinned in git
 
 - **Area:** Dependencies

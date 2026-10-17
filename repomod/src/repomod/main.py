@@ -283,6 +283,7 @@ def process_repo(item: WorkItem, ctx: RunContext) -> None:
 # Spelled as a named tuple: the formatter rewrites `except (*A, B):` into
 # `except *A, B:`, which Python reads as `except*` (exception groups).
 STORED_PATCH_ERRORS = (*SUBPROCESS_ERRORS, OSError, UnicodeDecodeError)
+DIFF_SAVE_ERRORS = (*SUBPROCESS_ERRORS, OSError)
 
 
 def reusable_dry_run_patch(repo: Repo, repo_dir: Path, ctx: RunContext) -> str | None:
@@ -384,6 +385,37 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
     return True
 
 
+def _record_failed(
+    ctx: RunContext,
+    repo: Repo,
+    reason: str,
+    exc: subprocess.CalledProcessError | subprocess.TimeoutExpired | OSError,
+) -> None:
+    interrupt.check()
+    detail = str(exc) if isinstance(exc, OSError) else format_error(exc)
+    write_log(ctx.logs_dir, repo.slug, f"{reason}\n{detail}")
+    if ctx.all_status.get(repo.name, {}).get("status") != "pending":
+        set_status(
+            ctx.all_status,
+            ctx.status_file,
+            repo.name,
+            status="failed",
+            reason=reason,
+        )
+    ctx.pd.finish(repo.name, f"{RED}{reason}{RST}", "failed")
+
+
+def _publish_review(ctx: RunContext, repo: Repo, diff: str, **fields: str) -> bool:
+    try:
+        publish_reviewed(ctx.all_status, ctx.status_file, repo.name, diff, **fields)
+    except ShutdownError:
+        raise
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "diff failed", exc)
+        return False
+    return True
+
+
 def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     """Inner processing — raises ShutdownError to signal interrupt."""
     repo_dir = ctx.repos_dir / repo.slug
@@ -414,7 +446,13 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         # Apply exactly what the dry run showed (and validated) instead of
         # re-running the fix, which can resolve differently the second time.
         ctx.pd.set_phase(repo.name, "applying dry-run patch")
-        reused = apply_patch(repo_dir, patch)
+        try:
+            reused = apply_patch(repo_dir, patch)
+        except ShutdownError:
+            raise
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            _record_failed(ctx, repo, "apply failed", exc)
+            return
     else:
         reused = False
     if reused:
@@ -423,20 +461,26 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     elif not run_fix_and_validate(repo, repo_dir, ctx):
         return
 
-    diff = get_diff(repo_dir)
-    base_sha = head_sha(repo_dir)
+    try:
+        diff = get_diff(repo_dir)
+        base_sha = head_sha(repo_dir)
+    except ShutdownError:
+        raise
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "diff failed", exc)
+        return
 
     if not ctx.apply:
         unstage(repo_dir)
-        publish_reviewed(
-            ctx.all_status,
-            ctx.status_file,
-            repo.name,
+        if not _publish_review(
+            ctx,
+            repo,
             diff,
             status="pending",
             fix_hash=ctx.fix_hash,
             base_sha=base_sha,
-        )
+        ):
+            return
         ctx.pd.print(f"\n{format_diff_box(repo.name, diff)}")
         ctx.pd.finish(repo.name, "", "done")
         return
@@ -455,17 +499,17 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
         # their own statuses so they aren't reported as freshly created.
         pr_status = "pr_created" if pr.state == "OPEN" else f"pr_{pr.state.lower()}"
-        publish_reviewed(
-            ctx.all_status,
-            ctx.status_file,
-            repo.name,
+        if not _publish_review(
+            ctx,
+            repo,
             diff,
             status=pr_status,
             pr_url=pr.url,
             fix_hash=ctx.fix_hash,
             base_sha=base_sha,
             **({"pr_node_id": pr.node_id} if pr.node_id else {}),
-        )
+        ):
+            return
         if pr.state == "OPEN":
             ctx.pd.finish(repo.name, f"{GREEN}✓ PR{RST} {pr.url}", "done")
         else:

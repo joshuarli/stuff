@@ -1311,6 +1311,31 @@ def _assert_reviewed_pair_intact(
     )
 
 
+def _no_review_context(
+    tmp_path: Path, *, apply: bool, total: int = 1
+) -> tuple[Path, run_fix.RunContext]:
+    """A run with no status row and no stored patch."""
+    fix_dir = tmp_path / "fix"
+    logs_dir = fix_dir / "logs"
+    logs_dir.mkdir(parents=True)
+    ctx = run_fix.RunContext(
+        fix=_make_fix_module(lambda _repo, _config: True),
+        config=FixConfig(branch="test-branch", pr_title="t", pr_body="p"),
+        config_dict={},
+        fix_hash="currenthash",
+        accepted_hashes=frozenset({"currenthash"}),
+        repos_dir=fix_dir / "repos",
+        logs_dir=logs_dir,
+        patches_dir=fix_dir / "patches-currenthash",
+        status_file=fix_dir / "status.yaml",
+        apply=apply,
+        all_status={},
+        pd=ProgressDisplay(total=total, workers=1),
+        existing_prs={},
+    )
+    return fix_dir, ctx
+
+
 def test_status_write_crash_keeps_the_reviewed_pair(tmp_path: Path) -> None:
     """Kill the status write after a new diff exists. The old pair must remain.
 
@@ -1459,7 +1484,7 @@ def test_dry_run_publishes_a_new_pair_and_keeps_other_patches(
 
 
 def test_failed_get_diff_does_not_write_a_patch_or_status(tmp_path: Path) -> None:
-    """git diff failing on the dry-run path must not become the reviewed patch."""
+    """A failed git diff leaves the reviewed pair in place and does not abort."""
     repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
     broken = ctx.repos_dir / repo.slug
     _make_git_repo(broken)
@@ -1468,11 +1493,196 @@ def test_failed_get_diff_does_not_write_a_patch_or_status(tmp_path: Path) -> Non
     with (
         patch.object(run_fix, "clone"),
         patch.object(run_fix, "run_fix_and_validate", return_value=True),
-        pytest.raises(subprocess.CalledProcessError),
     ):
         run_fix.execute_fix_on_repo(repo, ctx)
 
     _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "diff failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_get_diff_failure_records_failed_and_the_next_repo_still_runs(
+    tmp_path: Path,
+) -> None:
+    """One repo's git diff failing is that repo's failure, not the run's."""
+    backend = Repo("acme/backend", "main", ["rust"])
+    frontend = Repo("acme/frontend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=False, total=2)
+
+    def diff_for(repo_dir: Path) -> str:
+        if repo_dir.name == backend.slug:
+            raise subprocess.CalledProcessError(128, ["git", "diff", "--cached"])
+        return UNREVIEWED_DIFF
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", side_effect=diff_for),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "unstage"),
+    ):
+        interrupted = run_fix.run_work(
+            ctx, [WorkItem(backend), WorkItem(frontend)], 1
+        )
+
+    assert interrupted is False
+    status = load_status(fix_dir / "status.yaml")
+    assert set(status) == {"acme/backend", "acme/frontend"}
+    assert status["acme/backend"] == {"status": "failed", "reason": "diff failed"}
+    assert status["acme/frontend"] == {
+        "status": "pending",
+        "fix_hash": "currenthash",
+        "base_sha": "abc123",
+    }
+    assert list(fix_dir.rglob("acme-backend.patch")) == []
+    saved = stored_patch(fix_dir, "acme/frontend", status["acme/frontend"])
+    assert saved.read_text() == UNREVIEWED_DIFF
+    assert "diff failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert not (ctx.logs_dir / "acme-frontend.log").exists()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.is_completed("acme/frontend")
+    assert ctx.pd.counts == {"done": 1, "failed": 1}
+
+
+def test_head_sha_oserror_records_failed_and_writes_no_patch(tmp_path: Path) -> None:
+    """rev-parse failing is a repo failure, not a reason to abort the run."""
+    repo = Repo("acme/backend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", side_effect=OSError("rev-parse failed")),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    assert load_status(fix_dir / "status.yaml")["acme/backend"] == {
+        "status": "failed",
+        "reason": "diff failed",
+    }
+    assert list(fix_dir.rglob("*.patch")) == []
+    assert "diff failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_get_diff_error_after_interrupt_is_not_a_failure(tmp_path: Path) -> None:
+    """CalledProcessError once ^C is set is cancellation, not a failed repo."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    interrupt.event.clear()
+
+    def killed(_repo_dir: Path) -> str:
+        interrupt.event.set()
+        raise subprocess.CalledProcessError(128, ["git", "diff", "--cached"])
+
+    try:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(run_fix, "run_fix_and_validate", return_value=True),
+            patch.object(run_fix, "get_diff", side_effect=killed),
+        ):
+            run_fix.process_repo(WorkItem(repo), ctx)
+    finally:
+        interrupt.event.clear()
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert not (ctx.logs_dir / "acme-backend.log").exists()
+    assert not ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 0}
+
+
+def test_patch_write_error_keeps_the_reviewed_pair(tmp_path: Path) -> None:
+    """A failed patch write must not replace a pending review or abort."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    _make_git_repo(ctx.repos_dir / repo.slug)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", return_value="fff999"),
+        patch("repomod.status.write_patch", side_effect=OSError("disk full")),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "diff failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_apply_publish_oserror_keeps_the_reviewed_pair(tmp_path: Path) -> None:
+    """Saving the diff after a push is not a push failure and not an abort."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "apply_patch", return_value=False),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True) as rerun,
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(
+            run_fix,
+            "commit_and_push",
+            return_value=PRInfo("https://github.com/acme/backend/pull/4", "OPEN"),
+        ) as pushed,
+        patch("repomod.status.write_patch", side_effect=OSError("disk full")),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    rerun.assert_called_once()
+    pushed.assert_called_once()
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    log = (ctx.logs_dir / "acme-backend.log").read_text()
+    assert "diff failed" in log
+    assert "push/PR failed" not in log
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+@pytest.mark.parametrize(
+    "exc",
+    [
+        pytest.param(subprocess.TimeoutExpired(["git", "apply"], 120), id="timeout"),
+        pytest.param(OSError("cannot run git apply"), id="oserror"),
+    ],
+)
+def test_apply_patch_timeout_or_oserror_does_not_reraise_or_rerun_the_fix(
+    tmp_path: Path, exc: subprocess.TimeoutExpired | OSError
+) -> None:
+    """A timed-out or failed apply is not a patch that doesn't apply."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "apply_patch", side_effect=exc),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True) as rerun,
+    ):
+        run_fix.process_repo(WorkItem(repo), ctx)
+
+    rerun.assert_not_called()
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert "apply failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+def test_stored_patch_that_does_not_apply_runs_the_fix(tmp_path: Path) -> None:
+    """git apply rejecting the stored diff re-runs the fix and is not a failure."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+    _make_git_repo(ctx.repos_dir / repo.slug)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=False) as rerun,
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    rerun.assert_called_once()
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert ctx.pd.counts == {"done": 0, "failed": 0}
+    assert not (ctx.logs_dir / "acme-backend.log").exists()
 
 
 def _config_with(fix_dir: Path, text: str) -> str:
