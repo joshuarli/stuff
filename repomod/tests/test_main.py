@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -13,6 +13,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
+from repomod import git
 from repomod import main as run_fix
 from repomod.main import compute_fix_hash, filter_work
 from repomod.status import atomic_write_yaml, load_status, stored_patch
@@ -148,7 +149,7 @@ def _mock_clone_git() -> Any:
                 "git clone",
                 "git fetch",
                 "git reset --hard",
-                "git branch --list",
+                "git branch --list --format",
                 "git checkout --force",
             )
         ):
@@ -969,6 +970,266 @@ def test_interrupted_commit_keeps_the_pending_row_and_does_not_finish(
     assert load_status(status_file)["acme/backend"] == pending
     assert not pd.is_completed("acme/backend")
     assert pd.counts == {"done": 0, "failed": 0}
+
+
+class _TreeEdit:
+    def __init__(self, edit: Any) -> None:
+        self._edit = edit
+
+    def accept_repo(self, repo: dict[str, Any], config: dict[str, Any]) -> bool:
+        return True
+
+    def run(self, repo: Path, config: dict[str, Any]) -> bool:
+        self._edit(repo)
+        return True
+
+
+def _review_context(
+    tmp_path: Path, edit: Any
+) -> tuple[Repo, run_fix.RunContext, Path]:
+    repo = Repo("acme/backend", "main", ["rust"])
+    repo_dir = tmp_path / "repos" / repo.short_name
+    _make_git_repo(repo_dir)
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    ctx = run_fix.RunContext(
+        fix=_TreeEdit(edit),
+        config=FixConfig(
+            branch="ci-fixes", pr_title="ci: ship the change", pr_body="p"
+        ),
+        config_dict={},
+        fix_hash="reviewedhash",
+        accepted_hashes=frozenset({"reviewedhash"}),
+        repos_dir=tmp_path / "repos",
+        logs_dir=logs_dir,
+        patches_dir=tmp_path / "patches-reviewedhash",
+        status_file=tmp_path / "status.yaml",
+        apply=True,
+        all_status={},
+        pd=ProgressDisplay(total=1, workers=1),
+        existing_prs={},
+    )
+    return repo, ctx, repo_dir
+
+
+def _run_reviewed(
+    repo: Repo,
+    ctx: run_fix.RunContext,
+    seen: dict[str, Any],
+    commands: list[list[str]],
+    *,
+    actionlint: Any = None,
+) -> None:
+    original = subprocess.run
+
+    def record(cmd: Any, **kwargs: Any) -> subprocess.CompletedProcess[Any]:
+        commands.append([str(part) for part in cmd])
+        return original(cmd, **kwargs)
+
+    def spy_has(repo_dir: Path) -> bool:
+        seen["has_changes"] = git.has_changes(repo_dir)
+        seen["diff"] = git.get_diff(repo_dir)
+        return bool(seen["has_changes"])
+
+    def spy_files(repo_dir: Path) -> list[str]:
+        files = git.changed_files(repo_dir)
+        seen["files"] = files
+        return files
+
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(run_fix, "clone"))
+        stack.enter_context(
+            patch.object(
+                git,
+                "push_and_open_pr",
+                return_value=PRInfo("https://github.com/acme/backend/pull/7", "OPEN"),
+            )
+        )
+        stack.enter_context(patch.object(run_fix, "has_changes", side_effect=spy_has))
+        stack.enter_context(patch("repomod.lint.changed_files", side_effect=spy_files))
+        stack.enter_context(patch("repomod.git.subprocess.run", side_effect=record))
+        if actionlint is not None:
+            stack.enter_context(
+                patch("repomod.lint.run_actionlint", side_effect=actionlint)
+            )
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+
+def _commit_patch(repo_dir: Path) -> str:
+    return subprocess.run(
+        ["git", "show", "--format=", "--no-color", "HEAD"],
+        cwd=repo_dir,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def _index_commands(commands: list[list[str]]) -> list[str]:
+    kinds: list[str] = []
+    for cmd in commands:
+        if cmd[:2] == ["git", "checkout"]:
+            kinds.append("checkout")
+        elif cmd[:3] == ["git", "add", "--all"]:
+            kinds.append("add")
+        elif cmd[:2] == ["git", "commit"]:
+            kinds.append("commit")
+    return kinds
+
+
+def test_new_file_is_reviewed_and_committed_from_the_index(tmp_path: Path) -> None:
+    """An added file is staged once, reviewed, and committed as that index."""
+
+    def edit(repo: Path) -> None:
+        (repo / "NOTES.md").write_text("shipped\n")
+
+    repo, ctx, repo_dir = _review_context(tmp_path, edit)
+    seen: dict[str, Any] = {}
+    commands: list[list[str]] = []
+    _run_reviewed(repo, ctx, seen, commands)
+
+    assert seen["has_changes"] is True
+    assert "NOTES.md" in seen["diff"]
+    assert seen["files"] == ["NOTES.md"]
+    published = stored_patch(
+        tmp_path, "acme/backend", load_status(ctx.status_file)["acme/backend"]
+    ).read_text()
+    assert published == seen["diff"]
+    assert _commit_patch(repo_dir) == seen["diff"]
+    assert _index_commands(commands) == ["checkout", "add", "commit"]
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=repo_dir,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert branch == "ci-fixes"
+
+
+def _repo_with_local_origin(tmp_path: Path, dest: Path) -> None:
+    """A clone whose origin is a local bare repo, so reuse can fetch offline."""
+    seed = tmp_path / "seed"
+    seed.mkdir()
+    (seed / "README.md").write_text("hello\n")
+    for args in (
+        ["init", "--initial-branch=main"],
+        ["config", "user.email", "test@test.com"],
+        ["config", "user.name", "Test"],
+        ["add", "."],
+        ["commit", "-m", "init", "--quiet"],
+    ):
+        subprocess.run(["git", *args], cwd=seed, check=True, capture_output=True)
+    bare = tmp_path / "origin.git"
+    subprocess.run(
+        ["git", "clone", "--bare", str(seed), str(bare)],
+        check=True,
+        capture_output=True,
+    )
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["git", "clone", str(bare), str(dest)], check=True, capture_output=True
+    )
+    for args in (
+        ["config", "user.email", "test@test.com"],
+        ["config", "user.name", "Test"],
+    ):
+        subprocess.run(["git", *args], cwd=dest, check=True, capture_output=True)
+
+
+def test_apply_commits_the_stored_new_file_patch_without_rerunning_the_fix(
+    tmp_path: Path,
+) -> None:
+    """A later apply on the same dest must push the dry run's new file, not re-run."""
+    runs: list[Path] = []
+
+    def edit(repo: Path) -> None:
+        runs.append(repo)
+        (repo / "NOTES.md").write_text("shipped\n")
+
+    repo = Repo("acme/backend", "main", ["rust"])
+    repo_dir = tmp_path / "repos" / repo.short_name
+    _repo_with_local_origin(tmp_path, repo_dir)
+    outside = tmp_path / "repos" / "keep.txt"
+    outside.write_text("keep\n")
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    ctx = run_fix.RunContext(
+        fix=_TreeEdit(edit),
+        config=FixConfig(
+            branch="ci-fixes", pr_title="ci: ship the change", pr_body="p"
+        ),
+        config_dict={},
+        fix_hash="reviewedhash",
+        accepted_hashes=frozenset({"reviewedhash"}),
+        repos_dir=tmp_path / "repos",
+        logs_dir=logs_dir,
+        patches_dir=tmp_path / "patches-reviewedhash",
+        status_file=tmp_path / "status.yaml",
+        apply=False,
+        all_status={},
+        pd=ProgressDisplay(total=1, workers=1),
+        existing_prs={},
+    )
+
+    run_fix.execute_fix_on_repo(repo, ctx)
+
+    assert len(runs) == 1
+    stored = stored_patch(
+        tmp_path, "acme/backend", load_status(ctx.status_file)["acme/backend"]
+    ).read_text()
+    assert "NOTES.md" in stored
+    ctx.apply = True
+    with patch.object(
+        git,
+        "push_and_open_pr",
+        return_value=PRInfo("https://github.com/acme/backend/pull/7", "OPEN"),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    assert len(runs) == 1
+    assert _commit_patch(repo_dir) == stored
+    assert outside.read_text() == "keep\n"
+
+
+def test_tracked_edit_and_untracked_file_are_both_reviewed(tmp_path: Path) -> None:
+    """A tracked edit plus a new file are both in the diff that is committed."""
+    workflow = ".github/workflows/ci.yml"
+
+    def edit(repo: Path) -> None:
+        (repo / workflow).write_text("name: ci\nrun: echo shipped\n")
+        (repo / "NOTES.md").write_text("shipped\n")
+
+    repo, ctx, repo_dir = _review_context(tmp_path, edit)
+    (repo_dir / ".github" / "workflows").mkdir(parents=True)
+    (repo_dir / workflow).write_text("name: ci\n")
+    subprocess.run(
+        ["git", "add", "--all"], cwd=repo_dir, check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "workflow", "--quiet"],
+        cwd=repo_dir,
+        check=True,
+        capture_output=True,
+    )
+    seen: dict[str, Any] = {}
+    commands: list[list[str]] = []
+
+    def pre_existing(_repo_dir: Path, _files: list[str]) -> set[LintFinding]:
+        return {LintFinding(workflow, "pre-existing")}
+
+    _run_reviewed(repo, ctx, seen, commands, actionlint=pre_existing)
+
+    assert seen["has_changes"] is True
+    assert "NOTES.md" in seen["diff"]
+    assert "echo shipped" in seen["diff"]
+    assert set(seen["files"]) == {workflow, "NOTES.md"}
+    published = stored_patch(
+        tmp_path, "acme/backend", load_status(ctx.status_file)["acme/backend"]
+    ).read_text()
+    assert published == seen["diff"]
+    assert _commit_patch(repo_dir) == seen["diff"]
+    assert _index_commands(commands) == ["checkout", "add", "commit"]
 
 
 REVIEWED_DIFF = "diff --git a/README.md b/README.md\n--- reviewed\n"

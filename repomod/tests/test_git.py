@@ -98,6 +98,7 @@ def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
 ) -> None:
     """An in-flight git command may finish; ^C must win before the next one."""
     repo = _repo_with_change(tmp_path)
+    subprocess.run(["git", "add", "--all"], cwd=repo, check=True, capture_output=True)
     interrupt.event.clear()
     commands: list[list[str]] = []
     original = subprocess.run
@@ -107,7 +108,7 @@ def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
     ) -> subprocess.CompletedProcess[Any]:
         commands.append(list(cmd))
         result = original(cmd, **kwargs)
-        if list(cmd)[:2] == ["git", "add"]:
+        if list(cmd)[:4] == ["git", "diff", "--cached", "--quiet"]:
             interrupt.event.set()
         return result
 
@@ -122,14 +123,19 @@ def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
         interrupt.event.clear()
 
     push.assert_not_called()
-    assert ["git", "add", "--all"] in commands
+    assert ["git", "diff", "--cached", "--quiet"] in commands
     assert ["git", "commit", "--quiet", "--message", PR.title] not in commands
 
 
 def test_get_diff_returns_the_tracked_diff_when_git_succeeds(tmp_path: Path) -> None:
-    """A non-empty tracked diff is success. git diff without --exit-code exits 0."""
-    repo = _repo_with_change(tmp_path)
+    """A non-empty staged diff is success.
 
+    git diff --cached without --exit-code exits 0. An unstaged edit is not it.
+    """
+    repo = _repo_with_change(tmp_path)
+    assert git.get_diff(repo) == ""
+
+    subprocess.run(["git", "add", "--all"], cwd=repo, check=True, capture_output=True)
     diff = git.get_diff(repo)
 
     assert "diff --git" in diff

@@ -137,6 +137,10 @@ def _reset_existing_clone(default_branch: str, dest: Path) -> None:
     interrupt.check()
     git_run(["reset", "--hard", f"origin/{default_branch}"], cwd=dest)
     interrupt.check()
+    # reset --hard leaves untracked files. The next git apply cannot create one
+    # the previous dry run already wrote.
+    git_run(["clean", "-fd"], cwd=dest)
+    interrupt.check()
     result = git_run(
         ["branch", "--list", "--format=%(refname:short)"], cwd=dest, text=True
     )
@@ -201,12 +205,12 @@ def clone(
 
 
 def has_changes(repo_dir: Path) -> bool:
-    return _run(["git", "diff", "--quiet"], cwd=repo_dir).returncode != 0
+    return _run(["git", "diff", "--cached", "--quiet"], cwd=repo_dir).returncode != 0
 
 
 def changed_files(repo_dir: Path) -> list[str]:
-    """Repo-relative paths of tracked files modified in the working tree."""
-    result = git_run(["diff", "--name-only"], cwd=repo_dir, text=True)
+    """Repo-relative paths staged for commit, including files the fix added."""
+    result = git_run(["diff", "--cached", "--name-only"], cwd=repo_dir, text=True)
     return [line for line in str(result.stdout).splitlines() if line]
 
 
@@ -217,7 +221,9 @@ def stashed_changes(repo_dir: Path) -> Generator[None]:
     try:
         yield
     finally:
-        git_run(["stash", "pop"], cwd=repo_dir)
+        # Without --index, pop leaves a staged edit unstaged, so the commit
+        # would not be the index that was reviewed.
+        git_run(["stash", "pop", "--index"], cwd=repo_dir)
 
 
 def head_sha(repo_dir: Path) -> str:
@@ -241,12 +247,41 @@ def apply_patch(repo_dir: Path, patch: str) -> bool:
 
 
 def get_diff(repo_dir: Path) -> str:
-    # git diff exits 0 when the patch is non-empty. A non-zero status is git
-    # failing, not "there are changes" (that is `git diff --quiet`).
-    result = git_run(["diff"], cwd=repo_dir, text=True)
+    # git diff --cached exits 0 when the patch is non-empty. A non-zero status
+    # is git failing, not "there are changes" (that is `git diff --cached --quiet`).
+    result = git_run(["diff", "--cached"], cwd=repo_dir, text=True)
     stdout = result.stdout
     assert isinstance(stdout, str)
     return stdout
+
+
+def checkout_branch(repo_dir: Path, branch: str) -> None:
+    """Switch to `branch` before anything is staged.
+
+    Checking out afterwards can discard the index the diff was read from.
+    """
+    interrupt.check()
+    result = git_run(["branch", "--show-current"], cwd=repo_dir, text=True)
+    if result.stdout.strip() != branch:
+        interrupt.check()
+        existing = git_run(["branch", "--list", branch], cwd=repo_dir, text=True)
+        interrupt.check()
+        if existing.stdout.strip():
+            git_run(["checkout", branch], cwd=repo_dir)
+        else:
+            git_run(["checkout", "-b", branch], cwd=repo_dir)
+
+
+def stage_worktree(repo_dir: Path) -> None:
+    interrupt.check()
+    git_run(["add", "--all"], cwd=repo_dir)
+    interrupt.check()
+
+
+def unstage(repo_dir: Path) -> None:
+    """Drop the index after the diff is saved. The worktree stays as the fix left it."""
+    interrupt.check()
+    git_run(["reset", "--quiet"], cwd=repo_dir)
 
 
 def commit_and_push(
@@ -266,19 +301,7 @@ def commit_and_push(
     if known_pr and known_pr.state != "OPEN":
         return PRInfo(known_pr.url, known_pr.state, known_pr.node_id)
 
-    interrupt.check()
-    result = git_run(["branch", "--show-current"], cwd=repo_dir, text=True)
-    if result.stdout.strip() != pr.branch:
-        interrupt.check()
-        existing = git_run(["branch", "--list", pr.branch], cwd=repo_dir, text=True)
-        interrupt.check()
-        if existing.stdout.strip():
-            git_run(["checkout", pr.branch], cwd=repo_dir)
-        else:
-            git_run(["checkout", "-b", pr.branch], cwd=repo_dir)
-
-    interrupt.check()
-    git_run(["add", "--all"], cwd=repo_dir)
+    checkout_branch(repo_dir, pr.branch)
 
     interrupt.check()
     if _run(["git", "diff", "--cached", "--quiet"], cwd=repo_dir).returncode != 0:

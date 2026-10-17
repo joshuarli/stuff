@@ -37,6 +37,7 @@ import yaml
 
 from repomod.git import (
     apply_patch,
+    checkout_branch,
     clone,
     commit_and_push,
     format_error,
@@ -48,6 +49,8 @@ from repomod.git import (
     pr_states,
     resolve_pr_node_ids,
     search_prs,
+    stage_worktree,
+    unstage,
 )
 from repomod.lint import validate_changes
 from repomod.status import (
@@ -329,6 +332,10 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
         ctx.pd.finish(repo.name, f"{RED}fix failed{RST}", "failed")
         return False
 
+    if ctx.apply:
+        checkout_branch(repo_dir, ctx.config.branch)
+    stage_worktree(repo_dir)
+
     if not has_changes(repo_dir):
         set_status(
             ctx.all_status,
@@ -410,13 +417,17 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         reused = apply_patch(repo_dir, patch)
     else:
         reused = False
-    if not reused and not run_fix_and_validate(repo, repo_dir, ctx):
+    if reused:
+        checkout_branch(repo_dir, ctx.config.branch)
+        stage_worktree(repo_dir)
+    elif not run_fix_and_validate(repo, repo_dir, ctx):
         return
 
     diff = get_diff(repo_dir)
     base_sha = head_sha(repo_dir)
 
     if not ctx.apply:
+        unstage(repo_dir)
         publish_reviewed(
             ctx.all_status,
             ctx.status_file,

@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-5 · P2 · The reviewed diff ignores files that the push commits
-
-- **Area:** Data
-- **Where:** `src/repomod/git.py:81`, `src/repomod/git.py:128`, `src/repomod/git.py:163`, `src/repomod/main.py:332`, `src/repomod/main.py:417`
-- **Problem:** `has_changes` is `git diff --quiet` and the stored patch is `git diff`, both tracked-only. `commit_and_push` runs `git add --all`. A repo whose only edit was a new file reported `has_changes` false and an empty diff, then `commit_and_push` committed that file and called the push. A fix that only adds a file is recorded as `skipped` and never shown. A tracked edit plus an untracked file (a new workflow, or a leftover such as `.DS_Store` when the repo does not ignore it) is reviewed without the extra file and pushed with it. `changed_files` uses the same tracked diff, so actionlint does not see a new workflow. The three current fixes edit tracked files.
-- **Recommendation:** Stage the tree once, review `git diff --cached`, and commit that index. Use the same file list for actionlint.
-- **Fix with:** none
-- **Effort:** S
-
 ### RPMD-6 · P2 · The clone directory drops the owner, and reuse fetches the old origin
 
 - **Area:** Data

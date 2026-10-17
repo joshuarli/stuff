@@ -50,7 +50,8 @@ def new_workflow_findings(repo_dir: Path) -> set[LintFinding]:
     if not after:
         return set()
     with stashed_changes(repo_dir):
-        before = run_actionlint(repo_dir, files)
+        present = [f for f in files if (repo_dir / f).exists()]
+        before = run_actionlint(repo_dir, present) if present else set()
     return after - before
 
 
