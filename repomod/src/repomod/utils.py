@@ -116,6 +116,10 @@ def retry(
                     delay *= backoff
             if last_exc is None:
                 raise RuntimeError("retry() exhausted without capturing an exception")
+            # No interrupt.wait on the final attempt, so the child error would
+            # escape even though ^C is already set.
+            if interrupt.is_set:
+                raise ShutdownError from last_exc
             raise last_exc
 
         return wrapper

@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from repomod.utils import retry
+from repomod.utils import ShutdownError, interrupt, retry
 
 
 def test_retry_retries_on_failure() -> None:
@@ -29,6 +29,30 @@ def test_retry_gives_up_after_max_tries() -> None:
 
     with pytest.raises(subprocess.CalledProcessError):
         always_fails()
+
+
+def test_retry_last_attempt_raises_shutdown_when_interrupted() -> None:
+    """The last attempt must not re-raise the child error once ^C is set.
+
+    Earlier attempts already stop in interrupt.wait. The final one used to
+    surface CalledProcessError, which callers record as a failed repo.
+    """
+    interrupt.event.clear()
+    calls = [0]
+
+    @retry(tries=3, initial_delay=0.01)
+    def killed() -> None:
+        calls[0] += 1
+        if calls[0] == 3:
+            interrupt.event.set()
+        raise subprocess.CalledProcessError(-2, ["git", "push"])
+
+    try:
+        with pytest.raises(ShutdownError):
+            killed()
+        assert calls[0] == 3
+    finally:
+        interrupt.event.clear()
 
 
 def test_retry_does_not_retry_non_retryable() -> None:

@@ -11,18 +11,38 @@ from typing import Any
 from repomod.types import OWNER_QUALIFIERS, PRInfo, PRSpec, RolloutPR
 from repomod.utils import (
     SUBPROCESS_TIMEOUT,
+    ShutdownError,
     github_rate_limiter,
+    interrupt,
     pr_create_limiter,
     retry,
 )
+
+
+def _run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
+    """Run git or gh outside the foreground process group.
+
+    SIGINT reaches every process in that group, so a child left there dies
+    with CalledProcessError(-2) while this process has only set its interrupt
+    event. A new session lets the command finish. Success still returns when
+    ^C is already set, so a dry run can read the diff it just produced. A
+    child error then is cancellation, not the child's failure.
+    """
+    kwargs.setdefault("timeout", SUBPROCESS_TIMEOUT)
+    kwargs["start_new_session"] = True
+    try:
+        return subprocess.run(args, **kwargs)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
 
 
 def git_run(
     args: list[str], cwd: Path, **kwargs: Any
 ) -> subprocess.CompletedProcess[Any]:
     """Run a git command with timeout, capturing output and raising on failure."""
-    kwargs.setdefault("timeout", SUBPROCESS_TIMEOUT)
-    return subprocess.run(
+    return _run(
         ["git", *args],
         cwd=cwd,
         check=True,
@@ -33,11 +53,13 @@ def git_run(
 
 def gh_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
     """Run a gh command with rate limiting and timeout."""
-    kwargs.setdefault("timeout", SUBPROCESS_TIMEOUT)
     kwargs.setdefault("capture_output", True)
     kwargs.setdefault("text", True)
     with github_rate_limiter:
-        return subprocess.run(["gh", *args], **kwargs)
+        result = _run(["gh", *args], **kwargs)
+    if result.returncode != 0:
+        interrupt.check()
+    return result
 
 
 @retry()
@@ -49,44 +71,43 @@ def clone(
         shutil.rmtree(dest)
 
     if dest.exists():
+        interrupt.check()
         git_run(["checkout", "--force", default_branch], cwd=dest)
+        interrupt.check()
         with github_rate_limiter:
             git_run(["fetch", "--depth=1", "origin", default_branch], cwd=dest)
+        interrupt.check()
         git_run(["reset", "--hard", f"origin/{default_branch}"], cwd=dest)
+        interrupt.check()
         result = git_run(
             ["branch", "--list", "--format=%(refname:short)"], cwd=dest, text=True
         )
         for branch in result.stdout.splitlines():
             branch = branch.strip()
             if branch and branch != default_branch:
-                subprocess.run(
+                interrupt.check()
+                _run(
                     ["git", "branch", "-D", branch],
                     cwd=dest,
                     capture_output=True,
-                    timeout=SUBPROCESS_TIMEOUT,
                 )
         return
 
+    interrupt.check()
     cmd = ["git", "clone", "--depth=1", "--filter=blob:none", "--single-branch"]
     if sparse_paths is not None:
         cmd.append("--sparse")
     cmd += [f"https://github.com/{name}.git", str(dest)]
     with github_rate_limiter:
-        subprocess.run(cmd, check=True, capture_output=True, timeout=SUBPROCESS_TIMEOUT)
+        _run(cmd, check=True, capture_output=True)
 
     if sparse_paths is not None:
+        interrupt.check()
         git_run(["sparse-checkout", "set", *sparse_paths], cwd=dest)
 
 
 def has_changes(repo_dir: Path) -> bool:
-    return (
-        subprocess.run(
-            ["git", "diff", "--quiet"],
-            cwd=repo_dir,
-            timeout=SUBPROCESS_TIMEOUT,
-        ).returncode
-        != 0
-    )
+    return _run(["git", "diff", "--quiet"], cwd=repo_dir).returncode != 0
 
 
 def changed_files(repo_dir: Path) -> list[str]:
@@ -126,13 +147,14 @@ def apply_patch(repo_dir: Path, patch: str) -> bool:
 
 
 def get_diff(repo_dir: Path) -> str:
-    return subprocess.run(
+    stdout = _run(
         ["git", "diff"],
         cwd=repo_dir,
         capture_output=True,
         text=True,
-        timeout=SUBPROCESS_TIMEOUT,
     ).stdout
+    assert isinstance(stdout, str)
+    return stdout
 
 
 def commit_and_push(
@@ -152,32 +174,33 @@ def commit_and_push(
     if known_pr and known_pr.state != "OPEN":
         return PRInfo(known_pr.url, known_pr.state, known_pr.node_id)
 
+    interrupt.check()
     result = git_run(["branch", "--show-current"], cwd=repo_dir, text=True)
     if result.stdout.strip() != pr.branch:
+        interrupt.check()
         existing = git_run(["branch", "--list", pr.branch], cwd=repo_dir, text=True)
+        interrupt.check()
         if existing.stdout.strip():
             git_run(["checkout", pr.branch], cwd=repo_dir)
         else:
             git_run(["checkout", "-b", pr.branch], cwd=repo_dir)
 
+    interrupt.check()
     git_run(["add", "--all"], cwd=repo_dir)
 
-    if (
-        subprocess.run(
-            ["git", "diff", "--cached", "--quiet"],
-            cwd=repo_dir,
-            timeout=SUBPROCESS_TIMEOUT,
-        ).returncode
-        != 0
-    ):
+    interrupt.check()
+    if _run(["git", "diff", "--cached", "--quiet"], cwd=repo_dir).returncode != 0:
+        interrupt.check()
         git_run(["commit", "--quiet", "--message", pr.title], cwd=repo_dir)
 
+    interrupt.check()
     return push_and_open_pr(repo_dir, pr, known_pr)
 
 
 def find_pr(name: str, branch: str) -> PRInfo | None:
     """The PR for a head branch (open if there is one, else the latest), if any."""
     result = gh_run(["pr", "view", branch, "--repo", name, "--json", "url,state"])
+    interrupt.check()
     if result.returncode != 0:
         return None
     try:
@@ -190,12 +213,14 @@ def find_pr(name: str, branch: str) -> PRInfo | None:
 @retry()
 def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> PRInfo:
     """Push and ensure a PR exists. Retried on transient failures."""
+    interrupt.check()
     with github_rate_limiter:
         git_run(
             ["push", "--set-upstream", "origin", pr.branch, "--force", "--quiet"],
             cwd=repo_dir,
         )
 
+    interrupt.check()
     # The push already updated an open PR; no API call needed.
     if known_pr:
         return PRInfo(known_pr.url, "OPEN", known_pr.node_id)
@@ -204,6 +229,7 @@ def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> 
     # cost an API call each, and re-requesting on later runs would re-ping people.
     reviewer_args = [arg for r in pr.reviewers for arg in ("--reviewer", r)]
     label_args = [arg for label in pr.labels for arg in ("--label", label)]
+    interrupt.check()
     with pr_create_limiter:
         result = gh_run(
             [
@@ -225,6 +251,7 @@ def push_and_open_pr(repo_dir: Path, pr: PRSpec, known_pr: RolloutPR | None) -> 
                 *label_args,
             ]
         )
+    interrupt.check()
     if result.returncode != 0:
         # The search that produced known_pr can lag behind a PR created moments
         # ago (e.g. by an interrupted earlier run); recover it instead of failing.

@@ -24,7 +24,10 @@ from repomod.types import (
     Repo,
     RolloutPR,
     SyncResult,
+    WorkItem,
 )
+from repomod.ui import ProgressDisplay
+from repomod.utils import interrupt
 
 REPO_TEST = Repo(
     name="acme/test-repo",
@@ -906,6 +909,67 @@ def test_ctrl_c_during_apply_keeps_earlier_results_instead_of_marking_interrupte
     assert status["acme/repo-alpha"]["status"] == "pending"
     assert status["acme/repo-beta"] == earlier["acme/repo-beta"]
     assert status["acme/repo-gamma"] == earlier["acme/repo-gamma"]
+
+
+def test_interrupted_commit_keeps_the_pending_row_and_does_not_finish(
+    tmp_path: Path,
+) -> None:
+    """CalledProcessError while ^C is set must not replace a dry-run pending row.
+
+    set_status would drop the reviewed hash and base_sha, and pd.finish would
+    mark the repo done so the sweep never treats it as interrupted.
+    """
+    repo = Repo("acme/backend", "main", ["rust"])
+    pending = {
+        "status": "pending",
+        "fix_hash": "reviewed-hash",
+        "base_sha": "abc123",
+    }
+    status_file = tmp_path / "status.yaml"
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    atomic_write_yaml({"acme/backend": pending}, status_file)
+    all_status = load_status(status_file)
+    pd = ProgressDisplay(total=1, workers=1)
+    ctx = run_fix.RunContext(
+        fix=_make_fix_module(lambda _repo, _config: True),
+        config=FixConfig(branch="test-branch", pr_title="t", pr_body="p"),
+        config_dict={},
+        fix_hash="current-hash",
+        accepted_hashes=frozenset({"current-hash"}),
+        repos_dir=tmp_path / "repos",
+        logs_dir=logs_dir,
+        patches_dir=tmp_path / "patches",
+        status_file=status_file,
+        apply=True,
+        all_status=all_status,
+        pd=pd,
+        existing_prs={},
+    )
+    interrupt.event.clear()
+
+    def killed(*_args: object, **_kwargs: object) -> None:
+        interrupt.event.set()
+        raise subprocess.CalledProcessError(-2, ["git", "commit"])
+
+    try:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(run_fix, "run_fix_and_validate", return_value=True),
+            patch.object(run_fix, "get_diff", return_value="diff\n"),
+            patch.object(run_fix, "write_patch"),
+            patch.object(run_fix, "head_sha", return_value="abc123"),
+            patch.object(run_fix, "commit_and_push", side_effect=killed) as commit,
+        ):
+            run_fix.process_repo(WorkItem(repo), ctx)
+    finally:
+        interrupt.event.clear()
+
+    commit.assert_called_once()
+    assert all_status["acme/backend"] == pending
+    assert load_status(status_file)["acme/backend"] == pending
+    assert not pd.is_completed("acme/backend")
+    assert pd.counts == {"done": 0, "failed": 0}
 
 
 def _config_with(fix_dir: Path, text: str) -> str:

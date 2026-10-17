@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-19 · P1 · ^C during commit records the repo failed and erases the reviewed result
-
-- **Area:** Errors
-- **Where:** `src/repomod/utils.py:52`, `src/repomod/git.py:163`, `src/repomod/main.py:467`, `src/repomod/status.py:42`
-- **Problem:** The SIGINT handler only sets an event. It does not start a new session, so the signal is also delivered to the `git` child. A foreground `subprocess.run(..., check=True)` of `sleep` under that handler raised `CalledProcessError` with return code `-2` while the handler ran. `git add`, `git commit`, and `git checkout` in `commit_and_push` are outside `@retry`, so the same error hits the push handler's `SUBPROCESS_ERRORS` branch. That branch calls `set_status(..., status="failed")` and `pd.finish`. `set_status` replaces the repo record, so a dry-run `pending` row (hash, `base_sha`) is discarded. `finish` puts the repo in `_completed`, and the sweep will not mark it `interrupted`. The next `--apply` re-runs the fix instead of pushing the reviewed patch. A `git push` is inside `@retry`: the first child death is retried, and `interrupt.wait` then raises `ShutdownError`. The last retry attempt re-raises the child error instead (`utils.py:105`).
-- **Recommendation:** If `interrupt.is_set`, re-raise `ShutdownError` from every `SUBPROCESS_ERRORS` handler and do not call `pd.finish`. Run `git` and `gh` in a new session so an in-flight command is not killed by SIGINT.
-- **Fix with:** error-model
-- **Effort:** S
-
 ### RPMD-20 · P1 · The reviewed patch is replaced before status.yaml is updated
 
 - **Area:** Data

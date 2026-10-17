@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from repomod import git
 from repomod.types import PRInfo, PRSpec, RolloutPR
+from repomod.utils import ShutdownError, interrupt
 
 PR = PRSpec(
     repo_name="acme/backend",
@@ -55,6 +58,70 @@ def test_merged_or_closed_pr_is_returned_without_touching_the_repo(
         ["git", "branch", "--show-current"], cwd=repo, capture_output=True, text=True
     ).stdout.strip()
     assert branch == "main"
+
+
+def test_git_and_gh_start_in_a_new_session(tmp_path: Path) -> None:
+    """SIGINT hits the foreground process group, so git and gh must leave it."""
+    interrupt.event.clear()
+    completed = subprocess.CompletedProcess(["git"], 0, stdout="", stderr="")
+    with patch("repomod.git.subprocess.run", return_value=completed) as run:
+        git.git_run(["status"], cwd=tmp_path)
+        git.gh_run(["auth", "status"])
+
+    assert run.call_args_list[0].args[0][0] == "git"
+    assert run.call_args_list[0].kwargs.get("start_new_session") is True
+    assert run.call_args_list[1].args[0][0] == "gh"
+    assert run.call_args_list[1].kwargs.get("start_new_session") is True
+
+
+def test_git_run_child_error_during_interrupt_is_shutdown(tmp_path: Path) -> None:
+    interrupt.event.clear()
+
+    def killed(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        interrupt.event.set()
+        raise subprocess.CalledProcessError(-2, ["git", "add"])
+
+    try:
+        with (
+            patch("repomod.git.subprocess.run", side_effect=killed),
+            pytest.raises(ShutdownError),
+        ):
+            git.git_run(["add", "--all"], cwd=tmp_path)
+    finally:
+        interrupt.event.clear()
+
+
+def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
+    tmp_path: Path,
+) -> None:
+    """An in-flight git command may finish; ^C must win before the next one."""
+    repo = _repo_with_change(tmp_path)
+    interrupt.event.clear()
+    commands: list[list[str]] = []
+    original = subprocess.run
+
+    def side_effect(
+        cmd: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[Any]:
+        commands.append(list(cmd))
+        result = original(cmd, **kwargs)
+        if list(cmd)[:2] == ["git", "add"]:
+            interrupt.event.set()
+        return result
+
+    try:
+        with (
+            patch("repomod.git.subprocess.run", side_effect=side_effect),
+            patch.object(git, "push_and_open_pr") as push,
+            pytest.raises(ShutdownError),
+        ):
+            git.commit_and_push(repo, PR, None)
+    finally:
+        interrupt.event.clear()
+
+    push.assert_not_called()
+    assert ["git", "add", "--all"] in commands
+    assert ["git", "commit", "--quiet", "--message", PR.title] not in commands
 
 
 def test_pr_by_repo_prefers_the_open_pr_over_an_old_closed_one() -> None:

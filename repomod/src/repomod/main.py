@@ -302,7 +302,7 @@ def reusable_dry_run_patch(repo: Repo, repo_dir: Path, ctx: RunContext) -> str |
             return patch.read_text()
     except STORED_PATCH_ERRORS:
         # Unreadable patch or repo state: just re-run the fix.
-        pass
+        interrupt.check()
     return None
 
 
@@ -387,6 +387,7 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     except ShutdownError:
         raise
     except SUBPROCESS_ERRORS as exc:
+        interrupt.check()
         write_log(ctx.logs_dir, repo.slug, f"clone failed\n{format_error(exc)}")
         set_status(
             ctx.all_status,
@@ -441,6 +442,7 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
             ctx.config.pr_spec(repo.name),
             ctx.existing_prs.get(repo.name),
         )
+        interrupt.check()
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
         # their own statuses so they aren't reported as freshly created.
         pr_status = "pr_created" if pr.state == "OPEN" else f"pr_{pr.state.lower()}"
@@ -465,6 +467,7 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     except ShutdownError:
         raise
     except SUBPROCESS_ERRORS as exc:
+        interrupt.check()
         write_log(ctx.logs_dir, repo.slug, f"push/PR failed\n{format_error(exc)}")
         set_status(
             ctx.all_status,
@@ -604,6 +607,7 @@ def cache_pr_node_ids(all_status: Status, status_file: Path) -> None:
     try:
         ids = resolve_pr_node_ids(list(missing.values()))
     except SUBPROCESS_ERRORS as exc:
+        interrupt.check()
         # Not fatal: the PRs exist and ids are re-resolved on demand.
         print(f"{YELLOW}Could not cache PR node ids: {format_error(exc)}{RST}")
         return
@@ -658,6 +662,7 @@ def undraft_command(fix_dir: Path, args: argparse.Namespace) -> int:
             drafts = drafts[: args.limit]
         failed = mark_ready(drafts) if args.apply and drafts else []
     except SUBPROCESS_ERRORS as exc:
+        interrupt.check()
         sys.exit(f"GitHub request failed: {format_error(exc)}")
 
     if not drafts:
@@ -840,6 +845,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             existing_prs = pr_by_repo(search_prs(config.branch))
         except SUBPROCESS_ERRORS as exc:
+            interrupt.check()
             sys.exit(f"Could not look up existing PRs: {format_error(exc)}")
 
     actual_workers = min(args.workers, len(work)) if args.workers > 1 else 1
@@ -877,7 +883,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def cli() -> None:
     """Entry point for `repomod` console script."""
-    raise SystemExit(main())
+    try:
+        code = main()
+    except ShutdownError:
+        code = 130
+    raise SystemExit(code)
 
 
 if __name__ == "__main__":
