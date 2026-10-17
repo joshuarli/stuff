@@ -1,0 +1,87 @@
+[project]
+name = "repomod"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = ["pyyaml>=6"]
+
+[project.scripts]
+repomod = "repomod.main:cli"
+
+[build-system]
+requires = ["uv_build>=0.9"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "joshuarli-pytest-parallel",
+    "ty>=0.0.84",
+    "pytest>=9.1.1",
+    "pytest-cov>=7",
+    "ruff>=0.15",
+    "types-pyyaml>=6.0.12.20260906",
+]
+
+[tool.uv.sources]
+joshuarli-pytest-parallel = { git = "https://github.com/joshuarli/pytest-parallel" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+
+[tool.coverage.run]
+source = ["src/repomod"]
+omit = ["tests/*"]
+
+[tool.ty.environment]
+root = ["src", "tests"]
+python-version = "3.14"
+python-platform = "all"
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["src/repomod/fixes/**/repos/"]
+
+[tool.ty.analysis]
+strict-equality-semantics = true
+strict-generic-narrowing = true
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+all = "error"
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ruff]
+target-version = "py314"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "F",      # pyflakes
+    "E", "W", # pycodestyle
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins (shadowing builtins)
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+    "PT",     # flake8-pytest-style
+    "RET",    # flake8-return
+    "PIE",    # flake8-pie (misc lints)
+    "C4",     # flake8-comprehensions
+    "T20",    # flake8-print (flag print in library code)
+    "TCH",    # flake8-type-checking (move imports to TYPE_CHECKING)
+    "PERF",   # perflint
+    "FURB",   # refurb
+]
+ignore = [
+    "T201",   # allow print() — this is a CLI tool
+    "RET505", # allow else-after-return for clarity
+    "SIM108", # allow if/else over ternary when clearer
+    "TCH",    # don't move imports to TYPE_CHECKING — not worth the complexity for a CLI
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["repomod"]

@@ -1,0 +1,6 @@
+repos/
+__pycache__
+.coverage
+src/repomod.egg-info/
+
+logs/
