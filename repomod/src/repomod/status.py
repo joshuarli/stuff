@@ -1,13 +1,17 @@
 """Status tracking: load, save, print summaries, per-repo logging."""
 
+import contextlib
 import ctypes
 import datetime
+import errno
+import fcntl
 import os
 import shutil
 import sys
 import threading
 import uuid
 from collections import Counter
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
 
@@ -19,19 +23,78 @@ from repomod.ui import BOLD, CYAN, DIM, GREEN, RED, RST, YELLOW
 _lock = threading.Lock()
 _LIVE = ".live"
 _GENERATIONS = "generations"
+_LOCK_NAME = ".lock"
 # macOS renamex_np RENAME_SWAP and Linux renameat2 RENAME_EXCHANGE.
 _RENAME_EXCHANGE = 2
 _AT_FDCWD = -100
 
 
-def atomic_write_yaml(data: Any, path: Path) -> None:
-    """Write YAML atomically via temp file + rename."""
-    tmp = path.with_suffix(".tmp")
-    with open(tmp, "w") as f:
-        yaml.dump(
-            data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+def _required_open_flag(name: str) -> int:
+    """Require a POSIX open flag (macOS and Linux, any architecture)."""
+    flag = getattr(os, name, None)
+    if not isinstance(flag, int):
+        raise OSError(
+            f"{name} is required to publish status without following a symlink"
         )
-    tmp.rename(path)
+    return flag
+
+
+_NOFOLLOW = _required_open_flag("O_NOFOLLOW")
+_CLOEXEC = _required_open_flag("O_CLOEXEC")
+
+
+def _required_flock() -> tuple[Any, int, int]:
+    """Require POSIX flock (macOS and Linux, any architecture)."""
+    flock = getattr(fcntl, "flock", None)
+    lock_ex = getattr(fcntl, "LOCK_EX", None)
+    lock_un = getattr(fcntl, "LOCK_UN", None)
+    if (
+        not callable(flock)
+        or not isinstance(lock_ex, int)
+        or not isinstance(lock_un, int)
+    ):
+        raise OSError("fcntl.flock is required to publish status across processes")
+    return flock, lock_ex, lock_un
+
+
+_flock, _LOCK_EX, _LOCK_UN = _required_flock()
+
+
+def atomic_write_yaml(data: Any, path: Path) -> None:
+    """Replace path with a complete YAML document.
+
+    The temporary file is created in the destination directory with O_EXCL and
+    O_NOFOLLOW, so a symlink planted on a predictable temp name is not followed.
+    File contents are fsynced before the name is replaced.
+    """
+    tmp, fd = _create_exclusive_temp(path)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            yaml.dump(
+                data,
+                handle,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp)
+        raise
+
+
+def _create_exclusive_temp(path: Path) -> tuple[Path, int]:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW | _CLOEXEC
+    while True:
+        tmp = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
+        try:
+            return tmp, os.open(tmp, flags, 0o666)
+        except OSError as err:
+            if err.errno not in (errno.EEXIST, errno.ELOOP):
+                raise
 
 
 def load_status(path: Path) -> Status:
@@ -67,16 +130,12 @@ def merge_status(
     all_status: Status, path: Path, updates: dict[str, dict[str, str]]
 ) -> None:
     """Add fields to existing repo entries in a single write. Acquires the lock."""
-    with _lock:
-        previous = {name: dict(all_status[name]) for name in updates}
+    with _lock, _generation_lock(path.parent):
+        published = {name: dict(row) for name, row in load_status(path).items()}
         for repo_name, fields in updates.items():
-            all_status[repo_name] = {**all_status[repo_name], **fields}
-        try:
-            _publish(path.parent, all_status, {})
-        except Exception:
-            for repo_name, old in previous.items():
-                all_status[repo_name] = old
-            raise
+            published[repo_name] = {**published[repo_name], **fields}
+        _publish(path.parent, published, {})
+        _remember(all_status, published)
 
 
 def _replace_row(
@@ -86,17 +145,44 @@ def _replace_row(
     fields: dict[str, str],
     patch_writes: dict[Path, str],
 ) -> None:
-    with _lock:
-        previous = all_status.get(repo_name)
-        all_status[repo_name] = _with_pr_identity(previous, fields)
+    # Thread lock first, then the cross-process flock, so the two never invert.
+    with _lock, _generation_lock(path.parent):
+        published = dict(load_status(path))
+        published[repo_name] = _with_pr_identity(published.get(repo_name), fields)
+        _publish(path.parent, published, patch_writes)
+        _remember(all_status, published)
+
+
+def _remember(all_status: Status, published: Status) -> None:
+    stale = [name for name in all_status if name not in published]
+    for name in stale:
+        del all_status[name]
+    all_status.update(published)
+
+
+@contextlib.contextmanager
+def _generation_lock(fix_dir: Path) -> Generator[None]:
+    """Hold the generations lock across one publish.
+
+    The body re-reads status and swings `.live` before this releases. The
+    flock is dropped on the way out, including when the body raises
+    ShutdownError, and that exception still propagates.
+    """
+    root = fix_dir / _GENERATIONS
+    root.mkdir(parents=True, exist_ok=True)
+    fd = os.open(
+        root / _LOCK_NAME,
+        os.O_RDWR | os.O_CREAT | _CLOEXEC | _NOFOLLOW,
+        0o644,
+    )
+    try:
+        _flock(fd, _LOCK_EX)
         try:
-            _publish(path.parent, all_status, patch_writes)
-        except Exception:
-            if previous is None:
-                all_status.pop(repo_name, None)
-            else:
-                all_status[repo_name] = previous
-            raise
+            yield
+        finally:
+            _flock(fd, _LOCK_UN)
+    finally:
+        os.close(fd)
 
 
 def _with_pr_identity(
@@ -290,6 +376,9 @@ def _drop_other_generations(fix_dir: Path, keep: Path) -> None:
     root_resolved = root.resolve()
     keep_resolved = keep.resolve()
     for child in root.iterdir():
+        # The lock file lives beside generation directories and is not one of them.
+        if not child.is_dir():
+            continue
         resolved = child.resolve()
         if resolved == keep_resolved or root_resolved not in resolved.parents:
             continue

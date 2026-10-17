@@ -10,15 +10,6 @@ Next: 25
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-12 · P3 · Status writes share one temp name and an in-process lock
-
-- **Area:** Data
-- **Where:** `src/repomod/status.py:14`, `src/repomod/status.py:19`
-- **Problem:** `atomic_write_yaml` writes `path.with_suffix(".tmp")` (`status.yaml` becomes `status.tmp`) and renames it into place. The rename is atomic for one process on the same filesystem. `open` follows a symlink at that temp path. The lock is a `threading.Lock`, so two `repomod` processes on the same fix can lose each other's repo rows. There is no `fsync` before the rename. Not executed as a two-process race.
-- **Recommendation:** Create an exclusive temp file in the destination directory, `fsync`, then `os.replace`. Take an OS file lock around the read-modify-write of `status.yaml`.
-- **Fix with:** durable-state
-- **Effort:** S
-
 ### RPMD-13 · P3 · A branch that starts with a dash is a git option
 
 - **Area:** Security

@@ -1,5 +1,9 @@
 """Tests for YAML serialization contracts."""
 
+import subprocess
+import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +15,7 @@ from repomod.status import (
     patch_stat,
     print_rollout,
     print_summary,
+    set_status,
 )
 from repomod.types import FixConfig, RolloutPR
 
@@ -77,6 +82,128 @@ def test_load_config_yaml(tmp_path: Path) -> None:
     assert config.reviewers == ["reviewer-one", "reviewer-two"]
     assert config.sparse_paths == [".github"]
     assert config.extra["exclude"] == ["acme/internal-tool"]
+
+
+def test_atomic_write_yaml_does_not_follow_a_tmp_symlink(tmp_path: Path) -> None:
+    """A planted temp-name symlink must not receive the new document."""
+    fix_dir = tmp_path / "ubuntu-24"
+    fix_dir.mkdir()
+    outside = tmp_path / "outside" / "token.yaml"
+    outside.parent.mkdir()
+    outside.write_text("original\n")
+    dest = fix_dir / "status.yaml"
+    # with_suffix(".tmp") is status.tmp; the predictable alias is status.yaml.tmp.
+    for planted in (dest.with_suffix(".tmp"), fix_dir / "status.yaml.tmp"):
+        planted.symlink_to(outside)
+    document = {"acme/backend": {"status": "pending", "fix_hash": "abc123"}}
+
+    atomic_write_yaml(document, dest)
+
+    assert outside.read_text() == "original\n"
+    assert not dest.is_symlink()
+    assert yaml.safe_load(dest.read_text()) == document
+
+
+def test_set_status_keeps_a_disk_row_missing_from_memory(tmp_path: Path) -> None:
+    """A stale in-memory dict must not publish over another process's row."""
+    fix_dir = tmp_path / "ubuntu-24"
+    fix_dir.mkdir()
+    status_file = fix_dir / "status.yaml"
+    frontend = {"status": "pending", "fix_hash": "abc123"}
+    atomic_write_yaml({"acme/frontend": frontend}, status_file)
+    memory: dict[str, dict[str, str]] = {}
+
+    set_status(
+        memory,
+        status_file,
+        "acme/backend",
+        status="skipped",
+        reason="no changes",
+    )
+
+    loaded = load_status(status_file)
+    assert loaded["acme/frontend"] == frontend
+    assert loaded["acme/backend"] == {"status": "skipped", "reason": "no changes"}
+    assert memory == loaded
+
+
+_LOCK_HOLDER = """
+import fcntl
+import os
+import sys
+import time
+from pathlib import Path
+
+lock_path, ready, release = sys.argv[1:]
+fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+try:
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    Path(ready).write_text("held")
+    deadline = time.monotonic() + 15
+    while not Path(release).exists():
+        if time.monotonic() > deadline:
+            raise SystemExit("timed out waiting to release the generation lock")
+        time.sleep(0.01)
+finally:
+    fcntl.flock(fd, fcntl.LOCK_UN)
+    os.close(fd)
+"""
+
+
+def test_set_status_waits_for_another_process_generation_lock(tmp_path: Path) -> None:
+    """set_status blocks while another process holds the generations lock."""
+    fix_dir = tmp_path / "ubuntu-24"
+    fix_dir.mkdir()
+    status_file = fix_dir / "status.yaml"
+    lock_path = fix_dir / "generations" / ".lock"
+    lock_path.parent.mkdir()
+    ready = tmp_path / "held"
+    release = tmp_path / "release"
+    holder = subprocess.Popen(
+        [sys.executable, "-c", _LOCK_HOLDER, str(lock_path), str(ready), str(release)]
+    )
+    errors: list[BaseException] = []
+    memory: dict[str, dict[str, str]] = {}
+
+    def write() -> None:
+        try:
+            set_status(
+                memory,
+                status_file,
+                "acme/backend",
+                status="skipped",
+                reason="no changes",
+            )
+        except BaseException as exc:
+            errors.append(exc)
+
+    try:
+        deadline = time.monotonic() + 5
+        while not ready.exists():
+            if holder.poll() is not None:
+                raise AssertionError(f"lock holder exited {holder.returncode}")
+            if time.monotonic() > deadline:
+                raise AssertionError("lock holder did not acquire the lock")
+            time.sleep(0.01)
+        worker = threading.Thread(target=write)
+        worker.start()
+        worker.join(0.4)
+        assert worker.is_alive(), errors
+        release.write_text("go")
+        worker.join(5)
+    finally:
+        release.write_text("go")
+        try:
+            holder.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            holder.terminate()
+            holder.wait(timeout=5)
+
+    assert errors == []
+    assert not worker.is_alive()
+    assert holder.returncode == 0
+    assert memory["acme/backend"] == {"status": "skipped", "reason": "no changes"}
+    assert load_status(status_file)["acme/backend"] == memory["acme/backend"]
 
 
 def test_load_status_missing_file(tmp_path: Path) -> None:
