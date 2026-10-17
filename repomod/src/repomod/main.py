@@ -494,8 +494,20 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
         return False
 
     if ctx.apply:
-        checkout_branch(repo_dir, ctx.config.branch)
-    stage_worktree(repo_dir)
+        try:
+            checkout_branch(repo_dir, ctx.config.branch)
+        except ShutdownError:
+            raise
+        except DIFF_SAVE_ERRORS as exc:
+            _record_failed(ctx, repo, "checkout failed", exc)
+            return False
+    try:
+        stage_worktree(repo_dir)
+    except ShutdownError:
+        raise
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "stage failed", exc)
+        return False
 
     try:
         changed = has_changes(repo_dir)
@@ -606,17 +618,8 @@ def execute_fix_on_repo(
         clone(repo.name, repo.default_branch, repo_dir, ctx.config.sparse_paths)
     except ShutdownError:
         raise
-    except SUBPROCESS_ERRORS as exc:
-        interrupt.check()
-        write_log(ctx.logs_dir, repo.slug, f"clone failed\n{format_error(exc)}")
-        set_status(
-            ctx.all_status,
-            ctx.status_file,
-            repo.name,
-            status="failed",
-            reason="clone failed",
-        )
-        ctx.pd.finish(repo.name, f"{RED}clone failed{RST}", "failed")
+    except DIFF_SAVE_ERRORS as exc:
+        _record_failed(ctx, repo, "clone failed", exc)
         return None
 
     if interrupt.is_set:

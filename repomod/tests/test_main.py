@@ -2549,3 +2549,269 @@ def test_a_skipped_repo_runs_again_when_an_imported_module_changes(
     ):
         assert run_fix.main([str(fix_dir), "--workers", "1"]) == 0
     assert run_log.read_text() == "ran\nran\n"
+
+
+_GIT_FAILURES = [
+    pytest.param(subprocess.CalledProcessError(1, ["git"]), id="exit"),
+    pytest.param(subprocess.TimeoutExpired(["git"], 120), id="timeout"),
+    pytest.param(OSError("git failed"), id="oserror"),
+]
+
+
+def _assert_repo_failure(
+    ctx: run_fix.RunContext,
+    fix_dir: Path,
+    pending: dict[str, str],
+    reason: str,
+) -> None:
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert reason in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 1}
+
+
+@pytest.mark.parametrize("exc", _GIT_FAILURES)
+def test_apply_checkout_error_keeps_the_pending_row(
+    tmp_path: Path,
+    exc: subprocess.CalledProcessError | subprocess.TimeoutExpired | OSError,
+) -> None:
+    """--apply checkout is that repo's failure. A pending row stays."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="other"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "checkout_branch", side_effect=exc),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_repo_failure(ctx, fix_dir, pending, "checkout failed")
+
+
+@pytest.mark.parametrize("exc", _GIT_FAILURES)
+def test_stage_error_keeps_the_pending_row(
+    tmp_path: Path,
+    exc: subprocess.CalledProcessError | subprocess.TimeoutExpired | OSError,
+) -> None:
+    """Staging before the change check is that repo's failure. A pending row stays."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "stage_worktree", side_effect=exc),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_repo_failure(ctx, fix_dir, pending, "stage failed")
+
+
+@pytest.mark.parametrize("exc", _GIT_FAILURES)
+def test_clone_error_keeps_the_pending_row(
+    tmp_path: Path,
+    exc: subprocess.CalledProcessError | subprocess.TimeoutExpired | OSError,
+) -> None:
+    """A clone failure stays on this repo and keeps a pending row."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with patch.object(run_fix, "clone", side_effect=exc):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_repo_failure(ctx, fix_dir, pending, "clone failed")
+
+
+def test_clone_oserror_records_failure_and_the_next_repo_still_runs(
+    tmp_path: Path,
+) -> None:
+    """One repo's clone OSError must not abandon the rest of the run."""
+    backend = Repo("acme/backend", "main", ["rust"])
+    frontend = Repo("acme/frontend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=False, total=2)
+
+    def clone(name: str, *_args: object) -> None:
+        if name == backend.name:
+            raise OSError("clone failed")
+
+    with (
+        patch.object(run_fix, "clone", side_effect=clone),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "unstage"),
+    ):
+        assert (
+            run_fix.run_work(ctx, [WorkItem(backend), WorkItem(frontend)], 1) is False
+        )
+
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/backend"] == {"status": "failed", "reason": "clone failed"}
+    assert status["acme/frontend"]["status"] == "pending"
+    assert "clone failed" in (ctx.logs_dir / "acme-backend.log").read_text()
+    assert ctx.pd.counts == {"done": 1, "failed": 1}
+
+
+def test_apply_checkout_error_does_not_abort_the_next_repo(tmp_path: Path) -> None:
+    backend = Repo("acme/backend", "main", ["rust"])
+    frontend = Repo("acme/frontend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=True, total=2)
+
+    def checkout(repo_dir: Path, _branch: str) -> None:
+        if repo_dir.name == backend.slug:
+            raise subprocess.CalledProcessError(1, ["git", "switch"])
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "checkout_branch", side_effect=checkout),
+        patch.object(run_fix, "stage_worktree"),
+        patch.object(run_fix, "has_changes", return_value=False),
+    ):
+        assert (
+            run_fix.run_work(ctx, [WorkItem(backend), WorkItem(frontend)], 1) is False
+        )
+
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/backend"] == {"status": "failed", "reason": "checkout failed"}
+    assert status["acme/frontend"] == {
+        "status": "skipped",
+        "reason": "no changes",
+        "fix_hash": "currenthash",
+    }
+    assert ctx.pd.counts == {"done": 1, "failed": 1}
+
+
+def test_stage_error_does_not_abort_the_next_repo(tmp_path: Path) -> None:
+    backend = Repo("acme/backend", "main", ["rust"])
+    frontend = Repo("acme/frontend", "main", ["rust"])
+    fix_dir, ctx = _no_review_context(tmp_path, apply=False, total=2)
+
+    def stage(repo_dir: Path) -> None:
+        if repo_dir.name == backend.slug:
+            raise OSError("add failed")
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "stage_worktree", side_effect=stage),
+        patch.object(run_fix, "has_changes", return_value=False),
+    ):
+        assert (
+            run_fix.run_work(ctx, [WorkItem(backend), WorkItem(frontend)], 1) is False
+        )
+
+    status = load_status(fix_dir / "status.yaml")
+    assert status["acme/backend"] == {"status": "failed", "reason": "stage failed"}
+    assert status["acme/frontend"] == {
+        "status": "skipped",
+        "reason": "no changes",
+        "fix_hash": "currenthash",
+    }
+    assert ctx.pd.counts == {"done": 1, "failed": 1}
+
+
+def _assert_not_finished(
+    ctx: run_fix.RunContext, fix_dir: Path, pending: dict[str, str]
+) -> None:
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert not ctx.pd.is_completed("acme/backend")
+    assert ctx.pd.counts == {"done": 0, "failed": 0}
+    assert not (ctx.logs_dir / "acme-backend.log").exists()
+
+
+def test_apply_checkout_shutdown_does_not_finish(tmp_path: Path) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="other"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "checkout_branch", side_effect=ShutdownError),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_not_finished(ctx, fix_dir, pending)
+
+
+def test_stage_shutdown_does_not_finish(tmp_path: Path) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(ctx.fix, "run", return_value=True),
+        patch.object(run_fix, "stage_worktree", side_effect=ShutdownError),
+    ):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_not_finished(ctx, fix_dir, pending)
+
+
+def test_clone_shutdown_does_not_finish(tmp_path: Path) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    with patch.object(run_fix, "clone", side_effect=ShutdownError):
+        assert run_fix.process_repo(WorkItem(repo), ctx) is None
+
+    _assert_not_finished(ctx, fix_dir, pending)
+
+
+def test_apply_checkout_error_after_interrupt_is_not_a_failure(
+    tmp_path: Path,
+) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+    interrupt.event.clear()
+
+    def killed(_repo_dir: Path, _branch: str) -> None:
+        interrupt.event.set()
+        raise subprocess.CalledProcessError(1, ["git", "switch"])
+
+    try:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(run_fix, "head_sha", return_value="other"),
+            patch.object(ctx.fix, "run", return_value=True),
+            patch.object(run_fix, "checkout_branch", side_effect=killed),
+        ):
+            assert run_fix.process_repo(WorkItem(repo), ctx) is None
+    finally:
+        interrupt.event.clear()
+
+    _assert_not_finished(ctx, fix_dir, pending)
+
+
+def test_stage_error_after_interrupt_is_not_a_failure(tmp_path: Path) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    interrupt.event.clear()
+
+    def killed(_repo_dir: Path) -> None:
+        interrupt.event.set()
+        raise OSError("add failed")
+
+    try:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(ctx.fix, "run", return_value=True),
+            patch.object(run_fix, "stage_worktree", side_effect=killed),
+        ):
+            assert run_fix.process_repo(WorkItem(repo), ctx) is None
+    finally:
+        interrupt.event.clear()
+
+    _assert_not_finished(ctx, fix_dir, pending)
+
+
+def test_clone_error_after_interrupt_is_not_a_failure(tmp_path: Path) -> None:
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    interrupt.event.clear()
+
+    def killed(*_args: object) -> None:
+        interrupt.event.set()
+        raise OSError("clone failed")
+
+    try:
+        with patch.object(run_fix, "clone", side_effect=killed):
+            assert run_fix.process_repo(WorkItem(repo), ctx) is None
+    finally:
+        interrupt.event.clear()
+
+    _assert_not_finished(ctx, fix_dir, pending)
