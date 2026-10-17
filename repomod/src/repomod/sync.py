@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from repomod.types import OWNER_QUALIFIERS, Repo, SyncResult
-from repomod.utils import SUBPROCESS_TIMEOUT, retry
+from repomod.utils import SUBPROCESS_TIMEOUT, ShutdownError, interrupt, retry
 
 # Appearing in the search doesn't mean a repo is maintained. Repos with no human
 # commits on the default branch for this long are dropped to cut PR noise.
@@ -54,22 +54,33 @@ def graphql(query: str, **variables: str | None) -> dict[str, Any]:
     for key, value in variables.items():
         if value is not None:
             cmd += ["-f", f"{key}={value}"]
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=SUBPROCESS_TIMEOUT,
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+            start_new_session=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
     if result.returncode != 0:
-        raise subprocess.CalledProcessError(
+        error = subprocess.CalledProcessError(
             result.returncode,
             cmd,
             result.stdout,
             result.stderr,
         )
+        if interrupt.is_set:
+            raise ShutdownError from error
+        raise error
     try:
         return json.loads(result.stdout)["data"]  # type: ignore[no-any-return]
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
         raise ValueError(f"Unexpected GraphQL response: {result.stdout[:200]}") from exc
 
 
@@ -94,22 +105,39 @@ def search_page(page: int) -> dict[str, Any]:
         "-f",
         f"page={page}",
     ]
-    result = subprocess.run(
-        cmd, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+            start_new_session=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
     if result.returncode != 0:
-        raise subprocess.CalledProcessError(
+        error = subprocess.CalledProcessError(
             result.returncode, cmd, result.stdout, result.stderr
         )
+        if interrupt.is_set:
+            raise ShutdownError from error
+        raise error
     try:
         payload = json.loads(result.stdout)
         # GitHub sets this when the search timed out and the page may be partial.
         if payload["incomplete_results"]:
-            raise subprocess.CalledProcessError(
+            error = subprocess.CalledProcessError(
                 1, cmd, result.stdout, "search returned incomplete results"
             )
+            if interrupt.is_set:
+                raise ShutdownError from error
+            raise error
         return payload  # type: ignore[no-any-return]
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
         raise ValueError(f"Unexpected search response: {result.stdout[:200]}") from exc
 
 

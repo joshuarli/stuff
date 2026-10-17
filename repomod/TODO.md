@@ -10,15 +10,6 @@ Next: 30
 - **Fix with:** none
 - **Effort:** S
 
-### RPMD-25 · P2 · Some child processes still die in the foreground group
-
-- **Area:** Errors
-- **Where:** `src/repomod/lint.py:19`, `src/repomod/main.py:182`, `src/repomod/main.py:334`, `src/repomod/main.py:368`, `src/repomod/sync.py:57`, `src/repomod/fixes/pin-gha/main.py:44`
-- **Problem:** `git._run` starts its child in a new session, and a child error while `^C` is set becomes `ShutdownError`. `actionlint`, preflight `gh auth status`, `sync.py`'s `gh api`, and pin-gha `git ls-remote` still use `subprocess.run` in the foreground group. A `^C` can kill those children. The fix and validation `except Exception` handlers then `set_status(failed)` and `pd.finish`, which can replace a pending row. Walked from the source. Unproven as an end-to-end `^C`.
-- **Recommendation:** Run those commands in a new session, the same way as `git._run`. If the interrupt is set, raise `ShutdownError` instead of recording `failed`. Call `interrupt.check()` before `set_status(failed)` and `pd.finish`.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### RPMD-16 · P3 · The fix hash does not cover modules a fix imports
 
 - **Area:** Architecture

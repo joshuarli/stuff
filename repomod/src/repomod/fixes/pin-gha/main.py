@@ -8,7 +8,13 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from repomod.utils import SUBPROCESS_TIMEOUT, git_transport_limiter, retry
+from repomod.utils import (
+    SUBPROCESS_TIMEOUT,
+    ShutdownError,
+    git_transport_limiter,
+    interrupt,
+    retry,
+)
 
 ACTION_RE = re.compile(
     r"""(?<=uses: )["']?(?P<action>[^@\s"']+)@(?P<ref>[^#\s"']+)["']?"""
@@ -41,17 +47,30 @@ def resolve_ref(repo: str, ref: str) -> str:
         ref,
     )
     with git_transport_limiter:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=SUBPROCESS_TIMEOUT,
-        )
-    for line in result.stdout.splitlines():
-        sha, refname = line.split()
-        if refname in (f"refs/tags/{ref}", f"refs/heads/{ref}"):
-            return sha
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=SUBPROCESS_TIMEOUT,
+                start_new_session=True,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            if interrupt.is_set:
+                raise ShutdownError from exc
+            raise
+    try:
+        for line in result.stdout.splitlines():
+            sha, refname = line.split()
+            if refname in (f"refs/tags/{ref}", f"refs/heads/{ref}"):
+                return sha
+    except ValueError as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
+    if interrupt.is_set:
+        raise ShutdownError
     msg = f"unknown ref: {repo}@{ref}"
     raise ValueError(msg)
 

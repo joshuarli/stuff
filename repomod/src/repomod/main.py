@@ -179,13 +179,21 @@ def preflight(*, lint: bool = True) -> None:
             "actionlint is not installed (used to validate workflow changes). "
             "https://github.com/rhysd/actionlint"
         )
-    result = subprocess.run(
-        ["gh", "auth", "status"],
-        capture_output=True,
-        text=True,
-        timeout=SUBPROCESS_TIMEOUT,
-    )
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+            start_new_session=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
     if result.returncode != 0:
+        if interrupt.is_set:
+            raise ShutdownError
         sys.exit(
             f"gh is not authenticated. Run `gh auth login`.\n{result.stderr.strip()}"
         )
@@ -332,6 +340,7 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
     except ShutdownError:
         raise
     except Exception:
+        interrupt.check()
         write_log(ctx.logs_dir, repo.slug, f"fix failed\n{traceback.format_exc()}")
         set_status(
             ctx.all_status,
@@ -366,6 +375,7 @@ def run_fix_and_validate(repo: Repo, repo_dir: Path, ctx: RunContext) -> bool:
     except ShutdownError:
         raise
     except Exception:
+        interrupt.check()
         write_log(
             ctx.logs_dir, repo.slug, f"validation crashed\n{traceback.format_exc()}"
         )

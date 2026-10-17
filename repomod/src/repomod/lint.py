@@ -8,24 +8,33 @@ from typing import Any
 
 from repomod.git import changed_files, stashed_changes
 from repomod.types import FixModule, LintFinding
-from repomod.utils import SUBPROCESS_TIMEOUT
+from repomod.utils import SUBPROCESS_TIMEOUT, ShutdownError, interrupt
 
 WORKFLOW_RE = re.compile(r"^\.github/workflows/.+\.ya?ml$")
 
 
 def run_actionlint(repo_dir: Path, files: list[str]) -> set[LintFinding]:
     """Lint repo-relative workflow files. actionlint exits 1 when it finds errors."""
-    result = subprocess.run(
-        ["actionlint", "-format", "{{json .}}", *files],
-        cwd=repo_dir,
-        capture_output=True,
-        text=True,
-        timeout=SUBPROCESS_TIMEOUT,
-    )
+    try:
+        result = subprocess.run(
+            ["actionlint", "-format", "{{json .}}", *files],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+            start_new_session=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if interrupt.is_set:
+            raise ShutdownError from exc
+        raise
     if result.returncode not in (0, 1):
-        raise subprocess.CalledProcessError(
+        error = subprocess.CalledProcessError(
             result.returncode, result.args, result.stdout, result.stderr
         )
+        if interrupt.is_set:
+            raise ShutdownError from error
+        raise error
     return {
         LintFinding(f["filepath"], f["message"])
         for f in json.loads(result.stdout) or []
