@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 25
 
-### RPMD-20 · P1 · The reviewed patch is replaced before status.yaml is updated
-
-- **Area:** Data
-- **Where:** `src/repomod/main.py:417`, `src/repomod/main.py:254`, `src/repomod/main.py:295`, `src/repomod/git.py:128`
-- **Problem:** On `--apply`, `write_patch` runs before push and before `set_status`. If the stored patch is missing or does not apply, the fix runs again and that write replaces `patches-{hash}/<repo>.patch` while `status.yaml` still says `pending` with the old `base_sha`. A `ShutdownError` in the push (see RPMD-19) keeps `pending`, because that status is in `RESULT_STATUSES`. The next `--apply` sees a matching hash and `base_sha` and pushes the new bytes. `get_diff` ignores git's exit code, so a failed `git diff` can be stored as the reviewed patch on the dry-run path, which has no interrupt check before `set_status`. The kill window was walked from these lines. It was not executed end to end.
-- **Recommendation:** Write the patch and the status row in one step, and on `--apply` only after the push succeeds. Fail `get_diff` when git exits non-zero.
-- **Fix with:** durable-state
-- **Effort:** M
-
 ### RPMD-1 · P2 · A workflow symlink is rewritten outside the clone and the diff stays empty
 
 - **Area:** Security

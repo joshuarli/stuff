@@ -1,7 +1,12 @@
 """Status tracking: load, save, print summaries, per-repo logging."""
 
+import ctypes
 import datetime
+import os
+import shutil
+import sys
 import threading
+import uuid
 from collections import Counter
 from pathlib import Path
 from typing import Any, cast
@@ -12,6 +17,11 @@ from repomod.types import RolloutPR, Status
 from repomod.ui import BOLD, CYAN, DIM, GREEN, RED, RST, YELLOW
 
 _lock = threading.Lock()
+_LIVE = ".live"
+_GENERATIONS = "generations"
+# macOS renamex_np RENAME_SWAP and Linux renameat2 RENAME_EXCHANGE.
+_RENAME_EXCHANGE = 2
+_AT_FDCWD = -100
 
 
 def atomic_write_yaml(data: Any, path: Path) -> None:
@@ -38,9 +48,19 @@ def load_status(path: Path) -> Status:
 
 def set_status(all_status: Status, path: Path, repo_name: str, **fields: str) -> None:
     """Update a repo's status and persist atomically. Acquires the lock."""
-    with _lock:
-        all_status[repo_name] = fields
-        atomic_write_yaml(all_status, path)
+    _replace_row(all_status, path, repo_name, fields, {})
+
+
+def publish_reviewed(
+    all_status: Status,
+    path: Path,
+    repo_name: str,
+    diff: str,
+    **fields: str,
+) -> None:
+    """Store a reviewed diff and its status row so a crash cannot split them."""
+    rel = Path(f"patches-{fields['fix_hash']}") / f"{repo_name.replace('/', '-')}.patch"
+    _replace_row(all_status, path, repo_name, fields, {rel: diff})
 
 
 def merge_status(
@@ -48,9 +68,241 @@ def merge_status(
 ) -> None:
     """Add fields to existing repo entries in a single write. Acquires the lock."""
     with _lock:
+        previous = {name: dict(all_status[name]) for name in updates}
         for repo_name, fields in updates.items():
             all_status[repo_name] = {**all_status[repo_name], **fields}
-        atomic_write_yaml(all_status, path)
+        try:
+            _publish(path.parent, all_status, {})
+        except Exception:
+            for repo_name, old in previous.items():
+                all_status[repo_name] = old
+            raise
+
+
+def _replace_row(
+    all_status: Status,
+    path: Path,
+    repo_name: str,
+    fields: dict[str, str],
+    patch_writes: dict[Path, str],
+) -> None:
+    with _lock:
+        previous = all_status.get(repo_name)
+        all_status[repo_name] = fields
+        try:
+            _publish(path.parent, all_status, patch_writes)
+        except Exception:
+            if previous is None:
+                all_status.pop(repo_name, None)
+            else:
+                all_status[repo_name] = previous
+            raise
+
+
+def _publish(
+    fix_dir: Path, all_status: Status, patch_writes: dict[Path, str]
+) -> None:
+    generation = _materialize(fix_dir, all_status, patch_writes)
+    try:
+        if _canonical_is_generation(fix_dir):
+            _link_new_patch_dirs(fix_dir, patch_writes)
+        else:
+            _point_canonical_names_at_current_bytes(fix_dir, patch_writes)
+        # status.yaml and patches-* are symlinks into `.live`, so this one
+        # replace is the only instant both the row and the patch bytes change.
+        _swing(fix_dir, generation)
+    except Exception:
+        if not _live_points_at(fix_dir, generation):
+            shutil.rmtree(generation, ignore_errors=True)
+        raise
+    try:
+        _fsync(fix_dir)
+    except OSError:
+        # The directory entry already names the new generation. Raising would
+        # roll the in-memory row back and the next write would split the pair.
+        return
+    _drop_other_generations(fix_dir, generation)
+
+
+def _materialize(
+    fix_dir: Path, all_status: Status, patch_writes: dict[Path, str]
+) -> Path:
+    dest = _new_generation(fix_dir)
+    try:
+        _copy_patches(fix_dir, dest)
+        for rel, diff in patch_writes.items():
+            parent = dest / rel.parent
+            parent.mkdir(parents=True, exist_ok=True)
+            write_patch(parent, rel.stem, diff)
+        atomic_write_yaml(all_status, dest / "status.yaml")
+        _fsync_tree(dest)
+    except Exception:
+        shutil.rmtree(dest, ignore_errors=True)
+        raise
+    return dest
+
+
+def _point_canonical_names_at_current_bytes(
+    fix_dir: Path, patch_writes: dict[Path, str]
+) -> None:
+    snapshot = _new_generation(fix_dir)
+    try:
+        _copy_patches(fix_dir, snapshot)
+        status = fix_dir / "status.yaml"
+        if status.is_file():
+            shutil.copyfile(status, snapshot / "status.yaml")
+        _fsync_tree(snapshot)
+        _swing(fix_dir, snapshot)
+    except Exception:
+        if not _live_points_at(fix_dir, snapshot):
+            shutil.rmtree(snapshot, ignore_errors=True)
+        raise
+    _rewire(fix_dir, patch_writes)
+
+
+def _rewire(fix_dir: Path, patch_writes: dict[Path, str]) -> None:
+    status = fix_dir / "status.yaml"
+    if not status.is_symlink():
+        _point_at_live(status)
+    for entry in list(fix_dir.iterdir()):
+        if entry.name.startswith("patches-") and not entry.is_symlink():
+            _point_at_live(entry)
+    _link_new_patch_dirs(fix_dir, patch_writes)
+
+
+def _link_new_patch_dirs(fix_dir: Path, patch_writes: dict[Path, str]) -> None:
+    for rel in patch_writes:
+        link = fix_dir / rel.parent
+        if link.exists() or link.is_symlink():
+            continue
+        link.symlink_to(Path(_LIVE) / rel.parent.name)
+
+
+def _point_at_live(path: Path) -> None:
+    tmp = path.with_name(f".{path.name}.swap")
+    _discard(tmp)
+    tmp.symlink_to(Path(_LIVE) / path.name)
+    if path.is_symlink() or path.exists():
+        _exchange(path, tmp)
+        _discard(tmp)
+    else:
+        os.replace(tmp, path)
+
+
+def _exchange(left: Path, right: Path) -> None:
+    # rename() cannot replace a directory with a symlink (EISDIR). The names
+    # readers use have to become symlinks without a window where the path is gone.
+    ctypes.set_errno(0)
+    if sys.platform == "darwin":
+        rename = ctypes.CDLL(None, use_errno=True).renamex_np
+        rename.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+        rename.restype = ctypes.c_int
+        rc = rename(os.fsencode(left), os.fsencode(right), _RENAME_EXCHANGE)
+    elif sys.platform == "linux":
+        rename = ctypes.CDLL(None, use_errno=True).renameat2
+        rename.argtypes = [
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint,
+        ]
+        rename.restype = ctypes.c_int
+        rc = rename(
+            _AT_FDCWD,
+            os.fsencode(left),
+            _AT_FDCWD,
+            os.fsencode(right),
+            _RENAME_EXCHANGE,
+        )
+    else:
+        raise OSError(f"cannot publish a reviewed pair on {sys.platform}")
+    if rc != 0:
+        err = ctypes.get_errno()
+        raise OSError(err, os.strerror(err), str(left), None, str(right))
+
+
+def _canonical_is_generation(fix_dir: Path) -> bool:
+    status = fix_dir / "status.yaml"
+    if not (fix_dir / _LIVE).is_symlink() or not status.is_symlink():
+        return False
+    return all(
+        entry.is_symlink()
+        for entry in fix_dir.iterdir()
+        if entry.name.startswith("patches-")
+    )
+
+
+def _live_points_at(fix_dir: Path, generation: Path) -> bool:
+    live = fix_dir / _LIVE
+    return live.is_symlink() and live.resolve() == generation.resolve()
+
+
+def _new_generation(fix_dir: Path) -> Path:
+    dest = fix_dir / _GENERATIONS / uuid.uuid4().hex
+    dest.mkdir(parents=True)
+    return dest
+
+
+def _swing(fix_dir: Path, generation: Path) -> None:
+    tmp = fix_dir / f".live-{generation.name}"
+    _discard(tmp)
+    tmp.symlink_to(Path(_GENERATIONS) / generation.name)
+    os.replace(tmp, fix_dir / _LIVE)
+
+
+def _copy_patches(fix_dir: Path, dest: Path) -> None:
+    if not fix_dir.is_dir():
+        return
+    for entry in fix_dir.iterdir():
+        if not entry.name.startswith("patches-"):
+            continue
+        target = dest / entry.name
+        target.mkdir()
+        if not entry.is_dir():
+            continue
+        for child in entry.iterdir():
+            if child.is_file():
+                (target / child.name).write_bytes(child.read_bytes())
+
+
+def _drop_other_generations(fix_dir: Path, keep: Path) -> None:
+    root = fix_dir / _GENERATIONS
+    if not root.is_dir():
+        return
+    root_resolved = root.resolve()
+    keep_resolved = keep.resolve()
+    for child in root.iterdir():
+        resolved = child.resolve()
+        if resolved == keep_resolved or root_resolved not in resolved.parents:
+            continue
+        shutil.rmtree(resolved, ignore_errors=True)
+
+
+def _discard(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+
+
+def _fsync_tree(root: Path) -> None:
+    for dirpath, _dirnames, filenames in os.walk(root):
+        current = Path(dirpath)
+        for name in filenames:
+            _fsync(current / name)
+        _fsync(current)
+    _fsync(root.parent)
+
+
+def _fsync(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def write_log(logs_dir: Path, slug: str, content: str) -> None:

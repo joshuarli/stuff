@@ -15,7 +15,7 @@ import yaml
 
 from repomod import main as run_fix
 from repomod.main import compute_fix_hash, filter_work
-from repomod.status import atomic_write_yaml, load_status
+from repomod.status import atomic_write_yaml, load_status, stored_patch
 from repomod.types import (
     FixConfig,
     FixModule,
@@ -27,7 +27,7 @@ from repomod.types import (
     WorkItem,
 )
 from repomod.ui import ProgressDisplay
-from repomod.utils import interrupt
+from repomod.utils import ShutdownError, interrupt
 
 REPO_TEST = Repo(
     name="acme/test-repo",
@@ -957,7 +957,6 @@ def test_interrupted_commit_keeps_the_pending_row_and_does_not_finish(
             patch.object(run_fix, "clone"),
             patch.object(run_fix, "run_fix_and_validate", return_value=True),
             patch.object(run_fix, "get_diff", return_value="diff\n"),
-            patch.object(run_fix, "write_patch"),
             patch.object(run_fix, "head_sha", return_value="abc123"),
             patch.object(run_fix, "commit_and_push", side_effect=killed) as commit,
         ):
@@ -970,6 +969,241 @@ def test_interrupted_commit_keeps_the_pending_row_and_does_not_finish(
     assert load_status(status_file)["acme/backend"] == pending
     assert not pd.is_completed("acme/backend")
     assert pd.counts == {"done": 0, "failed": 0}
+
+
+REVIEWED_DIFF = "diff --git a/README.md b/README.md\n--- reviewed\n"
+UNREVIEWED_DIFF = "diff --git a/README.md b/README.md\n--- unreviewed\n"
+
+
+def _reviewed_pair_context(
+    tmp_path: Path, *, apply: bool
+) -> tuple[Repo, run_fix.RunContext, dict[str, str], Path]:
+    """A pending row and the patch file it authorizes, for acme/backend."""
+    repo = Repo("acme/backend", "main", ["rust"])
+    fix_hash = "reviewedhash"
+    pending = {
+        "status": "pending",
+        "fix_hash": fix_hash,
+        "base_sha": "abc123",
+    }
+    fix_dir = tmp_path / "fix"
+    status_file = fix_dir / "status.yaml"
+    patches = fix_dir / f"patches-{fix_hash}"
+    patches.mkdir(parents=True)
+    (patches / "acme-backend.patch").write_text(REVIEWED_DIFF)
+    (patches / "acme-frontend.patch").write_text("diff --git a/kept\n")
+    legacy = fix_dir / "patches-old999"
+    legacy.mkdir()
+    (legacy / "acme-legacy-tool.patch").write_text("diff --git a/legacy\n")
+    atomic_write_yaml(
+        {
+            "acme/backend": pending,
+            "acme/legacy-tool": {
+                "status": "pending",
+                "fix_hash": "old999",
+                "base_sha": "legacy-sha",
+            },
+        },
+        status_file,
+    )
+    logs_dir = fix_dir / "logs"
+    logs_dir.mkdir()
+    pd = ProgressDisplay(total=1, workers=1)
+    ctx = run_fix.RunContext(
+        fix=_make_fix_module(lambda _repo, _config: True),
+        config=FixConfig(branch="test-branch", pr_title="t", pr_body="p"),
+        config_dict={},
+        fix_hash=fix_hash,
+        accepted_hashes=frozenset({fix_hash}),
+        repos_dir=fix_dir / "repos",
+        logs_dir=logs_dir,
+        patches_dir=patches,
+        status_file=status_file,
+        apply=apply,
+        all_status=load_status(status_file),
+        pd=pd,
+        existing_prs={},
+    )
+    return repo, ctx, pending, fix_dir
+
+
+def _assert_reviewed_pair_intact(
+    fix_dir: Path, pending: dict[str, str], all_status: dict[str, dict[str, str]]
+) -> None:
+    """A later process: load status, then read the path stored_patch names."""
+    loaded = load_status(fix_dir / "status.yaml")
+    assert loaded["acme/backend"] == pending
+    assert all_status["acme/backend"] == pending
+    backend = stored_patch(fix_dir, "acme/backend", loaded["acme/backend"])
+    assert backend == fix_dir / "patches-reviewedhash" / "acme-backend.patch"
+    assert backend.read_text() == REVIEWED_DIFF
+    legacy = stored_patch(fix_dir, "acme/legacy-tool", loaded["acme/legacy-tool"])
+    assert legacy.read_text() == "diff --git a/legacy\n"
+    assert (fix_dir / "patches-reviewedhash" / "acme-frontend.patch").read_text() == (
+        "diff --git a/kept\n"
+    )
+
+
+def test_status_write_crash_keeps_the_reviewed_pair(tmp_path: Path) -> None:
+    """Kill the status write after a new diff exists. The old pair must remain.
+
+    A later load of status.yaml must not authorize the new bytes with the old
+    pending base_sha, and the other repos' patches stay put.
+    """
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    def crash(*_args: object, **_kwargs: object) -> None:
+        raise ShutdownError
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch("repomod.status.atomic_write_yaml", side_effect=crash),
+        pytest.raises(ShutdownError),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+
+
+def test_apply_shutdown_during_push_keeps_the_reviewed_pair(tmp_path: Path) -> None:
+    """Push raises before success, so the reviewed patch and pending row stay."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "apply_patch", return_value=False),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "commit_and_push", side_effect=ShutdownError),
+    ):
+        run_fix.process_repo(WorkItem(repo), ctx)
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+    assert not ctx.pd.is_completed("acme/backend")
+
+
+def test_apply_push_error_keeps_the_reviewed_pair(tmp_path: Path) -> None:
+    """A push that fails before success must not replace the reviewed pair."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=True)
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(run_fix, "apply_patch", return_value=False),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(
+            run_fix,
+            "commit_and_push",
+            side_effect=subprocess.CalledProcessError(1, ["git", "push"]),
+        ),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
+
+
+def test_apply_push_error_without_a_reviewed_pair_records_failure_and_no_patch(
+    tmp_path: Path,
+) -> None:
+    """Nothing was reviewed yet, so a failed push is recorded and stores no diff."""
+    repo = Repo("acme/backend", "main", ["rust"])
+    fix_dir = tmp_path / "fix"
+    status_file = fix_dir / "status.yaml"
+    patches = fix_dir / "patches-currenthash"
+    patches.mkdir(parents=True)
+    logs_dir = fix_dir / "logs"
+    logs_dir.mkdir()
+    ctx = run_fix.RunContext(
+        fix=_make_fix_module(lambda _repo, _config: True),
+        config=FixConfig(branch="test-branch", pr_title="t", pr_body="p"),
+        config_dict={},
+        fix_hash="currenthash",
+        accepted_hashes=frozenset({"currenthash"}),
+        repos_dir=fix_dir / "repos",
+        logs_dir=logs_dir,
+        patches_dir=patches,
+        status_file=status_file,
+        apply=True,
+        all_status={},
+        pd=ProgressDisplay(total=1, workers=1),
+        existing_prs={},
+    )
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        patch.object(run_fix, "get_diff", return_value=UNREVIEWED_DIFF),
+        patch.object(run_fix, "head_sha", return_value="abc123"),
+        patch.object(
+            run_fix,
+            "commit_and_push",
+            side_effect=subprocess.CalledProcessError(1, ["git", "push"]),
+        ),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    status = load_status(status_file)
+    assert status["acme/backend"]["status"] == "failed"
+    assert status["acme/backend"]["reason"] == "push/PR failed"
+    assert list(patches.iterdir()) == []
+
+
+def test_dry_run_publishes_a_new_pair_and_keeps_other_patches(
+    tmp_path: Path,
+) -> None:
+    """The new pending row and its patch show up together; other repos stay."""
+    repo, ctx, _pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+
+    def run_once(diff: str, base_sha: str) -> None:
+        with (
+            patch.object(run_fix, "clone"),
+            patch.object(run_fix, "run_fix_and_validate", return_value=True),
+            patch.object(run_fix, "get_diff", return_value=diff),
+            patch.object(run_fix, "head_sha", return_value=base_sha),
+        ):
+            run_fix.execute_fix_on_repo(repo, ctx)
+
+    run_once(UNREVIEWED_DIFF, "def456")
+    run_once("diff --git a/README.md b/README.md\n--- third\n", "fff999")
+
+    loaded = load_status(fix_dir / "status.yaml")
+    assert loaded["acme/backend"] == {
+        "status": "pending",
+        "fix_hash": "reviewedhash",
+        "base_sha": "fff999",
+    }
+    backend = stored_patch(fix_dir, "acme/backend", loaded["acme/backend"])
+    assert backend == fix_dir / "patches-reviewedhash" / "acme-backend.patch"
+    assert backend.read_text() == "diff --git a/README.md b/README.md\n--- third\n"
+    legacy = stored_patch(fix_dir, "acme/legacy-tool", loaded["acme/legacy-tool"])
+    assert legacy == fix_dir / "patches-old999" / "acme-legacy-tool.patch"
+    assert legacy.read_text() == "diff --git a/legacy\n"
+    assert loaded["acme/legacy-tool"]["base_sha"] == "legacy-sha"
+    assert (fix_dir / "patches-reviewedhash" / "acme-frontend.patch").read_text() == (
+        "diff --git a/kept\n"
+    )
+
+
+def test_failed_get_diff_does_not_write_a_patch_or_status(tmp_path: Path) -> None:
+    """git diff failing on the dry-run path must not become the reviewed patch."""
+    repo, ctx, pending, fix_dir = _reviewed_pair_context(tmp_path, apply=False)
+    broken = ctx.repos_dir / repo.short_name
+    _make_git_repo(broken)
+    (broken / ".git" / "index").write_bytes(b"not an index")
+
+    with (
+        patch.object(run_fix, "clone"),
+        patch.object(run_fix, "run_fix_and_validate", return_value=True),
+        pytest.raises(subprocess.CalledProcessError),
+    ):
+        run_fix.execute_fix_on_repo(repo, ctx)
+
+    _assert_reviewed_pair_intact(fix_dir, pending, ctx.all_status)
 
 
 def _config_with(fix_dir: Path, text: str) -> str:

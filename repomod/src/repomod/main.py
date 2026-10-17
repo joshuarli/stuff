@@ -57,10 +57,10 @@ from repomod.status import (
     print_full,
     print_rollout,
     print_summary,
+    publish_reviewed,
     set_status,
     stored_patch,
     write_log,
-    write_patch,
 )
 from repomod.sync import sync_repos
 from repomod.types import (
@@ -413,22 +413,20 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     if not reused and not run_fix_and_validate(repo, repo_dir, ctx):
         return
 
-    # The patch is stored for every run (not just dry-runs) so there's always a
-    # reviewable record of what was proposed. base_sha says what it applies to.
     diff = get_diff(repo_dir)
-    write_patch(ctx.patches_dir, repo.slug, diff)
     base_sha = head_sha(repo_dir)
 
     if not ctx.apply:
-        ctx.pd.print(f"\n{format_diff_box(repo.name, diff)}")
-        set_status(
+        publish_reviewed(
             ctx.all_status,
             ctx.status_file,
             repo.name,
+            diff,
             status="pending",
             fix_hash=ctx.fix_hash,
             base_sha=base_sha,
         )
+        ctx.pd.print(f"\n{format_diff_box(repo.name, diff)}")
         ctx.pd.finish(repo.name, "", "done")
         return
 
@@ -446,10 +444,11 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
         # Merged/closed PRs aren't touched (see commit_and_push); record them as
         # their own statuses so they aren't reported as freshly created.
         pr_status = "pr_created" if pr.state == "OPEN" else f"pr_{pr.state.lower()}"
-        set_status(
+        publish_reviewed(
             ctx.all_status,
             ctx.status_file,
             repo.name,
+            diff,
             status=pr_status,
             pr_url=pr.url,
             fix_hash=ctx.fix_hash,
@@ -469,13 +468,14 @@ def execute_fix_on_repo(repo: Repo, ctx: RunContext) -> None:
     except SUBPROCESS_ERRORS as exc:
         interrupt.check()
         write_log(ctx.logs_dir, repo.slug, f"push/PR failed\n{format_error(exc)}")
-        set_status(
-            ctx.all_status,
-            ctx.status_file,
-            repo.name,
-            status="failed",
-            reason="push/PR failed",
-        )
+        if ctx.all_status.get(repo.name, {}).get("status") != "pending":
+            set_status(
+                ctx.all_status,
+                ctx.status_file,
+                repo.name,
+                status="failed",
+                reason="push/PR failed",
+            )
         ctx.pd.finish(repo.name, f"{RED}push/PR failed{RST}", "failed")
 
 

@@ -147,12 +147,10 @@ def apply_patch(repo_dir: Path, patch: str) -> bool:
 
 
 def get_diff(repo_dir: Path) -> str:
-    stdout = _run(
-        ["git", "diff"],
-        cwd=repo_dir,
-        capture_output=True,
-        text=True,
-    ).stdout
+    # git diff exits 0 when the patch is non-empty. A non-zero status is git
+    # failing, not "there are changes" (that is `git diff --quiet`).
+    result = git_run(["diff"], cwd=repo_dir, text=True)
+    stdout = result.stdout
     assert isinstance(stdout, str)
     return stdout
 

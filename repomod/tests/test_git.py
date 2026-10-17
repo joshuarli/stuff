@@ -124,6 +124,25 @@ def test_commit_and_push_stops_before_the_next_git_command_when_interrupted(
     assert ["git", "commit", "--quiet", "--message", PR.title] not in commands
 
 
+def test_get_diff_returns_the_tracked_diff_when_git_succeeds(tmp_path: Path) -> None:
+    """A non-empty tracked diff is success. git diff without --exit-code exits 0."""
+    repo = _repo_with_change(tmp_path)
+
+    diff = git.get_diff(repo)
+
+    assert "diff --git" in diff
+    assert "macos-15" in diff
+
+
+def test_get_diff_raises_when_git_exits_nonzero(tmp_path: Path) -> None:
+    """A failed git diff must not come back as patch text, even if stdout is empty."""
+    repo = _repo_with_change(tmp_path)
+    (repo / ".git" / "index").write_bytes(b"not an index")
+
+    with pytest.raises(subprocess.CalledProcessError):
+        git.get_diff(repo)
+
+
 def test_pr_by_repo_prefers_the_open_pr_over_an_old_closed_one() -> None:
     old = RolloutPR(
         "acme/backend", "https://github.com/acme/backend/pull/1", "CLOSED", False
