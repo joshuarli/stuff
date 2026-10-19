@@ -170,6 +170,27 @@ def test_a_disabled_repo_is_not_synced() -> None:
     assert "acme/smolworld" not in gh.looked_up
 
 
+def test_disabled_repo_names_are_case_insensitive() -> None:
+    gh = FakeGitHub(
+        items=[
+            {
+                **_item("singlefile"),
+                "full_name": "JoshuaRli/singlefile",
+            }
+        ],
+        histories={"JoshuaRli/singlefile": _history(_commit("octocat", 1))},
+    )
+
+    with (
+        patch.object(sync, "search_page", gh.search_page),
+        patch.object(sync, "graphql", gh.graphql),
+    ):
+        repos = sync.sync_repos(disabled={"joshuarli/SingleFile"})
+
+    assert repos == []
+    assert "JoshuaRli/singlefile" not in gh.looked_up
+
+
 def test_a_remembered_recent_human_commit_means_no_history_lookup_at_all() -> None:
     gh = FakeGitHub(items=[_item("relay"), _item("snuba"), _item("brand-new")])
     known = {

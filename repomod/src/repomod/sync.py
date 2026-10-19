@@ -227,9 +227,11 @@ def sync_repos(
         since activity only ages out.
     """
     known = known or {}
-    disabled = disabled or set()
+    disabled = {name.casefold() for name in disabled or set()}
     cutoff = datetime.now(UTC) - MAX_IDLE
-    nodes = [node for node in list_repos() if node["full_name"] not in disabled]
+    nodes = [
+        node for node in list_repos() if node["full_name"].casefold() not in disabled
+    ]
 
     verdicts: dict[str, tuple[bool, str | None]] = {}
     to_fetch: list[str] = []

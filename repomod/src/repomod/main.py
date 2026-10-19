@@ -339,7 +339,7 @@ def load_disabled(path: Path) -> set[str]:
     for item in raw:
         if not isinstance(item, str) or item == "":
             raise ValueError(f"{path.name} must be a list of repo names")
-        names.add(item)
+        names.add(item.casefold())
     return names
 
 
@@ -350,7 +350,7 @@ def read_repos_file() -> list[Repo] | None:
     with open(REPOS_FILE) as f:
         raw = yaml.safe_load(f) or []
     disabled = load_disabled(DISABLED_FILE)
-    return [Repo.from_dict(r) for r in raw if r["name"] not in disabled]
+    return [Repo.from_dict(r) for r in raw if r["name"].casefold() not in disabled]
 
 
 def sync_if_needed(force: bool) -> list[Repo] | None:

@@ -545,7 +545,7 @@ def test_read_repos_file_omits_a_disabled_repo(
     atomic_write_yaml(
         [
             {"name": "acme/backend", "default_branch": "main", "topics": []},
-            {"name": "joshuarli/smolworld", "default_branch": "main", "topics": []},
+            {"name": "JoshuaRli/Smolworld", "default_branch": "main", "topics": []},
         ],
         repos,
     )
@@ -564,6 +564,20 @@ def test_disabled_file_rejects_a_scalar(tmp_path: Path) -> None:
     path.write_text("joshuarli/smolworld\n")
     with pytest.raises(ValueError, match="list of repo names"):
         run_fix.load_disabled(path)
+
+
+def test_disabled_repo_names_are_case_insensitive(tmp_path: Path, monkeypatch: Any) -> None:
+    repos = tmp_path / "repos.yaml"
+    disabled = tmp_path / "repos-disabled.yaml"
+    atomic_write_yaml(
+        [{"name": "JoshuaRli/SingleFile", "default_branch": "main", "topics": []}],
+        repos,
+    )
+    disabled.write_text("- joshuarli/singlefile\n")
+    monkeypatch.setattr(run_fix, "REPOS_FILE", repos)
+    monkeypatch.setattr(run_fix, "DISABLED_FILE", disabled)
+
+    assert run_fix.read_repos_file() == []
 
 
 def test_a_missing_disabled_file_disables_nothing(tmp_path: Path) -> None:

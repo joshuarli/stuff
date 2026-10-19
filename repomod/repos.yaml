@@ -1,55 +1,7 @@
-- name: joshuarli/InstantSpaceSwitcher
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-03-03T07:30:32Z'
-- name: joshuarli/SingleFile
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-07-31T00:21:37Z'
-- name: joshuarli/aincrad2
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-14T02:44:47Z'
-- name: joshuarli/aincrad3
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-17T01:58:55Z'
-- name: joshuarli/asterinas
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-11T07:51:24Z'
-- name: joshuarli/async-tar
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-06-22T11:08:55Z'
-- name: joshuarli/bun-musl-static
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-20T16:17:21Z'
-- name: joshuarli/codex
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-23T01:57:13Z'
-- name: joshuarli/crabc
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-14T02:28:44Z'
-- name: joshuarli/darkhttpd
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-03-05T04:10:39Z'
 - name: joshuarli/defuddle-rs
   default_branch: master
   topics: []
   last_human_commit: '2026-10-13T02:37:45Z'
-- name: joshuarli/deno-musl-static
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-08T21:19:04Z'
-- name: joshuarli/dirstat-rs
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-05-06T01:06:07Z'
 - name: joshuarli/discover
   default_branch: main
   topics: []
@@ -66,14 +18,6 @@
   default_branch: master
   topics: []
   last_human_commit: '2026-10-14T10:36:57Z'
-- name: joshuarli/fil-c
-  default_branch: deluge
-  topics: []
-  last_human_commit: '2026-09-23T19:14:30Z'
-- name: joshuarli/fish-shell
-  default_branch: native-prompt
-  topics: []
-  last_human_commit: '2026-03-10T06:16:00Z'
 - name: joshuarli/gcsf
   default_branch: master
   topics: []
@@ -82,18 +26,6 @@
   default_branch: trunk
   topics: []
   last_human_commit: '2026-10-18T18:17:19Z'
-- name: joshuarli/goose
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-18T04:07:42Z'
-- name: joshuarli/home
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-13T03:24:20Z'
-- name: joshuarli/htmd
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-04-04T10:22:02Z'
 - name: joshuarli/ish
   default_branch: master
   topics:
@@ -105,130 +37,34 @@
   topics:
   - macos
   last_human_commit: '2026-09-14T21:27:34Z'
-- name: joshuarli/jwalk
-  default_branch: main
-  topics: []
-  last_human_commit: '2025-12-03T05:42:43Z'
-- name: joshuarli/libkrun
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-22T06:00:55Z'
-- name: joshuarli/libkrunfw
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-13T00:07:11Z'
-- name: joshuarli/localize
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-08-28T15:47:05Z'
 - name: joshuarli/mactop
   default_branch: master
   topics: []
   last_human_commit: '2026-10-14T07:11:12Z'
-- name: joshuarli/manga
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-09-30T19:06:32Z'
 - name: joshuarli/mc
   default_branch: master
   topics: []
   last_human_commit: '2026-10-14T15:47:36Z'
-- name: joshuarli/mds
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-12T22:03:52Z'
-- name: joshuarli/meadowlight
-  default_branch: campaign/mvp
-  topics: []
-  last_human_commit: '2026-10-16T22:38:38Z'
-- name: joshuarli/minify-html
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-06-22T16:11:55Z'
-- name: joshuarli/mold
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-12T16:40:10Z'
-- name: joshuarli/nanoshop
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-02T18:16:50Z'
 - name: joshuarli/obsidian-webp-paste
   default_branch: main
   topics: []
   last_human_commit: '2026-09-19T21:05:55Z'
-- name: joshuarli/pdf-to-epub
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-09-02T00:19:32Z'
-- name: joshuarli/pdf2md
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-09-17T23:08:31Z'
-- name: joshuarli/pi-headless-musl-static
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-09T05:02:15Z'
 - name: joshuarli/pytest-parallel
   default_branch: main
   topics: []
   last_human_commit: '2026-10-12T16:40:05Z'
-- name: joshuarli/python-build
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-09T01:08:46Z'
-- name: joshuarli/python-build-standalone
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-09-23T20:36:13Z'
-- name: joshuarli/repomod
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-04-21T21:01:37Z'
-- name: joshuarli/ripgrep
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-03-03T17:24:19Z'
-- name: joshuarli/runebench
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-15T05:08:18Z'
-- name: joshuarli/save
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-12T15:43:24Z'
 - name: joshuarli/shadowdriver
   default_branch: master
   topics: []
   last_human_commit: '2026-10-13T05:47:00Z'
-- name: joshuarli/smolvm
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-22T08:13:42Z'
-- name: joshuarli/smolvm-sdk
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-07-22T02:04:27Z'
 - name: joshuarli/tansu
   default_branch: master
   topics: []
   last_human_commit: '2026-09-05T02:41:08Z'
-- name: joshuarli/tansu2
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-17T01:26:03Z'
 - name: joshuarli/tool
   default_branch: main
   topics: []
   last_human_commit: '2026-10-13T03:47:45Z'
-- name: joshuarli/urlx
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-08-22T06:16:36Z'
-- name: joshuarli/usr
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-16T22:59:19Z'
 - name: laputa-systems/diff-pretty
   default_branch: main
   topics: []
@@ -250,10 +86,6 @@
   default_branch: main
   topics: []
   last_human_commit: '2026-10-16T20:54:59Z'
-- name: laputa-systems/fs
-  default_branch: main
-  topics: []
-  last_human_commit: '2026-10-13T03:01:20Z'
 - name: laputa-systems/fz
   default_branch: main
   topics: []
@@ -274,18 +106,6 @@
   default_branch: master
   topics: []
   last_human_commit: '2026-10-13T05:43:47Z'
-- name: laputa-systems/libudev-zero
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-05-19T14:52:47Z'
-- name: laputa-systems/llvm-clang-crabc
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-08-25T16:09:07Z'
-- name: laputa-systems/llvm-prebuilt-musl
-  default_branch: master
-  topics: []
-  last_human_commit: '2026-10-03T17:26:10Z'
 - name: laputa-systems/miniserde
   default_branch: master
   topics: []
