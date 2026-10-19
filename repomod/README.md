@@ -1,8 +1,8 @@
 # repomod
 
 repomod applies one fix across many GitHub repos and opens a draft PR in each repo the fix
-changes. It targets every non-archived repo owned by `joshuarli` and `laputa-systems` that has
-a non-bot commit on the default branch within the last year.
+changes. It targets every non-archived repo owned by `joshuarli` and `laputa-systems`, forks
+included, that has a non-bot commit on the default branch within the last year.
 
 ## Install
 
