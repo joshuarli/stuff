@@ -8,9 +8,9 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from repomod.types import Finding, Repository, Rule
 from repomod.catalog import atomic_write
 from repomod.github import action_tags, resolve_tag
+from repomod.types import Finding, Repository, Rule
 
 _USES = re.compile(r"^(\s*(?:-\s*)?uses\s*:\s*)(.*?)(\r?\n)?$")
 _SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
@@ -328,11 +328,20 @@ def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]
             if pin is None or use.error is not None:
                 continue
             if version:
-                version_comment = re.search(r"#\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$", use.comment)
+                version_comment = re.search(
+                    r"#\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$", use.comment
+                )
                 if version_comment is None or version_comment.group(1) != pin.version:
                     comment = f"# {pin.version}"
-                    if use.comment and re.search(r"#\s*v[0-9]+\.[0-9]+\.[0-9]+\s*$", use.comment):
-                        comment = use.comment[: version_comment.start()] + f"# {pin.version}" if version_comment else comment
+                    if use.comment and re.search(
+                        r"#\s*v[0-9]+\.[0-9]+\.[0-9]+\s*$", use.comment
+                    ):
+                        comment = (
+                            use.comment[: version_comment.start()]
+                            + f"# {pin.version}"
+                            if version_comment
+                            else comment
+                        )
                     elif use.comment:
                         comment = f"{use.comment} # {pin.version}"
                     lines[use.line_number - 1] = _replacement(use, use.value, comment)
@@ -349,22 +358,37 @@ def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]
     return changes
 
 
-def _validate_workflows(root: Path, repository: Repository, changed: tuple[str, ...]) -> list[str]:
+def _validate_workflows(
+    root: Path, repository: Repository, changed: tuple[str, ...]
+) -> list[str]:
     if not changed:
         return []
     executable = shutil.which("actionlint")
     if executable is None:
-        return ["actionlint is required to validate modified GitHub workflows; install actionlint"]
-    result = subprocess.run(
-        [executable, *[str(root / path) for path in changed]],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+        return [
+            "actionlint is required to validate modified GitHub workflows; "
+            "install actionlint"
+        ]
+    try:
+        result = subprocess.run(
+            [executable, *[str(root / path) for path in changed]],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return ["actionlint timed out while validating modified workflows"]
+    except OSError as error:
+        return [f"cannot run actionlint: {error}"]
     if result.returncode == 0:
         return []
-    return [result.stderr.strip() or result.stdout.strip() or "actionlint rejected modified workflows"]
+    return [
+        result.stderr.strip()
+        or result.stdout.strip()
+        or "actionlint rejected modified workflows"
+    ]
 
 
 def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -384,16 +408,76 @@ def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
                 kind="operational",
             ),
         ]
-    result = subprocess.run([executable, *map(str, files)], cwd=root, capture_output=True, text=True, check=False)
+    try:
+        result = subprocess.run(
+            [executable, *map(str, files)],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        findings.append(
+            Finding(
+                str(repository.id),
+                "gha-syntax",
+                ".github/workflows",
+                "actionlint timed out while validating workflows",
+                kind="operational",
+            )
+        )
+        return findings
+    except OSError as error:
+        findings.append(
+            Finding(
+                str(repository.id),
+                "gha-syntax",
+                ".github/workflows",
+                f"cannot run actionlint: {error}",
+                kind="operational",
+            )
+        )
+        return findings
     if result.returncode:
-        output = result.stderr.strip() or result.stdout.strip() or "actionlint found invalid workflow syntax"
+        output = (
+            result.stderr.strip()
+            or result.stdout.strip()
+            or "actionlint found invalid workflow syntax"
+        )
         findings.append(Finding(str(repository.id), "gha-syntax", ".github/workflows", output))
     return findings
 
 
 def action_rules() -> tuple[Rule, ...]:
     return (
-        Rule("gha-pin", "Pin external GitHub Actions to approved full commit SHAs", frozenset(), lambda root, repo: _findings(root, repo, version=False), lambda root, repo: _fix(root, repo, version=False), "chore(repomod): pin github actions", (".github/workflows/*.yml", ".github/workflows/*.yaml"), _validate_workflows),
-        Rule("gha-syntax", "Validate GitHub workflow syntax with actionlint", frozenset(), _syntax_findings, None, None, ()),
-        Rule("gha-version", "Keep GitHub Action version comments aligned with approved pins", frozenset(), lambda root, repo: _findings(root, repo, version=True), lambda root, repo: _fix(root, repo, version=True), "chore(repomod): update github action versions", (".github/workflows/*.yml", ".github/workflows/*.yaml"), _validate_workflows),
+        Rule(
+            "gha-pin",
+            "Pin external GitHub Actions to approved full commit SHAs",
+            frozenset(),
+            lambda root, repo: _findings(root, repo, version=False),
+            lambda root, repo: _fix(root, repo, version=False),
+            "chore(repomod): pin github actions",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+            _validate_workflows,
+        ),
+        Rule(
+            "gha-syntax",
+            "Validate GitHub workflow syntax with actionlint",
+            frozenset(),
+            _syntax_findings,
+            None,
+            None,
+            (),
+        ),
+        Rule(
+            "gha-version",
+            "Keep GitHub Action version comments aligned with approved pins",
+            frozenset(),
+            lambda root, repo: _findings(root, repo, version=True),
+            lambda root, repo: _fix(root, repo, version=True),
+            "chore(repomod): update github action versions",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+            _validate_workflows,
+        ),
     )

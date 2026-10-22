@@ -99,9 +99,11 @@ def _commit_paths(root: Path, before: str, rule: Rule, paths: tuple[str, ...]) -
         _reset_failed_fixer(root, before)
         detail = result.stderr.strip() or result.stdout.strip() or "git commit failed"
         raise GitError(detail)
-    committed_paths = tuple(
-        path for path in run_git(["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD"], cwd=root).stdout.split("\0") if path
-    )
+    changed = run_git(
+        ["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD"],
+        cwd=root,
+    ).stdout
+    committed_paths = tuple(path for path in changed.split("\0") if path)
     if not committed_paths or any(path not in paths for path in committed_paths):
         _reset_failed_fixer(root, before)
         raise GitError(f"commit hook changed files outside fixer {rule.id}'s planned changes")
@@ -176,11 +178,11 @@ def _prior_worktrees(root: Path, repository: Repository) -> tuple[str, ...]:
         for line in registered.splitlines()
         if line.startswith("worktree ")
     }
-    candidates = []
-    for child in sorted(candidate_root.iterdir(), key=lambda path: path.name):
-        if re.fullmatch(r"[0-9a-f]{32}", child.name) and child.resolve() in managed:
-            candidates.append(str(child))
-    return tuple(candidates)
+    return tuple(
+        str(child)
+        for child in sorted(candidate_root.iterdir(), key=lambda path: path.name)
+        if re.fullmatch(r"[0-9a-f]{32}", child.name) and child.resolve() in managed
+    )
 
 
 def _recovery_reference(repository: Repository, run_id: str) -> str:
@@ -259,7 +261,13 @@ def fix_repository(
                         or head(canonical) != start_head
                     ):
                         outcome.recovery_ref = reference
-                        outcome.failures.append(("publish", "canonical checkout changed during fixing; commits preserved under recovery ref"))
+                        outcome.failures.append(
+                            (
+                                "publish",
+                                "canonical checkout changed during fixing; "
+                                "commits preserved under recovery ref",
+                            )
+                        )
                     else:
                         final_head = outcome.commits[-1][1]
                         run_git(["merge", "--ff-only", final_head], cwd=canonical)

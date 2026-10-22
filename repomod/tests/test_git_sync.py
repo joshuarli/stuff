@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from repomod.catalog import load_catalog, repository_path
+from repomod.catalog import Catalog, load_catalog, repository_path
 from repomod.git import _porcelain_counts, expected_origin, head, status
 from repomod.sync import sync_one
-from repomod.types import RemoteRepository, RepoId
+from repomod.types import RemoteRepository, RepoId, Repository
 
 
 def git(*arguments: str, cwd: Path | None = None) -> str:
@@ -26,7 +26,10 @@ def git(*arguments: str, cwd: Path | None = None) -> str:
 @pytest.fixture
 def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     global_config = tmp_path / "gitconfig"
-    global_config.write_text('[user]\n\tname = Test User\n\temail = test@example.invalid\n', encoding="utf-8")
+    global_config.write_text(
+        '[user]\n\tname = Test User\n\temail = test@example.invalid\n',
+        encoding="utf-8",
+    )
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_TERMINAL_PROMPT", "0")
@@ -49,14 +52,17 @@ def make_remote(tmp_path: Path, name: str = "tool") -> tuple[Path, Path, str]:
     return bare, seed, url
 
 
-def make_catalog(tmp_path: Path) -> tuple[object, object]:
+def make_catalog(tmp_path: Path) -> tuple[Catalog, Repository]:
     path = tmp_path / "catalog.toml"
     path.write_text(
         'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n\n'
         '[repos."acme"]\ntool = ["tool"]\n',
         encoding="utf-8",
     )
-    catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")})
+    catalog = load_catalog(
+        path,
+        {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")},
+    )
     return catalog, catalog.repositories[0]
 
 
@@ -157,7 +163,9 @@ def test_sync_fetches_but_does_not_change_dirty_checkout(
     assert git("status", "--porcelain=v2", cwd=checkout) == before_status
 
 
-def test_sync_dry_run_does_not_clone_or_fetch(tmp_path: Path, git_environment: None) -> None:
+def test_sync_dry_run_does_not_clone_or_fetch(
+    tmp_path: Path, git_environment: None
+) -> None:
     catalog, repository = make_catalog(tmp_path)
     result = sync_one(catalog, repository, None, dry_run=True)
 

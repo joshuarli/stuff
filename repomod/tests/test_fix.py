@@ -4,17 +4,19 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Barrier, Event
+from threading import Barrier
 
 import pytest
 
-from repomod.catalog import load_catalog, repository_path
-from repomod.fix import fix_repository, push_repository
+from repomod.catalog import Catalog, load_catalog
+from repomod.fix import FixOutcome, fix_repository, push_repository
 from repomod.git import head, status
-from repomod.types import Finding, RepoId, Repository, Rule
+from repomod.types import Finding, Repository, Rule
 
 
-def git(*arguments: str, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def git(
+    *arguments: str, cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *arguments],
         cwd=cwd,
@@ -27,13 +29,18 @@ def git(*arguments: str, cwd: Path | None = None, check: bool = True) -> subproc
 @pytest.fixture
 def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     global_config = tmp_path / "gitconfig"
-    global_config.write_text("[user]\n\tname = Test User\n\temail = test@example.invalid\n", encoding="utf-8")
+    global_config.write_text(
+        "[user]\n\tname = Test User\n\temail = test@example.invalid\n",
+        encoding="utf-8",
+    )
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_TERMINAL_PROMPT", "0")
 
 
-def initialize_repository(tmp_path: Path, *, push: bool = True) -> tuple[object, Repository, Path, str]:
+def initialize_repository(
+    tmp_path: Path, *, push: bool = True
+) -> tuple[Catalog, Repository, Path, str]:
     root = tmp_path / "fleet"
     root.mkdir()
     path = root / "demo"
@@ -50,7 +57,9 @@ def initialize_repository(tmp_path: Path, *, push: bool = True) -> tuple[object,
         '[repos."acme"]\ndemo = ["tool"]\n',
         encoding="utf-8",
     )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(root)})
+    catalog = load_catalog(
+        catalog_path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(root)}
+    )
     repository = catalog.repositories[0]
     remote_url = "https://github.com/acme/demo.git"
     if push:
@@ -66,12 +75,22 @@ def initialize_repository(tmp_path: Path, *, push: bool = True) -> tuple[object,
     return catalog, repository, path, base
 
 
-def file_rule(rule_id: str, filename: str, value: str, *, validate=None, on_fix=None) -> Rule:
+def file_rule(
+    rule_id: str, filename: str, value: str, *, validate=None, on_fix=None
+) -> Rule:
     def check(root: Path, repository: Repository) -> list[Finding]:
         path = root / filename
         if path.is_file() and path.read_text(encoding="utf-8") == value:
             return []
-        return [Finding(str(repository.id), rule_id, filename, "file needs its policy content", fixable=True)]
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                filename,
+                "file needs its policy content",
+                fixable=True,
+            )
+        ]
 
     def fix(root: Path, repository: Repository) -> dict[str, str]:
         if on_fix is not None:
@@ -112,15 +131,23 @@ def test_successful_fixers_create_one_commit_each_and_reruns_are_empty(
     assert [rule for rule, _ in outcome.commits] == ["first", "second", "third"]
     assert len(subjects(path, base)) == 3
     assert subjects(path, base) == [rule.commit_message for rule in reversed(selected)]
-    for (rule_id, commit), filename in zip(outcome.commits, ("first.txt", "second.txt", "third.txt"), strict=True):
-        committed_paths = git("show", "--format=", "--name-only", commit, cwd=path).stdout.splitlines()
+    for (_rule_id, commit), filename in zip(
+        outcome.commits, ("first.txt", "second.txt", "third.txt"), strict=True
+    ):
+        committed_paths = git(
+            "show", "--format=", "--name-only", commit, cwd=path
+        ).stdout.splitlines()
         assert committed_paths == [filename]
-        assert (path / filename).read_text(encoding="utf-8") == filename.removesuffix(".txt") + "\n"
+        assert (path / filename).read_text(encoding="utf-8") == (
+            filename.removesuffix(".txt") + "\n"
+        )
     repeated = fix_repository(catalog, repository, selected, "main")
     assert repeated.commits == []
     assert repeated.failures == []
     assert subjects(path, base) == [rule.commit_message for rule in reversed(selected)]
-    assert len(git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")) == 2
+    assert len(
+        git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")
+    ) == 2
 
 
 def test_failed_middle_fixer_is_discarded_while_later_success_commits(
@@ -128,7 +155,8 @@ def test_failed_middle_fixer_is_discarded_while_later_success_commits(
     git_environment: None,
 ) -> None:
     catalog, repository, path, base = initialize_repository(tmp_path)
-    fail_validation = lambda root, repo, changed: ["fixture validation rejected B"]
+    def fail_validation(root, repo, changed):
+        return ["fixture validation rejected B"]
     selected = (
         file_rule("first", "first.txt", "first\n"),
         file_rule("second", "second.txt", "second\n", validate=fail_validation),
@@ -162,10 +190,13 @@ def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(
     )
 
     assert outcome.recovery_ref is not None
-    assert outcome.commits and outcome.failures[0][0] == "publish"
+    assert outcome.commits
+    assert outcome.failures[0][0] == "publish"
     assert (path / "concurrent.txt").read_text(encoding="utf-8") == "owned by user\n"
     assert not (path / "first.txt").exists()
-    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == "first\n"
+    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == (
+        "first\n"
+    )
     assert status(path, repository.id).dirty
 
 
@@ -181,8 +212,11 @@ def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
     hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
     hook.chmod(0o755)
 
-    hook_failure = fix_repository(catalog, repository, (file_rule("hook", "hook.txt", "hook\n"),), "main")
-    assert hook_failure.failures and hook_failure.commits == []
+    hook_failure = fix_repository(
+        catalog, repository, (file_rule("hook", "hook.txt", "hook\n"),), "main"
+    )
+    assert hook_failure.failures
+    assert hook_failure.commits == []
     assert head(path) == base
     assert not (path / "hook.txt").exists()
 
@@ -190,7 +224,9 @@ def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
         "escape",
         "Reject paths outside the worktree",
         frozenset(),
-        lambda root, repo: [Finding(str(repo.id), "escape", "../outside", "unsafe", fixable=True)],
+        lambda root, repo: [
+            Finding(str(repo.id), "escape", "../outside", "unsafe", fixable=True)
+        ],
         lambda root, repo: {"../outside": "unsafe\n"},
         "chore(repomod): reject unsafe path",
         ("**",),
@@ -208,13 +244,17 @@ def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(
     catalog, repository, path, base = initialize_repository(tmp_path)
     (path / "user.txt").write_text("user\n", encoding="utf-8")
 
-    dirty = fix_repository(catalog, repository, (file_rule("first", "first.txt", "x"),), "main")
+    dirty = fix_repository(
+        catalog, repository, (file_rule("first", "first.txt", "x"),), "main"
+    )
     assert dirty.skipped == "checkout is dirty"
     assert not (path / "first.txt").exists()
     (path / "user.txt").unlink()
     git("checkout", "-b", "feature", cwd=path)
 
-    branch = fix_repository(catalog, repository, (file_rule("first", "first.txt", "x"),), "main")
+    branch = fix_repository(
+        catalog, repository, (file_rule("first", "first.txt", "x"),), "main"
+    )
     assert branch.skipped == "checkout is on feature; default branch is main"
     assert head(path) == base
 
@@ -227,7 +267,7 @@ def test_two_concurrent_fix_runs_create_only_one_commit(
     barrier = Barrier(3)
     rule = file_rule("first", "first.txt", "first\n")
 
-    def run() -> object:
+    def run() -> FixOutcome:
         barrier.wait()
         return fix_repository(catalog, repository, (rule,), "main")
 
@@ -245,7 +285,7 @@ def test_push_rejection_keeps_local_commit_and_never_rewrites_remote(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
-    catalog, repository, path, _ = initialize_repository(tmp_path)
+    _catalog, repository, path, _ = initialize_repository(tmp_path)
     (path / "local.txt").write_text("local\n", encoding="utf-8")
     git("add", "local.txt", cwd=path)
     git("commit", "-m", "local", cwd=path)

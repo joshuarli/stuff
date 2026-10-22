@@ -3,24 +3,24 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from collections.abc import Sequence
 
-from repomod.catalog import CatalogError, TAGS, add_repository, find_repository, load_catalog, repository_path
+from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
 from repomod.fix import FixOutcome, fix_repository, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import GitHubError, ci_status, discover, remote_metadata, topics_many
 from repomod.policy import PolicyError, filter_repositories, finding_dict, lint_repositories, selected_rules
 from repomod.sync import sync_repositories
-from repomod.types import CiResult, GitStatus, Repository
+from repomod.types import Catalog, CiResult, GitStatus, Repository
 
 
 def _catalog_path() -> Path:
     return Path(__file__).resolve().parents[2] / "catalog.toml"
 
 
-def _catalog():
+def _catalog() -> Catalog:
     return load_catalog(_catalog_path())
 
 
@@ -33,7 +33,9 @@ def _tags(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(values)
 
 
-def _select(catalog, repo_values: Sequence[str], tags: Sequence[str]) -> tuple[Repository, ...]:
+def _select(
+    catalog: Catalog, repo_values: Sequence[str], tags: Sequence[str]
+) -> tuple[Repository, ...]:
     selected_tags = _tags(tags)
     if repo_values:
         repositories = tuple(find_repository(catalog, value) for value in repo_values)
@@ -84,14 +86,32 @@ def _ci_label(value: CiResult) -> str:
     return label
 
 
-def _checkout_status(catalog, repository: Repository) -> tuple[Path, GitStatus]:
+def _checkout_status(catalog: Catalog, repository: Repository) -> tuple[Path, GitStatus]:
+    parts = (
+        (repository.id.name,)
+        if repository.id.owner.casefold() == catalog.personal_owner.casefold()
+        else (repository.id.owner, repository.id.name)
+    )
+    path = catalog.root.joinpath(*parts)
     try:
-        path = repository_path(catalog, repository)
+        repository_path(catalog, repository)
         return path, status(path, repository.id)
     except (CatalogError, OSError) as error:
-        return catalog.root, GitStatus(
-            str(repository.id), catalog.root, True, False, None, False, 0, 0, 0,
-            None, None, None, False, str(error),
+        return path, GitStatus(
+            str(repository.id),
+            path,
+            path.exists() or path.is_symlink(),
+            False,
+            None,
+            False,
+            0,
+            0,
+            0,
+            None,
+            None,
+            None,
+            False,
+            str(error),
         )
 
 
@@ -156,12 +176,13 @@ def _status(args: argparse.Namespace) -> int:
     if args.json:
         _print_json(rows)
         return 0
-    repository_width = max(10, *(len(str(row["repository"])) for row in rows))
+    repository_width = max([10, *(len(str(row["repository"])) for row in rows)])
     print(f"{'REPOSITORY':<{repository_width}}  {'LOCAL':<32}  {'DEFAULT':<18}  {'CI':<32}  LINT")
     for row in rows:
+        default = row["default_branch"] or "unknown"
         print(
             f"{row['repository']:<{repository_width}}  {row['local']:<32}  "
-                    f"{str(row['default_branch'] if row['default_branch'] is not None else 'unknown'):<18}  "
+            f"{default!s:<18}  "
                     f"{row['ci']:<32}  {row['lint']}"
         )
     return 0
@@ -194,7 +215,7 @@ def _rules(args: argparse.Namespace) -> int:
 
 def _discover(args: argparse.Namespace) -> int:
     catalog = _catalog()
-    owners = tuple(dict.fromkeys([catalog.personal_owner, *(repo.id.owner for repo in catalog.repositories)]))
+    owners = tuple(dict.fromkeys((catalog.personal_owner, "laputa-systems")))
     names = discover(owners)
     catalogued = {str(repo.id).casefold() for repo in catalog.repositories}
     for name in names:
@@ -310,6 +331,7 @@ def _fix(args: argparse.Namespace) -> int:
             print(f"{outcome.repository}: recover commits with {outcome.recovery_ref}", file=sys.stderr)
         if outcome.cleanup_error is not None:
             print(f"{outcome.repository}: {outcome.cleanup_error}", file=sys.stderr)
+            failed = True
     if args.push:
         committed = {
             outcome.repository
@@ -320,7 +342,7 @@ def _fix(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
-def _push_selected(catalog, repositories: tuple[Repository, ...]) -> int:
+def _push_selected(catalog: Catalog, repositories: tuple[Repository, ...]) -> int:
     if not repositories:
         return 0
     failed = False

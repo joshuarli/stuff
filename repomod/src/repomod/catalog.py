@@ -202,35 +202,6 @@ def find_repository(catalog: Catalog, value: str | None) -> Repository:
     return matches[0]
 
 
-def render_catalog(catalog: Catalog, repositories: list[Repository]) -> str:
-    lines = [
-        "version = 1",
-        "",
-        "[workspace]",
-        f'root = "{_toml_string(catalog.root_config)}"',
-        f'personal_owner = "{_toml_string(catalog.personal_owner)}"',
-    ]
-    grouped: dict[str, list[Repository]] = {}
-    for repo in sorted(repositories, key=lambda item: (item.id.owner.casefold(), item.id.name.casefold())):
-        grouped.setdefault(repo.id.owner, []).append(repo)
-    for owner, owner_repos in grouped.items():
-        lines.extend(["", f'[repos."{_toml_string(owner)}"]'])
-        for repo in owner_repos:
-            tags = ", ".join(f'"{_toml_string(tag)}"' for tag in repo.tags)
-            lines.append(f'{repo.id.name} = [{tags}]')
-    for repo in sorted(repositories, key=lambda item: str(item.id).casefold()):
-        if not repo.autofix:
-            lines.extend(
-                [
-                    "",
-                    f'[overrides."{_toml_string(str(repo.id))}"]',
-                    "autofix = false",
-                    f'reason = "{_toml_string(repo.autofix_reason or "")}"',
-                ]
-            )
-    return "\n".join(lines) + "\n"
-
-
 def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> bool:
     validate_identifier(owner, "owner")
     validate_identifier(name, "repository")

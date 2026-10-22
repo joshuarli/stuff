@@ -54,11 +54,23 @@ def _integrity_findings(root: Path, repository: Repository) -> list[Finding]:
     git_path = root / ".git"
     if not git_path.exists():
         findings.append(Finding(str(repository.id), "repo-integrity", ".git", "checkout has no .git metadata"))
-    for candidate in (root / "README.md", root / "Cargo.toml", root / "pyproject.toml", root / "package.json"):
-        if candidate.is_symlink() and candidate.parent == root:
-            findings.append(
-                Finding(str(repository.id), "repo-integrity", candidate.name, "top-level policy file is a symlink")
+    findings.extend(
+        [
+            Finding(
+                str(repository.id),
+                "repo-integrity",
+                candidate.name,
+                "top-level policy file is a symlink",
             )
+            for candidate in (
+                root / "README.md",
+                root / "Cargo.toml",
+                root / "pyproject.toml",
+                root / "package.json",
+            )
+            if candidate.is_symlink() and candidate.parent == root
+        ]
+    )
     return findings
 
 

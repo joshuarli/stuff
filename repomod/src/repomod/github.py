@@ -9,7 +9,7 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from repomod.types import (
     CheckResult,
@@ -81,7 +81,11 @@ def _graphql(query: str) -> dict[str, Any]:
         raise GitHubError("GitHub GraphQL returned an invalid response")
     errors = result.get("errors")
     if errors and not isinstance(result.get("data"), dict):
-        message = errors[0].get("message", "GraphQL request failed") if isinstance(errors, list) else "GraphQL request failed"
+        message = (
+            errors[0].get("message", "GraphQL request failed")
+            if isinstance(errors, list)
+            else "GraphQL request failed"
+        )
         raise GitHubError(str(message))
     return result
 
@@ -90,7 +94,7 @@ def _batches(items: tuple[Repository, ...], size: int = GRAPHQL_BATCH_SIZE) -> l
     return [items[offset : offset + size] for offset in range(0, len(items), size)]
 
 
-def _repository_query(repositories: tuple[Repository, ...], *, include_checks: bool) -> tuple[str, dict[str, str]]:
+def _repository_query(repositories: tuple[Repository, ...]) -> tuple[str, dict[str, str]]:
     aliases: dict[str, str] = {}
     fields: list[str] = []
     for index, repo in enumerate(repositories):
@@ -98,10 +102,7 @@ def _repository_query(repositories: tuple[Repository, ...], *, include_checks: b
         aliases[alias] = str(repo.id)
         owner = json.dumps(repo.id.owner)
         name = json.dumps(repo.id.name)
-        if include_checks:
-            target = "target { ... on Commit { oid statusCheckRollup { contexts(first: 100) { nodes { __typename ... on CheckRun { name app { name } status conclusion detailsUrl startedAt completedAt } ... on StatusContext { context state targetUrl createdAt } } pageInfo { hasNextPage endCursor } } } } }"
-        else:
-            target = "target { ... on Commit { oid } }"
+        target = "target { ... on Commit { oid } }"
         fields.append(
             f'{alias}: repository(owner: {owner}, name: {name}) '
             f"{{ isArchived defaultBranchRef {{ name {target} }} }}"
@@ -112,7 +113,7 @@ def _repository_query(repositories: tuple[Repository, ...], *, include_checks: b
 def remote_metadata(repositories: tuple[Repository, ...]) -> dict[str, RemoteRepository]:
     found: dict[str, RemoteRepository] = {}
     for batch in _batches(repositories):
-        query, aliases = _repository_query(batch, include_checks=False)
+        query, aliases = _repository_query(batch)
         try:
             data = _graphql(query).get("data", {})
         except GitHubError as error:
@@ -122,11 +123,19 @@ def remote_metadata(repositories: tuple[Repository, ...]) -> dict[str, RemoteRep
         for alias, name in aliases.items():
             repository = data.get(alias) if isinstance(data, dict) else None
             if not isinstance(repository, dict):
-                found[name] = RemoteRepository(name, None, None, None, "repository not found or not accessible")
+                found[name] = RemoteRepository(
+                    name, None, None, None, "repository not found or not accessible"
+                )
                 continue
             branch = repository.get("defaultBranchRef")
             if not isinstance(branch, dict):
-                found[name] = RemoteRepository(name, None, None, bool(repository.get("isArchived")), "GitHub did not report a default branch")
+                found[name] = RemoteRepository(
+                    name,
+                    None,
+                    None,
+                    bool(repository.get("isArchived")),
+                    "GitHub did not report a default branch",
+                )
                 continue
             target = branch.get("target")
             sha = target.get("oid") if isinstance(target, dict) else None
@@ -251,18 +260,20 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
     )
 
 
-def _status_check_pages(
-    pending: dict[str, tuple[RepoId, str, str]],
+def _status_check_page(
+    pending: dict[str, tuple[RepoId, str]],
 ) -> tuple[dict[str, tuple[tuple[CheckResult, ...], bool]], dict[str, str]]:
     collected: dict[str, list[CheckResult]] = {alias: [] for alias in pending}
-    cursors: dict[str, str | None] = {alias: None for alias in pending}
-    complete: dict[str, bool] = {alias: False for alias in pending}
+    cursors = cast(dict[str, str | None], dict.fromkeys(pending))
+    complete = dict.fromkeys(pending, False)
     errors: dict[str, str] = {}
     page = 0
-    while any(not complete[alias] and alias not in errors for alias in pending) and page < 20:
+    while any(
+        not complete[alias] and alias not in errors for alias in pending
+    ) and page < 20:
         fields: list[str] = []
         active: dict[str, str] = {}
-        for alias, (repo_id, sha, _) in pending.items():
+        for alias, (repo_id, sha) in pending.items():
             if complete[alias] or alias in errors:
                 continue
             owner = json.dumps(repo_id.owner)
@@ -273,7 +284,8 @@ def _status_check_pages(
                 f'{alias}: repository(owner: {owner}, name: {name}) '
                 f'{{ object(oid: "{sha}") {{ ... on Commit {{ statusCheckRollup '
                 f'{{ contexts(first: 100{after}) {{ nodes {{ __typename '
-                f'... on CheckRun {{ name app {{ name }} status conclusion detailsUrl startedAt completedAt }} '
+                f'... on CheckRun {{ name app {{ name }} status conclusion '
+                f'detailsUrl startedAt completedAt }} '
                 f'... on StatusContext {{ context state targetUrl createdAt }} }} '
                 f'pageInfo {{ hasNextPage endCursor }} }} }} }} }}'
             )
@@ -321,9 +333,39 @@ def _status_check_pages(
         if not complete[alias] and alias not in errors:
             errors[alias] = "GitHub check pagination exceeded 2,000 results"
     return (
-        {alias: (tuple(sorted(checks, key=lambda item: (item.name.casefold(), item.state, item.updated_at or ""))), complete[alias]) for alias, checks in collected.items()},
+        {
+            alias: (
+                tuple(
+                    sorted(
+                        checks,
+                        key=lambda item: (
+                            item.name.casefold(),
+                            item.state,
+                            item.updated_at or "",
+                        ),
+                    )
+                ),
+                complete[alias],
+            )
+            for alias, checks in collected.items()
+        },
         errors,
     )
+
+
+def _status_check_pages(
+    pending: dict[str, tuple[RepoId, str]],
+) -> tuple[dict[str, tuple[tuple[CheckResult, ...], bool]], dict[str, str]]:
+    items = tuple(pending.items())
+    results: dict[str, tuple[tuple[CheckResult, ...], bool]] = {}
+    errors: dict[str, str] = {}
+    for offset in range(0, len(items), GRAPHQL_BATCH_SIZE):
+        checks, failures = _status_check_page(
+            dict(items[offset : offset + GRAPHQL_BATCH_SIZE])
+        )
+        results.update(checks)
+        errors.update(failures)
+    return results, errors
 
 
 def _cache_path() -> Path:
@@ -397,7 +439,13 @@ def _result_from_cache(
         if isinstance(item, dict) and isinstance(item.get("name"), str) and isinstance(item.get("state"), str)
     )
     fetched = entry.get("fetched_at")
-    fetched_at = fetched if isinstance(fetched, (int, float)) and not isinstance(fetched, bool) and math.isfinite(fetched) else now
+    fetched_at = (
+        fetched
+        if isinstance(fetched, (int, float))
+        and not isinstance(fetched, bool)
+        and math.isfinite(fetched)
+        else now
+    )
     age = max(0, int(now - fetched_at))
     state = "stale" if stale else entry.get("state", "unknown")
     if state not in {"passed", "failed", "pending", "cancelled", "skipped", "neutral", "none", "unknown", "stale"}:
@@ -430,7 +478,7 @@ def ci_status(
         results: dict[str, CiResult] = {}
         for repo in repositories:
             name = str(repo.id)
-            cached = _cached_for(cache, name)
+            cached = None if refresh else _cached_for(cache, name)
             if cached:
                 results[name] = _result_from_cache(name, cached[1], current_time)
             else:
@@ -480,7 +528,7 @@ def ci_status(
         selected[name] = (repo, remote, cached)
 
     pending = {
-        f"r{index}": (repo.id, remote.sha or "", str(repo.id))
+        f"r{index}": (repo.id, remote.sha or "")
         for index, repo in enumerate(query)
         if (remote := remote_values.get(str(repo.id))) is not None and remote.sha is not None
     }
@@ -499,13 +547,35 @@ def ci_status(
             error = errors.get(alias)
             if page_data is None or error is not None:
                 if old_cache is not None:
-                    results[name] = _result_from_cache(name, old_cache, current_time, stale=True, error=error or "check rollup unavailable")
+                    results[name] = _result_from_cache(
+                        name,
+                        old_cache,
+                        current_time,
+                        stale=True,
+                        error=error or "check rollup unavailable",
+                    )
                 else:
-                    results[name] = CiResult(name, remote.default_branch, remote.sha, "unknown", (), error=error or "check rollup unavailable")
+                    results[name] = CiResult(
+                        name,
+                        remote.default_branch,
+                        remote.sha,
+                        "unknown",
+                        (),
+                        error=error or "check rollup unavailable",
+                    )
                 continue
             checks, complete = page_data
             state = _state_for_checks(checks, complete)
-            result = CiResult(name, remote.default_branch, remote.sha, state, checks, False, 0, None if state != "unknown" else "check rollup was incomplete")
+            result = CiResult(
+                name,
+                remote.default_branch,
+                remote.sha,
+                state,
+                checks,
+                False,
+                0,
+                None if state != "unknown" else "check rollup was incomplete",
+            )
             results[name] = result
             fetched[f"{name}@{remote.sha}"] = {
                 "default_branch": remote.default_branch,
@@ -562,11 +632,16 @@ def topics_apply(repo: Repository) -> tuple[bool, tuple[str, ...], tuple[str, ..
     return True, additions, removals
 
 
-def topics_many(repositories: tuple[Repository, ...], *, apply: bool, jobs: int = 4) -> list[tuple[str, bool, tuple[str, ...], tuple[str, ...], str | None]]:
+type TopicResult = tuple[str, bool, tuple[str, ...], tuple[str, ...], str | None]
+
+
+def topics_many(
+    repositories: tuple[Repository, ...], *, apply: bool, jobs: int = 4
+) -> list[TopicResult]:
     if jobs < 1:
         raise ValueError("jobs must be at least one")
 
-    def one(repo: Repository) -> tuple[str, bool, tuple[str, ...], tuple[str, ...], str | None]:
+    def one(repo: Repository) -> TopicResult:
         try:
             if apply:
                 changed, additions, removals = topics_apply(repo)
@@ -579,11 +654,10 @@ def topics_many(repositories: tuple[Repository, ...], *, apply: bool, jobs: int 
 
     if not repositories:
         return []
-    output: list[tuple[str, bool, tuple[str, ...], tuple[str, ...], str | None]] = []
+    output: list[TopicResult] = []
     with ThreadPoolExecutor(max_workers=min(jobs, 16, len(repositories)), thread_name_prefix="repomod-topics") as pool:
         futures = [pool.submit(one, repo) for repo in repositories]
-        for future in as_completed(futures):
-            output.append(future.result())
+        output = [future.result() for future in as_completed(futures)]
     return sorted(output, key=lambda item: item[0].casefold())
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import fcntl
+import os
 import re
 import shutil
 import subprocess
@@ -22,7 +22,7 @@ class GitError(RuntimeError):
 
 
 @contextmanager
-def repository_lock(root: Path, repo: RepoId) -> Generator[None, None, None]:
+def repository_lock(root: Path, repo: RepoId) -> Generator[None]:
     lock_root = root / ".repomod" / "locks"
     current = root
     for part in (".repomod", "locks", repo.owner):
@@ -78,7 +78,7 @@ def expected_origin(repo: RepoId, remote_url: str) -> bool:
     try:
         if value.startswith("git@github.com:"):
             path = value.removeprefix("git@github.com:")
-        elif value.startswith("ssh://") or value.startswith("https://"):
+        elif value.startswith(("ssh://", "https://")):
             parsed = urlsplit(value)
             if parsed.hostname is None or parsed.hostname.casefold() != "github.com":
                 return False
@@ -93,12 +93,13 @@ def expected_origin(repo: RepoId, remote_url: str) -> bool:
             return False
     except ValueError:
         return False
-    if path.endswith(".git"):
-        path = path[:-4]
-    if path.endswith("/"):
-        path = path[:-1]
+    path = path.removesuffix(".git").removesuffix("/")
     parts = path.split("/")
-    return len(parts) == 2 and all(parts) and "/".join(parts).casefold() == str(repo).casefold()
+    return (
+        len(parts) == 2
+        and all(parts)
+        and "/".join(parts).casefold() == str(repo).casefold()
+    )
 
 
 def origin_url(path: Path) -> str | None:

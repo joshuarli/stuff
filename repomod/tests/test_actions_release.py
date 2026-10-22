@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from repomod.rules import actions, release
-from repomod.types import Repository, RepoId
+from repomod.types import RepoId, Repository
 
 
 def repository(tags: tuple[str, ...] = ("tool",)) -> Repository:
@@ -53,9 +53,12 @@ def test_action_scanner_handles_quoted_refs_comments_blocks_and_local_actions(
     assert uses[0].value == "actions/checkout@v4"
     assert uses[0].comment == "# keep this"
     assert uses[1].quote == "'"
-    assert uses[2].action is None and uses[2].error is None
-    assert uses[3].action is None and uses[3].error is None
-    assert uses[4].action is None and uses[4].error is not None
+    assert uses[2].action is None
+    assert uses[2].error is None
+    assert uses[3].action is None
+    assert uses[3].error is None
+    assert uses[4].action is None
+    assert uses[4].error is not None
     assert uses[5].action == "actions/checkout"
     assert uses[5].value == "actions/checkout/subdir@v4"
 
@@ -79,7 +82,10 @@ def test_action_pin_and_version_fixes_preserve_format_and_are_idempotent(
 
     pin_plan = actions._fix(tmp_path, repo, version=False)
     changed_pin = pin_plan[".github/workflows/ci.yaml"]
-    assert "actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # important" in changed_pin
+    assert (
+        "actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # important"
+        in changed_pin
+    )
     version_plan = actions._fix(tmp_path, repo, version=True)
     changed_version = version_plan[".github/workflows/ci.yaml"]
     assert "'actions/setup-python@v5' # old version # v5.6.0" in changed_version
@@ -90,7 +96,9 @@ def test_action_pin_and_version_fixes_preserve_format_and_are_idempotent(
     assert actions._fix(tmp_path, repo, version=False) == {}
 
 
-def test_action_symlink_parent_and_dynamic_reference_are_reported(tmp_path: Path) -> None:
+def test_action_symlink_parent_and_dynamic_reference_are_reported(
+    tmp_path: Path,
+) -> None:
     outside = tmp_path / "outside"
     outside.mkdir()
     write_workflow(outside, "jobs: {}\n")
@@ -102,7 +110,9 @@ def test_action_symlink_parent_and_dynamic_reference_are_reported(tmp_path: Path
     assert problems == [(".github", "workflow parent directory is a symlink")]
 
 
-def test_actionlint_is_required_for_workflow_fixer_validation(tmp_path: Path, monkeypatch) -> None:
+def test_actionlint_is_required_for_workflow_fixer_validation(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setattr(actions.shutil, "which", lambda _: None)
 
     errors = actions._validate_workflows(
@@ -111,7 +121,10 @@ def test_actionlint_is_required_for_workflow_fixer_validation(tmp_path: Path, mo
         (".github/workflows/ci.yml",),
     )
 
-    assert errors == ["actionlint is required to validate modified GitHub workflows; install actionlint"]
+    assert errors == [
+        "actionlint is required to validate modified GitHub workflows; "
+        "install actionlint"
+    ]
 
 
 def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
@@ -120,8 +133,16 @@ def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
 ) -> None:
     pins_path = tmp_path / "actions.toml"
     write_pins(pins_path)
-    monkeypatch.setattr(actions, "action_tags", lambda _action, _prefix: ["v4.3.0", "v4.5.0", "v5.0.0"])
-    monkeypatch.setattr(actions, "resolve_tag", lambda _action, tag: "c" * 40 if tag == "v4.5.0" else "d" * 40)
+    monkeypatch.setattr(
+        actions,
+        "action_tags",
+        lambda _action, _prefix: ["v4.3.0", "v4.5.0", "v5.0.0"],
+    )
+    monkeypatch.setattr(
+        actions,
+        "resolve_tag",
+        lambda _action, tag: "c" * 40 if tag == "v4.5.0" else "d" * 40,
+    )
 
     assert actions.refresh_pins(pins_path)
     pins = actions.load_pins(pins_path)
@@ -137,7 +158,8 @@ def test_cargo_single_crate_metadata_fix_is_safe_and_multi_crate_versions_are_ex
     single.mkdir()
     (single / "README.md").write_text("# demo\n", encoding="utf-8")
     (single / "Cargo.toml").write_text(
-        '[package]\nname = "demo"\nversion = "1.2.3"\nlicense = "MIT"\nreadme = "README.md"\n',
+        '[package]\nname = "demo"\nversion = "1.2.3"\n'
+        'license = "MIT"\nreadme = "README.md"\n',
         encoding="utf-8",
     )
     repo = repository(("library", "crates-io"))
@@ -151,11 +173,15 @@ def test_cargo_single_crate_metadata_fix_is_safe_and_multi_crate_versions_are_ex
 
     workspace = tmp_path / "workspace"
     member = workspace / "crates" / "one"
+    independent_member = workspace / "crates" / "two"
     member.mkdir(parents=True)
+    independent_member.mkdir()
     (workspace / "README.md").write_text("# workspace\n", encoding="utf-8")
     (workspace / "Cargo.toml").write_text(
-        '[workspace]\nmembers = ["crates/*"]\n[workspace.package]\nversion = "2.0.0"\n'
-        'license = "MIT"\nrepository = "https://github.com/acme/demo"\nreadme = "README.md"\n',
+        '[workspace]\nmembers = ["crates/*"]\n'
+        '[workspace.package]\nversion = "2.0.0"\n'
+        'license = "MIT"\nrepository = "https://github.com/acme/demo"\n'
+        'readme = "README.md"\n',
         encoding="utf-8",
     )
     (member / "Cargo.toml").write_text(
@@ -163,7 +189,35 @@ def test_cargo_single_crate_metadata_fix_is_safe_and_multi_crate_versions_are_ex
         'repository.workspace = true\nreadme.workspace = true\n',
         encoding="utf-8",
     )
+    (independent_member / "Cargo.toml").write_text(
+        '[package]\nname = "two"\nversion = "0.6.0"\nlicense.workspace = true\n'
+        'repository.workspace = true\nreadme.workspace = true\n',
+        encoding="utf-8",
+    )
     assert release._cargo_findings(workspace, repo) == []
+
+
+def test_cargo_conflicting_origin_and_outside_readme_need_review(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "1.2.3"\nlicense = "MIT"\n'
+        'repository = "https://github.com/someone-else/demo"\n'
+        'readme = "../../outside.md"\n',
+        encoding="utf-8",
+    )
+
+    findings = release._cargo_findings(
+        tmp_path, repository(("library", "crates-io"))
+    )
+
+    assert any(
+        "points outside" in finding.message and not finding.fixable
+        for finding in findings
+    )
+    assert any(
+        "README" in finding.message and not finding.fixable for finding in findings
+    )
 
 
 def test_pypi_uv_metadata_fix_and_dynamic_version_diagnostic(tmp_path: Path) -> None:
@@ -178,15 +232,34 @@ def test_pypi_uv_metadata_fix_and_dynamic_version_diagnostic(tmp_path: Path) -> 
 
     findings = release._python_findings(tmp_path, repo)
     assert any(finding.fixable for finding in findings)
-    pyproject.write_text(release._python_fix(tmp_path, repo)["pyproject.toml"], encoding="utf-8")
-    assert not any(finding.fixable for finding in release._python_findings(tmp_path, repo))
+    pyproject.write_text(
+        release._python_fix(tmp_path, repo)["pyproject.toml"], encoding="utf-8"
+    )
+    assert not any(
+        finding.fixable for finding in release._python_findings(tmp_path, repo)
+    )
 
     pyproject.write_text(
         '[build-system]\nbuild-backend = "uv_build"\n\n'
         '[project]\nname = "demo"\ndynamic = ["version"]\n',
         encoding="utf-8",
     )
-    assert any("dynamic" in finding.message for finding in release._python_findings(tmp_path, repo))
+    assert any(
+        "dynamic" in finding.message
+        for finding in release._python_findings(tmp_path, repo)
+    )
+
+
+def test_pypi_does_not_require_a_release_workflow(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[build-system]\nbuild-backend = "uv_build"\n\n'
+        '[project]\nname = "demo"\nversion = "1.2.3"\n',
+        encoding="utf-8",
+    )
+
+    findings = release._python_findings(tmp_path, repository(("library", "pypi")))
+
+    assert not any("release workflow" in finding.message for finding in findings)
 
 
 def test_npm_lockfile_version_drift_is_detected_and_repaired(tmp_path: Path) -> None:
@@ -197,14 +270,55 @@ def test_npm_lockfile_version_drift_is_detected_and_repaired(tmp_path: Path) -> 
         "lockfileVersion": 3,
         "packages": {"": {"name": "demo", "version": "1.0.0"}},
     }
-    (tmp_path / "package.json").write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
+    (tmp_path / "package.json").write_text(
+        json.dumps(package, indent=2) + "\n", encoding="utf-8"
+    )
     lock_path = tmp_path / "package-lock.json"
     lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
 
     findings = release._npm_findings(tmp_path, repository(("tool", "npm")))
     assert any(finding.fixable for finding in findings)
-    lock_path.write_text(release._npm_fix(tmp_path, repository())["package-lock.json"], encoding="utf-8")
+    lock_path.write_text(
+        release._npm_fix(tmp_path, repository())["package-lock.json"],
+        encoding="utf-8",
+    )
     fixed = json.loads(lock_path.read_text(encoding="utf-8"))
     assert fixed["version"] == "2.0.0"
     assert fixed["packages"][""]["version"] == "2.0.0"
     assert release._npm_findings(tmp_path, repository(("tool", "npm"))) == []
+
+
+def test_npm_lockfile_without_root_version_is_not_claimed_fixable(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "package.json").write_text(
+        '{"name":"demo","version":"2.0.0"}\n', encoding="utf-8"
+    )
+    (tmp_path / "package-lock.json").write_text(
+        '{"name":"demo","version":"2.0.0","lockfileVersion":3,'
+        '"packages":{"":{"name":"demo"}}}\n',
+        encoding="utf-8",
+    )
+
+    findings = release._npm_findings(tmp_path, repository(("tool", "npm")))
+
+    assert any(
+        "root version" in finding.message and not finding.fixable
+        for finding in findings
+    )
+    assert release._npm_fix(tmp_path, repository(("tool", "npm"))) == {}
+
+
+def test_npm_v1_lockfile_version_drift_can_be_repaired(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text(
+        '{"name":"demo","version":"2.0.0"}\n', encoding="utf-8"
+    )
+    (tmp_path / "package-lock.json").write_text(
+        '{"name":"demo","version":"1.0.0","lockfileVersion":1,"dependencies":{}}\n',
+        encoding="utf-8",
+    )
+
+    plan = release._npm_fix(tmp_path, repository(("tool", "npm")))
+
+    assert "package-lock.json" in plan
+    assert json.loads(plan["package-lock.json"])["version"] == "2.0.0"

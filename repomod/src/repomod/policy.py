@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from repomod.catalog import Catalog, repository_path
 from repomod.github import GitHubError, topics_diff
 from repomod.rules import rules
@@ -30,7 +31,7 @@ def selected_rules(
         for rule in available
         if (not selected_ids or rule.id in selected_ids)
         and (not rule.required_tags or not selected_tags or bool(rule.required_tags & selected_tags))
-        and (not local_only or rule.id not in {"gha-syntax"})
+        and (not local_only or rule.id != "gha-syntax")
     ]
     if local_only:
         values = [rule for rule in values if rule.id != "topics"]
@@ -94,7 +95,13 @@ def lint_repositories(
                         raise GitHubError(error)
                 except (GitHubError, KeyError) as error:
                     findings.append(
-                        Finding(str(repository.id), "topics", None, f"cannot read GitHub topics: {error}", kind="operational")
+                        Finding(
+                            str(repository.id),
+                            "topics",
+                            None,
+                            f"cannot read GitHub topics: {error}",
+                            kind="operational",
+                        )
                     )
                     continue
                 if additions or removals:

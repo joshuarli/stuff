@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+
 from repomod.catalog import CatalogError, repository_path
 from repomod.git import (
     GitError,

@@ -11,7 +11,7 @@ def _topics_placeholder(root, repository: Repository) -> list[Finding]:
 
 
 def rules() -> tuple[Rule, ...]:
-    values = (
+    return (
         *action_rules(),
         *template_rules(),
         *release_rules(),
@@ -25,4 +25,3 @@ def rules() -> tuple[Rule, ...]:
             (),
         ),
     )
-    return values
