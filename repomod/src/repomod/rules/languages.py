@@ -31,39 +31,98 @@ def _read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return value, None
 
 
-def _rust_manifests(root: Path) -> tuple[list[tuple[Path, dict[str, Any]]], list[tuple[str, str]]]:
-    top = root / "Cargo.toml"
-    if top.is_symlink():
-        return [], [("Cargo.toml", "Cargo.toml is a symlink and is not followed")]
-    if not top.is_file():
-        return [], []
-    document, error = _read_toml(top)
-    if document is None:
-        return [], [("Cargo.toml", f"Cargo manifest is unreadable: {error}")]
-    manifests = [(top, document)]
-    workspace = document.get("workspace")
-    members = workspace.get("members", []) if isinstance(workspace, dict) else []
-    if not isinstance(members, list):
-        return manifests, [("Cargo.toml", "workspace.members must be an array")]
-    for pattern in members:
-        if not isinstance(pattern, str):
-            return manifests, [("Cargo.toml", "workspace.members contains a non-string path")]
-        for candidate_name in glob.glob(str(root / pattern / "Cargo.toml")):
-            candidate = Path(candidate_name)
-            try:
-                safe = candidate.resolve().is_relative_to(root.resolve())
-                if not candidate.is_file() or candidate.is_symlink() or not safe:
-                    continue
-            except OSError:
+def _cargo_candidates(root: Path) -> list[Path]:
+    patterns = (
+        "Cargo.toml",
+        "*/Cargo.toml",
+        "crates/*/Cargo.toml",
+        "*/crates/*/Cargo.toml",
+        "packages/*/Cargo.toml",
+        "rust/*/Cargo.toml",
+        "rust-cpython/overlay/Cargo.toml",
+        "rust-cpython/overlay/Modules/*/Cargo.toml",
+    )
+    found = set()
+    for pattern in patterns:
+        found.update(Path(path) for path in glob.glob(str(root / pattern)))
+    return sorted(found, key=lambda path: path.relative_to(root).as_posix().casefold())
+
+
+def _safe_manifest(root: Path, path: Path) -> bool:
+    if any(part in {".git", ".work", "node_modules", "vendor", "dist", ".venv", "target"}
+        for part in path.relative_to(root).parts
+    ):
+        return False
+    current = root
+    for part in path.relative_to(root).parts:
+        current = current / part
+        if current.is_symlink():
+            return False
+    try:
+        return path.is_file() and path.resolve().is_relative_to(root.resolve())
+    except OSError:
+        return False
+
+
+def _rust_manifests(
+    root: Path,
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any]]], list[tuple[str, str]]]:
+    candidates = _cargo_candidates(root)
+    documents: dict[Path, dict[str, Any]] = {}
+    problems: list[tuple[str, str]] = []
+    for path in candidates:
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            problems.append((relative, "Cargo manifest is a symlink and is not followed"))
+            continue
+        if not _safe_manifest(root, path):
+            continue
+        document, error = _read_toml(path)
+        if document is None:
+            problems.append((relative, f"Cargo manifest is unreadable: {error}"))
+            continue
+        documents[path] = document
+    workspaces = {
+        path: document
+        for path, document in documents.items()
+        if isinstance(document.get("workspace"), dict)
+    }
+    for workspace_path, document in tuple(workspaces.items()):
+        workspace = document["workspace"]
+        members = workspace.get("members", [])
+        if not isinstance(members, list):
+            problems.append(
+                (workspace_path.relative_to(root).as_posix(), "workspace.members must be an array")
+            )
+            continue
+        for pattern in members:
+            if not isinstance(pattern, str):
+                problems.append(
+                    (workspace_path.relative_to(root).as_posix(), "workspace.members contains a non-string path")
+                )
                 continue
-            member, member_error = _read_toml(candidate)
-            relative = candidate.relative_to(root).as_posix()
-            if member is None:
-                return manifests, [(relative, f"Cargo manifest is unreadable: {member_error}")]
-            manifests.append((candidate, member))
-    unique = dict(manifests)
-    ordered = sorted(unique.items(), key=lambda item: item[0].relative_to(root).as_posix().casefold())
-    return ordered, []
+            for member_name in glob.glob(str(workspace_path.parent / pattern / "Cargo.toml")):
+                member = Path(member_name)
+                if not _safe_manifest(root, member) or member in documents:
+                    continue
+                member_document, error = _read_toml(member)
+                if member_document is None:
+                    problems.append(
+                        (member.relative_to(root).as_posix(), f"Cargo manifest is unreadable: {error}")
+                    )
+                else:
+                    documents[member] = member_document
+    manifests = []
+    for path, document in documents.items():
+        parents = [
+            workspace_path
+            for workspace_path in workspaces
+            if path == workspace_path or workspace_path.parent in path.parents
+        ]
+        workspace_path = max(parents, key=lambda item: len(item.parts)) if parents else path
+        manifests.append((path, document, workspaces.get(workspace_path, document)))
+    manifests.sort(key=lambda item: item[0].relative_to(root).as_posix().casefold())
+    return manifests, sorted(problems)
 
 
 def _rust_toolchain(root: Path, repository: Repository) -> list[Finding]:
@@ -125,16 +184,15 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
         if "rust" in repository.tags:
             findings.append(_finding(repository, "rust-project", None, "rust language tag has no Cargo.toml"))
         return findings
-    top = manifests[0][1]
-    workspace = top.get("workspace")
-    workspace_package = workspace.get("package", {}) if isinstance(workspace, dict) else {}
-    workspace_package = workspace_package if isinstance(workspace_package, dict) else {}
-    workspace_lints = workspace.get("lints") if isinstance(workspace, dict) else None
     has_binary = False
-    for path, document in manifests:
+    for path, document, workspace_document in manifests:
         package = document.get("package")
         if not isinstance(package, dict):
             continue
+        workspace = workspace_document.get("workspace")
+        workspace_package = workspace.get("package", {}) if isinstance(workspace, dict) else {}
+        workspace_package = workspace_package if isinstance(workspace_package, dict) else {}
+        workspace_lints = workspace.get("lints") if isinstance(workspace, dict) else None
         relative = path.relative_to(root).as_posix()
         edition = package.get("edition")
         if edition == {"workspace": True}:
@@ -341,12 +399,37 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
+def _python_source_present(root: Path) -> bool:
+    patterns = (
+        "*.py",
+        "build/*.py",
+        "buildsys/*.py",
+        "src/*.py",
+        "python/*.py",
+        "scripts/*.py",
+        "tools/*.py",
+        ".github/scripts/*.py",
+        "packages/*/src/*.py",
+    )
+    for pattern in patterns:
+        for candidate_name in glob.glob(str(root / pattern)):
+            candidate = Path(candidate_name)
+            if candidate.is_symlink():
+                continue
+            try:
+                if candidate.is_file() and candidate.resolve().is_relative_to(root.resolve()):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
 def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     path = root / "pyproject.toml"
     if path.is_symlink():
         return [_finding(repository, "python-project", path.name, "pyproject.toml is a symlink and is not followed")]
     if not path.is_file():
-        if "python" in repository.tags:
+        if "python" in repository.tags and not _python_source_present(root):
             return [_finding(repository, "python-project", None, "python language tag has no pyproject.toml")]
         return []
     document, error = _read_toml(path)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from repomod.rules.languages import _javascript_findings, _python_findings, _rust_findings
@@ -96,3 +97,20 @@ def test_language_tags_without_required_manifests_get_actionable_findings(
     assert "rust language tag has no Cargo.toml" in rust[0].message
     assert "has no package.json" in javascript[0].message
     assert "python language tag has no pyproject.toml" in python[0].message
+
+
+def test_python_build_nested_first_party_sources_need_no_root_package_manifests(
+    tmp_path: Path,
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "languages" / "python_build"
+    root = tmp_path / "python-build"
+    shutil.copytree(fixture, root)
+    repository = Repository(
+        RepoId("joshuarli", "python-build"), ("build", "python", "rust")
+    )
+
+    assert not (root / "Cargo.toml").exists()
+    assert not (root / "pyproject.toml").exists()
+    assert (root / "buildsys" / "targets.py").is_file()
+    assert _rust_findings(root, repository) == []
+    assert _python_findings(root, repository) == []

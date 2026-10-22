@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -8,10 +9,20 @@ import pytest
 
 from repomod import github
 from repomod.catalog import load_catalog
-from repomod.cli import _discover, _fix, _status
+from repomod.cli import _discover, _fix, _lint, _status
 from repomod.fix import FixOutcome
 from repomod.policy import filter_repositories, lint_repositories, selected_rules
-from repomod.types import CheckResult, RemoteRepository, RepoId, Repository, TagPredicate
+from repomod.types import (
+    Catalog,
+    CheckResult,
+    CiResult,
+    Finding,
+    GitStatus,
+    RemoteRepository,
+    RepoId,
+    Repository,
+    TagPredicate,
+)
 
 
 def repo(name: str = "tool", tags: tuple[str, ...] = ("tool",)) -> Repository:
@@ -52,25 +63,71 @@ def test_latest_check_attempt_controls_the_aggregate_state() -> None:
     assert github._state_for_checks(
         (
             CheckResult(
-                "build", "success", None, "GitHub Actions", "2026-10-20T12:00:00Z"
+                "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
+            check_suite_id="suite-a", workflow_run_id="run-a", run_attempt=1,
             ),
             CheckResult(
-                "build", "failure", None, "GitHub Actions", "2026-10-21T12:00:00Z"
-            ),
-        ),
-        True,
-    ) == "failed"
-    assert github._state_for_checks(
-        (
-            CheckResult(
-                "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z"
-            ),
-            CheckResult(
-                "build", "success", None, "GitHub Actions", "2026-10-21T12:00:00Z"
+                "build", "success", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+            check_suite_id="suite-b", workflow_run_id="run-a", run_attempt=2,
             ),
         ),
         True,
     ) == "passed"
+    assert github._state_for_checks(
+        (
+            CheckResult(
+                "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
+                check_suite_id="suite-a", run_attempt=1,
+            ),
+            CheckResult(
+                "build", "cancelled", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+                check_suite_id="suite-a", run_attempt=2,
+            ),
+        ),
+        True,
+    ) == "cancelled"
+
+
+def test_distinct_workflows_with_same_job_name_keep_failure_visible() -> None:
+    checks = (
+        CheckResult(
+            "build", "failure", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+            check_suite_id="suite-a", run_attempt=1,
+        ),
+        CheckResult(
+            "build", "success", None, "GitHub Actions", "2026-10-21T12:01:00Z",
+            check_suite_id="suite-b", run_attempt=1,
+        ),
+    )
+
+    assert github._state_for_checks(checks, True) == "failed"
+
+
+def test_latest_attempt_pending_state_and_external_contexts_are_preserved() -> None:
+    checks = (
+        CheckResult(
+            "build", "failure", None, "GitHub Actions", None,
+            check_suite_id="suite-a", run_attempt=1,
+        ),
+        CheckResult(
+            "build", "in_progress", None, "GitHub Actions", None,
+            check_suite_id="suite-a", run_attempt=2,
+        ),
+        CheckResult("deploy preview", "success", None, "status:preview", "2026-10-21T12:00:00Z"),
+        CheckResult("security scan", "failure", None, "status:scanner", "2026-10-21T12:00:00Z"),
+    )
+
+    assert github._state_for_checks(checks, True) == "failed"
+    assert github._state_for_checks(checks[:2], True) == "pending"
+
+
+def test_same_named_external_statuses_from_distinct_creators_are_independent() -> None:
+    checks = (
+        CheckResult("deploy", "failure", None, "status:preview-a", "2026-10-21T12:00:00Z"),
+        CheckResult("deploy", "success", None, "status:preview-b", "2026-10-21T12:01:00Z"),
+    )
+
+    assert github._state_for_checks(checks, True) == "failed"
 
 
 def test_ci_check_contexts_are_paginated_and_include_external_statuses(
@@ -94,6 +151,12 @@ def test_ci_check_contexts_are_paginated_and_include_external_statuses(
                                             "startedAt": "2026-10-20T12:00:00Z",
                                             "completedAt": "2026-10-20T12:01:00Z",
                                             "app": {"name": "GitHub Actions"},
+                                            "checkSuite": {
+                                                "id": "suite-a",
+                                                "workflowRun": {
+                                                    "runAttempt": 2,
+                                                },
+                                            },
                                         }
                                     ],
                                     "pageInfo": {
@@ -119,6 +182,8 @@ def test_ci_check_contexts_are_paginated_and_include_external_statuses(
                                             "state": "FAILURE",
                                             "targetUrl": "https://github.invalid/new",
                                             "createdAt": "2026-10-21T12:00:00Z",
+                                                "updatedAt": "2026-10-21T12:00:01Z",
+                                                "creator": {"login": "deploy-app"},
                                         }
                                     ],
                                     "pageInfo": {
@@ -147,6 +212,7 @@ def test_ci_check_contexts_are_paginated_and_include_external_statuses(
     assert not errors
     assert len(queries) == 2
     assert 'after: "next"' in queries[1]
+    assert "workflowRun { id runAttempt }" in queries[0]
     assert len(checks["r0"][0]) == 2
     assert github._state_for_checks(*checks["r0"]) == "failed"
 
@@ -503,3 +569,134 @@ def test_fix_reports_cleanup_failure_as_nonzero(
 
     assert _fix(args) == 1
     assert "worktree remains" in capsys.readouterr().err
+
+
+def test_warning_only_lint_is_nonfatal_unless_strict(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    repository = repo()
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "~/repos", "acme", (repository,))
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    finding = Finding("acme/tool", "binary-release-tags", "release.yml", "review release", severity="warning")
+    monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [finding])
+    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+
+    assert _lint(args) == 0
+    assert "[warning]" in capsys.readouterr().out
+    args.strict = True
+    assert _lint(args) == 1
+
+
+def test_operational_lint_failure_has_distinct_exit_code(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repository = repo()
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "~/repos", "acme", (repository,))
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    finding = Finding("acme/tool", "repo-integrity", None, "checkout unavailable", kind="operational")
+    monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [finding])
+    args = argparse.Namespace(repo=[], tag=[], rule=[], json=True, strict=False)
+
+    assert _lint(args) == 2
+
+
+def test_status_failed_excludes_warning_only_lint_findings(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ntool = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
+    repository = catalog.repositories[0]
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cli.remote_metadata", lambda _: {})
+    monkeypatch.setattr(
+        "repomod.cli.ci_status",
+        lambda repos, remotes, **kwargs: {
+            str(repository.id): CiResult(str(repository.id), None, None, "passed", ())
+        },
+    )
+    monkeypatch.setattr(
+        "repomod.cli._checkout_status",
+        lambda *_: (
+            tmp_path / "tool",
+            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
+        ),
+    )
+    warning = Finding("acme/tool", "binary-release-tags", "release.yml", "review", severity="warning")
+    monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [warning])
+    args = argparse.Namespace(
+        repo=[], tag=[], offline=True, refresh=False, dirty=False,
+        failed=True, json=True, details=False,
+    )
+
+    assert _status(args) == 0
+    assert json.loads(capsys.readouterr().out) == []
+    args.failed = False
+    assert _status(args) == 0
+    row = json.loads(capsys.readouterr().out)[0]
+    assert row["lint"] == 1
+    assert row["lint_warnings"] == 1
+    assert row["lint_errors"] == 0
+
+
+def test_explicit_fix_skip_returns_nonzero(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    monkeypatch.setattr(
+        "repomod.cli.remote_metadata",
+        lambda _: {"acme/demo": RemoteRepository("acme/demo", "main", "a" * 40, False)},
+    )
+    monkeypatch.setattr(
+        "repomod.cli.fix_repository",
+        lambda *_: FixOutcome("acme/demo", skipped="checkout is dirty"),
+    )
+    args = argparse.Namespace(repo=["acme/demo"], tag=[], rule=[], workers=1, push=False)
+
+    assert _fix(args) == 1
+    assert "checkout is dirty" in capsys.readouterr().err
+
+
+def test_fix_reports_recovery_command_after_publication_failure(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
+    reference = "refs/repomod/recovery/acme/demo/1234"
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    monkeypatch.setattr(
+        "repomod.cli.remote_metadata",
+        lambda _: {"acme/demo": RemoteRepository("acme/demo", "main", "a" * 40, False)},
+    )
+    monkeypatch.setattr(
+        "repomod.cli.fix_repository",
+        lambda *_: FixOutcome(
+            "acme/demo",
+            commits=[("release", "b" * 40)],
+            failures=[("publish", "injected merge failure")],
+            recovery_ref=reference,
+        ),
+    )
+    args = argparse.Namespace(repo=["acme/demo"], tag=[], rule=[], workers=1, push=False)
+
+    assert _fix(args) == 1
+    output = capsys.readouterr().err
+    assert "git -C" in output
+    assert "merge --ff-only " + reference in output
+    assert "update-ref -d " + reference in output

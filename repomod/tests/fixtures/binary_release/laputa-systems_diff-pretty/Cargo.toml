@@ -1,0 +1,31 @@
+[package]
+name = "diff-pretty"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+description = "A pager and renderer for Git-style unified diffs"
+
+[workspace]
+members = ["scrl"]
+
+[dependencies]
+regex-lite = "0.1.9"
+scrl = { path = "scrl" }
+
+[dev-dependencies]
+rustybench = "0.1"
+
+[[bench]]
+name = "bench"
+harness = false
+
+[profile.dev]
+debug = 0
+strip = "debuginfo"
+
+[profile.release]
+lto = "fat"
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+strip = true

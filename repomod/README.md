@@ -30,6 +30,9 @@ root defaults to `~/repos`. Set `REPOMOD_ROOT` to use another absolute path:
 REPOMOD_ROOT="$HOME/work/repos" repomod list
 ```
 
+The catalog's `~/repos` setting is preserved for this checkout. Changing `REPOMOD_ROOT`
+changes path resolution for that command and does not move existing checkouts.
+
 Personal repositories owned by `joshuarli` use `$REPOMOD_ROOT/REPO`. Other owners use
 `$REPOMOD_ROOT/OWNER/REPO`. `repomod path OWNER/REPO` prints the canonical path. A bare
 repository name works only when it is unique. For example, `fd` needs its owner.
@@ -77,12 +80,15 @@ repomod rules
 repomod lint --tag tool
 repomod lint --repo laputa-systems/hi-lite
 repomod lint --rule gha-pin --json
+repomod lint --strict
 ```
 
 Lint reports structured findings with repository, rule, file, severity, and fixability.
-Policy violations exit with code 1. Operational failures, such as unavailable `actionlint` or
-GitHub access, exit with code 2. `status` runs only fast local checks. It does not build
-projects or contact GitHub to compare topics.
+Error violations exit with code 1. Warning-only findings exit successfully unless `--strict`
+is set. Operational failures, such as unavailable `actionlint` or GitHub access, exit with
+code 2. `status --failed` includes CI failures, policy errors, and operational findings;
+warning-only findings remain visible in status JSON without being failures. `status` runs only
+fast local checks. It does not build projects or contact GitHub to compare topics.
 
 ## Git and CI status
 
@@ -90,7 +96,9 @@ projects or contact GitHub to compare topics.
 branch, the exact current default-branch commit, CI, and quick local lint count. Local ahead
 and behind counts use the last-fetched tracking ref and are labelled as such.
 
-CI uses GitHub GraphQL `Commit.statusCheckRollup` for that exact remote commit. The result
+CI uses GitHub GraphQL `Commit.statusCheckRollup` for that exact remote commit. It retains
+distinct check-suite and workflow-run identities, considers only the newest attempt of a rerun,
+and keeps same-named checks from separate workflows independent. The result
 distinguishes passed, failed, pending, cancelled, skipped, neutral, no checks, unknown, and
 stale data. Failed checks are never hidden by an older successful run. `--details` prints
 failing check names and GitHub URLs.
@@ -126,12 +134,17 @@ only `tool`.
 a clean checkout on the current GitHub default branch. Each repository gets one disposable
 detached Git worktree at its starting commit. A fixer returns an explicit file plan, may change
 only its declared paths, runs validation, and must clear its fixable findings.
+An explicitly selected repository skipped because it is dirty, detached, or on another branch
+returns code 1.
 
 Each successful fixer that changes files gets its own local commit. A compliant rule creates
 no commit. A failed fixer loses only its uncommitted changes in the disposable worktree, and
 later independent fixers still run. Successful commits fast-forward the canonical checkout
 when it remains clean at its starting HEAD. If the checkout changes concurrently, repomod
 keeps the commits under a `refs/repomod/recovery/...` ref and reports that ref.
+If it cannot update a recovery ref or remove its disposable worktree, it retains and reports
+the worktree. Later fixes stop while an unresolved recovery ref or repomod worktree exists;
+inspect or recover it before retrying.
 
 ```sh
 repomod fix --tag tool

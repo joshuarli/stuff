@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,9 @@ def binary_workflow(command: str) -> str:
         "        target: [x86_64-unknown-linux-gnu, aarch64-apple-darwin]\n"
         "    steps:\n"
         f"      - run: {command}\n"
+        "      - uses: actions/upload-artifact@v7\n"
+        "        with:\n          path: demo\n"
+        "      - uses: actions/download-artifact@v7\n"
         "      - run: zip dist/demo.zip demo\n"
         "  release:\n"
         "    env:\n"
@@ -67,7 +71,6 @@ def test_standard_native_prerelease_requires_tool_only(
     tool = Repository(RepoId("laputa-systems", "srv"), ("tool",))
 
     assert _binary_release_findings(tmp_path, tool) == []
-
     multi_tagged = Repository(tool.id, ("tool", language))
     findings = _binary_release_findings(tmp_path, multi_tagged)
 
@@ -76,6 +79,77 @@ def test_standard_native_prerelease_requires_tool_only(
     assert "require exactly [tool]" in findings[0].message
     assert "remove " + language in findings[0].message
 
+
+@pytest.mark.parametrize(
+    ("fixture_name", "repository_id"),
+    [
+        ("laputa-systems_srv", "laputa-systems/srv"),
+        ("joshuarli_ish", "joshuarli/ish"),
+        ("laputa-systems_diff-pretty", "laputa-systems/diff-pretty"),
+        ("laputa-systems_xsh", "laputa-systems/xsh"),
+        ("joshuarli_mactop", "joshuarli/mactop"),
+        ("joshuarli_gh", "joshuarli/gh"),
+        ("laputa-systems_zzz", "laputa-systems/zzz"),
+    ],
+)
+def test_captured_fleet_workflows_require_exactly_the_tool_role(
+    tmp_path: Path, fixture_name: str, repository_id: str
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
+    root = tmp_path / fixture_name
+    shutil.copytree(fixture, root)
+    owner, name = repository_id.split("/")
+
+    findings = _binary_release_findings(
+        root, Repository(RepoId(owner, name), ("tool",))
+    )
+
+    assert findings == []
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "repository_id"),
+    [
+        ("laputa-systems_srv", "laputa-systems/srv"),
+        ("joshuarli_ish", "joshuarli/ish"),
+        ("laputa-systems_diff-pretty", "laputa-systems/diff-pretty"),
+        ("laputa-systems_xsh", "laputa-systems/xsh"),
+        ("joshuarli_mactop", "joshuarli/mactop"),
+        ("joshuarli_gh", "joshuarli/gh"),
+        ("laputa-systems_zzz", "laputa-systems/zzz"),
+    ],
+)
+@pytest.mark.parametrize("extra_tag", ["rust", "library"])
+def test_captured_binary_releases_reject_extra_roles_and_languages(
+    tmp_path: Path, fixture_name: str, repository_id: str, extra_tag: str
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
+    root = tmp_path / fixture_name
+    shutil.copytree(fixture, root)
+    owner, name = repository_id.split("/")
+
+    findings = _binary_release_findings(
+        root, Repository(RepoId(owner, name), ("tool", extra_tag))
+    )
+
+    assert len(findings) == 1
+    assert findings[0].severity == "error"
+    assert "require exactly [tool]" in findings[0].message
+
+
+def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(
+    tmp_path: Path,
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "binary_release" / "joshuarli_pytest-parallel"
+    root = tmp_path / "pytest-parallel"
+    shutil.copytree(fixture, root)
+
+    findings = _binary_release_findings(
+        root,
+        Repository(RepoId("joshuarli", "pytest-parallel"), ("library", "pypi", "python")),
+    )
+
+    assert findings == []
 
 def test_shared_library_prerelease_does_not_require_tool_only(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text(

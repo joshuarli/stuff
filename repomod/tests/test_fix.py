@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import pytest
 
+import repomod.fix as fix_module
 from repomod.catalog import Catalog, load_catalog
 from repomod.fix import FixOutcome, fix_repository, push_repository
 from repomod.git import head, status
@@ -224,6 +225,104 @@ def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
     assert any("gha-pin" in message for _, message in outcome.failures), outcome.failures
     assert not (path / workflow).exists()
     assert head(path) == base
+
+
+def test_merge_failure_keeps_exact_recovery_ref_and_blocks_repeated_fixes(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    original_run_git = fix_module.run_git
+
+    def fail_merge(arguments, cwd=None, **kwargs):
+        if arguments[:2] == ["merge", "--ff-only"]:
+            raise fix_module.GitError("injected fast-forward failure")
+        return original_run_git(arguments, cwd=cwd, **kwargs)
+
+    monkeypatch.setattr(fix_module, "run_git", fail_merge)
+    selected = (
+        file_rule("first", "first.txt", "first\n"),
+        file_rule("second", "second.txt", "second\n"),
+    )
+
+    outcome = fix_repository(catalog, repository, selected, "main")
+
+    assert len(outcome.commits) == 2
+    assert outcome.recovery_ref is not None
+    assert git("rev-parse", outcome.recovery_ref, cwd=path).stdout.strip() == outcome.commits[-1][1]
+    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == "first\n"
+    assert head(path) == base
+    assert not status(path, repository.id).dirty
+    assert any(rule == "publish" for rule, _ in outcome.failures)
+
+    repeated = fix_repository(catalog, repository, selected, "main")
+
+    assert repeated.commits == []
+    assert repeated.recovery_ref == outcome.recovery_ref
+    assert repeated.failures
+    assert head(path) == base
+
+
+def test_recovery_ref_update_failure_retains_worktree_for_next_run(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    original_run_git = fix_module.run_git
+
+    def fail_recovery_ref(arguments, cwd=None, **kwargs):
+        if arguments[:1] == ["update-ref"] and len(arguments) == 3:
+            raise RuntimeError("injected recovery ref failure")
+        return original_run_git(arguments, cwd=cwd, **kwargs)
+
+    monkeypatch.setattr(fix_module, "run_git", fail_recovery_ref)
+    selected = (file_rule("first", "first.txt", "first\n"),)
+
+    outcome = fix_repository(catalog, repository, selected, "main")
+
+    assert len(outcome.commits) == 1
+    assert outcome.recovery_ref is None
+    assert outcome.recovery_worktree is not None
+    assert Path(outcome.recovery_worktree).is_dir()
+    assert git("rev-parse", "HEAD", cwd=Path(outcome.recovery_worktree)).stdout.strip() == outcome.commits[0][1]
+    assert head(path) == base
+
+    repeated = fix_repository(catalog, repository, selected, "main")
+
+    assert repeated.commits == []
+    assert repeated.recovery_worktree == outcome.recovery_worktree
+    assert repeated.failures
+    assert Path(outcome.recovery_worktree).is_dir()
+
+
+def test_worktree_cleanup_failure_reports_path_without_losing_published_commit(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    original_run_git = fix_module.run_git
+
+    def fail_cleanup(arguments, cwd=None, **kwargs):
+        if arguments[:3] == ["worktree", "remove", "--force"]:
+            raise RuntimeError("injected worktree cleanup failure")
+        return original_run_git(arguments, cwd=cwd, **kwargs)
+
+    monkeypatch.setattr(fix_module, "run_git", fail_cleanup)
+
+    outcome = fix_repository(
+        catalog, repository, (file_rule("first", "first.txt", "first\n"),), "main"
+    )
+
+    assert len(outcome.commits) == 1
+    assert head(path) == outcome.commits[-1][1]
+    assert outcome.cleanup_error is not None
+    assert outcome.recovery_worktree is not None
+    assert Path(outcome.recovery_worktree).is_dir()
+    assert git("show", f"{outcome.commits[-1][1]}:first.txt", cwd=path).stdout == "first\n"
+    assert git("merge-base", "--is-ancestor", base, "HEAD", cwd=path).returncode == 0
 
 
 def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(

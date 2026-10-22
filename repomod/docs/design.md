@@ -37,7 +37,9 @@ GitHub metadata queries return the actual default branch and current HEAD SHA in
 Status queries `Commit.statusCheckRollup` for that exact SHA and follows every context page.
 Incomplete results are unknown. An empty rollup is no checks. A cache entry is valid only for
 its repository and SHA, and expires after five minutes. Offline status reads the cache without
-calling `gh`.
+calling `gh`. Check runs from different suites are never merged just because their names
+match. For reruns, the latest attempt of the same workflow run supersedes its earlier attempt;
+status contexts are deduplicated only by context and creator.
 
 ## Policy
 
@@ -58,9 +60,15 @@ ambiguous comments fail closed. Lint compares local files to this policy without
 remote tags. Workflow fixes fail unless `actionlint` validates the modified files.
 
 `binary-release-tags` recognizes the supported native artifact contract from dispatch trigger,
-native build, multi-platform artifacts, SHA-derived release tag, and source commit target.
-Wheel prereleases are excluded. Ambiguous prerelease workflows produce a warning rather than
-an inferred role.
+native build, uploaded and downloaded artifacts, SHA-derived release tag, and source commit
+target. The build recognizer covers direct Rust, Go, Swift, CMake, and Zig builds, `cargo dev
+target. The build recognizer covers direct builds for Rust, Go, Swift, CMake, and Zig, as well
+as `cargo dev dist`, Cargo `make release` targets, and Makefile-driven Zig packaging. A single
+platform is enough when the workflow establishes executable artifact distribution. Wheel
+prereleases are excluded. Ambiguous prerelease workflows produce a warning rather than an
+inferred role.
+Warnings exit successfully unless `lint --strict` is selected; operational findings remain
+exit code 2. `status --failed` excludes warning-only findings.
 
 `rust-project`, `javascript-project`, and `python-project` use manifests and lockfiles to run
 lightweight checks independently of role and publishing tags. Publishing rules remain gated by
@@ -88,8 +96,10 @@ only its disposable worktree to the previous successful commit, then later rules
 
 After all rules run, repomod fast-forwards the canonical checkout only if it remains clean,
 attached to the expected branch, and at its starting HEAD. If the checkout changed, repomod
-leaves it alone and retains the successful commits under a recovery ref. Worktrees are removed
-on normal completion. If removal fails, repomod reports the path.
+leaves it alone and retains the successful commits under a recovery ref. If publication or
+recovery-ref update fails, successful commits stay reachable from that ref or the retained
+worktree. An unresolved recovery ref or worktree blocks another fix run until inspected.
+Worktrees are removed on normal completion; cleanup failures report the retained path.
 
 Push checks the last-fetched upstream and then lets Git enforce a normal fast-forward update.
 A race with a remote update or branch protection leaves local commits untouched and reports

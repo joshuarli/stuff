@@ -133,6 +133,9 @@ class CheckResult:
     url: str | None
     source: str | None = None
     updated_at: str | None = None
+    check_suite_id: str | None = None
+    workflow_run_id: str | None = None
+    run_attempt: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

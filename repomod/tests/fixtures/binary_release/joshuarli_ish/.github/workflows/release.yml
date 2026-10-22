@@ -1,0 +1,116 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      actions: write
+      contents: read
+    defaults:
+      run:
+        shell: bash -euo pipefail {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-26
+            target: aarch64-apple-darwin
+            docker_platform: ''
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            docker_platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            docker_platform: linux/arm64
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        if: matrix.docker_platform != ''
+      - name: Build Linux release image
+        if: matrix.docker_platform != ''
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.docker_platform }}
+          load: true
+          tags: ish-builder:${{ matrix.target }}
+          cache-from: type=gha,scope=ish-${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=ish-${{ matrix.target }}
+      - name: Install Rust toolchain
+        if: matrix.docker_platform == ''
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: matrix.docker_platform == ''
+        with:
+          key: ${{ matrix.runner }}-${{ matrix.target }}
+      - name: Build macOS release
+        if: matrix.docker_platform == ''
+        run: make release TARGET="${{ matrix.target }}"
+      - name: Run macOS tests
+        if: matrix.docker_platform == ''
+        run: make test-ci TARGET="${{ matrix.target }}"
+      - name: Save macOS release
+        if: matrix.docker_platform == ''
+        run: cp "target/${{ matrix.target }}/release/ish" "ish-${{ matrix.target }}"
+      - name: Build and verify Linux releases
+        if: matrix.docker_platform != ''
+        run: |
+          docker run --rm --init \
+            --platform "${{ matrix.docker_platform }}" \
+            -e CI \
+            -v "$GITHUB_WORKSPACE:/ish" \
+            -w /ish \
+            ish-builder:${{ matrix.target }} \
+            sh -ec '
+              make release-dynamic TARGET=${{ matrix.target }}
+              make verify-release-dynamic TARGET=${{ matrix.target }}
+              make test-ci TARGET=${{ matrix.target }}
+              cp target/${{ matrix.target }}/release/ish ish-${{ matrix.target }}
+              make release TARGET=${{ matrix.target }}
+              make verify-release TARGET=${{ matrix.target }}
+              make test-ci TARGET=${{ matrix.target }}
+              cp target/${{ matrix.target }}/release/ish ish-${{ matrix.target }}-static
+            '
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ish-${{ matrix.target }}
+          path: ish-*
+
+  release:
+    name: Create pre-release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: ish-*
+          path: dist
+          merge-multiple: true
+      - name: Zip artifacts
+        run: for f in dist/*; do zip -9 --junk-paths "$f.zip" "$f"; done
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: release-${{ github.sha }}
+        run: gh release create "$RELEASE_TAG" dist/*.zip --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" --title "$RELEASE_TAG"

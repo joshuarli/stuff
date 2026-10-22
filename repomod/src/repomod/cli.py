@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -125,8 +126,17 @@ def _status(args: argparse.Namespace) -> int:
     ci = ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
     findings = lint_repositories(catalog, repositories, local_only=True)
     lint_counts: dict[str, int] = {}
+    lint_errors: dict[str, int] = {}
+    lint_warnings: dict[str, int] = {}
+    lint_operational: dict[str, int] = {}
     for finding in findings:
         lint_counts[finding.repository] = lint_counts.get(finding.repository, 0) + 1
+        if finding.kind == "operational":
+            lint_operational[finding.repository] = lint_operational.get(finding.repository, 0) + 1
+        elif finding.severity == "error":
+            lint_errors[finding.repository] = lint_errors.get(finding.repository, 0) + 1
+        elif finding.severity == "warning":
+            lint_warnings[finding.repository] = lint_warnings.get(finding.repository, 0) + 1
     rows: list[dict[str, object]] = []
     for repository in repositories:
         name = str(repository.id)
@@ -159,6 +169,9 @@ def _status(args: argparse.Namespace) -> int:
                 "ci_age_seconds": ci_result.age_seconds,
                 "ci_error": ci_result.error,
                 "lint": lint_counts.get(name, 0),
+                "lint_errors": lint_errors.get(name, 0),
+                "lint_warnings": lint_warnings.get(name, 0),
+                "lint_operational": lint_operational.get(name, 0),
             }
         )
         if args.details:
@@ -171,7 +184,9 @@ def _status(args: argparse.Namespace) -> int:
         rows = [
             row
             for row in rows
-            if row["ci_state"] == "failed" or row["lint"] != 0
+            if row["ci_state"] == "failed"
+            or row["lint_errors"] != 0
+            or row["lint_operational"] != 0
         ]
     if args.json:
         _print_json(rows)
@@ -197,12 +212,20 @@ def _lint(args: argparse.Namespace) -> int:
     else:
         for finding in findings:
             location = f"{finding.file}: " if finding.file is not None else ""
-            print(f"{finding.repository} [{finding.rule}] {location}{finding.message}")
+            print(
+                f"{finding.repository} [{finding.severity}] [{finding.rule}] "
+                f"{location}{finding.message}"
+            )
         if not findings:
             print("no policy findings")
     if any(finding.kind == "operational" for finding in findings):
         return 2
-    return 1 if findings else 0
+    has_errors = any(
+        finding.kind == "violation" and finding.severity == "error"
+        for finding in findings
+    )
+    has_warnings = any(finding.severity == "warning" for finding in findings)
+    return 1 if has_errors or (has_warnings and getattr(args, "strict", False)) else 0
 
 
 def _rules(args: argparse.Namespace) -> int:
@@ -326,9 +349,31 @@ def _fix(args: argparse.Namespace) -> int:
             print(f"{outcome.repository}: failed {rule}: {message}", file=sys.stderr)
             failed = True
         if outcome.skipped is not None:
-            print(f"{outcome.repository}: skipped: {outcome.skipped}")
+            print(f"{outcome.repository}: skipped: {outcome.skipped}", file=sys.stderr)
+            failed |= bool(args.repo)
         if outcome.recovery_ref is not None:
-            print(f"{outcome.repository}: recover commits with {outcome.recovery_ref}", file=sys.stderr)
+            repository = next(repo for repo in repositories if str(repo.id) == outcome.repository)
+            canonical = repository_path(catalog, repository)
+            print(
+                f"{outcome.repository}: recover with git -C {shlex.quote(str(canonical))} "
+                f"merge --ff-only {shlex.quote(outcome.recovery_ref)}",
+                file=sys.stderr,
+            )
+            print(
+                f"{outcome.repository}: after verifying recovery, remove the ref with git -C "
+                f"{shlex.quote(str(canonical))} update-ref -d {shlex.quote(outcome.recovery_ref)}",
+                file=sys.stderr,
+            )
+            failed = True
+        if outcome.recovery_worktree is not None:
+            print(
+                f"{outcome.repository}: preserved recovery worktree "
+                f"{shlex.quote(outcome.recovery_worktree)}; inspect with "
+                f"git -C {shlex.quote(outcome.recovery_worktree)} status and "
+                f"git -C {shlex.quote(outcome.recovery_worktree)} log --oneline",
+                file=sys.stderr,
+            )
+            failed = True
         if outcome.cleanup_error is not None:
             print(f"{outcome.repository}: {outcome.cleanup_error}", file=sys.stderr)
             failed = True
@@ -336,7 +381,9 @@ def _fix(args: argparse.Namespace) -> int:
         committed = {
             outcome.repository
             for outcome in outcomes
-            if outcome.commits and outcome.recovery_ref is None
+            if outcome.commits
+            and outcome.recovery_ref is None
+            and outcome.recovery_worktree is None
         }
         failed |= _push_selected(catalog, tuple(repo for repo in repositories if str(repo.id) in committed)) != 0
     return 1 if failed else 0
@@ -432,6 +479,7 @@ def _parser() -> argparse.ArgumentParser:
     _filters(lint)
     lint.add_argument("--rule", action="append", default=[])
     lint.add_argument("--json", action="store_true")
+    lint.add_argument("--strict", action="store_true", help="treat warnings as violations")
 
     commands.add_parser("rules", help="list policy rules")
 

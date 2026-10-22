@@ -183,35 +183,60 @@ def discover(owner_names: tuple[str, ...]) -> list[str]:
 def _state_for_checks(checks: tuple[CheckResult, ...], complete: bool) -> CiState:
     if not complete:
         return "unknown"
-    latest: dict[tuple[str, str], CheckResult] = {}
-    undated: list[CheckResult] = []
+    latest_statuses: dict[tuple[str, str], CheckResult] = {}
+    attempts: dict[str, int] = {}
     for check in checks:
-        if check.updated_at is None:
-            undated.append(check)
+        if check.check_suite_id is not None and check.run_attempt is not None:
+            identity = check.workflow_run_id or check.check_suite_id
+            attempts[identity] = max(
+                check.run_attempt, attempts.get(identity, 0)
+            )
+    independent_checks: list[CheckResult] = []
+    severity = {
+        "failure": 5,
+        "failed": 5,
+        "error": 5,
+        "timed_out": 5,
+        "action_required": 5,
+        "startup_failure": 5,
+        "queued": 4,
+        "requested": 4,
+        "waiting": 4,
+        "pending": 4,
+        "expected": 4,
+        "in_progress": 4,
+        "cancelled": 3,
+    }
+    for check in checks:
+        if check.source is not None and check.source.startswith("status:"):
+            if check.updated_at is None:
+                independent_checks.append(check)
+                continue
+            key = (check.name.casefold(), check.source.casefold())
+            previous = latest_statuses.get(key)
+            newer = (
+                previous is None
+                or previous.updated_at is None
+                or check.updated_at > previous.updated_at
+            )
+            same_time_failure = (
+                previous is not None
+                and check.updated_at == previous.updated_at
+                and severity.get(check.state.casefold(), 0)
+                > severity.get(previous.state.casefold(), 0)
+            )
+            if newer or same_time_failure:
+                latest_statuses[key] = check
             continue
-        key = (check.name.casefold(), (check.source or "").casefold())
-        previous = latest.get(key)
-        if previous is None or previous.updated_at is None or check.updated_at > previous.updated_at:
-            latest[key] = check
-        elif check.updated_at == previous.updated_at:
-            severity = {
-                "failure": 5,
-                "failed": 5,
-                "error": 5,
-                "timed_out": 5,
-                "action_required": 5,
-                "startup_failure": 5,
-                "queued": 4,
-                "requested": 4,
-                "waiting": 4,
-                "pending": 4,
-                "expected": 4,
-                "in_progress": 4,
-                "cancelled": 3,
-            }
-            if severity.get(check.state.casefold(), 0) > severity.get(previous.state.casefold(), 0):
-                latest[key] = check
-    current = (*latest.values(), *undated)
+        if (
+            check.check_suite_id is not None
+            and check.run_attempt is not None
+            and check.run_attempt
+            < attempts[check.workflow_run_id or check.check_suite_id]
+        ):
+            continue
+        independent_checks.append(check)
+    current = (*latest_statuses.values(), *independent_checks)
     if not current:
         return "none"
     states = {check.state.casefold() for check in current}
@@ -232,6 +257,9 @@ def _state_for_checks(checks: tuple[CheckResult, ...], complete: bool) -> CiStat
 
 def _check_result(node: dict[str, Any]) -> CheckResult | None:
     kind = node.get("__typename")
+    check_suite_id = None
+    workflow_run_id = None
+    run_attempt = None
     if kind == "CheckRun":
         name = node.get("name")
         status_value = node.get("status")
@@ -241,12 +269,19 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
         app = node.get("app")
         source = app.get("name") if isinstance(app, dict) else None
         updated_at = node.get("completedAt") or node.get("startedAt")
+        suite = node.get("checkSuite")
+        check_suite_id = suite.get("id") if isinstance(suite, dict) else None
+        workflow_run = suite.get("workflowRun") if isinstance(suite, dict) else None
+        workflow_run_id = workflow_run.get("id") if isinstance(workflow_run, dict) else None
+        run_attempt = workflow_run.get("runAttempt") if isinstance(workflow_run, dict) else None
     elif kind == "StatusContext":
         name = node.get("context")
         state = node.get("state")
         url = node.get("targetUrl")
-        source = "status"
-        updated_at = node.get("createdAt")
+        creator = node.get("creator")
+        creator_name = creator.get("login") if isinstance(creator, dict) else None
+        source = f"status:{creator_name}" if isinstance(creator_name, str) else "status:unknown"
+        updated_at = node.get("updatedAt") or node.get("createdAt")
     else:
         return None
     if not isinstance(name, str) or not isinstance(state, str):
@@ -257,6 +292,9 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
         url if isinstance(url, str) else None,
         source if isinstance(source, str) else None,
         updated_at if isinstance(updated_at, str) else None,
+        check_suite_id if isinstance(check_suite_id, str) else None,
+        workflow_run_id if isinstance(workflow_run_id, str) else None,
+        run_attempt if isinstance(run_attempt, int) else None,
     )
 
 
@@ -285,8 +323,10 @@ def _status_check_page(
                 f'{{ object(oid: "{sha}") {{ ... on Commit {{ statusCheckRollup '
                 f'{{ contexts(first: 100{after}) {{ nodes {{ __typename '
                 f'... on CheckRun {{ name app {{ name }} status conclusion '
-                f'detailsUrl startedAt completedAt }} '
-                f'... on StatusContext {{ context state targetUrl createdAt }} }} '
+                f'detailsUrl startedAt completedAt checkSuite {{ id workflowRun '
+                f'{{ id runAttempt }} }} }} '
+                f'... on StatusContext {{ context state targetUrl createdAt updatedAt '
+                f'creator {{ login }} }} }} '
                 f'pageInfo {{ hasNextPage endCursor }} }} }} }} }}'
             )
             active[alias] = alias

@@ -25,6 +25,9 @@ _PLATFORM_TARGET = re.compile(
     r"(?:aarch64|arm64|x86_64|x64|amd64|apple-darwin|linux|windows|macos)",
     re.IGNORECASE,
 )
+_MAKE_RELEASE = re.compile(r"\bmake\s+(?:[^\n]*\s)?release(?:-[a-z0-9_-]+)?\b", re.IGNORECASE)
+_ARTIFACT_UPLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/upload-artifact@")
+_ARTIFACT_DOWNLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/download-artifact@")
 
 
 def _read_workflows(root: Path) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
@@ -127,8 +130,62 @@ def _swift_has_executable(root: Path) -> bool:
     return re.search(r"\bexecutableTarget\s*\(|\.executable\s*\(", source) is not None
 
 
+def _make_release_build(root: Path, source: str) -> bool:
+    if not _MAKE_RELEASE.search(source):
+        return False
+    makefile = root / "Makefile"
+    if makefile.is_symlink() or not makefile.is_file():
+        return False
+    try:
+        lines = makefile.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return False
+    for index, line in enumerate(lines):
+        if re.match(r"^release(?:-[A-Za-z0-9_-]+)?\s*:", line) is None:
+            continue
+        recipe = []
+        for following in lines[index + 1 :]:
+            if following and not following[0].isspace():
+                break
+            recipe.append(following)
+        joined = "\n".join(recipe)
+        if re.search(r"\bcargo\b", joined) and re.search(r"\bbuild\b", joined):
+            return _cargo_has_executable(root)
+    return False
+
+
+def _make_zig_build(root: Path, source: str) -> bool:
+    if re.search(r"\bmake\b", source) is None:
+        return False
+    makefile = root / "Makefile"
+    if makefile.is_symlink() or not makefile.is_file():
+        return False
+    try:
+        lines = makefile.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return False
+    for index, line in enumerate(lines):
+        if re.match(r"^[A-Za-z0-9_.-]+\s*:[^\n]*\.zig\b", line) is None:
+            continue
+        recipe = []
+        for following in lines[index + 1 :]:
+            if following and not following[0].isspace():
+                break
+            recipe.append(following)
+        if any(re.search(r"\bzig\s+build-exe\b", command) for command in recipe):
+            source_name = line.split(":", 1)[1].strip().split()[0]
+            zig_source = root / source_name
+            if not zig_source.is_symlink() and zig_source.is_file():
+                try:
+                    return zig_source.resolve().is_relative_to(root.resolve())
+                except OSError:
+                    return False
+    return False
+
+
 def _native_build(root: Path, source: str) -> bool:
-    rust = re.search(r"\bcargo\s+build\b", source) and _cargo_has_executable(root)
+    cargo_command = re.search(r"\bcargo\s+(?:build|dev\s+dist)\b", source)
+    rust = (cargo_command is not None or _make_release_build(root, source)) and _cargo_has_executable(root)
     go = _go_has_executable(root, source)
     swift = re.search(r"\bswift\s+build\b", source) and _swift_has_executable(root)
     cmake_manifest = root / "CMakeLists.txt"
@@ -145,7 +202,8 @@ def _native_build(root: Path, source: str) -> bool:
         and not zig_manifest.is_symlink()
         and re.search(r"\baddExecutable\s*\(", zig_manifest.read_text(encoding="utf-8"))
     )
-    return any((rust, go, swift, cmake, zig))
+    zig_make = _make_zig_build(root, source)
+    return any((rust, go, swift, cmake, zig, zig_make))
 
 
 def _release_kind(root: Path, source: str) -> str:
@@ -155,25 +213,25 @@ def _release_kind(root: Path, source: str) -> str:
     if not has_prerelease:
         return "none"
     wheel_artifacts = ".whl" in source.casefold()
+    if wheel_artifacts:
+        return "package"
     if re.search(r"\bcargo\s+build\b[^\n]*\s--lib\b", source) and (root / "Cargo.toml").is_file():
         return "package"
     native_build = _native_build(root, source)
-    native_assets = _NATIVE_ASSET.search(source) is not None
+    artifact_transfer = _ARTIFACT_UPLOAD.search(source) and _ARTIFACT_DOWNLOAD.search(source)
+    native_assets = _NATIVE_ASSET.search(source) is not None or (
+        artifact_transfer and _PLATFORM_TARGET.search(source) is not None
+    )
     binary_contract = (
         _WORKFLOW_DISPATCH.search(source) is not None
         and native_build
         and native_assets
-        and "matrix:" in source
-        and len({match.casefold() for match in _PLATFORM_TARGET.findall(source)}) >= 2
+        and artifact_transfer
         and _SHA_RELEASE_TAG.search(source) is not None
         and _SOURCE_TARGET.search(source) is not None
     )
-    if binary_contract and wheel_artifacts:
-        return "ambiguous"
-    if binary_contract:
+    if binary_contract is True:
         return "binary"
-    if wheel_artifacts and not native_build:
-        return "package"
     return "ambiguous"
 
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from repomod.catalog import Catalog, CatalogError, repository_path
+from repomod.catalog import Catalog, repository_path
 from repomod.git import GitError, head, repository_lock, run_git, status
 from repomod.rules import rules as all_policy_rules
 from repomod.types import Finding, Repository, Rule
@@ -21,6 +21,7 @@ class FixOutcome:
     failures: list[tuple[str, str]] = field(default_factory=list)
     skipped: str | None = None
     recovery_ref: str | None = None
+    recovery_worktree: str | None = None
     cleanup_error: str | None = None
 
 
@@ -247,18 +248,18 @@ def _managed_worktree_root(catalog: Catalog) -> Path:
 
 def _prior_worktrees(root: Path, repository: Repository) -> tuple[str, ...]:
     candidate_root = root / ".repomod" / "worktrees" / repository.id.owner / repository.id.name
-    if candidate_root.is_symlink() or not candidate_root.is_dir():
+    current = root
+    for part in (".repomod", "worktrees", repository.id.owner, repository.id.name):
+        current = current / part
+        if current.is_symlink():
+            raise GitError(f"repomod worktree path contains a symlink: {current}")
+    if not candidate_root.is_dir():
         return ()
-    registered = run_git(["worktree", "list", "--porcelain"], cwd=root).stdout
-    managed = {
-        Path(line.removeprefix("worktree ")).resolve()
-        for line in registered.splitlines()
-        if line.startswith("worktree ")
-    }
     return tuple(
         str(child)
         for child in sorted(candidate_root.iterdir(), key=lambda path: path.name)
-        if re.fullmatch(r"[0-9a-f]{32}", child.name) and child.resolve() in managed
+        if re.fullmatch(r"[0-9a-f]{32}", child.name)
+        and (child.exists() or child.is_symlink())
     )
 
 
@@ -268,6 +269,94 @@ def _recovery_reference(repository: Repository, run_id: str) -> str:
     return f"refs/repomod/recovery/{owner}/{name}/{run_id}"
 
 
+def _recovery_references(root: Path, repository: Repository) -> tuple[str, ...]:
+    owner = repository.id.owner.replace(".", "-")
+    name = repository.id.name.replace(".", "-")
+    prefix = f"refs/repomod/recovery/{owner}/{name}/"
+    result = run_git(["for-each-ref", "--format=%(refname)", prefix], cwd=root)
+    return tuple(line for line in result.stdout.splitlines() if line)
+
+
+def _ref_points_to(root: Path, reference: str, expected: str) -> bool:
+    result = run_git(["rev-parse", "--verify", reference], cwd=root, check=False)
+    return result.returncode == 0 and result.stdout.strip() == expected
+
+
+def _retain_worktree(outcome: FixOutcome, worktree: Path, reason: str) -> None:
+    if outcome.recovery_worktree is None:
+        outcome.recovery_worktree = str(worktree)
+    if not any(rule == "recovery" for rule, _ in outcome.failures):
+        outcome.failures.append(("recovery", reason))
+
+
+def _remove_worktree(
+    canonical: Path,
+    worktree: Path,
+    outcome: FixOutcome,
+) -> None:
+    try:
+        result = run_git(
+            ["worktree", "remove", "--force", str(worktree)],
+            cwd=canonical,
+            check=False,
+        )
+        if result.returncode:
+            detail = result.stderr.strip() or "could not remove repomod worktree"
+            outcome.cleanup_error = "; ".join(filter(None, (outcome.cleanup_error, detail)))
+            if worktree.exists():
+                outcome.recovery_worktree = str(worktree)
+            return
+    except Exception as error:
+        outcome.cleanup_error = "; ".join(filter(None, (outcome.cleanup_error, str(error))))
+        if worktree.exists():
+            outcome.recovery_worktree = str(worktree)
+
+
+def _protect_worktree(
+    canonical: Path,
+    worktree: Path,
+    reference: str,
+    baseline: str,
+    outcome: FixOutcome,
+) -> bool:
+    try:
+        worktree_head = head(worktree)
+        canonical_head = head(canonical)
+    except Exception as error:
+        _retain_worktree(outcome, worktree, f"cannot verify interrupted worktree: {error}")
+        return False
+    if worktree_head in (baseline, canonical_head):
+        outcome.recovery_worktree = None
+        return True
+    try:
+        if _ref_points_to(canonical, reference, worktree_head):
+            outcome.recovery_ref = reference
+            outcome.recovery_worktree = None
+            return True
+    except Exception as error:
+        _retain_worktree(outcome, worktree, f"cannot verify recovery ref {reference}: {error}")
+        return False
+    try:
+        run_git(["update-ref", reference, worktree_head], cwd=canonical)
+    except Exception as error:
+        _retain_worktree(
+            outcome,
+            worktree,
+            f"could not protect {worktree_head} with {reference}: {error}",
+        )
+        return False
+    if not _ref_points_to(canonical, reference, worktree_head):
+        _retain_worktree(
+            outcome,
+            worktree,
+            f"recovery ref {reference} does not point to {worktree_head}",
+        )
+        return False
+    outcome.recovery_ref = reference
+    outcome.recovery_worktree = None
+    return True
+
+
 def fix_repository(
     catalog: Catalog,
     repository: Repository,
@@ -275,6 +364,10 @@ def fix_repository(
     default_branch: str,
 ) -> FixOutcome:
     outcome = FixOutcome(str(repository.id))
+    worktree: Path | None = None
+    canonical: Path | None = None
+    start_head: str | None = None
+    reference: str | None = None
     if not repository.autofix:
         outcome.skipped = repository.autofix_reason or "automatic fixes are disabled"
         return outcome
@@ -301,11 +394,20 @@ def fix_repository(
             if current.branch != default_branch:
                 outcome.skipped = f"checkout is on {current.branch}; default branch is {default_branch}"
                 return outcome
+            prior_refs = _recovery_references(canonical, repository)
+            prior_worktrees = _prior_worktrees(catalog.root, repository)
+            if prior_refs or prior_worktrees:
+                if prior_refs:
+                    outcome.recovery_ref = prior_refs[0]
+                if prior_worktrees:
+                    outcome.recovery_worktree = prior_worktrees[0]
+                evidence = ", ".join((*prior_refs, *prior_worktrees))
+                outcome.failures.append(
+                    ("recovery", f"unresolved repomod recovery state: {evidence}")
+                )
+                return outcome
             start_head = head(canonical)
             worktree_root = _managed_worktree_root(catalog)
-            previous = _prior_worktrees(canonical, repository)
-            if previous:
-                outcome.cleanup_error = "interrupted repomod worktrees: " + ", ".join(previous)
             run_id = uuid.uuid4().hex
             worktree_parent = worktree_root / repository.id.owner / repository.id.name
             current = catalog.root
@@ -323,40 +425,85 @@ def fix_repository(
                         continue
                     new_head, error = _fix_one_rule(worktree, repository, rule)
                     if new_head is not None:
-                        run_git(["update-ref", reference, new_head], cwd=canonical)
                         outcome.commits.append((rule.id, new_head))
+                        try:
+                            run_git(["update-ref", reference, new_head], cwd=canonical)
+                        except Exception as ref_error:
+                            outcome.failures.append(("recovery", f"could not update {reference}: {ref_error}"))
+                            break
                     if error is not None:
                         outcome.failures.append((rule.id, error))
                 if outcome.commits:
-                    current = status(canonical, repository.id)
-                    if (
-                        current.dirty
-                        or current.detached
-                        or current.branch != default_branch
-                        or not current.origin_valid
-                        or head(canonical) != start_head
-                    ):
-                        outcome.recovery_ref = reference
-                        outcome.failures.append(
-                            (
-                                "publish",
-                                "canonical checkout changed during fixing; "
-                                "commits preserved under recovery ref",
-                            )
+                    final_head = outcome.commits[-1][1]
+                    if not _ref_points_to(canonical, reference, final_head):
+                        _retain_worktree(
+                            outcome,
+                            worktree,
+                            f"recovery ref {reference} does not yet protect {final_head}",
                         )
                     else:
-                        final_head = outcome.commits[-1][1]
-                        run_git(["merge", "--ff-only", final_head], cwd=canonical)
-                        run_git(["update-ref", "-d", reference], cwd=canonical)
+                        current = status(canonical, repository.id)
+                        if (
+                            current.dirty
+                            or current.detached
+                            or current.branch != default_branch
+                            or not current.origin_valid
+                            or head(canonical) != start_head
+                        ):
+                            outcome.recovery_ref = reference
+                            outcome.failures.append(
+                                (
+                                    "publish",
+                                    "canonical checkout changed during fixing; "
+                                    "commits preserved under recovery ref",
+                                )
+                            )
+                        else:
+                            try:
+                                run_git(["merge", "--ff-only", final_head], cwd=canonical)
+                            except Exception as publish_error:
+                                if _ref_points_to(canonical, reference, final_head):
+                                    outcome.recovery_ref = reference
+                                else:
+                                    _retain_worktree(
+                                        outcome,
+                                        worktree,
+                                        f"could not verify recovery ref {reference}; commits remain in the worktree",
+                                    )
+                                outcome.failures.append(("publish", str(publish_error)))
+                            else:
+                                try:
+                                    run_git(["update-ref", "-d", reference], cwd=canonical)
+                                except Exception as ref_error:
+                                    if _ref_points_to(canonical, reference, final_head):
+                                        outcome.recovery_ref = reference
+                                    outcome.cleanup_error = (
+                                        f"could not remove recovery ref {reference}: {ref_error}"
+                                    )
             finally:
-                remove = run_git(["worktree", "remove", "--force", str(worktree)], cwd=canonical, check=False)
-                if remove.returncode:
-                    cleanup_error = remove.stderr.strip() or "could not remove repomod worktree"
-                    outcome.cleanup_error = "; ".join(filter(None, (outcome.cleanup_error, cleanup_error)))
-                    if outcome.commits and outcome.recovery_ref is None and head(canonical) != outcome.commits[-1][1]:
-                        outcome.recovery_ref = reference
+                if worktree.exists():
+                    if start_head is None or reference is None:
+                        _retain_worktree(
+                            outcome,
+                            worktree,
+                            "worktree recovery metadata is unavailable",
+                        )
+                    else:
+                        protected = _protect_worktree(
+                            canonical, worktree, reference, start_head, outcome
+                        )
+                        if protected:
+                            _remove_worktree(canonical, worktree, outcome)
             return outcome
-    except (CatalogError, GitError, OSError) as error:
+    except Exception as error:
+        if worktree is not None and worktree.exists():
+            outcome.recovery_worktree = str(worktree)
+        elif canonical is not None and reference is not None and outcome.commits:
+            try:
+                if _ref_points_to(canonical, reference, outcome.commits[-1][1]):
+                    outcome.recovery_ref = reference
+            except Exception as ref_error:
+                outcome.cleanup_error = f"could not verify recovery ref {reference}: {ref_error}"
         outcome.failures.append(("repository", str(error)))
         return outcome
 
