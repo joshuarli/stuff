@@ -52,9 +52,11 @@ message, severity, and fixability. A fixer returns explicit repository-relative 
 declares its allowed paths, validates the result, and uses a rule-specific Conventional Commit
 subject. Do not write placeholder README, license, or agent files.
 
-Global rules have no required tags. Semantic catalog tags activate reusable rules. Language
-and package manager detection comes from repository files. Publishing policy requires an
-explicit `crates-io`, `pypi`, or `npm` tag.
+Global rules have no required tags. Catalog tags represent role, substantial maintained
+source languages, and explicit publishing opt-ins. Source manifest detection still applies
+without a language tag. Publishing policy requires `crates-io`, `pypi`, or `npm`. The
+standard binary-prerelease workflow requires `tool` as the sole catalog tag; a wheel-only
+prerelease does not imply `tool`. See `docs/tagging.md` for the classification contract.
 
 ## GitHub operations
 

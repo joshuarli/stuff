@@ -10,7 +10,7 @@ from repomod import github
 from repomod.catalog import load_catalog
 from repomod.cli import _discover, _fix, _status
 from repomod.fix import FixOutcome
-from repomod.policy import lint_repositories, selected_rules
+from repomod.policy import filter_repositories, lint_repositories, selected_rules
 from repomod.types import CheckResult, RemoteRepository, RepoId, Repository
 
 
@@ -394,6 +394,16 @@ def test_tag_filters_are_union_and_global_rules_always_apply() -> None:
     assert "cargo-release" in crates_ids
     assert "npm-release" not in crates_ids
     assert "npm-release" in npm_ids
+
+
+def test_language_filter_selects_repositories_independently_of_roles() -> None:
+    app = repo("app", ("app", "rust", "typescript"))
+    library_tool = repo("shadowdriver", ("library", "tool", "rust", "typescript"))
+    tool = repo("srv", ("tool",))
+    candidates = (app, library_tool, tool)
+
+    assert filter_repositories(candidates, tags=("typescript",)) == (app, library_tool)
+    assert filter_repositories(candidates, tags=("tool",)) == (library_tool, tool)
 
 
 def test_autofix_override_does_not_remove_repository_from_lint(tmp_path: Path) -> None:

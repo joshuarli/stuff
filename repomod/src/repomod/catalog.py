@@ -13,8 +13,23 @@ from repomod.types import Catalog, RepoId, Repository
 PRIMARY_TAGS = frozenset(
     {"tool", "library", "app", "extension", "system", "build", "config", "data"}
 )
+LANGUAGE_TAGS = frozenset(
+    {
+        "c",
+        "cpp",
+        "go",
+        "javascript",
+        "python",
+        "rust",
+        "shell",
+        "swift",
+        "typescript",
+        "xsh",
+        "zig",
+    }
+)
 PUBLISHING_TAGS = frozenset({"crates-io", "pypi", "npm"})
-TAGS = PRIMARY_TAGS | PUBLISHING_TAGS
+TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]+\Z")
 
 
