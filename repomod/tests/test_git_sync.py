@@ -140,6 +140,32 @@ def test_sync_clones_missing_checkout_then_fast_forwards_safely(
     assert head(checkout) == expected
 
 
+def test_sync_noop_reads_checkout_status_once(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, seed, _ = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    sha = git("rev-parse", "HEAD", cwd=seed)
+    remote = RemoteRepository(str(repository.id), "main", sha, False)
+    sync_one(catalog, repository, remote)
+    original_status = sync_module.status
+    calls = 0
+
+    def count_status(path: Path, repo_id: RepoId):
+        nonlocal calls
+        calls += 1
+        return original_status(path, repo_id)
+
+    monkeypatch.setattr(sync_module, "status", count_status)
+
+    result = sync_one(catalog, repository, remote)
+
+    assert result.action == "current"
+    assert calls == 1
+
+
 def test_sync_fetches_but_does_not_change_dirty_checkout(
     tmp_path: Path,
     git_environment: None,

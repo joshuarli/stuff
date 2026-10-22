@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 38
 
-### RPMD-36 · P2 · Skip the duplicate status pass in online sync
-
-- **Area:** Performance
-- **Where:** `src/repomod/sync.py:37`, `src/repomod/sync.py:40`, `src/repomod/sync.py:65`, `src/repomod/sync.py:68`, `src/repomod/git.py:189`
-- **Problem:** For an existing checkout, `sync_one` runs `status` before the dry-run branch and repeats it under the repository lock. Even when GitHub's reported SHA already matches HEAD, the no-op path runs both status passes plus `git rev-parse HEAD`. Each status pass starts four Git subprocesses.
-- **Recommendation:** Keep the first status pass for dry-run. For online sync, resolve the checkout path first and collect status once under the lock.
-- **Fix with:** make-it-fast
-- **Effort:** S
-
 ### RPMD-37 · P3 · Detect language tags without matching source
 
 - **Area:** Policy

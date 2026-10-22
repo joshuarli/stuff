@@ -37,10 +37,13 @@ def sync_one(
     name = str(repo.id)
     try:
         path = repository_path(catalog, repo)
-        current = status(path, repo.id)
-    except (CatalogError, GitError, OSError) as error:
+    except (CatalogError, OSError) as error:
         return SyncResult(name, "failed", str(error), True)
     if dry_run:
+        try:
+            current = status(path, repo.id)
+        except (GitError, OSError) as error:
+            return SyncResult(name, "failed", str(error), True)
         if not current.present:
             return SyncResult(name, "planned", f"would clone into {path}")
         if not current.valid:
