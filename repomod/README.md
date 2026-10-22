@@ -71,9 +71,14 @@ of its internal implementation languages. A prerelease that publishes wheels, su
 `pytest-parallel`, is not that binary distribution contract. See [tagging semantics](docs/tagging.md)
 for detailed criteria and examples.
 
-Global rules check GitHub Action pins, approved version comments, workflow syntax, topics, and
-basic repository integrity. Primary tags activate semantic template checks. Publishing tags
-activate their ecosystem checks. `--tag` filters use union semantics.
+Global rules check GitHub Action pins, approved version comments, workflow syntax, repository-local
+Markdown links, literal workflow `make` targets, generated artifacts, topics, and basic repository
+integrity. Generated-artifact policy combines common ignore patterns with profiles detected from
+first-party source. It reports tracked build outputs and missing root `.gitignore` coverage; it does
+not edit `.gitignore`. Language checks warn when clear first-party source is missing its
+catalog language tag, except for recognized binary-prerelease repositories whose only tag is
+`tool`. Primary tags activate semantic template checks. Publishing tags activate their ecosystem
+checks. `--tag` filters use union semantics.
 
 ```sh
 repomod rules

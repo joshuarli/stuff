@@ -235,6 +235,11 @@ def _release_kind(root: Path, source: str) -> str:
     return "ambiguous"
 
 
+def has_binary_release_contract(root: Path) -> bool:
+    workflows, _ = _read_workflows(root)
+    return any(_release_kind(root, source) == "binary" for _, source in workflows)
+
+
 def _binary_release_findings(root: Path, repository: Repository) -> list[Finding]:
     workflows, problems = _read_workflows(root)
     findings = [

@@ -110,6 +110,40 @@ def origin_url(path: Path) -> str | None:
     return urls[0] if len(urls) == 1 else None
 
 
+def tracked_paths(path: Path, pathspecs: tuple[str, ...]) -> tuple[str, ...]:
+    result = run_git(["ls-files", "-z", "--", *pathspecs], cwd=path, check=False)
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip() or "git ls-files failed")
+    return tuple(sorted((value for value in result.stdout.split("\0") if value), key=str.casefold))
+
+
+def root_ignore_matches(path: Path, candidate: str) -> bool:
+    root_ignore = path / ".gitignore"
+    if root_ignore.is_symlink() or not root_ignore.is_file():
+        return False
+    result = run_git(
+        ["check-ignore", "--no-index", "--verbose", "-z", "--stdin"],
+        cwd=path,
+        input_text=candidate + "\0",
+        check=False,
+    )
+    if result.returncode == 1:
+        return False
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip() or "git check-ignore failed")
+    fields = result.stdout.split("\0")
+    if len(fields) < 4 or not fields[0]:
+        return False
+    source = Path(fields[0])
+    if not source.is_absolute():
+        source = path / source
+    try:
+        resolved = source.resolve(strict=True)
+        return resolved == root_ignore.resolve(strict=True)
+    except OSError:
+        return False
+
+
 def is_git_checkout(path: Path) -> bool:
     git_path = path / ".git"
     if not path.exists() or path.is_symlink() or git_path.is_symlink() or not git_path.exists():

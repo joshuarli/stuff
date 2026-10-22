@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from repomod.rules.actions import action_rules
 from repomod.rules.binary_release import binary_release_rules
+from repomod.rules.consistency import consistency_rules
 from repomod.rules.languages import language_rules
 from repomod.rules.release import release_rules
 from repomod.rules.template import template_rules
@@ -16,6 +17,7 @@ def rules() -> tuple[Rule, ...]:
     return (
         *action_rules(),
         *binary_release_rules(),
+        *consistency_rules(),
         *language_rules(),
         *template_rules(),
         *release_rules(),

@@ -6,6 +6,8 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from repomod.catalog import LANGUAGE_TAGS
+from repomod.rules.binary_release import has_binary_release_contract
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _LOCKFILES = {
@@ -17,6 +19,33 @@ _LOCKFILES = {
     "bun.lockb": "bun",
 }
 _IGNORED_PACKAGES = {".git", ".work", "node_modules", "vendor", "dist", "build", ".venv"}
+_IGNORED_SOURCE_PARTS = {
+    ".git",
+    ".venv",
+    ".work",
+    "__pycache__",
+    "dist",
+    "fixtures",
+    "generated",
+    "node_modules",
+    "target",
+    "tests",
+    "third_party",
+    "vendor",
+}
+_LANGUAGE_NAMES = {
+    "c": "C",
+    "cpp": "C++",
+    "go": "Go",
+    "javascript": "JavaScript",
+    "python": "Python",
+    "rust": "Rust",
+    "shell": "shell",
+    "swift": "Swift",
+    "typescript": "TypeScript",
+    "xsh": "XSH",
+    "zig": "Zig",
+}
 
 
 def _finding(repository: Repository, rule: str, path: str | None, message: str) -> Finding:
@@ -405,23 +434,179 @@ def _python_source_present(root: Path) -> bool:
         "build/*.py",
         "buildsys/*.py",
         "src/*.py",
+        "src/*/*.py",
+        "src/*/*/*.py",
         "python/*.py",
+        "python/*/*.py",
         "scripts/*.py",
+        "scripts/*/*.py",
         "tools/*.py",
+        "tools/*/*.py",
         ".github/scripts/*.py",
+        ".github/scripts/*/*.py",
         "packages/*/src/*.py",
+        "packages/*/src/*/*.py",
     )
     for pattern in patterns:
         for candidate_name in glob.glob(str(root / pattern)):
             candidate = Path(candidate_name)
-            if candidate.is_symlink():
+            if not _safe_manifest(root, candidate) or any(
+                part in _IGNORED_SOURCE_PARTS for part in candidate.relative_to(root).parts
+            ):
                 continue
             try:
-                if candidate.is_file() and candidate.resolve().is_relative_to(root.resolve()):
+                return candidate.is_file()
+            except OSError:
+                continue
+    return False
+
+
+def _source_present(root: Path, patterns: tuple[str, ...], suffixes: frozenset[str]) -> bool:
+    for pattern in patterns:
+        for candidate in root.glob(pattern):
+            if not candidate.is_file() or candidate.is_symlink() or candidate.suffix.casefold() not in suffixes:
+                continue
+            if candidate.suffix.casefold() == ".go" and candidate.name.endswith("_test.go"):
+                continue
+            relative = candidate.relative_to(root)
+            if any(part in _IGNORED_SOURCE_PARTS for part in relative.parts):
+                continue
+            current = root
+            safe = True
+            for part in relative.parts:
+                current = current / part
+                if current.is_symlink():
+                    safe = False
+                    break
+            if not safe:
+                continue
+            try:
+                if candidate.resolve().is_relative_to(root.resolve()):
                     return True
             except OSError:
                 continue
     return False
+
+
+def _shallow_source_patterns(directories: tuple[str, ...], suffixes: tuple[str, ...]) -> tuple[str, ...]:
+    patterns = [f"*.{suffix}" for suffix in suffixes]
+    for directory in directories:
+        patterns.extend(
+            f"{directory}/{'/'.join('*' for _ in range(depth))}.{suffix}"
+            for depth in range(1, 4)
+            for suffix in suffixes
+        )
+    return tuple(patterns)
+
+
+def _rust_source_present(root: Path) -> bool:
+    manifests, _ = _rust_manifests(root)
+    for path, _, _ in manifests:
+        package = path.parent.relative_to(root).as_posix()
+        prefix = "" if package == "." else package + "/"
+        patterns = tuple(
+            prefix + pattern
+            for pattern in (
+                "src/*.rs",
+                "src/*/*.rs",
+                "src/bin/*.rs",
+                "src/bin/*/*.rs",
+            )
+        )
+        if _source_present(root, patterns, frozenset({".rs"})):
+            return True
+    return False
+
+
+def _language_sources(root: Path) -> set[str]:
+    observed = set()
+    javascript_packages = _js_manifests(root)
+    if javascript_packages:
+        javascript_patterns = _shallow_source_patterns(
+            ("src", "web", "app", "packages", "extensions"),
+            ("js", "jsx", "mjs", "cjs"),
+        )
+        typescript_patterns = _shallow_source_patterns(
+            ("src", "web", "app", "packages", "extensions"),
+            ("ts", "tsx", "mts", "cts"),
+        )
+        if _source_present(root, javascript_patterns, frozenset({".js", ".jsx", ".mjs", ".cjs"})):
+            observed.add("javascript")
+        if _source_present(root, typescript_patterns, frozenset({".ts", ".tsx", ".mts", ".cts"})):
+            observed.add("typescript")
+    if _rust_source_present(root):
+        observed.add("rust")
+    if _python_source_present(root):
+        observed.add("python")
+    go_manifest = any(
+        _safe_manifest(root, path)
+        for pattern in ("go.mod", "*/go.mod", "cmd/*/go.mod", "internal/*/go.mod")
+        for path in root.glob(pattern)
+    )
+    go_sources = _source_present(
+        root,
+        ("*.go", "cmd/*/*.go", "cmd/*/*/*.go", "internal/*/*.go", "pkg/*/*.go"),
+        frozenset({".go"}),
+    )
+    if go_manifest and go_sources:
+        observed.add("go")
+    swift_manifest = root / "Package.swift"
+    if (
+        swift_manifest.is_file()
+        and not swift_manifest.is_symlink()
+        and _source_present(root, ("Sources/*/*.swift", "Sources/*/*/*.swift"), frozenset({".swift"}))
+    ):
+        observed.add("swift")
+    native_manifest = any(
+        (root / name).is_file() and not (root / name).is_symlink()
+        for name in ("CMakeLists.txt", "Makefile", "meson.build")
+    )
+    c_sources = ("src/*.c", "src/*/*.c", "lib/*.c", "*.c")
+    cpp_sources = (
+        "src/*.cc", "src/*.cpp", "src/*.cxx", "src/*/*.cc", "src/*/*.cpp", "src/*/*.cxx",
+        "include/*.hh", "include/*.hpp", "include/*.hxx", "lib/*.cc", "lib/*.cpp",
+        "*.cc", "*.cpp", "*.cxx",
+    )
+    if native_manifest and _source_present(root, c_sources, frozenset({".c"})):
+        observed.add("c")
+    if native_manifest and _source_present(
+        root,
+        cpp_sources,
+        frozenset({".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"}),
+    ):
+        observed.add("cpp")
+    zig_manifest = root / "build.zig"
+    if (
+        zig_manifest.is_file()
+        and not zig_manifest.is_symlink()
+        and _source_present(root, ("*.zig", "src/*.zig", "src/*/*.zig"), frozenset({".zig"}))
+    ):
+        observed.add("zig")
+    if _source_present(
+        root,
+        ("*.sh", "*.bash", "scripts/*.sh", "scripts/*/*.sh", "bin/*.sh", "src/*.sh"),
+        frozenset({".bash", ".sh"}),
+    ):
+        observed.add("shell")
+    if _source_present(root, ("*.xsh", "src/*.xsh", "src/*/*.xsh", "scripts/*.xsh", "bin/*.xsh"), frozenset({".xsh"})):
+        observed.add("xsh")
+    return observed
+
+
+def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
+    if set(repository.tags) == {"tool"} and has_binary_release_contract(root):
+        return []
+    missing = _language_sources(root) - set(repository.tags)
+    return [
+        Finding(
+            str(repository.id),
+            "language-tags",
+            None,
+            f"{_LANGUAGE_NAMES[language]} source is present but the catalog has no {language} tag",
+            severity="warning",
+        )
+        for language in sorted(missing & LANGUAGE_TAGS)
+    ]
 
 
 def _python_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -461,6 +646,15 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
 
 def language_rules() -> tuple[Rule, ...]:
     return (
+        Rule(
+            "language-tags",
+            "Warn when clear first-party source languages are missing catalog tags",
+            TagPredicate(),
+            _language_tag_findings,
+            None,
+            None,
+            (),
+        ),
         Rule(
             "rust-project",
             "Check Cargo manifests, workspace inheritance, toolchain config, and binary lockfiles",

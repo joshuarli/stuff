@@ -111,3 +111,25 @@ Add an offline fixture with a real policy violation and its expected finding. If
 safe, assert the repaired file, the cleared postcondition, and the one rule-specific commit.
 Run the focused test, then `make test`, `uv run ruff check src tests`, and `uv run ty check`
 when the change affects shared rule behavior.
+
+## Repository consistency checks
+
+`markdown-links` checks simple repository-local links in root README files and Markdown under
+`docs/`. It skips external URLs, anchors, and links inside code. It reports missing targets and
+paths that resolve outside the checkout.
+
+`language-tags` warns when a supported first-party source layout clearly contains Rust,
+TypeScript, JavaScript, Python, Go, Swift, C, C++, Zig, shell, or XSH source without the matching
+catalog tag. It ignores common generated, vendored, and test directories. A recognized binary
+prerelease repository tagged only `tool` is exempt because its classification intentionally omits
+language tags.
+
+`workflow-make-targets` checks literal `make target` commands in workflows against explicit
+targets in the root `Makefile`. It skips workflows with `working-directory`, included or
+conditional Makefiles, dynamic target names, and `make -C` or `make -f` invocations.
+
+`generated-artifacts` composes a common ignore profile with profiles detected from first-party
+source. It checks the root `.gitignore` for effective coverage, independent of user-global Git
+excludes, and reports tracked cache or build outputs. It does not rewrite ignore files. It
+does not treat generic `build/` or `dist/` paths as generated because projects may use them as
+source or distribution content.

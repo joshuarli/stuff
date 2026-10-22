@@ -1,5 +1,12 @@
 repos/
 __pycache__
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.venv/
 .coverage
 src/repomod.egg-info/
 
