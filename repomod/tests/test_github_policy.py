@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from threading import Barrier, Lock
 
 import pytest
 
@@ -253,6 +254,151 @@ def test_ci_check_queries_are_batched_for_a_large_fleet(monkeypatch) -> None:
     assert all(len(re.findall(r"r\d+: repository", query)) <= 20 for query in queries)
 
 
+def test_ci_check_batches_run_concurrently(monkeypatch) -> None:
+    barrier = Barrier(4, timeout=2)
+    lock = Lock()
+    active = 0
+    maximum_active = 0
+    calls = 0
+
+    def graphql(query: str):
+        nonlocal active, maximum_active, calls
+        with lock:
+            calls += 1
+            call_number = calls
+            active += 1
+            maximum_active = max(maximum_active, active)
+        try:
+            if call_number <= 4:
+                barrier.wait()
+            aliases = re.findall(r"(r\d+): repository", query)
+            return {
+                "data": {
+                    alias: {
+                        "object": {
+                            "statusCheckRollup": {
+                                "contexts": {
+                                    "nodes": [],
+                                    "pageInfo": {"hasNextPage": False},
+                                }
+                            }
+                        }
+                    }
+                    for alias in aliases
+                }
+            }
+        finally:
+            with lock:
+                active -= 1
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+    pending = {
+        f"r{index}": (RepoId("acme", f"tool-{index}"), "a" * 40)
+        for index in range(125)
+    }
+
+    checks, errors = github._status_check_pages(pending)
+
+    assert not errors
+    assert set(checks) == set(pending)
+    assert calls == 7
+    assert maximum_active == 4
+
+
+def test_action_tag_queries_batch_and_follow_each_cursor(monkeypatch) -> None:
+    queries: list[str] = []
+
+    def graphql(query: str):
+        queries.append(query)
+        aliases = re.findall(r"(a\d+): repository", query)
+        page = len(queries)
+        return {
+            "data": {
+                alias: {
+                    "refs": {
+                        "nodes": [{"name": f"v4.{page}.0"}],
+                        "pageInfo": {
+                            "hasNextPage": page == 1,
+                            "endCursor": f"cursor-{alias}" if page == 1 else None,
+                        },
+                    }
+                }
+                for alias in aliases
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+    actions = ("actions/checkout", "actions/setup-python")
+
+    tags = github.action_tags_many(actions, "v")
+
+    assert tags == {
+        "actions/checkout": ("v4.1.0", "v4.2.0"),
+        "actions/setup-python": ("v4.1.0", "v4.2.0"),
+    }
+    assert len(queries) == 2
+    assert all("refs(first: 100" in query for query in queries)
+    assert 'after: "cursor-a0"' in queries[1]
+    assert 'after: "cursor-a1"' in queries[1]
+
+
+def test_resolve_action_tags_batches_and_peels_annotated_tags(monkeypatch) -> None:
+    queries: list[str] = []
+    commit_sha = "c" * 40
+
+    def graphql(query: str):
+        queries.append(query)
+        return {
+            "data": {
+                "a0": {
+                    "ref": {
+                        "target": {
+                            "__typename": "Tag",
+                            "oid": "1" * 40,
+                            "target": {
+                                "__typename": "Tag",
+                                "oid": "2" * 40,
+                                "target": {"__typename": "Commit", "oid": commit_sha},
+                            },
+                        }
+                    }
+                },
+                "a1": {
+                    "ref": {"target": {"__typename": "Commit", "oid": "d" * 40}}
+                },
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    resolved = github.resolve_tags_many(
+        {"actions/checkout": "v4.5.0", "actions/setup-python": "v6.3.0"}
+    )
+
+    assert resolved == {"actions/checkout": commit_sha, "actions/setup-python": "d" * 40}
+    assert len(queries) == 1
+    assert 'ref(qualifiedName: "refs/tags/v4.5.0")' in queries[0]
+    assert '... on Tag { target { __typename oid' in queries[0]
+
+
+def test_action_tag_batch_reports_partial_graphql_errors(monkeypatch) -> None:
+    def graphql(_query: str):
+        return {
+            "data": {"a0": {"refs": {"nodes": [], "pageInfo": {"hasNextPage": False}}}},
+            "errors": [
+                {
+                    "message": "repository access denied",
+                    "path": ["a1", "repository", "refs"],
+                }
+            ],
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    with pytest.raises(github.GitHubError, match=r"actions/setup-python.*access denied"):
+        github.action_tags_many(("actions/checkout", "actions/setup-python"), "v")
+
+
 def test_offline_ci_uses_cache_without_any_network_calls(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -404,6 +550,40 @@ def test_remote_metadata_uses_the_repository_default_branch_and_exact_sha(
     assert result.archived is False
 
 
+def test_remote_metadata_batches_run_concurrently(monkeypatch) -> None:
+    barrier = Barrier(3, timeout=2)
+
+    def graphql(query: str):
+        barrier.wait()
+        aliases = re.findall(r"(r\d+): repository", query)
+        return {
+            "data": {
+                alias: {
+                    "isArchived": False,
+                    "defaultBranchRef": {
+                        "name": "main",
+                        "target": {"oid": "a" * 40},
+                    },
+                }
+                for alias in aliases
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+    repositories = tuple(
+        Repository(RepoId("acme", f"tool-{index}"), ()) for index in range(45)
+    )
+    progress: list[tuple[int, int]] = []
+
+    result = github.remote_metadata(
+        repositories,
+        on_batch_complete=lambda completed, total: progress.append((completed, total)),
+    )
+
+    assert len(result) == 45
+    assert sorted(progress) == [(1, 3), (2, 3), (3, 3)]
+
+
 def test_topics_apply_replaces_the_full_set_and_skips_noop(monkeypatch) -> None:
     repo_value = Repository(RepoId("laputa-systems", "srv"), ("tool",))
     calls: list[tuple[list[str], str | None]] = []
@@ -538,6 +718,28 @@ def test_discover_queries_both_configured_fleet_owners(monkeypatch, capsys) -> N
     assert _discover(argparse.Namespace()) == 0
     assert owners == ["joshuarli", "laputa-systems"]
     assert "no uncatalogued" in capsys.readouterr().out
+
+
+def test_discover_fetches_owner_lists_concurrently(monkeypatch) -> None:
+    barrier = Barrier(2, timeout=2)
+
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        if len(arguments) == 1:
+            owner = arguments[0].removeprefix("users/")
+            barrier.wait()
+            return {"type": "Organization" if owner == "org" else "User"}
+        owner = arguments[-1].split("/")[1].split("?")[0]
+        return [[
+            {
+                "full_name": f"{owner}/repo",
+                "archived": False,
+                "owner": {"login": owner},
+            }
+        ]]
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+
+    assert github.discover(("person", "org")) == ["org/repo", "person/repo"]
 
 
 def test_fix_reports_cleanup_failure_as_nonzero(

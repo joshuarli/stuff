@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from repomod import github
 from repomod.rules import actions, release
 from repomod.rules.workflows import workflow_files
 from repomod.types import RepoId, Repository
@@ -298,17 +299,23 @@ def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
     write_pins(pins_path)
     monkeypatch.setattr(
         actions,
-        "action_tags",
-        lambda action, _prefix: (
-            ["v4.3.0", "v4.5.0", "v5.0.0"]
-            if action == "actions/checkout"
-            else ["v5.6.0", "v5.7.0", "v6.0.0"]
-        ),
+        "action_tags_many",
+        lambda repositories, _prefix: {
+            action: (
+                ("v4.3.0", "v4.5.0", "v5.0.0")
+                if action == "actions/checkout"
+                else ("v5.6.0", "v5.7.0", "v6.0.0")
+            )
+            for action in repositories
+        },
     )
     monkeypatch.setattr(
         actions,
-        "resolve_tag",
-        lambda _action, tag: "c" * 40 if tag == "v4.5.0" else "d" * 40,
+        "resolve_tags_many",
+        lambda tags: {
+            action: "c" * 40 if tag == "v4.5.0" else "d" * 40
+            for action, tag in tags.items()
+        },
     )
 
     assert actions.refresh_pins(pins_path)
@@ -322,12 +329,56 @@ def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
     assert pins["actions/setup-python"].channel == "v6"
 
 
+def test_pin_refresh_batches_tag_and_commit_reads(tmp_path: Path, monkeypatch) -> None:
+    pins_path = tmp_path / "actions.toml"
+    write_pins(pins_path)
+    queries: list[str] = []
+
+    def graphql(query: str):
+        queries.append(query)
+        if "refs(first:" in query:
+            return {
+                "data": {
+                    "a0": {
+                        "refs": {
+                            "nodes": [{"name": "v4.5.0"}],
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        }
+                    },
+                    "a1": {
+                        "refs": {
+                            "nodes": [{"name": "v5.7.0"}],
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        }
+                    },
+                }
+            }
+        return {
+            "data": {
+                "a0": {"ref": {"target": {"__typename": "Commit", "oid": "c" * 40}}},
+                "a1": {"ref": {"target": {"__typename": "Commit", "oid": "d" * 40}}},
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    assert actions.refresh_pins(pins_path)
+    assert len(queries) == 2
+    pins = actions.load_pins(pins_path)
+    assert pins["actions/checkout"].sha == "c" * 40
+    assert pins["actions/setup-python"].sha == "d" * 40
+
+
 def test_pin_refresh_refuses_to_downgrade_when_upstream_tags_are_incomplete(
     tmp_path: Path, monkeypatch
 ) -> None:
     pins_path = tmp_path / "actions.toml"
     write_pins(pins_path)
-    monkeypatch.setattr(actions, "action_tags", lambda *_: ["v4.3.0"])
+    monkeypatch.setattr(
+        actions,
+        "action_tags_many",
+        lambda repositories, _prefix: dict.fromkeys(repositories, ("v4.3.0",)),
+    )
 
     with pytest.raises(ValueError, match="refusing to replace"):
         actions.refresh_pins(pins_path)

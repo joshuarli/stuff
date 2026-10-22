@@ -24,6 +24,9 @@ from repomod.types import (
 API_TIMEOUT = 30
 CACHE_TTL_SECONDS = 300
 GRAPHQL_BATCH_SIZE = 20
+MAX_API_WORKERS = 4
+ACTION_TAG_PAGE_SIZE = 100
+ACTION_TAG_RESOLUTION_DEPTH = 6
 _TRANSIENT = ("http 429", "http 500", "http 502", "http 503", "http 504", "rate limit", "timed out")
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 
@@ -118,75 +121,111 @@ def remote_metadata(
 ) -> dict[str, RemoteRepository]:
     found: dict[str, RemoteRepository] = {}
     batches = _batches(repositories)
-    for index, batch in enumerate(batches, start=1):
-        query, aliases = _repository_query(batch)
-        try:
-            data = _graphql(query).get("data", {})
-        except GitHubError as error:
-            for name in aliases.values():
-                found[name] = RemoteRepository(name, None, None, None, str(error))
-            if on_batch_complete is not None:
-                on_batch_complete(index, len(batches))
-            continue
-        for alias, name in aliases.items():
-            repository = data.get(alias) if isinstance(data, dict) else None
-            if not isinstance(repository, dict):
-                found[name] = RemoteRepository(
-                    name, None, None, None, "repository not found or not accessible"
-                )
-                continue
-            branch = repository.get("defaultBranchRef")
-            if not isinstance(branch, dict):
-                found[name] = RemoteRepository(
-                    name,
-                    None,
-                    None,
-                    bool(repository.get("isArchived")),
-                    "GitHub did not report a default branch",
-                )
-                continue
-            target = branch.get("target")
-            sha = target.get("oid") if isinstance(target, dict) else None
-            found[name] = RemoteRepository(
-                name,
-                branch.get("name") if isinstance(branch.get("name"), str) else None,
-                sha if isinstance(sha, str) and _COMMIT_SHA.fullmatch(sha) else None,
-                repository.get("isArchived") if isinstance(repository.get("isArchived"), bool) else None,
-            )
+    if not batches:
+        return found
+    if len(batches) == 1:
+        found = _remote_metadata_batch(batches[0])
         if on_batch_complete is not None:
-            on_batch_complete(index, len(batches))
+            on_batch_complete(1, 1)
+        return found
+    completed = 0
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(batches)), thread_name_prefix="repomod-github"
+    ) as pool:
+        for offset in range(0, len(batches), MAX_API_WORKERS):
+            futures = [
+                pool.submit(_remote_metadata_batch, batch)
+                for batch in batches[offset : offset + MAX_API_WORKERS]
+            ]
+            for future in as_completed(futures):
+                found.update(future.result())
+                completed += 1
+                if on_batch_complete is not None:
+                    on_batch_complete(completed, len(batches))
     return found
 
 
-def discover(owner_names: tuple[str, ...]) -> list[str]:
-    owners = {owner.casefold() for owner in owner_names}
-    repositories: list[str] = []
-    for owner_name in owner_names:
-        owner_metadata = _gh_json([f"users/{owner_name}"])
-        owner_type = owner_metadata.get("type") if isinstance(owner_metadata, dict) else None
-        endpoint = "orgs" if owner_type == "Organization" else "users"
-        pages = _gh_json(
-            ["--paginate", "--slurp", f"{endpoint}/{owner_name}/repos?type=all&per_page=100"]
+def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRepository]:
+    query, aliases = _repository_query(batch)
+    found: dict[str, RemoteRepository] = {}
+    try:
+        data = _graphql(query).get("data", {})
+    except GitHubError as error:
+        return {
+            name: RemoteRepository(name, None, None, None, str(error))
+            for name in aliases.values()
+        }
+    for alias, name in aliases.items():
+        repository = data.get(alias) if isinstance(data, dict) else None
+        if not isinstance(repository, dict):
+            found[name] = RemoteRepository(
+                name, None, None, None, "repository not found or not accessible"
+            )
+            continue
+        branch = repository.get("defaultBranchRef")
+        if not isinstance(branch, dict):
+            found[name] = RemoteRepository(
+                name,
+                None,
+                None,
+                bool(repository.get("isArchived")),
+                "GitHub did not report a default branch",
+            )
+            continue
+        target = branch.get("target")
+        sha = target.get("oid") if isinstance(target, dict) else None
+        found[name] = RemoteRepository(
+            name,
+            branch.get("name") if isinstance(branch.get("name"), str) else None,
+            sha if isinstance(sha, str) and _COMMIT_SHA.fullmatch(sha) else None,
+            repository.get("isArchived") if isinstance(repository.get("isArchived"), bool) else None,
         )
-        if not isinstance(pages, list):
-            raise GitHubError(f"GitHub returned an invalid repository list for {owner_name}")
-        for page in pages:
-            if not isinstance(page, list):
-                raise GitHubError(f"GitHub returned an invalid repository page for {owner_name}")
-            for item in page:
-                if not isinstance(item, dict):
-                    continue
-                full_name = item.get("full_name")
-                archived = item.get("archived")
-                owner = item.get("owner")
-                login = owner.get("login") if isinstance(owner, dict) else None
-                if (
-                    isinstance(full_name, str)
-                    and isinstance(login, str)
-                    and login.casefold() in owners
-                    and archived is False
-                ):
-                    repositories.append(full_name)
+    return found
+
+
+def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
+    owner_metadata = _gh_json([f"users/{owner_name}"])
+    owner_type = owner_metadata.get("type") if isinstance(owner_metadata, dict) else None
+    endpoint = "orgs" if owner_type == "Organization" else "users"
+    pages = _gh_json(
+        ["--paginate", "--slurp", f"{endpoint}/{owner_name}/repos?type=all&per_page=100"]
+    )
+    if not isinstance(pages, list):
+        raise GitHubError(f"GitHub returned an invalid repository list for {owner_name}")
+    repositories: list[str] = []
+    for page in pages:
+        if not isinstance(page, list):
+            raise GitHubError(f"GitHub returned an invalid repository page for {owner_name}")
+        for item in page:
+            if not isinstance(item, dict):
+                continue
+            full_name = item.get("full_name")
+            archived = item.get("archived")
+            owner = item.get("owner")
+            login = owner.get("login") if isinstance(owner, dict) else None
+            if (
+                isinstance(full_name, str)
+                and isinstance(login, str)
+                and login.casefold() in owners
+                and archived is False
+            ):
+                repositories.append(full_name)
+    return repositories
+
+
+def discover(owner_names: tuple[str, ...]) -> list[str]:
+    if not owner_names:
+        return []
+    owners = {owner.casefold() for owner in owner_names}
+    if len(owner_names) == 1:
+        return sorted(set(_discover_owner(owner_names[0], owners)), key=str.casefold)
+    repositories: list[str] = []
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(owner_names)), thread_name_prefix="repomod-discover"
+    ) as pool:
+        futures = [pool.submit(_discover_owner, owner, owners) for owner in owner_names]
+        for future in as_completed(futures):
+            repositories.extend(future.result())
     return sorted(set(repositories), key=str.casefold)
 
 
@@ -409,12 +448,26 @@ def _status_check_pages(
     items = tuple(pending.items())
     results: dict[str, tuple[tuple[CheckResult, ...], bool]] = {}
     errors: dict[str, str] = {}
-    for offset in range(0, len(items), GRAPHQL_BATCH_SIZE):
-        checks, failures = _status_check_page(
-            dict(items[offset : offset + GRAPHQL_BATCH_SIZE])
-        )
-        results.update(checks)
-        errors.update(failures)
+    batches = [
+        dict(items[offset : offset + GRAPHQL_BATCH_SIZE])
+        for offset in range(0, len(items), GRAPHQL_BATCH_SIZE)
+    ]
+    if not batches:
+        return results, errors
+    if len(batches) == 1:
+        return _status_check_page(batches[0])
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(batches)), thread_name_prefix="repomod-ci"
+    ) as pool:
+        for offset in range(0, len(batches), MAX_API_WORKERS):
+            futures = [
+                pool.submit(_status_check_page, batch)
+                for batch in batches[offset : offset + MAX_API_WORKERS]
+            ]
+            for future in as_completed(futures):
+                checks, failures = future.result()
+                results.update(checks)
+                errors.update(failures)
     return results, errors
 
 
@@ -811,36 +864,196 @@ def topics_many(
     return sorted(output, key=lambda item: item[0].casefold())
 
 
-def action_tags(repository: str, channel: str) -> list[str]:
-    data = _gh_json(
-        ["--paginate", "--slurp", f"repos/{repository}/git/matching-refs/tags/{channel}"]
-    )
-    refs: list[str] = []
-    for page in data if isinstance(data, list) else []:
-        if isinstance(page, list):
-            for item in page:
-                ref = item.get("ref") if isinstance(item, dict) else None
-                if isinstance(ref, str):
-                    refs.append(ref.removeprefix("refs/tags/"))
-    return refs
-
-
-def resolve_tag(repository: str, tag: str) -> str:
-    data = _gh_json([f"repos/{repository}/git/ref/tags/{tag}"])
+def _graphql_batch_data(response: dict[str, Any], aliases: dict[str, str]) -> dict[str, Any]:
+    errors = response.get("errors")
+    if errors:
+        alias_errors: dict[str, list[str]] = {}
+        global_errors: list[str] = []
+        if not isinstance(errors, list):
+            global_errors.append("GitHub returned invalid GraphQL errors")
+        else:
+            for error in errors:
+                if not isinstance(error, dict):
+                    global_errors.append("GitHub returned invalid GraphQL errors")
+                    continue
+                message = error.get("message")
+                detail = (
+                    _safe_error(message)
+                    if isinstance(message, str)
+                    else "GraphQL request failed"
+                )
+                path = error.get("path")
+                alias = path[0] if isinstance(path, list) and path else None
+                if isinstance(alias, str) and alias in aliases:
+                    alias_errors.setdefault(alias, []).append(detail)
+                else:
+                    global_errors.append(detail)
+        if global_errors:
+            raise GitHubError("; ".join(dict.fromkeys(global_errors)))
+        raise GitHubError(
+            "; ".join(
+                f"{aliases[alias]}: {'; '.join(dict.fromkeys(messages))}"
+                for alias, messages in alias_errors.items()
+            )
+        )
+    data = response.get("data")
     if not isinstance(data, dict):
-        raise GitHubError(f"GitHub did not return tag {repository}@{tag}")
-    obj = data.get("object")
-    for _ in range(6):
-        if not isinstance(obj, dict) or not isinstance(obj.get("sha"), str):
-            break
-        if obj.get("type") == "commit":
-            sha = obj.get("sha")
-            if not isinstance(sha, str):
-                break
-            if re.fullmatch(r"[0-9a-f]{40}", sha) is None:
-                break
-            return sha
-        if obj.get("type") != "tag":
-            break
-        obj = _gh_json([f"repos/{repository}/git/tags/{obj['sha']}"]).get("object")
-    raise GitHubError(f"GitHub tag {repository}@{tag} did not resolve to a commit")
+        raise GitHubError("GitHub returned invalid GraphQL data")
+    return data
+
+
+def _action_repository_parts(repository: str) -> tuple[str, str]:
+    owner, separator, name = repository.partition("/")
+    if not owner or not separator or not name or "/" in name:
+        raise GitHubError(f"invalid GitHub Action repository {repository}")
+    return owner, name
+
+
+def _action_tags_batch(repositories: tuple[str, ...], prefix: str) -> dict[str, tuple[str, ...]]:
+    aliases = {f"a{index}": repository for index, repository in enumerate(repositories)}
+    cursors = cast(dict[str, str | None], dict.fromkeys(aliases))
+    seen_cursors: dict[str, set[str]] = {alias: set() for alias in aliases}
+    complete = dict.fromkeys(aliases, False)
+    tags: dict[str, list[str]] = {alias: [] for alias in aliases}
+    while any(not complete[alias] for alias in aliases):
+        fields: list[str] = []
+        for alias, repository in aliases.items():
+            if complete[alias]:
+                continue
+            owner, name = _action_repository_parts(repository)
+            owner_value = json.dumps(owner)
+            name_value = json.dumps(name)
+            prefix_value = json.dumps(f"refs/tags/{prefix}")
+            cursor = cursors[alias]
+            after = f", after: {json.dumps(cursor)}" if cursor is not None else ""
+            fields.append(
+                f'{alias}: repository(owner: {owner_value}, name: {name_value}) '
+                f'{{ refs(first: {ACTION_TAG_PAGE_SIZE}, refPrefix: {prefix_value}{after}) '
+                "{ nodes { name } pageInfo { hasNextPage endCursor } } }"
+            )
+        data = _graphql_batch_data(
+            _graphql("query { " + " ".join(fields) + " }"), aliases
+        )
+        for alias, repository in aliases.items():
+            if complete[alias]:
+                continue
+            value = data.get(alias)
+            refs = value.get("refs") if isinstance(value, dict) else None
+            nodes = refs.get("nodes") if isinstance(refs, dict) else None
+            page_info = refs.get("pageInfo") if isinstance(refs, dict) else None
+            if not isinstance(nodes, list) or not isinstance(page_info, dict):
+                raise GitHubError(f"GitHub returned invalid tag refs for {repository}")
+            for node in nodes:
+                tag = node.get("name") if isinstance(node, dict) else None
+                if not isinstance(tag, str):
+                    raise GitHubError(f"GitHub returned an invalid tag name for {repository}")
+                tags[alias].append(tag)
+            has_next_page = page_info.get("hasNextPage")
+            if not isinstance(has_next_page, bool):
+                raise GitHubError(f"GitHub omitted tag pagination state for {repository}")
+            if not has_next_page:
+                complete[alias] = True
+                continue
+            cursor = page_info.get("endCursor")
+            if not isinstance(cursor, str) or not cursor or cursor in seen_cursors[alias]:
+                raise GitHubError(f"GitHub returned an invalid tag pagination cursor for {repository}")
+            seen_cursors[alias].add(cursor)
+            cursors[alias] = cursor
+    return {
+        repository: tuple(tags[alias])
+        for alias, repository in aliases.items()
+    }
+
+
+def action_tags_many(repositories: tuple[str, ...], prefix: str) -> dict[str, tuple[str, ...]]:
+    batches = [
+        repositories[offset : offset + GRAPHQL_BATCH_SIZE]
+        for offset in range(0, len(repositories), GRAPHQL_BATCH_SIZE)
+    ]
+    found: dict[str, tuple[str, ...]] = {}
+    if not batches:
+        return found
+    if len(batches) == 1:
+        return _action_tags_batch(batches[0], prefix)
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(batches)), thread_name_prefix="repomod-action-refs"
+    ) as pool:
+        for offset in range(0, len(batches), MAX_API_WORKERS):
+            futures = [
+                pool.submit(_action_tags_batch, batch, prefix)
+                for batch in batches[offset : offset + MAX_API_WORKERS]
+            ]
+            for future in as_completed(futures):
+                found.update(future.result())
+    return found
+
+
+def _tag_target_selection(depth: int) -> str:
+    selection = "__typename oid"
+    for _ in range(depth - 1):
+        selection = f"__typename oid ... on Tag {{ target {{ {selection} }} }}"
+    return selection
+
+
+def _tag_commit_sha(target: Any) -> str | None:
+    for _ in range(ACTION_TAG_RESOLUTION_DEPTH):
+        if not isinstance(target, dict):
+            return None
+        kind = target.get("__typename")
+        oid = target.get("oid")
+        if kind == "Commit":
+            return oid if isinstance(oid, str) and re.fullmatch(r"[0-9a-f]{40}", oid) else None
+        if kind != "Tag":
+            return None
+        target = target.get("target")
+    return None
+
+
+def _resolve_tags_batch(tags: tuple[tuple[str, str], ...]) -> dict[str, str]:
+    aliases = {f"a{index}": action for index, (action, _) in enumerate(tags)}
+    fields: list[str] = []
+    for alias, (action, tag) in zip(aliases, tags, strict=True):
+        owner, name = _action_repository_parts(action)
+        owner_value = json.dumps(owner)
+        name_value = json.dumps(name)
+        ref_name = json.dumps(f"refs/tags/{tag}")
+        fields.append(
+            f'{alias}: repository(owner: {owner_value}, name: {name_value}) '
+            f'{{ ref(qualifiedName: {ref_name}) '
+            f'{{ target {{ {_tag_target_selection(ACTION_TAG_RESOLUTION_DEPTH)} }} }} }}'
+        )
+    data = _graphql_batch_data(_graphql("query { " + " ".join(fields) + " }"), aliases)
+    resolved: dict[str, str] = {}
+    for alias, (action, tag) in zip(aliases, tags, strict=True):
+        value = data.get(alias)
+        ref = value.get("ref") if isinstance(value, dict) else None
+        target = ref.get("target") if isinstance(ref, dict) else None
+        sha = _tag_commit_sha(target)
+        if sha is None:
+            raise GitHubError(f"GitHub tag {action}@{tag} did not resolve to a commit")
+        resolved[action] = sha
+    return resolved
+
+
+def resolve_tags_many(tags: dict[str, str]) -> dict[str, str]:
+    items = tuple(sorted(tags.items()))
+    batches = [
+        items[offset : offset + GRAPHQL_BATCH_SIZE]
+        for offset in range(0, len(items), GRAPHQL_BATCH_SIZE)
+    ]
+    found: dict[str, str] = {}
+    if not batches:
+        return found
+    if len(batches) == 1:
+        return _resolve_tags_batch(batches[0])
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(batches)), thread_name_prefix="repomod-action-tags"
+    ) as pool:
+        for offset in range(0, len(batches), MAX_API_WORKERS):
+            futures = [
+                pool.submit(_resolve_tags_batch, batch)
+                for batch in batches[offset : offset + MAX_API_WORKERS]
+            ]
+            for future in as_completed(futures):
+                found.update(future.result())
+    return found

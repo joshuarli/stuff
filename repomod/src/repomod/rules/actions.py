@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from repomod.catalog import atomic_write
-from repomod.github import action_tags, resolve_tag
+from repomod.github import action_tags_many, resolve_tags_many
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -89,12 +89,13 @@ def load_pins(path: Path | None = None) -> dict[str, Pin]:
 def refresh_pins(path: Path | None = None, *, allow_major: bool = False) -> bool:
     target = actions_file() if path is None else path
     pins = load_pins(target)
-    updated: dict[str, Pin] = {}
+    versions = action_tags_many(tuple(sorted(pins)), "v")
+    selected_versions: dict[str, str] = {}
+    channels: dict[str, str] = {}
     for action, pin in sorted(pins.items()):
         channel = pin.channel
-        tags = action_tags(action, "v")
         candidates: list[tuple[tuple[int, int, int], str]] = []
-        for tag in tags:
+        for tag in versions.get(action, ()):
             match = _VERSION.fullmatch(tag)
             if match is None:
                 continue
@@ -116,7 +117,13 @@ def refresh_pins(path: Path | None = None, *, allow_major: bool = False) -> bool
             )
         if allow_major:
             channel = version.split(".", 1)[0]
-        updated[action] = Pin(channel, version, resolve_tag(action, version))
+        selected_versions[action] = version
+        channels[action] = channel
+    resolved = resolve_tags_many(selected_versions)
+    updated = {
+        action: Pin(channels[action], version, resolved[action])
+        for action, version in selected_versions.items()
+    }
     serialized = _render_pins(updated)
     if target.read_text(encoding="utf-8") == serialized:
         return False
