@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import repomod.sync as sync_module
 from repomod.catalog import Catalog, load_catalog, repository_path
 from repomod.git import _porcelain_counts, expected_origin, head, status
 from repomod.sync import sync_one
@@ -161,6 +162,37 @@ def test_sync_fetches_but_does_not_change_dirty_checkout(
     assert head(checkout) == before_head
     assert (checkout / "README.md").read_text(encoding="utf-8") == "local edit\n"
     assert git("status", "--porcelain=v2", cwd=checkout) == before_status
+
+
+def test_sync_does_not_fast_forward_branch_checked_out_during_fetch(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, seed, _ = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    remote = RemoteRepository(str(repository.id), "main", "unused", False)
+    sync_one(catalog, repository, remote)
+    checkout = repository_path(catalog, repository)
+    initial_head = head(checkout)
+    git("checkout", "-b", "feature", cwd=checkout)
+    git("checkout", "main", cwd=checkout)
+    (seed / "README.md").write_text("second\n", encoding="utf-8")
+    git("commit", "-am", "second", cwd=seed)
+    git("push", "origin", "main", cwd=seed)
+    original_fetch = sync_module.fetch_default
+
+    def fetch_and_switch(path: Path, branch: str, deepen: int | None = None) -> None:
+        original_fetch(path, branch, deepen)
+        git("checkout", "feature", cwd=path)
+
+    monkeypatch.setattr(sync_module, "fetch_default", fetch_and_switch)
+
+    result = sync_one(catalog, repository, remote)
+
+    assert result.action == "fetched"
+    assert head(checkout) == initial_head
+    assert git("branch", "--show-current", cwd=checkout) == "feature"
 
 
 def test_sync_dry_run_does_not_clone_or_fetch(

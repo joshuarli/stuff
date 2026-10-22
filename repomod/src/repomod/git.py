@@ -247,10 +247,30 @@ def is_ancestor(path: Path, older: str, newer: str) -> bool:
     return result.returncode == 0
 
 
+def _checkout_matches(path: Path, branch: str, expected_head: str) -> bool:
+    output = run_git(
+        ["status", "--porcelain=v2", "--branch", "-z"], cwd=path
+    ).stdout
+    current_branch = None
+    current_head = None
+    for record in output.split("\0"):
+        if record.startswith("# branch.head "):
+            current_branch = record.removeprefix("# branch.head ")
+        elif record.startswith("# branch.oid "):
+            current_head = record.removeprefix("# branch.oid ")
+    return (
+        current_branch == branch
+        and current_head == expected_head
+        and not any(_porcelain_counts(output))
+    )
+
+
 def safe_fast_forward(path: Path, branch: str, start_head: str | None = None) -> str:
     start = start_head or run_git(["rev-parse", "HEAD"], cwd=path).stdout.strip()
     target = f"refs/remotes/origin/{branch}"
     if is_ancestor(path, start, target):
+        if not _checkout_matches(path, branch, start):
+            return "checkout changed during sync"
         run_git(["merge", "--ff-only", target], cwd=path)
         return "fast-forwarded"
     if is_ancestor(path, target, start):
@@ -259,6 +279,8 @@ def safe_fast_forward(path: Path, branch: str, start_head: str | None = None) ->
         for depth in (32, 64, 128, 256, 512):
             fetch_default(path, branch, depth)
             if is_ancestor(path, start, target):
+                if not _checkout_matches(path, branch, start):
+                    return "checkout changed during sync"
                 run_git(["merge", "--ff-only", target], cwd=path)
                 return "fast-forwarded"
             if is_ancestor(path, target, start):

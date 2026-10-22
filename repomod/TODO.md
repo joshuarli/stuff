@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 38
 
-### RPMD-33 · P2 · Bind sync fast-forwards to the checked branch
-
-- **Area:** Concurrency
-- **Where:** `src/repomod/sync.py:65`, `src/repomod/sync.py:76`, `src/repomod/sync.py:85`, `src/repomod/sync.py:96`, `src/repomod/git.py:250`
-- **Problem:** `sync_one` checks the branch and HEAD before fetching. `safe_fast_forward` then checks ancestry against that saved HEAD but merges into the branch currently checked out. If a user switches to a feature branch during fetch, sync can fast-forward that branch. A disposable local checkout reproduced this: sync reported `updated`, moved `feature`, and left `main` unchanged.
-- **Recommendation:** Bind the fast-forward to the original branch and HEAD. After fetch, abort if the branch, HEAD, or clean state changed.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### RPMD-34 · P2 · Reject partial GitHub check responses
 
 - **Area:** Errors
