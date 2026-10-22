@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 38
 
-### RPMD-35 · P2 · Batch generated-artifact ignore probes
-
-- **Area:** Performance
-- **Where:** `src/repomod/rules/consistency.py:333`, `src/repomod/rules/consistency.py:342`, `src/repomod/git.py:120`
-- **Problem:** The global `generated-artifacts` rule checks each ignore probe separately. `root_ignore_matches` starts a Git process for each probe, up to thirteen times per repository, on every fleet lint.
-- **Recommendation:** Send all probe paths through one `git check-ignore --stdin` call and map its results back to the probes.
-- **Fix with:** make-it-fast
-- **Effort:** S
-
 ### RPMD-36 · P2 · Skip the duplicate status pass in online sync
 
 - **Area:** Performance

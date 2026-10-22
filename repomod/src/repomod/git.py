@@ -117,31 +117,38 @@ def tracked_paths(path: Path, pathspecs: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(sorted((value for value in result.stdout.split("\0") if value), key=str.casefold))
 
 
-def root_ignore_matches(path: Path, candidate: str) -> bool:
+def root_ignore_matches(path: Path, candidates: tuple[str, ...]) -> frozenset[str]:
     root_ignore = path / ".gitignore"
-    if root_ignore.is_symlink() or not root_ignore.is_file():
-        return False
+    if root_ignore.is_symlink() or not root_ignore.is_file() or not candidates:
+        return frozenset[str]()
     result = run_git(
         ["check-ignore", "--no-index", "--verbose", "-z", "--stdin"],
         cwd=path,
-        input_text=candidate + "\0",
+        input_text="".join(candidate + "\0" for candidate in candidates),
         check=False,
     )
     if result.returncode == 1:
-        return False
+        return frozenset[str]()
     if result.returncode != 0:
         raise GitError(result.stderr.strip() or "git check-ignore failed")
     fields = result.stdout.split("\0")
-    if len(fields) < 4 or not fields[0]:
-        return False
-    source = Path(fields[0])
-    if not source.is_absolute():
-        source = path / source
+    if len(fields) % 4 != 1 or fields[-1]:
+        raise GitError("git check-ignore returned invalid verbose output")
     try:
-        resolved = source.resolve(strict=True)
-        return resolved == root_ignore.resolve(strict=True)
+        root_ignore_resolved = root_ignore.resolve(strict=True)
     except OSError:
-        return False
+        return frozenset[str]()
+    matched: set[str] = set()
+    for index in range(0, len(fields) - 1, 4):
+        source = Path(fields[index])
+        if not source.is_absolute():
+            source = path / source
+        try:
+            if source.resolve(strict=True) == root_ignore_resolved:
+                matched.add(fields[index + 3])
+        except OSError:
+            continue
+    return frozenset(matched)
 
 
 def is_git_checkout(path: Path) -> bool:

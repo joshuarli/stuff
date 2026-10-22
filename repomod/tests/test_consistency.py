@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import repomod.git as git_module
 from repomod.git import run_git
 from repomod.rules import rules
 from repomod.rules.consistency import (
@@ -206,6 +207,27 @@ def test_generated_artifact_lint_accepts_composed_profiles_for_untagged_rust(
     run_git(["add", ".gitignore", "Cargo.toml", "src/main.rs"], cwd=tmp_path)
 
     assert _tracked_artifact_findings(tmp_path, repository("tool")) == []
+
+
+def test_generated_artifact_ignore_probes_use_one_git_process(
+    tmp_path: Path, monkeypatch
+) -> None:
+    initialize_repository(tmp_path)
+    (tmp_path / ".gitignore").write_text(".DS_Store\nThumbs.db\n", encoding="utf-8")
+    original_run_git = git_module.run_git
+    check_ignore_calls = []
+
+    def record_run_git(*args, **kwargs):
+        if args[0][0] == "check-ignore":
+            check_ignore_calls.append(kwargs["input_text"])
+        return original_run_git(*args, **kwargs)
+
+    monkeypatch.setattr(git_module, "run_git", record_run_git)
+
+    findings = _tracked_artifact_findings(tmp_path, repository("tool"))
+
+    assert findings == []
+    assert check_ignore_calls == [".DS_Store\0Thumbs.db\0"]
 
 
 def test_generated_artifact_lint_does_not_treat_a_python_target_directory_as_rust_output(

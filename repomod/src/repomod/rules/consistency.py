@@ -336,10 +336,11 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
         for language in sorted(languages)
         for probe in _COMPOSED_IGNORE_PROBES.get(language, ())
     )
+    ignored = root_ignore_matches(root, tuple(probe for probe, _ in required))
     missing = [
         pattern
         for probe, pattern in required
-        if not root_ignore_matches(root, probe)
+        if probe not in ignored
     ]
     if missing:
         findings.append(
