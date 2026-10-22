@@ -685,19 +685,119 @@ def topics_apply(repo: Repository) -> tuple[bool, tuple[str, ...], tuple[str, ..
 type TopicResult = tuple[str, bool, tuple[str, ...], tuple[str, ...], str | None]
 
 
+def _topics_query(repositories: tuple[Repository, ...]) -> tuple[str, dict[str, Repository]]:
+    aliases: dict[str, Repository] = {}
+    fields: list[str] = []
+    for index, repository in enumerate(repositories):
+        alias = f"r{index}"
+        aliases[alias] = repository
+        owner = json.dumps(repository.id.owner)
+        name = json.dumps(repository.id.name)
+        fields.append(
+            f'{alias}: repository(owner: {owner}, name: {name}) '
+            "{ repositoryTopics(first: 20) { nodes { topic { name } } } }"
+        )
+    return "query { " + " ".join(fields) + " }", aliases
+
+
+def _topics_diff_batch(repositories: tuple[Repository, ...]) -> list[TopicResult]:
+    query, aliases = _topics_query(repositories)
+
+    def failed(message: str) -> list[TopicResult]:
+        return [(str(repository.id), False, (), (), message) for repository in repositories]
+
+    try:
+        response = _graphql(query)
+    except GitHubError as error:
+        return failed(str(error))
+    data = response.get("data")
+    if not isinstance(data, dict):
+        return failed("GitHub returned invalid topic data")
+
+    errors = response.get("errors")
+    alias_errors: dict[str, list[str]] = {}
+    global_errors: list[str] = []
+    if errors:
+        if not isinstance(errors, list):
+            global_errors.append("GitHub returned invalid GraphQL topic errors")
+        else:
+            for error in errors:
+                if not isinstance(error, dict):
+                    global_errors.append("GitHub returned invalid GraphQL topic errors")
+                    continue
+                message = error.get("message")
+                detail = _safe_error(message) if isinstance(message, str) else "GraphQL topic query failed"
+                path = error.get("path")
+                alias = path[0] if isinstance(path, list) and path else None
+                if isinstance(alias, str) and alias in aliases:
+                    alias_errors.setdefault(alias, []).append(detail)
+                else:
+                    global_errors.append(detail)
+    if global_errors:
+        return failed("; ".join(dict.fromkeys(global_errors)))
+
+    results: list[TopicResult] = []
+    for alias, repository in aliases.items():
+        if alias in alias_errors:
+            results.append(
+                (str(repository.id), False, (), (), "; ".join(dict.fromkeys(alias_errors[alias])))
+            )
+            continue
+        value = data.get(alias)
+        if not isinstance(value, dict):
+            results.append(
+                (str(repository.id), False, (), (), "repository not found or not accessible")
+            )
+            continue
+        topic_data = value.get("repositoryTopics")
+        nodes = topic_data.get("nodes") if isinstance(topic_data, dict) else None
+        if not isinstance(nodes, list):
+            results.append((str(repository.id), False, (), (), "GitHub returned invalid topics"))
+            continue
+        names: list[str] | None = []
+        for node in nodes:
+            topic = node.get("topic") if isinstance(node, dict) else None
+            name = topic.get("name") if isinstance(topic, dict) else None
+            if not isinstance(name, str):
+                names = None
+                break
+            names.append(name)
+        if names is None:
+            results.append((str(repository.id), False, (), (), "GitHub returned invalid topics"))
+            continue
+        actual = set(names)
+        desired = set(repository.tags)
+        additions = tuple(sorted(desired - actual, key=str.casefold))
+        removals = tuple(sorted(actual - desired, key=str.casefold))
+        results.append((str(repository.id), False, additions, removals, None))
+    return results
+
+
+def _topics_diff_many(repositories: tuple[Repository, ...], jobs: int) -> list[TopicResult]:
+    batches = _batches(repositories)
+    if not batches:
+        return []
+    output: list[TopicResult] = []
+    with ThreadPoolExecutor(
+        max_workers=min(jobs, 16, len(batches)), thread_name_prefix="repomod-topics"
+    ) as pool:
+        futures = [pool.submit(_topics_diff_batch, batch) for batch in batches]
+        for future in as_completed(futures):
+            output.extend(future.result())
+    return sorted(output, key=lambda item: item[0].casefold())
+
+
 def topics_many(
     repositories: tuple[Repository, ...], *, apply: bool, jobs: int = 4
 ) -> list[TopicResult]:
     if jobs < 1:
         raise ValueError("jobs must be at least one")
+    if not apply:
+        return _topics_diff_many(repositories, jobs)
 
     def one(repo: Repository) -> TopicResult:
         try:
-            if apply:
-                changed, additions, removals = topics_apply(repo)
-            else:
-                additions, removals = topics_diff(repo)
-                changed = False
+            changed, additions, removals = topics_apply(repo)
             return str(repo.id), changed, additions, removals, None
         except GitHubError as error:
             return str(repo.id), False, (), (), str(error)

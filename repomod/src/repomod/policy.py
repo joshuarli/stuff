@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from repomod.catalog import Catalog, repository_path
-from repomod.github import GitHubError, topics_diff
+from repomod.github import topics_many
 from repomod.rules import rules
 from repomod.types import Finding, Repository, Rule
 
@@ -68,8 +67,8 @@ def lint_repositories(
     topic_results = {}
     if any(rule.id == "topics" for rule in active_rules):
         topic_results = {
-            name: (changed, additions, removals, error)
-            for name, changed, additions, removals, error in _topics_bounded(selected)
+            name: (additions, removals, error)
+            for name, _, additions, removals, error in topics_many(selected, apply=False)
         }
     for repository in selected:
         try:
@@ -89,11 +88,20 @@ def lint_repositories(
             if not rule.applies_to.matches(repository.tags):
                 continue
             if rule.id == "topics":
-                try:
-                    _, additions, removals, error = topic_results[str(repository.id)]
-                    if error:
-                        raise GitHubError(error)
-                except (GitHubError, KeyError) as error:
+                result = topic_results.get(str(repository.id))
+                if result is None:
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "topics",
+                            None,
+                            "cannot read GitHub topics: missing result",
+                            kind="operational",
+                        )
+                    )
+                    continue
+                additions, removals, error = result
+                if error is not None:
                     findings.append(
                         Finding(
                             str(repository.id),
@@ -141,18 +149,3 @@ def finding_dict(finding: Finding) -> dict[str, str | bool | None]:
         "fixable": finding.fixable,
         "kind": finding.kind,
     }
-
-
-def _topics_bounded(repositories: tuple[Repository, ...]):
-    def one(repository: Repository):
-        try:
-            additions, removals = topics_diff(repository)
-            return str(repository.id), False, additions, removals, None
-        except GitHubError as error:
-            return str(repository.id), False, (), (), str(error)
-
-    if not repositories:
-        return []
-    with ThreadPoolExecutor(max_workers=min(4, len(repositories)), thread_name_prefix="repomod-lint") as pool:
-        futures = [pool.submit(one, repository) for repository in repositories]
-        return [future.result() for future in as_completed(futures)]
