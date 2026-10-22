@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
@@ -73,6 +74,14 @@ def sync_one(
             if not current.origin_valid:
                 return SyncResult(name, "failed", current.error or "invalid checkout origin", True)
             starting_head = head(path)
+            if (
+                not current.dirty
+                and not current.detached
+                and current.branch == remote.default_branch
+                and remote.sha is not None
+                and starting_head.casefold() == remote.sha.casefold()
+            ):
+                return SyncResult(name, "current", "already at GitHub's reported default branch tip")
             fetch_default(path, remote.default_branch, 1 if shallow(path) else None)
             if current.dirty:
                 return SyncResult(name, "fetched", "worktree is dirty; checked out files were not changed")
@@ -98,6 +107,7 @@ def sync_repositories(
     *,
     dry_run: bool = False,
     jobs: int = 4,
+    on_complete: Callable[[int, int, SyncResult], None] | None = None,
 ) -> list[SyncResult]:
     if jobs < 1:
         raise ValueError("jobs must be at least one")
@@ -114,7 +124,10 @@ def sync_repositories(
         for future in as_completed(futures):
             repo = futures[future]
             try:
-                results.append(future.result())
+                result = future.result()
             except Exception as error:
-                results.append(SyncResult(str(repo.id), "failed", str(error), True))
+                result = SyncResult(str(repo.id), "failed", str(error), True)
+            results.append(result)
+            if on_complete is not None:
+                on_complete(len(results), len(repos), result)
     return sorted(results, key=lambda item: item.repository.casefold())

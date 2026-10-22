@@ -7,6 +7,7 @@ import re
 import subprocess
 import tempfile
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, cast
@@ -110,15 +111,22 @@ def _repository_query(repositories: tuple[Repository, ...]) -> tuple[str, dict[s
     return "query { " + " ".join(fields) + " }", aliases
 
 
-def remote_metadata(repositories: tuple[Repository, ...]) -> dict[str, RemoteRepository]:
+def remote_metadata(
+    repositories: tuple[Repository, ...],
+    *,
+    on_batch_complete: Callable[[int, int], None] | None = None,
+) -> dict[str, RemoteRepository]:
     found: dict[str, RemoteRepository] = {}
-    for batch in _batches(repositories):
+    batches = _batches(repositories)
+    for index, batch in enumerate(batches, start=1):
         query, aliases = _repository_query(batch)
         try:
             data = _graphql(query).get("data", {})
         except GitHubError as error:
             for name in aliases.values():
                 found[name] = RemoteRepository(name, None, None, None, str(error))
+            if on_batch_complete is not None:
+                on_batch_complete(index, len(batches))
             continue
         for alias, name in aliases.items():
             repository = data.get(alias) if isinstance(data, dict) else None
@@ -145,6 +153,8 @@ def remote_metadata(repositories: tuple[Repository, ...]) -> dict[str, RemoteRep
                 sha if isinstance(sha, str) and _COMMIT_SHA.fullmatch(sha) else None,
                 repository.get("isArchived") if isinstance(repository.get("isArchived"), bool) else None,
             )
+        if on_batch_complete is not None:
+            on_batch_complete(index, len(batches))
     return found
 
 

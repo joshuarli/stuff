@@ -48,10 +48,12 @@ repomod list
 
 `repomod sync` processes catalog entries only. It checks GitHub's current archive and default
 branch metadata before cloning. It reuses valid checkouts and fetches the current default
-branch. Git fast-forwards only a clean checkout on that branch when ancestry proves the move
-is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their checked-out
+branch unless a clean checkout on that branch already matches GitHub's reported tip. Git
+fast-forwards only a clean checkout on the default branch when ancestry proves the move is
+safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their checked-out
 files and local commits. Fetch may update the remote-tracking ref. A failed repository does
-not stop other entries.
+not stop other entries. The command writes progress to stderr and sorted per-repository
+results to stdout.
 
 Use `repomod sync --dry-run` to inspect local clone or fetch plans. It makes no network calls.
 
