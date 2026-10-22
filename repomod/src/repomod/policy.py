@@ -1,0 +1,151 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from repomod.catalog import Catalog, repository_path
+from repomod.github import GitHubError, topics_diff
+from repomod.rules import rules
+from repomod.types import Finding, Repository, Rule
+
+
+class PolicyError(RuntimeError):
+    pass
+
+
+def selected_rules(
+    *,
+    tags: Iterable[str] = (),
+    rule_ids: Iterable[str] = (),
+    local_only: bool = False,
+) -> tuple[Rule, ...]:
+    selected_tags = set(tags)
+    selected_ids = set(rule_ids)
+    available = rules()
+    known_ids = {rule.id for rule in available}
+    unknown = selected_ids - known_ids
+    if unknown:
+        raise PolicyError(f"unknown rules: {', '.join(sorted(unknown))}")
+    values = [
+        rule
+        for rule in available
+        if (not selected_ids or rule.id in selected_ids)
+        and (not rule.required_tags or not selected_tags or bool(rule.required_tags & selected_tags))
+        and (not local_only or rule.id not in {"gha-syntax"})
+    ]
+    if local_only:
+        values = [rule for rule in values if rule.id != "topics"]
+    return tuple(values)
+
+
+def filter_repositories(
+    repositories: Iterable[Repository],
+    *,
+    repo_values: Iterable[str] = (),
+    tags: Iterable[str] = (),
+) -> tuple[Repository, ...]:
+    names = {value.casefold() for value in repo_values}
+    selected_tags = set(tags)
+    return tuple(
+        repo
+        for repo in repositories
+        if (not names or str(repo.id).casefold() in names or repo.id.name.casefold() in names)
+        and (not selected_tags or bool(set(repo.tags) & selected_tags))
+    )
+
+
+def lint_repositories(
+    catalog: Catalog,
+    repositories: Iterable[Repository] | None = None,
+    *,
+    tags: Iterable[str] = (),
+    rule_ids: Iterable[str] = (),
+    local_only: bool = False,
+) -> list[Finding]:
+    selected = tuple(catalog.repositories if repositories is None else repositories)
+    active_rules = selected_rules(tags=tags, rule_ids=rule_ids, local_only=local_only)
+    findings: list[Finding] = []
+    topic_results = {}
+    if any(rule.id == "topics" for rule in active_rules):
+        topic_results = {
+            name: (changed, additions, removals, error)
+            for name, changed, additions, removals, error in _topics_bounded(selected)
+        }
+    for repository in selected:
+        try:
+            root = repository_path(catalog, repository)
+        except (OSError, ValueError) as error:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "repo-integrity",
+                    None,
+                    f"cannot resolve canonical checkout: {error}",
+                    kind="operational",
+                )
+            )
+            continue
+        for rule in active_rules:
+            if rule.required_tags and not (rule.required_tags & set(repository.tags)):
+                continue
+            if rule.id == "topics":
+                try:
+                    _, additions, removals, error = topic_results[str(repository.id)]
+                    if error:
+                        raise GitHubError(error)
+                except (GitHubError, KeyError) as error:
+                    findings.append(
+                        Finding(str(repository.id), "topics", None, f"cannot read GitHub topics: {error}", kind="operational")
+                    )
+                    continue
+                if additions or removals:
+                    details = []
+                    if additions:
+                        details.append(f"add {', '.join(additions)}")
+                    if removals:
+                        details.append(f"remove {', '.join(removals)}")
+                    findings.append(
+                        Finding(str(repository.id), "topics", None, "; ".join(details), fixable=False)
+                    )
+                continue
+            try:
+                findings.extend(rule.check(root, repository))
+            except (OSError, ValueError, RuntimeError) as error:
+                findings.append(
+                    Finding(str(repository.id), rule.id, None, f"rule could not complete: {error}", kind="operational")
+                )
+    return sorted(
+        findings,
+        key=lambda finding: (
+            finding.repository.casefold(),
+            finding.rule,
+            (finding.file or "").casefold(),
+            finding.message,
+        ),
+    )
+
+
+def finding_dict(finding: Finding) -> dict[str, str | bool | None]:
+    return {
+        "repository": finding.repository,
+        "rule": finding.rule,
+        "file": finding.file,
+        "message": finding.message,
+        "severity": finding.severity,
+        "fixable": finding.fixable,
+        "kind": finding.kind,
+    }
+
+
+def _topics_bounded(repositories: tuple[Repository, ...]):
+    def one(repository: Repository):
+        try:
+            additions, removals = topics_diff(repository)
+            return str(repository.id), False, additions, removals, None
+        except GitHubError as error:
+            return str(repository.id), False, (), (), str(error)
+
+    if not repositories:
+        return []
+    with ThreadPoolExecutor(max_workers=min(4, len(repositories)), thread_name_prefix="repomod-lint") as pool:
+        futures = [pool.submit(one, repository) for repository in repositories]
+        return [future.result() for future in as_completed(futures)]

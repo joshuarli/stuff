@@ -1,0 +1,14 @@
+[cargo]
+version_fields = ["package.version", "workspace.package.version"]
+required_fields = ["name", "version", "license", "repository", "readme"]
+bump_command = "cargo set-version --package NAME VERSION"
+
+[pypi]
+version_field = "project.version"
+build_backend = "uv_build"
+bump_command = "uv version --bump patch"
+
+[npm]
+version_field = "package.json version"
+lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]
+bump_command = "use the package manager selected by packageManager or its lockfile"

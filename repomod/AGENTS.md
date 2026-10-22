@@ -1,42 +1,67 @@
-# AGENTS.md
+# Working in repomod
 
-repomod mass-applies fixes across GitHub repos and opens draft PRs. It pushes to many repos,
-so reliability, resumability, and idempotency are non-negotiable.
+repomod manages canonical local repositories from `catalog.toml`. Git is the record of source
+changes. Rules lint and repair without a status database. A successful fixer gets one local
+commit. Remote writes require an explicit topic or push command.
 
-```
+## Verify changes
+
+```sh
 uv sync
-make test                       # all tests offline, network mocked
+make test
 uv run ruff check src tests
 uv run ty check
 ```
 
-## Where to look
+Tests use local Git repositories and fake GitHub responses. Do not run `sync`, `fix`, `push`,
+`topics apply`, or `pins refresh` against a real catalog while changing code. Use temporary
+catalogs, local bare repositories, and fake API responses. Point `TMPDIR` at `.work/tmp` for
+commands that create scratch data.
 
-- Usage, outputs, re-run behavior, and the fix interface: [README.md](README.md)
-- Reliability, API budget, interrupts, idempotency, and sync internals: [docs/design.md](docs/design.md)
-- Open decisions: [docs/rfc/](docs/rfc/)
-- Adding a fix: [.claude/skills/new-fix/SKILL.md](.claude/skills/new-fix/SKILL.md)
+## Protect local data
 
-## Where things belong
+`catalog.toml` is curated user configuration. Read it before catalog work, preserve its
+comments and repository selection, and do not add inferred repositories or tags. Run tests
+that edit a copied catalog. The default checkout root is `~/repos`; `REPOMOD_ROOT` overrides
+it. Do not remove existing checkout, patch, log, or generated files during this replacement.
 
-- `types.py`: every dataclass, NamedTuple, and type alias shared across modules. Never define types in the module that uses them.
-- `main.py`: CLI, orchestration, and the main loop. No data types.
-- `git.py`: all git subprocess calls. Nothing else shells out to git.
-- `status.py`: all `status.yaml` I/O and logging. It owns `atomic_write_yaml`.
-- `ui.py`: all terminal output. No business logic.
-- `utils.py`: core infra (`interrupt`, `retry`, `RateLimiter`, `ShutdownError`). Not a dumping ground.
-- `lint.py`: validation of a fix's output before any diff is shown or pushed.
-- `sync.py`: the GitHub repo sync that writes `repos.yaml`.
-- `RunContext` groups state shared across worker threads. Don't pass 10 positional args.
+Never reset, stash, clean, switch, or discard changes in a canonical checkout. Sync may fetch
+and update a remote-tracking ref. Fixers use a disposable detached worktree and publish
+successful commits only when the canonical checkout still matches its starting state.
 
-## Rules
+## Code boundaries
 
-- Batch GitHub API calls or make them once per run, not once per repo. `tests/test_apply_gh_calls.py` asserts the `--apply` calls.
-- Put `except ShutdownError: raise` before any broad `except`. A broad handler that swallows the shutdown signal is the most common interrupt bug.
-- Never call `pd.finish()` for an interrupted repo.
-- The only runtime dependency is `pyyaml`. Shell out to `gh` and `git`. Discuss before you add a dependency.
-- Write comments that explain why, not what. Don't remove useful comments during refactors.
-- Prefer pure functions. `filter_work` filters and returns, with no side effects.
-- No lazy imports, no `nonlocal`, no section-divider comments, no dead code, and no `\033[B` for cursor movement.
-- Tests mirror `src` (`test_main.py` tests `main.py`) and use realistic names (`acme/backend`, not `"a"`).
-- Never hand-edit `repos.yaml`, `status.yaml`, `logs-*/`, `patches-*/`, or `repos/`. They are generated, and patches must stay byte-exact, trailing whitespace included. `repos-disabled.yaml` is the hand-maintained denylist. Sync does not write it.
+- `catalog.py` parses and validates catalog configuration, tags, and checkout paths.
+- `git.py` owns every Git subprocess and the per-repository lock.
+- `github.py` owns GitHub reads, CI cache, topics, and approved Action tag resolution.
+- `policy.py` selects rules and orders structured findings.
+- `rules/` contains read-only checks and deterministic file-plan fixers.
+- `fix.py` runs each fixer in isolation, validates its scope, and creates one commit per fixer.
+- `sync.py` clones missing catalog entries and safely fast-forwards existing checkouts.
+- `cli.py` parses arguments, filters repositories, and prints results.
+- `types.py` holds shared domain types.
+
+Use Python 3.14 standard-library APIs where they fit. Keep rules as ordinary Python
+definitions. Do not add databases, background workers, compatibility readers, or generic
+workflow frameworks.
+
+## Policy rules
+
+Give each rule a stable ID and a read-only check. Findings include the repository, rule, file,
+message, severity, and fixability. A fixer returns explicit repository-relative file contents,
+declares its allowed paths, validates the result, and uses a rule-specific Conventional Commit
+subject. Do not write placeholder README, license, or agent files.
+
+Global rules have no required tags. Semantic catalog tags activate reusable rules. Language
+and package manager detection comes from repository files. Publishing policy requires an
+explicit `crates-io`, `pypi`, or `npm` tag.
+
+## GitHub operations
+
+Batch metadata and CI requests. CI must match the current remote default-branch SHA. Unknown,
+stale, failed, and no-check states remain distinct. `status --offline` makes zero network
+calls. `topics diff` reads metadata. Only `topics apply` replaces the topic set.
+
+Never add pull-request creation, draft state, rollout tracking, patch storage, or per-fix clone
+directories. Existing files from the retired implementation remain user data and are not read
+or deleted.

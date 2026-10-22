@@ -2,10 +2,10 @@
 name = "repomod"
 version = "0.1.0"
 requires-python = ">=3.14"
-dependencies = ["pyyaml>=6"]
+dependencies = []
 
 [project.scripts]
-repomod = "repomod.main:cli"
+repomod = "repomod.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.9"]
@@ -13,24 +13,14 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "joshuarli-pytest-parallel",
     "ty>=0.0.84",
     "pytest>=9.1.1",
-    "pytest-cov>=7",
     "ruff>=0.15",
-    "types-pyyaml>=6.0.12.20260906",
 ]
-
-[tool.uv.sources]
-joshuarli-pytest-parallel = { git = "https://github.com/joshuarli/pytest-parallel" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "tests"]
-
-[tool.coverage.run]
-source = ["src/repomod"]
-omit = ["tests/*"]
 
 [tool.ty.environment]
 root = ["src", "tests"]
@@ -39,7 +29,7 @@ python-platform = "all"
 
 [tool.ty.src]
 include = ["src", "tests"]
-exclude = ["src/repomod/fixes/**/repos/"]
+exclude = []
 
 [tool.ty.analysis]
 strict-equality-semantics = true

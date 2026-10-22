@@ -1,85 +1,89 @@
 # Design
 
-repomod pushes to hundreds of repos, so reliability, resumability, and idempotency are
-non-negotiable. This page explains how the code keeps them. For how re-runs behave from the
-user's side, see [Re-running a fix](../README.md#re-running-a-fix).
+repomod has one catalog, local Git checkouts, read-only GitHub status, declarative policy, and
+explicit repair and topic writes. Git records every source change. No database or run ledger
+tracks completed repairs.
 
-## Reliability
+## State and ownership
 
-- Every subprocess call has a 120-second timeout (`SUBPROCESS_TIMEOUT` in `utils.py`).
-- Network calls in `git.py` and `sync.py` use `@retry`: 3 attempts with exponential backoff.
-- `github_rate_limiter` spaces `gh_run` by 0.25 seconds and holds its lock for the whole `gh` call, so those processes do not overlap. `git_transport_limiter` spaces starts of `clone`, `fetch`, `push`, and `git ls-remote` by the same 0.25 seconds, then releases its lock before the git command, so those commands can overlap.
-- `pr_create_limiter` spaces PR creation and marking ready by 2 seconds. GitHub's secondary
-  rate limits on creating content are much tighter than on reads.
-- One repo failing doesn't stop the run.
-- `atomic_write_yaml` writes status files to a temp file and renames it into place.
+`catalog.toml` owns repository identity, semantic tags, checkout root, and narrow autofix
+overrides. It does not record branch state or previous lint results. `REPOMOD_ROOT` overrides
+the catalog's configured root for that process.
 
-## API budget
+Canonical checkout paths flatten the personal owner and retain an owner directory for other
+owners. The loader validates identifiers, checkout collisions, and resolved paths. Checkout
+path components that are symlinks are rejected. An existing checkout with a different
+GitHub origin is never repointed.
 
-Keep GitHub API calls minimal. Batch them or look them up once per run, not once per repo.
+`discover` is read-only and does not define ownership. `add` changes the catalog. `sync` acts
+on catalogued repositories after checking current GitHub metadata. An archived or missing
+repository is never cloned. A clone starts in a sibling staging directory and moves into its
+canonical path only after its origin is validated.
 
-`--apply` searches for existing PRs on the fix branch once before the fixes, then once more
-after every fix and before any push. The second snapshot overrides the first per repo. A
-repo only the first search saw keeps that PR, and a repo in neither is still pushed. It
-then makes at most one `gh pr create` per new repo, which also sets reviewers and returns
-the URL. Repos that only need a push, or whose PR is already merged or closed, cost no
-API calls.
-`tests/test_apply_gh_calls.py` asserts the exact calls. Keep it passing when you touch the PR
-path.
+## Synchronization and status
 
-## Node ids
+`git.py` owns every Git subprocess. Sync fetches one remote default branch without tags. It
+fast-forwards only a clean checkout already on that branch and only when Git proves ancestry.
+Shallow histories deepen in bounded steps when ancestry is uncertain. A checkout that is
+dirty, detached, on another branch, ahead, or divergent keeps its checked-out files. Fetch can
+update the matching remote-tracking ref.
 
-A PR's GraphQL node id never changes, so `status.yaml` caches it as `pr_node_id`. It comes
-free from the search for existing PRs. New PRs get one batched lookup after `--apply`. Draft
-and merged state can change, so repomod never caches them.
+Local status reads porcelain v2 with NUL delimiters and does not fetch. Ahead and behind
+counts compare the local branch with its last-fetched upstream. They are not current remote
+GitHub state.
 
-## Resumability
+GitHub metadata queries return the actual default branch and current HEAD SHA in batches.
+Status queries `Commit.statusCheckRollup` for that exact SHA and follows every context page.
+Incomplete results are unknown. An empty rollup is no checks. A cache entry is valid only for
+its repository and SHA, and expires after five minutes. Offline status reads the cache without
+calling `gh`.
 
-`^C` raises `ShutdownError` through `interrupt.wait()`, which uses `Event.wait()` so sleeping
-threads wake instantly. The handler only sets that event. The worker loop prints
-`Gracefully exiting, please wait...` once when it notices. A second `^C` restores the
-default SIGINT action and re-raises it, which terminates the process. In-flight workers
-finish their current network call. Incomplete repos are marked `interrupted`, and the next
-run picks them up.
+## Policy
 
-Interrupted repos must not increment done counters, so never call `pd.finish()` for them.
-`execute_fix_on_repo` writes the status before `pd.finish()`, so a `^C` between the two can't
-overwrite a recorded result with `interrupted`.
+Rules are ordinary functions registered in `rules/__init__.py`. Each rule has a stable ID,
+description, required tags, pure check, optional file-plan fixer, commit subject, and allowed
+path patterns. Global rules have no required tags. Multiple `--tag` filters select a union of
+rules and repositories.
 
-## Idempotency
+Finding order is stable. A finding names the repository, rule, file, message, severity, and
+whether the deterministic part can be repaired. Rules do not run project builds or install
+dependencies. `status` skips external checks and topic reads. Full `lint` reports unavailable
+required tools as operational failures.
 
-`compute_fix_hash` hashes `main.py`, the parsed config without `skip`, and the source of
-every module the fix imports from its directory or the `repomod` package, following those
-imports and stopping at the standard library and third-party packages. `legacy_fix_hash`
-is the raw bytes of `main.py` and `config.yaml`. It is accepted only when that import set
-is empty, because otherwise it hides a change to an imported module. The previous
-import-blind hash is not accepted, so rows recorded under it run once.
+GitHub Actions use approved full commit SHAs from `actions.toml`. Version channels stay on
+their current major unless `pins refresh --allow-major` is explicit. Lint compares local files
+to this policy without resolving remote tags. Workflow fixes fail unless `actionlint` validates
+the modified files.
 
-`commit_and_push` is safe to re-run after a partial failure. It reuses an existing local
-branch, commits only when something is staged, and force-pushes the branch of an open PR.
-`--force` stays: a lease would keep reviewer
-commits and the next apply would no longer land the reviewed tree. After that push the
-status row records `pushed_sha`, the branch tip that was sent, next to `pr_url`. A merged
-or closed PR is not pushed, and the row gets no `pushed_sha`. Rows written without the
-field still load. It also refuses, before checkout or commit, when the fix branch is
-exactly the repo's default branch (`Main` is not `main`): force-pushing that name would
-rewrite it. That repo is recorded `failed` and the rest of the run continues.
+`release-policy.toml` records the ecosystem contracts used by release rules. A deterministic
+metadata omission can be repaired. A dynamic version source, conflicting package-manager
+metadata, or ambiguous release path needs a human decision and is reported without rewriting
+release configuration.
 
-`--apply` pushes the stored patch because a second fix run can resolve differently.
-The merged-or-closed check is the opening search overlaid with that second search, which
-returns at most 1000 hits. A hit in the second search wins. A PR that changes state after
-the refresh returns and before `git push` can still be force-pushed.
+## Repair transaction
 
-## Repo sync
+Fix runs only on a clean canonical checkout at the current remote default branch. A per-repo
+lock serializes repomod sync, fix, and push operations. Each run creates one detached worktree
+at the canonical checkout's exact starting HEAD.
 
-`sync.py` fetches the REST search pages in parallel. It then requests commit history in
-batched GraphQL queries, only for repos the activity filter can't decide from `pushed_at` or
-from the `last_human_commit` memo kept in `repos.yaml`. Repos with no non-bot default-branch
-commit within `MAX_IDLE` (1 year) are dropped to cut PR noise. Names in
-`repos-disabled.yaml` are removed before that filter. Sync does not rewrite that file.
+Fixers run sequentially. A fixer returns the complete file contents it intends to change.
+repomod rejects paths outside its declared scope and rejects symlinks along a changed path.
+Validation and a post-check must pass before the fixer gets a commit. Each fixer gets one
+commit with its own subject. A no-op gets no commit. A failed fixer resets only its disposable
+worktree to the previous successful commit, then later rules continue.
 
-## Workflow validation
+After all rules run, repomod fast-forwards the canonical checkout only if it remains clean,
+attached to the expected branch, and at its starting HEAD. If the checkout changed, repomod
+leaves it alone and retains the successful commits under a recovery ref. Worktrees are removed
+on normal completion. If removal fails, repomod reports the path.
 
-`lint.py` runs actionlint on changed workflow files before a diff is shown or pushed.
-It stashes the edits to measure the baseline, and only findings the fix introduced fail
-the repo. `preflight` requires `actionlint` for every command that runs a fix.
+Push checks the last-fetched upstream and then lets Git enforce a normal fast-forward update.
+A race with a remote update or branch protection leaves local commits untouched and reports
+the push failure.
+
+## GitHub writes
+
+Only `topics apply`, `pins refresh`, and explicit push commands write outside the local
+checkout. `topics apply` replaces the complete topic set with catalog tags. `pins refresh`
+only reads upstream refs and writes the local approved-pin file. `fix --push` runs the same
+non-force push used by `repomod push` after local commits are published safely.

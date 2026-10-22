@@ -1,125 +1,153 @@
 # repomod
 
-repomod applies one fix across many GitHub repos and opens a draft PR in each repo the fix
-changes. It targets every non-archived repo owned by `joshuarli` and `laputa-systems`, forks
-included, that has a non-bot commit on the default branch within the last year.
+repomod keeps local checkouts of the repositories in `catalog.toml`, reports Git and
+GitHub Actions status, checks tag-selected policy, and repairs safe violations with local
+commits.
 
-## Install
-
-You need Python 3.14, [`uv`](https://docs.astral.sh/uv/),
-[`actionlint`](https://github.com/rhysd/actionlint), and the GitHub CLI `gh`, logged in with
-`gh auth login`.
-
+```sh
+repomod discover
+repomod sync
+repomod status
+repomod lint
+repomod fix
+repomod push
 ```
+
+Install Python 3.14, [`uv`](https://docs.astral.sh/uv/), Git, `gh`, and `actionlint`.
+Authenticate `gh` with `gh auth login`, then run:
+
+```sh
 uv sync
+uv run repomod --help
 ```
 
-Run commands with `uv run repomod`, or allow `.envrc` with direnv to put `repomod` on your
-`PATH`.
+## Catalog and checkouts
 
-## Run a fix
+`catalog.toml` is the source of truth for managed repositories and policy tags. Its workspace
+root defaults to `~/repos`. Set `REPOMOD_ROOT` to use another absolute path:
 
-A fix is a directory under `src/repomod/fixes/`. Pass its name, or a path to a fix directory.
-Without `--apply`, every command is a dry run that pushes nothing.
-
-```
-repomod sync                       # refresh repos.yaml only, run no fix
-repomod pin-gha --plan             # list repos that would run, without cloning
-repomod pin-gha                    # dry run: clone, run the fix, print colored diffs
-repomod pin-gha --repos a/x,a/y    # only these repos
-repomod pin-gha --limit 5          # only the first 5 repos
-repomod pin-gha --apply            # push branches and open draft PRs
-repomod pin-gha --status           # summarize status.yaml
-repomod pin-gha --prs              # merged, open, and closed PRs on the fix branch
-repomod pin-gha --diffs            # print the stored dry-run diff of every pending repo
-repomod pin-gha --undraft          # list the fix's draft PRs. Add --apply to mark them ready.
-repomod pin-gha --refresh          # re-sync repos.yaml even if the cache is fresh
-repomod pin-gha --workers 1        # run one repo at a time, for debugging
+```sh
+REPOMOD_ROOT="$HOME/work/repos" repomod list
 ```
 
-repomod reuses `repos.yaml` when it is less than 24 hours old.
+Personal repositories owned by `joshuarli` use `$REPOMOD_ROOT/REPO`. Other owners use
+`$REPOMOD_ROOT/OWNER/REPO`. `repomod path OWNER/REPO` prints the canonical path. A bare
+repository name works only when it is unique. For example, `fd` needs its owner.
 
-Go in stages: `--plan`, then `--limit 5`, then a full dry run, then `--apply`. Every PR opens
-as a draft. Run `--undraft --apply` after you review the rollout.
+`repomod discover` lists active repositories owned by `joshuarli` and `laputa-systems` that
+are missing from the catalog. It includes forks. Discovery never edits the catalog or clones
+repositories. Add a repository and its primary tag explicitly:
 
-Press `^C` to stop a run. Repos in progress are marked `interrupted`, and the next run picks
-up where this one stopped. Press `^C` again to terminate immediately.
-
-## Output
-
-repomod writes these files next to each fix:
-
-- `status.yaml`: each repo's status, the fix hash it ran with, the base commit `base_sha`,
-  the PR URL, and `pushed_sha` (the commit last force-pushed, only after a push).
-- `patches-{hash}/`: each repo's proposed diff.
-- `logs-{hash}/`: details for repos with status `failed`.
-- `repos/`: the clones.
-
-At the repo root, `repomod sync` writes `repos.yaml` (the target repos). Don't edit it by
-hand.
-
-`repos-disabled.yaml` is the list of repos you ignore for every fix. `sync` leaves a
-listed repo out of `repos.yaml`. A run also skips that repo when an older `repos.yaml` still
-names it. Edit `repos-disabled.yaml` by hand.
-
-## Re-running a fix
-
-Each status entry records the fix hash: SHA-256 of `main.py`, of `config.yaml` without its
-`skip` list, and of every module that file imports from the fix directory or the `repomod`
-package, including what those modules import. The standard library and third-party packages
-are not part of the hash. YAML comments and formatting don't affect it. When you edit a fix
-or one of those modules, the hash changes and every repo runs again. Editing `skip` or
-comments keeps saved dry-run results. A hash recorded before imported modules were included
-is not current, so those repos run once more.
-
-With a matching hash, repos with status `pr_created`, `pr_merged`, `pr_closed`, or `skipped`
-are not run again. A dry run also skips `pending` repos. Repos with status `failed` or
-`interrupted` always run again.
-
-`--apply` pushes the stored diff from `patches-{hash}/` when HEAD is still `base_sha`.
-If HEAD moved, or the diff is missing or does not apply, repomod re-runs the fix.
-A push to an open PR is a force-push: commits added on that branch after the PR opened
-are replaced. `pushed_sha` is the branch tip that push sent. repomod never pushes when
-that PR is merged or closed, and then it does not write `pushed_sha`. Branch names are
-compared exactly (`Main` is not `main`). To roll out again, change `branch` in
-`config.yaml`. Older rows without `pushed_sha` still load.
-
-## Write a fix
-
-Create `src/repomod/fixes/<name>/` with `config.yaml` and `main.py`. repomod handles
-cloning, diffing, committing, pushing, and PRs. Model a new fix on
-`src/repomod/fixes/macos-15/` (a regex rewrite) or `src/repomod/fixes/pin-gha/` (uses the
-network).
-
-### `config.yaml`
-
-| Key              | Required | Meaning                                                                                                    |
-| ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `branch`         | yes      | Branch pushed to each repo.                                                                                |
-| `pr_title`       | yes      | PR title and commit message.                                                                               |
-| `pr_body`        | yes      | PR body. repomod appends a "Generated by repomod" footer, so don't add your own.                           |
-| `reviewers`      | no       | Reviewers requested on the PR.                                                                            |
-| `sparse_paths`   | no       | Check out only these paths, for example `[.github]`.                                                       |
-| `skip`           | no       | Repos to skip. Give each entry a YAML comment that says why.                                               |
-
-Other keys are passed through to your fix in `config`.
-
-### `main.py`
-
-```python
-def accept_repo(repo: dict, config: dict) -> bool:
-    """repo keys: name, default_branch, topics. config: parsed config.yaml."""
-
-
-def run(repo: Path, config: dict) -> bool:
-    """Modify files in the cloned repo. Return True if changes were made."""
+```sh
+repomod add OWNER/REPO --tag tool
+repomod list
 ```
 
-`run` must be idempotent: a second run changes nothing.
+`repomod sync` processes catalog entries only. It checks GitHub's current archive and default
+branch metadata before cloning. It reuses valid checkouts and fetches the current default
+branch. Git fast-forwards only a clean checkout on that branch when ancestry proves the move
+is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their checked-out
+files and local commits. Fetch may update the remote-tracking ref. A failed repository does
+not stop other entries.
 
-You can also define `validate(repo: Path, config: dict) -> list[str]`. It runs after `run`
-makes changes. Any returned error fails the repo with status `failed` and details in
-`logs-{hash}/`, and repomod neither shows nor pushes the diff.
+Use `repomod sync --dry-run` to inspect local clone or fetch plans. It makes no network calls.
 
-repomod always runs `actionlint` on changed workflow files. Only errors the fix introduced fail
-the repo.
+## Tags and policy
+
+Every repository has at least one primary tag: `tool`, `library`, `app`, `extension`,
+`system`, `build`, `config`, or `data`. A repository can have multiple primary tags when it
+serves more than one role. The optional `crates-io`, `pypi`, and `npm` tags activate publishing
+rules. These tags select policy. They do not describe language or implementation details.
+
+Global rules check GitHub Action pins, approved version comments, workflow syntax, topics, and
+basic repository integrity. Primary tags activate semantic template checks. Publishing tags
+activate their ecosystem checks. `--tag` filters use union semantics.
+
+```sh
+repomod rules
+repomod lint --tag tool
+repomod lint --repo laputa-systems/hi-lite
+repomod lint --rule gha-pin --json
+```
+
+Lint reports structured findings with repository, rule, file, severity, and fixability.
+Policy violations exit with code 1. Operational failures, such as unavailable `actionlint` or
+GitHub access, exit with code 2. `status` runs only fast local checks. It does not build
+projects or contact GitHub to compare topics.
+
+## Git and CI status
+
+`repomod status` shows every catalog entry, its local checkout state, GitHub's actual default
+branch, the exact current default-branch commit, CI, and quick local lint count. Local ahead
+and behind counts use the last-fetched tracking ref and are labelled as such.
+
+CI uses GitHub GraphQL `Commit.statusCheckRollup` for that exact remote commit. The result
+distinguishes passed, failed, pending, cancelled, skipped, neutral, no checks, unknown, and
+stale data. Failed checks are never hidden by an older successful run. `--details` prints
+failing check names and GitHub URLs.
+
+CI results are cached for five minutes under the user cache directory and keyed by repository
+and commit SHA. `--refresh` bypasses the cache. `--offline` makes no network calls. It labels
+cached results with their age and source SHA; without a cache it reports unknown.
+
+```sh
+repomod status --offline
+repomod status --dirty
+repomod status --failed
+repomod status --repo joshuarli/ish --json
+```
+
+## Topics
+
+Catalog tags are the complete desired GitHub topic set. `topics diff` reports additions and
+removals. `topics apply` replaces the whole set only when it differs:
+
+```sh
+repomod topics diff
+repomod topics diff --repo laputa-systems/srv
+repomod topics apply --repo laputa-systems/srv
+```
+
+Only `topics apply` writes GitHub topics. The catalog entry for `laputa-systems/srv` contains
+only `tool`.
+
+## Fix and push
+
+`repomod fix` selects applicable fixers and runs them in deterministic rule order. It requires
+a clean checkout on the current GitHub default branch. Each repository gets one disposable
+detached Git worktree at its starting commit. A fixer returns an explicit file plan, may change
+only its declared paths, runs validation, and must clear its fixable findings.
+
+Each successful fixer that changes files gets its own local commit. A compliant rule creates
+no commit. A failed fixer loses only its uncommitted changes in the disposable worktree, and
+later independent fixers still run. Successful commits fast-forward the canonical checkout
+when it remains clean at its starting HEAD. If the checkout changes concurrently, repomod
+keeps the commits under a `refs/repomod/recovery/...` ref and reports that ref.
+
+```sh
+repomod fix --tag tool
+repomod fix --repo joshuarli/ish --rule gha-pin
+repomod fix --repo joshuarli/ish --push
+repomod push --tag library
+```
+
+Fixing commits locally by default. `--push` and `repomod push` use ordinary fast-forward Git
+pushes and never force-update a remote. A rejected push leaves local commits intact. Pushes
+require a clean checkout whose current branch tracks the same `origin` branch.
+
+`gha-pin` and `gha-version` use the verified versions and commit SHAs in `actions.toml`.
+`repomod pins refresh` resolves newer tags inside each approved major channel. Use
+`--allow-major` only when you intend to change major channels. Workflow fixes require
+`actionlint` before repomod records a successful commit.
+
+## Policy development
+
+Add a normal Python rule in `src/repomod/rules/` and register it in `rules/__init__.py`.
+Checks return `Finding` values and do not mutate repositories. A fixer returns a deterministic
+`FixPlan`, declares allowed paths, and has a rule-specific commit subject. See
+[policy development](docs/policy-development.md) for release contracts and examples.
+
+## Existing generated files
+
+The old `repos.yaml`, `repos-disabled.yaml`, `repos/`, `status.yaml`, `patches-*`, and `logs-*`
+data are not read or written by the new commands. repomod leaves any existing copies in place.
