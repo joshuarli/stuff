@@ -5,13 +5,14 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Barrier
+from typing import Any, cast
 
 import pytest
 
 from repomod.catalog import Catalog, load_catalog
 from repomod.fix import FixOutcome, fix_repository, push_repository
 from repomod.git import head, status
-from repomod.types import Finding, Repository, Rule
+from repomod.types import Finding, Repository, Rule, TagPredicate
 
 
 def git(
@@ -100,7 +101,7 @@ def file_rule(
     return Rule(
         rule_id,
         f"Repair {filename}",
-        frozenset(),
+        TagPredicate(),
         check,
         fix,
         f"chore(repomod): apply {rule_id} policy",
@@ -173,6 +174,58 @@ def test_failed_middle_fixer_is_discarded_while_later_success_commits(
     assert len(subjects(path, base)) == 2
 
 
+def test_safe_commit_with_remaining_manual_violation_returns_partial_failure(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+
+    def check(root: Path, repo: Repository) -> list[Finding]:
+        findings = []
+        if not (root / "safe.txt").is_file():
+            findings.append(Finding(str(repo.id), "partial", "safe.txt", "safe fix needed", fixable=True))
+        findings.append(Finding(str(repo.id), "partial", "manual.txt", "owner review needed"))
+        return findings
+
+    rule = Rule(
+        "partial",
+        "Apply safe part of a mixed policy",
+        TagPredicate(),
+        check,
+        lambda _root, _repo: {"safe.txt": "safe\n"},
+        "chore(repomod): apply safe partial policy",
+        ("safe.txt",),
+    )
+
+    outcome = fix_repository(catalog, repository, (rule,), "main")
+
+    assert [rule_id for rule_id, _ in outcome.commits] == ["partial"]
+    assert outcome.failures == [("partial", "policy violations need manual review: manual.txt: owner review needed")]
+    assert (path / "safe.txt").read_text(encoding="utf-8") == "safe\n"
+    assert len(subjects(path, base)) == 1
+
+
+def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    workflow = ".github/workflows/ci.yml"
+    content = (
+        "name: ci\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - uses: actions/checkout@main\n"
+    )
+
+    outcome = fix_repository(
+        catalog, repository, (file_rule("workflow", workflow, content),), "main"
+    )
+
+    assert outcome.commits == []
+    assert any("gha-pin" in message for _, message in outcome.failures), outcome.failures
+    assert not (path / workflow).exists()
+    assert head(path) == base
+
+
 def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(
     tmp_path: Path,
     git_environment: None,
@@ -200,6 +253,32 @@ def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(
     assert status(path, repository.id).dirty
 
 
+def test_concurrent_canonical_commit_is_never_overwritten(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+
+    def concurrent_commit(root: Path, repo: Repository) -> None:
+        (path / "concurrent.txt").write_text("user commit\n", encoding="utf-8")
+        git("add", "concurrent.txt", cwd=path)
+        git("commit", "-m", "user commit", cwd=path)
+
+    outcome = fix_repository(
+        catalog,
+        repository,
+        (file_rule("first", "first.txt", "first\n", on_fix=concurrent_commit),),
+        "main",
+    )
+
+    assert outcome.recovery_ref is not None
+    assert outcome.failures[0][0] == "publish"
+    assert head(path) != base
+    assert (path / "concurrent.txt").read_text(encoding="utf-8") == "user commit\n"
+    assert not (path / "first.txt").exists()
+    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == "first\n"
+
+
 def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
     tmp_path: Path,
     git_environment: None,
@@ -223,7 +302,7 @@ def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
     escaped = Rule(
         "escape",
         "Reject paths outside the worktree",
-        frozenset(),
+        TagPredicate(),
         lambda root, repo: [
             Finding(str(repo.id), "escape", "../outside", "unsafe", fixable=True)
         ],
@@ -235,6 +314,89 @@ def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
     assert escape_outcome.failures
     assert not (path.parent / "outside").exists()
     assert head(path) == base
+
+
+def test_commit_hook_cannot_change_the_staged_tree(tmp_path: Path, git_environment: None) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    hooks = Path(git("rev-parse", "--git-path", "hooks", cwd=path).stdout.strip())
+    if not hooks.is_absolute():
+        hooks = path / hooks
+    hook = hooks / "pre-commit"
+    hook.write_text(
+        "#!/bin/sh\nprintf 'hook changed content\\n' > README.md\ngit add README.md\n",
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+
+    outcome = fix_repository(
+        catalog, repository, (file_rule("first", "first.txt", "first\n"),), "main"
+    )
+
+    assert outcome.commits == []
+    assert any("staged commit" in message for _, message in outcome.failures)
+    assert head(path) == base
+    assert (path / "README.md").read_text(encoding="utf-8") == "base\n"
+    assert not (path / "first.txt").exists()
+
+
+def test_invalid_plan_and_symlink_target_are_rejected(tmp_path: Path, git_environment: None) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    invalid = Rule(
+        "invalid-plan",
+        "Reject invalid plans",
+        TagPredicate(),
+        lambda root, repo: [Finding(str(repo.id), "invalid-plan", "README.md", "invalid", fixable=True)],
+        lambda root, repo: cast(Any, {"README.md": None}),
+        "chore(repomod): reject invalid fixer plan",
+        ("README.md",),
+    )
+
+    invalid_outcome = fix_repository(catalog, repository, (invalid,), "main")
+
+    assert invalid_outcome.commits == []
+    assert invalid_outcome.failures
+    assert head(path) == base
+
+    link = path / "linked.txt"
+    link.symlink_to("README.md")
+    git("add", "linked.txt", cwd=path)
+    git("commit", "-m", "add symlink", cwd=path)
+    symlink_rule = file_rule("symlink", "linked.txt", "replacement\n")
+
+    symlink_outcome = fix_repository(catalog, repository, (symlink_rule,), "main")
+
+    assert symlink_outcome.commits == []
+    assert any("symlink" in message for _, message in symlink_outcome.failures)
+    assert link.is_symlink()
+    assert link.read_text(encoding="utf-8") == "base\n"
+
+
+def test_interruption_preserves_completed_commit_in_recovery_ref(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+
+    def interrupt(root: Path, repo: Repository) -> None:
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        fix_repository(
+            catalog,
+            repository,
+            (
+                file_rule("first", "first.txt", "first\n"),
+                file_rule("interrupt", "interrupt.txt", "interrupt\n", on_fix=interrupt),
+            ),
+            "main",
+        )
+
+    refs = git("for-each-ref", "--format=%(refname)", "refs/repomod/recovery", cwd=path).stdout.splitlines()
+    assert len(refs) == 1
+    assert git("show", f"{refs[0]}:first.txt", cwd=path).stdout == "first\n"
+    assert head(path) == base
+    assert not (path / "first.txt").exists()
+    assert len(git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")) == 2
 
 
 def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(

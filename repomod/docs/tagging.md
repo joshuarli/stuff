@@ -27,9 +27,9 @@ Public publication is not required for `tool` or `library`.
 `rust`, `typescript`, `python`, `go`, `swift`, `c`, `cpp`, `javascript`,
 `zig`, `shell`, and `xsh`. Multiple languages are normal. Do not infer
 language tags from vendored code, generated bindings, dependency toolchains, or
-a lone test fixture. A language tag is useful for fleet policy; manifest and
-file-based detection must still identify applicable basic checks even when a tag
-is deliberately omitted.
+a lone test fixture. Manifest and file-based detection activates language checks even when a
+tag is deliberately omitted. A language tag with no corresponding project manifest remains a
+catalog/policy mismatch.
 
 **Publishing** tags `crates-io`, `pypi`, `npm` opt into *maintained package
 release conventions*. Merely consuming, building, or mirroring a package in
@@ -55,8 +55,9 @@ Representative binary-prerelease tools: `joshuarli/ish`, `joshuarli/gh`,
 prerelease machinery to distribute Python wheels (`dist/*.whl`) and remains
 `["library", "pypi", "python"]`. A legitimate binary-release classifier must
 check the release intent and artifact type, and report uncertain cases instead
-of silently retagging repositories. The current catalog loader validates tag
-vocabulary only; enforcing the binary workflow contract requires a policy rule.
+of silently retagging repositories. `binary-release-tags` reports drift from
+the exact role set and emits a warning when a prerelease workflow does not match
+the supported native-artifact contract.
 
 ## Specific examples
 
@@ -79,11 +80,12 @@ not either. A release rule is gated by an explicit publishing tag, not
 repositories matching the requested tags; this user filter is distinct
 from the predicate determining whether an individual policy rule applies.
 
-As of the initial classification update, `Rule.required_tags` uses
-any-of/OR semantics. Introduce explicit conjunctive predicates for new
-multi-dimensional policy checks rather than pretending that existing
-any-of matching means both conditions. Keep existing single-tag rules
-working while making that correction.
+Rules use a small `TagPredicate`: `all_of` requires every listed tag, while
+`any_of` requires at least one listed tag. A Rust library rule therefore uses
+`all_of={"library", "rust"}`. An empty predicate applies globally. The CLI's
+`--tag` filters separately select repositories by union, so `--tag tool
+--tag app` includes repositories carrying either tag without changing which
+rules apply to each selected repository.
 
 Do not alter commented-out catalog entries, automatically replace GitHub
 topics, or rewrite a role based only on the presence of a workflow file.

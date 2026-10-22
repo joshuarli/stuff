@@ -57,8 +57,10 @@ Use `repomod sync --dry-run` to inspect local clone or fetch plans. It makes no 
 Every repository has at least one **role** tag: `tool`, `library`, `app`, `extension`,
 `system`, `build`, `config`, or `data`. Multiple roles are legitimate when a repository
 contains independently useful products. Curated **language** tags (`rust`, `typescript`,
-`python`, etc.) describe substantial maintained source and may select ecosystem rules; the
-`crates-io`, `pypi`, and `npm` tags explicitly opt into package-publishing policy.
+`python`, etc.) describe substantial maintained source. Manifest detection also activates
+lightweight language checks when a language tag is intentionally absent; a language tag with
+no corresponding project manifest is reported. The `crates-io`, `pypi`, and `npm` tags
+explicitly opt into package-publishing policy.
 
 Repositories with the standard **binary GitHub prerelease** workflow use exactly `tool`
 as their catalog topic set: the workflow's distributed product is an executable, irrespective
@@ -142,10 +144,12 @@ Fixing commits locally by default. `--push` and `repomod push` use ordinary fast
 pushes and never force-update a remote. A rejected push leaves local commits intact. Pushes
 require a clean checkout whose current branch tracks the same `origin` branch.
 
-`gha-pin` and `gha-version` use the verified versions and commit SHAs in `actions.toml`.
-`repomod pins refresh` resolves newer tags inside each approved major channel. Use
-`--allow-major` only when you intend to change major channels. Workflow fixes require
-`actionlint` before repomod records a successful commit.
+`gha-pin` and `gha-version` use verified versions and commit SHAs in `actions.toml`. A stale
+pin in its approved major channel can be repaired. A workflow that declares a different major
+is reported for review and is never rewritten across that boundary. `repomod pins refresh`
+resolves newer tags inside each approved major channel. Use `--allow-major` only when you
+intend to change the centrally approved channel. Workflow fixes require `actionlint` before
+repomod records a successful commit.
 
 ## Policy development
 

@@ -10,11 +10,15 @@ from pathlib import Path
 
 from repomod.catalog import atomic_write
 from repomod.github import action_tags, resolve_tag
-from repomod.types import Finding, Repository, Rule
+from repomod.rules.workflows import workflow_files
+from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _USES = re.compile(r"^(\s*(?:-\s*)?uses\s*:\s*)(.*?)(\r?\n)?$")
 _SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 _VERSION = re.compile(r"v([0-9]+)\.([0-9]+)\.([0-9]+)\Z")
+_VERSION_CHANNEL = re.compile(r"v([0-9]+)\Z")
+_VERSION_REFERENCE = re.compile(r"v?([0-9]+)(?:\.[0-9]+){0,2}\Z")
+_VERSION_COMMENT = re.compile(r"(?<![A-Za-z0-9])(v[0-9]+(?:\.[0-9]+){0,2})(?![A-Za-z0-9])")
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +26,13 @@ class Pin:
     channel: str
     version: str
     sha: str
+
+    @property
+    def major(self) -> int:
+        match = _VERSION_CHANNEL.fullmatch(self.channel)
+        if match is None:
+            raise ValueError(f"invalid approved action channel {self.channel}")
+        return int(match.group(1))
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,13 +70,16 @@ def load_pins(path: Path | None = None) -> dict[str, Pin]:
         channel = details.get("channel")
         version = details.get("version")
         sha = details.get("sha")
+        channel_match = _VERSION_CHANNEL.fullmatch(channel) if isinstance(channel, str) else None
+        version_match = _VERSION.fullmatch(version) if isinstance(version, str) else None
         if (
             not isinstance(channel, str)
             or not isinstance(version, str)
             or not isinstance(sha, str)
             or not _SHA.fullmatch(sha)
-            or not version.startswith(channel)
-            or _VERSION.fullmatch(version) is None
+            or channel_match is None
+            or version_match is None
+            or channel_match.group(1) != version_match.group(1)
         ):
             raise ValueError(f"invalid approved pin for {action}")
         pins[action.casefold()] = Pin(channel, version, sha.lower())
@@ -90,7 +104,16 @@ def refresh_pins(path: Path | None = None, *, allow_major: bool = False) -> bool
                 candidates.append((parts, tag))
         if not candidates:
             raise ValueError(f"GitHub did not report a stable version for {action} in {channel}")
-        _, version = max(candidates)
+        selected_version, version = max(candidates)
+        current_match = _VERSION.fullmatch(pin.version)
+        if current_match is None:
+            raise ValueError(f"invalid current approved version for {action}: {pin.version}")
+        current_version = tuple(int(part) for part in current_match.groups())
+        if selected_version < current_version:
+            raise ValueError(
+                f"GitHub reported only older versions for {action}; refusing to replace "
+                f"{pin.version} with {version}"
+            )
         if allow_major:
             channel = version.split(".", 1)[0]
         updated[action] = Pin(channel, version, resolve_tag(action, version))
@@ -219,29 +242,8 @@ def _scan_file(path: Path, repository_root: Path) -> list[ActionUse]:
     return uses
 
 
-def _workflow_files(root: Path) -> tuple[list[Path], list[tuple[str, str]]]:
-    github = root / ".github"
-    workflows = root / ".github" / "workflows"
-    if github.is_symlink():
-        return [], [(".github", "workflow parent directory is a symlink")]
-    if not workflows.exists() and not workflows.is_symlink():
-        return [], []
-    if workflows.is_symlink() or not workflows.is_dir():
-        return [], [(".github/workflows", "workflow directory is not a real directory")]
-    files: list[Path] = []
-    problems: list[tuple[str, str]] = []
-    for child in sorted(workflows.iterdir(), key=lambda item: item.name.casefold()):
-        if child.suffix.casefold() not in {".yml", ".yaml"}:
-            continue
-        if child.is_symlink():
-            problems.append((child.relative_to(root).as_posix(), "workflow symlinks are not followed"))
-        elif child.is_file():
-            files.append(child)
-    return files, problems
-
-
 def _uses(root: Path) -> tuple[list[ActionUse], list[tuple[str, str]]]:
-    files, problems = _workflow_files(root)
+    files, problems = workflow_files(root)
     entries: list[ActionUse] = []
     for path in files:
         try:
@@ -258,6 +260,53 @@ def _replacement(use: ActionUse, value: str, comment: str | None = None) -> str:
         tail = f"{use.quote}{escaped}{use.quote}"
     suffix = use.comment if comment is None else comment
     return f"{use.prefix}{tail}{(' ' + suffix) if suffix else ''}{use.newline}"
+
+
+def _comment_major(use: ActionUse) -> int | None:
+    comments = list(_VERSION_COMMENT.finditer(use.comment))
+    if len(comments) > 1:
+        return None
+    if comments:
+        match = _VERSION_REFERENCE.fullmatch(comments[-1].group(1))
+        if match is not None:
+            return int(match.group(1))
+    return None
+
+
+def _reference_major(use: ActionUse) -> int | None:
+    if use.reference is None or _SHA.fullmatch(use.reference) is not None:
+        return None
+    match = _VERSION_REFERENCE.fullmatch(use.reference)
+    return int(match.group(1)) if match is not None else None
+
+
+def _major_problem(use: ActionUse, pin: Pin) -> str | None:
+    if len(_VERSION_COMMENT.findall(use.comment)) > 1:
+        return "multiple version labels make the action's major version ambiguous"
+    comment_major = _comment_major(use)
+    reference_major = _reference_major(use)
+    if comment_major is not None and reference_major is not None and comment_major != reference_major:
+        return (
+            f"version comment v{comment_major} conflicts with action reference "
+            f"v{reference_major}; review the major-version change"
+        )
+    declared_major = reference_major if reference_major is not None else comment_major
+    if declared_major is not None and declared_major != pin.major:
+        return (
+            f"action major v{declared_major} differs from approved {pin.channel}; "
+            "review the major-version change before updating the workflow"
+        )
+    if use.reference is None:
+        return "action reference is missing; identify its intended major before pinning"
+    if _SHA.fullmatch(use.reference):
+        if use.reference.casefold() == pin.sha:
+            return None
+        if comment_major == pin.major:
+            return None
+        return "cannot identify the major version of this SHA; add a # vX.Y.Z comment before updating it"
+    if reference_major is not None:
+        return None
+    return "cannot resolve this action reference to an approved major; review it before updating"
 
 
 def _findings(root: Path, repository: Repository, *, version: bool) -> list[Finding]:
@@ -285,9 +334,20 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
                 )
             )
             continue
+        major_problem = _major_problem(use, pin)
+        if major_problem is not None:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    rule_id,
+                    use.path,
+                    f"line {use.line_number}: {major_problem}",
+                )
+            )
+            continue
         if version:
-            version_comment = re.search(r"#\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$", use.comment)
-            if version_comment is None or version_comment.group(1) != pin.version:
+            version_comments = list(_VERSION_COMMENT.finditer(use.comment))
+            if not version_comments or version_comments[-1].group(1) != pin.version:
                 findings.append(
                     Finding(
                         str(repository.id),
@@ -325,25 +385,19 @@ def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]
         lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
         for use in entries:
             pin = pins.get(use.action or "")
-            if pin is None or use.error is not None:
+            if pin is None or use.error is not None or _major_problem(use, pin) is not None:
                 continue
             if version:
-                version_comment = re.search(
-                    r"#\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$", use.comment
-                )
-                if version_comment is None or version_comment.group(1) != pin.version:
-                    comment = f"# {pin.version}"
-                    if use.comment and re.search(
-                        r"#\s*v[0-9]+\.[0-9]+\.[0-9]+\s*$", use.comment
-                    ):
-                        comment = (
-                            use.comment[: version_comment.start()]
-                            + f"# {pin.version}"
-                            if version_comment
-                            else comment
-                        )
-                    elif use.comment:
-                        comment = f"{use.comment} # {pin.version}"
+                version_comments = list(_VERSION_COMMENT.finditer(use.comment))
+                if not version_comments or version_comments[-1].group(1) != pin.version:
+                    comment = use.comment
+                    if version_comments:
+                        match = version_comments[-1]
+                        comment = comment[: match.start(1)] + pin.version + comment[match.end(1) :]
+                    elif comment:
+                        comment = f"{comment} # {pin.version}"
+                    else:
+                        comment = f"# {pin.version}"
                     lines[use.line_number - 1] = _replacement(use, use.value, comment)
             elif use.reference is None or _SHA.fullmatch(use.reference) is None or use.reference.casefold() != pin.sha:
                 value = f"{use.action}@{pin.sha}"
@@ -392,7 +446,7 @@ def _validate_workflows(
 
 
 def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
-    files, problems = _workflow_files(root)
+    files, problems = workflow_files(root)
     findings = [Finding(str(repository.id), "gha-syntax", path, message) for path, message in problems]
     if not files:
         return findings
@@ -454,7 +508,7 @@ def action_rules() -> tuple[Rule, ...]:
         Rule(
             "gha-pin",
             "Pin external GitHub Actions to approved full commit SHAs",
-            frozenset(),
+            TagPredicate(),
             lambda root, repo: _findings(root, repo, version=False),
             lambda root, repo: _fix(root, repo, version=False),
             "chore(repomod): pin github actions",
@@ -464,7 +518,7 @@ def action_rules() -> tuple[Rule, ...]:
         Rule(
             "gha-syntax",
             "Validate GitHub workflow syntax with actionlint",
-            frozenset(),
+            TagPredicate(),
             _syntax_findings,
             None,
             None,
@@ -473,7 +527,7 @@ def action_rules() -> tuple[Rule, ...]:
         Rule(
             "gha-version",
             "Keep GitHub Action version comments aligned with approved pins",
-            frozenset(),
+            TagPredicate(),
             lambda root, repo: _findings(root, repo, version=True),
             lambda root, repo: _fix(root, repo, version=True),
             "chore(repomod): update github action versions",

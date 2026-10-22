@@ -11,7 +11,7 @@ from repomod.catalog import load_catalog
 from repomod.cli import _discover, _fix, _status
 from repomod.fix import FixOutcome
 from repomod.policy import filter_repositories, lint_repositories, selected_rules
-from repomod.types import CheckResult, RemoteRepository, RepoId, Repository
+from repomod.types import CheckResult, RemoteRepository, RepoId, Repository, TagPredicate
 
 
 def repo(name: str = "tool", tags: tuple[str, ...] = ("tool",)) -> Repository:
@@ -380,20 +380,22 @@ def test_topics_noop_and_permission_errors_are_reported_without_stopping_others(
     assert results[1][1] is False
 
 
-def test_tag_filters_are_union_and_global_rules_always_apply() -> None:
-    tool_ids = {rule.id for rule in selected_rules(tags=("tool",))}
-    library_ids = {rule.id for rule in selected_rules(tags=("library",))}
-    crates_ids = {rule.id for rule in selected_rules(tags=("crates-io",))}
-    npm_ids = {rule.id for rule in selected_rules(tags=("npm",))}
+def test_rule_selection_is_independent_of_repository_tag_filters() -> None:
+    rule_ids = {rule.id for rule in selected_rules()}
 
-    assert {"gha-pin", "repo-integrity", "topics"} <= tool_ids
-    assert "repo-template" in tool_ids
-    assert "cargo-release" not in tool_ids
-    assert "repo-template" in library_ids
-    assert "cargo-release" not in library_ids
-    assert "cargo-release" in crates_ids
-    assert "npm-release" not in crates_ids
-    assert "npm-release" in npm_ids
+    assert {"gha-pin", "repo-integrity", "topics", "repo-template"} <= rule_ids
+    assert {"cargo-release", "python-release", "npm-release"} <= rule_ids
+
+
+def test_conjunctive_applicability_separates_role_language_and_publishing_tags() -> None:
+    rust_library = TagPredicate(all_of=frozenset({"library", "rust"}))
+
+    assert not rust_library.matches(("library",))
+    assert not rust_library.matches(("rust",))
+    assert not rust_library.matches(("crates-io",))
+    assert rust_library.matches(("library", "rust"))
+    assert rust_library.matches(("tool", "library", "rust"))
+    assert not rust_library.matches(("library", "typescript"))
 
 
 def test_language_filter_selects_repositories_independently_of_roles() -> None:

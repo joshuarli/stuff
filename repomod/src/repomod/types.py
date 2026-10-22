@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, override
@@ -66,10 +66,28 @@ class Finding:
 
 
 @dataclass(frozen=True, slots=True)
+class TagPredicate:
+    all_of: frozenset[str] = frozenset()
+    any_of: frozenset[str] = frozenset()
+
+    def matches(self, tags: Iterable[str]) -> bool:
+        values = set(tags)
+        return self.all_of <= values and (not self.any_of or bool(self.any_of & values))
+
+    def describe(self) -> str:
+        parts = []
+        if self.all_of:
+            parts.append("all " + ",".join(sorted(self.all_of)))
+        if self.any_of:
+            parts.append("any " + ",".join(sorted(self.any_of)))
+        return "; ".join(parts) or "all"
+
+
+@dataclass(frozen=True, slots=True)
 class Rule:
     id: str
     description: str
-    required_tags: frozenset[str]
+    applies_to: TagPredicate
     check: Callable[[Path, Repository], list[Finding]]
     fix: Callable[[Path, Repository], FixPlan] | None
     commit_message: str | None

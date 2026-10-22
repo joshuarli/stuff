@@ -3,12 +3,15 @@ from __future__ import annotations
 import fnmatch
 import re
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 from repomod.catalog import Catalog, CatalogError, repository_path
 from repomod.git import GitError, head, repository_lock, run_git, status
-from repomod.types import Repository, Rule
+from repomod.rules import rules as all_policy_rules
+from repomod.types import Finding, Repository, Rule
 
 
 @dataclass(slots=True)
@@ -47,7 +50,9 @@ def _validate_path(root: Path, relative: str, patterns: tuple[str, ...]) -> Path
 
 
 def _changed_paths(root: Path) -> tuple[str, ...]:
-    output = run_git(["status", "--porcelain=v1", "-z"], cwd=root).stdout
+    output = run_git(
+        ["status", "--porcelain=v1", "--untracked-files=all", "-z"], cwd=root
+    ).stdout
     paths: list[str] = []
     records = output.split("\0")
     index = 0
@@ -74,12 +79,20 @@ def _reset_failed_fixer(root: Path, start: str) -> None:
     run_git(["clean", "-fdx"], cwd=root)
 
 
-def _write_plan(root: Path, plan: dict[str, str], patterns: tuple[str, ...]) -> tuple[str, ...]:
+def _write_plan(
+    root: Path,
+    plan: Mapping[Any, Any],
+    patterns: tuple[str, ...],
+) -> tuple[str, ...]:
     changed: list[str] = []
-    for relative in sorted(plan, key=str.casefold):
+    entries = []
+    for path, content in plan.items():
+        if not isinstance(path, str) or not isinstance(content, str):
+            raise GitError("fixer returned a plan with a non-text path or file value")
+        entries.append((path, content))
+    for relative, content in sorted(entries, key=lambda entry: entry[0].casefold()):
         path = _validate_path(root, relative, patterns)
         path.parent.mkdir(parents=True, exist_ok=True)
-        content = plan[relative]
         with path.open("w", encoding="utf-8", newline="") as output:
             output.write(content)
         changed.append(relative)
@@ -93,12 +106,18 @@ def _commit_paths(root: Path, before: str, rule: Rule, paths: tuple[str, ...]) -
     staged = _staged_paths(root)
     if not staged or any(path not in paths for path in staged):
         raise GitError(f"fixer {rule.id} staged files outside its planned changes")
+    expected_tree = run_git(["write-tree"], cwd=root).stdout.strip()
     result = run_git(["commit", "-m", rule.commit_message], cwd=root, check=False)
     after = head(root)
     if result.returncode != 0:
         _reset_failed_fixer(root, before)
         detail = result.stderr.strip() or result.stdout.strip() or "git commit failed"
         raise GitError(detail)
+    parent = run_git(["rev-parse", "HEAD^"], cwd=root, check=False)
+    actual_tree = run_git(["rev-parse", "HEAD^{tree}"], cwd=root).stdout.strip()
+    if parent.returncode or parent.stdout.strip() != before or actual_tree != expected_tree:
+        _reset_failed_fixer(root, before)
+        raise GitError(f"commit hook changed the staged commit for fixer {rule.id}")
     changed = run_git(
         ["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD"],
         cwd=root,
@@ -110,17 +129,61 @@ def _commit_paths(root: Path, before: str, rule: Rule, paths: tuple[str, ...]) -
     return after
 
 
+def _policy_findings(
+    root: Path,
+    repository: Repository,
+    extra_rule: Rule,
+) -> tuple[Finding, ...]:
+    registered = {rule.id: rule for rule in all_policy_rules()}
+    registered[extra_rule.id] = extra_rule
+    findings = []
+    for rule in registered.values():
+        if rule.applies_to.matches(repository.tags):
+            findings.extend(rule.check(root, repository))
+    return tuple(findings)
+
+
+def _finding_signature(finding: Finding) -> tuple[str, str | None, str, str, str]:
+    return (
+        finding.rule,
+        finding.file,
+        finding.message,
+        finding.severity,
+        finding.kind,
+    )
+
+
+def _manual_violations(findings: tuple[Finding, ...]) -> str | None:
+    remaining = [
+        finding
+        for finding in findings
+        if finding.severity == "error" and finding.kind == "violation" and not finding.fixable
+    ]
+    if not remaining:
+        return None
+    details = "; ".join(
+        f"{finding.file or 'repository'}: {finding.message}"
+        for finding in sorted(remaining, key=lambda item: (item.file or "", item.message))
+    )
+    return "policy violations need manual review: " + details
+
+
 def _fix_one_rule(root: Path, repository: Repository, rule: Rule) -> tuple[str | None, str | None]:
     before = head(root)
     try:
         findings = rule.check(root, repository)
         actionable = tuple(finding for finding in findings if finding.fixable)
         if not actionable:
-            return None, None
+            return None, _manual_violations(tuple(findings))
         if rule.fix is None:
             return None, "rule has fixable findings but no fixer"
         if _changed_paths(root):
             return None, "disposable worktree was not clean before the fixer"
+        baseline = {
+            _finding_signature(finding)
+            for finding in _policy_findings(root, repository, rule)
+            if finding.severity == "error" and finding.kind == "violation"
+        }
         plan = rule.fix(root, repository)
         if _changed_paths(root):
             raise GitError("fixer modified files directly instead of returning an explicit file plan")
@@ -141,6 +204,19 @@ def _fix_one_rule(root: Path, repository: Repository, rule: Rule) -> tuple[str |
             errors = rule.validate(root, repository, changed)
             if errors:
                 raise GitError("; ".join(errors))
+        introduced = [
+            finding
+            for finding in _policy_findings(root, repository, rule)
+            if finding.severity == "error"
+            and finding.kind == "violation"
+            and _finding_signature(finding) not in baseline
+        ]
+        if introduced:
+            details = "; ".join(
+                f"{finding.rule}: {finding.file or 'repository'}: {finding.message}"
+                for finding in introduced
+            )
+            raise GitError("fixer introduced policy violations: " + details)
         after_findings = rule.check(root, repository)
         if any(finding.fixable for finding in after_findings):
             raise GitError("fixer postcondition failed; fixable findings remain")
@@ -148,11 +224,12 @@ def _fix_one_rule(root: Path, repository: Repository, rule: Rule) -> tuple[str |
         if _changed_paths(root):
             _reset_failed_fixer(root, before)
             raise GitError("commit hook left uncommitted changes in the disposable worktree")
-        if any(finding.fixable for finding in rule.check(root, repository)):
+        after_findings = tuple(rule.check(root, repository))
+        if any(finding.fixable for finding in after_findings):
             _reset_failed_fixer(root, before)
             raise GitError("commit hook invalidated the fixer postcondition")
-        return new_head, None
-    except (GitError, OSError, UnicodeError, ValueError, RuntimeError) as error:
+        return new_head, _manual_violations(after_findings)
+    except (GitError, OSError, UnicodeError, ValueError, RuntimeError, TypeError) as error:
         _reset_failed_fixer(root, before)
         return None, str(error)
 
@@ -242,15 +319,14 @@ def fix_repository(
             run_git(["worktree", "add", "--detach", str(worktree), start_head], cwd=canonical)
             try:
                 for rule in selected:
-                    if rule.required_tags and not (rule.required_tags & set(repository.tags)):
+                    if not rule.applies_to.matches(repository.tags):
                         continue
                     new_head, error = _fix_one_rule(worktree, repository, rule)
-                    if error is not None:
-                        outcome.failures.append((rule.id, error))
-                        continue
                     if new_head is not None:
                         run_git(["update-ref", reference, new_head], cwd=canonical)
                         outcome.commits.append((rule.id, new_head))
+                    if error is not None:
+                        outcome.failures.append((rule.id, error))
                 if outcome.commits:
                     current = status(canonical, repository.id)
                     if (

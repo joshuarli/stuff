@@ -1,7 +1,9 @@
 [cargo]
 version_fields = ["package.version", "workspace.package.version"]
 required_fields = ["name", "version", "license", "repository", "readme"]
-bump_command = "cargo set-version --package NAME VERSION"
+bump_command = "run the version-controlled Cargo release bump script after its dry run"
+bump_scripts = ["tools/bump_minor_release.sh", "scripts/bump_minor_release.sh"]
+bump_requirements = ["cargo owner", "cargo search", "cargo publish", "--dry-run", "git commit", "git tag"]
 
 [pypi]
 version_field = "project.version"

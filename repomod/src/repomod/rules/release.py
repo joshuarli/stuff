@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import glob
 import json
 import re
@@ -8,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.git import expected_origin
-from repomod.types import Finding, Repository, Rule
+from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _POLICY_PATH = Path(__file__).resolve().parents[3] / "release-policy.toml"
 
@@ -34,6 +35,12 @@ def _load_policy() -> dict[str, Any]:
         or any(not isinstance(field, str) for field in cargo["required_fields"])
         or not isinstance(cargo.get("bump_command"), str)
         or not cargo["bump_command"].strip()
+        or not isinstance(cargo.get("bump_scripts"), list)
+        or any(not isinstance(path, str) or not path for path in cargo["bump_scripts"])
+        or len(cargo["bump_scripts"]) != len(set(cargo["bump_scripts"]))
+        or not isinstance(cargo.get("bump_requirements"), list)
+        or any(not isinstance(item, str) or not item for item in cargo["bump_requirements"])
+        or len(cargo["bump_requirements"]) != len(set(cargo["bump_requirements"]))
         or not isinstance(pypi.get("version_field"), str)
         or not isinstance(pypi.get("build_backend"), str)
         or not isinstance(pypi.get("bump_command"), str)
@@ -60,6 +67,8 @@ def _load_policy() -> dict[str, Any]:
         raise RuntimeError(
             "release-policy.toml cargo.version_fields contains an unsupported source"
         )
+    if any(Path(path).is_absolute() or ".." in Path(path).parts for path in cargo["bump_scripts"]):
+        raise RuntimeError("release-policy.toml cargo.bump_scripts must stay within the repository")
     if set(npm["lockfiles"]) - {
         "package-lock.json",
         "npm-shrinkwrap.json",
@@ -117,6 +126,62 @@ def _cargo_paths(root: Path) -> list[Path]:
     )
 
 
+def _cargo_publishable(
+    package: dict[str, Any], workspace_package: dict[str, Any]
+) -> bool:
+    publish = package.get("publish", True)
+    if publish == {"workspace": True}:
+        publish = workspace_package.get("publish", True)
+    return publish is not False and not (isinstance(publish, list) and not publish)
+
+
+def _cargo_bump_findings(root: Path, repository: Repository) -> list[Finding]:
+    candidates = []
+    for relative in _POLICY["cargo"]["bump_scripts"]:
+        path = _safe_repository_file(root, root, relative)
+        if path is not None and path.is_file():
+            candidates.append((relative, path))
+    if not candidates:
+        return [
+            Finding(
+                str(repository.id),
+                "cargo-release",
+                None,
+                "provide a version-controlled Cargo registry bump procedure: "
+                + _POLICY["cargo"]["bump_command"],
+            )
+        ]
+    if len(candidates) > 1:
+        return [
+            Finding(
+                str(repository.id),
+                "cargo-release",
+                None,
+                "multiple Cargo release bump scripts make the version procedure ambiguous: "
+                + ", ".join(path for path, _ in candidates),
+            )
+        ]
+    relative, path = candidates[0]
+    source = "\n".join(
+        line for line in path.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("#")
+    ).casefold()
+    missing = [
+        requirement
+        for requirement in _POLICY["cargo"]["bump_requirements"]
+        if requirement.casefold() not in source
+    ]
+    if missing:
+        return [
+            Finding(
+                str(repository.id),
+                "cargo-release",
+                relative,
+                "release bump procedure is missing " + ", ".join(missing),
+            )
+        ]
+    return []
+
+
 def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     workspace = _manifest(root / "Cargo.toml") or {}
@@ -127,12 +192,16 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
         else {}
     )
     workspace_package = workspace_package if isinstance(workspace_package, dict) else {}
+    publishable_found = False
     for path in _cargo_paths(root):
         relative = path.relative_to(root).as_posix()
         manifest = _manifest(path) or {}
         package = manifest.get("package", {})
         if not isinstance(package, dict):
             continue
+        if not _cargo_publishable(package, workspace_package):
+            continue
+        publishable_found = True
         required_fields = set(_POLICY["cargo"]["required_fields"])
         if "name" in required_fields and not isinstance(package.get("name"), str):
             findings.append(
@@ -276,6 +345,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
                         "default README.md",
                     )
                 )
+    if publishable_found:
+        findings.extend(_cargo_bump_findings(root, repository))
     return findings
 
 
@@ -324,10 +395,16 @@ def _toml_set_value(source: str, section: str, key: str, value: str) -> str:
 def _cargo_fix(root: Path, repository: Repository) -> dict[str, str]:
     github = f"https://github.com/{repository.id.owner}/{repository.id.name}"
     changes: dict[str, str] = {}
+    workspace = _manifest(root / "Cargo.toml") or {}
+    workspace = workspace.get("workspace", {})
+    workspace_package = workspace.get("package", {}) if isinstance(workspace, dict) else {}
+    workspace_package = workspace_package if isinstance(workspace_package, dict) else {}
     for path in _cargo_paths(root):
         manifest = _manifest(path) or {}
         package = manifest.get("package", {})
         if not isinstance(package, dict):
+            continue
+        if not _cargo_publishable(package, workspace_package):
             continue
         if "repository" in package:
             continue
@@ -457,6 +534,65 @@ def _json_load(path: Path) -> dict[str, Any] | None:
     return value
 
 
+def _npm_workspace_patterns(package: dict[str, Any]) -> tuple[str, ...] | None:
+    raw_workspaces = package.get("workspaces", [])
+    if isinstance(raw_workspaces, dict):
+        patterns = raw_workspaces.get("packages")
+    else:
+        patterns = raw_workspaces
+    if not isinstance(patterns, list):
+        return None
+    normalized: list[str] = []
+    for pattern in patterns:
+        if not isinstance(pattern, str):
+            return None
+        normalized.append(pattern.removeprefix("./"))
+    if any(
+        not pattern.removeprefix("!")
+        or Path(pattern.removeprefix("!")).is_absolute()
+        or ".." in Path(pattern.removeprefix("!")).parts
+        for pattern in normalized
+    ):
+        return None
+    return tuple(normalized)
+
+
+def _npm_workspace_packages(
+    root: Path,
+    patterns: tuple[str, ...],
+) -> tuple[list[tuple[Path, dict[str, Any]]], list[tuple[str, str]]]:
+    packages: dict[Path, dict[str, Any]] = {}
+    problems = []
+    root_path = root.resolve()
+    includes = tuple(pattern for pattern in patterns if not pattern.startswith("!"))
+    excludes = tuple(pattern[1:] for pattern in patterns if pattern.startswith("!"))
+    for pattern in includes:
+        for name in glob.glob(str(root / pattern / "package.json"), recursive=True):
+            path = Path(name)
+            relative = path.relative_to(root).as_posix()
+            if any(
+                fnmatch.fnmatchcase(path.parent.relative_to(root).as_posix(), exclude)
+                for exclude in excludes
+            ):
+                continue
+            try:
+                if path.is_symlink():
+                    problems.append((relative, "workspace package manifest is a symlink"))
+                    continue
+                if not path.is_file() or not path.resolve().is_relative_to(root_path):
+                    continue
+            except OSError:
+                problems.append((relative, "cannot resolve workspace package manifest"))
+                continue
+            document = _json_load(path)
+            if document is None:
+                problems.append((relative, "workspace package manifest is invalid JSON"))
+            elif document.get("private") is not True:
+                packages[path] = document
+    ordered = sorted(packages.items(), key=lambda item: item[0].relative_to(root).as_posix().casefold())
+    return [(path, document) for path, document in ordered], problems
+
+
 def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     package_path = root / "package.json"
     if package_path.is_symlink():
@@ -478,8 +614,41 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                 "npm tag requires readable package metadata",
             )
         ]
+    patterns = _npm_workspace_patterns(package)
+    if patterns is None:
+        return [
+            Finding(
+                str(repository.id),
+                "npm-release",
+                "package.json",
+                "workspaces must be an array of repository-relative package globs",
+            )
+        ]
+    private_root = package.get("private") is True
+    workspace_packages, workspace_problems = _npm_workspace_packages(root, patterns)
+    findings = [
+        Finding(str(repository.id), "npm-release", path, message)
+        for path, message in workspace_problems
+    ]
+    if findings:
+        return findings
+    if private_root and not workspace_packages:
+        return []
+    public_packages = ([] if private_root else [(package_path, package)]) + workspace_packages
+    for path, published in public_packages:
+        if not isinstance(published.get("version"), str) or not published["version"]:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "npm-release",
+                    path.relative_to(root).as_posix(),
+                    "declare one authoritative version for the public package",
+                )
+            )
+    if findings:
+        return findings
     version = package.get("version")
-    if not isinstance(version, str):
+    if not private_root and not isinstance(version, str):
         return [
             Finding(
                 str(repository.id),
@@ -488,7 +657,6 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                 "declare one authoritative package version",
             )
         ]
-    findings: list[Finding] = []
     lock_names = _POLICY["npm"].get("lockfiles")
     if not isinstance(lock_names, list) or any(
         not isinstance(name, str) for name in lock_names
@@ -568,7 +736,16 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
         lockfile_version = (
             lock_data.get("lockfileVersion") if isinstance(lock_data, dict) else None
         )
-        if not isinstance(lock_data, dict) or not isinstance(top_version, str):
+        if workspace_packages and lockfile_version == 1:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "npm-release",
+                    lock_name,
+                    "npm lockfile v1 cannot verify workspace package versions; regenerate it with npm",
+                )
+            )
+        if not isinstance(lock_data, dict) or not isinstance(lockfile_version, int):
             findings.append(
                 Finding(
                     str(repository.id),
@@ -586,7 +763,11 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                     "lockfile root package metadata is missing; regenerate it with npm",
                 )
             )
-        elif lockfile_version != 1 and not isinstance(root_version, str):
+        elif (
+            lockfile_version != 1
+            and not private_root
+            and not isinstance(root_version, str)
+        ):
             findings.append(
                 Finding(
                     str(repository.id),
@@ -595,8 +776,10 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                     "lockfile root version is missing; regenerate it with npm",
                 )
             )
-        elif top_version != version or (
-            isinstance(root_package, dict) and root_version != version
+        elif not private_root and (
+            not isinstance(top_version, str)
+            or top_version != version
+            or (isinstance(root_package, dict) and root_version != version)
         ):
             findings.append(
                 Finding(
@@ -607,6 +790,28 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                     fixable=True,
                 )
             )
+        if isinstance(lock_data, dict) and isinstance(packages, dict) and lockfile_version != 1:
+            for workspace_path, workspace_package in workspace_packages:
+                relative = workspace_path.parent.relative_to(root).as_posix()
+                lock_package = packages.get(relative)
+                if not isinstance(lock_package, dict):
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "npm-release",
+                            lock_name,
+                            f"lockfile has no entry for public workspace package {relative}",
+                        )
+                    )
+                elif lock_package.get("version") != workspace_package.get("version"):
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "npm-release",
+                            lock_name,
+                            f"lockfile version for {relative} must match its package.json",
+                        )
+                    )
     elif lock_name == "bun.lockb":
         findings.append(
             Finding(
@@ -772,7 +977,7 @@ def _release_rule(
     return Rule(
         rule_id,
         description,
-        frozenset({tag}),
+        TagPredicate(all_of=frozenset({tag})),
         check,
         fix,
         f"chore(repomod): adopt {rule_id} policy",

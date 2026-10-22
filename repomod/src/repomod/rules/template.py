@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repomod.types import Finding, Repository, Rule
+from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _METADATA = (
     "Cargo.toml",
@@ -19,10 +19,20 @@ def _has_any(root: Path, names: tuple[str, ...]) -> bool:
     return any((root / name).is_file() and not (root / name).is_symlink() for name in names)
 
 
+def _has_extension_manifest(root: Path) -> bool:
+    candidates = [root / "manifest.json"]
+    for project in root.iterdir():
+        if project.is_symlink() or not project.is_dir():
+            continue
+        candidates.extend((project / "manifest.json", project / "src" / "manifest.json"))
+    return any(path.is_file() and not path.is_symlink() for path in candidates)
+
+
 def _template_findings(root: Path, repository: Repository) -> list[Finding]:
     tags = set(repository.tags)
     readme = _has_any(root, ("README.md", "README.rst", "README", "readme.md"))
-    metadata = _has_any(root, _METADATA)
+    has_extension_manifest = "extension" in tags and _has_extension_manifest(root)
+    metadata = _has_any(root, _METADATA) or has_extension_manifest
     findings: list[Finding] = []
     if not readme and tags & {"tool", "library", "app", "extension"}:
         findings.append(
@@ -38,7 +48,7 @@ def _template_findings(root: Path, repository: Repository) -> list[Finding]:
                 fixable=False,
             )
         )
-    if "extension" in tags and not _has_any(root, ("manifest.json",)):
+    if "extension" in tags and not has_extension_manifest:
         findings.append(
             Finding(str(repository.id), "repo-template", None, "add the browser or editor extension manifest")
         )
@@ -79,7 +89,7 @@ def template_rules() -> tuple[Rule, ...]:
         Rule(
             "repo-integrity",
             "Check basic repository integrity",
-            frozenset(),
+            TagPredicate(),
             _integrity_findings,
             None,
             None,
@@ -88,7 +98,11 @@ def template_rules() -> tuple[Rule, ...]:
         Rule(
             "repo-template",
             "Check semantic documentation and metadata expectations from repository tags",
-            frozenset({"tool", "library", "app", "extension", "system", "build", "config", "data"}),
+            TagPredicate(
+                any_of=frozenset(
+                    {"tool", "library", "app", "extension", "system", "build", "config", "data"}
+                )
+            ),
             _template_findings,
             None,
             None,

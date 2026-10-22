@@ -17,12 +17,14 @@ def fix(root: Path, repository: Repository) -> FixPlan:
     ...
 ```
 
-Register the rule in `rules/__init__.py`. Use an empty tag set for a global rule.
+Register the rule in `rules/__init__.py`. Use an empty `TagPredicate()` for a global rule.
 Role tags describe products (`tool`, `library`, `app`, etc.). Language tags (`rust`,
 `typescript`, `python`, etc.) describe substantial maintained source. Publishing tags
 (`crates-io`, `pypi`, `npm`) are explicit release-policy opt-ins; they are not languages.
 Do not introduce platform tags or tags for incidental features or vendored dependencies.
-The CLI treats multiple `--tag` filters as a union. See `docs/tagging.md`.
+Use `Rule.applies_to=TagPredicate(all_of={...})` for conjunction and
+`TagPredicate(any_of={...})` for alternatives. The CLI's multiple `--tag`
+filters instead select repositories by union. See `docs/tagging.md`.
 
 Each finding includes the repository, rule ID, file when known, message, severity, and
 fixability. Keep messages concrete enough to explain the next step. A missing optional tool or
@@ -43,6 +45,28 @@ Use a fixer only when it can make a deterministic change. Do not generate placeh
 documentation or rewrite human release choices. If only part of a violation is safe, split
 that part into a rule with a precise postcondition.
 
+Before a fixer commits, repomod compares policy findings before and after the file plan. A new
+error finding rejects the fixer even if its own finding disappeared. Keep checks deterministic
+and report operational failures as operational findings so an existing unavailable tool does
+not look like a new source violation.
+
+## GitHub Actions
+
+`actions.toml` records each approved semantic version, major channel, and verified commit SHA.
+`pins refresh` resolves tags without crossing the approved major by default. A workflow whose
+reference or version comment declares another major gets a non-fixable review finding. A stale
+SHA without a version comment, an unknown action, dynamic reference, or conflicting version
+labels also fails closed. `--allow-major` changes the central channel only when explicitly
+requested. Node 24 actions require self-hosted GitHub runners version 2.327.1 or newer.
+
+The approved channels keep `setup-node` on v6 because v7 removes the dummy
+`NODE_AUTH_TOKEN` fallback and the deprecated `always-auth` input. `setup-python` stays on v6
+because v7 removes `pip-install`. `github-script` stays on v8 because v9 changes `getOctokit`
+and breaks CommonJS `require('@actions/github')` scripts. These majors need an explicit workflow
+migration. `actions/cache` is on v6: its release notes describe ESM and dependency updates, with
+no public input or output change. Artifact actions use their current v7/v8 channels, which
+include retry handling for HTTP 429 responses.
+
 ## Release contracts
 
 `release-policy.toml` defines the supported release conventions. Publishing tags are explicit
@@ -51,30 +75,35 @@ policy.
 
 ### Cargo
 
-Each crate owns a package version or explicitly inherits `workspace.package.version`. Do not
-assume every member of a workspace shares one version. Check package name, version source,
-license, repository, and README metadata. A missing repository URL can use the catalogued
-GitHub URL. A conflicting existing URL needs review.
+Each publishable crate owns a package version or explicitly inherits
+`workspace.package.version`; unpublished members (`publish = false` or
+`publish = []`) are excluded. Independently versioned workspace packages keep
+their own version. Check package name, version source, license, repository, and
+README metadata. A missing repository URL is safely inferred from the catalog;
+a conflicting existing URL needs review.
 
-Use `cargo set-version --package NAME VERSION` to select the crate whose version changes.
-Review the resulting workspace diff before publishing. A package that intentionally gets its
-version from another source needs a concrete diagnostic and must keep its existing source.
+Keep one version-controlled script under `tools/bump_minor_release.sh` or
+`scripts/bump_minor_release.sh`. It must identify the crate with Cargo owner and
+search checks, run `cargo publish --dry-run`, then commit and tag the selected
+version. The representative repositories use manual scripts, so this policy
+does not demand a hosted release workflow or run the script during lint/fix.
 
 ### PyPI
 
 Use `[project].version` as the static version source and `uv_build` as the preferred build
-backend. `uv version --bump patch` is the standard bump operation. Dynamic versioning remains
-valid when intentional, but repomod reports its source for review. The rule adds README
-distribution metadata when the repository already has a README. It does not invent a PyPI
-release workflow.
+backend. `uv version --bump patch` is the standard bump operation. Explicit dynamic versioning
+is retained and reported for review rather than rewritten. The rule checks `uv.lock` Python
+range coherence and adds README distribution metadata when a README already exists. It does not
+invent a PyPI release workflow; wheel prereleases do not activate native binary role policy.
 
 ### npm
 
 Keep one package manager lockfile and make `packageManager`, when present, match that lockfile.
-Use the package manager's version command. For npm lockfiles, `package.json`, the lockfile root,
-and the package-lock root entry must have the same version. repomod repairs only that
-deterministic version drift. It does not rewrite workspace version ownership or binary Bun
-lockfiles.
+Use the package manager's version command. Public root and workspace packages need explicit
+versions. For npm v2/v3 lockfiles, check each public workspace entry against its manifest;
+repomod repairs deterministic single-package root version drift only. Private workspace roots
+are excluded when they contain no public package. It does not rewrite workspace version
+ownership or binary Bun lockfiles.
 
 ## Verify the rule
 

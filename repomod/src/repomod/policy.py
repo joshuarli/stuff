@@ -15,11 +15,9 @@ class PolicyError(RuntimeError):
 
 def selected_rules(
     *,
-    tags: Iterable[str] = (),
     rule_ids: Iterable[str] = (),
     local_only: bool = False,
 ) -> tuple[Rule, ...]:
-    selected_tags = set(tags)
     selected_ids = set(rule_ids)
     available = rules()
     known_ids = {rule.id for rule in available}
@@ -30,7 +28,6 @@ def selected_rules(
         rule
         for rule in available
         if (not selected_ids or rule.id in selected_ids)
-        and (not rule.required_tags or not selected_tags or bool(rule.required_tags & selected_tags))
         and (not local_only or rule.id != "gha-syntax")
     ]
     if local_only:
@@ -62,8 +59,11 @@ def lint_repositories(
     rule_ids: Iterable[str] = (),
     local_only: bool = False,
 ) -> list[Finding]:
-    selected = tuple(catalog.repositories if repositories is None else repositories)
-    active_rules = selected_rules(tags=tags, rule_ids=rule_ids, local_only=local_only)
+    selected = filter_repositories(
+        catalog.repositories if repositories is None else repositories,
+        tags=tags,
+    )
+    active_rules = selected_rules(rule_ids=rule_ids, local_only=local_only)
     findings: list[Finding] = []
     topic_results = {}
     if any(rule.id == "topics" for rule in active_rules):
@@ -86,7 +86,7 @@ def lint_repositories(
             )
             continue
         for rule in active_rules:
-            if rule.required_tags and not (rule.required_tags & set(repository.tags)):
+            if not rule.applies_to.matches(repository.tags):
                 continue
             if rule.id == "topics":
                 try:

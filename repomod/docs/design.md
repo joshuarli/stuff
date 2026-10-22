@@ -42,9 +42,9 @@ calling `gh`.
 ## Policy
 
 Rules are ordinary functions registered in `rules/__init__.py`. Each rule has a stable ID,
-description, required tags, pure check, optional file-plan fixer, commit subject, and allowed
-path patterns. Global rules have no required tags. Multiple `--tag` filters select a union of
-rules and repositories.
+description, `TagPredicate`, read-only check, optional file-plan fixer, commit subject, and
+allowed path patterns. `all_of` expresses conjunction and `any_of` expresses alternatives.
+Multiple `--tag` filters select repositories by union; they do not change rule applicability.
 
 Finding order is stable. A finding names the repository, rule, file, message, severity, and
 whether the deterministic part can be repaired. Rules do not run project builds or install
@@ -52,9 +52,21 @@ dependencies. `status` skips external checks and topic reads. Full `lint` report
 required tools as operational failures.
 
 GitHub Actions use approved full commit SHAs from `actions.toml`. Version channels stay on
-their current major unless `pins refresh --allow-major` is explicit. Lint compares local files
-to this policy without resolving remote tags. Workflow fixes fail unless `actionlint` validates
-the modified files.
+their current major unless `pins refresh --allow-major` is explicit. A workflow's declared
+major must match its approved channel before a pin can change; unlabelled stale SHAs and
+ambiguous comments fail closed. Lint compares local files to this policy without resolving
+remote tags. Workflow fixes fail unless `actionlint` validates the modified files.
+
+`binary-release-tags` recognizes the supported native artifact contract from dispatch trigger,
+native build, multi-platform artifacts, SHA-derived release tag, and source commit target.
+Wheel prereleases are excluded. Ambiguous prerelease workflows produce a warning rather than
+an inferred role.
+
+`rust-project`, `javascript-project`, and `python-project` use manifests and lockfiles to run
+lightweight checks independently of role and publishing tags. Publishing rules remain gated by
+`crates-io`, `pypi`, and `npm`. Cargo release scripts are inspected but never executed; the
+representative crates use intentional manual release procedures and do not need hosted release
+workflows.
 
 `release-policy.toml` records the ecosystem contracts used by release rules. A deterministic
 metadata omission can be repaired. A dynamic version source, conflicting package-manager
@@ -69,9 +81,10 @@ at the canonical checkout's exact starting HEAD.
 
 Fixers run sequentially. A fixer returns the complete file contents it intends to change.
 repomod rejects paths outside its declared scope and rejects symlinks along a changed path.
-Validation and a post-check must pass before the fixer gets a commit. Each fixer gets one
-commit with its own subject. A no-op gets no commit. A failed fixer resets only its disposable
-worktree to the previous successful commit, then later rules continue.
+Rule validation, newly introduced policy findings, and the rule's post-check must pass before
+the fixer gets a commit. The staged tree must match the commit tree, including across Git hooks.
+Each fixer gets one commit with its own subject. A no-op gets no commit. A failed fixer resets
+only its disposable worktree to the previous successful commit, then later rules continue.
 
 After all rules run, repomod fast-forwards the canonical checkout only if it remains clean,
 attached to the expected branch, and at its starting HEAD. If the checkout changed, repomod

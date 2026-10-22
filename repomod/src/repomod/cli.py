@@ -207,7 +207,7 @@ def _lint(args: argparse.Namespace) -> int:
 
 def _rules(args: argparse.Namespace) -> int:
     for rule in selected_rules():
-        tags = ",".join(sorted(rule.required_tags)) or "all"
+        tags = rule.applies_to.describe()
         action = "fixable" if rule.fix is not None else "lint only"
         print(f"{rule.id:<18} {tags:<48} {action:<10} {rule.description}")
     return 0
@@ -270,7 +270,7 @@ def _fix(args: argparse.Namespace) -> int:
         raise ValueError("--workers must be at least one")
     catalog = _catalog()
     repositories = _select(catalog, args.repo, args.tag)
-    available = selected_rules(tags=_tags(args.tag), rule_ids=args.rule)
+    available = selected_rules(rule_ids=args.rule)
     fixers = tuple(rule for rule in available if rule.fix is not None)
     if not fixers:
         raise PolicyError("selected rules have no automatic fixer")
