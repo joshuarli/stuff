@@ -21,8 +21,9 @@ test-helper binary inside a library. Public release is not required for `tool` o
 
 Language tags describe substantial, maintained first-party source: `c`, `cpp`, `go`,
 `javascript`, `python`, `rust`, `shell`, `swift`, `typescript`, `xsh`, and `zig`. Do not tag
-vendored, generated, dependency, or incidental test code. Source-manifest checks can apply
-without a language tag; a language tag with no matching project is a catalog mismatch.
+vendored, generated, dependency, or incidental test code. Rust, JavaScript, TypeScript, and
+Python project checks inspect supported manifests even when the matching language tag is absent.
+The language-tag rule warns when it detects first-party source without a matching catalog tag.
 
 Publishing tags `crates-io`, `pypi`, and `npm` opt a repository into that ecosystem's release
 policy. Package use, mirroring, or a manifest alone does not opt in.
@@ -33,11 +34,11 @@ The supported native binary prerelease workflow has a manual dispatch, builds an
 native artifacts, and publishes executable release assets under a SHA-derived tag targeting
 the source commit. Repositories using that contract have exactly the `tool` tag, regardless of
 their implementation languages. A wheel prerelease is a package release, not a binary-tool
-release. The `binary-release-tags` rule checks the artifact and release contract; ambiguous
-workflows are reported for review.
+release. The `binary-release-tags` rule checks the artifact and release contract. It reports
+ambiguous workflows for review.
 
 ## Rule selection
 
 Rule predicates and repository filters are separate. `TagPredicate(all_of={"library", "rust"})`
-requires both tags; `any_of` accepts any listed tag. Multiple CLI `--tag` filters select the
+requires both tags. `any_of` accepts any listed tag. Multiple CLI `--tag` filters select the
 union of repositories carrying those tags and do not change rule applicability.
