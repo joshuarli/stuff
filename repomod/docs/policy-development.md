@@ -17,9 +17,12 @@ def fix(root: Path, repository: Repository) -> FixPlan:
     ...
 ```
 
-Register the rule in `rules/__init__.py`. Use an empty tag set for a global rule. Use one or
-more existing catalog tags for a selected rule. Do not add a tag for a language, platform, or
-implementation detail. The CLI treats multiple `--tag` filters as a union.
+Register the rule in `rules/__init__.py`. Use an empty tag set for a global rule.
+Role tags describe products (`tool`, `library`, `app`, etc.). Language tags (`rust`,
+`typescript`, `python`, etc.) describe substantial maintained source. Publishing tags
+(`crates-io`, `pypi`, `npm`) are explicit release-policy opt-ins; they are not languages.
+Do not introduce platform tags or tags for incidental features or vendored dependencies.
+The CLI treats multiple `--tag` filters as a union. See `docs/tagging.md`.
 
 Each finding includes the repository, rule ID, file when known, message, severity, and
 fixability. Keep messages concrete enough to explain the next step. A missing optional tool or

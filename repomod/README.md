@@ -54,10 +54,17 @@ Use `repomod sync --dry-run` to inspect local clone or fetch plans. It makes no 
 
 ## Tags and policy
 
-Every repository has at least one primary tag: `tool`, `library`, `app`, `extension`,
-`system`, `build`, `config`, or `data`. A repository can have multiple primary tags when it
-serves more than one role. The optional `crates-io`, `pypi`, and `npm` tags activate publishing
-rules. These tags select policy. They do not describe language or implementation details.
+Every repository has at least one **role** tag: `tool`, `library`, `app`, `extension`,
+`system`, `build`, `config`, or `data`. Multiple roles are legitimate when a repository
+contains independently useful products. Curated **language** tags (`rust`, `typescript`,
+`python`, etc.) describe substantial maintained source and may select ecosystem rules; the
+`crates-io`, `pypi`, and `npm` tags explicitly opt into package-publishing policy.
+
+Repositories with the standard **binary GitHub prerelease** workflow use exactly `tool`
+as their catalog topic set: the workflow's distributed product is an executable, irrespective
+of its internal implementation languages. A prerelease that publishes wheels, such as
+`pytest-parallel`, is not that binary distribution contract. See [tagging semantics](docs/tagging.md)
+for detailed criteria and examples.
 
 Global rules check GitHub Action pins, approved version comments, workflow syntax, topics, and
 basic repository integrity. Primary tags activate semantic template checks. Publishing tags

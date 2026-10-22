@@ -29,6 +29,9 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(tm
     assert catalog.root_config == "~/repos"
     srv = find_repository(catalog, "laputa-systems/srv")
     assert set(srv.tags) == {"tool"}
+    assert set(find_repository(catalog, "joshuarli/tansu").tags) == {"app", "rust", "typescript"}
+    assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
+    assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {"library", "pypi", "python"}
     assert len(catalog.repositories) > 0
 
 
@@ -52,6 +55,20 @@ def test_bare_name_lookup_rejects_fd_ambiguity() -> None:
 
     with pytest.raises(CatalogError, match="ambiguous"):
         find_repository(catalog, "fd")
+
+
+def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."joshuarli"]\ntansu = ["app", "rust", "typescript"]\n'
+        'shadowdriver = ["library", "tool", "rust", "typescript"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    assert set(find_repository(catalog, "tansu").tags) == {"app", "rust", "typescript"}
+    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
+    path.write_text(catalog_text('[repos."joshuarli"]\ninvalid = ["rust", "typescript"]'), encoding="utf-8")
+    with pytest.raises(CatalogError, match="primary tag"):
+        load_catalog(path, {"HOME": str(tmp_path)})
 
 
 def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:

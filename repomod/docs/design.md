@@ -6,8 +6,9 @@ tracks completed repairs.
 
 ## State and ownership
 
-`catalog.toml` owns repository identity, semantic tags, checkout root, and narrow autofix
-overrides. It does not record branch state or previous lint results. `REPOMOD_ROOT` overrides
+`catalog.toml` owns repository identity, curated role/language/publishing tags, checkout
+root, and narrow autofix overrides. Tags are defined in `docs/tagging.md`. It does not
+record branch state or previous lint results. `REPOMOD_ROOT` overrides
 the catalog's configured root for that process.
 
 Canonical checkout paths flatten the personal owner and retain an owner directory for other
