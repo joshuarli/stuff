@@ -565,3 +565,39 @@ def test_push_rejection_keeps_local_commit_and_never_rewrites_remote(
     assert "rejected" in (message or "")
     assert head(path) == previous_head
     assert status(path, repository.id).origin_valid
+
+
+def test_push_uses_checked_commit_when_checkout_changes_before_push(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _catalog, repository, path, _ = initialize_repository(tmp_path)
+    (path / "main.txt").write_text("main\n", encoding="utf-8")
+    git("add", "main.txt", cwd=path)
+    git("commit", "-m", "main change", cwd=path)
+    main_head = head(path)
+    original_run_git = fix_module.run_git
+    switched: list[str] = []
+
+    def switch_before_push(
+        arguments: list[str], cwd: Path | None = None, **options: Any
+    ) -> subprocess.CompletedProcess[str]:
+        if arguments[0] == "push" and not switched:
+            git("checkout", "-b", "feature", cwd=path)
+            (path / "feature.txt").write_text("feature\n", encoding="utf-8")
+            git("add", "feature.txt", cwd=path)
+            git("commit", "-m", "feature change", cwd=path)
+            switched.append(head(path))
+        return original_run_git(arguments, cwd=cwd, **options)
+
+    monkeypatch.setattr(fix_module, "run_git", switch_before_push)
+
+    state, message = push_repository(repository, path)
+
+    remote_head = git(
+        "--git-dir", str(tmp_path / "remote.git"), "rev-parse", "refs/heads/main"
+    ).stdout.strip()
+    assert state == "pushed", message
+    assert remote_head == main_head
+    assert head(path) == switched[0]

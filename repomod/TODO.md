@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 38
 
-### RPMD-32 · P1 · Bind pushes to the checked branch and commit
-
-- **Area:** Concurrency
-- **Where:** `src/repomod/fix.py:511`, `src/repomod/fix.py:529`, `src/repomod/cli.py:431`
-- **Problem:** `push_repository` checks the checkout and captures its branch, then pushes `HEAD` to that branch. Git resolves `HEAD` when the push runs. If a user switches branches after the check, repomod can publish the new branch's commit to the previously checked branch and report success. I reproduced this with a temporary local bare remote: `push_repository` returned `pushed`, and remote `main` received the feature commit instead of the checked main commit.
-- **Recommendation:** Capture and validate the intended branch and commit together. Push that commit only if the checkout still meets the captured state.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### RPMD-33 · P2 · Bind sync fast-forwards to the checked branch
 
 - **Area:** Concurrency

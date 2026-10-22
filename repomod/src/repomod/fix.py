@@ -526,7 +526,15 @@ def push_repository(repository: Repository, path: Path) -> tuple[str, str | None
         return "failed", "branch is behind its last-fetched upstream; sync before pushing"
     if current.ahead is None or current.ahead == 0:
         return "skipped", "no local commits ahead of the last-fetched upstream"
-    result = run_git(["push", "origin", f"HEAD:refs/heads/{current.branch}"], cwd=path, check=False)
+    checked_head = head(path)
+    confirmed = status(path, repository.id)
+    if confirmed != current or head(path) != checked_head:
+        return "skipped", "checkout changed before push"
+    result = run_git(
+        ["push", "origin", f"{checked_head}:refs/heads/{current.branch}"],
+        cwd=path,
+        check=False,
+    )
     if result.returncode:
         return "failed", result.stderr.strip() or result.stdout.strip() or "git push failed"
     return "pushed", None
