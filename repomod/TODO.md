@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 38
 
-### RPMD-34 · P2 · Reject partial GitHub check responses
-
-- **Area:** Errors
-- **Where:** `src/repomod/github.py:82`, `src/repomod/github.py:385`, `src/repomod/github.py:396`, `src/repomod/github.py:683`
-- **Problem:** `_graphql` returns partial data when a response also has GraphQL errors. `_status_check_page` ignores those errors and can treat a null rollup as a complete no-check result, which `ci_status` then caches. GitHub documents that resource-limited GraphQL queries can return partial results with an error ([query limits](https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api)). A disposable response probe produced `complete=True`, state `none`, and no reported error.
-- **Recommendation:** Inspect errors by alias and page. Mark affected check results unknown and do not cache incomplete data.
-- **Fix with:** error-model
-- **Effort:** M
-
 ### RPMD-35 · P2 · Batch generated-artifact ignore probes
 
 - **Area:** Performance

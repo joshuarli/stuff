@@ -347,6 +347,38 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
     )
 
 
+def _graphql_errors_by_alias(
+    response: dict[str, Any], aliases: set[str]
+) -> dict[str, str]:
+    errors = response.get("errors")
+    if not errors:
+        return {}
+    messages: dict[str, list[str]] = {alias: [] for alias in aliases}
+    if not isinstance(errors, list):
+        return dict.fromkeys(aliases, "GitHub returned invalid GraphQL errors")
+    for error in errors:
+        if not isinstance(error, dict):
+            affected = aliases
+            message = "GitHub returned invalid GraphQL errors"
+        else:
+            raw_message = error.get("message")
+            message = (
+                _safe_error(raw_message)
+                if isinstance(raw_message, str)
+                else "GraphQL request failed"
+            )
+            path = error.get("path")
+            alias = path[0] if isinstance(path, list) and path else None
+            affected = {alias} if isinstance(alias, str) and alias in aliases else aliases
+        for alias in affected:
+            messages[alias].append(message)
+    return {
+        alias: "; ".join(dict.fromkeys(alias_messages))
+        for alias, alias_messages in messages.items()
+        if alias_messages
+    }
+
+
 def _status_check_page(
     pending: dict[str, tuple[RepoId, str]],
 ) -> tuple[dict[str, tuple[tuple[CheckResult, ...], bool]], dict[str, str]]:
@@ -382,11 +414,16 @@ def _status_check_page(
         if not fields:
             break
         try:
-            data = _graphql("query { " + " ".join(fields) + " }").get("data", {})
+            response = _graphql("query { " + " ".join(fields) + " }")
+            data = response.get("data", {})
+            page_errors = _graphql_errors_by_alias(response, set(active))
+            errors.update(page_errors)
         except GitHubError as error:
             errors.update({alias: str(error) for alias in active})
             break
         for alias in active:
+            if alias in page_errors:
+                continue
             repository = data.get(alias) if isinstance(data, dict) else None
             obj = repository.get("object") if isinstance(repository, dict) else None
             rollup = obj.get("statusCheckRollup") if isinstance(obj, dict) else None

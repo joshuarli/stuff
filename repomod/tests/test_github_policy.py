@@ -254,6 +254,44 @@ def test_ci_check_queries_are_batched_for_a_large_fleet(monkeypatch) -> None:
     assert all(len(re.findall(r"r\d+: repository", query)) <= 20 for query in queries)
 
 
+def test_partial_graphql_check_errors_are_unknown_and_not_cached(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repositories = (repo("tool"), repo("other"))
+    remotes = {
+        "acme/tool": RemoteRepository("acme/tool", "main", "1" * 40, False),
+        "acme/other": RemoteRepository("acme/other", "main", "2" * 40, False),
+    }
+
+    def graphql(_query: str):
+        contexts = {"nodes": [], "pageInfo": {"hasNextPage": False}}
+        return {
+            "data": {
+                "r0": {"object": {"statusCheckRollup": {"contexts": contexts}}},
+                "r1": {"object": {"statusCheckRollup": {"contexts": contexts}}},
+            },
+            "errors": [
+                {
+                    "message": "query resource limit exceeded",
+                    "path": ["r0", "repository", "object", "statusCheckRollup"],
+                }
+            ],
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    results = github.ci_status(
+        repositories, remotes, cache_path=tmp_path / "ci.json", now=1000
+    )
+
+    assert results["acme/tool"].state == "unknown"
+    assert "query resource limit exceeded" in (results["acme/tool"].error or "")
+    assert results["acme/other"].state == "none"
+    cache, error = github._read_cache(tmp_path / "ci.json")
+    assert error is None
+    assert set(cache) == {"acme/other@" + "2" * 40}
+
+
 def test_ci_check_batches_run_concurrently(monkeypatch) -> None:
     barrier = Barrier(4, timeout=2)
     lock = Lock()
