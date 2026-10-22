@@ -81,6 +81,22 @@ def test_language_tag_lint_reports_clear_source_without_tag(tmp_path: Path) -> N
     ]
 
 
+def test_language_tag_lint_reports_catalog_language_without_detected_source(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
+
+    findings = _language_tag_findings(tmp_path, repository("extension", "typescript"))
+
+    assert [(finding.rule, finding.message, finding.severity) for finding in findings] == [
+        (
+            "language-tags",
+            "TypeScript tag is present but no matching source was detected",
+            "warning",
+        )
+    ]
+
+
 def test_language_tag_lint_detects_python_source_in_standard_src_package_layout(
     tmp_path: Path,
 ) -> None:

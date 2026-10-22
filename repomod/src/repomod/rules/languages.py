@@ -596,8 +596,11 @@ def _language_sources(root: Path) -> set[str]:
 def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
     if set(repository.tags) == {"tool"} and has_binary_release_contract(root):
         return []
-    missing = _language_sources(root) - set(repository.tags)
-    return [
+    detected = _language_sources(root)
+    tags = set(repository.tags)
+    missing = detected - tags
+    unobserved = (tags & LANGUAGE_TAGS) - detected
+    findings = [
         Finding(
             str(repository.id),
             "language-tags",
@@ -607,6 +610,17 @@ def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
         )
         for language in sorted(missing & LANGUAGE_TAGS)
     ]
+    findings.extend(
+        Finding(
+            str(repository.id),
+            "language-tags",
+            None,
+            f"{_LANGUAGE_NAMES[language]} tag is present but no matching source was detected",
+            severity="warning",
+        )
+        for language in sorted(unobserved)
+    )
+    return findings
 
 
 def _python_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -648,7 +662,7 @@ def language_rules() -> tuple[Rule, ...]:
     return (
         Rule(
             "language-tags",
-            "Warn when clear first-party source languages are missing catalog tags",
+            "Check catalog language tags against detected first-party source",
             TagPredicate(),
             _language_tag_findings,
             None,

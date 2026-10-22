@@ -23,7 +23,8 @@ Language tags describe substantial, maintained first-party source: `c`, `cpp`, `
 `javascript`, `python`, `rust`, `shell`, `swift`, `typescript`, `xsh`, and `zig`. Do not tag
 vendored, generated, dependency, or incidental test code. Rust, JavaScript, TypeScript, and
 Python project checks inspect supported manifests even when the matching language tag is absent.
-The language-tag rule warns when it detects first-party source without a matching catalog tag.
+The language-tag rule warns when detected source lacks a matching tag or a language tag has no
+detected source. Detection follows the supported source layouts and manifest requirements.
 
 Publishing tags `crates-io`, `pypi`, and `npm` opt a repository into that ecosystem's release
 policy. Package use, mirroring, or a manifest alone does not opt in.
