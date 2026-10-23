@@ -14,7 +14,14 @@ from pathlib import Path
 from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
 from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
-from repomod.github import GitHubError, ci_status, discover, remote_metadata, topics_many
+from repomod.github import (
+    GitHubError,
+    ci_status,
+    discover,
+    ensure_fix_pull_request,
+    remote_metadata,
+    topics_many,
+)
 from repomod.policy import (
     PolicyError,
     filter_repositories,
@@ -631,7 +638,7 @@ def _fix(args: argparse.Namespace) -> int:
                 assert outcome.branch is not None
                 assert outcome.base_head is not None
                 assert outcome.branch_head is not None
-                return push_fix_branch(
+                state, message = push_fix_branch(
                     repository,
                     repository_path(catalog, repository),
                     outcome.branch,
@@ -639,6 +646,17 @@ def _fix(args: argparse.Namespace) -> int:
                     outcome.base_head,
                     outcome.branch_head,
                 )
+            if state != "pushed":
+                return state, message
+            try:
+                pull_request = ensure_fix_pull_request(
+                    repository.id,
+                    outcome.branch,
+                    remote.default_branch,
+                )
+            except Exception as error:
+                return "pr-failed", str(error)
+            return "pushed", pull_request
 
         with ThreadPoolExecutor(max_workers=min(4, max(1, len(branches)))) as pool:
             futures = {
@@ -655,8 +673,14 @@ def _fix(args: argparse.Namespace) -> int:
         for repository, (state, message) in sorted(
             push_results, key=lambda item: str(item[0].id).casefold()
         ):
-            print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
-            failed |= state == "failed"
+            if state == "pushed":
+                print(f"{repository.id}: pushed; PR {message}")
+            elif state == "pr-failed":
+                print(f"{repository.id}: pushed; PR failed: {message}", file=sys.stderr)
+                failed = True
+            else:
+                print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
+                failed |= state == "failed"
     return 1 if failed else 0
 
 
@@ -760,7 +784,11 @@ def _parser() -> argparse.ArgumentParser:
     _filters(fix)
     fix.add_argument("--rule", action="append", default=[])
     fix.add_argument("--workers", type=int, default=4)
-    fix.add_argument("--push", action="store_true")
+    fix.add_argument(
+        "--push",
+        action="store_true",
+        help="push fix branches and open or reuse pull requests",
+    )
 
     push = commands.add_parser("push", help="push eligible local commits without force")
     _filters(push)

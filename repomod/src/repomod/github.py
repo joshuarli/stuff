@@ -32,6 +32,7 @@ ACTION_TAG_PAGE_SIZE = 100
 ACTION_TAG_RESOLUTION_DEPTH = 6
 _WORKFLOW_CACHE_SOURCE = "actions-runs-v3"
 _FORK_CHECK_CACHE_SOURCE = "fork-workflows-v1"
+_FIX_BRANCH = re.compile(r"repomod/fix/[0-9a-f]{32}\Z")
 _TRANSIENT = ("http 429", "http 500", "http 502", "http 503", "http 504", "rate limit", "timed out")
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 
@@ -82,6 +83,69 @@ def _gh_json(arguments: list[str], input_text: str | None = None) -> Any:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
         raise GitHubError("GitHub returned malformed JSON") from error
+
+
+def ensure_fix_pull_request(repository: RepoId, branch: str, base_branch: str) -> str:
+    if _FIX_BRANCH.fullmatch(branch) is None:
+        raise GitHubError("fix branch name is invalid")
+    endpoint = f"repos/{repository.owner}/{repository.name}/pulls"
+
+    def existing_pull_request() -> str | None:
+        response = _gh_json(
+            [
+                endpoint,
+                "--method",
+                "GET",
+                "-F",
+                "state=open",
+                "-F",
+                f"head={repository.owner}:{branch}",
+                "-F",
+                f"base={base_branch}",
+                "-F",
+                "per_page=100",
+            ]
+        )
+        if not isinstance(response, list):
+            raise GitHubError("GitHub returned an invalid pull request list")
+        if len(response) > 1:
+            raise GitHubError("GitHub returned multiple open pull requests for one fix branch")
+        if not response:
+            return None
+        url = response[0].get("html_url") if isinstance(response[0], dict) else None
+        if not isinstance(url, str):
+            raise GitHubError("GitHub returned a pull request without a URL")
+        return url
+
+    existing = existing_pull_request()
+    if existing is not None:
+        return existing
+    try:
+        created = _gh_json(
+            [
+                endpoint,
+                "--method",
+                "POST",
+                "-F",
+                "title=chore(repomod): apply automatic fixes",
+                "-F",
+                f"head={repository.owner}:{branch}",
+                "-F",
+                f"base={base_branch}",
+                "-F",
+                "body=repomod applied automatic fixes on this branch. "
+                "Each successful fixer has its own commit. Review the changes before merging.",
+            ]
+        )
+    except GitHubError:
+        existing = existing_pull_request()
+        if existing is not None:
+            return existing
+        raise
+    url = created.get("html_url") if isinstance(created, dict) else None
+    if not isinstance(url, str):
+        raise GitHubError("GitHub created a pull request without a URL")
+    return url
 
 
 def _graphql(query: str) -> dict[str, Any]:

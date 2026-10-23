@@ -61,5 +61,6 @@ to select repositories. See [tagging semantics](docs/tagging.md) for catalog tag
 `repomod topics diff` compares GitHub topics with catalog tags. `topics apply` replaces the
 whole topic set with those tags. Each successful `repomod fix` fixer that changes files gets one
 local commit. Push only with `fix --push` or `repomod push`. Pushes are normal fast-forward
-pushes. `repomod pins refresh` updates the local approved Action pins. See [policy development](docs/policy-development.md)
+pushes. `fix --push` also opens or reuses a pull request for each published fix branch.
+`repomod pins refresh` updates the local approved Action pins. See [policy development](docs/policy-development.md)
 for rule behavior. Report problems in the [repomod issue tracker](https://github.com/joshuarli/repomod/issues).
