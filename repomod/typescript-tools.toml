@@ -1,0 +1,5 @@
+[node]
+version = "26.12.1"
+
+[pnpm]
+version = "12.15.0"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -102,10 +103,11 @@ def test_action_pin_and_version_fixes_preserve_format_and_are_idempotent(
 
     pin_plan = actions._fix(tmp_path, repo, version=False)
     changed_pin = pin_plan[".github/workflows/ci.yaml"]
+    assert "actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # keep v4.4.0" in changed_pin
     assert (
-        "actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # keep v4.3.0"
-        in changed_pin
-    )
+        "'actions/setup-python@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
+        " # old version # v5.6.0"
+    ) in changed_pin
     version_plan = actions._fix(tmp_path, repo, version=True)
     changed_version = version_plan[".github/workflows/ci.yaml"]
     assert "'actions/setup-python@v5' # old version # v5.6.0" in changed_version
@@ -116,36 +118,38 @@ def test_action_pin_and_version_fixes_preserve_format_and_are_idempotent(
     assert actions._fix(tmp_path, repo, version=False) == {}
 
 
-@pytest.mark.parametrize(
-    ("approved", "workflow"),
-    [
-        ("v4", "uses: actions/checkout@ffffffffffffffffffffffffffffffffffffffff # v7.0.1"),
-        ("v7", "uses: actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # v4.4.0"),
-    ],
-)
-def test_action_pin_fixer_refuses_cross_major_changes(
-    tmp_path: Path, monkeypatch, approved: str, workflow: str
+def test_action_pin_fixer_updates_unambiguous_cross_major_reference(
+    tmp_path: Path, monkeypatch
 ) -> None:
     pins_path = tmp_path / "actions.toml"
     pins_path.write_text(
         '[actions."actions/checkout"]\n'
-        f'channel = "{approved}"\n'
-        f'version = "{approved}.0.1"\n'
+        'channel = "v7"\n'
+        'version = "v7.0.1"\n'
         'sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n',
         encoding="utf-8",
     )
     monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
     root = tmp_path / "repo"
-    workflow_path = write_workflow(root, "jobs:\n  test:\n    steps:\n      - " + workflow + "\n")
+    workflow_path = write_workflow(
+        root,
+        "jobs:\n  test:\n    steps:\n"
+        "      - uses: actions/checkout@v4.4.0 # v4.4.0\n"
+        "      - uses: actions/checkout@cccccccccccccccccccccccccccccccccccccccc # v4.4.0\n",
+    )
     repo = repository()
 
     findings = actions._findings(root, repo, version=False)
 
-    assert len(findings) == 1
-    assert not findings[0].fixable
-    assert "differs from approved" in findings[0].message
-    assert actions._fix(root, repo, version=False) == {}
-    assert workflow_path.read_text(encoding="utf-8").endswith(workflow + "\n")
+    assert len(findings) == 2
+    assert all(finding.fixable for finding in findings)
+    plan = actions._fix(root, repo, version=False)[".github/workflows/ci.yaml"]
+    assert plan.count(f"actions/checkout@{'a' * 40} # v7.0.1") == 2
+    version_plan = actions._fix(root, repo, version=True)[".github/workflows/ci.yaml"]
+    assert version_plan.count("# v7.0.1") == 2
+    assert workflow_path.read_text(encoding="utf-8").endswith(
+        "actions/checkout@cccccccccccccccccccccccccccccccccccccccc # v4.4.0\n"
+    )
 
 
 def test_newer_ref_with_stale_comment_is_never_downgraded(
@@ -213,7 +217,7 @@ def test_stale_unlabelled_sha_fails_closed_and_same_major_pin_is_fixable(
     assert len(findings) == 2
     assert not findings[0].fixable
     assert "cannot identify the major" in findings[0].message
-    assert f"actions/checkout@{'a' * 40} # v4.3.0" in plan
+    assert f"actions/checkout@{'a' * 40} # v4.4.0" in plan
     assert "actions/checkout@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n" in plan
     assert workflow_path.read_text(encoding="utf-8").endswith(" # v4.3.0\n")
 
@@ -291,7 +295,179 @@ def test_jactionlint_is_required_for_workflow_fixer_validation(
     ]
 
 
-def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
+def test_jactionlint_workflow_validation_only_blocks_errors(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
+    results = iter(
+        [
+            SimpleNamespace(
+                returncode=1,
+                stdout=json.dumps(
+                    [
+                        {
+                            "filepath": ".github/workflows/ci.yml",
+                            "line": 3,
+                            "id": "shellcheck",
+                            "severity": "error",
+                            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+                        }
+                    ]
+                ),
+                stderr="",
+            ),
+            SimpleNamespace(
+                returncode=1,
+                stdout=json.dumps(
+                    [
+                        {
+                            "filepath": ".github/workflows/ci.yml",
+                            "line": 3,
+                            "id": "syntax",
+                            "severity": "error",
+                            "message": "invalid workflow",
+                        }
+                    ]
+                ),
+                stderr="",
+            ),
+        ]
+    )
+    monkeypatch.setattr(actions.subprocess, "run", lambda *args, **kwargs: next(results))
+
+    assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == []
+    assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == [
+        ".github/workflows/ci.yml:3: syntax: invalid workflow"
+    ]
+
+
+def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
+    monkeypatch.setattr(
+        actions,
+        "_jactionlint_fixable_rule_ids",
+        lambda _executable: frozenset(
+            {"concurrency-limits", "missing-timeout", "missing-permissions", "artipacked"}
+        ),
+    )
+    findings = [
+        {
+            "id": "duplicate-triggers",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 1,
+            "message": "manual branch choice",
+        },
+        {
+            "id": "missing-timeout",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 2,
+            "message": "no default configured",
+            "no_fix": {"code": "option-required"},
+        },
+        {
+            "id": "artipacked",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 3,
+            "message": "checkout credentials persist",
+            "fix": {"edits": [{"start": 0, "end": 0, "new_text": ""}]},
+        },
+        {
+            "id": "missing-permissions",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 3,
+            "message": "permissions need a deliberate selection",
+            "fix": {
+                "unsafe": True,
+                "edits": [{"start": 0, "end": 0, "new_text": "permissions: read-all\n"}],
+            },
+        },
+        {
+            "id": "concurrency-limits",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 1,
+            "message": "owned by gha-settings",
+        },
+        {
+            "id": "shellcheck",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 3,
+            "severity": "error",
+            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+        },
+    ]
+    monkeypatch.setattr(
+        actions.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=1,
+            stdout=json.dumps(findings),
+            stderr="",
+        ),
+    )
+
+    results = actions._jactionlint_findings(tmp_path, repository(), [workflow])
+
+    assert [finding.fixable for finding in results] == [False, False, True, False, False]
+    assert results[-1].severity == "info"
+
+
+def test_pinact_reports_unverifiable_sha_comments_as_fixable(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(
+        tmp_path,
+        "jobs:\n  test:\n    steps:\n"
+        "      - uses: actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+    )
+    result = {
+        "runs": [
+            {
+                "results": [
+                    {
+                        "ruleId": "parse-error",
+                        "message": {
+                            "text": (
+                                "failed to handle a line: SHA-pinned action requires a version "
+                                "comment for verifiability"
+                            )
+                        },
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": ".github/workflows/ci.yaml"},
+                                    "region": {"startLine": 4},
+                                }
+                            }
+                        ],
+                    }
+                ]
+            }
+        ]
+    }
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    monkeypatch.setattr(
+        actions.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=2,
+            stdout=json.dumps(result),
+            stderr="",
+        ),
+    )
+
+    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
+
+    assert len(findings) == 1
+    assert findings[0].fixable
+
+
+def test_pin_refresh_selects_latest_major_channel(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -320,13 +496,46 @@ def test_pin_refresh_keeps_major_channel_unless_explicitly_allowed(
 
     assert actions.refresh_pins(pins_path)
     pins = actions.load_pins(pins_path)
-    assert pins["actions/checkout"].version == "v4.5.0"
-    assert pins["actions/checkout"].sha == "c" * 40
-    assert not actions.refresh_pins(pins_path)
-    assert actions.refresh_pins(pins_path, allow_major=True)
-    pins = actions.load_pins(pins_path)
+    assert pins["actions/checkout"].version == "v5.0.0"
+    assert pins["actions/checkout"].sha == "d" * 40
     assert pins["actions/checkout"].channel == "v5"
+    assert pins["actions/setup-python"].version == "v6.0.0"
     assert pins["actions/setup-python"].channel == "v6"
+    assert not actions.refresh_pins(pins_path)
+
+
+def test_pin_refresh_accepts_stable_major_minor_tags(tmp_path: Path, monkeypatch) -> None:
+    pins_path = tmp_path / "actions.toml"
+    pins_path.write_text(
+        '[actions."obi1kenobi/cargo-semver-checks-action"]\n'
+        'channel = "v2"\n'
+        'version = "v2.8"\n'
+        'sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n\n'
+        '[actions."dtolnay/rust-toolchain"]\n'
+        'channel = "v1"\n'
+        'version = "v1"\n'
+        'sha = "cccccccccccccccccccccccccccccccccccccccc"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        actions,
+        "action_tags_many",
+        lambda repositories, _prefix: {
+            "obi1kenobi/cargo-semver-checks-action": ("v2.8", "v2.10", "v2.9.1"),
+            "dtolnay/rust-toolchain": ("v1",),
+        },
+    )
+    monkeypatch.setattr(
+        actions,
+        "resolve_tags_many",
+        lambda tags: dict.fromkeys(tags, "b" * 40),
+    )
+
+    assert actions.refresh_pins(pins_path)
+    pin = actions.load_pins(pins_path)["obi1kenobi/cargo-semver-checks-action"]
+    assert pin.version == "v2.10"
+    assert pin.channel == "v2"
+    assert actions.load_pins(pins_path)["dtolnay/rust-toolchain"].version == "v1"
 
 
 def test_pin_refresh_batches_tag_and_commit_reads(tmp_path: Path, monkeypatch) -> None:
@@ -367,6 +576,34 @@ def test_pin_refresh_batches_tag_and_commit_reads(tmp_path: Path, monkeypatch) -
     pins = actions.load_pins(pins_path)
     assert pins["actions/checkout"].sha == "c" * 40
     assert pins["actions/setup-python"].sha == "d" * 40
+
+
+def test_action_tag_lookup_filters_names_after_querying_tag_namespace(monkeypatch) -> None:
+    queries: list[str] = []
+
+    def graphql(query: str):
+        queries.append(query)
+        return {
+            "data": {
+                "a0": {
+                    "refs": {
+                        "nodes": [
+                            {"name": "v4.5.0"},
+                            {"name": "v5.0.0-rc.1"},
+                            {"name": "release/v6.0.0"},
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    tags = github.action_tags_many(("actions/checkout",), "v")
+
+    assert tags == {"actions/checkout": ("v4.5.0", "v5.0.0-rc.1")}
+    assert 'refPrefix: "refs/tags/"' in queries[0]
 
 
 def test_pin_refresh_refuses_to_downgrade_when_upstream_tags_are_incomplete(

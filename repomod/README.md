@@ -62,5 +62,6 @@ to select repositories. See [tagging semantics](docs/tagging.md) for catalog tag
 whole topic set with those tags. Each successful `repomod fix` fixer that changes files gets one
 local commit. Push only with `fix --push` or `repomod push`. Pushes are normal fast-forward
 pushes. `fix --push` also opens or reuses a pull request for each published fix branch.
-`repomod pins refresh` updates the local approved Action pins. See [policy development](docs/policy-development.md)
-for rule behavior. Report problems in the [repomod issue tracker](https://github.com/joshuarli/repomod/issues).
+`repomod pins refresh` updates the local approved GitHub Action, Python, and TypeScript tool pins.
+See [policy development](docs/policy-development.md) for rule behavior. Report problems in the
+[repomod issue tracker](https://github.com/joshuarli/repomod/issues).

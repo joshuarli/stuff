@@ -1,44 +1,109 @@
+[actions."actions/cache"]
+channel = "v6"
+version = "v6.1.0"
+sha = "55cc8345863c7cc4c66a329aec7e433d2d1c52a9"
+
 [actions."actions/checkout"]
 channel = "v7"
 version = "v7.0.1"
 sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"
-
-[actions."actions/setup-python"]
-channel = "v6"
-version = "v6.3.0"
-sha = "ece7cb06caefa5fff74198d8649806c4678c61a1"
-
-[actions."actions/setup-node"]
-channel = "v6"
-version = "v6.5.0"
-sha = "249970729cb0ef3589644e2896645e5dc5ba9c38"
-
-[actions."actions/upload-artifact"]
-channel = "v7"
-version = "v7.0.2"
-sha = "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
 
 [actions."actions/download-artifact"]
 channel = "v8"
 version = "v8.0.2"
 sha = "9000827ccba6bdab643e8b6fd33ac0654aef8333"
 
-[actions."actions/cache"]
-channel = "v6"
-version = "v6.0.0"
-sha = "2c8a9bd7457de244a408f35966fab2fb45fda9c8"
-
 [actions."actions/github-script"]
-channel = "v8"
-version = "v8.0.0"
-sha = "ed597411d8f924073f98dfc5c65a23a2325f34cd"
+channel = "v9"
+version = "v9.0.0"
+sha = "3a2844b7e9c422d3c10d287c895573f7108da1b3"
+
+[actions."actions/setup-go"]
+channel = "v7"
+version = "v7.0.0"
+sha = "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+
+[actions."actions/setup-node"]
+channel = "v7"
+version = "v7.1.0"
+sha = "949feb2413d6458794dcd2491c4babbbce0c15c1"
+
+[actions."actions/setup-python"]
+channel = "v7"
+version = "v7.1.0"
+sha = "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+
+[actions."actions/upload-artifact"]
+channel = "v7"
+version = "v7.0.2"
+sha = "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
 
 [actions."astral-sh/setup-uv"]
 channel = "v10"
-version = "v10.3.0"
-sha = "1c37ad07a6a961277cf70c0d37d6f313000f5884"
+version = "v10.3.2"
+sha = "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+
+[actions."cargo-bins/cargo-binstall"]
+channel = "v1"
+version = "v1.26.0"
+sha = "8a2045612414e945291083f820cd50b4d8fc2218"
+
+[actions."denoland/setup-deno"]
+channel = "v2"
+version = "v2.0.5"
+sha = "22d081ff2d3a40755e97629de92e3bcbfa7cf2ed"
+
+[actions."docker/build-push-action"]
+channel = "v7"
+version = "v7.4.0"
+sha = "c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+
+[actions."docker/setup-buildx-action"]
+channel = "v4"
+version = "v4.4.1"
+sha = "f87e5991a6d7451dcb8d9637bfbc97413f497069"
+
+[actions."dtolnay/rust-toolchain"]
+channel = "v1"
+version = "v1"
+sha = "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+
+[actions."leanprover/lean-action"]
+channel = "v1"
+version = "v1.6.2"
+sha = "24581d74d674803a25a81b10b059c5c0cdd344c6"
+
+[actions."obi1kenobi/cargo-semver-checks-action"]
+channel = "v2"
+version = "v2.9"
+sha = "6b69fcf40e9b5fb17adeb57e4b6ecd020649a239"
+
+[actions."rustsec/audit-check"]
+channel = "v2"
+version = "v2.0.0"
+sha = "69366f33c96575abad1ee0dba8212993eecbe998"
+
+[actions."seanmonstar/github-action-benchmark"]
+channel = "v1"
+version = "v1.8.1"
+sha = "4eed2c2f4cd0d374720c4b913f79faa8aafcfa6b"
 
 [actions."softprops/action-gh-release"]
 channel = "v3"
 version = "v3.0.3"
 sha = "efb35369e0ad2afab669f228072c1b0d510eae64"
+
+[actions."swatinem/rust-cache"]
+channel = "v2"
+version = "v2.9.3"
+sha = "d1527c8f67ef9af357290475d4af4b0fab8f12e0"
+
+[actions."taiki-e/cache-cargo-install-action"]
+channel = "v3"
+version = "v3.0.8"
+sha = "9ee83daaa7b96a6fab930949ecf1122bba04a389"
+
+[actions."taiki-e/install-action"]
+channel = "v2"
+version = "v2.87.30"
+sha = "a4d3f3f761dcd95cce1b72cb61cb6d1963438177"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import fnmatch
 import re
 import uuid
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -10,6 +11,7 @@ from typing import Any
 
 from repomod.catalog import Catalog, repository_path
 from repomod.git import GitError, head, repository_lock, run_git, status
+from repomod.github import GitHubError, fix_branch_was_merged
 from repomod.rules import rules as all_policy_rules
 from repomod.types import Finding, Repository, Rule
 
@@ -148,12 +150,11 @@ def _policy_findings(
 
 
 def _finding_signature(finding: Finding) -> tuple[str, str | None, str, str, str]:
-    line = re.match(r"^line ([0-9]+): (?:(jactionlint|pinact) ([^:]+):)?", finding.message)
-    identity = finding.message
-    if line is not None:
-        identity = f"line:{line.group(1)}"
-        if line.group(2) is not None and line.group(3) is not None:
-            identity += f":{line.group(2)}:{line.group(3)}"
+    identity = re.sub(r"^line [0-9]+: ", "", finding.message, count=1)
+    if finding.rule in {"gha-pin", "gha-version"}:
+        action = re.match(r"^([^:\s]+/[^:\s]+):", identity)
+        if action is not None:
+            identity = f"action:{action.group(1)}"
     return (
         finding.rule,
         finding.file,
@@ -189,11 +190,11 @@ def _fix_one_rule(root: Path, repository: Repository, rule: Rule) -> tuple[str |
             return None, "rule has fixable findings but no fixer"
         if _changed_paths(root):
             return None, "disposable worktree was not clean before the fixer"
-        baseline = {
+        baseline = Counter(
             _finding_signature(finding)
             for finding in _policy_findings(root, repository, rule)
             if finding.severity == "error" and finding.kind == "violation"
-        }
+        )
         plan = rule.fix(root, repository)
         if _changed_paths(root):
             raise GitError("fixer modified files directly instead of returning an explicit file plan")
@@ -214,13 +215,16 @@ def _fix_one_rule(root: Path, repository: Repository, rule: Rule) -> tuple[str |
             errors = rule.validate(root, repository, changed)
             if errors:
                 raise GitError("; ".join(errors))
-        introduced = [
-            finding
-            for finding in _policy_findings(root, repository, rule)
-            if finding.severity == "error"
-            and finding.kind == "violation"
-            and _finding_signature(finding) not in baseline
-        ]
+        remaining = baseline.copy()
+        introduced = []
+        for finding in _policy_findings(root, repository, rule):
+            if finding.severity != "error" or finding.kind != "violation":
+                continue
+            signature = _finding_signature(finding)
+            if remaining[signature]:
+                remaining[signature] -= 1
+            else:
+                introduced.append(finding)
         if introduced:
             details = "; ".join(
                 f"{finding.rule}: {finding.file or 'repository'}: {finding.message}"
@@ -280,12 +284,13 @@ def _recovery_references(root: Path, repository: Repository) -> tuple[str, ...]:
     return tuple(line for line in result.stdout.splitlines() if line)
 
 
-def _pending_fix_branches(root: Path, baseline: str) -> tuple[str, ...]:
+def _pending_fix_branches(root: Path, baseline: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     result = run_git(
         ["for-each-ref", "--format=%(refname:short)", "refs/heads/repomod/fix/"],
         cwd=root,
     )
     pending = []
+    diverged = []
     for branch in result.stdout.splitlines():
         tip = run_git(["rev-parse", "--verify", f"refs/heads/{branch}"], cwd=root).stdout.strip()
         if tip == baseline:
@@ -297,7 +302,34 @@ def _pending_fix_branches(root: Path, baseline: str) -> tuple[str, ...]:
             pending.append(branch)
         elif ancestor.returncode != 1:
             raise GitError(ancestor.stderr.strip() or f"cannot inspect branch {branch}")
-    return tuple(pending)
+        else:
+            integrated = run_git(
+                ["merge-base", "--is-ancestor", tip, baseline], cwd=root, check=False
+            )
+            if integrated.returncode == 1:
+                diverged.append(branch)
+            elif integrated.returncode != 0:
+                raise GitError(integrated.stderr.strip() or f"cannot inspect branch {branch}")
+    return tuple(pending), tuple(diverged)
+
+
+def _remote_branch_head(root: Path, branch: str) -> str:
+    reference = f"refs/heads/{branch}"
+    if run_git(["check-ref-format", reference], cwd=root, check=False).returncode:
+        raise GitError(f"invalid remote default branch name: {branch}")
+    result = run_git(
+        ["ls-remote", "--exit-code", "origin", reference], cwd=root, check=False
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or "remote branch was not found"
+        raise GitError(f"cannot verify remote default branch {branch}: {detail}")
+    records = result.stdout.splitlines()
+    if len(records) != 1:
+        raise GitError(f"remote default branch {branch} returned an invalid reference")
+    fields = records[0].split()
+    if len(fields) != 2 or fields[1] != reference or re.fullmatch(r"[0-9a-f]{40}", fields[0]) is None:
+        raise GitError(f"remote default branch {branch} returned an invalid reference")
+    return fields[0]
 
 
 def _remove_worktree(
@@ -328,6 +360,7 @@ def fix_repository(
     repository: Repository,
     selected: tuple[Rule, ...],
     default_branch: str,
+    remote_head: str | None = None,
 ) -> FixOutcome:
     outcome = FixOutcome(str(repository.id))
     worktree: Path | None = None
@@ -364,6 +397,10 @@ def fix_repository(
             if current.branch != default_branch:
                 outcome.skipped = f"checkout is on {current.branch}; default branch is {default_branch}"
                 return outcome
+            start_head = head(canonical)
+            if remote_head is not None and start_head != remote_head:
+                outcome.skipped = "checkout differs from GitHub default branch; sync before fixing"
+                return outcome
             prior_refs = _recovery_references(canonical, repository)
             prior_worktrees = _prior_worktrees(catalog.root, repository)
             if prior_refs or prior_worktrees:
@@ -376,8 +413,31 @@ def fix_repository(
                     ("recovery", f"unresolved repomod recovery state: {evidence}")
                 )
                 return outcome
-            start_head = head(canonical)
-            prior_fix_branches = _pending_fix_branches(canonical, start_head)
+            try:
+                prior_fix_branches, diverged_fix_branches = _pending_fix_branches(
+                    canonical, start_head
+                )
+            except GitError as error:
+                outcome.failures.append(("branch", str(error)))
+                return outcome
+            unmerged_branches = []
+            for branch_name in diverged_fix_branches:
+                try:
+                    merged = fix_branch_was_merged(repository.id, branch_name)
+                except GitHubError as error:
+                    outcome.failures.append(("branch", f"cannot verify fix branch {branch_name}: {error}"))
+                    return outcome
+                if not merged:
+                    unmerged_branches.append(branch_name)
+            if unmerged_branches:
+                outcome.failures.append(
+                    (
+                        "branch",
+                        f"fix branch {unmerged_branches[0]} diverged from the current default branch; "
+                        "integrate or delete it before fixing",
+                    )
+                )
+                return outcome
             if len(prior_fix_branches) > 1:
                 outcome.branch = prior_fix_branches[0]
                 outcome.failures.append(
@@ -488,6 +548,12 @@ def push_fix_branch(
     local_branch = run_git(["rev-parse", "--verify", f"refs/heads/{branch}"], cwd=path, check=False)
     if local_branch.returncode or local_branch.stdout.strip() != branch_head:
         return "failed", "fix branch tip changed before push"
+    try:
+        remote_head = _remote_branch_head(path, default_branch)
+    except GitError as error:
+        return "failed", str(error)
+    if remote_head != base_head:
+        return "skipped", "remote default branch changed; sync before publishing fixes"
     confirmed = status(path, repository.id)
     if confirmed != current or head(path) != base_head:
         return "skipped", "checkout changed before push"

@@ -15,6 +15,9 @@ from repomod.catalog import TAGS, CatalogError, add_repository, find_repository,
 from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
+    AutoMergeEnabled,
+    AutoMergeFailed,
+    AutoMergeSkipped,
     GitHubError,
     ci_status,
     discover,
@@ -154,7 +157,7 @@ def _status_checkout(catalog: Catalog, repository: Repository) -> tuple[Path, Gi
 
 
 def _paint(value: str, color: str) -> str:
-    if not sys.stdout.isatty() or "NO_COLOR" in os.environ or os.environ.get("TERM") == "dumb":
+    if not sys.stdout.isatty() or os.environ.get("TERM") == "dumb":
         return value
     return f"\033[{color}m{value}\033[0m"
 
@@ -541,6 +544,7 @@ def _fix(args: argparse.Namespace) -> int:
         for repository in repositories
         if (remote := remotes.get(str(repository.id))) is not None
         and remote.default_branch is not None
+        and (not args.push or remote.sha is not None)
         and remote.error is None
         and remote.archived is False
     ]
@@ -559,6 +563,7 @@ def _fix(args: argparse.Namespace) -> int:
                 repository,
                 repository_fixers,
                 remote.default_branch,
+                remote.sha if args.push else None,
             )] = repository
         for future in as_completed(futures):
             repository = futures[future]
@@ -572,11 +577,14 @@ def _fix(args: argparse.Namespace) -> int:
             remote is None
             or remote.error is not None
             or remote.default_branch is None
+            or (args.push and remote.sha is None)
             or remote.archived is not False
         ):
             message = (
                 remote.error
                 if remote is not None and remote.error is not None
+                else "GitHub did not report the default branch commit"
+                if args.push and remote is not None and remote.sha is None
                 else "repository is archived or remote default branch is unavailable"
             )
             outcomes.append(FixOutcome(str(repository.id), failures=[("metadata", message)]))
@@ -656,7 +664,13 @@ def _fix(args: argparse.Namespace) -> int:
                 )
             except Exception as error:
                 return "pr-failed", str(error)
-            return "pushed", pull_request
+            match pull_request.auto_merge:
+                case AutoMergeEnabled():
+                    return "pushed", f"{pull_request.url}; auto-merge enabled"
+                case AutoMergeSkipped(reason):
+                    return "pushed", f"{pull_request.url}; auto-merge skipped: {reason}"
+                case AutoMergeFailed(error):
+                    return "pr-automerge-failed", f"{pull_request.url}; auto-merge failed: {error}"
 
         with ThreadPoolExecutor(max_workers=min(4, max(1, len(branches)))) as pool:
             futures = {
@@ -675,6 +689,9 @@ def _fix(args: argparse.Namespace) -> int:
         ):
             if state == "pushed":
                 print(f"{repository.id}: pushed; PR {message}")
+            elif state == "pr-automerge-failed":
+                print(f"{repository.id}: pushed; PR {message}", file=sys.stderr)
+                failed = True
             elif state == "pr-failed":
                 print(f"{repository.id}: pushed; PR failed: {message}", file=sys.stderr)
                 failed = True
@@ -736,9 +753,29 @@ def _topics(args: argparse.Namespace) -> int:
 
 def _pins(args: argparse.Namespace) -> int:
     from repomod.rules.actions import refresh_pins
+    from repomod.rules.python_standard import refresh_python_tool_versions
+    from repomod.rules.typescript_standard import refresh_typescript_tool_pins
 
-    changed = refresh_pins(allow_major=args.allow_major)
-    print("approved pins updated" if changed else "approved pins are current")
+    updated = []
+    failures = []
+    try:
+        if refresh_pins():
+            updated.append("GitHub Actions")
+    except (GitHubError, OSError, ValueError) as error:
+        failures.append(f"GitHub Actions: {error}")
+    try:
+        if refresh_python_tool_versions():
+            updated.append("Python tools")
+    except (OSError, ValueError) as error:
+        failures.append(f"Python tools: {error}")
+    try:
+        if refresh_typescript_tool_pins():
+            updated.append("TypeScript tools")
+    except (GitHubError, OSError, ValueError) as error:
+        failures.append(f"TypeScript tools: {error}")
+    if failures:
+        raise ValueError("pin refresh failed: " + "; ".join(failures))
+    print("approved pins updated: " + ", ".join(updated) if updated else "approved pins are current")
     return 0
 
 
@@ -800,10 +837,12 @@ def _parser() -> argparse.ArgumentParser:
         _filters(topic)
         topic.add_argument("--workers", type=int, default=4)
 
-    pins = commands.add_parser("pins", help="maintain centrally approved GitHub Action pins")
+    pins = commands.add_parser(
+        "pins",
+        help="maintain centrally approved GitHub Action, Python, and TypeScript tool pins",
+    )
     pin_commands = pins.add_subparsers(dest="pin_operation", required=True)
-    refresh = pin_commands.add_parser("refresh")
-    refresh.add_argument("--allow-major", action="store_true")
+    pin_commands.add_parser("refresh")
     return parser
 
 

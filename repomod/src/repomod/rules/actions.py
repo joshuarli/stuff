@@ -8,6 +8,7 @@ import subprocess
 import tomllib
 import uuid
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -15,14 +16,15 @@ from repomod.catalog import atomic_write
 from repomod.git import GitError, run_git
 from repomod.github import action_tags_many, resolve_tags_many
 from repomod.rules.workflows import workflow_files
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import Finding, Repository, Rule, Severity, TagPredicate
 
 _USES = re.compile(r"^(\s*(?:-\s*)?uses\s*:\s*)(.*?)(\r?\n)?$")
 _SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
-_VERSION = re.compile(r"v([0-9]+)\.([0-9]+)\.([0-9]+)\Z")
+_VERSION = re.compile(r"v([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?\Z")
 _VERSION_CHANNEL = re.compile(r"v([0-9]+)\Z")
 _VERSION_REFERENCE = re.compile(r"v?([0-9]+)(?:\.[0-9]+){0,2}\Z")
 _VERSION_COMMENT = re.compile(r"(?<![A-Za-z0-9])(v[0-9]+(?:\.[0-9]+){0,2})(?![A-Za-z0-9])")
+_SHELLCHECK_SEVERITY = re.compile(r"\bSC[0-9]+:(error|warning|info|style):")
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,7 +92,7 @@ def load_pins(path: Path | None = None) -> dict[str, Pin]:
     return pins
 
 
-def refresh_pins(path: Path | None = None, *, allow_major: bool = False) -> bool:
+def refresh_pins(path: Path | None = None) -> bool:
     target = actions_file() if path is None else path
     pins = load_pins(target)
     versions = action_tags_many(tuple(sorted(pins)), "v")
@@ -104,23 +106,23 @@ def refresh_pins(path: Path | None = None, *, allow_major: bool = False) -> bool
             if match is None:
                 continue
             major, minor, patch = match.groups()
-            parts = (int(major), int(minor), int(patch))
-            if allow_major or tag.startswith(f"{pin.channel}."):
-                candidates.append((parts, tag))
+            parts = (int(major), int(minor or 0), int(patch or 0))
+            candidates.append((parts, tag))
         if not candidates:
             raise ValueError(f"GitHub did not report a stable version for {action} in {channel}")
         selected_version, version = max(candidates)
         current_match = _VERSION.fullmatch(pin.version)
         if current_match is None:
             raise ValueError(f"invalid current approved version for {action}: {pin.version}")
-        current_version = tuple(int(part) for part in current_match.groups())
+        current_version = tuple(
+            int(part or 0) for part in current_match.groups()
+        )
         if selected_version < current_version:
             raise ValueError(
                 f"GitHub reported only older versions for {action}; refusing to replace "
                 f"{pin.version} with {version}"
             )
-        if allow_major:
-            channel = version.split(".", 1)[0]
+        channel = version.split(".", 1)[0]
         selected_versions[action] = version
         channels[action] = channel
     resolved = resolve_tags_many(selected_versions)
@@ -273,6 +275,14 @@ def _replacement(use: ActionUse, value: str, comment: str | None = None) -> str:
     return f"{use.prefix}{tail}{(' ' + suffix) if suffix else ''}{use.newline}"
 
 
+def _versioned_comment(comment: str, version: str) -> str:
+    version_comments = list(_VERSION_COMMENT.finditer(comment))
+    if version_comments:
+        match = version_comments[-1]
+        return comment[: match.start(1)] + version + comment[match.end(1) :]
+    return f"{comment} # {version}" if comment else f"# {version}"
+
+
 def _comment_major(use: ActionUse) -> int | None:
     comments = list(_VERSION_COMMENT.finditer(use.comment))
     if len(comments) > 1:
@@ -301,18 +311,12 @@ def _major_problem(use: ActionUse, pin: Pin) -> str | None:
             f"version comment v{comment_major} conflicts with action reference "
             f"v{reference_major}; review the major-version change"
         )
-    declared_major = reference_major if reference_major is not None else comment_major
-    if declared_major is not None and declared_major != pin.major:
-        return (
-            f"action major v{declared_major} differs from approved {pin.channel}; "
-            "review the major-version change before updating the workflow"
-        )
     if use.reference is None:
         return "action reference is missing; identify its intended major before pinning"
     if _SHA.fullmatch(use.reference):
         if use.reference.casefold() == pin.sha:
             return None
-        if comment_major == pin.major:
+        if comment_major is not None:
             return None
         return "cannot identify the major version of this SHA; add a # vX.Y.Z comment before updating it"
     if reference_major is not None:
@@ -352,7 +356,7 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
                     str(repository.id),
                     rule_id,
                     use.path,
-                    f"line {use.line_number}: {major_problem}",
+                    f"line {use.line_number}: {use.action}: {major_problem}",
                 )
             )
             continue
@@ -364,7 +368,8 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
                         str(repository.id),
                         rule_id,
                         use.path,
-                        f"line {use.line_number}: expected approved version comment {pin.version}",
+                        f"line {use.line_number}: {use.action}: expected approved version comment "
+                        f"{pin.version}",
                         fixable=True,
                     )
                 )
@@ -374,7 +379,8 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
                     str(repository.id),
                     rule_id,
                     use.path,
-                    f"line {use.line_number}: expected {use.action}@{pin.sha} for {pin.version}",
+                    f"line {use.line_number}: {use.action}: expected "
+                    f"{use.action}@{pin.sha} for {pin.version}",
                     fixable=True,
                 )
             )
@@ -401,22 +407,18 @@ def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]
             if version:
                 version_comments = list(_VERSION_COMMENT.finditer(use.comment))
                 if not version_comments or version_comments[-1].group(1) != pin.version:
-                    comment = use.comment
-                    if version_comments:
-                        match = version_comments[-1]
-                        comment = comment[: match.start(1)] + pin.version + comment[match.end(1) :]
-                    elif comment:
-                        comment = f"{comment} # {pin.version}"
-                    else:
-                        comment = f"# {pin.version}"
-                    lines[use.line_number - 1] = _replacement(use, use.value, comment)
+                    lines[use.line_number - 1] = _replacement(
+                        use, use.value, _versioned_comment(use.comment, pin.version)
+                    )
             elif use.reference is None or _SHA.fullmatch(use.reference) is None or use.reference.casefold() != pin.sha:
                 value = f"{use.action}@{pin.sha}"
                 original_path = use.value.split("@", 1)[0]
                 action_parts = original_path.split("/")
                 if len(action_parts) > 2:
                     value = f"{'/'.join(action_parts)}@{pin.sha}"
-                lines[use.line_number - 1] = _replacement(use, value)
+                lines[use.line_number - 1] = _replacement(
+                    use, value, _versioned_comment(use.comment, pin.version)
+                )
         updated = "".join(lines)
         if updated != path.read_text(encoding="utf-8"):
             changes[relative] = updated
@@ -458,6 +460,8 @@ def _validate_workflows(
         return [f"cannot run jactionlint: {error}"]
     if result.returncode == 0:
         return []
+    if result.returncode != 1:
+        return [result.stderr.strip() or result.stdout.strip() or "jactionlint rejected modified files"]
     try:
         findings = json.loads(result.stdout)
     except json.JSONDecodeError:
@@ -467,11 +471,33 @@ def _validate_workflows(
             f"{finding.get('filepath', 'file')}:{finding.get('line', 1)}: "
             f"{finding.get('id', 'jactionlint')}: {finding.get('message', 'invalid file')}"
             for finding in findings
-            if isinstance(finding, dict)
+            if isinstance(finding, dict) and _jactionlint_severity(finding) == "error"
         ]
         if messages:
             return messages
+        return []
     return [result.stderr.strip() or result.stdout.strip() or "jactionlint rejected modified files"]
+
+
+def _jactionlint_severity(finding: dict[str, object]) -> Severity:
+    severity = finding.get("severity")
+    if severity == "warning":
+        default: Severity = "warning"
+    elif severity == "info":
+        default = "info"
+    else:
+        default = "error"
+    message = finding.get("message")
+    if finding.get("id") == "shellcheck" and isinstance(message, str):
+        match = _SHELLCHECK_SEVERITY.search(message)
+        if match is not None:
+            level = match.group(1)
+            if level == "error":
+                return "error"
+            if level == "warning":
+                return "warning"
+            return "info"
+    return default
 
 
 def _action_tool_files(
@@ -521,6 +547,30 @@ def _tool_file_arguments(root: Path, files: list[Path]) -> list[str]:
     return [str(path.relative_to(root)) for path in files]
 
 
+@lru_cache(maxsize=8)
+def _jactionlint_fixable_rule_ids(executable: str) -> frozenset[str]:
+    result = subprocess.run(
+        [executable, "--list-rules", "--format", "json"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode:
+        raise GitError(result.stderr.strip() or "jactionlint could not list fixable rules")
+    try:
+        rules = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise GitError(f"jactionlint returned invalid rule metadata: {error}") from error
+    if not isinstance(rules, list):
+        raise GitError("jactionlint returned invalid rule metadata")
+    return frozenset(
+        str(rule["id"])
+        for rule in rules
+        if isinstance(rule, dict) and rule.get("fixable") is True and isinstance(rule.get("id"), str)
+    )
+
+
 def _tool_relative_path(root: Path, value: str) -> str | None:
     value = unquote(value)
     path = Path(value)
@@ -550,6 +600,18 @@ def _jactionlint_findings(
             )
         ]
     try:
+        fixable_rules = _jactionlint_fixable_rule_ids(executable)
+    except (GitError, OSError, subprocess.TimeoutExpired) as error:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                f"cannot read jactionlint fix rules: {error}",
+                kind="operational",
+            )
+        ]
+    try:
         result = subprocess.run(
             [
                 executable,
@@ -558,6 +620,7 @@ def _jactionlint_findings(
                 "--no-baseline",
                 "--no-online",
                 "--format=json",
+                "--show-fix-status",
                 "--",
                 *_tool_file_arguments(root, files),
             ],
@@ -649,18 +712,20 @@ def _jactionlint_findings(
         message = item.get("message")
         line_number = item.get("line")
         location = f"line {line_number}: " if isinstance(line_number, int) else ""
+        fix = item.get("fix")
         findings.append(
             Finding(
                 str(repository.id),
                 rule_id,
                 relative,
                 f"{location}jactionlint {item_rule}: {message if isinstance(message, str) else 'finding'}",
-                severity=(
-                    item["severity"]
-                    if item.get("severity") in {"error", "warning", "info"}
-                    else "error"
-                ),
-                fixable=isinstance(item_rule, str) and "no_fix" not in item,
+                severity=_jactionlint_severity(item),
+                fixable=isinstance(item_rule, str)
+                and item_rule in fixable_rules
+                and isinstance(fix, dict)
+                and isinstance(fix.get("edits"), list)
+                and bool(fix["edits"])
+                and fix.get("unsafe") is not True,
             )
         )
     return findings
@@ -803,7 +868,12 @@ def _pinact_findings(
                     rule_id,
                     relative,
                     f"{line_prefix}pinact {code}: {text if isinstance(text, str) else 'finding'}",
-                    fixable=code == "unpinned-action",
+                    fixable=code == "unpinned-action"
+                    or (
+                        code == "parse-error"
+                        and isinstance(text, str)
+                        and "SHA-pinned action requires a version comment" in text
+                    ),
                 )
             )
     return findings
@@ -845,28 +915,7 @@ def _changed_tool_paths(root: Path, allowed: set[str]) -> dict[str, str]:
 
 
 def _jactionlint_fix_rules(executable: str) -> str:
-    result = subprocess.run(
-        [executable, "--list-rules", "--format", "json"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
-    )
-    if result.returncode:
-        raise GitError(result.stderr.strip() or "jactionlint could not list fixable rules")
-    try:
-        rules = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        raise GitError(f"jactionlint returned invalid rule metadata: {error}") from error
-    if not isinstance(rules, list):
-        raise GitError("jactionlint returned invalid rule metadata")
-    fixable: set[str] = set()
-    for rule in rules:
-        if not isinstance(rule, dict) or rule.get("fixable") is not True:
-            continue
-        rule_id = rule.get("id")
-        if isinstance(rule_id, str) and rule_id != "concurrency-limits":
-            fixable.add(rule_id)
+    fixable = set(_jactionlint_fixable_rule_ids(executable)) - {"concurrency-limits"}
     if not fixable:
         raise GitError("jactionlint reported no safe automatic fixes")
     return ",".join(sorted(fixable))
@@ -984,16 +1033,6 @@ def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
 def action_rules() -> tuple[Rule, ...]:
     return (
         Rule(
-            "gha-pin",
-            "Pin external GitHub Actions to approved full commit SHAs",
-            TagPredicate(),
-            lambda root, repo: _findings(root, repo, version=False),
-            lambda root, repo: _fix(root, repo, version=False),
-            "chore(repomod): pin github actions",
-            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
-            _validate_workflows,
-        ),
-        Rule(
             "gha-syntax",
             "Check and repair GitHub Actions files with jactionlint and pinact",
             TagPredicate(),
@@ -1020,6 +1059,16 @@ def action_rules() -> tuple[Rule, ...]:
             lambda root, repo: _findings(root, repo, version=True),
             lambda root, repo: _fix(root, repo, version=True),
             "chore(repomod): update github action versions",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+            _validate_workflows,
+        ),
+        Rule(
+            "gha-pin",
+            "Pin external GitHub Actions to approved full commit SHAs",
+            TagPredicate(),
+            lambda root, repo: _findings(root, repo, version=False),
+            lambda root, repo: _fix(root, repo, version=False),
+            "chore(repomod): pin github actions",
             (".github/workflows/*.yml", ".github/workflows/*.yaml"),
             _validate_workflows,
         ),

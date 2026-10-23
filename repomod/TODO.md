@@ -1,2 +1,110 @@
 Prefix: RPMD
-Next: 38
+Next: 50
+
+### RPMD-38 · P2 · Keep GitHub expressions out of Make target parsing
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/consistency.py:94`, `.github/workflows/release.yml` in `laputa-systems/diff-pretty`, `e`, `fastermod`, `fdu`, `fz`, `srv`, `tm`, `vault`, and `zzz`
+- **Problem:** `_make_targets` tokenizes `${{ matrix.target }}` with `shlex` and reports `matrix.target` as a missing Make target. The workflows pass that expression as a `TARGET` variable while invoking targets that exist in their Makefiles.
+- **Recommendation:** Treat GitHub expressions as opaque before collecting positional Make targets, and retain variable assignments as assignments.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-39 · P2 · Limit the Markdown audit to maintained documentation
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/mdtool.py:23`, `joshuarli/defuddle-rs/tests/upstream/defuddle/expected/`, `joshuarli/gh/internal/attachments/testdata/`, repository `TODO.md` files
+- **Problem:** The repo-wide `mdtool check --untracked` call reports 322 findings in extracted Defuddle output snapshots and 90 findings in gh attachment fixtures. It also treats intentionally missing paths quoted in TODO tickets as new untracked-path warnings. These files are not maintained user documentation, so they add noise to the actionable results.
+- **Recommendation:** Exclude generated snapshots, fixture data, and TODO tracking files from the repomod mdtool audit while continuing to check maintained documentation.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-40 · P2 · Preserve Rustdoc links in Markdown lint results
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/mdtool.py:23`, `laputa-systems/rawzip/docs/01-reading.md:5`
+- **Problem:** `mdtool` treats Rustdoc intra-doc links such as `[crate::ziparchive]` as undefined Markdown reference links. Rawzip's technical guides contain many valid Rustdoc links reported as errors.
+- **Recommendation:** Teach the Markdown audit to recognize Rustdoc intra-doc link syntax or suppress only that supported link class.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-41 · P2 · Match formatter names only in command positions
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/formatters.py:255`, `laputa-systems/rg/crates/core/flags/complete/rg.zsh:378`
+- **Problem:** The formatter scanner reports `black` in ripgrep's color completion list as a formatter command. It is a color name, not an executable invocation.
+- **Recommendation:** Restrict command detection to executable positions and ignore completion values and other command arguments.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-42 · P2 · Check Rust lockfiles at executable workspace roots
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/languages.py:204`, `src/repomod/rules/languages.py:249`, `laputa-systems/rawzip/compare/Cargo.toml`, `laputa-systems/rawzip/compare/src/main.rs`
+- **Problem:** Rawzip's library root has no executable, but its nested `compare` workspace has `src/main.rs`. The Rust lint sees that nested binary and asks for a repository-root `Cargo.lock`, even though the lockfile belongs at the nested workspace root.
+- **Recommendation:** Associate each executable with its owning Cargo workspace and check for a lockfile there; do not attribute nested development executables to the library root.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-43 · P2 · Accept fork-tagged tools in binary release conformance
+
+- **Area:** Release policy
+- **Where:** `src/repomod/rules/binary_release.py:245`, `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/.github/workflows/prerelease.yml`
+- **Problem:** gh is correctly tagged `tool` and `fork`, but the binary release lint requires exactly `tool` and tells the catalog to remove `fork`. This conflicts with the fork classification and fork workflow policy.
+- **Recommendation:** Validate native binary prerelease conformance for `tool` repositories while allowing the `fork` tag.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-44 · P2 · Align language detection with managed project ecosystems
+
+- **Area:** Catalog policy
+- **Where:** `src/repomod/rules/languages.py:509`, `catalog.toml`, `joshuarli/shadowdriver/ts/src/`, `joshuarli/gh/go.mod`, `laputa-systems/jaq/Cargo.toml`
+- **Problem:** The detector searches TypeScript under `src`, `web`, `app`, `packages`, and `extensions`, but misses the tracked `shadowdriver/ts/src/*.ts` project. It also treats helper scripts in otherwise Rust repositories as project languages, while primary Go and Rust projects such as gh, ish, and jaq lack corresponding catalog tags.
+- **Recommendation:** Base language tags on managed project manifests and first-party source roots, include the `ts/` layout, and reconcile primary language tags in the catalog.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-45 · P3 · Blacklist intentional README omissions per repository
+
+- **Area:** Catalog policy
+- **Where:** `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/AGENTS.md`
+- **Problem:** The repo-template lint requires a human-written README for gh even though its repository instructions explicitly say the upstream README and documentation are intentionally removed from this fork.
+- **Recommendation:** Add a repository-specific `repo-template` lint blacklist entry for gh.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-46 · P3 · Add portable generated-file ignore patterns to catalog repos
+
+- **Area:** Repository hygiene
+- **Where:** Root `.gitignore` files in all 27 catalog repositories
+- **Problem:** The scan reports missing in-repository ignore patterns for `.DS_Store` and `Thumbs.db` in every catalog checkout. A user's global ignore file does not protect other contributors or CI checkouts.
+- **Recommendation:** Add the two common patterns to each repository's root ignore policy through a reviewed repo fixer.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-47 · P2 · Reconcile GitHub topics with the curated catalog
+
+- **Area:** Repository metadata
+- **Where:** `catalog.toml` and the GitHub repository topics for all 27 catalog repositories
+- **Problem:** The read-only scan found catalog topic differences on all 27 repositories, including topics to add and a few existing topics to remove. The repositories therefore present different classifications locally and on GitHub.
+- **Recommendation:** Review the proposed topic changes and run `repomod topics apply` for the catalog once approved.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-48 · P2 · Autofix required workflow concurrency and shell defaults
+
+- **Area:** GitHub Actions
+- **Where:** `.github/workflows/*.yml` and `.yaml` in catalog repositories with `gha-settings` findings
+- **Problem:** The new lint identifies workflows that do not use the required concurrency group, cancel setting, or `bash -euo pipefail {0}` shell default. The linter reports these, but the fixer has no validated file plan for them, leaving repeated policy edits manual across repositories.
+- **Recommendation:** Add a workflow fixer that plans these exact root workflow edits, validates the resulting workflow, then apply it through the existing per-repository PR flow.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-49 · P2 · Recognize SHA-pinned releases created through the GitHub API
+
+- **Area:** Release policy
+- **Where:** `src/repomod/rules/binary_release.py:18`, `laputa-systems/ish/.github/workflows/release.yml:194`
+- **Problem:** ish creates its `release-${{ github.sha }}` tag through `gh api` with `sha=$GITHUB_SHA`, then publishes platform ZIPs and checksums. The release lint does not recognize that API request as targeting the triggering commit and reports the otherwise complete native release contract as ambiguous.
+- **Recommendation:** Recognize the checked `gh api` tag creation form as a source-target guarantee and retain the existing rejection of tags that do not point at the triggering commit.
+- **Fix with:** none
+- **Effort:** S (hours)

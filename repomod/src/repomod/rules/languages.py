@@ -154,20 +154,8 @@ def _rust_manifests(
     return manifests, sorted(problems)
 
 
-def _rust_toolchain(root: Path, repository: Repository) -> list[Finding]:
+def _rust_tool_configs(root: Path, repository: Repository) -> list[Finding]:
     findings = []
-    path = root / "rust-toolchain.toml"
-    if path.is_symlink():
-        return [_finding(repository, "rust-project", path.name, "rust-toolchain.toml is a symlink")]
-    if path.is_file():
-        document, error = _read_toml(path)
-        toolchain = document.get("toolchain") if isinstance(document, dict) else None
-        valid = document is not None and isinstance(toolchain, dict) and isinstance(toolchain.get("channel"), str)
-        if not valid:
-            detail = error or "missing channel"
-            findings.append(
-                _finding(repository, "rust-project", path.name, f"declare a readable toolchain.channel: {detail}")
-            )
     for name in ("rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"):
         config = root / name
         if not config.exists() and not config.is_symlink():
@@ -273,7 +261,7 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
             findings.append(
                 _finding(repository, "rust-project", "Cargo.lock", f"Cargo.lock is invalid TOML: {error}")
             )
-    findings.extend(_rust_toolchain(root, repository))
+    findings.extend(_rust_tool_configs(root, repository))
     return findings
 
 
@@ -671,7 +659,7 @@ def language_rules() -> tuple[Rule, ...]:
         ),
         Rule(
             "rust-project",
-            "Check Cargo manifests, workspace inheritance, toolchain config, and binary lockfiles",
+            "Check Cargo manifests, workspace inheritance, Rust tool config, and binary lockfiles",
             TagPredicate(),
             _rust_findings,
             None,

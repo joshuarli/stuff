@@ -9,9 +9,10 @@ import tempfile
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast, get_args
+from urllib.parse import quote
 
 from repomod.types import (
     CheckResult,
@@ -39,6 +40,30 @@ _COMMIT_SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 
 class GitHubError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class AutoMergeEnabled:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class AutoMergeSkipped:
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class AutoMergeFailed:
+    error: str
+
+
+type AutoMergeOutcome = AutoMergeEnabled | AutoMergeSkipped | AutoMergeFailed
+
+
+@dataclass(frozen=True, slots=True)
+class FixPullRequest:
+    url: str
+    auto_merge: AutoMergeOutcome
 
 
 def _gh(arguments: list[str], input_text: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -85,12 +110,128 @@ def _gh_json(arguments: list[str], input_text: str | None = None) -> Any:
         raise GitHubError("GitHub returned malformed JSON") from error
 
 
-def ensure_fix_pull_request(repository: RepoId, branch: str, base_branch: str) -> str:
+def _has_required_status_checks(repository: RepoId, base_branch: str) -> tuple[bool, str | None]:
+    branch = quote(base_branch, safe="")
+    endpoint = f"repos/{repository.owner}/{repository.name}"
+    protection: dict[str, Any] | None = None
+    protection_error: GitHubError | None = None
+    try:
+        value = _gh_json([f"{endpoint}/branches/{branch}/protection"])
+        protection = value if isinstance(value, dict) else None
+    except GitHubError as error:
+        protection_error = error
+    required = protection.get("required_status_checks") if protection is not None else None
+    if isinstance(required, dict):
+        contexts = required.get("contexts")
+        checks = required.get("checks")
+        if (
+            isinstance(contexts, list)
+            and any(isinstance(context, str) and context for context in contexts)
+        ) or (
+            isinstance(checks, list)
+            and any(isinstance(check, dict) and isinstance(check.get("context"), str) for check in checks)
+        ):
+            return True, None
+    try:
+        rules = _gh_json([f"{endpoint}/rules/branches/{branch}"])
+    except GitHubError as error:
+        details = "; ".join(
+            str(problem) for problem in (protection_error, error) if problem is not None
+        )
+        return False, f"cannot verify required status checks: {details}"
+    if isinstance(rules, list):
+        for rule in rules:
+            parameters = rule.get("parameters") if isinstance(rule, dict) else None
+            checks = parameters.get("required_status_checks") if isinstance(parameters, dict) else None
+            if (
+                isinstance(rule, dict)
+                and rule.get("type") == "required_status_checks"
+                and isinstance(checks, list)
+                and any(isinstance(check, dict) and isinstance(check.get("context"), str) for check in checks)
+            ):
+                return True, None
+    return False, "the default branch has no required status checks"
+
+
+def _enable_fix_pull_request_auto_merge(
+    repository: RepoId,
+    pull_request_id: str,
+    base_branch: str,
+    *,
+    already_enabled: bool,
+) -> AutoMergeOutcome:
+    if already_enabled:
+        return AutoMergeEnabled()
+    endpoint = f"repos/{repository.owner}/{repository.name}"
+    try:
+        metadata = _gh_json([endpoint])
+        if not isinstance(metadata, dict):
+            raise GitHubError("GitHub returned invalid repository settings")
+        if metadata.get("allow_auto_merge") is not True:
+            return AutoMergeSkipped("repository setting is disabled")
+        has_checks, reason = _has_required_status_checks(repository, base_branch)
+        if not has_checks:
+            return AutoMergeSkipped(reason or "required status checks could not be confirmed")
+        query = (
+            "mutation { enablePullRequestAutoMerge(input: { pullRequestId: "
+            f"{json.dumps(pull_request_id)}, mergeMethod: REBASE }}) "
+            "{ pullRequest { url autoMergeRequest { enabledAt } } } }"
+        )
+        response = _graphql(query)
+    except GitHubError as error:
+        return AutoMergeFailed(str(error))
+    errors = response.get("errors")
+    if errors:
+        detail = (
+            errors[0].get("message", "GitHub rejected auto-merge")
+            if isinstance(errors, list) and errors and isinstance(errors[0], dict)
+            else "GitHub rejected auto-merge"
+        )
+        return AutoMergeFailed(str(detail))
+    data = response.get("data")
+    result = data.get("enablePullRequestAutoMerge") if isinstance(data, dict) else None
+    pull_request = result.get("pullRequest") if isinstance(result, dict) else None
+    if not isinstance(pull_request, dict) or not isinstance(pull_request.get("url"), str):
+        return AutoMergeFailed("GitHub returned an invalid auto-merge response")
+    return AutoMergeEnabled()
+
+
+def fix_branch_was_merged(repository: RepoId, branch: str) -> bool:
+    if _FIX_BRANCH.fullmatch(branch) is None:
+        raise GitHubError("fix branch name is invalid")
+    endpoint = f"repos/{repository.owner}/{repository.name}/pulls"
+    response = _gh_json(
+        [
+            endpoint,
+            "--method",
+            "GET",
+            "-F",
+            "state=closed",
+            "-F",
+            f"head={repository.owner}:{branch}",
+            "-F",
+            "per_page=100",
+        ]
+    )
+    if not isinstance(response, list):
+        raise GitHubError("GitHub returned an invalid pull request list")
+    for item in response:
+        if not isinstance(item, dict):
+            raise GitHubError("GitHub returned an invalid pull request record")
+        head = item.get("head")
+        reference = head.get("ref") if isinstance(head, dict) else None
+        merged_at = item.get("merged_at")
+        if reference == branch and merged_at is not None:
+            return True
+    return False
+
+
+def ensure_fix_pull_request(repository: RepoId, branch: str, base_branch: str) -> FixPullRequest:
     if _FIX_BRANCH.fullmatch(branch) is None:
         raise GitHubError("fix branch name is invalid")
     endpoint = f"repos/{repository.owner}/{repository.name}/pulls"
 
-    def existing_pull_request() -> str | None:
+    def existing_pull_request() -> tuple[str, str, bool] | None:
         response = _gh_json(
             [
                 endpoint,
@@ -112,14 +253,22 @@ def ensure_fix_pull_request(repository: RepoId, branch: str, base_branch: str) -
             raise GitHubError("GitHub returned multiple open pull requests for one fix branch")
         if not response:
             return None
-        url = response[0].get("html_url") if isinstance(response[0], dict) else None
-        if not isinstance(url, str):
-            raise GitHubError("GitHub returned a pull request without a URL")
-        return url
+        item = response[0]
+        url = item.get("html_url") if isinstance(item, dict) else None
+        node_id = item.get("node_id") if isinstance(item, dict) else None
+        if not isinstance(url, str) or not isinstance(node_id, str):
+            raise GitHubError("GitHub returned a pull request without its URL or ID")
+        return url, node_id, isinstance(item.get("auto_merge"), dict)
 
     existing = existing_pull_request()
     if existing is not None:
-        return existing
+        url, node_id, already_enabled = existing
+        return FixPullRequest(
+            url,
+            _enable_fix_pull_request_auto_merge(
+                repository, node_id, base_branch, already_enabled=already_enabled
+            ),
+        )
     try:
         created = _gh_json(
             [
@@ -140,12 +289,22 @@ def ensure_fix_pull_request(repository: RepoId, branch: str, base_branch: str) -
     except GitHubError:
         existing = existing_pull_request()
         if existing is not None:
-            return existing
+            url, node_id, already_enabled = existing
+            return FixPullRequest(
+                url,
+                _enable_fix_pull_request_auto_merge(
+                    repository, node_id, base_branch, already_enabled=already_enabled
+                ),
+            )
         raise
     url = created.get("html_url") if isinstance(created, dict) else None
-    if not isinstance(url, str):
-        raise GitHubError("GitHub created a pull request without a URL")
-    return url
+    node_id = created.get("node_id") if isinstance(created, dict) else None
+    if not isinstance(url, str) or not isinstance(node_id, str):
+        raise GitHubError("GitHub created a pull request without its URL or ID")
+    return FixPullRequest(
+        url,
+        _enable_fix_pull_request_auto_merge(repository, node_id, base_branch, already_enabled=False),
+    )
 
 
 def _graphql(query: str) -> dict[str, Any]:
@@ -1248,7 +1407,7 @@ def _action_tags_batch(repositories: tuple[str, ...], prefix: str) -> dict[str, 
             owner, name = _action_repository_parts(repository)
             owner_value = json.dumps(owner)
             name_value = json.dumps(name)
-            prefix_value = json.dumps(f"refs/tags/{prefix}")
+            prefix_value = json.dumps("refs/tags/")
             cursor = cursors[alias]
             after = f", after: {json.dumps(cursor)}" if cursor is not None else ""
             fields.append(
@@ -1285,7 +1444,7 @@ def _action_tags_batch(repositories: tuple[str, ...], prefix: str) -> dict[str, 
             seen_cursors[alias].add(cursor)
             cursors[alias] = cursor
     return {
-        repository: tuple(tags[alias])
+        repository: tuple(tag for tag in tags[alias] if tag.startswith(prefix))
         for alias, repository in aliases.items()
     }
 

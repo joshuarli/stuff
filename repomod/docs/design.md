@@ -41,10 +41,11 @@ worktree at the current branch tip and can change only its declared paths. Befor
 validation must pass, the fixer must leave no fixable findings for its rule, and it must introduce
 no policy errors. Every successful fixer gets its own commit on a new local
 `repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix --push` pushes
-that branch and opens or reuses a pull request against the default branch. The next fix run resumes
-its unmerged branch from the current default branch. Failed or interrupted work remains on its
-branch or in its worktree.
+that branch and opens or reuses a pull request against the default branch. It enables GitHub
+auto-merge only when the repository allows it and the default branch requires status checks. The
+next fix run resumes its unmerged branch from the current default branch. Failed or interrupted
+work remains on its branch or in its worktree.
 
 Push uses a normal fast-forward Git push and keeps local commits on failure. `topics apply`
-replaces GitHub topics with the catalog's complete tag set. `pins refresh` reads upstream refs
-and updates the local approved-pin file.
+replaces GitHub topics with the catalog's complete tag set. `pins refresh` updates the local
+approved GitHub Action, Python tool, and TypeScript tool versions from their upstream sources.

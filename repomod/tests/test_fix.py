@@ -11,7 +11,7 @@ import pytest
 
 import repomod.fix as fix_module
 from repomod.catalog import Catalog, load_catalog
-from repomod.fix import FixOutcome, fix_repository, push_repository
+from repomod.fix import FixOutcome, _finding_signature, fix_repository, push_fix_branch, push_repository
 from repomod.git import head, status
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -116,6 +116,31 @@ def subjects(path: Path, base: str, target: str = "HEAD") -> list[str]:
     return output.splitlines()
 
 
+def test_action_pin_findings_keep_identity_when_pinact_resolves_a_sha_version() -> None:
+    unresolved = Finding(
+        "acme/demo",
+        "gha-pin",
+        ".github/workflows/ci.yml",
+        "line 18: actions/checkout: cannot identify the major version of this SHA",
+    )
+    resolved = Finding(
+        "acme/demo",
+        "gha-pin",
+        ".github/workflows/ci.yml",
+        "line 20: actions/checkout: expected actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    )
+    other_action = Finding(
+        "acme/demo",
+        "gha-pin",
+        ".github/workflows/ci.yml",
+        "line 20: actions/download-artifact: expected "
+        "actions/download-artifact@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    )
+
+    assert _finding_signature(unresolved) == _finding_signature(resolved)
+    assert _finding_signature(resolved) != _finding_signature(other_action)
+
+
 def test_successful_fixers_create_one_commit_each_and_reruns_resume_branch(
     tmp_path: Path,
     git_environment: None,
@@ -153,9 +178,99 @@ def test_successful_fixers_create_one_commit_each_and_reruns_resume_branch(
     assert repeated.failures == []
     assert repeated.branch_head == outcome.commits[-1][1]
     assert subjects(path, base) == []
-    assert len(
-        git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")
-    ) == 1
+    worktrees = git("worktree", "list", "--porcelain", cwd=path).stdout.splitlines()
+    assert sum(line.startswith("worktree ") for line in worktrees) == 1
+
+
+def test_diverged_fix_branch_blocks_a_new_fixer_run(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, _base = initialize_repository(tmp_path)
+    selected = (file_rule("first", "first.txt", "first\n"),)
+
+    initial = fix_repository(catalog, repository, selected, "main")
+    assert initial.branch is not None
+    (path / "main.txt").write_text("main advanced independently\n", encoding="utf-8")
+    git("add", "main.txt", cwd=path)
+    git("commit", "-m", "advance main", cwd=path)
+    monkeypatch.setattr(fix_module, "fix_branch_was_merged", lambda _repository, _branch: False)
+
+    repeated = fix_repository(catalog, repository, selected, "main")
+
+    assert repeated.commits == []
+    assert repeated.failures == [
+        (
+            "branch",
+            f"fix branch {initial.branch} diverged from the current default branch; "
+            "integrate or delete it before fixing",
+        )
+    ]
+
+
+def test_merged_squash_fix_branch_does_not_block_a_new_fixer_run(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, _base = initialize_repository(tmp_path)
+    selected = (file_rule("first", "first.txt", "first\n"),)
+
+    initial = fix_repository(catalog, repository, selected, "main")
+    assert initial.branch is not None
+    (path / "main.txt").write_text("main advanced independently\n", encoding="utf-8")
+    git("add", "main.txt", cwd=path)
+    git("commit", "-m", "advance main", cwd=path)
+    monkeypatch.setattr(fix_module, "fix_branch_was_merged", lambda _repository, _branch: True)
+
+    repeated = fix_repository(catalog, repository, selected, "main")
+
+    assert repeated.failures == []
+    assert repeated.branch is not None
+    assert repeated.branch != initial.branch
+    assert [rule for rule, _ in repeated.commits] == ["first"]
+
+
+def test_push_fix_branch_skips_when_remote_default_advanced(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    _catalog, repository, path, base = initialize_repository(tmp_path)
+    update_worktree = tmp_path / "remote-update"
+    git("worktree", "add", "-b", "remote-update", str(update_worktree), base, cwd=path)
+    (update_worktree / "remote.txt").write_text("remote advanced\n", encoding="utf-8")
+    git("add", "remote.txt", cwd=update_worktree)
+    git("commit", "-m", "advance remote", cwd=update_worktree)
+    git("push", "origin", "HEAD:refs/heads/main", cwd=update_worktree)
+    git("worktree", "remove", "--force", str(update_worktree), cwd=path)
+    branch = "repomod/fix/" + "a" * 32
+    git("branch", branch, base, cwd=path)
+
+    state, message = push_fix_branch(repository, path, branch, "main", base, base)
+
+    assert state == "skipped"
+    assert message == "remote default branch changed; sync before publishing fixes"
+
+
+def test_fix_skips_when_local_head_differs_from_github_default(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+
+    outcome = fix_repository(
+        catalog,
+        repository,
+        (file_rule("first", "first.txt", "first\n"),),
+        "main",
+        "0" * 40,
+    )
+
+    assert outcome.skipped == "checkout differs from GitHub default branch; sync before fixing"
+    assert outcome.commits == []
+    assert outcome.branch is None
+    assert head(path) == base
 
 
 def test_failed_middle_fixer_is_discarded_while_later_success_commits(
@@ -235,6 +350,67 @@ def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
     assert any("gha-pin" in message for _, message in outcome.failures), outcome.failures
     assert not (path / workflow).exists()
     assert head(path) == base
+
+
+@pytest.mark.parametrize(
+    ("after", "expected_commits"),
+    [("prelude\nbad\n", 1), ("prelude\nbad\nbad\n", 0)],
+)
+def test_policy_fixer_compares_line_findings_by_content_and_multiplicity(
+    tmp_path: Path,
+    git_environment: None,
+    after: str,
+    expected_commits: int,
+) -> None:
+    _catalog, repository, path, _base = initialize_repository(tmp_path)
+    policy_file = path / "policy.txt"
+    policy_file.write_text("bad\n", encoding="utf-8")
+    git("add", "policy.txt", cwd=path)
+    git("commit", "-m", "add policy fixture", cwd=path)
+
+    def check(root: Path, repo: Repository) -> list[Finding]:
+        source = (root / "policy.txt").read_text(encoding="utf-8")
+        findings = [
+            Finding(
+                str(repo.id),
+                "line-policy",
+                "policy.txt",
+                f"line {line_number}: jactionlint rule: existing diagnostic",
+            )
+            for line_number, line in enumerate(source.splitlines(), start=1)
+            if line == "bad"
+        ]
+        if not source.startswith("prelude\n"):
+            findings.append(
+                Finding(
+                    str(repo.id),
+                    "line-policy",
+                    "policy.txt",
+                    "add policy prelude",
+                    fixable=True,
+                )
+            )
+        return findings
+
+    rule = Rule(
+        "line-policy",
+        "Normalize line-based diagnostics",
+        TagPredicate(),
+        check,
+        lambda _root, _repo: {"policy.txt": after},
+        "chore(repomod): normalize policy fixture",
+        ("policy.txt",),
+    )
+
+    outcome = fix_repository(_catalog, repository, (rule,), "main")
+
+    assert len(outcome.commits) == expected_commits
+    if expected_commits:
+        assert outcome.failures
+        assert all("policy violations need manual review" in message for _, message in outcome.failures)
+    else:
+        assert any("fixer introduced policy violations" in message for _, message in outcome.failures)
+    assert policy_file.read_text(encoding="utf-8") == "bad\n"
 
 
 def test_fix_branch_keeps_commits_off_default_and_resumes_repeated_fixes(
@@ -483,7 +659,8 @@ def test_interruption_preserves_completed_commit_on_fix_branch(
     assert git("show", f"{branches[0]}:first.txt", cwd=path).stdout == "first\n"
     assert head(path) == base
     assert not (path / "first.txt").exists()
-    assert len(git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")) == 1
+    worktrees = git("worktree", "list", "--porcelain", cwd=path).stdout.splitlines()
+    assert sum(line.startswith("worktree ") for line in worktrees) == 1
 
 
 def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(

@@ -8,7 +8,7 @@ from threading import Barrier, Lock
 
 import pytest
 
-from repomod import github
+from repomod import cli, github
 from repomod.catalog import load_catalog
 from repomod.cli import _discover, _fix, _lint, _status
 from repomod.fix import FixOutcome
@@ -129,6 +129,176 @@ def test_same_named_external_statuses_from_distinct_creators_are_independent() -
     )
 
     assert github._state_for_checks(checks, True) == "failed"
+
+
+def test_fix_pull_request_auto_merge_requires_a_configured_ci_gate(monkeypatch) -> None:
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        endpoint = arguments[0]
+        if endpoint == "repos/acme/demo":
+            return {"allow_auto_merge": True}
+        if endpoint == "repos/acme/demo/branches/main/protection":
+            return {"required_status_checks": {"contexts": ["CI"], "checks": []}}
+        raise AssertionError(endpoint)
+
+    queries: list[str] = []
+
+    def graphql(query: str):
+        queries.append(query)
+        return {
+            "data": {
+                "enablePullRequestAutoMerge": {
+                    "pullRequest": {
+                        "url": "https://github.invalid/acme/demo/pull/1",
+                        "autoMergeRequest": {"enabledAt": "2026-10-23T00:00:00Z"},
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    result = github._enable_fix_pull_request_auto_merge(
+        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
+    )
+
+    assert isinstance(result, github.AutoMergeEnabled)
+    assert len(queries) == 1
+    assert 'pullRequestId: "pull-request-node-id"' in queries[0]
+    assert "mergeMethod: REBASE" in queries[0]
+
+
+def test_fix_pull_request_auto_merge_skips_when_no_required_checks_exist(monkeypatch) -> None:
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        endpoint = arguments[0]
+        if endpoint == "repos/acme/demo":
+            return {"allow_auto_merge": True}
+        if endpoint == "repos/acme/demo/branches/main/protection":
+            return {"required_status_checks": None}
+        if endpoint == "repos/acme/demo/rules/branches/main":
+            return []
+        raise AssertionError(endpoint)
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    monkeypatch.setattr(
+        github,
+        "_graphql",
+        lambda _query: (_ for _ in ()).throw(AssertionError("must not enable auto-merge")),
+    )
+
+    result = github._enable_fix_pull_request_auto_merge(
+        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
+    )
+
+    assert result == github.AutoMergeSkipped("the default branch has no required status checks")
+
+
+def test_fix_pull_request_auto_merge_reads_required_checks_from_rulesets(monkeypatch) -> None:
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        endpoint = arguments[0]
+        if endpoint == "repos/acme/demo":
+            return {"allow_auto_merge": True}
+        if endpoint == "repos/acme/demo/branches/main/protection":
+            raise github.GitHubError("HTTP 404 Branch not protected")
+        if endpoint == "repos/acme/demo/rules/branches/main":
+            return [
+                {
+                    "type": "required_status_checks",
+                    "parameters": {"required_status_checks": [{"context": "CI"}]},
+                }
+            ]
+        raise AssertionError(endpoint)
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    monkeypatch.setattr(
+        github,
+        "_graphql",
+        lambda _query: {
+            "data": {
+                "enablePullRequestAutoMerge": {
+                    "pullRequest": {"url": "https://github.invalid/acme/demo/pull/1"}
+                }
+            }
+        },
+    )
+
+    result = github._enable_fix_pull_request_auto_merge(
+        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
+    )
+
+    assert isinstance(result, github.AutoMergeEnabled)
+
+
+def test_fix_pull_request_auto_merge_skips_when_repository_setting_is_disabled(monkeypatch) -> None:
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        assert arguments == ["repos/acme/demo"]
+        return {"allow_auto_merge": False}
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    monkeypatch.setattr(
+        github,
+        "_graphql",
+        lambda _query: (_ for _ in ()).throw(AssertionError("must not enable auto-merge")),
+    )
+
+    result = github._enable_fix_pull_request_auto_merge(
+        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
+    )
+
+    assert result == github.AutoMergeSkipped("repository setting is disabled")
+
+
+def test_ensure_fix_pull_request_reuses_an_existing_auto_merge_request(monkeypatch) -> None:
+    monkeypatch.setattr(
+        github,
+        "_gh_json",
+        lambda _arguments: [
+            {
+                "html_url": "https://github.invalid/acme/demo/pull/1",
+                "node_id": "pull-request-node-id",
+                "auto_merge": {"merge_method": "rebase"},
+            }
+        ],
+    )
+
+    result = github.ensure_fix_pull_request(
+        RepoId("acme", "demo"), "repomod/fix/" + "a" * 32, "main"
+    )
+
+    assert result == github.FixPullRequest(
+        "https://github.invalid/acme/demo/pull/1", github.AutoMergeEnabled()
+    )
+
+
+def test_fix_branch_was_merged_checks_the_matching_closed_pull_request(monkeypatch) -> None:
+    branch = "repomod/fix/" + "a" * 32
+    calls = []
+
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        calls.append(arguments)
+        return [
+            {
+                "head": {"ref": branch},
+                "merged_at": "2026-10-23T17:00:00Z",
+            }
+        ]
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+
+    assert github.fix_branch_was_merged(RepoId("acme", "demo"), branch)
+    assert calls == [
+        [
+            "repos/acme/demo/pulls",
+            "--method",
+            "GET",
+            "-F",
+            "state=closed",
+            "-F",
+            f"head=acme:{branch}",
+            "-F",
+            "per_page=100",
+        ]
+    ]
 
 
 def test_ci_check_contexts_are_paginated_and_include_external_statuses(
@@ -742,6 +912,16 @@ def test_status_offline_never_calls_remote_metadata(
     )
 
     assert _status(args) == 0
+
+
+def test_status_colors_are_enabled_for_tty_even_with_no_color_environment(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(cli.sys, "stdout", argparse.Namespace(isatty=lambda: True))
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setenv("TERM", "tmux-256color")
+
+    assert cli._paint("FAIL", "1;31") == "\033[1;31mFAIL\033[0m"
 
 
 def test_discover_queries_both_configured_fleet_owners(monkeypatch, capsys) -> None:
