@@ -6,7 +6,8 @@ repair ledger.
 
 ## State and ownership
 
-`catalog.toml` owns repository identity, policy tags, checkout root, and autofix overrides.
+`catalog.toml` owns repository identity, policy tags, checkout root, autofix overrides, and
+per-repository ignored rule codes. Version 2 adds the `ignore` override for stable lint IDs.
 `REPOMOD_ROOT` overrides the configured root for one process. The catalog does not record branch
 state or lint results.
 
@@ -34,12 +35,14 @@ minutes. Offline status reads cached CI without network calls.
 
 ## Repair and writes
 
-Fix requires a clean checkout attached to the default branch. Each fixer runs in a detached
-worktree at the starting commit and can change only its declared paths. Before a local commit,
+Fix requires a clean checkout attached to the default branch. Fixers run serially in a dedicated
+branch per repository, with repositories processed in parallel. Each fixer uses a disposable
+worktree at the current branch tip and can change only its declared paths. Before a local commit,
 validation must pass, the fixer must leave no fixable findings for its rule, and it must introduce
-no policy errors. repomod updates the canonical checkout only if it remains clean at its starting
-commit. Otherwise it preserves successful work under a recovery ref or worktree and reports how
-to recover it.
+no policy errors. Every successful fixer gets its own commit on a new local
+`repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix --push` pushes
+that branch. The next fix run resumes its unmerged branch from the current default branch. Failed
+or interrupted work remains on its branch or in its worktree.
 
 Push uses a normal fast-forward Git push and keeps local commits on failure. `topics apply`
 replaces GitHub topics with the catalog's complete tag set. `pins refresh` reads upstream refs

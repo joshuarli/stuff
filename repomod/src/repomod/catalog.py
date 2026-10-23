@@ -7,11 +7,22 @@ import tempfile
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
 from repomod.types import Catalog, RepoId, Repository
 
 PRIMARY_TAGS = frozenset(
-    {"tool", "library", "app", "extension", "system", "build", "config", "data"}
+    {
+        "tool",
+        "private-tool",
+        "library",
+        "app",
+        "extension",
+        "system",
+        "build",
+        "config",
+        "data",
+    }
 )
 LANGUAGE_TAGS = frozenset(
     {
@@ -29,7 +40,7 @@ LANGUAGE_TAGS = frozenset(
     }
 )
 PUBLISHING_TAGS = frozenset({"crates-io", "pypi", "npm"})
-TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS
+TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS | frozenset({"fork"})
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]+\Z")
 
 
@@ -65,8 +76,9 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     if set(parsed) - {"version", "workspace", "repos", "overrides"}:
         unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides"})
         raise CatalogError(f"unknown catalog keys: {', '.join(unknown)}")
-    if type(parsed.get("version")) is not int or parsed["version"] != 1:
-        raise CatalogError("catalog version must be 1")
+    version = parsed.get("version")
+    if type(version) is not int or version not in {1, 2}:
+        raise CatalogError("catalog version must be 1 or 2")
     workspace = parsed.get("workspace")
     if not isinstance(workspace, dict) or set(workspace) != {"root", "personal_owner"}:
         raise CatalogError("[workspace] must contain only root and personal_owner")
@@ -133,15 +145,47 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         repo = repositories_by_id.get(str(repo_id).casefold())
         if repo is None:
             raise CatalogError(f"override refers to uncatalogued repository {repo_id}")
-        if not isinstance(raw_override, dict) or set(raw_override) != {"autofix", "reason"}:
-            raise CatalogError(f"override for {repo_id} must contain autofix and reason")
-        if raw_override["autofix"] is not False or not isinstance(raw_override["reason"], str):
-            raise CatalogError(f"override for {repo_id} must disable autofix with a reason")
-        reason = raw_override["reason"].strip()
-        if not reason:
-            raise CatalogError(f"override for {repo_id} needs a non-empty reason")
+        if not isinstance(raw_override, dict) or not raw_override:
+            raise CatalogError(f"override for {repo_id} must be a non-empty table")
+        raw_override = cast(dict[str, object], raw_override)
+        allowed_override_keys = {"autofix", "reason"}
+        if version >= 2:
+            allowed_override_keys.add("ignore")
+        unknown_override_keys = set(raw_override) - allowed_override_keys
+        if unknown_override_keys:
+            raise CatalogError(
+                f"override for {repo_id} has unknown keys: {', '.join(sorted(unknown_override_keys))}"
+            )
+        autofix = raw_override.get("autofix", True)
+        reason_value = raw_override.get("reason")
+        if autofix is not False and ("autofix" in raw_override or reason_value is not None):
+            raise CatalogError(f"override for {repo_id} can only disable autofix with a reason")
+        if autofix is False:
+            if not isinstance(reason_value, str) or not reason_value.strip():
+                raise CatalogError(f"override for {repo_id} must disable autofix with a reason")
+            reason = reason_value.strip()
+        else:
+            reason = None
+        ignored_values = raw_override.get("ignore", [])
+        if not isinstance(ignored_values, list):
+            raise CatalogError(f"ignored rule codes for {repo_id} must be an array of strings")
+        if any(not isinstance(value, str) for value in ignored_values):
+            raise CatalogError(f"ignored rule codes for {repo_id} must be an array of strings")
+        ignored_rules = frozenset(value for value in ignored_values if isinstance(value, str))
+        if len(ignored_rules) != len(ignored_values):
+            raise CatalogError(f"duplicate ignored rule codes for {repo_id}")
+        for ignored_rule in ignored_rules:
+            validate_identifier(ignored_rule, "ignored rule code")
+        if "ignore" in raw_override and not ignored_rules:
+            raise CatalogError(f"override for {repo_id} must ignore at least one rule code")
         index = repositories.index(repo)
-        repositories[index] = Repository(repo.id, repo.tags, False, reason)
+        repositories[index] = Repository(
+            repo.id,
+            repo.tags,
+            autofix is not False,
+            reason,
+            ignored_rules,
+        )
 
     root = _expand_root(workspace["root"], environment)
     _validate_checkout_collisions(root, personal_owner, repositories)

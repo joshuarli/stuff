@@ -43,6 +43,7 @@ class Repository:
     tags: tuple[str, ...]
     autofix: bool = True
     autofix_reason: str | None = None
+    ignored_rules: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +136,7 @@ class CheckResult:
     check_suite_id: str | None = None
     workflow_run_id: str | None = None
     run_attempt: int | None = None
+    workflow_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,6 +144,7 @@ class WorkflowStatus:
     name: str
     state: CiState
     url: str | None = None
+    path: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

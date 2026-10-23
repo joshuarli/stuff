@@ -274,7 +274,7 @@ def test_action_symlink_parent_and_dynamic_reference_are_reported(
     assert problems == [(".github", "workflow parent directory is a symlink")]
 
 
-def test_actionlint_is_required_for_workflow_fixer_validation(
+def test_jactionlint_is_required_for_workflow_fixer_validation(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setattr(actions.shutil, "which", lambda _: None)
@@ -286,8 +286,8 @@ def test_actionlint_is_required_for_workflow_fixer_validation(
     )
 
     assert errors == [
-        "actionlint is required to validate modified GitHub workflows; "
-        "install actionlint"
+        "jactionlint is required to validate modified GitHub Actions files; "
+        "install jactionlint"
     ]
 
 

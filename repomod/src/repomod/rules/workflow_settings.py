@@ -79,7 +79,7 @@ def _mapping_value(lines: list[str], path: tuple[str, ...]) -> str | None:
 
 
 def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = workflow_files(root)
+    workflows, problems = workflow_files(root, repository)
     findings = [
         Finding(str(repository.id), "gha-settings", path, message, kind="operational")
         for path, message in problems

@@ -30,8 +30,10 @@ _ARTIFACT_UPLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/upload-arti
 _ARTIFACT_DOWNLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/download-artifact@")
 
 
-def _read_workflows(root: Path) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    files, problems = workflow_files(root)
+def _read_workflows(
+    root: Path, repository: Repository | None = None
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    files, problems = workflow_files(root, repository)
     workflows = []
     for path in files:
         try:
@@ -235,13 +237,15 @@ def _release_kind(root: Path, source: str) -> str:
     return "ambiguous"
 
 
-def has_binary_release_contract(root: Path) -> bool:
-    workflows, _ = _read_workflows(root)
+def has_binary_release_contract(root: Path, repository: Repository | None = None) -> bool:
+    workflows, _ = _read_workflows(root, repository)
     return any(_release_kind(root, source) == "binary" for _, source in workflows)
 
 
 def _binary_release_findings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = _read_workflows(root)
+    if "private-tool" in repository.tags:
+        return []
+    workflows, problems = _read_workflows(root, repository)
     findings = [
         Finding(str(repository.id), "binary-release-tags", path, message, kind="operational")
         for path, message in problems

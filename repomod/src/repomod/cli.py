@@ -12,10 +12,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
-from repomod.fix import FixOutcome, fix_repository, push_repository
+from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import GitHubError, ci_status, discover, remote_metadata, topics_many
-from repomod.policy import PolicyError, filter_repositories, finding_dict, lint_repositories, selected_rules
+from repomod.policy import (
+    PolicyError,
+    filter_repositories,
+    finding_dict,
+    lint_repositories,
+    selected_rules,
+    validate_ignored_rules,
+)
 from repomod.sync import sync_repositories
 from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
 
@@ -515,6 +522,7 @@ def _fix(args: argparse.Namespace) -> int:
         raise ValueError("--workers must be at least one")
     catalog = _catalog()
     repositories = _select(catalog, args.repo, args.tag)
+    validate_ignored_rules(repositories)
     available = selected_rules(rule_ids=args.rule)
     fixers = tuple(rule for rule in available if rule.fix is not None)
     if not fixers:
@@ -535,11 +543,14 @@ def _fix(args: argparse.Namespace) -> int:
             remote = remotes[str(repository.id)]
             if remote.default_branch is None:
                 raise RuntimeError(f"{repository.id} lost its default branch metadata")
+            repository_fixers = tuple(
+                rule for rule in fixers if rule.id not in repository.ignored_rules
+            )
             futures[pool.submit(
                 fix_repository,
                 catalog,
                 repository,
-                fixers,
+                repository_fixers,
                 remote.default_branch,
             )] = repository
         for future in as_completed(futures):
@@ -565,6 +576,8 @@ def _fix(args: argparse.Namespace) -> int:
     outcomes.sort(key=lambda item: item.repository.casefold())
     failed = False
     for outcome in outcomes:
+        if outcome.branch is not None:
+            print(f"{outcome.repository}: branch {outcome.branch}")
         for rule, sha in outcome.commits:
             print(f"{outcome.repository}: committed {rule} {sha[:12]}")
         for rule, message in outcome.failures:
@@ -600,14 +613,50 @@ def _fix(args: argparse.Namespace) -> int:
             print(f"{outcome.repository}: {outcome.cleanup_error}", file=sys.stderr)
             failed = True
     if args.push:
-        committed = {
-            outcome.repository
+        branches = {
+            outcome.repository: outcome
             for outcome in outcomes
-            if outcome.commits
-            and outcome.recovery_ref is None
+            if outcome.branch is not None
+            and outcome.base_head is not None
+            and outcome.branch_head is not None
+            and outcome.branch_head != outcome.base_head
             and outcome.recovery_worktree is None
         }
-        failed |= _push_selected(catalog, tuple(repo for repo in repositories if str(repo.id) in committed)) != 0
+
+        def push_fix(repository: Repository) -> tuple[str, str | None]:
+            with repository_lock(catalog.root, repository.id):
+                outcome = branches[str(repository.id)]
+                remote = remotes[str(repository.id)]
+                assert remote.default_branch is not None
+                assert outcome.branch is not None
+                assert outcome.base_head is not None
+                assert outcome.branch_head is not None
+                return push_fix_branch(
+                    repository,
+                    repository_path(catalog, repository),
+                    outcome.branch,
+                    remote.default_branch,
+                    outcome.base_head,
+                    outcome.branch_head,
+                )
+
+        with ThreadPoolExecutor(max_workers=min(4, max(1, len(branches)))) as pool:
+            futures = {
+                pool.submit(push_fix, repository): repository
+                for repository in repositories
+                if str(repository.id) in branches
+            }
+            push_results = []
+            for future, repository in futures.items():
+                try:
+                    push_results.append((repository, future.result()))
+                except Exception as error:
+                    push_results.append((repository, ("failed", str(error))))
+        for repository, (state, message) in sorted(
+            push_results, key=lambda item: str(item[0].id).casefold()
+        ):
+            print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
+            failed |= state == "failed"
     return 1 if failed else 0
 
 

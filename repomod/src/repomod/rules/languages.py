@@ -594,7 +594,7 @@ def _language_sources(root: Path) -> set[str]:
 
 
 def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
-    if set(repository.tags) == {"tool"} and has_binary_release_contract(root):
+    if set(repository.tags) == {"tool"} and has_binary_release_contract(root, repository):
         return []
     detected = _language_sources(root)
     tags = set(repository.tags)

@@ -111,12 +111,12 @@ def file_rule(
     )
 
 
-def subjects(path: Path, base: str) -> list[str]:
-    output = git("log", "--format=%s", f"{base}..HEAD", cwd=path).stdout
+def subjects(path: Path, base: str, target: str = "HEAD") -> list[str]:
+    output = git("log", "--format=%s", f"{base}..{target}", cwd=path).stdout
     return output.splitlines()
 
 
-def test_successful_fixers_create_one_commit_each_and_reruns_are_empty(
+def test_successful_fixers_create_one_commit_each_and_reruns_resume_branch(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
@@ -131,8 +131,12 @@ def test_successful_fixers_create_one_commit_each_and_reruns_are_empty(
 
     assert outcome.failures == []
     assert [rule for rule, _ in outcome.commits] == ["first", "second", "third"]
-    assert len(subjects(path, base)) == 3
-    assert subjects(path, base) == [rule.commit_message for rule in reversed(selected)]
+    assert outcome.branch is not None
+    assert len(subjects(path, base, outcome.branch)) == 3
+    assert subjects(path, base, outcome.branch) == [
+        rule.commit_message for rule in reversed(selected)
+    ]
+    assert head(path) == base
     for (_rule_id, commit), filename in zip(
         outcome.commits, ("first.txt", "second.txt", "third.txt"), strict=True
     ):
@@ -140,16 +144,18 @@ def test_successful_fixers_create_one_commit_each_and_reruns_are_empty(
             "show", "--format=", "--name-only", commit, cwd=path
         ).stdout.splitlines()
         assert committed_paths == [filename]
-        assert (path / filename).read_text(encoding="utf-8") == (
+        assert git("show", f"{outcome.branch}:{filename}", cwd=path).stdout == (
             filename.removesuffix(".txt") + "\n"
         )
     repeated = fix_repository(catalog, repository, selected, "main")
     assert repeated.commits == []
+    assert repeated.branch == outcome.branch
     assert repeated.failures == []
-    assert subjects(path, base) == [rule.commit_message for rule in reversed(selected)]
+    assert repeated.branch_head == outcome.commits[-1][1]
+    assert subjects(path, base) == []
     assert len(
         git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")
-    ) == 2
+    ) == 1
 
 
 def test_failed_middle_fixer_is_discarded_while_later_success_commits(
@@ -169,10 +175,12 @@ def test_failed_middle_fixer_is_discarded_while_later_success_commits(
 
     assert [rule for rule, _ in outcome.commits] == ["first", "third"]
     assert outcome.failures == [("second", "fixture validation rejected B")]
+    assert outcome.branch is not None
     assert not (path / "second.txt").exists()
-    assert (path / "first.txt").read_text(encoding="utf-8") == "first\n"
-    assert (path / "third.txt").read_text(encoding="utf-8") == "third\n"
-    assert len(subjects(path, base)) == 2
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
+    assert git("show", f"{outcome.branch}:third.txt", cwd=path).stdout == "third\n"
+    assert len(subjects(path, base, outcome.branch)) == 2
+    assert head(path) == base
 
 
 def test_safe_commit_with_remaining_manual_violation_returns_partial_failure(
@@ -202,8 +210,10 @@ def test_safe_commit_with_remaining_manual_violation_returns_partial_failure(
 
     assert [rule_id for rule_id, _ in outcome.commits] == ["partial"]
     assert outcome.failures == [("partial", "policy violations need manual review: manual.txt: owner review needed")]
-    assert (path / "safe.txt").read_text(encoding="utf-8") == "safe\n"
-    assert len(subjects(path, base)) == 1
+    assert outcome.branch is not None
+    assert git("show", f"{outcome.branch}:safe.txt", cwd=path).stdout == "safe\n"
+    assert len(subjects(path, base, outcome.branch)) == 1
+    assert head(path) == base
 
 
 def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
@@ -227,20 +237,11 @@ def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
     assert head(path) == base
 
 
-def test_merge_failure_keeps_exact_recovery_ref_and_blocks_repeated_fixes(
+def test_fix_branch_keeps_commits_off_default_and_resumes_repeated_fixes(
     tmp_path: Path,
     git_environment: None,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     catalog, repository, path, base = initialize_repository(tmp_path)
-    original_run_git = fix_module.run_git
-
-    def fail_merge(arguments, cwd=None, **kwargs):
-        if arguments[:2] == ["merge", "--ff-only"]:
-            raise fix_module.GitError("injected fast-forward failure")
-        return original_run_git(arguments, cwd=cwd, **kwargs)
-
-    monkeypatch.setattr(fix_module, "run_git", fail_merge)
     selected = (
         file_rule("first", "first.txt", "first\n"),
         file_rule("second", "second.txt", "second\n"),
@@ -249,55 +250,40 @@ def test_merge_failure_keeps_exact_recovery_ref_and_blocks_repeated_fixes(
     outcome = fix_repository(catalog, repository, selected, "main")
 
     assert len(outcome.commits) == 2
-    assert outcome.recovery_ref is not None
-    assert git("rev-parse", outcome.recovery_ref, cwd=path).stdout.strip() == outcome.commits[-1][1]
-    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == "first\n"
+    assert outcome.branch is not None
+    assert git("rev-parse", f"refs/heads/{outcome.branch}", cwd=path).stdout.strip() == outcome.commits[-1][1]
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
     assert head(path) == base
     assert not status(path, repository.id).dirty
-    assert any(rule == "publish" for rule, _ in outcome.failures)
+    assert outcome.failures == []
 
     repeated = fix_repository(catalog, repository, selected, "main")
 
     assert repeated.commits == []
-    assert repeated.recovery_ref == outcome.recovery_ref
-    assert repeated.failures
+    assert repeated.branch == outcome.branch
+    assert repeated.failures == []
+    assert repeated.branch_head == outcome.commits[-1][1]
     assert head(path) == base
 
 
-def test_recovery_ref_update_failure_retains_worktree_for_next_run(
+def test_legacy_recovery_ref_blocks_new_branch_fix(
     tmp_path: Path,
     git_environment: None,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     catalog, repository, path, base = initialize_repository(tmp_path)
-    original_run_git = fix_module.run_git
-
-    def fail_recovery_ref(arguments, cwd=None, **kwargs):
-        if arguments[:1] == ["update-ref"] and len(arguments) == 3:
-            raise RuntimeError("injected recovery ref failure")
-        return original_run_git(arguments, cwd=cwd, **kwargs)
-
-    monkeypatch.setattr(fix_module, "run_git", fail_recovery_ref)
+    reference = "refs/repomod/recovery/acme/demo/saved"
+    git("update-ref", reference, base, cwd=path)
     selected = (file_rule("first", "first.txt", "first\n"),)
 
     outcome = fix_repository(catalog, repository, selected, "main")
 
-    assert len(outcome.commits) == 1
-    assert outcome.recovery_ref is None
-    assert outcome.recovery_worktree is not None
-    assert Path(outcome.recovery_worktree).is_dir()
-    assert git("rev-parse", "HEAD", cwd=Path(outcome.recovery_worktree)).stdout.strip() == outcome.commits[0][1]
+    assert outcome.commits == []
+    assert outcome.recovery_ref == reference
+    assert outcome.failures
     assert head(path) == base
 
-    repeated = fix_repository(catalog, repository, selected, "main")
 
-    assert repeated.commits == []
-    assert repeated.recovery_worktree == outcome.recovery_worktree
-    assert repeated.failures
-    assert Path(outcome.recovery_worktree).is_dir()
-
-
-def test_worktree_cleanup_failure_reports_path_without_losing_published_commit(
+def test_worktree_cleanup_failure_reports_path_without_losing_fix_branch(
     tmp_path: Path,
     git_environment: None,
     monkeypatch: pytest.MonkeyPatch,
@@ -317,19 +303,20 @@ def test_worktree_cleanup_failure_reports_path_without_losing_published_commit(
     )
 
     assert len(outcome.commits) == 1
-    assert head(path) == outcome.commits[-1][1]
+    assert outcome.branch is not None
+    assert head(path) == base
     assert outcome.cleanup_error is not None
     assert outcome.recovery_worktree is not None
     assert Path(outcome.recovery_worktree).is_dir()
-    assert git("show", f"{outcome.commits[-1][1]}:first.txt", cwd=path).stdout == "first\n"
-    assert git("merge-base", "--is-ancestor", base, "HEAD", cwd=path).returncode == 0
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
+    assert git("merge-base", "--is-ancestor", base, outcome.branch, cwd=path).returncode == 0
 
 
-def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(
+def test_canonical_change_during_fix_preserves_commits_on_fix_branch(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
-    catalog, repository, path, _ = initialize_repository(tmp_path)
+    catalog, repository, path, base = initialize_repository(tmp_path)
 
     def concurrent_edit(root: Path, repo: Repository) -> None:
         (path / "concurrent.txt").write_text("owned by user\n", encoding="utf-8")
@@ -341,14 +328,13 @@ def test_canonical_change_during_fix_preserves_commits_under_recovery_ref(
         "main",
     )
 
-    assert outcome.recovery_ref is not None
+    assert outcome.branch is not None
     assert outcome.commits
     assert outcome.failures[0][0] == "publish"
     assert (path / "concurrent.txt").read_text(encoding="utf-8") == "owned by user\n"
     assert not (path / "first.txt").exists()
-    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == (
-        "first\n"
-    )
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
+    assert head(path) == base
     assert status(path, repository.id).dirty
 
 
@@ -370,12 +356,12 @@ def test_concurrent_canonical_commit_is_never_overwritten(
         "main",
     )
 
-    assert outcome.recovery_ref is not None
+    assert outcome.branch is not None
     assert outcome.failures[0][0] == "publish"
     assert head(path) != base
     assert (path / "concurrent.txt").read_text(encoding="utf-8") == "user commit\n"
     assert not (path / "first.txt").exists()
-    assert git("show", f"{outcome.recovery_ref}:first.txt", cwd=path).stdout == "first\n"
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
 
 
 def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
@@ -470,7 +456,7 @@ def test_invalid_plan_and_symlink_target_are_rejected(tmp_path: Path, git_enviro
     assert link.read_text(encoding="utf-8") == "base\n"
 
 
-def test_interruption_preserves_completed_commit_in_recovery_ref(
+def test_interruption_preserves_completed_commit_on_fix_branch(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
@@ -490,12 +476,14 @@ def test_interruption_preserves_completed_commit_in_recovery_ref(
             "main",
         )
 
-    refs = git("for-each-ref", "--format=%(refname)", "refs/repomod/recovery", cwd=path).stdout.splitlines()
-    assert len(refs) == 1
-    assert git("show", f"{refs[0]}:first.txt", cwd=path).stdout == "first\n"
+    branches = git(
+        "for-each-ref", "--format=%(refname)", "refs/heads/repomod/fix", cwd=path
+    ).stdout.splitlines()
+    assert len(branches) == 1
+    assert git("show", f"{branches[0]}:first.txt", cwd=path).stdout == "first\n"
     assert head(path) == base
     assert not (path / "first.txt").exists()
-    assert len(git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")) == 2
+    assert len(git("worktree", "list", "--porcelain", cwd=path).stdout.split("worktree ")) == 1
 
 
 def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(
@@ -539,7 +527,10 @@ def test_two_concurrent_fix_runs_create_only_one_commit(
         results = [first.result(), second.result()]
 
     assert sum(len(result.commits) for result in results) == 1
-    assert len(subjects(path, base)) == 1
+    fix_branch = next(result.branch for result in results if result.commits)
+    assert fix_branch is not None
+    assert len(subjects(path, base, fix_branch)) == 1
+    assert head(path) == base
 
 
 def test_push_rejection_keeps_local_commit_and_never_rewrites_remote(

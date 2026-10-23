@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from repomod.types import Repository
+from repomod.workflow_policy import is_fork_workflow
 
-def workflow_files(root: Path) -> tuple[list[Path], list[tuple[str, str]]]:
+
+def workflow_files(
+    root: Path, repository: Repository | None = None
+) -> tuple[list[Path], list[tuple[str, str]]]:
     github = root / ".github"
     workflows = github / "workflows"
     if github.is_symlink():
@@ -16,6 +21,8 @@ def workflow_files(root: Path) -> tuple[list[Path], list[tuple[str, str]]]:
     problems: list[tuple[str, str]] = []
     for child in sorted(workflows.iterdir(), key=lambda item: item.name.casefold()):
         if child.suffix.casefold() not in {".yml", ".yaml"}:
+            continue
+        if repository is not None and "fork" in repository.tags and not is_fork_workflow(child.name):
             continue
         if child.is_symlink():
             problems.append((child.relative_to(root).as_posix(), "workflow symlinks are not followed"))

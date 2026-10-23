@@ -140,7 +140,7 @@ def _declared_make_targets(makefile: Path) -> set[str] | None:
 
 
 def _make_target_findings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = workflow_files(root)
+    workflows, problems = workflow_files(root, repository)
     findings = []
     requested: list[tuple[str, str]] = []
     findings.extend(

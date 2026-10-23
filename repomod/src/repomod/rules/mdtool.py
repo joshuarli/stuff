@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from repomod.types import Finding, Repository, Rule, Severity, TagPredicate
+from repomod.workflow_policy import is_fork_workflow
 
 _SEVERITIES: dict[str, Severity] = {
     "error": "error",
@@ -65,6 +66,13 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             or not isinstance(target, str)
         ):
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
+            continue
+        path = PurePosixPath(relative)
+        if (
+            "fork" in repository.tags
+            and path.parts[:2] == (".github", "workflows")
+            and not is_fork_workflow(path)
+        ):
             continue
         location = (
             f"line {line_number}:{column}: "

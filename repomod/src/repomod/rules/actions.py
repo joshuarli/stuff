@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
 import tomllib
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote
 
 from repomod.catalog import atomic_write
+from repomod.git import GitError, run_git
 from repomod.github import action_tags_many, resolve_tags_many
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
@@ -249,8 +253,8 @@ def _scan_file(path: Path, repository_root: Path) -> list[ActionUse]:
     return uses
 
 
-def _uses(root: Path) -> tuple[list[ActionUse], list[tuple[str, str]]]:
-    files, problems = workflow_files(root)
+def _uses(root: Path, repository: Repository) -> tuple[list[ActionUse], list[tuple[str, str]]]:
+    files, problems = workflow_files(root, repository)
     entries: list[ActionUse] = []
     for path in files:
         try:
@@ -318,7 +322,7 @@ def _major_problem(use: ActionUse, pin: Pin) -> str | None:
 
 def _findings(root: Path, repository: Repository, *, version: bool) -> list[Finding]:
     pins = load_pins()
-    uses, problems = _uses(root)
+    uses, problems = _uses(root, repository)
     rule_id = "gha-version" if version else "gha-pin"
     findings = [Finding(str(repository.id), rule_id, path, message) for path, message in problems]
     for use in uses:
@@ -379,7 +383,7 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
 
 def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]:
     pins = load_pins()
-    uses, problems = _uses(root)
+    uses, problems = _uses(root, repository)
     if problems:
         return {}
     grouped: dict[str, list[ActionUse]] = {}
@@ -424,89 +428,556 @@ def _validate_workflows(
 ) -> list[str]:
     if not changed:
         return []
-    executable = shutil.which("actionlint")
+    executable = shutil.which("jactionlint")
     if executable is None:
         return [
-            "actionlint is required to validate modified GitHub workflows; "
-            "install actionlint"
+            "jactionlint is required to validate modified GitHub Actions files; "
+            "install jactionlint"
         ]
     try:
         result = subprocess.run(
-            [executable, *[str(root / path) for path in changed]],
+            [
+                executable,
+                "--profile=correctness",
+                "--no-ignores",
+                "--no-baseline",
+                "--no-online",
+                "--format=json",
+                "--",
+                *[str(root / path) for path in changed],
+            ],
             cwd=root,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return ["actionlint timed out while validating modified workflows"]
+        return ["jactionlint timed out while validating modified GitHub Actions files"]
     except OSError as error:
-        return [f"cannot run actionlint: {error}"]
+        return [f"cannot run jactionlint: {error}"]
     if result.returncode == 0:
         return []
-    return [
-        result.stderr.strip()
-        or result.stdout.strip()
-        or "actionlint rejected modified workflows"
+    try:
+        findings = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        findings = None
+    if isinstance(findings, list):
+        messages = [
+            f"{finding.get('filepath', 'file')}:{finding.get('line', 1)}: "
+            f"{finding.get('id', 'jactionlint')}: {finding.get('message', 'invalid file')}"
+            for finding in findings
+            if isinstance(finding, dict)
+        ]
+        if messages:
+            return messages
+    return [result.stderr.strip() or result.stdout.strip() or "jactionlint rejected modified files"]
+
+
+def _action_tool_files(
+    root: Path, repository: Repository
+) -> tuple[list[Path], list[tuple[str, str]]]:
+    workflows, problems = workflow_files(root, repository)
+    files = set(workflows)
+    if "fork" in repository.tags:
+        return sorted(files, key=lambda path: path.relative_to(root).as_posix().casefold()), problems
+    skipped_directories = {
+        ".cache",
+        ".git",
+        ".repomod",
+        ".tox",
+        ".venv",
+        ".work",
+        "__pycache__",
+        "build",
+        "dist",
+        "node_modules",
+        "target",
+        "testdata",
+        "vendor",
+    }
+    for directory, names, filenames in os.walk(root, followlinks=False):
+        current = Path(directory)
+        names[:] = [
+            name
+            for name in names
+            if name not in skipped_directories and not (current / name).is_symlink()
+        ]
+        for filename in filenames:
+            if filename.casefold() in {"action.yml", "action.yaml"}:
+                path = current / filename
+                if not path.is_symlink() and path.is_file():
+                    files.add(path)
+    for relative in (".github/dependabot.yml", ".github/dependabot.yaml", ".github/workflows/actions.lock"):
+        path = root / relative
+        if path.is_symlink():
+            problems.append((relative, "GitHub Actions configuration symlinks are not followed"))
+        elif path.is_file():
+            files.add(path)
+    return sorted(files, key=lambda path: path.relative_to(root).as_posix().casefold()), problems
+
+
+def _tool_file_arguments(root: Path, files: list[Path]) -> list[str]:
+    return [str(path.relative_to(root)) for path in files]
+
+
+def _tool_relative_path(root: Path, value: str) -> str | None:
+    value = unquote(value)
+    path = Path(value)
+    candidate = path if path.is_absolute() else root / path
+    try:
+        resolved = candidate.resolve(strict=False)
+        if not resolved.is_relative_to(root.resolve()):
+            return None
+        return candidate.relative_to(root).as_posix()
+    except (OSError, ValueError):
+        return None
+
+
+def _jactionlint_findings(
+    root: Path, repository: Repository, files: list[Path]
+) -> list[Finding]:
+    rule_id = "gha-syntax"
+    executable = shutil.which("jactionlint")
+    if executable is None:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "jactionlint is required for GitHub Actions checks; install jactionlint",
+                kind="operational",
+            )
+        ]
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "--profile=default",
+                "--no-ignores",
+                "--no-baseline",
+                "--no-online",
+                "--format=json",
+                "--",
+                *_tool_file_arguments(root, files),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "jactionlint timed out while checking GitHub Actions files",
+                kind="operational",
+            )
+        ]
+    except OSError as error:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                f"cannot run jactionlint: {error}",
+                kind="operational",
+            )
+        ]
+    if result.returncode not in {0, 1}:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                result.stderr.strip() or result.stdout.strip() or f"jactionlint exited {result.returncode}",
+                kind="operational",
+            )
+        ]
+    try:
+        parsed = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                f"jactionlint returned invalid JSON: {error}",
+                kind="operational",
+            )
+        ]
+    if not isinstance(parsed, list):
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "jactionlint returned an invalid finding list",
+                kind="operational",
+            )
+        ]
+    findings = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            return [
+                Finding(
+                    str(repository.id),
+                    rule_id,
+                    ".github/workflows",
+                    "jactionlint returned an invalid finding record",
+                    kind="operational",
+                )
+            ]
+        item_rule = item.get("id")
+        if item_rule == "concurrency-limits":
+            continue
+        file_value = item.get("filepath")
+        relative = _tool_relative_path(root, file_value) if isinstance(file_value, str) else None
+        if relative is None:
+            return [
+                Finding(
+                    str(repository.id),
+                    rule_id,
+                    ".github/workflows",
+                    "jactionlint reported a path outside the repository",
+                    kind="operational",
+                )
+            ]
+        message = item.get("message")
+        line_number = item.get("line")
+        location = f"line {line_number}: " if isinstance(line_number, int) else ""
+        findings.append(
+            Finding(
+                str(repository.id),
+                rule_id,
+                relative,
+                f"{location}jactionlint {item_rule}: {message if isinstance(message, str) else 'finding'}",
+                severity=(
+                    item["severity"]
+                    if item.get("severity") in {"error", "warning", "info"}
+                    else "error"
+                ),
+                fixable=isinstance(item_rule, str) and "no_fix" not in item,
+            )
+        )
+    return findings
+
+
+def _pinact_findings(
+    root: Path, repository: Repository, files: list[Path]
+) -> list[Finding]:
+    rule_id = "gha-syntax"
+    workflow_and_action_files = [
+        path
+        for path in files
+        if path.name.casefold() in {"action.yml", "action.yaml"}
+        or path.parent == root / ".github" / "workflows"
     ]
+    if not workflow_and_action_files:
+        return []
+    executable = shutil.which("pinact")
+    if executable is None:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "pinact is required for GitHub Actions checks; install pinact",
+                kind="operational",
+            )
+        ]
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "run",
+                "--check",
+                "--format",
+                "sarif",
+                "--no-api",
+                "--",
+                *_tool_file_arguments(root, workflow_and_action_files),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "pinact timed out while checking action pins",
+                kind="operational",
+            )
+        ]
+    except OSError as error:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                f"cannot run pinact: {error}",
+                kind="operational",
+            )
+        ]
+    if result.returncode not in {0, 1, 2}:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}",
+                kind="operational",
+            )
+        ]
+    try:
+        parsed = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                f"pinact returned invalid SARIF: {error}",
+                kind="operational",
+            )
+        ]
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("runs"), list):
+        return [
+            Finding(
+                str(repository.id),
+                rule_id,
+                ".github/workflows",
+                "pinact returned invalid SARIF results",
+                kind="operational",
+            )
+        ]
+    findings = []
+    for run in parsed["runs"]:
+        results = run.get("results") if isinstance(run, dict) else None
+        if not isinstance(results, list):
+            return [
+                Finding(
+                    str(repository.id),
+                    rule_id,
+                    ".github/workflows",
+                    "pinact returned an invalid SARIF run",
+                    kind="operational",
+                )
+            ]
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            locations = item.get("locations", [])
+            location = locations[0] if locations and isinstance(locations[0], dict) else {}
+            physical = location.get("physicalLocation", {}) if isinstance(location, dict) else {}
+            artifact = physical.get("artifactLocation", {}) if isinstance(physical, dict) else {}
+            uri = artifact.get("uri") if isinstance(artifact, dict) else None
+            relative = _tool_relative_path(root, uri) if isinstance(uri, str) else None
+            if relative is None:
+                return [
+                    Finding(
+                        str(repository.id),
+                        rule_id,
+                        ".github/workflows",
+                        "pinact reported a path outside the repository",
+                        kind="operational",
+                    )
+                ]
+            message = item.get("message", {})
+            text = message.get("text") if isinstance(message, dict) else None
+            code = item.get("ruleId")
+            region = physical.get("region", {}) if isinstance(physical, dict) else {}
+            line_number = region.get("startLine") if isinstance(region, dict) else None
+            line_prefix = f"line {line_number}: " if isinstance(line_number, int) else ""
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    rule_id,
+                    relative,
+                    f"{line_prefix}pinact {code}: {text if isinstance(text, str) else 'finding'}",
+                    fixable=code == "unpinned-action",
+                )
+            )
+    return findings
+
+
+def _changed_tool_paths(root: Path, allowed: set[str]) -> dict[str, str]:
+    output = run_git(
+        ["status", "--porcelain=v1", "--untracked-files=all", "-z"], cwd=root
+    ).stdout
+    changed: set[str] = set()
+    records = output.split("\0")
+    index = 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        if not record:
+            continue
+        if len(record) < 4:
+            raise GitError("Git returned malformed status for the GitHub Actions fixer")
+        state = record[:2]
+        relative = record[3:]
+        if "D" in state or "R" in state or "C" in state:
+            raise GitError(f"GitHub Actions fixer removed or renamed {relative}")
+        if relative not in allowed:
+            raise GitError(f"GitHub Actions fixer changed an undeclared file: {relative}")
+        changed.add(relative)
+        if "R" in state or "C" in state:
+            index += 1
+    plan = {}
+    for relative in sorted(changed, key=str.casefold):
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise GitError(f"GitHub Actions fixer changed a non-regular file: {relative}")
+        try:
+            plan[relative] = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise GitError(f"cannot read GitHub Actions fixer output {relative}: {error}") from error
+    return plan
+
+
+def _jactionlint_fix_rules(executable: str) -> str:
+    result = subprocess.run(
+        [executable, "--list-rules", "--format", "json"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode:
+        raise GitError(result.stderr.strip() or "jactionlint could not list fixable rules")
+    try:
+        rules = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise GitError(f"jactionlint returned invalid rule metadata: {error}") from error
+    if not isinstance(rules, list):
+        raise GitError("jactionlint returned invalid rule metadata")
+    fixable: set[str] = set()
+    for rule in rules:
+        if not isinstance(rule, dict) or rule.get("fixable") is not True:
+            continue
+        rule_id = rule.get("id")
+        if isinstance(rule_id, str) and rule_id != "concurrency-limits":
+            fixable.add(rule_id)
+    if not fixable:
+        raise GitError("jactionlint reported no safe automatic fixes")
+    return ",".join(sorted(fixable))
+
+
+def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
+    files, problems = _action_tool_files(root, repository)
+    if problems:
+        raise GitError("; ".join(f"{path}: {message}" for path, message in problems))
+    if not files:
+        return {}
+    jactionlint = shutil.which("jactionlint")
+    pinact = shutil.which("pinact")
+    missing = [name for name, path in (("jactionlint", jactionlint), ("pinact", pinact)) if path is None]
+    if missing:
+        raise GitError("required GitHub Actions tools are missing: " + ", ".join(missing))
+    assert jactionlint is not None
+    assert pinact is not None
+    scratch = root.parent / f".{root.name}-gha-{uuid.uuid4().hex}"
+    if scratch.exists() or scratch.is_symlink():
+        raise GitError(f"GitHub Actions scratch worktree already exists: {scratch}")
+    added = False
+    failure: BaseException | None = None
+    plan: dict[str, str] = {}
+    try:
+        run_git(["worktree", "add", "--detach", str(scratch), "HEAD"], cwd=root)
+        added = True
+        relative_files = _tool_file_arguments(root, files)
+        fixable_rules = _jactionlint_fix_rules(jactionlint)
+        result = subprocess.run(
+            [
+                jactionlint,
+                "--profile=default",
+                "--no-ignores",
+                "--no-baseline",
+                "--no-online",
+                "--fix",
+                f"--fix-rules={fixable_rules}",
+                "--",
+                *relative_files,
+            ],
+            cwd=scratch,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode not in {0, 1}:
+            raise GitError(
+                result.stderr.strip() or result.stdout.strip() or f"jactionlint exited {result.returncode}"
+            )
+        pinact_files = [
+            path
+            for path in files
+            if path.name.casefold() in {"action.yml", "action.yaml"}
+            or path.parent == root / ".github" / "workflows"
+        ]
+        if pinact_files:
+            result = subprocess.run(
+                [
+                    pinact,
+                    "run",
+                    "--fix",
+                    "--",
+                    *_tool_file_arguments(root, pinact_files),
+                ],
+                cwd=scratch,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if result.returncode not in {0, 2}:
+                raise GitError(
+                    result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}"
+                )
+        allowed = {path.relative_to(root).as_posix() for path in files}
+        plan = _changed_tool_paths(scratch, allowed)
+    except BaseException as error:
+        failure = error
+    cleanup_error = None
+    if added or scratch.exists():
+        try:
+            result = run_git(
+                ["worktree", "remove", "--force", str(scratch)], cwd=root, check=False
+            )
+            if result.returncode:
+                cleanup_error = GitError(
+                    result.stderr.strip() or "could not remove GitHub Actions scratch worktree"
+                )
+        except BaseException as error:
+            cleanup_error = error
+    if failure is not None:
+        if cleanup_error is not None:
+            raise GitError(f"{failure}; scratch cleanup failed: {cleanup_error}") from failure
+        raise failure
+    if cleanup_error is not None:
+        raise GitError(f"scratch cleanup failed: {cleanup_error}")
+    return plan
 
 
 def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
-    files, problems = workflow_files(root)
-    findings = [Finding(str(repository.id), "gha-syntax", path, message) for path, message in problems]
+    files, problems = _action_tool_files(root, repository)
+    findings = [
+        Finding(str(repository.id), "gha-syntax", path, message, kind="operational")
+        for path, message in problems
+    ]
     if not files:
         return findings
-    executable = shutil.which("actionlint")
-    if executable is None:
-        return [
-            *findings,
-            Finding(
-                str(repository.id),
-                "gha-syntax",
-                ".github/workflows",
-                "actionlint is required to validate workflow syntax; install actionlint",
-                kind="operational",
-            ),
-        ]
-    try:
-        result = subprocess.run(
-            [executable, *map(str, files)],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        findings.append(
-            Finding(
-                str(repository.id),
-                "gha-syntax",
-                ".github/workflows",
-                "actionlint timed out while validating workflows",
-                kind="operational",
-            )
-        )
-        return findings
-    except OSError as error:
-        findings.append(
-            Finding(
-                str(repository.id),
-                "gha-syntax",
-                ".github/workflows",
-                f"cannot run actionlint: {error}",
-                kind="operational",
-            )
-        )
-        return findings
-    if result.returncode:
-        output = (
-            result.stderr.strip()
-            or result.stdout.strip()
-            or "actionlint found invalid workflow syntax"
-        )
-        findings.append(Finding(str(repository.id), "gha-syntax", ".github/workflows", output))
+    findings.extend(_jactionlint_findings(root, repository, files))
+    findings.extend(_pinact_findings(root, repository, files))
     return findings
 
 
@@ -524,12 +995,23 @@ def action_rules() -> tuple[Rule, ...]:
         ),
         Rule(
             "gha-syntax",
-            "Validate GitHub workflow syntax with actionlint",
+            "Check and repair GitHub Actions files with jactionlint and pinact",
             TagPredicate(),
             _syntax_findings,
-            None,
-            None,
-            (),
+            _general_actions_fix,
+            "chore(repomod): fix github actions",
+            (
+                ".github/workflows/*.yml",
+                ".github/workflows/*.yaml",
+                ".github/workflows/actions.lock",
+                ".github/dependabot.yml",
+                ".github/dependabot.yaml",
+                "**/action.yml",
+                "**/action.yaml",
+                "action.yml",
+                "action.yaml",
+            ),
+            _validate_workflows,
         ),
         Rule(
             "gha-version",

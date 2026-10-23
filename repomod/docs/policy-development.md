@@ -8,6 +8,10 @@ Return structured `Finding` values with concrete messages and deterministic orde
 unavailable tools, unreadable files, and failed API calls as operational findings, not policy
 violations.
 
+Lint IDs are durable catalog policy codes. Catalog version 2 supports per-repository
+`[overrides."OWNER/REPO"]` entries with `ignore = ["rule-id"]`. Validate each code against the
+registered rule IDs. Document policy changes alongside the rule.
+
 ## Fixers
 
 A fixer returns complete UTF-8 file contents keyed by repository-relative path. It does not edit,
@@ -30,8 +34,9 @@ Rules inspect repository files but do not install dependencies, build projects, 
 scripts. Use offline fixtures under `tests/` for policy behavior. Tests use local Git repositories
 and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 
-`gha-settings` requires concurrency cancellation and `bash -euo pipefail {0}` defaults in every
-GitHub workflow. `no-formatters` rejects formatter commands, formatter dependencies, and dedicated
-formatter configuration files. Ruff lint commands such as `ruff check` remain allowed; Ruff's
-format command and format configuration are banned. `mdtool` runs the read-only local documentation
-audit at `~/.local/bin/mdtool` for each repository.
+`gha-settings` requires the shared concurrency group, cancellation, and
+`bash -euo pipefail {0}` defaults in every GitHub workflow. `gha-syntax` runs jactionlint's safe
+fixes and pinact's action pinning in a disposable worktree. `no-formatters` rejects formatter
+commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
+`ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
+runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository.

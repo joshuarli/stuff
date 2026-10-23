@@ -10,6 +10,7 @@ from typing import Any
 
 from repomod.git import GitError, working_paths
 from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.workflow_policy import is_fork_workflow
 
 _PATHS = (
     ":(glob)**/.oxfmtrc.json",
@@ -465,6 +466,12 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
     findings = []
     for relative in paths:
         path = PurePosixPath(relative)
+        if (
+            "fork" in repository.tags
+            and path.parts[:2] == (".github", "workflows")
+            and not is_fork_workflow(path)
+        ):
+            continue
         if path.name.casefold() in _FORMATTER_CONFIG_NAMES:
             findings.append(
                 Finding(

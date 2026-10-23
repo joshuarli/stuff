@@ -7,6 +7,7 @@ publishes the exact catalog tag set.
 Each repository needs at least one role tag:
 
 - `tool`: command-line program or directly installed executable.
+- `private-tool`: an executable maintained for private use; GitHub prerelease policy does not apply.
 - `library`: independently reusable API or SDK, whether public or internal.
 - `app`: substantial end-user application or game. Launching an executable or local server
   does not by itself make an app a tool.
@@ -29,14 +30,19 @@ detected source. Detection follows the supported source layouts and manifest req
 Publishing tags `crates-io`, `pypi`, and `npm` opt a repository into that ecosystem's release
 policy. Package use, mirroring, or a manifest alone does not opt in.
 
+The `fork` tag marks repositories whose upstream GitHub workflows are outside local policy.
+Fork workflow checks and status include only files named `lint`, `prerelease`, or `test` under
+`.github/workflows/`.
+
 ## Binary prereleases
 
 The supported native binary prerelease workflow has a manual dispatch, builds and transfers
 native artifacts, and publishes executable release assets under a SHA-derived tag targeting
 the source commit. Repositories using that contract have exactly the `tool` tag, regardless of
 their implementation languages. A wheel prerelease is a package release, not a binary-tool
-release. The `binary-release-tags` rule checks the artifact and release contract. It reports
-ambiguous workflows for review.
+release. `private-tool` repositories are exempt from the prerelease policy. The
+`binary-release-tags` rule checks the artifact and release contract. It reports ambiguous
+workflows for review.
 
 ## Rule selection
 

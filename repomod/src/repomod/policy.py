@@ -27,11 +27,20 @@ def selected_rules(
         rule
         for rule in available
         if (not selected_ids or rule.id in selected_ids)
-        and (not local_only or rule.id != "gha-syntax")
     ]
     if local_only:
         values = [rule for rule in values if rule.id != "topics"]
     return tuple(values)
+
+
+def validate_ignored_rules(repositories: Iterable[Repository]) -> None:
+    known_ids = {rule.id for rule in rules()}
+    for repository in repositories:
+        unknown = repository.ignored_rules - known_ids
+        if unknown:
+            raise PolicyError(
+                f"unknown ignored rule codes for {repository.id}: {', '.join(sorted(unknown))}"
+            )
 
 
 def filter_repositories(
@@ -62,13 +71,27 @@ def lint_repositories(
         catalog.repositories if repositories is None else repositories,
         tags=tags,
     )
+    validate_ignored_rules(selected)
     active_rules = selected_rules(rule_ids=rule_ids, local_only=local_only)
+    rules_by_repository = {
+        str(repository.id): tuple(
+            rule for rule in active_rules if rule.id not in repository.ignored_rules
+        )
+        for repository in selected
+    }
     findings: list[Finding] = []
     topic_results = {}
-    if any(rule.id == "topics" for rule in active_rules):
+    repositories_with_topics = tuple(
+        repository
+        for repository in selected
+        if any(rule.id == "topics" for rule in rules_by_repository[str(repository.id)])
+    )
+    if repositories_with_topics:
         topic_results = {
             name: (additions, removals, error)
-            for name, _, additions, removals, error in topics_many(selected, apply=False)
+            for name, _, additions, removals, error in topics_many(
+                repositories_with_topics, apply=False
+            )
         }
     for repository in selected:
         try:
@@ -84,7 +107,7 @@ def lint_repositories(
                 )
             )
             continue
-        for rule in active_rules:
+        for rule in rules_by_repository[str(repository.id)]:
             if not rule.applies_to.matches(repository.tags):
                 continue
             if rule.id == "topics":

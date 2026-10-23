@@ -22,6 +22,7 @@ from repomod.types import (
     Repository,
     WorkflowStatus,
 )
+from repomod.workflow_policy import FORK_WORKFLOW_NAMES, is_fork_workflow
 
 API_TIMEOUT = 30
 CACHE_TTL_SECONDS = 300
@@ -29,7 +30,8 @@ GRAPHQL_BATCH_SIZE = 20
 MAX_API_WORKERS = 4
 ACTION_TAG_PAGE_SIZE = 100
 ACTION_TAG_RESOLUTION_DEPTH = 6
-_WORKFLOW_CACHE_SOURCE = "actions-runs-v1"
+_WORKFLOW_CACHE_SOURCE = "actions-runs-v3"
+_FORK_CHECK_CACHE_SOURCE = "fork-workflows-v1"
 _TRANSIENT = ("http 429", "http 500", "http 502", "http 503", "http 504", "rate limit", "timed out")
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 
@@ -312,6 +314,7 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
     check_suite_id = None
     workflow_run_id = None
     run_attempt = None
+    workflow_name = None
     if kind == "CheckRun":
         name = node.get("name")
         status_value = node.get("status")
@@ -326,6 +329,8 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
         workflow_run = suite.get("workflowRun") if isinstance(suite, dict) else None
         workflow_run_id = workflow_run.get("id") if isinstance(workflow_run, dict) else None
         run_attempt = workflow_run.get("runAttempt") if isinstance(workflow_run, dict) else None
+        workflow = workflow_run.get("workflow") if isinstance(workflow_run, dict) else None
+        workflow_name = workflow.get("name") if isinstance(workflow, dict) else None
     elif kind == "StatusContext":
         name = node.get("context")
         state = node.get("state")
@@ -347,6 +352,7 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
         check_suite_id if isinstance(check_suite_id, str) else None,
         workflow_run_id if isinstance(workflow_run_id, str) else None,
         run_attempt if isinstance(run_attempt, int) else None,
+        workflow_name if isinstance(workflow_name, str) else None,
     )
 
 
@@ -408,7 +414,7 @@ def _status_check_page(
                 f'{{ contexts(first: 100{after}) {{ nodes {{ __typename '
                 f'... on CheckRun {{ name status conclusion '
                 f'detailsUrl startedAt completedAt checkSuite {{ id app {{ name }} workflowRun '
-                f'{{ id runAttempt }} }} }} '
+                f'{{ id runAttempt workflow {{ name }} }} }} }} '
                 f'... on StatusContext {{ context state targetUrl createdAt updatedAt '
                 f'creator {{ login }} }} }} '
                 f'pageInfo {{ hasNextPage endCursor }} }} }} }} }} }}'
@@ -553,6 +559,10 @@ def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
         name = run.get("name")
         if not isinstance(name, str) or not name:
             continue
+        path = run.get("path")
+        path = path if isinstance(path, str) else None
+        if "fork" in repository.tags and not is_fork_workflow(path or name):
+            continue
         workflow_id = run.get("workflow_id")
         identity = (
             str(workflow_id)
@@ -570,10 +580,12 @@ def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
             str(run_id) if run_id is not None else "",
         )
         url = run.get("html_url")
+        path = run.get("path")
         status = WorkflowStatus(
             name,
             _workflow_run_state(run),
             url if isinstance(url, str) else None,
+            path if isinstance(path, str) else None,
         )
         previous = latest.get(identity)
         if previous is None or order > previous[0]:
@@ -675,6 +687,9 @@ def _result_from_cache(
             item.get("url") if isinstance(item.get("url"), str) else None,
             item.get("source") if isinstance(item.get("source"), str) else None,
             item.get("updated_at") if isinstance(item.get("updated_at"), str) else None,
+            workflow_name=(
+                item.get("workflow_name") if isinstance(item.get("workflow_name"), str) else None
+            ),
         )
         for item in raw_checks
         if isinstance(item, dict) and isinstance(item.get("name"), str) and isinstance(item.get("state"), str)
@@ -687,7 +702,12 @@ def _result_from_cache(
     workflows: tuple[WorkflowStatus, ...] | None = None
     if isinstance(raw_workflows, list):
         workflows = tuple(
-            WorkflowStatus(item["name"], item["state"], item.get("url"))
+            WorkflowStatus(
+                item["name"],
+                item["state"],
+                item.get("url"),
+                item.get("path") if isinstance(item.get("path"), str) else None,
+            )
             for item in raw_workflows
             if isinstance(item, dict)
             and isinstance(item.get("name"), str)
@@ -719,6 +739,12 @@ def _result_from_cache(
     )
 
 
+def _fork_check_allowed(check: CheckResult) -> bool:
+    if check.workflow_name is not None:
+        return check.workflow_name.casefold() in FORK_WORKFLOW_NAMES
+    return check.source is None or check.source.casefold() != "github actions"
+
+
 def ci_status(
     repositories: tuple[Repository, ...],
     remotes: dict[str, RemoteRepository] | None = None,
@@ -736,10 +762,17 @@ def ci_status(
         for repo in repositories:
             name = str(repo.id)
             cached = None if refresh else _cached_for(cache, name)
+            if (
+                cached is not None
+                and "fork" in repo.tags
+                and cached[1].get("fork_check_source") != _FORK_CHECK_CACHE_SOURCE
+            ):
+                cached = None
             if cached:
                 results[name] = _result_from_cache(name, cached[1], current_time)
             else:
                 results[name] = CiResult(name, None, None, "unknown", (), error=cache_error or "no cached CI result")
+        _filter_fork_workflows(repositories, results)
         return results
 
     remote_values = remote_metadata(repositories) if remotes is None else remotes
@@ -751,6 +784,12 @@ def ci_status(
         remote = remote_values.get(name)
         cached_pair = _cached_for(cache, name)
         cached = cached_pair[1] if cached_pair else None
+        if (
+            cached is not None
+            and "fork" in repo.tags
+            and cached.get("fork_check_source") != _FORK_CHECK_CACHE_SOURCE
+        ):
+            cached = None
         if (
             remote is None
             or remote.error is not None
@@ -842,6 +881,8 @@ def ci_status(
                     )
                 continue
             checks, complete = page_data
+            if "fork" in repo.tags:
+                checks = tuple(check for check in checks if _fork_check_allowed(check))
             state = _state_for_checks(checks, complete)
             state_error = "check rollup was incomplete" if state == "unknown" else None
             result_error = "; ".join(
@@ -870,6 +911,7 @@ def ci_status(
                         "url": check.url,
                         "source": check.source,
                         "updated_at": check.updated_at,
+                        "workflow_name": check.workflow_name,
                     }
                     for check in checks
                 ],
@@ -885,17 +927,40 @@ def ci_status(
                                     "name": workflow.name,
                                     "state": workflow.state,
                                     "url": workflow.url,
+                                    "path": workflow.path,
                                 }
                                 for workflow in latest_workflows
                             ]
                         ),
                     }
                 )
+            if "fork" in repo.tags:
+                cache_entry["fork_check_source"] = _FORK_CHECK_CACHE_SOURCE
             fetched[f"{name}@{remote.sha}"] = cache_entry
         if fetched:
             cache.update(fetched)
             _write_cache(path, cache)
+    _filter_fork_workflows(repositories, results)
     return results
+
+
+def _filter_fork_workflows(
+    repositories: tuple[Repository, ...], results: dict[str, CiResult]
+) -> None:
+    for repository in repositories:
+        if "fork" not in repository.tags:
+            continue
+        name = str(repository.id)
+        result = results.get(name)
+        if result is None or result.workflows is None:
+            continue
+        workflows = tuple(
+            workflow
+            for workflow in result.workflows
+            if is_fork_workflow(workflow.path or workflow.name)
+        )
+        checks = tuple(check for check in result.checks if _fork_check_allowed(check))
+        results[name] = replace(result, checks=checks, workflows=workflows)
 
 
 def _topics_get(repo: RepoId) -> tuple[str, ...]:

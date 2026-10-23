@@ -39,7 +39,14 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
     srv = find_repository(catalog, "laputa-systems/srv")
     assert set(srv.tags) == {"tool"}
     assert set(find_repository(catalog, "joshuarli/tansu").tags) == {"app", "rust", "typescript"}
-    assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
+    assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {
+        "library",
+        "private-tool",
+        "rust",
+        "typescript",
+    }
+    assert set(find_repository(catalog, "joshuarli/pypi").tags) == {"private-tool", "python"}
+    assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"private-tool", "python"}
     assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {"library", "pypi", "python"}
     assert len(catalog.repositories) > 0
 
@@ -80,11 +87,11 @@ def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(t
     path = write_catalog(
         tmp_path / "catalog.toml",
         '[repos."joshuarli"]\ntansu = ["app", "rust", "typescript"]\n'
-        'shadowdriver = ["library", "tool", "rust", "typescript"]',
+        'shadowdriver = ["library", "private-tool", "rust", "typescript"]',
     )
     catalog = load_catalog(path, {"HOME": str(tmp_path)})
     assert set(find_repository(catalog, "tansu").tags) == {"app", "rust", "typescript"}
-    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
+    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "private-tool", "rust", "typescript"}
     path.write_text(catalog_text('[repos."joshuarli"]\ninvalid = ["rust", "typescript"]'), encoding="utf-8")
     with pytest.raises(CatalogError, match="primary tag"):
         load_catalog(path, {"HOME": str(tmp_path)})
