@@ -6,7 +6,8 @@ checks repository policy, and can repair safe violations with local commits.
 ## Get started
 
 Use Python 3.14, [`uv`](https://docs.astral.sh/uv/), and Git. Install `gh` and authenticate with
-`gh auth login` for commands that read GitHub. Install `actionlint` for workflow checks and fixes.
+`gh auth login` for commands that read GitHub. Install `actionlint` for workflow checks and fixes,
+and provide the read-only documentation auditor at `~/.local/bin/mdtool`.
 
 From this checkout:
 
@@ -38,7 +39,11 @@ local commits. `sync --dry-run` inspects local state without network calls. Prog
 stderr. Sorted repository results go to stdout. A failure for one repository does not stop the
 others.
 
-`repomod status` shows local Git, current default-branch CI, and local policy status.
+`repomod status` shows local Git, current default-branch CI, the latest status for each GitHub
+workflow, outstanding ticket headings in each root `TODO.md`, and lint rules with findings. It
+uses compact repository blocks with terminal colors when stdout is interactive. `status --details`
+prints each lint message and failed CI check. `status --json` includes workflow statuses, full lint
+findings, and the `todo_items` count. A TODO item is a standardized `### ID · Pn · title` heading.
 `status --offline` reads cached CI without network calls. `--failed` filters to CI failures,
 error-level policy findings, and operational lint findings.
 

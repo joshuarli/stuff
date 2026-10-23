@@ -4,18 +4,12 @@ import json
 import re
 import shlex
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 
 from repomod.git import root_ignore_matches, tracked_paths
 from repomod.rules.languages import _language_sources
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
-_INLINE_LINK = re.compile(
-    r"!?\[[^\]\n]*\]\(\s*(?:<([^>\n]+)>|((?:\\.|[^)\s])+))(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
-)
-_REFERENCE_LINK = re.compile(r"(?m)^ {0,3}\[[^\]\n]+\]:\s*(?:<([^>\n]+)>|(\S+))")
-_FENCED_CODE = re.compile(r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[^\n]*(?:\n|$)")
 _RUN = re.compile(r"^(?P<indent> *)(?:-\s*)?run\s*:\s*(?P<value>.*)$")
 _MAKE_TARGET = re.compile(r"^[A-Za-z0-9_./%-]+\Z")
 _MAKE_OPTIONS_WITH_VALUE = {"-C", "-f", "-I", "-j", "-l", "-o", "-W", "--directory", "--file"}
@@ -59,80 +53,6 @@ _COMPOSED_IGNORE_PROBES = {
         ("zig-out/repomod-ignore-probe", "zig-out/"),
     ),
 }
-
-
-def _markdown_files(root: Path) -> list[Path]:
-    files = []
-    if not root.is_dir() or root.is_symlink():
-        return files
-    files.extend(
-        child
-        for child in root.iterdir()
-        if child.name.casefold() == "readme.md" and child.is_file() and not child.is_symlink()
-    )
-    docs = root / "docs"
-    if docs.is_symlink() or not docs.is_dir():
-        return sorted(files, key=lambda path: path.relative_to(root).as_posix().casefold())
-    pending = [docs]
-    while pending:
-        directory = pending.pop()
-        for child in sorted(directory.iterdir(), key=lambda path: path.name.casefold(), reverse=True):
-            if child.is_symlink():
-                continue
-            if child.is_dir():
-                pending.append(child)
-            elif child.is_file() and child.suffix.casefold() in {".md", ".markdown"}:
-                files.append(child)
-    return sorted(files, key=lambda path: path.relative_to(root).as_posix().casefold())
-
-
-def _markdown_destinations(source: str) -> list[str]:
-    visible = _FENCED_CODE.sub("", source)
-    visible = re.sub(r"(?s)<!--.*?-->", "", visible)
-    visible = re.sub(r"(`+)[^`\n]*?\1", "", visible)
-    destinations = []
-    for pattern in (_INLINE_LINK, _REFERENCE_LINK):
-        for first, second in pattern.findall(visible):
-            destination = first or second
-            assert isinstance(destination, str)
-            destinations.append(destination)
-    return destinations
-
-
-def _markdown_link_findings(root: Path, repository: Repository) -> list[Finding]:
-    findings = []
-    repository_root = root.resolve()
-    for markdown in _markdown_files(root):
-        relative = markdown.relative_to(root).as_posix()
-        try:
-            source = markdown.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            findings.append(
-                Finding(
-                    str(repository.id),
-                    "markdown-links",
-                    relative,
-                    f"cannot read Markdown file: {error}",
-                    kind="operational",
-                )
-            )
-            continue
-        for destination in _markdown_destinations(source):
-            try:
-                parsed = urlsplit(unquote(destination))
-            except ValueError:
-                continue
-            if parsed.scheme or parsed.netloc or parsed.path.startswith("/") or not parsed.path:
-                continue
-            target = (markdown.parent / parsed.path).resolve(strict=False)
-            if not target.is_relative_to(repository_root):
-                message = f"local Markdown link escapes the repository: {destination}"
-            elif not target.exists():
-                message = f"local Markdown link target does not exist: {destination}"
-            else:
-                continue
-            findings.append(Finding(str(repository.id), "markdown-links", relative, message))
-    return findings
 
 
 def _run_commands(source: str) -> list[str]:
@@ -357,15 +277,6 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
 
 def consistency_rules() -> tuple[Rule, ...]:
     return (
-        Rule(
-            "markdown-links",
-            "Check repository-local links in README and docs Markdown",
-            TagPredicate(),
-            _markdown_link_findings,
-            None,
-            None,
-            (),
-        ),
         Rule(
             "generated-artifacts",
             "Check tracked generated files and composed ignore coverage",

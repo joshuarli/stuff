@@ -8,7 +8,6 @@ from repomod.git import run_git
 from repomod.rules import rules
 from repomod.rules.consistency import (
     _make_target_findings,
-    _markdown_link_findings,
     _tracked_artifact_findings,
 )
 from repomod.rules.languages import _language_tag_findings
@@ -22,49 +21,6 @@ def repository(*tags: str) -> Repository:
 def initialize_repository(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     run_git(["init", "--quiet"], cwd=root)
-
-
-def test_markdown_links_reports_missing_local_targets_and_ignores_external_links(
-    tmp_path: Path,
-) -> None:
-    (tmp_path / "README.md").write_text(
-        "[existing](docs/guide.md) [missing](docs/missing.md) [web](https://example.com)\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "guide.md").write_text("# Guide\n", encoding="utf-8")
-
-    findings = _markdown_link_findings(tmp_path, repository("tool"))
-
-    assert [(finding.file, finding.message) for finding in findings] == [
-        ("README.md", "local Markdown link target does not exist: docs/missing.md")
-    ]
-
-
-def test_markdown_links_reports_paths_that_escape_the_repository(tmp_path: Path) -> None:
-    root = tmp_path / "repo"
-    root.mkdir()
-    (root / "README.md").write_text("[outside](../secret.md)\n", encoding="utf-8")
-
-    findings = _markdown_link_findings(root, repository("tool"))
-
-    assert len(findings) == 1
-    assert "escapes the repository" in findings[0].message
-
-
-def test_markdown_links_checks_reference_links_and_skips_code(tmp_path: Path) -> None:
-    (tmp_path / "README.md").write_text(
-        "[reference][guide] `[inline](missing.md)`\n\n"
-        "```md\n[example](also-missing.md)\n```\n\n"
-        "<!-- [comment](comment-missing.md) -->\n\n"
-        "[guide]: docs/missing.md\n",
-        encoding="utf-8",
-    )
-
-    findings = _markdown_link_findings(tmp_path, repository("tool"))
-
-    assert len(findings) == 1
-    assert findings[0].message == "local Markdown link target does not exist: docs/missing.md"
 
 
 def test_language_tag_lint_reports_clear_source_without_tag(tmp_path: Path) -> None:
@@ -310,4 +266,4 @@ def test_generated_artifact_lint_does_not_follow_a_root_gitignore_symlink(
 def test_consistency_and_language_lints_are_registered() -> None:
     rule_ids = {rule.id for rule in rules()}
 
-    assert {"markdown-links", "generated-artifacts", "language-tags", "workflow-make-targets"} <= rule_ids
+    assert {"mdtool", "generated-artifacts", "language-tags", "workflow-make-targets"} <= rule_ids

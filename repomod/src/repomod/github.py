@@ -9,8 +9,9 @@ import tempfile
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import replace
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, get_args
 
 from repomod.types import (
     CheckResult,
@@ -19,6 +20,7 @@ from repomod.types import (
     RemoteRepository,
     RepoId,
     Repository,
+    WorkflowStatus,
 )
 
 API_TIMEOUT = 30
@@ -27,6 +29,7 @@ GRAPHQL_BATCH_SIZE = 20
 MAX_API_WORKERS = 4
 ACTION_TAG_PAGE_SIZE = 100
 ACTION_TAG_RESOLUTION_DEPTH = 6
+_WORKFLOW_CACHE_SOURCE = "actions-runs-v1"
 _TRANSIENT = ("http 429", "http 500", "http 502", "http 503", "http 504", "rate limit", "timed out")
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
 
@@ -315,11 +318,11 @@ def _check_result(node: dict[str, Any]) -> CheckResult | None:
         conclusion = node.get("conclusion")
         state = conclusion if isinstance(conclusion, str) else status_value
         url = node.get("detailsUrl")
-        app = node.get("app")
-        source = app.get("name") if isinstance(app, dict) else None
         updated_at = node.get("completedAt") or node.get("startedAt")
         suite = node.get("checkSuite")
         check_suite_id = suite.get("id") if isinstance(suite, dict) else None
+        app = suite.get("app") if isinstance(suite, dict) else None
+        source = app.get("name") if isinstance(app, dict) else None
         workflow_run = suite.get("workflowRun") if isinstance(suite, dict) else None
         workflow_run_id = workflow_run.get("id") if isinstance(workflow_run, dict) else None
         run_attempt = workflow_run.get("runAttempt") if isinstance(workflow_run, dict) else None
@@ -403,12 +406,12 @@ def _status_check_page(
                 f'{alias}: repository(owner: {owner}, name: {name}) '
                 f'{{ object(oid: "{sha}") {{ ... on Commit {{ statusCheckRollup '
                 f'{{ contexts(first: 100{after}) {{ nodes {{ __typename '
-                f'... on CheckRun {{ name app {{ name }} status conclusion '
-                f'detailsUrl startedAt completedAt checkSuite {{ id workflowRun '
+                f'... on CheckRun {{ name status conclusion '
+                f'detailsUrl startedAt completedAt checkSuite {{ id app {{ name }} workflowRun '
                 f'{{ id runAttempt }} }} }} '
                 f'... on StatusContext {{ context state targetUrl createdAt updatedAt '
                 f'creator {{ login }} }} }} '
-                f'pageInfo {{ hasNextPage endCursor }} }} }} }} }}'
+                f'pageInfo {{ hasNextPage endCursor }} }} }} }} }} }}'
             )
             active[alias] = alias
         if not fields:
@@ -508,6 +511,104 @@ def _status_check_pages(
     return results, errors
 
 
+def _workflow_run_state(run: dict[str, Any]) -> CiState:
+    status_value = run.get("status")
+    conclusion = run.get("conclusion")
+    if isinstance(status_value, str) and status_value.casefold() != "completed":
+        states: dict[str, CiState] = {
+            "queued": "pending",
+            "requested": "pending",
+            "waiting": "pending",
+            "pending": "pending",
+            "in_progress": "pending",
+        }
+        return states.get(status_value.casefold(), "unknown")
+    if not isinstance(conclusion, str):
+        return "unknown"
+    states: dict[str, CiState] = {
+        "success": "passed",
+        "failure": "failed",
+        "timed_out": "failed",
+        "action_required": "failed",
+        "startup_failure": "failed",
+        "cancelled": "cancelled",
+        "skipped": "skipped",
+        "neutral": "neutral",
+        "stale": "stale",
+    }
+    return states.get(conclusion.casefold(), "unknown")
+
+
+def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
+    data = _gh_json(
+        [f"repos/{repository.id.owner}/{repository.id.name}/actions/runs?per_page=100"]
+    )
+    raw_runs = data.get("workflow_runs") if isinstance(data, dict) else None
+    if not isinstance(raw_runs, list):
+        raise GitHubError(f"GitHub returned invalid workflow runs for {repository.id}")
+    latest: dict[str, tuple[tuple[int, int, str, str], WorkflowStatus]] = {}
+    for run in raw_runs:
+        if not isinstance(run, dict):
+            raise GitHubError(f"GitHub returned an invalid workflow run for {repository.id}")
+        name = run.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        workflow_id = run.get("workflow_id")
+        identity = (
+            str(workflow_id)
+            if isinstance(workflow_id, (str, int)) and not isinstance(workflow_id, bool)
+            else name.casefold()
+        )
+        run_number = run.get("run_number")
+        attempt = run.get("run_attempt")
+        created_at = run.get("created_at")
+        run_id = run.get("id")
+        order = (
+            run_number if isinstance(run_number, int) and not isinstance(run_number, bool) else -1,
+            attempt if isinstance(attempt, int) and not isinstance(attempt, bool) else -1,
+            created_at if isinstance(created_at, str) else "",
+            str(run_id) if run_id is not None else "",
+        )
+        url = run.get("html_url")
+        status = WorkflowStatus(
+            name,
+            _workflow_run_state(run),
+            url if isinstance(url, str) else None,
+        )
+        previous = latest.get(identity)
+        if previous is None or order > previous[0]:
+            latest[identity] = (order, status)
+    return tuple(
+        sorted(
+            (status for _, status in latest.values()),
+            key=lambda workflow: workflow.name.casefold(),
+        )
+    )
+
+
+def _latest_workflow_statuses(
+    repositories: tuple[Repository, ...],
+) -> tuple[dict[str, tuple[WorkflowStatus, ...]], dict[str, str]]:
+    results: dict[str, tuple[WorkflowStatus, ...]] = {}
+    errors: dict[str, str] = {}
+    if not repositories:
+        return results, errors
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(repositories)), thread_name_prefix="repomod-workflows"
+    ) as pool:
+        futures = {
+            pool.submit(_workflow_runs, repository): str(repository.id)
+            for repository in repositories
+        }
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                results[name] = future.result()
+            except GitHubError as error:
+                errors[name] = str(error)
+    return results, errors
+
+
 def _cache_path() -> Path:
     cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
     return cache_root / "repomod" / "ci.json"
@@ -578,6 +679,21 @@ def _result_from_cache(
         for item in raw_checks
         if isinstance(item, dict) and isinstance(item.get("name"), str) and isinstance(item.get("state"), str)
     )
+    raw_workflows = (
+        entry.get("workflows")
+        if entry.get("workflow_source") == _WORKFLOW_CACHE_SOURCE
+        else None
+    )
+    workflows: tuple[WorkflowStatus, ...] | None = None
+    if isinstance(raw_workflows, list):
+        workflows = tuple(
+            WorkflowStatus(item["name"], item["state"], item.get("url"))
+            for item in raw_workflows
+            if isinstance(item, dict)
+            and isinstance(item.get("name"), str)
+            and item.get("state") in get_args(CiState.__value__)
+            and (item.get("url") is None or isinstance(item.get("url"), str))
+        )
     fetched = entry.get("fetched_at")
     fetched_at = (
         fetched
@@ -599,6 +715,7 @@ def _result_from_cache(
         True,
         age,
         error,
+        workflows,
     )
 
 
@@ -656,6 +773,7 @@ def ci_status(
         if (
             cached is not None
             and not refresh
+            and cached.get("workflow_source") == _WORKFLOW_CACHE_SOURCE
             and cached.get("sha") == remote.sha
             and isinstance(cached.get("fetched_at"), (int, float))
             and not isinstance(cached.get("fetched_at"), bool)
@@ -673,11 +791,15 @@ def ci_status(
         if (remote := remote_values.get(str(repo.id))) is not None and remote.sha is not None
     }
     if pending:
-        try:
-            pages, errors = _status_check_pages(pending)
-        except GitHubError as error:
-            pages = {}
-            errors = {alias: str(error) for alias in pending}
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="repomod-status-api") as pool:
+            checks_future = pool.submit(_status_check_pages, pending)
+            workflows_future = pool.submit(_latest_workflow_statuses, tuple(query))
+            try:
+                pages, errors = checks_future.result()
+            except GitHubError as error:
+                pages = {}
+                errors = {alias: str(error) for alias in pending}
+            workflow_values, workflow_errors = workflows_future.result()
         fetched: dict[str, dict[str, Any]] = {}
         for index, repo in enumerate(query):
             alias = f"r{index}"
@@ -685,14 +807,28 @@ def ci_status(
             _, remote, old_cache = selected[name]
             page_data = pages.get(alias)
             error = errors.get(alias)
+            workflow_error = workflow_errors.get(name)
+            latest_workflows = workflow_values.get(name)
+            combined_error = "; ".join(
+                message
+                for message in (
+                    error or ("check rollup unavailable" if page_data is None else None),
+                    workflow_error,
+                )
+                if message is not None
+            ) or None
             if page_data is None or error is not None:
                 if old_cache is not None:
-                    results[name] = _result_from_cache(
-                        name,
-                        old_cache,
-                        current_time,
-                        stale=True,
-                        error=error or "check rollup unavailable",
+                    cached_result = _result_from_cache(
+                        name, old_cache, current_time, stale=True, error=combined_error
+                    )
+                    results[name] = replace(
+                        cached_result,
+                        workflows=(
+                            latest_workflows
+                            if latest_workflows is not None
+                            else cached_result.workflows
+                        ),
                     )
                 else:
                     results[name] = CiResult(
@@ -701,11 +837,16 @@ def ci_status(
                         remote.sha,
                         "unknown",
                         (),
-                        error=error or "check rollup unavailable",
+                        error=combined_error,
+                        workflows=latest_workflows,
                     )
                 continue
             checks, complete = page_data
             state = _state_for_checks(checks, complete)
+            state_error = "check rollup was incomplete" if state == "unknown" else None
+            result_error = "; ".join(
+                message for message in (state_error, workflow_error) if message is not None
+            ) or None
             result = CiResult(
                 name,
                 remote.default_branch,
@@ -714,10 +855,11 @@ def ci_status(
                 checks,
                 False,
                 0,
-                None if state != "unknown" else "check rollup was incomplete",
+                result_error,
+                latest_workflows,
             )
             results[name] = result
-            fetched[f"{name}@{remote.sha}"] = {
+            cache_entry: dict[str, Any] = {
                 "default_branch": remote.default_branch,
                 "sha": remote.sha,
                 "state": state,
@@ -733,6 +875,23 @@ def ci_status(
                 ],
                 "fetched_at": current_time,
             }
+            if latest_workflows is not None:
+                cache_entry.update(
+                    {
+                        "workflow_source": _WORKFLOW_CACHE_SOURCE,
+                        "workflows": (
+                            [
+                                {
+                                    "name": workflow.name,
+                                    "state": workflow.state,
+                                    "url": workflow.url,
+                                }
+                                for workflow in latest_workflows
+                            ]
+                        ),
+                    }
+                )
+            fetched[f"{name}@{remote.sha}"] = cache_entry
         if fetched:
             cache.update(fetched)
             _write_cache(path, cache)

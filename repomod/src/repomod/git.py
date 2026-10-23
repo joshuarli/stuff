@@ -117,6 +117,17 @@ def tracked_paths(path: Path, pathspecs: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(sorted((value for value in result.stdout.split("\0") if value), key=str.casefold))
 
 
+def working_paths(path: Path, pathspecs: tuple[str, ...]) -> tuple[str, ...]:
+    result = run_git(
+        ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *pathspecs],
+        cwd=path,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip() or "git ls-files failed")
+    return tuple(sorted((value for value in result.stdout.split("\0") if value), key=str.casefold))
+
+
 def root_ignore_matches(path: Path, candidates: tuple[str, ...]) -> frozenset[str]:
     root_ignore = path / ".gitignore"
     if root_ignore.is_symlink() or not root_ignore.is_file() or not candidates:
@@ -196,15 +207,22 @@ def _porcelain_counts(output: str) -> tuple[int, int, int]:
 def status(path: Path, repo: RepoId) -> GitStatus:
     if not path.exists():
         return GitStatus(str(repo), path, False, False, None, False, 0, 0, 0, None, None, None, False)
-    if not is_git_checkout(path):
+    git_path = path / ".git"
+    if path.is_symlink() or git_path.is_symlink() or not git_path.exists():
         return GitStatus(
             str(repo), path, True, False, None, False, 0, 0, 0, None, None, None, False,
             "directory is not a valid Git checkout",
         )
-    head = run_git(["symbolic-ref", "--quiet", "--short", "HEAD"], cwd=path, check=False)
-    detached = head.returncode != 0
-    branch = None if detached else head.stdout.strip()
-    porcelain = run_git(["status", "--porcelain=v2", "--branch", "-z"], cwd=path).stdout
+    result = run_git(["status", "--porcelain=v2", "--branch", "-z"], cwd=path, check=False)
+    if result.returncode != 0:
+        if not is_git_checkout(path):
+            return GitStatus(
+                str(repo), path, True, False, None, False, 0, 0, 0, None, None, None, False,
+                "directory is not a valid Git checkout",
+            )
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GitError(f"git status --porcelain=v2 failed: {detail}")
+    porcelain = result.stdout
     staged, unstaged, untracked = _porcelain_counts(porcelain)
     upstream: str | None = None
     ahead: int | None = None
@@ -214,13 +232,23 @@ def status(path: Path, repo: RepoId) -> GitStatus:
         if not record.startswith("# "):
             break
         headers.append(record)
+    branch_head = None
     for header in headers:
-        if header.startswith("# branch.upstream "):
+        if header.startswith("# branch.head "):
+            branch_head = header.removeprefix("# branch.head ")
+        elif header.startswith("# branch.upstream "):
             upstream = header.removeprefix("# branch.upstream ")
         elif header.startswith("# branch.ab "):
             counts = header.removeprefix("# branch.ab ").split()
             if len(counts) == 2:
                 ahead, behind = int(counts[0].removeprefix("+")), int(counts[1].removeprefix("-"))
+    detached = branch_head in {None, "(detached)"}
+    if detached:
+        head = run_git(["symbolic-ref", "--quiet", "--short", "HEAD"], cwd=path, check=False)
+        detached = head.returncode != 0
+        branch = None if detached else head.stdout.strip()
+    else:
+        branch = branch_head
     remote = origin_url(path)
     origin_valid = remote is not None and expected_origin(repo, remote)
     origin_error = None

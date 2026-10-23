@@ -815,7 +815,7 @@ def test_warning_only_lint_is_nonfatal_unless_strict(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     repository = repo()
-    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "~/repos", "acme", (repository,))
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
     monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
     finding = Finding("acme/tool", "binary-release-tags", "release.yml", "review release", severity="warning")
     monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [finding])
@@ -831,7 +831,7 @@ def test_operational_lint_failure_has_distinct_exit_code(
     tmp_path: Path, monkeypatch
 ) -> None:
     repository = repo()
-    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "~/repos", "acme", (repository,))
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
     monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
     finding = Finding("acme/tool", "repo-integrity", None, "checkout unavailable", kind="operational")
     monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [finding])

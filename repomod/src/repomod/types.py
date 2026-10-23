@@ -49,7 +49,6 @@ class Repository:
 class Catalog:
     path: Path
     root: Path
-    root_config: str
     personal_owner: str
     repositories: tuple[Repository, ...]
 
@@ -139,6 +138,13 @@ class CheckResult:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkflowStatus:
+    name: str
+    state: CiState
+    url: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class CiResult:
     repository: str
     default_branch: str | None
@@ -148,3 +154,4 @@ class CiResult:
     cached: bool = False
     age_seconds: int | None = None
     error: str | None = None
+    workflows: tuple[WorkflowStatus, ...] | None = None

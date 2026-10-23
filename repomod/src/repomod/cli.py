@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import shlex
+import shutil
 import sys
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,7 +17,9 @@ from repomod.git import GitError, repository_lock, status
 from repomod.github import GitHubError, ci_status, discover, remote_metadata, topics_many
 from repomod.policy import PolicyError, filter_repositories, finding_dict, lint_repositories, selected_rules
 from repomod.sync import sync_repositories
-from repomod.types import Catalog, CiResult, GitStatus, Repository
+from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
+
+_TODO_ITEM = re.compile(r"### [A-Z][A-Z0-9]*-\d+ · P\d+ · .+")
 
 
 def _catalog_path() -> Path:
@@ -116,68 +121,236 @@ def _checkout_status(catalog: Catalog, repository: Repository) -> tuple[Path, Gi
         )
 
 
+def _todo_item_count(path: Path) -> int:
+    if not path.is_dir():
+        return 0
+    todo_path = path / "TODO.md"
+    try:
+        descriptor = os.open(todo_path, os.O_RDONLY | os.O_NOFOLLOW)
+    except FileNotFoundError:
+        return 0
+    with os.fdopen(descriptor, encoding="utf-8") as todo_file:
+        return sum(_TODO_ITEM.fullmatch(line.rstrip("\r\n")) is not None for line in todo_file)
+
+
+def _status_checkout(catalog: Catalog, repository: Repository) -> tuple[Path, GitStatus, int]:
+    path, local = _checkout_status(catalog, repository)
+    todo_items = _todo_item_count(path) if local.valid else 0
+    return path, local, todo_items
+
+
+def _paint(value: str, color: str) -> str:
+    if not sys.stdout.isatty() or "NO_COLOR" in os.environ or os.environ.get("TERM") == "dumb":
+        return value
+    return f"\033[{color}m{value}\033[0m"
+
+
+def _state_color(state: str) -> str:
+    return {
+        "passed": "1;32",
+        "failed": "1;31",
+        "pending": "1;33",
+        "cancelled": "1;33",
+        "skipped": "90",
+        "neutral": "90",
+        "none": "90",
+        "unknown": "1;33",
+        "stale": "1;33",
+    }.get(state, "90")
+
+
+def _workflow_label(state: str) -> str:
+    return {
+        "passed": "PASS",
+        "failed": "FAIL",
+        "pending": "RUN",
+        "cancelled": "CANCEL",
+        "skipped": "SKIP",
+        "neutral": "NEUTRAL",
+        "none": "NONE",
+        "unknown": "UNKNOWN",
+        "stale": "STALE",
+    }.get(state, "UNKNOWN")
+
+
+def _local_color(value: str) -> str:
+    if value.startswith(("missing", "invalid")):
+        return "1;31"
+    if value.startswith(("dirty", "diverged", "ahead", "behind", "detached")):
+        return "1;33"
+    return "1;32"
+
+
+def _print_wrapped_items(items: Sequence[tuple[str, str]], *, prefix: str = "  ") -> None:
+    width = max(40, shutil.get_terminal_size((80, 24)).columns)
+    line = prefix
+    length = len(prefix)
+    for label, color in items:
+        separator = " · " if length > len(prefix) else ""
+        if length > len(prefix) and length + len(separator) + len(label) > width:
+            print(line)
+            line = prefix + _paint(label, color)
+            length = len(prefix) + len(label)
+        else:
+            line += separator + _paint(label, color)
+            length += len(separator) + len(label)
+    if length > len(prefix):
+        print(line)
+
+
+def _status_text(
+    rows: Sequence[dict[str, object]],
+    findings_by_repository: dict[str, list[Finding]],
+    ci_by_repository: dict[str, CiResult],
+) -> None:
+    width = max(40, shutil.get_terminal_size((80, 24)).columns)
+    for index, row in enumerate(rows):
+        if index:
+            print()
+        name = str(row["repository"])
+        local = str(row["local"])
+        ci = ci_by_repository[name]
+        raw_todo_count = row["todo_items"]
+        assert isinstance(raw_todo_count, int)
+        todo_count = raw_todo_count
+        lint_findings = findings_by_repository.get(name, [])
+        lint_color = (
+            "1;31"
+            if row["lint_errors"] or row["lint_operational"]
+            else "1;33"
+            if row["lint_warnings"]
+            else "1;36"
+            if lint_findings
+            else "1;32"
+        )
+        print(_paint(name, "1;96"))
+        _print_wrapped_items(
+            (
+                (f"local {local}", _local_color(local)),
+                (f"CI {_ci_label(ci)}", _state_color(ci.state)),
+                (f"TODO {todo_count}", "1;35" if todo_count else "90"),
+                (f"lints {row['lint']}", lint_color),
+            )
+        )
+
+        if ci.workflows is None:
+            print(f"  workflows {_paint('unavailable', '1;33')}")
+        elif not ci.workflows:
+            print(f"  workflows {_paint('none found', '90')}")
+        else:
+            workflow_items = [
+                (f"{_workflow_label(workflow.state)} {workflow.name}", _state_color(workflow.state))
+                for workflow in ci.workflows
+            ]
+            workflow_length = len("  workflows ") + sum(len(item) for item, _ in workflow_items)
+            workflow_length += 3 * max(0, len(workflow_items) - 1)
+            if workflow_length > width:
+                print("  workflows")
+                _print_wrapped_items(workflow_items, prefix="    ")
+            else:
+                _print_wrapped_items(
+                    [(f"workflows {workflow_items[0][0]}", workflow_items[0][1]), *workflow_items[1:]]
+                )
+
+        if lint_findings:
+            rule_counts: dict[str, int] = {}
+            for finding in lint_findings:
+                rule_counts[finding.rule] = rule_counts.get(finding.rule, 0) + 1
+            entries = [
+                rule + (f" x{count}" if count > 1 else "")
+                for rule, count in sorted(rule_counts.items())
+            ]
+            _print_wrapped_items(
+                [(f"lint findings {entries[0]}", lint_color), *((entry, lint_color) for entry in entries[1:])]
+            )
+
+
 def _status(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = _select(catalog, args.repo, args.tag)
-    if args.offline:
-        remotes = {}
-    else:
-        remotes = remote_metadata(repositories)
-    ci = ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
-    findings = lint_repositories(catalog, repositories, local_only=True)
-    lint_counts: dict[str, int] = {}
-    lint_errors: dict[str, int] = {}
-    lint_warnings: dict[str, int] = {}
-    lint_operational: dict[str, int] = {}
+    with ThreadPoolExecutor(
+        max_workers=min(8, max(1, len(repositories))), thread_name_prefix="repomod-status"
+    ) as pool:
+        checkout_futures = {}
+        findings_futures = {}
+        for repository in repositories:
+            name = str(repository.id)
+            checkout_futures[name] = pool.submit(_status_checkout, catalog, repository)
+            findings_futures[name] = pool.submit(
+                lint_repositories,
+                catalog,
+                (repository,),
+                local_only=True,
+            )
+        remotes = {} if args.offline else remote_metadata(repositories)
+        ci = ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
+        findings = [
+            finding
+            for name in sorted(findings_futures, key=str.casefold)
+            for finding in findings_futures[name].result()
+        ]
+        checkouts = {name: future.result() for name, future in checkout_futures.items()}
+
+    findings_by_repository: dict[str, list[Finding]] = {}
     for finding in findings:
-        lint_counts[finding.repository] = lint_counts.get(finding.repository, 0) + 1
-        if finding.kind == "operational":
-            lint_operational[finding.repository] = lint_operational.get(finding.repository, 0) + 1
-        elif finding.severity == "error":
-            lint_errors[finding.repository] = lint_errors.get(finding.repository, 0) + 1
-        elif finding.severity == "warning":
-            lint_warnings[finding.repository] = lint_warnings.get(finding.repository, 0) + 1
+        findings_by_repository.setdefault(finding.repository, []).append(finding)
     rows: list[dict[str, object]] = []
     for repository in repositories:
         name = str(repository.id)
-        _, local = _checkout_status(catalog, repository)
+        _, local, todo_items = checkouts[name]
+        repository_findings = findings_by_repository.get(name, [])
+        lint_errors = sum(
+            finding.kind != "operational" and finding.severity == "error"
+            for finding in repository_findings
+        )
+        lint_warnings = sum(
+            finding.kind != "operational" and finding.severity == "warning"
+            for finding in repository_findings
+        )
+        lint_operational = sum(finding.kind == "operational" for finding in repository_findings)
         remote = remotes.get(name)
         ci_result = ci[name]
         default_branch = remote.default_branch if remote else ci_result.default_branch
         remote_sha = remote.sha if remote else None
-        rows.append(
-            {
-                "repository": name,
-                "local": _local_label(local, default_branch),
-                "branch": local.branch,
-                "default_branch": default_branch,
-                "default_sha": remote_sha,
-                "staged": local.staged,
-                "unstaged": local.unstaged,
-                "untracked": local.untracked,
-                "ahead": local.ahead,
-                "behind": local.behind,
-                "tracking_ref": local.upstream,
-                "tracking_counts_are_last_fetched": True,
-                "origin_valid": local.origin_valid,
-                "local_error": local.error,
-                "dirty": local.dirty,
-                "ci": _ci_label(ci_result),
-                "ci_state": ci_result.state,
-                "ci_sha": ci_result.sha,
-                "ci_cached": ci_result.cached,
-                "ci_age_seconds": ci_result.age_seconds,
-                "ci_error": ci_result.error,
-                "lint": lint_counts.get(name, 0),
-                "lint_errors": lint_errors.get(name, 0),
-                "lint_warnings": lint_warnings.get(name, 0),
-                "lint_operational": lint_operational.get(name, 0),
-            }
-        )
-        if args.details:
-            for check in ci_result.checks:
-                if check.state in {"failure", "failed", "error", "timed_out", "action_required", "startup_failure"}:
-                    print(f"  {name}: {check.name} {check.state} {check.url or ''}", file=sys.stderr)
+        row: dict[str, object] = {
+            "repository": name,
+            "local": _local_label(local, default_branch),
+            "branch": local.branch,
+            "default_branch": default_branch,
+            "default_sha": remote_sha,
+            "staged": local.staged,
+            "unstaged": local.unstaged,
+            "untracked": local.untracked,
+            "ahead": local.ahead,
+            "behind": local.behind,
+            "tracking_ref": local.upstream,
+            "tracking_counts_are_last_fetched": True,
+            "origin_valid": local.origin_valid,
+            "local_error": local.error,
+            "dirty": local.dirty,
+            "ci": _ci_label(ci_result),
+            "ci_state": ci_result.state,
+            "ci_sha": ci_result.sha,
+            "ci_cached": ci_result.cached,
+            "ci_age_seconds": ci_result.age_seconds,
+            "ci_error": ci_result.error,
+            "workflows": (
+                [
+                    {"name": workflow.name, "state": workflow.state, "url": workflow.url}
+                    for workflow in ci_result.workflows
+                ]
+                if ci_result.workflows is not None
+                else None
+            ),
+            "lint": len(repository_findings),
+            "lint_errors": lint_errors,
+            "lint_warnings": lint_warnings,
+            "lint_operational": lint_operational,
+            "todo_items": todo_items,
+        }
+        if args.json:
+            row["lint_findings"] = [finding_dict(finding) for finding in repository_findings]
+        rows.append(row)
     if args.dirty:
         rows = [row for row in rows if row["dirty"]]
     if args.failed:
@@ -185,21 +358,31 @@ def _status(args: argparse.Namespace) -> int:
             row
             for row in rows
             if row["ci_state"] == "failed"
+            or any(
+                workflow.state == "failed"
+                for workflow in ci[str(row["repository"])].workflows or ()
+            )
             or row["lint_errors"] != 0
             or row["lint_operational"] != 0
         ]
     if args.json:
         _print_json(rows)
         return 0
-    repository_width = max([10, *(len(str(row["repository"])) for row in rows)])
-    print(f"{'REPOSITORY':<{repository_width}}  {'LOCAL':<32}  {'DEFAULT':<18}  {'CI':<32}  LINT")
-    for row in rows:
-        default = row["default_branch"] or "unknown"
-        print(
-            f"{row['repository']:<{repository_width}}  {row['local']:<32}  "
-            f"{default!s:<18}  "
-                    f"{row['ci']:<32}  {row['lint']}"
-        )
+    _status_text(rows, findings_by_repository, ci)
+    if args.details:
+        visible = {str(row["repository"]) for row in rows}
+        for name in sorted(visible, key=str.casefold):
+            if ci[name].error is not None:
+                print(f"  {name}: CI detail: {ci[name].error}", file=sys.stderr)
+            for check in ci[name].checks:
+                if check.state in {"failure", "failed", "error", "timed_out", "action_required", "startup_failure"}:
+                    print(f"  {name}: {check.name} {check.state} {check.url or ''}", file=sys.stderr)
+            for finding in findings_by_repository.get(name, []):
+                location = f"{finding.file}: " if finding.file is not None else ""
+                print(
+                    f"  {name}: [{finding.severity}] [{finding.rule}] {location}{finding.message}",
+                    file=sys.stderr,
+                )
     return 0
 
 
@@ -505,13 +688,15 @@ def _parser() -> argparse.ArgumentParser:
     sync.add_argument("--dry-run", action="store_true")
     sync.add_argument("--workers", type=int, default=4)
 
-    status_parser = commands.add_parser("status", help="show local Git, remote CI, and quick lint status")
+    status_parser = commands.add_parser("status", help="show local Git, remote CI, TODO, and lint status")
     _filters(status_parser)
     status_parser.add_argument("--offline", action="store_true")
     status_parser.add_argument("--dirty", action="store_true")
     status_parser.add_argument("--failed", action="store_true")
     status_parser.add_argument("--refresh", action="store_true")
-    status_parser.add_argument("--details", action="store_true")
+    status_parser.add_argument(
+        "--details", action="store_true", help="show individual lint findings and failed CI checks"
+    )
     status_parser.add_argument("--json", action="store_true")
 
     lint = commands.add_parser("lint", help="check declarative repository policies")

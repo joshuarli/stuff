@@ -146,7 +146,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     root = _expand_root(workspace["root"], environment)
     _validate_checkout_collisions(root, personal_owner, repositories)
     repositories.sort(key=lambda item: (item.id.owner.casefold(), item.id.name.casefold()))
-    return Catalog(path.resolve(), root, workspace["root"], personal_owner, tuple(repositories))
+    return Catalog(path.resolve(), root, personal_owner, tuple(repositories))
 
 
 def _relative_parts(repo: Repository, personal_owner: str) -> tuple[str, ...]:

@@ -29,3 +29,9 @@ Action checks and fixes live in `rules/actions.py`. Package checks live in `rule
 Rules inspect repository files but do not install dependencies, build projects, or execute release
 scripts. Use offline fixtures under `tests/` for policy behavior. Tests use local Git repositories
 and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
+
+`gha-settings` requires concurrency cancellation and `bash -euo pipefail {0}` defaults in every
+GitHub workflow. `no-formatters` rejects formatter commands, formatter dependencies, and dedicated
+formatter configuration files. Ruff lint commands such as `ruff check` remain allowed; Ruff's
+format command and format configuration are banned. `mdtool` runs the read-only local documentation
+audit at `~/.local/bin/mdtool` for each repository.
