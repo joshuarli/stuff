@@ -1,5 +1,5 @@
 Prefix: RPMD
-Next: 50
+Next: 51
 
 ### RPMD-38 · P2 · Keep GitHub expressions out of Make target parsing
 
@@ -106,5 +106,14 @@ Next: 50
 - **Where:** `src/repomod/rules/binary_release.py:18`, `laputa-systems/ish/.github/workflows/release.yml:194`
 - **Problem:** ish creates its `release-${{ github.sha }}` tag through `gh api` with `sha=$GITHUB_SHA`, then publishes platform ZIPs and checksums. The release lint does not recognize that API request as targeting the triggering commit and reports the otherwise complete native release contract as ambiguous.
 - **Recommendation:** Recognize the checked `gh api` tag creation form as a source-target guarantee and retain the existing rejection of tags that do not point at the triggering commit.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-50 · P2 · Recognize manifest readme declarations in generated-data audit
+
+- **Area:** Lint accuracy
+- **Where:** `src/repomod/rules/mdtool.py`, package-manifest readme lines (e.g. `joshuarli/pytest-parallel/pyproject.toml:5`, `laputa-systems/rg/Cargo.toml:114`), template sources (e.g. `joshuarli/discover/AGENTS.md.in:1`)
+- **Problem:** The Markdown audit reports C003 "literal consumer may affect generated data" for 85 locations where the consumer only declares the package readme (`readme = "README.md"`) or is a template source (`.in`) that generates the target. Readme declarations point at hand-maintained sources, and template outputs are reviewed through the template, so neither is an unreviewed generated-data hazard.
+- **Recommendation:** Skip C003 when the consuming line is a package-manifest readme declaration or the consumer is a template source that generates the target.
 - **Fix with:** none
 - **Effort:** S (hours)

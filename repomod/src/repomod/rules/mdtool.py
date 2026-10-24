@@ -14,6 +14,12 @@ _SEVERITIES: dict[str, Severity] = {
     "note": "info",
     "info": "info",
 }
+_EXCLUDED_DIRS = frozenset({"expected", "fixtures", "snapshots", "testdata"})
+_EXCLUDED_FILES = frozenset({"TODO.md"})
+
+
+def _is_excluded(path: PurePosixPath) -> bool:
+    return path.name in _EXCLUDED_FILES or not _EXCLUDED_DIRS.isdisjoint(path.parent.parts)
 
 
 def _operational(repository: Repository, message: str) -> Finding:
@@ -39,6 +45,7 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
         return [_operational(repository, f"cannot run {executable}: {error}")]
 
     findings = []
+    excluded_error = False
     for line in result.stdout.splitlines():
         try:
             record = json.loads(line)
@@ -68,6 +75,10 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
             continue
         path = PurePosixPath(relative)
+        if _is_excluded(path):
+            if mapped_severity == "error":
+                excluded_error = True
+            continue
         if (
             "fork" in repository.tags
             and path.parts[:2] == (".github", "workflows")
@@ -102,7 +113,7 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
     if result.returncode not in {0, 1}:
         detail = stderr or f"exited with status {result.returncode}"
         findings.append(_operational(repository, f"mdtool failed: {detail}"))
-    elif result.returncode == 1 and not has_error_finding:
+    elif result.returncode == 1 and not has_error_finding and not excluded_error:
         detail = stderr or "without an error finding"
         findings.append(_operational(repository, f"mdtool reported an error exit {detail}"))
     elif stderr:
