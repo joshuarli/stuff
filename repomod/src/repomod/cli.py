@@ -158,22 +158,27 @@ def _status_checkout(catalog: Catalog, repository: Repository) -> tuple[Path, Gi
 
 
 def _paint(value: str, color: str) -> str:
-    if not sys.stdout.isatty() or os.environ.get("TERM") == "dumb":
+    if (
+        not sys.stdout.isatty()
+        or os.environ.get("TERM") == "dumb"
+        or "NO_COLOR" in os.environ
+        or os.environ.get("CLICOLOR") == "0"
+    ):
         return value
     return f"\033[{color}m{value}\033[0m"
 
 
 def _state_color(state: str) -> str:
     return {
-        "passed": "1;32",
-        "failed": "1;31",
-        "pending": "1;33",
-        "cancelled": "1;33",
+        "passed": "32",
+        "failed": "31",
+        "pending": "33",
+        "cancelled": "33",
         "skipped": "90",
         "neutral": "90",
         "none": "90",
-        "unknown": "1;33",
-        "stale": "1;33",
+        "unknown": "33",
+        "stale": "33",
     }.get(state, "90")
 
 
@@ -193,10 +198,10 @@ def _workflow_label(state: str) -> str:
 
 def _local_color(value: str) -> str:
     if value.startswith(("missing", "invalid")):
-        return "1;31"
+        return "31"
     if value.startswith(("dirty", "diverged", "ahead", "behind", "detached")):
-        return "1;33"
-    return "1;32"
+        return "33"
+    return "32"
 
 
 def _print_wrapped_items(items: Sequence[tuple[str, str]], *, prefix: str = "  ") -> None:
@@ -216,12 +221,31 @@ def _print_wrapped_items(items: Sequence[tuple[str, str]], *, prefix: str = "  "
         print(line)
 
 
+_STATUS_FINDING_PREVIEW = 3
+
+
+def _finding_color(finding: Finding) -> str:
+    if finding.kind == "operational" or finding.severity == "error":
+        return "31"
+    if finding.severity == "warning":
+        return "33"
+    return "36"
+
+
+def _format_finding(finding: Finding) -> str:
+    location = f"{finding.file}: " if finding.file is not None else ""
+    return f"{location}{finding.message}"
+
+
 def _status_text(
     rows: Sequence[dict[str, object]],
     findings_by_repository: dict[str, list[Finding]],
     ci_by_repository: dict[str, CiResult],
+    rule_descriptions: dict[str, str] | None = None,
+    show_details: bool = False,
 ) -> None:
     width = max(40, shutil.get_terminal_size((80, 24)).columns)
+    descriptions = rule_descriptions or {}
     for index, row in enumerate(rows):
         if index:
             print()
@@ -233,26 +257,26 @@ def _status_text(
         todo_count = raw_todo_count
         lint_findings = findings_by_repository.get(name, [])
         lint_color = (
-            "1;31"
+            "31"
             if row["lint_errors"] or row["lint_operational"]
-            else "1;33"
+            else "33"
             if row["lint_warnings"]
-            else "1;36"
+            else "36"
             if lint_findings
-            else "1;32"
+            else "32"
         )
-        print(_paint(name, "1;96"))
+        print(_paint(name, "36"))
         _print_wrapped_items(
             (
                 (f"local {local}", _local_color(local)),
                 (f"CI {_ci_label(ci)}", _state_color(ci.state)),
-                (f"TODO {todo_count}", "1;35" if todo_count else "90"),
+                (f"TODO {todo_count}", "33" if todo_count else "90"),
                 (f"lints {row['lint']}", lint_color),
             )
         )
 
         if ci.workflows is None:
-            print(f"  workflows {_paint('unavailable', '1;33')}")
+            print(f"  workflows {_paint('unavailable', '33')}")
         elif not ci.workflows:
             print(f"  workflows {_paint('none found', '90')}")
         else:
@@ -271,23 +295,44 @@ def _status_text(
                 )
 
         if lint_findings:
-            rule_counts: dict[str, int] = {}
+            grouped: dict[str, list[Finding]] = {}
             for finding in lint_findings:
-                rule_counts[finding.rule] = rule_counts.get(finding.rule, 0) + 1
-            entries = [
-                rule + (f" x{count}" if count > 1 else "")
-                for rule, count in sorted(rule_counts.items())
-            ]
-            _print_wrapped_items(
-                [(f"lint findings {entries[0]}", lint_color), *((entry, lint_color) for entry in entries[1:])]
-            )
+                grouped.setdefault(finding.rule, []).append(finding)
+            for rule in sorted(grouped):
+                rule_findings = grouped[rule]
+                count = len(rule_findings)
+                description = descriptions.get(rule, "")
+                header = f"{rule} x{count}" if count > 1 else rule
+                if description:
+                    header += f" — {description}"
+                else:
+                    header += " — no description available"
+                rule_color = _finding_color(
+                    min(
+                        rule_findings,
+                        key=lambda item: (
+                            0
+                            if item.kind == "operational" or item.severity == "error"
+                            else 1
+                            if item.severity == "warning"
+                            else 2
+                        ),
+                    )
+                )
+                print(f"  {_paint(header, rule_color)}")
+                visible = rule_findings if show_details else rule_findings[:_STATUS_FINDING_PREVIEW]
+                for finding in visible:
+                    print(f"    {_format_finding(finding)}")
+                hidden = count - len(visible)
+                if hidden > 0:
+                    print(f"    … and {hidden} more (use --details for full list)")
 
 
 def _status(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = _select(catalog, args.repo, args.tag)
     with ThreadPoolExecutor(
-        max_workers=min(8, max(1, len(repositories))), thread_name_prefix="repomod-status"
+        max_workers=min(32, max(1, 2 * len(repositories))), thread_name_prefix="repomod-status"
     ) as pool:
         checkout_futures = {}
         findings_futures = {}
@@ -386,7 +431,8 @@ def _status(args: argparse.Namespace) -> int:
     if args.json:
         _print_json(rows)
         return 0
-    _status_text(rows, findings_by_repository, ci)
+    rule_descriptions = {rule.id: rule.description for rule in selected_rules(local_only=True)}
+    _status_text(rows, findings_by_repository, ci, rule_descriptions, show_details=args.details)
     if args.details:
         visible = {str(row["repository"]) for row in rows}
         for name in sorted(visible, key=str.casefold):
@@ -395,12 +441,6 @@ def _status(args: argparse.Namespace) -> int:
             for check in ci[name].checks:
                 if check.state in {"failure", "failed", "error", "timed_out", "action_required", "startup_failure"}:
                     print(f"  {name}: {check.name} {check.state} {check.url or ''}", file=sys.stderr)
-            for finding in findings_by_repository.get(name, []):
-                location = f"{finding.file}: " if finding.file is not None else ""
-                print(
-                    f"  {name}: [{finding.severity}] [{finding.rule}] {location}{finding.message}",
-                    file=sys.stderr,
-                )
     return 0
 
 

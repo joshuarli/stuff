@@ -914,14 +914,28 @@ def test_status_offline_never_calls_remote_metadata(
     assert _status(args) == 0
 
 
-def test_status_colors_are_enabled_for_tty_even_with_no_color_environment(
+def test_status_colors_are_disabled_with_no_color_environment(
     monkeypatch,
 ) -> None:
     monkeypatch.setattr(cli.sys, "stdout", argparse.Namespace(isatty=lambda: True))
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.setenv("TERM", "tmux-256color")
 
-    assert cli._paint("FAIL", "1;31") == "\033[1;31mFAIL\033[0m"
+    assert cli._paint("FAIL", "31") == "FAIL"
+
+
+def test_status_colors_use_plain_codes_without_bold(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(cli.sys, "stdout", argparse.Namespace(isatty=lambda: True))
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("CLICOLOR", "1")
+    monkeypatch.setenv("TERM", "tmux-256color")
+
+    assert cli._paint("FAIL", "31") == "\033[31mFAIL\033[0m"
+    assert cli._state_color("failed") == "31"
+    assert cli._state_color("passed") == "32"
+    assert cli._local_color("dirty (1)") == "33"
 
 
 def test_discover_queries_both_configured_fleet_owners(monkeypatch, capsys) -> None:

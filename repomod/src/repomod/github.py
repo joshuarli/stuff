@@ -28,7 +28,7 @@ from repomod.workflow_policy import FORK_WORKFLOW_NAMES, is_fork_workflow
 API_TIMEOUT = 30
 CACHE_TTL_SECONDS = 300
 GRAPHQL_BATCH_SIZE = 20
-MAX_API_WORKERS = 4
+MAX_API_WORKERS = 8
 ACTION_TAG_PAGE_SIZE = 100
 ACTION_TAG_RESOLUTION_DEPTH = 6
 _WORKFLOW_CACHE_SOURCE = "actions-runs-v3"
@@ -1053,7 +1053,7 @@ def ci_status(
         if (remote := remote_values.get(str(repo.id))) is not None and remote.sha is not None
     }
     if pending:
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="repomod-status-api") as pool:
+        with ThreadPoolExecutor(max_workers=4, thread_name_prefix="repomod-status-api") as pool:
             checks_future = pool.submit(_status_check_pages, pending)
             workflows_future = pool.submit(_latest_workflow_statuses, tuple(query))
             try:
