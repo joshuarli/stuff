@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
+from repomod.clean import CleanResult, clean_repositories
 from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
@@ -727,6 +728,64 @@ def _push(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = _select(catalog, args.repo, args.tag)
     return _push_selected(catalog, repositories)
+
+
+def _count(value: int, noun: str) -> str:
+    return f"{value} {noun}" if value == 1 else f"{value} {noun}s"
+
+
+def _confirm(prompt: str) -> bool:
+    if not sys.stdin.isatty():
+        raise ValueError("confirmation requires a terminal; pass --yes to remove without prompting")
+    print(prompt, end="", flush=True)
+    return input().strip().casefold() in {"y", "yes"}
+
+
+def _print_clean_results(results: Sequence[CleanResult]) -> None:
+    for result in results:
+        if result.action == "absent":
+            continue
+        detail = f"{result.message}" if result.path is None else f"{result.path}: {result.message}"
+        print(
+            f"{result.repository}: {result.action}: {detail}",
+            file=sys.stderr if result.failed else sys.stdout,
+        )
+
+
+def _clean(args: argparse.Namespace) -> int:
+    if args.workers < 1:
+        raise ValueError("--workers must be at least one")
+    catalog = _catalog()
+    repositories = _select(catalog, args.repo, args.tag)
+    plan = clean_repositories(
+        catalog, repositories, dry_run=True, force=args.force, jobs=args.workers
+    )
+    _print_clean_results(plan)
+    failed = any(result.failed for result in plan)
+    planned = {result.repository for result in plan if result.action == "planned"}
+    if not planned:
+        print("no checkouts to remove")
+        return 1 if failed else 0
+    if args.dry_run:
+        print(f"dry run: would remove {_count(len(planned), 'checkout')}")
+        return 1 if failed else 0
+    if not args.yes and not _confirm(
+        f"Remove {_count(len(planned), 'catalogued checkout')} from {catalog.root}? [y/N] "
+    ):
+        print("aborted; nothing removed", file=sys.stderr)
+        return 1 if failed else 0
+    results = clean_repositories(
+        catalog,
+        tuple(repository for repository in repositories if str(repository.id) in planned),
+        dry_run=False,
+        force=args.force,
+        jobs=args.workers,
+    )
+    _print_clean_results(results)
+    failed |= any(result.failed for result in results)
+    removed = sum(result.action == "removed" for result in results)
+    print(f"removed {_count(removed, 'checkout')}")
+    return 1 if failed else 0
 
 
 def _topics(args: argparse.Namespace) -> int:

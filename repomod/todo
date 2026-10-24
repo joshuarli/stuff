@@ -1,0 +1,9 @@
+Scan complete
+
+I scanned all 27 catalog repos. Twenty-six were current after sync. Tansu is diverged 18 commits ahead and 42 behind; I inspected it read-only and left its findings unticketed because they may be stale.
+
+I added 28 TODOs across 13 repositories. The repomod TODO (TODO.md) records shared issues: workflow matrix parsing, noisy mdtool results, formatter and language detection, release conformance, generated-file ignores, topic drift, and a fixer for the required workflow defaults. Repo-specific tickets cover missing documentation links and READMEs, formatter config or commands, Rust toolchain settings, and a nested Cargo lockfile. repomod status now displays the updated TODO counts.
+
+The scan produced 1,194 lint findings; repeated mdtool fixture reports and catalog-wide topic and ignore findings account for much of the volume. The status snapshot shows failing workflows in discover, ish, pypi, pytest-parallel, shadowdriver, tansu, toolbox, e, fdu, h12tiny, vault, and zzz.
+
+Open PRs cover earlier work: defuddle-rs #2 (https://github.com/joshuarli/defuddle-rs/pull/2) for the Rust toolchain; discover #41 (https://github.com/joshuarli/discover/pull/41), shadowdriver #1 (https://github.com/joshuarli/shadowdriver/pull/1), and tansu #2 (https://github.com/joshuarli/tansu/pull/2) for TypeScript migrations; and automatic-fix PRs in pypi, pytest-parallel, toolbox, h12tiny, e, and vault. Several are still blocked or unstable; Tansu’s PR is marked dirty. None covers the new docs, README, or formatter tickets.

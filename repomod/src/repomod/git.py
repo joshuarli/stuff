@@ -367,3 +367,10 @@ def head(path: Path) -> str:
     if not _SHA.fullmatch(value):
         raise GitError("git returned an invalid HEAD object id")
     return value
+
+
+def stash_count(path: Path) -> int:
+    result = run_git(["stash", "list", "--format=%H"], cwd=path, check=False)
+    if result.returncode != 0:
+        raise GitError(result.stderr.strip() or "git stash list failed")
+    return len([line for line in result.stdout.splitlines() if line.strip()])
