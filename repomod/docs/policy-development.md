@@ -36,6 +36,7 @@ and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 
 `gha-settings` requires the shared concurrency group (G001), cancellation
 (G002), and `bash -euo pipefail {0}` defaults (G003) in every GitHub workflow.
+Its fixer inserts or corrects those root blocks and validates the result with jactionlint.
 Findings carry the file, line, column, and code; `status` and `lint` share the
 `file line:col CODE` format and print each code's description as a legend. `gha-syntax` runs jactionlint's safe
 fixes and pinact's action pinning in a disposable worktree. `no-formatters` rejects formatter

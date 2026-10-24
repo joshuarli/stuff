@@ -4,12 +4,15 @@ import json
 import re
 from pathlib import Path
 
+from repomod.git import GitError
+from repomod.rules.actions import _validate_workflows
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _KEY = re.compile(r"^( *)([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 _GROUP = "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
 _SHELL = "bash -euo pipefail {0}"
+_GROUP_VALUE = json.dumps(_GROUP)
 
 _CODES = {
     ("concurrency", "group"): "G001",
@@ -150,12 +153,153 @@ def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
                         "gha-settings",
                         relative,
                         f"{'.'.join(path)} must be {expected!r}",
+                        fixable=True,
                         line=line,
                         column=column,
                         code=_CODES[path],
                     )
                 )
     return findings
+
+
+def _top_key_index(lines: list[str], key: str) -> int | None:
+    for index, line in enumerate(lines):
+        parsed = _key_value(line)
+        if parsed is not None and parsed[0] == 0 and parsed[1] == key:
+            return index
+    return None
+
+
+def _child_indentation(lines: list[str], start: int, end: int, parent: int) -> int:
+    indents = [
+        parsed[0]
+        for line in lines[start + 1 : end]
+        if (parsed := _key_value(line)) is not None and parsed[0] > parent
+    ]
+    return min(indents) if indents else parent + 2
+
+
+def _child_index(lines: list[str], start: int, end: int, parent: int, key: str) -> int | None:
+    for index in range(start + 1, end):
+        parsed = _key_value(lines[index])
+        if parsed is not None and parsed[0] > parent and parsed[1] == key:
+            return index
+    return None
+
+
+def _insert_top_block(lines: list[str], block: list[str]) -> None:
+    jobs = _top_key_index(lines, "jobs")
+    if jobs is None:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend(block)
+        return
+    lines[jobs:jobs] = [*block, ""]
+
+
+def _ensure_concurrency(lines: list[str]) -> bool:
+    index = _top_key_index(lines, "concurrency")
+    if index is None:
+        _insert_top_block(lines, ["concurrency:", f"  group: {_GROUP_VALUE}", "  cancel-in-progress: true"])
+        return True
+    changed = False
+    parsed = _key_value(lines[index])
+    assert parsed is not None
+    if parsed[2]:
+        lines[index] = "concurrency:"
+        changed = True
+    end = _block_end(lines, index, 0)
+    group = _child_index(lines, index, end, 0, "group")
+    if group is None:
+        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}group: {_GROUP_VALUE}")
+        changed = True
+    else:
+        current = _key_value(lines[group])
+        assert current is not None
+        if current[2] != _GROUP:
+            lines[group] = f"{' ' * current[0]}group: {_GROUP_VALUE}"
+            changed = True
+    end = _block_end(lines, index, 0)
+    cancel = _child_index(lines, index, end, 0, "cancel-in-progress")
+    if cancel is None:
+        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}cancel-in-progress: true")
+        changed = True
+    else:
+        current = _key_value(lines[cancel])
+        assert current is not None
+        if current[2] != "true":
+            lines[cancel] = f"{' ' * current[0]}cancel-in-progress: true"
+            changed = True
+    return changed
+
+
+def _ensure_defaults(lines: list[str]) -> bool:
+    index = _top_key_index(lines, "defaults")
+    if index is None:
+        _insert_top_block(lines, ["defaults:", "  run:", f"    shell: {_SHELL}"])
+        return True
+    changed = False
+    parsed = _key_value(lines[index])
+    assert parsed is not None
+    if parsed[2]:
+        lines[index] = "defaults:"
+        changed = True
+    end = _block_end(lines, index, 0)
+    first = _child_indentation(lines, index, end, 0)
+    run = _child_index(lines, index, end, 0, "run")
+    if run is None:
+        lines.insert(end, f"{' ' * first}run:")
+        lines.insert(end + 1, f"{' ' * (first + 2)}shell: {_SHELL}")
+        return True
+    current = _key_value(lines[run])
+    assert current is not None
+    if current[2]:
+        lines[run] = f"{' ' * current[0]}run:"
+        changed = True
+    run_end = _block_end(lines, run, first)
+    shell = _child_index(lines, run, run_end, first, "shell")
+    if shell is None:
+        lines.insert(run_end, f"{' ' * _child_indentation(lines, run, run_end, first)}shell: {_SHELL}")
+        changed = True
+    else:
+        current = _key_value(lines[shell])
+        assert current is not None
+        if current[2] != _SHELL:
+            lines[shell] = f"{' ' * current[0]}shell: {_SHELL}"
+            changed = True
+    return changed
+
+
+def _enforce_source(source: str) -> str:
+    newline = "\r\n" if "\r\n" in source else "\n"
+    trailing = source.endswith(("\n", "\r"))
+    lines = source.splitlines()
+    _ensure_concurrency(lines)
+    _ensure_defaults(lines)
+    result = newline.join(lines)
+    if trailing:
+        result += newline
+    return result
+
+
+def _fix_workflow_settings(root: Path, repository: Repository) -> dict[str, str]:
+    files, problems = workflow_files(root, repository)
+    if problems:
+        raise GitError("; ".join(f"{path}: {message}" for path, message in problems))
+    plan = {}
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        try:
+            with path.open(encoding="utf-8", newline="") as source_file:
+                source = source_file.read()
+        except (OSError, UnicodeError) as error:
+            raise GitError(f"cannot read {relative}: {error}") from error
+        updated = _enforce_source(source)
+        if updated != source:
+            if not updated.endswith(("\n", "\r")):
+                updated += "\r\n" if "\r\n" in source else "\n"
+            plan[relative] = updated
+    return plan
 
 
 def workflow_settings_rules() -> tuple[Rule, ...]:
@@ -165,8 +309,9 @@ def workflow_settings_rules() -> tuple[Rule, ...]:
             "Require concurrency cancellation and bash run shell defaults",
             TagPredicate(),
             _workflow_settings,
-            None,
-            None,
-            (),
+            _fix_workflow_settings,
+            "chore(repomod): enforce workflow settings",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+            _validate_workflows,
         ),
     )

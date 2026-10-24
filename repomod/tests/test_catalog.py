@@ -76,11 +76,15 @@ def test_canonical_paths_flatten_personal_owner_and_keep_org_owner(
     )
 
 
-def test_bare_name_lookup_rejects_fd_ambiguity() -> None:
-    catalog = load_catalog(CATALOG_PATH)
+def test_bare_name_lookup_rejects_fd_ambiguity(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."alpha"]\ndemo = ["tool"]\n[repos."beta"]\ndemo = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
 
     with pytest.raises(CatalogError, match="ambiguous"):
-        find_repository(catalog, "fd")
+        find_repository(catalog, "demo")
 
 
 def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(tmp_path: Path) -> None:
@@ -111,7 +115,7 @@ def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:
     "contents",
     [
         (
-            'version = 2\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
             '[repos.joshuarli]\na = ["tool"]'
         ),
         (

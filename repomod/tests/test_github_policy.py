@@ -19,7 +19,7 @@ from repomod.policy import (
     lint_repositories,
     selected_rules,
 )
-from repomod.rules.workflow_settings import _workflow_settings
+from repomod.rules.workflow_settings import _fix_workflow_settings, _workflow_settings
 from repomod.types import (
     Catalog,
     CheckResult,
@@ -390,7 +390,7 @@ def test_ci_check_contexts_are_paginated_and_include_external_statuses(
     assert not errors
     assert len(queries) == 2
     assert 'after: "next"' in queries[1]
-    assert "workflowRun { id runAttempt }" in queries[0]
+    assert "workflowRun { id runAttempt workflow { name } }" in queries[0]
     assert len(checks["r0"][0]) == 2
     assert github._state_for_checks(*checks["r0"]) == "failed"
 
@@ -1073,6 +1073,69 @@ def test_gha_settings_wrong_values_point_at_key_lines(tmp_path: Path) -> None:
     assert (findings["G001"].line, findings["G001"].column) == (2, 3)
     assert (findings["G002"].line, findings["G002"].column) == (3, 3)
     assert (findings["G003"].line, findings["G003"].column) == (6, 5)
+
+
+def test_gha_settings_findings_are_fixable_and_rule_has_fixer() -> None:
+    rule = next(rule for rule in selected_rules(rule_ids=("gha-settings",)))
+
+    assert rule.fix is not None
+    assert rule.commit_message == "chore(repomod): enforce workflow settings"
+    assert rule.allowed_paths == (".github/workflows/*.yml", ".github/workflows/*.yaml")
+
+
+def test_gha_settings_fixer_inserts_missing_blocks_and_is_idempotent(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "name: ci\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - run: make test\n",
+        encoding="utf-8",
+    )
+    repository = repo()
+    before = _workflow_settings(tmp_path, repository)
+
+    assert {finding.code for finding in before} == {"G001", "G002", "G003"}
+    assert all(finding.fixable for finding in before)
+
+    plan = _fix_workflow_settings(tmp_path, repository)
+
+    assert list(plan) == [".github/workflows/ci.yml"]
+    assert 'group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"' in plan[
+        ".github/workflows/ci.yml"
+    ]
+    assert "cancel-in-progress: true" in plan[".github/workflows/ci.yml"]
+    assert "shell: bash -euo pipefail {0}" in plan[".github/workflows/ci.yml"]
+    assert "      - run: make test\n" in plan[".github/workflows/ci.yml"]
+    (workflows / "ci.yml").write_text(plan[".github/workflows/ci.yml"], encoding="utf-8")
+
+    assert _workflow_settings(tmp_path, repository) == []
+    assert _fix_workflow_settings(tmp_path, repository) == {}
+
+
+def test_gha_settings_fixer_repairs_values_and_scalar_blocks(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "name: ci\non: push\nconcurrency: shared\ndefaults:\n  run: sh\n"
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    (workflows / "other.yaml").write_text(
+        "concurrency:\n  group: wrong\n  cancel-in-progress: false\n"
+        "defaults:\n  run:\n    shell: sh\n",
+        encoding="utf-8",
+    )
+    repository = repo()
+    plan = _fix_workflow_settings(tmp_path, repository)
+
+    assert sorted(plan) == [".github/workflows/ci.yml", ".github/workflows/other.yaml"]
+    assert "concurrency: shared" not in plan[".github/workflows/ci.yml"]
+    assert "  run: sh" not in plan[".github/workflows/ci.yml"]
+    for relative, updated in plan.items():
+        (tmp_path / relative).write_text(updated, encoding="utf-8")
+
+    assert _workflow_settings(tmp_path, repository) == []
+    assert _fix_workflow_settings(tmp_path, repository) == {}
 
 
 def test_lint_and_status_share_short_format_with_legend(
