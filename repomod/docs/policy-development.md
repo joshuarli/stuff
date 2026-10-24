@@ -34,8 +34,10 @@ Rules inspect repository files but do not install dependencies, build projects, 
 scripts. Use offline fixtures under `tests/` for policy behavior. Tests use local Git repositories
 and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 
-`gha-settings` requires the shared concurrency group, cancellation, and
-`bash -euo pipefail {0}` defaults in every GitHub workflow. `gha-syntax` runs jactionlint's safe
+`gha-settings` requires the shared concurrency group (G001), cancellation
+(G002), and `bash -euo pipefail {0}` defaults (G003) in every GitHub workflow.
+Findings carry the file, line, column, and code; `status` and `lint` share the
+`file line:col CODE` format and print each code's description as a legend. `gha-syntax` runs jactionlint's safe
 fixes and pinact's action pinning in a disposable worktree. `no-formatters` rejects formatter
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`

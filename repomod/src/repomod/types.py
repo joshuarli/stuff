@@ -63,6 +63,9 @@ class Finding:
     severity: Severity = "error"
     fixable: bool = False
     kind: Literal["violation", "operational"] = "violation"
+    line: int | None = None
+    column: int | None = None
+    code: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -30,6 +30,8 @@ from repomod.policy import (
     PolicyError,
     filter_repositories,
     finding_dict,
+    format_finding_short,
+    lint_legend,
     lint_repositories,
     selected_rules,
     validate_ignored_rules,
@@ -221,9 +223,6 @@ def _print_wrapped_items(items: Sequence[tuple[str, str]], *, prefix: str = "  "
         print(line)
 
 
-_STATUS_FINDING_PREVIEW = 3
-
-
 def _finding_color(finding: Finding) -> str:
     if finding.kind == "operational" or finding.severity == "error":
         return "31"
@@ -232,20 +231,12 @@ def _finding_color(finding: Finding) -> str:
     return "36"
 
 
-def _format_finding(finding: Finding) -> str:
-    location = f"{finding.file}: " if finding.file is not None else ""
-    return f"{location}{finding.message}"
-
-
 def _status_text(
     rows: Sequence[dict[str, object]],
     findings_by_repository: dict[str, list[Finding]],
     ci_by_repository: dict[str, CiResult],
-    rule_descriptions: dict[str, str] | None = None,
-    show_details: bool = False,
 ) -> None:
     width = max(40, shutil.get_terminal_size((80, 24)).columns)
-    descriptions = rule_descriptions or {}
     for index, row in enumerate(rows):
         if index:
             print()
@@ -295,37 +286,15 @@ def _status_text(
                 )
 
         if lint_findings:
-            grouped: dict[str, list[Finding]] = {}
             for finding in lint_findings:
-                grouped.setdefault(finding.rule, []).append(finding)
-            for rule in sorted(grouped):
-                rule_findings = grouped[rule]
-                count = len(rule_findings)
-                description = descriptions.get(rule, "")
-                header = f"{rule} x{count}" if count > 1 else rule
-                if description:
-                    header += f" — {description}"
-                else:
-                    header += " — no description available"
-                rule_color = _finding_color(
-                    min(
-                        rule_findings,
-                        key=lambda item: (
-                            0
-                            if item.kind == "operational" or item.severity == "error"
-                            else 1
-                            if item.severity == "warning"
-                            else 2
-                        ),
-                    )
-                )
-                print(f"  {_paint(header, rule_color)}")
-                visible = rule_findings if show_details else rule_findings[:_STATUS_FINDING_PREVIEW]
-                for finding in visible:
-                    print(f"    {_format_finding(finding)}")
-                hidden = count - len(visible)
-                if hidden > 0:
-                    print(f"    … and {hidden} more (use --details for full list)")
+                print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
+    visible_findings = [
+        finding
+        for row in rows
+        for finding in findings_by_repository.get(str(row["repository"]), [])
+    ]
+    for code, description in lint_legend(visible_findings):
+        print(f"{code}: {description}")
 
 
 def _status(args: argparse.Namespace) -> int:
@@ -431,8 +400,7 @@ def _status(args: argparse.Namespace) -> int:
     if args.json:
         _print_json(rows)
         return 0
-    rule_descriptions = {rule.id: rule.description for rule in selected_rules(local_only=True)}
-    _status_text(rows, findings_by_repository, ci, rule_descriptions, show_details=args.details)
+    _status_text(rows, findings_by_repository, ci)
     if args.details:
         visible = {str(row["repository"]) for row in rows}
         for name in sorted(visible, key=str.casefold):
@@ -452,11 +420,9 @@ def _lint(args: argparse.Namespace) -> int:
         _print_json([finding_dict(finding) for finding in findings])
     else:
         for finding in findings:
-            location = f"{finding.file}: " if finding.file is not None else ""
-            print(
-                f"{finding.repository} [{finding.severity}] [{finding.rule}] "
-                f"{location}{finding.message}"
-            )
+            print(f"{finding.repository} {format_finding_short(finding)}")
+        for code, description in lint_legend(findings):
+            print(f"{code}: {description}")
         if not findings:
             print("no policy findings")
     if any(finding.kind == "operational" for finding in findings):
@@ -904,7 +870,7 @@ def _parser() -> argparse.ArgumentParser:
     status_parser.add_argument("--failed", action="store_true")
     status_parser.add_argument("--refresh", action="store_true")
     status_parser.add_argument(
-        "--details", action="store_true", help="show individual lint findings and failed CI checks"
+        "--details", action="store_true", help="show failed CI checks"
     )
     status_parser.add_argument("--json", action="store_true")
 

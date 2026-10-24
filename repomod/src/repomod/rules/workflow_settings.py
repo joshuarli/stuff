@@ -11,6 +11,12 @@ _KEY = re.compile(r"^( *)([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 _GROUP = "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
 _SHELL = "bash -euo pipefail {0}"
 
+_CODES = {
+    ("concurrency", "group"): "G001",
+    ("concurrency", "cancel-in-progress"): "G002",
+    ("defaults", "run", "shell"): "G003",
+}
+
 
 def _key_value(line: str) -> tuple[int, str, str] | None:
     value = line.rstrip()
@@ -78,6 +84,37 @@ def _mapping_value(lines: list[str], path: tuple[str, ...]) -> str | None:
     return value
 
 
+def _mapping_location(lines: list[str], path: tuple[str, ...]) -> tuple[int, int]:
+    start = 0
+    end = len(lines)
+    indentation = 0
+    parent: tuple[int, int] | None = None
+    for depth, part in enumerate(path):
+        found: int | None = None
+        found_indentation = 0
+        for line_index in range(start, end):
+            parsed = _key_value(lines[line_index])
+            if parsed is not None and parsed[0] == indentation and parsed[1] == part:
+                found = line_index
+                found_indentation = parsed[0]
+                break
+        if found is None:
+            return parent or (1, 1)
+        parent = (found + 1, found_indentation + 1)
+        end = _block_end(lines, found, indentation)
+        if depth != len(path) - 1:
+            child_indentations = []
+            for line in lines[found + 1 : end]:
+                parsed = _key_value(line)
+                if parsed is not None and parsed[0] > indentation:
+                    child_indentations.append(parsed[0])
+            if not child_indentations:
+                return parent
+            start = found + 1
+            indentation = min(child_indentations)
+    return parent or (1, 1)
+
+
 def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
     workflows, problems = workflow_files(root, repository)
     findings = [
@@ -104,16 +141,20 @@ def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
             (("concurrency", "cancel-in-progress"), "true"),
             (("defaults", "run", "shell"), _SHELL),
         )
-        findings.extend(
-            Finding(
-                str(repository.id),
-                "gha-settings",
-                relative,
-                f"{'.'.join(path)} must be {expected!r}",
-            )
-            for path, expected in required
-            if _mapping_value(lines, path) != expected
-        )
+        for path, expected in required:
+            if _mapping_value(lines, path) != expected:
+                line, column = _mapping_location(lines, path)
+                findings.append(
+                    Finding(
+                        str(repository.id),
+                        "gha-settings",
+                        relative,
+                        f"{'.'.join(path)} must be {expected!r}",
+                        line=line,
+                        column=column,
+                        code=_CODES[path],
+                    )
+                )
     return findings
 
 

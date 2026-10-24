@@ -162,7 +162,7 @@ def lint_repositories(
     )
 
 
-def finding_dict(finding: Finding) -> dict[str, str | bool | None]:
+def finding_dict(finding: Finding) -> dict[str, str | bool | int | None]:
     return {
         "repository": finding.repository,
         "rule": finding.rule,
@@ -171,4 +171,31 @@ def finding_dict(finding: Finding) -> dict[str, str | bool | None]:
         "severity": finding.severity,
         "fixable": finding.fixable,
         "kind": finding.kind,
+        "line": finding.line,
+        "column": finding.column,
+        "code": finding.code,
     }
+
+
+def format_finding_short(finding: Finding) -> str:
+    if finding.code is None:
+        if finding.file is None:
+            return f"{finding.rule} {finding.message}"
+        if finding.line is None:
+            return f"{finding.file} {finding.rule} {finding.message}"
+        column = finding.column if finding.column is not None else 1
+        return f"{finding.file} {finding.line}:{column} {finding.rule} {finding.message}"
+    if finding.file is None:
+        return finding.code
+    if finding.line is None:
+        return f"{finding.file} {finding.code}"
+    column = finding.column if finding.column is not None else 1
+    return f"{finding.file} {finding.line}:{column} {finding.code}"
+
+
+def lint_legend(findings: Iterable[Finding]) -> list[tuple[str, str]]:
+    seen: dict[str, str] = {}
+    for finding in findings:
+        if finding.code is not None and finding.code not in seen:
+            seen[finding.code] = finding.message
+    return sorted(seen.items())

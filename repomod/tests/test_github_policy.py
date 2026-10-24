@@ -10,9 +10,16 @@ import pytest
 
 from repomod import cli, github
 from repomod.catalog import load_catalog
-from repomod.cli import _discover, _fix, _lint, _status
+from repomod.cli import _discover, _fix, _lint, _status, _status_text
 from repomod.fix import FixOutcome
-from repomod.policy import filter_repositories, lint_repositories, selected_rules
+from repomod.policy import (
+    filter_repositories,
+    format_finding_short,
+    lint_legend,
+    lint_repositories,
+    selected_rules,
+)
+from repomod.rules.workflow_settings import _workflow_settings
 from repomod.types import (
     Catalog,
     CheckResult,
@@ -1016,9 +1023,120 @@ def test_warning_only_lint_is_nonfatal_unless_strict(
     args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
 
     assert _lint(args) == 0
-    assert "[warning]" in capsys.readouterr().out
+    assert "binary-release-tags review release" in capsys.readouterr().out
     args.strict = True
     assert _lint(args) == 1
+
+
+def test_gha_settings_findings_carry_codes_locations_and_legend(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "name: ci\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - run: make test\n",
+        encoding="utf-8",
+    )
+    findings = _workflow_settings(tmp_path, repo())
+
+    assert sorted(code for code in (finding.code for finding in findings) if code is not None) == [
+        "G001",
+        "G002",
+        "G003",
+    ]
+    assert all(finding.file == ".github/workflows/ci.yml" for finding in findings)
+    assert all(
+        finding.line is not None and finding.line >= 1
+        and finding.column is not None and finding.column >= 1
+        for finding in findings
+    )
+    shorts = sorted(format_finding_short(finding) for finding in findings)
+    assert shorts[0].endswith(" G001")
+    assert shorts[1].endswith(" G002")
+    assert shorts[2].endswith(" G003")
+    assert all(short.startswith(".github/workflows/ci.yml ") for short in shorts)
+    legend = lint_legend(findings)
+    assert [code for code, _ in legend] == ["G001", "G002", "G003"]
+    assert legend[0][1].startswith("concurrency.group must be")
+
+
+def test_gha_settings_wrong_values_point_at_key_lines(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "concurrency:\n  group: wrong\n  cancel-in-progress: false\n"
+        "defaults:\n  run:\n    shell: sh\n",
+        encoding="utf-8",
+    )
+    findings = {finding.code: finding for finding in _workflow_settings(tmp_path, repo())}
+
+    assert set(findings) == {"G001", "G002", "G003"}
+    assert (findings["G001"].line, findings["G001"].column) == (2, 3)
+    assert (findings["G002"].line, findings["G002"].column) == (3, 3)
+    assert (findings["G003"].line, findings["G003"].column) == (6, 5)
+
+
+def test_lint_and_status_share_short_format_with_legend(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    repository = repo()
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    findings = [
+        Finding("acme/tool", "gha-settings", ".github/workflows/ci.yml",
+                "concurrency.group must be 'x'", line=2, column=1, code="G001"),
+        Finding("acme/tool", "gha-settings", ".github/workflows/ci.yml",
+                "defaults.run.shell must be 'y'", line=6, column=5, code="G003"),
+    ]
+    monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: findings)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+
+    assert _lint(args) == 1
+    out = capsys.readouterr().out.splitlines()
+    assert out[0] == "acme/tool .github/workflows/ci.yml 2:1 G001"
+    assert out[1] == "acme/tool .github/workflows/ci.yml 6:5 G003"
+    assert out[2] == "G001: concurrency.group must be 'x'"
+    assert out[3] == "G003: defaults.run.shell must be 'y'"
+
+    rows: list[dict[str, object]] = [{
+        "repository": "acme/tool",
+        "local": "clean",
+        "lint": 2,
+        "lint_errors": 2,
+        "lint_warnings": 0,
+        "lint_operational": 0,
+        "todo_items": 0,
+    }]
+    ci = {"acme/tool": CiResult("acme/tool", None, None, "passed", (), workflows=())}
+    _status_text(rows, {"acme/tool": findings}, ci)
+    out = capsys.readouterr().out
+    assert ".github/workflows/ci.yml 2:1 G001" in out
+    assert ".github/workflows/ci.yml 6:5 G003" in out
+    assert "G001: concurrency.group must be 'x'" in out
+    assert "G003: defaults.run.shell must be 'y'" in out
+
+
+def test_status_lists_all_findings_without_truncation(capsys) -> None:
+    findings = [
+        Finding("acme/tool", "gha-settings", f"flow-{index}.yml", f"message {index}",
+                line=index + 1, column=1, code="G001")
+        for index in range(5)
+    ]
+    rows: list[dict[str, object]] = [{
+        "repository": "acme/tool",
+        "local": "clean",
+        "lint": 5,
+        "lint_errors": 5,
+        "lint_warnings": 0,
+        "lint_operational": 0,
+        "todo_items": 0,
+    }]
+    ci = {"acme/tool": CiResult("acme/tool", None, None, "passed", (), workflows=())}
+    _status_text(rows, {"acme/tool": findings}, ci)
+    out = capsys.readouterr().out
+
+    for index in range(5):
+        assert f"flow-{index}.yml {index + 1}:1 G001" in out
+    assert "more (use --details" not in out
 
 
 def test_operational_lint_failure_has_distinct_exit_code(
