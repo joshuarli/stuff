@@ -5,7 +5,7 @@ checks repository policy, and can repair safe violations with local commits.
 
 ## Get started
 
-Use Python 3.14, [`uv`](https://docs.astral.sh/uv/), and Git. Install `gh` and authenticate with
+Use Python 3.15, [`uv`](https://docs.astral.sh/uv/), and Git. Install `gh` and authenticate with
 `gh auth login` for commands that read GitHub. Install `actionlint` for workflow checks and fixes,
 and provide the read-only documentation auditor at `~/.local/bin/mdtool`.
 
