@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from pathlib import Path
 from threading import Barrier, Lock
 
@@ -19,7 +20,12 @@ from repomod.policy import (
     lint_repositories,
     selected_rules,
 )
-from repomod.rules.workflow_settings import _fix_workflow_settings, _workflow_settings
+from repomod.rules.workflow_settings import (
+    _fix_triggers,
+    _fix_workflow_settings,
+    _trigger_findings,
+    _workflow_settings,
+)
 from repomod.types import (
     Catalog,
     CheckResult,
@@ -1209,6 +1215,95 @@ def test_protection_lint_skips_unprotected_and_reports_errors(
     assert len(findings) == 1
     assert findings[0].kind == "operational"
     assert "cannot read branch protection" in findings[0].message
+
+
+def _init_default_branch(root: Path, branch: str = "main") -> None:
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.invalid/acme/demo.git"],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "symbolic-ref", "refs/remotes/origin/HEAD", f"refs/remotes/origin/{branch}"],
+        cwd=root,
+        check=True,
+    )
+
+
+def test_gha_triggers_fixer_scopes_bare_push_to_default_branch(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "name: ci\non:\n  push:\n  pull_request:\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    _init_default_branch(tmp_path)
+    repository = repo()
+    findings = _trigger_findings(tmp_path, repository)
+
+    assert len(findings) == 1
+    assert findings[0].rule == "gha-triggers"
+    assert findings[0].fixable
+    assert "[main]" in findings[0].message
+    assert (findings[0].line, findings[0].column) == (3, 3)
+
+    plan = _fix_triggers(tmp_path, repository)
+
+    assert list(plan) == [".github/workflows/ci.yml"]
+    assert "  push:\n    branches: [main]\n  pull_request:\n" in plan[".github/workflows/ci.yml"]
+    (workflows / "ci.yml").write_text(plan[".github/workflows/ci.yml"], encoding="utf-8")
+
+    assert _trigger_findings(tmp_path, repository) == []
+    assert _fix_triggers(tmp_path, repository) == {}
+
+
+def test_gha_triggers_accepts_scoped_push_and_single_triggers(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "scoped.yml").write_text(
+        "on:\n  push:\n    branches: [main]\n  pull_request:\njobs: {}\n",
+        encoding="utf-8",
+    )
+    (workflows / "pr-only.yml").write_text("on:\n  pull_request:\njobs: {}\n", encoding="utf-8")
+    (workflows / "push-only.yml").write_text("on:\n  push:\njobs: {}\n", encoding="utf-8")
+    _init_default_branch(tmp_path)
+
+    assert _trigger_findings(tmp_path, repo()) == []
+    assert _fix_triggers(tmp_path, repo()) == {}
+
+
+def test_gha_triggers_handles_flow_on_block_and_unknown_default(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "flow.yml").write_text(
+        '---\nname: CI\n"on":\n  push: {}\n  pull_request: {}\njobs: {}\n',
+        encoding="utf-8",
+    )
+    _init_default_branch(tmp_path, "trunk")
+    repository = repo()
+    findings = _trigger_findings(tmp_path, repository)
+
+    assert len(findings) == 1
+    assert findings[0].fixable
+
+    plan = _fix_triggers(tmp_path, repository)
+
+    assert "  push:\n    branches: [trunk]\n" in plan[".github/workflows/flow.yml"]
+
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    (plain / ".github" / "workflows").mkdir(parents=True)
+    ((plain / ".github" / "workflows") / "ci.yml").write_text(
+        "on:\n  push:\n  pull_request:\njobs: {}\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "init", "-q"], cwd=plain, check=True)
+    manual = _trigger_findings(plain, repository)
+
+    assert len(manual) == 1
+    assert not manual[0].fixable
+    assert "default branch" in manual[0].message
+    assert _fix_triggers(plain, repository) == {}
 
 
 def test_lint_and_status_share_short_format_with_legend(

@@ -40,7 +40,11 @@ and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 (G002), and `bash -euo pipefail {0}` defaults (G003) in every GitHub workflow.
 Its fixer inserts or corrects those root blocks and validates the result with jactionlint.
 Findings carry the file, line, column, and code; `status` and `lint` share the
-`file line:col CODE` format and print each code's description as a legend. `gha-syntax` runs jactionlint's safe
+`file line:col CODE` format and print each code's description as a legend. `gha-triggers`
+requires `push` to scope branches to the local default branch whenever `pull_request`
+is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
+default branch from local Git and leaves an unactionable manual finding when it cannot.
+`gha-syntax` runs jactionlint's safe
 fixes and pinact's action pinning in a disposable worktree. `no-formatters` rejects formatter
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`

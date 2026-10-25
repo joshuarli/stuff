@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from repomod.git import GitError
+from repomod.git import GitError, run_git
 from repomod.rules.actions import _validate_workflows
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
@@ -302,6 +302,187 @@ def _fix_workflow_settings(root: Path, repository: Repository) -> dict[str, str]
     return plan
 
 
+def _local_default_branch(root: Path) -> str | None:
+    result = run_git(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd=root, check=False)
+    if result.returncode != 0:
+        return None
+    reference = result.stdout.strip()
+    prefix = "refs/remotes/origin/"
+    if not reference.startswith(prefix):
+        return None
+    branch = reference[len(prefix):]
+    if not branch or any(character.isspace() for character in branch):
+        return None
+    return branch
+
+
+_ON = re.compile(r"""^( *)(['"]?)on\2\s*:(?:[ \t]*(.*?))?$""")
+_PUSH = re.compile(r"^( *)push\s*:(?:[ \t]*(.*?))?$")
+_PULL_REQUEST = re.compile(r"^( *)pull_request\s*:(?:[ \t]*(.*?))?$")
+
+
+def _flow_events(value: str) -> list[str] | None:
+    text = value.strip()
+    if not text.startswith("[") or not text.endswith("]"):
+        return None
+    return [item.strip().strip("'\"") for item in text[1:-1].split(",") if item.strip()]
+
+
+def _trigger_violation(lines: list[str]) -> tuple[int, int, bool, bool] | None:
+    for index, line in enumerate(lines):
+        if not line.strip() or line.strip().startswith("#"):
+            continue
+        match = _ON.fullmatch(line.rstrip())
+        if match is None or len(match.group(1)) != 0:
+            continue
+        rest = (match.group(3) or "").strip()
+        if rest and not rest.startswith("#"):
+            events = _flow_events(rest.split("#", 1)[0])
+            if events is not None and "push" in events and "pull_request" in events:
+                return index, 0, False, True
+            return None
+        end = _block_end(lines, index, 0)
+        push = pull_request = None
+        for child in range(index + 1, end):
+            parsed = lines[child]
+            if not parsed.strip() or parsed.lstrip().startswith("#"):
+                continue
+            push_match = _PUSH.fullmatch(parsed.rstrip())
+            if push_match is not None and len(push_match.group(1)) > 0:
+                push = child
+                continue
+            pull_match = _PULL_REQUEST.fullmatch(parsed.rstrip())
+            if pull_match is not None and len(pull_match.group(1)) > 0:
+                pull_request = child
+                continue
+        if push is None or pull_request is None:
+            return None
+        value = lines[push].split(":", 1)[1].split("#", 1)[0].strip()
+        if value in {"{}", "[]"}:
+            return push, len(lines[push]) - len(lines[push].lstrip()), True, False
+        push_indent = len(lines[push]) - len(lines[push].lstrip())
+        for child in range(push + 1, _block_end(lines, push, push_indent)):
+            child_parsed = _key_value(lines[child])
+            if child_parsed is not None and child_parsed[0] > push_indent and child_parsed[1] == "branches":
+                return None
+        return push, push_indent, True, False
+    return None
+
+
+def _trigger_findings(root: Path, repository: Repository) -> list[Finding]:
+    workflows, problems = workflow_files(root, repository)
+    findings = [
+        Finding(str(repository.id), "gha-triggers", path, message, kind="operational")
+        for path, message in problems
+    ]
+    default_branch = _local_default_branch(root)
+    for workflow in workflows:
+        relative = workflow.relative_to(root).as_posix()
+        try:
+            lines = workflow.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError) as error:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "gha-triggers",
+                    relative,
+                    f"cannot read workflow: {error}",
+                    kind="operational",
+                )
+            )
+            continue
+        violation = _trigger_violation(lines)
+        if violation is None:
+            continue
+        push, indentation, mapping, _ = violation
+        if not mapping:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "gha-triggers",
+                    relative,
+                    "on.push shares unfiltered runs with on.pull_request; "
+                    "convert on to a mapping with push scoped to the default branch",
+                    line=push + 1,
+                    column=indentation + 1,
+                )
+            )
+            continue
+        if default_branch is None:
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "gha-triggers",
+                    relative,
+                    "on.push has no branch filter while on.pull_request is present; "
+                    "limit push to the default branch",
+                    line=push + 1,
+                    column=indentation + 1,
+                )
+            )
+            continue
+        findings.append(
+            Finding(
+                str(repository.id),
+                "gha-triggers",
+                relative,
+                f"on.push must limit branches to [{default_branch}] "
+                "while on.pull_request is present",
+                fixable=True,
+                line=push + 1,
+                column=indentation + 1,
+            )
+        )
+    return findings
+
+
+def _scope_triggers(lines: list[str], default_branch: str) -> bool:
+    violation = _trigger_violation(lines)
+    if violation is None:
+        return False
+    push, push_indent, mapping, _ = violation
+    if not mapping:
+        return False
+    end = _block_end(lines, push, push_indent)
+    for child in range(push + 1, end):
+        parsed = _key_value(lines[child])
+        if parsed is not None and parsed[0] > push_indent:
+            child_indent = parsed[0]
+            break
+    else:
+        child_indent = push_indent + 2
+    lines[push] = f"{' ' * push_indent}push:"
+    lines.insert(push + 1, f"{' ' * child_indent}branches: [{default_branch}]")
+    return True
+
+
+def _fix_triggers(root: Path, repository: Repository) -> dict[str, str]:
+    files, problems = workflow_files(root, repository)
+    if problems:
+        raise GitError("; ".join(f"{path}: {message}" for path, message in problems))
+    default_branch = _local_default_branch(root)
+    if default_branch is None:
+        return {}
+    plan = {}
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        try:
+            with path.open(encoding="utf-8", newline="") as source_file:
+                source = source_file.read()
+        except (OSError, UnicodeError) as error:
+            raise GitError(f"cannot read {relative}: {error}") from error
+        lines = source.splitlines()
+        if not _scope_triggers(lines, default_branch):
+            continue
+        newline = "\r\n" if "\r\n" in source else "\n"
+        updated = newline.join(lines)
+        if source.endswith(("\n", "\r")):
+            updated += newline
+        if updated != source:
+            plan[relative] = updated
+    return plan
+
+
 def workflow_settings_rules() -> tuple[Rule, ...]:
     return (
         Rule(
@@ -311,6 +492,16 @@ def workflow_settings_rules() -> tuple[Rule, ...]:
             _workflow_settings,
             _fix_workflow_settings,
             "chore(repomod): enforce workflow settings",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+            _validate_workflows,
+        ),
+        Rule(
+            "gha-triggers",
+            "Require scoped push triggers alongside pull_request",
+            TagPredicate(),
+            _trigger_findings,
+            _fix_triggers,
+            "chore(repomod): scope workflow push triggers",
             (".github/workflows/*.yml", ".github/workflows/*.yaml"),
             _validate_workflows,
         ),
