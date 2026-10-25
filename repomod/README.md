@@ -35,7 +35,8 @@ uv run repomod add OWNER/REPO --tag tool
 `repomod sync` clones missing active entries and safely fast-forwards clean checkouts on the
 default branch. It skips Git fetch when the checkout already matches GitHub's reported tip.
 Dirty, detached, non-default, ahead, and divergent checkouts keep their checked-out files and
-local commits. `sync --dry-run` inspects local state without network calls. Progress goes to
+local commits. For forks, sync also ensures an `upstream` remote pointing at the parent
+repository and fetches the parent default branch. `sync --dry-run` inspects local state without network calls. Progress goes to
 stderr. Sorted repository results go to stdout. A failure for one repository does not stop the
 others.
 

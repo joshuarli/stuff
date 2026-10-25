@@ -26,7 +26,10 @@ is attached to the default branch and its HEAD matches GitHub's reported branch 
 fetches that branch. It fast-forwards only a clean checkout on that branch when Git confirms the
 move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and
 local commits. A fetch may update the matching remote-tracking ref. Dry-run checks local state
-without GitHub calls.
+without GitHub calls. For repositories that GitHub reports as forks of a parent, sync also
+ensures a conventional `upstream` remote pointing at the parent and fetches the parent's default
+branch, so fork-behind comparisons stay verifiable locally; a failing upstream fetch is reported
+in the result without failing the sync.
 
 Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
 upstream, so they are not current remote state. Online status checks CI for GitHub's current
