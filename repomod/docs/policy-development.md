@@ -75,6 +75,16 @@ runtime pins offline, requires TypeScript 7 or newer, strict type checking, Oxli
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
 apps use Vite 8 and Solid 2.
 
+`rust-deps` notes the fleet's minimal Rust stack. Libraries emit via `log`;
+binaries initialize with `env_logger`. Use `tracing` only when spans are needed,
+and then as `tracing = { default-features = false, features = ["std"] }`
+(no `attributes`/`instrument` unless a span is proven). Prefer `miniserde`
+for simple JSON; reach for `serde` + `serde_json` only for `flatten`,
+`untagged`, borrowed data, or precision `miniserde` cannot express.
+Applications use `anyhow`; libraries use `thiserror`. Parametrize with
+`rstest`; keep `proptest` for property-based tests and migrate `test-case`
+to `rstest` when touched.
+
 `audit-upgrades` reports locked direct dependencies that lag their registry's latest stable
 release as fixable findings. Its check refreshes the shared audit cache over the network, so it
 is excluded from `status --offline`. Its fixer runs the native upgraders (`uv lock --upgrade`,
