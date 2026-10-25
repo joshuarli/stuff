@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from repomod.git import expected_origin
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.io import safe_relative
+from repomod.types import Finding, Repository, Rule, TagPredicate, violation
 
 _POLICY_PATH = Path(__file__).resolve().parents[3] / "release-policy.toml"
 
@@ -159,8 +160,8 @@ def _cargo_bump_findings(root: Path, repository: Repository) -> list[Finding]:
             candidates.append((relative, path))
     if not candidates:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "cargo-release",
                 None,
                 "provide a version-controlled Cargo registry bump procedure: "
@@ -169,8 +170,8 @@ def _cargo_bump_findings(root: Path, repository: Repository) -> list[Finding]:
         ]
     if len(candidates) > 1:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "cargo-release",
                 None,
                 "multiple Cargo release bump scripts make the version procedure ambiguous: "
@@ -188,8 +189,8 @@ def _cargo_bump_findings(root: Path, repository: Repository) -> list[Finding]:
     ]
     if missing:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "cargo-release",
                 relative,
                 "release bump procedure is missing " + ", ".join(missing),
@@ -221,8 +222,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
         required_fields = set(_POLICY["cargo"]["required_fields"])
         if "name" in required_fields and not isinstance(package.get("name"), str):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     "declare the published package name",
@@ -236,8 +237,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
         version_fields = set(_POLICY["cargo"]["version_fields"])
         if version_source not in version_fields:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     f"{version_source} is not an approved version source",
@@ -245,8 +246,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         elif inherited_version and "version" not in workspace_package:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     "version.workspace = true has no workspace version",
@@ -258,8 +259,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             and (not isinstance(version, str) or not version)
         ):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     "set a package version or explicit workspace inheritance",
@@ -276,8 +277,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         ):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     "license.workspace = true has no workspace license",
@@ -291,8 +292,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             )
             if not package_license and not package_license_file:
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "cargo-release",
                         relative,
                         "declare the crate license explicitly",
@@ -305,8 +306,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             and "repository" not in workspace_package
         ):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "cargo-release",
                     relative,
                     "repository.workspace = true has no workspace repository",
@@ -320,8 +321,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
             )
             if not isinstance(repository_value, str) or not repository_value:
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "cargo-release",
                         relative,
                         "repository metadata is missing",
@@ -330,8 +331,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
                 )
             elif not expected_origin(repository.id, repository_value):
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "cargo-release",
                         relative,
                         f"repository metadata points outside {repository.id}; "
@@ -353,8 +354,8 @@ def _cargo_findings(root: Path, repository: Repository) -> list[Finding]:
                 readme_path = _safe_repository_file(root, path.parent, "README.md")
             if readme_path is None or not readme_path.is_file():
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "cargo-release",
                         relative,
                         "declare an existing package README or add the Cargo "
@@ -371,17 +372,7 @@ def _safe_repository_file(root: Path, directory: Path, value: str) -> Path | Non
     if relative.is_absolute():
         return None
     candidate = directory / relative
-    try:
-        if not candidate.resolve(strict=False).is_relative_to(root.resolve()):
-            return None
-    except OSError:
-        return None
-    current = root
-    for part in candidate.relative_to(root).parts:
-        current = current / part
-        if current.is_symlink():
-            return None
-    return candidate
+    return candidate if safe_relative(root, candidate) is not None else None
 
 
 def _toml_set_value(source: str, section: str, key: str, value: str) -> str:
@@ -446,8 +437,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     path, document = _python_package(root)
     if path is None or document is None:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "python-release",
                 "pyproject.toml",
                 "PyPI tag requires readable project metadata",
@@ -460,8 +451,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     dynamic = project.get("dynamic", []) if isinstance(project, dict) else []
     if not isinstance(project.get("name"), str) or not project["name"]:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "python-release",
                 "pyproject.toml",
                 "declare the distribution name in project.name",
@@ -470,8 +461,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     if not isinstance(project.get("version"), str) or not project["version"]:
         if isinstance(dynamic, list) and "version" in dynamic:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "python-release",
                     "pyproject.toml",
                     "version is dynamic; document its authoritative source "
@@ -480,8 +471,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         else:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "python-release",
                     "pyproject.toml",
                     "set project.version or explicitly declare dynamic versioning",
@@ -490,8 +481,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     expected_backend = _POLICY["pypi"].get("build_backend")
     if not isinstance(build, dict) or build.get("build-backend") != expected_backend:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "python-release",
                 "pyproject.toml",
                     f"canonical PyPI policy uses {expected_backend}; "
@@ -501,8 +492,8 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     readme = _safe_repository_file(root, root, "README.md")
     if "readme" not in project and readme is not None and readme.is_file():
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "python-release",
                 "pyproject.toml",
                 "declare the existing README as distribution metadata",
@@ -613,8 +604,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     package_path = root / "package.json"
     if package_path.is_symlink():
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 "package manifest is a symlink and cannot be repaired safely",
@@ -623,8 +614,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     package = _json_load(package_path)
     if package is None:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 "npm tag requires readable package metadata",
@@ -633,8 +624,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     patterns = _npm_workspace_patterns(package)
     if patterns is None:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 "workspaces must be an array of repository-relative package globs",
@@ -643,7 +634,7 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     private_root = package.get("private") is True
     workspace_packages, workspace_problems = _npm_workspace_packages(root, patterns)
     findings = [
-        Finding(str(repository.id), "npm-release", path, message)
+        violation(repository, "npm-release", path, message)
         for path, message in workspace_problems
     ]
     if findings:
@@ -654,8 +645,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     for path, published in public_packages:
         if not isinstance(published.get("version"), str) or not published["version"]:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     path.relative_to(root).as_posix(),
                     "declare one authoritative version for the public package",
@@ -666,8 +657,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     version = package.get("version")
     if not private_root and not isinstance(version, str):
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 "declare one authoritative package version",
@@ -687,8 +678,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
     ]
     if len(present) > 1:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 "multiple package manager lockfiles are present: "
@@ -698,8 +689,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
         return findings
     if not present:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 None,
                 "commit one lockfile for the package manager used to publish",
@@ -722,8 +713,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
         and package_manager.split("@", 1)[0] != selected_manager
     ):
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 "package.json",
                 f"packageManager selects {package_manager}, but {lock_name} "
@@ -734,8 +725,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
         lock = root / lock_name
         if lock.is_symlink():
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     "lockfile is a symlink and cannot be repaired safely",
@@ -754,8 +745,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
         )
         if workspace_packages and lockfile_version == 1:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     "npm lockfile v1 cannot verify workspace package versions; regenerate it with npm",
@@ -763,8 +754,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         if not isinstance(lock_data, dict) or not isinstance(lockfile_version, int):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     "lockfile package metadata is unreadable or incomplete",
@@ -772,8 +763,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         elif lockfile_version != 1 and not isinstance(root_package, dict):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     "lockfile root package metadata is missing; regenerate it with npm",
@@ -785,8 +776,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
             and not isinstance(root_version, str)
         ):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     "lockfile root version is missing; regenerate it with npm",
@@ -798,8 +789,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
             or (isinstance(root_package, dict) and root_version != version)
         ):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "npm-release",
                     lock_name,
                     f"lockfile versions must match package.json ({version})",
@@ -812,8 +803,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                 lock_package = packages.get(relative)
                 if not isinstance(lock_package, dict):
                     findings.append(
-                        Finding(
-                            str(repository.id),
+                        violation(
+                            repository,
                             "npm-release",
                             lock_name,
                             f"lockfile has no entry for public workspace package {relative}",
@@ -821,8 +812,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                     )
                 elif lock_package.get("version") != workspace_package.get("version"):
                     findings.append(
-                        Finding(
-                            str(repository.id),
+                        violation(
+                            repository,
                             "npm-release",
                             lock_name,
                             f"lockfile version for {relative} must match its package.json",
@@ -830,8 +821,8 @@ def _npm_findings(root: Path, repository: Repository) -> list[Finding]:
                     )
     elif lock_name == "bun.lockb":
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "npm-release",
                 lock_name,
                 "binary lockfile version metadata cannot be checked "

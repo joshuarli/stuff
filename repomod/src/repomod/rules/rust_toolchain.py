@@ -11,6 +11,8 @@ from typing import Any
 
 from repomod.rules.languages import _cargo_candidates
 from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import operational as _operational
+from repomod.types import violation as _violation
 
 _PATH = "rust-toolchain.toml"
 _CHANNEL = "nightly-2026-09-15"
@@ -243,14 +245,9 @@ def _analysis(config: _Config) -> tuple[str | None, bool]:
 
 
 def _finding(repository: Repository, message: str, *, fixable: bool, operational: bool = False) -> Finding:
-    return Finding(
-        str(repository.id),
-        "rust-toolchain",
-        _PATH,
-        message,
-        fixable=fixable,
-        kind="operational" if operational else "violation",
-    )
+    if operational:
+        return _operational(repository, "rust-toolchain", _PATH, message)
+    return _violation(repository, "rust-toolchain", _PATH, message, fixable=fixable)
 
 
 def _findings(root: Path, repository: Repository) -> list[Finding]:

@@ -20,8 +20,10 @@ from typing import Any
 from repomod.catalog import Catalog, atomic_write, repository_path
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
-from repomod.io import cache_file, read_toml
+from repomod.io import cache_file, read_toml, safe_relative
 from repomod.types import Finding, Repository
+from repomod.types import operational as _operational
+from repomod.types import violation as _violation
 
 CACHE_TTL_SECONDS = 86400
 _OSV_URL = "https://api.osv.dev/v1/querybatch"
@@ -82,13 +84,9 @@ def _finding(
     *,
     operational: bool = False,
 ) -> Finding:
-    return Finding(
-        str(repository.id),
-        rule,
-        path,
-        message,
-        kind="operational" if operational else "violation",
-    )
+    if operational:
+        return _operational(repository, rule, path, message)
+    return _violation(repository, rule, path, message)
 
 
 def _normalize_python_name(value: str) -> str:
@@ -177,26 +175,6 @@ def _read_json(path: Path) -> tuple[Any | None, str | None]:
         return None, str(error)
 
 
-def _safe_relative(root: Path, path: Path) -> str | None:
-    try:
-        relative = path.relative_to(root)
-    except ValueError:
-        return None
-    current = root
-    for part in relative.parts:
-        current = current / part
-        if current.is_symlink():
-            return None
-    try:
-        resolved = path.resolve()
-        base = root.resolve()
-    except OSError:
-        return None
-    if not resolved.is_relative_to(base):
-        return None
-    return relative.as_posix()
-
-
 def _iter_python_files(root: Path, name: str) -> list[Path]:
     found: list[Path] = []
     for directory, child_names, filenames in os.walk(root, followlinks=False):
@@ -235,7 +213,7 @@ def _cargo_manifests(root: Path) -> list[Path]:
     for pattern in patterns:
         for match in root.glob(pattern):
             is_candidate = match.is_file() and not match.is_symlink()
-            if is_candidate and _safe_relative(root, match) is not None:
+            if is_candidate and safe_relative(root, match) is not None:
                 found.add(match)
     for manifest in sorted(found):
         document, _ = read_toml(manifest)
@@ -253,7 +231,7 @@ def _cargo_manifests(root: Path) -> list[Path]:
             for candidate in workspace_parent_candidates(manifest, member):
                 is_candidate = candidate.is_file() and not candidate.is_symlink()
                 is_new = candidate not in found
-                is_safe = _safe_relative(root, candidate) is not None
+                is_safe = safe_relative(root, candidate) is not None
                 if is_candidate and is_new and is_safe:
                     found.add(candidate)
     return sorted(found)
@@ -325,8 +303,7 @@ def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[st
     return dependencies, problems
 
 
-def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
-    lock = root / "Cargo.lock"
+def _locked_versions(lock: Path, normalize: Callable[[str], str]) -> tuple[dict[str, str], str | None]:
     if not lock.is_file() or lock.is_symlink():
         return {}, None
     document, error = read_toml(lock)
@@ -341,28 +318,16 @@ def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
             name = package.get("name")
             version = package.get("version")
             if isinstance(name, str) and isinstance(version, str):
-                locked.setdefault(_normalize_rust_name(name), version)
+                locked.setdefault(normalize(name), version)
     return locked, None
+
+
+def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
+    return _locked_versions(root / "Cargo.lock", _normalize_rust_name)
 
 
 def _uv_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
-    lock = root / "uv.lock"
-    if not lock.is_file() or lock.is_symlink():
-        return {}, None
-    document, error = read_toml(lock)
-    if document is None:
-        return {}, error
-    locked: dict[str, str] = {}
-    packages = document.get("package")
-    if isinstance(packages, list):
-        for package in packages:
-            if not isinstance(package, dict):
-                continue
-            name = package.get("name")
-            version = package.get("version")
-            if isinstance(name, str) and isinstance(version, str):
-                locked.setdefault(_normalize_python_name(name), version)
-    return locked, None
+    return _locked_versions(root / "uv.lock", _normalize_python_name)
 
 
 def _python_direct_specs(root: Path) -> tuple[list[str], dict[str, Any] | None, str | None]:
@@ -422,19 +387,21 @@ def _js_project_roots(root: Path) -> list[Path]:
             continue
         nested = child / "package.json"
         is_manifest = nested.is_file() and not nested.is_symlink()
-        if is_manifest and _safe_relative(root, nested) is not None:
+        if is_manifest and safe_relative(root, nested) is not None:
             projects.append(child)
     return projects
 
 
-def _pnpm_all_versions(root: Path) -> dict[str, str]:
-    lock = root / "pnpm-lock.yaml"
-    if not lock.is_file() or lock.is_symlink():
-        return {}
+def _read_text_if_regular(path: Path) -> str | None:
+    if not path.is_file() or path.is_symlink():
+        return None
     try:
-        source = lock.read_text(encoding="utf-8")
+        return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError):
-        return {}
+        return None
+
+
+def _pnpm_inline_versions(source: str) -> dict[str, str]:
     locked: dict[str, str] = {}
     for line in source.splitlines():
         key_match = re.match(r"^  '?([^'\":\s][^':]*?)@([0-9][^':\s]*?)'?:\s*$", line)
@@ -446,13 +413,16 @@ def _pnpm_all_versions(root: Path) -> dict[str, str]:
     return locked
 
 
-def _pnpm_locked_versions(root: Path) -> dict[str, str]:
-    lock = root / "pnpm-lock.yaml"
-    if not lock.is_file() or lock.is_symlink():
+def _pnpm_all_versions(root: Path) -> dict[str, str]:
+    source = _read_text_if_regular(root / "pnpm-lock.yaml")
+    if source is None:
         return {}
-    try:
-        source = lock.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+    return _pnpm_inline_versions(source)
+
+
+def _pnpm_locked_versions(root: Path) -> dict[str, str]:
+    source = _read_text_if_regular(root / "pnpm-lock.yaml")
+    if source is None:
         return {}
     locked: dict[str, str] = {}
     in_importers = False
@@ -499,23 +469,12 @@ def _pnpm_locked_versions(root: Path) -> dict[str, str]:
                 locked.setdefault(current, simple.group(1))
     if locked:
         return locked
-    for line in source.splitlines():
-        key_match = re.match(r"^  '?([^'\":\s][^':]*?)@([0-9][^':\s]*?)'?:\s*$", line)
-        if key_match is None:
-            continue
-        name = key_match.group(1).strip().strip("\"'")
-        version = re.split(r"[()]", key_match.group(2).strip(), maxsplit=1)[0]
-        locked.setdefault(name, version)
-    return locked
+    return _pnpm_inline_versions(source)
 
 
 def _go_requirements(root: Path) -> tuple[dict[str, str], dict[str, bool]]:
-    manifest = root / "go.mod"
-    if not manifest.is_file() or manifest.is_symlink():
-        return {}, {}
-    try:
-        source = manifest.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+    source = _read_text_if_regular(root / "go.mod")
+    if source is None:
         return {}, {}
     locked: dict[str, str] = {}
     direct: dict[str, bool] = {}
@@ -544,12 +503,8 @@ def _go_requirements(root: Path) -> tuple[dict[str, str], dict[str, bool]]:
 
 
 def _go_replace_filesystem(root: Path) -> list[str]:
-    manifest = root / "go.mod"
-    if not manifest.is_file() or manifest.is_symlink():
-        return []
-    try:
-        source = manifest.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+    source = _read_text_if_regular(root / "go.mod")
+    if source is None:
         return []
     offenders: list[str] = []
     for line in source.splitlines():
@@ -601,41 +556,48 @@ def _http_json(url: str, headers: dict[str, str] | None = None) -> Any | None:
         return None
 
 
+def _non_empty_str(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _registry_document(url: str, headers: dict[str, str] | None = None) -> dict[str, Any] | None:
+    data = _http_json(url, headers)
+    return data if isinstance(data, dict) else None
+
+
 def _latest_pypi(name: str) -> str | None:
     encoded = urllib.parse.quote(name, safe="")
-    data = _http_json(f"https://pypi.org/pypi/{encoded}/json")
-    if not isinstance(data, dict):
+    document = _registry_document(f"https://pypi.org/pypi/{encoded}/json")
+    if document is None:
         return None
-    info = data.get("info")
+    info = document.get("info")
     if not isinstance(info, dict):
         return None
-    version = info.get("version")
-    return version if isinstance(version, str) and version else None
+    return _non_empty_str(info.get("version"))
 
 
 def _latest_npm(name: str) -> str | None:
     encoded = urllib.parse.quote(name, safe="@")
-    data = _http_json(f"https://registry.npmjs.org/{encoded}/latest")
-    if not isinstance(data, dict):
+    document = _registry_document(f"https://registry.npmjs.org/{encoded}/latest")
+    if document is None:
         return None
-    version = data.get("version")
-    return version if isinstance(version, str) and version else None
+    return _non_empty_str(document.get("version"))
 
 
 def _latest_crates(name: str) -> str | None:
     encoded = urllib.parse.quote(name, safe="")
-    data = _http_json(
+    document = _registry_document(
         f"https://crates.io/api/v1/crates/{encoded}",
         {"Accept": "application/json"},
     )
-    if not isinstance(data, dict):
+    if document is None:
         return None
-    crate = data.get("crate")
+    crate = document.get("crate")
     if not isinstance(crate, dict):
         return None
     for key in ("max_stable_version", "max_version"):
-        version = crate.get(key)
-        if isinstance(version, str) and version:
+        version = _non_empty_str(crate.get(key))
+        if version is not None:
             return version
     return None
 
@@ -650,11 +612,10 @@ def _latest_go(module: str) -> str | None:
     encoded = "/".join(
         urllib.parse.quote(part, safe="") for part in _escape_go_module(module).split("/")
     )
-    data = _http_json(f"https://proxy.golang.org/{encoded}/@latest")
-    if not isinstance(data, dict):
+    document = _registry_document(f"https://proxy.golang.org/{encoded}/@latest")
+    if document is None:
         return None
-    version = data.get("Version")
-    return version if isinstance(version, str) and version else None
+    return _non_empty_str(document.get("Version"))
 
 
 _LATEST_FETCHERS: dict[str, Callable[[str], str | None]] = {
@@ -719,13 +680,17 @@ class AuditOutcome:
     fix_errors: list[str] = field(default_factory=list)
 
 
+def _has_ecosystem(tags: set[str], root: Path, manifest: str, *names: str) -> bool:
+    return bool(tags.intersection(names)) or (root / manifest).is_file()
+
+
 def _collect_locked(
     root: Path, repository: Repository
 ) -> tuple[list[LockedDependency], list[Finding]]:
     tags = set(repository.tags)
     locked: list[LockedDependency] = []
     findings: list[Finding] = []
-    if "python" in tags or (root / "pyproject.toml").is_file():
+    if _has_ecosystem(tags, root, "pyproject.toml", "python"):
         specs, _document, error = _python_direct_specs(root)
         if error is not None:
             message = f"pyproject.toml is invalid TOML: {error}"
@@ -741,7 +706,7 @@ def _collect_locked(
                 for name in sorted(names)
                 if name in versions
             )
-    if "typescript" in tags or "javascript" in tags or (root / "package.json").is_file():
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         seen_js: set[str] = set()
         for project in _js_project_roots(root):
             dependencies = _js_direct_dependencies(project)
@@ -757,7 +722,7 @@ def _collect_locked(
                         version = spec
                 if version is not None:
                     locked.append(LockedDependency("npm", name, version, True))
-    if "rust" in tags or (root / "Cargo.toml").is_file():
+    if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
         direct, problems = _rust_direct_dependencies(root)
         for problem in problems:
             head, _, _tail = problem.partition(":")
@@ -783,7 +748,7 @@ def _collect_locked(
             if version is None:
                 continue
             locked.append(LockedDependency("crates", dependency.name, version, True))
-    if "go" in tags or (root / "go.mod").is_file():
+    if _has_ecosystem(tags, root, "go.mod", "go"):
         requirements, direct_map = _go_requirements(root)
         locked.extend(
             LockedDependency("go", name, requirements[name], direct_map.get(name, True))
@@ -798,28 +763,28 @@ def _collect_vuln_candidates(
     candidates = list(direct_locked)
     seen = {(item.ecosystem, item.name.casefold(), item.locked) for item in candidates}
     tags = set(repository.tags)
-    if "python" in tags or (root / "uv.lock").is_file():
+    if _has_ecosystem(tags, root, "uv.lock", "python"):
         versions, _ = _uv_locked_versions(root)
         for name, version in versions.items():
             key = ("pypi", name.casefold(), version)
             if key not in seen:
                 seen.add(key)
                 candidates.append(LockedDependency("pypi", name, version, False))
-    if "rust" in tags or (root / "Cargo.lock").is_file():
+    if _has_ecosystem(tags, root, "Cargo.lock", "rust"):
         versions, _ = _cargo_locked_versions(root)
         for name, version in versions.items():
             key = ("crates", name.casefold(), version)
             if key not in seen:
                 seen.add(key)
                 candidates.append(LockedDependency("crates", name, version, False))
-    if "go" in tags or (root / "go.mod").is_file():
+    if _has_ecosystem(tags, root, "go.mod", "go"):
         requirements, _ = _go_requirements(root)
         for name, version in requirements.items():
             key = ("go", name.casefold(), version)
             if key not in seen:
                 seen.add(key)
                 candidates.append(LockedDependency("go", name, version, False))
-    if "typescript" in tags or "javascript" in tags or (root / "package.json").is_file():
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         for project in _js_project_roots(root):
             for name, version in _pnpm_all_versions(project).items():
                 key = ("npm", name.casefold(), version)
@@ -865,16 +830,16 @@ def _is_self_dependency(root: Path, manifest: str, path_value: str | None) -> bo
 def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     tags = set(repository.tags)
-    if "python" in tags or (root / "pyproject.toml").is_file():
+    if _has_ecosystem(tags, root, "pyproject.toml", "python"):
         lock = root / "uv.lock"
         if not lock.is_file() or lock.is_symlink():
             findings.append(_finding(repository, "audit-lock", "uv.lock", "uv.lock is required"))
         for candidate in _iter_python_files(root, "requirements.txt"):
-            relative = _safe_relative(root, candidate) or candidate.name
+            relative = safe_relative(root, candidate) or candidate.name
             findings.append(_finding(repository, "audit-banned", relative, "remove requirements.txt"))
         for candidate in sorted(root.glob("requirements*.txt")):
             is_file = candidate.is_file() and not candidate.is_symlink()
-            is_safe = _safe_relative(root, candidate) is not None
+            is_safe = safe_relative(root, candidate) is not None
             if is_file and is_safe:
                 relative = candidate.relative_to(root).as_posix()
                 if all(finding.file != relative for finding in findings):
@@ -909,7 +874,7 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                             "depend on the registry version instead"
                         )
                         findings.append(_finding(repository, "audit-registry", "pyproject.toml", message))
-    if "rust" in tags or (root / "Cargo.toml").is_file():
+    if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
         direct, _ = _rust_direct_dependencies(root)
         for dependency in sorted(direct, key=lambda item: item.name.casefold()):
             if dependency.has_path and not dependency.has_version:
@@ -943,7 +908,7 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 seen_banned.add(normalized)
                 message = _banned_rust_message(normalized, transitive=True, version=version)
                 findings.append(_finding(repository, "audit-banned", "Cargo.lock", message))
-    if "typescript" in tags or "javascript" in tags or (root / "package.json").is_file():
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         for project in _js_project_roots(root):
             dependencies = _js_direct_dependencies(project)
             relative_manifest = (project / "package.json").relative_to(root).as_posix()
@@ -968,7 +933,7 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 candidate = directory / artifact
                 if not candidate.is_file() or candidate.is_symlink():
                     continue
-                relative = _safe_relative(root, candidate)
+                relative = safe_relative(root, candidate)
                 if relative is None or relative in yarn_seen:
                     continue
                 yarn_seen.add(relative)
@@ -976,12 +941,12 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 findings.append(_finding(repository, "audit-banned", relative, message))
             yarn_dir = directory / ".yarn"
             if yarn_dir.is_dir() and not yarn_dir.is_symlink():
-                relative = _safe_relative(root, yarn_dir)
+                relative = safe_relative(root, yarn_dir)
                 if relative is not None and relative not in yarn_seen:
                     yarn_seen.add(relative)
                     message = "remove .yarn/; pnpm is the only package manager"
                     findings.append(_finding(repository, "audit-banned", relative, message))
-    if "go" in tags or (root / "go.mod").is_file():
+    if _has_ecosystem(tags, root, "go.mod", "go"):
         for line in _go_replace_filesystem(root):
             message = f"remove filesystem replace {line}"
             findings.append(_finding(repository, "audit-registry", "go.mod", message))
@@ -1128,18 +1093,14 @@ def _audit_one(
         root = repository_path(catalog, repository)
     except (OSError, ValueError) as error:
         outcome.findings.append(
-            Finding(
-                str(repository.id),
-                "audit-lock",
-                None,
-                f"cannot resolve canonical checkout: {error}",
-                kind="operational",
+            _finding(
+                repository, "audit-lock", None, f"cannot resolve canonical checkout: {error}", operational=True
             )
         )
         return outcome
     if not root.is_dir():
         outcome.findings.append(
-            Finding(str(repository.id), "audit-lock", None, "checkout is missing", kind="operational")
+            _finding(repository, "audit-lock", None, "checkout is missing", operational=True)
         )
         return outcome
     ignored = repository.ignored_rules
@@ -1153,12 +1114,12 @@ def _audit_one(
     ):
         if upstream.error is not None:
             outcome.findings.append(
-                Finding(
-                    str(repository.id),
+                _finding(
+                    repository,
                     "audit-upstream",
                     None,
                     f"could not compare with {upstream.parent}: {upstream.error}",
-                    kind="operational",
+                    operational=True,
                 )
             )
         elif isinstance(upstream.behind_by, int) and upstream.behind_by > 0:
@@ -1260,12 +1221,12 @@ def audit_repositories(
                     AuditOutcome(
                         str(repository.id),
                         findings=[
-                            Finding(
-                                str(repository.id),
+                            _finding(
+                                repository,
                                 "audit-lock",
                                 None,
                                 f"audit could not complete: {error}",
-                                kind="operational",
+                                operational=True,
                             )
                         ],
                     )
@@ -1291,7 +1252,7 @@ def _upgrade_tasks(root: Path, repository: Repository) -> list[UpgradeTask]:
         root / "uv.lock"
     ).is_file():
         tasks.append(UpgradeTask(root, ["uv", "lock", "--upgrade"], "uv"))
-    if "typescript" in tags or "javascript" in tags or (root / "package.json").is_file():
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         tasks.extend(
             UpgradeTask(project, ["pnpm", "update", "--latest"], "pnpm")
             for project in _js_project_roots(root)

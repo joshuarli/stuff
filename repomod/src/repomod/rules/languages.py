@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
-from repomod.io import read_json_object, read_toml
+from repomod.io import read_json_object, read_toml, safe_relative
 from repomod.rules.binary_release import has_binary_release_contract
 from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import violation as _violation
 
 _LOCKFILES = {
     "package-lock.json": "npm",
@@ -48,7 +49,7 @@ _LANGUAGE_NAMES = {
 
 
 def _finding(repository: Repository, rule: str, path: str | None, message: str) -> Finding:
-    return Finding(str(repository.id), rule, path, message)
+    return _violation(repository, rule, path, message)
 
 
 def _cargo_candidates(root: Path) -> list[Path]:
@@ -73,15 +74,7 @@ def _safe_manifest(root: Path, path: Path) -> bool:
         for part in path.relative_to(root).parts
     ):
         return False
-    current = root
-    for part in path.relative_to(root).parts:
-        current = current / part
-        if current.is_symlink():
-            return False
-    try:
-        return path.is_file() and path.resolve().is_relative_to(root.resolve())
-    except OSError:
-        return False
+    return path.is_file() and safe_relative(root, path) is not None
 
 
 def _rust_manifests(
@@ -510,8 +503,8 @@ def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
     missing = detected - tags
     unobserved = (tags & LANGUAGE_TAGS) - detected
     findings = [
-        Finding(
-            str(repository.id),
+        _violation(
+            repository,
             "language-tags",
             None,
             f"{_LANGUAGE_NAMES[language]} source is present but the catalog has no {language} tag",
@@ -520,8 +513,8 @@ def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
         for language in sorted(missing & LANGUAGE_TAGS)
     ]
     findings.extend(
-        Finding(
-            str(repository.id),
+        _violation(
+            repository,
             "language-tags",
             None,
             f"{_LANGUAGE_NAMES[language]} tag is present but no matching source was detected",

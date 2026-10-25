@@ -29,3 +29,17 @@ def workflow_files(
         elif child.is_file():
             files.append(child)
     return files, problems
+
+
+def read_workflow_sources(
+    root: Path, repository: Repository | None = None
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    files, problems = workflow_files(root, repository)
+    sources: list[tuple[str, str]] = []
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        try:
+            sources.append((relative, path.read_text(encoding="utf-8")))
+        except (OSError, UnicodeError) as error:
+            problems.append((relative, f"cannot read workflow: {error}"))
+    return sources, problems

@@ -7,8 +7,8 @@ from pathlib import Path
 
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
 from repomod.rules.release import _POLICY as _RELEASE_POLICY
-from repomod.rules.workflows import workflow_files
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.rules.workflows import read_workflow_sources
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _BINARY_POLICY = _RELEASE_POLICY["binary"]
 _PORTABLE_TARGETS = frozenset(_BINARY_POLICY["portable_targets"])
@@ -54,16 +54,14 @@ _ARTIFACT_DOWNLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/download-
 def _read_workflows(
     root: Path, repository: Repository | None = None
 ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    files, problems = workflow_files(root, repository)
-    workflows = []
-    for path in files:
-        try:
-            source = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            problems.append((path.relative_to(root).as_posix(), f"cannot read workflow: {error}"))
-            continue
-        active = "\n".join(line for line in source.splitlines() if not line.lstrip().startswith("#"))
-        workflows.append((path.relative_to(root).as_posix(), active))
+    sources, problems = read_workflow_sources(root, repository)
+    workflows = [
+        (
+            relative,
+            "\n".join(line for line in source.splitlines() if not line.lstrip().startswith("#")),
+        )
+        for relative, source in sources
+    ]
     return workflows, problems
 
 
@@ -268,8 +266,7 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
         return []
     workflows, problems = _read_workflows(root, repository)
     findings = [
-        Finding(str(repository.id), "binary-release-tags", path, message, kind="operational")
-        for path, message in problems
+        operational(repository, "binary-release-tags", path, message) for path, message in problems
     ]
     for path, source in workflows:
         kind = _release_kind(root, source)
@@ -277,8 +274,8 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
             continue
         if kind == "ambiguous":
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "binary-release-tags",
                     path,
                     "GitHub prerelease workflow does not establish the supported native binary contract; "
@@ -290,8 +287,8 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
         tags = set(repository.tags)
         if "tool" not in tags:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "binary-release-tags",
                     path,
                     "standard binary prerelease repositories require the tool role",
@@ -301,8 +298,8 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
         extras = sorted(tags - {"tool"} - _BINARY_TOOL_EXTRA_TAGS)
         if extras:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "binary-release-tags",
                     path,
                     "standard binary prerelease repositories allow only tool with fork, "
@@ -323,7 +320,7 @@ def _prerelease_workflows(
 ) -> tuple[list[tuple[str, str]], list[Finding]]:
     workflows, problems = _read_workflows(root, repository)
     findings = [
-        Finding(str(repository.id), "binary-release-standard", path, message, kind="operational")
+        operational(repository, "binary-release-standard", path, message)
         for path, message in problems
     ]
     return [(path, source) for path, source in workflows if _has_prerelease_intent(source)], findings
@@ -344,8 +341,8 @@ def _standard_target_findings(
     markers = sorted({marker for marker in _FORBIDDEN_TARGET_MARKERS if marker in lowered})
     if markers:
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease targets must be musl or Apple silicon; "
@@ -357,8 +354,8 @@ def _standard_target_findings(
         if found == set(_MACOS_TARGETS):
             return []
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "macOS-only binary prerelease must build exactly "
@@ -377,8 +374,8 @@ def _standard_target_findings(
         ):
             return []
         return [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "Linux-only binary prerelease must build the musl targets for "
@@ -390,8 +387,8 @@ def _standard_target_findings(
     if found == set(_PORTABLE_TARGETS):
         return []
     return [
-        Finding(
-            str(repository.id),
+        violation(
+            repository,
             "binary-release-standard",
             path,
             "portable binary prerelease must build exactly "
@@ -408,8 +405,8 @@ def _standard_format_findings(
     findings = []
     if _WORKFLOW_DISPATCH.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must run on workflow_dispatch like ish",
@@ -417,8 +414,8 @@ def _standard_format_findings(
         )
     if _SHA_RELEASE_TAG.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must publish under a release-${{ github.sha }} tag like ish",
@@ -426,8 +423,8 @@ def _standard_format_findings(
         )
     if _SOURCE_TARGET.search(source) is None and _API_TAG_CREATE.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must target the triggering commit like ish",
@@ -435,8 +432,8 @@ def _standard_format_findings(
         )
     if _NATIVE_ASSET.search(source) is None or _CHECKSUMS_FILE.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must publish per-platform zip archives with a "
@@ -445,8 +442,8 @@ def _standard_format_findings(
         )
     if _API_TAG_CREATE.search(source) is None or _VERIFY_TAG.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must create the release tag at the triggering commit "
@@ -455,8 +452,8 @@ def _standard_format_findings(
         )
     if _DEFAULT_BRANCH_GUARD.search(source) is None or _DEFAULT_BRANCH_REF.search(source) is None:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "binary-release-standard",
                 path,
                 "binary prerelease must refuse dispatches off the default branch "
@@ -485,13 +482,7 @@ def _dockerfile_source(root: Path, repository: Repository) -> tuple[str | None, 
         return dockerfile.read_text(encoding="utf-8"), []
     except (OSError, UnicodeError) as error:
         return None, [
-            Finding(
-                str(repository.id),
-                "rust-musl-image",
-                "Dockerfile",
-                f"cannot read Dockerfile: {error}",
-                kind="operational",
-            )
+            operational(repository, "rust-musl-image", "Dockerfile", f"cannot read Dockerfile: {error}")
         ]
 
 
@@ -505,8 +496,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
     base = next((line for line in lines if line.startswith("FROM")), "")
     if not re.match(r"FROM alpine:[0-9]+\.[0-9]+", base) or "latest" in base.casefold():
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must use a pinned Alpine base like ish",
@@ -515,8 +506,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
     lowered = source.casefold()
     if "apt-get" in lowered or base.startswith(("FROM debian", "FROM ubuntu")):
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must stay on musl libc with no glibc base or toolchain",
@@ -524,8 +515,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if any(marker in lowered for marker in _FORBIDDEN_TARGET_MARKERS):
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must not reference glibc targets",
@@ -533,8 +524,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "rustup/dist/" in source or "rustup/archive/" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must pin the rustup installer to a versioned "
@@ -543,8 +534,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     elif "sha256sum -c" not in lowered and "add --checksum=" not in lowered:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must verify every remote fetch with a checksum like ish",
@@ -554,8 +545,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         "sha256sum -c" not in lowered and "add --checksum=" not in lowered
     ):
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must install the verified musl-linked LLVM "
@@ -564,8 +555,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "x86_64-unknown-linux-musl" not in source or "aarch64-unknown-linux-musl" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must install both Linux musl targets like ish",
@@ -573,8 +564,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "rust-src" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must include the rust-src component like ish",
@@ -582,8 +573,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "musl-cargo" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must provide the musl-cargo linker wrapper "
@@ -592,8 +583,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "crtbegin" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must provide musl CRT startup stubs like ish",
@@ -601,8 +592,8 @@ def _rust_musl_image_findings(root: Path, repository: Repository) -> list[Findin
         )
     if "libutil.a" not in source:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "rust-musl-image",
                 "Dockerfile",
                 "Rust musl builder image must stub libutil.a from musl libc like ish",

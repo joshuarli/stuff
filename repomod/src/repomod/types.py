@@ -68,6 +68,56 @@ class Finding:
     code: str | None = None
 
 
+def violation(
+    repository: Repository,
+    rule: str,
+    path: str | None,
+    message: str,
+    *,
+    fixable: bool = False,
+    severity: Severity = "error",
+    line: int | None = None,
+    column: int | None = None,
+    code: str | None = None,
+) -> Finding:
+    return Finding(
+        str(repository.id),
+        rule,
+        path,
+        message,
+        severity=severity,
+        fixable=fixable,
+        kind="violation",
+        line=line,
+        column=column,
+        code=code,
+    )
+
+
+def operational(
+    repository: Repository,
+    rule: str,
+    path: str | None,
+    message: str,
+    *,
+    fixable: bool = False,
+    line: int | None = None,
+    column: int | None = None,
+    code: str | None = None,
+) -> Finding:
+    return Finding(
+        str(repository.id),
+        rule,
+        path,
+        message,
+        fixable=fixable,
+        kind="operational",
+        line=line,
+        column=column,
+        code=code,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class TagPredicate:
     all_of: frozenset[str] = frozenset()

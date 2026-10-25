@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from repomod.git import GitError, working_paths
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 from repomod.workflow_policy import is_fork_workflow
 
 _PATHS = (
@@ -337,12 +337,11 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
             document = json.loads(source)
         except json.JSONDecodeError as error:
             findings.append(
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     "no-formatters",
                     relative,
                     f"cannot inspect formatter dependencies in invalid package JSON: {error}",
-                    kind="operational",
                 )
             )
             document = None
@@ -358,8 +357,8 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
             if packages or commands:
                 offenders = sorted(packages | set(commands))
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "no-formatters",
                         relative,
                         "formatter dependencies or scripts are banned: " + ", ".join(offenders),
@@ -370,19 +369,18 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
             document = tomllib.loads(source)
         except tomllib.TOMLDecodeError as error:
             findings.append(
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     "no-formatters",
                     relative,
                     f"cannot inspect Ruff formatter configuration in invalid TOML: {error}",
-                    kind="operational",
                 )
             )
             document = None
         if isinstance(document, dict) and "format" in document:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "no-formatters",
                     relative,
                     "Ruff formatter configuration is banned: format",
@@ -393,12 +391,11 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
             document = tomllib.loads(source)
         except tomllib.TOMLDecodeError as error:
             findings.append(
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     "no-formatters",
                     relative,
                     f"cannot inspect formatter configuration in invalid TOML: {error}",
-                    kind="operational",
                 )
             )
             document = None
@@ -415,8 +412,8 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
                 if ruff_format:
                     offenders.add("tool.ruff.format")
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "no-formatters",
                         relative,
                         "formatter configuration or dependencies are banned: " + ", ".join(sorted(offenders)),
@@ -424,8 +421,8 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
                 )
     if path.name.casefold() == "setup.cfg" and re.search(r"(?im)^\s*\[(?:black|yapf)\]\s*$", source):
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "no-formatters",
                 relative,
                 "black and yapf configuration sections are banned",
@@ -440,8 +437,8 @@ def _document_findings(repository: Repository, relative: str, source: str) -> li
                 packages.add(match.group(1).casefold())
         if packages:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "no-formatters",
                     relative,
                     "formatter dependencies are banned: " + ", ".join(sorted(packages)),
@@ -455,12 +452,8 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
         paths = working_paths(root, _PATHS)
     except GitError as error:
         return [
-            Finding(
-                str(repository.id),
-                "no-formatters",
-                None,
-                f"cannot list formatter policy files: {error}",
-                kind="operational",
+            operational(
+                repository, "no-formatters", None, f"cannot list formatter policy files: {error}"
             )
         ]
     findings = []
@@ -474,8 +467,8 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
             continue
         if path.name.casefold() in _FORMATTER_CONFIG_NAMES:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "no-formatters",
                     relative,
                     "formatter-specific configuration files are banned",
@@ -486,21 +479,15 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
             source = _read_file(root, relative)
         except (OSError, UnicodeError) as error:
             findings.append(
-                Finding(
-                    str(repository.id),
-                    "no-formatters",
-                    relative,
-                    f"cannot read policy file: {error}",
-                    kind="operational",
-                )
+                operational(repository, "no-formatters", relative, f"cannot read policy file: {error}")
             )
             continue
         findings.extend(_document_findings(repository, relative, source))
         commands = _commands("\n".join(_command_lines(relative, source)))
         if commands:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "no-formatters",
                     relative,
                     "formatter commands are banned: " + ", ".join(commands),

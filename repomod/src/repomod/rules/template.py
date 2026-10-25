@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import Finding, Repository, Rule, TagPredicate, violation
 
 _METADATA = (
     "Cargo.toml",
@@ -36,12 +36,12 @@ def _template_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     if not readme and tags & {"tool", "library", "app", "extension"}:
         findings.append(
-            Finding(str(repository.id), "repo-template", None, "add a human-written README", fixable=False)
+            violation(repository, "repo-template", None, "add a human-written README", fixable=False)
         )
     if not metadata and tags & {"tool", "library", "app", "extension", "system", "build"}:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "repo-template",
                 None,
                 "add project metadata or an understandable build entry point",
@@ -50,11 +50,11 @@ def _template_findings(root: Path, repository: Repository) -> list[Finding]:
         )
     if "extension" in tags and not has_extension_manifest:
         findings.append(
-            Finding(str(repository.id), "repo-template", None, "add the browser or editor extension manifest")
+            violation(repository, "repo-template", None, "add the browser or editor extension manifest")
         )
     if "library" in tags and readme and not metadata:
         findings.append(
-            Finding(str(repository.id), "repo-template", None, "document package metadata and public API")
+            violation(repository, "repo-template", None, "document package metadata and public API")
         )
     return findings
 
@@ -63,11 +63,11 @@ def _integrity_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     git_path = root / ".git"
     if not git_path.exists():
-        findings.append(Finding(str(repository.id), "repo-integrity", ".git", "checkout has no .git metadata"))
+        findings.append(violation(repository, "repo-integrity", ".git", "checkout has no .git metadata"))
     findings.extend(
         [
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "repo-integrity",
                 candidate.name,
                 "top-level policy file is a symlink",

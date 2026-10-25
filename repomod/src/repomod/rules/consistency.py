@@ -7,8 +7,8 @@ from pathlib import Path
 
 from repomod.git import root_ignore_matches, tracked_paths
 from repomod.rules.languages import _language_sources
-from repomod.rules.workflows import workflow_files
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.rules.workflows import read_workflow_sources
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _RUN = re.compile(r"^(?P<indent> *)(?:-\s*)?run\s*:\s*(?P<value>.*)$")
 _MAKE_TARGET = re.compile(r"^[A-Za-z0-9_./%-]+\Z")
@@ -140,30 +140,16 @@ def _declared_make_targets(makefile: Path) -> set[str] | None:
 
 
 def _make_target_findings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = workflow_files(root, repository)
+    sources, problems = read_workflow_sources(root, repository)
     findings = []
     requested: list[tuple[str, str]] = []
     findings.extend(
-        Finding(str(repository.id), "workflow-make-targets", path, message, kind="operational")
+        operational(repository, "workflow-make-targets", path, message)
         for path, message in problems
     )
-    for workflow in workflows:
-        try:
-            source = workflow.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            findings.append(
-                Finding(
-                    str(repository.id),
-                    "workflow-make-targets",
-                    workflow.relative_to(root).as_posix(),
-                    f"cannot read workflow: {error}",
-                    kind="operational",
-                )
-            )
-            continue
+    for relative, source in sources:
         if re.search(r"(?m)^\s*working-directory\s*:", source):
             continue
-        relative = workflow.relative_to(root).as_posix()
         requested.extend((relative, target) for command in _run_commands(source) for target in _make_targets(command))
     if not requested:
         return findings
@@ -174,8 +160,8 @@ def _make_target_findings(root: Path, repository: Repository) -> list[Finding]:
     )
     if makefile is None:
         findings.extend(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "workflow-make-targets",
                 workflow,
                 f"workflow runs make target {target!r}, but the repository has no root Makefile",
@@ -185,12 +171,11 @@ def _make_target_findings(root: Path, repository: Repository) -> list[Finding]:
         return findings
     if makefile.is_symlink():
         findings.append(
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 "workflow-make-targets",
                 makefile.name,
                 "root makefile is a symlink and was not inspected",
-                kind="operational",
             )
         )
         return findings
@@ -198,8 +183,8 @@ def _make_target_findings(root: Path, repository: Repository) -> list[Finding]:
     if targets is None:
         return findings
     findings.extend(
-        Finding(
-            str(repository.id),
+        violation(
+            repository,
             "workflow-make-targets",
             workflow,
             f"workflow runs make target {target!r}, but the root Makefile does not define it",
@@ -242,8 +227,8 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
         if name is not None:
             groups.setdefault(name, []).append(path)
     findings = [
-        Finding(
-            str(repository.id),
+        violation(
+            repository,
             "generated-artifacts",
             paths[0],
             f"{len(paths)} tracked generated artifact path(s) match {name}; remove them from Git",
@@ -264,8 +249,8 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
     ]
     if missing:
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "generated-artifacts",
                 ".gitignore",
                 "composed ignore policy is missing in-repository patterns for " + ", ".join(sorted(set(missing))),

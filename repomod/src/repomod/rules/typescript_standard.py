@@ -10,10 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from repomod.catalog import atomic_write
+from repomod.catalog import write_if_changed
 from repomod.github import action_tags_many
-from repomod.io import read_json_object
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.io import read_json_object, safe_relative
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _IGNORED_DIRS = {
     ".git",
@@ -168,10 +168,7 @@ def refresh_typescript_tool_pins(path: Path | None = None) -> bool:
         if latest_version < previous_version:
             raise ValueError(f"upstream reported an older {name} release; refusing to replace {previous} with {latest}")
     serialized = _render_typescript_tool_pins(TypeScriptToolPins(node, pnpm))
-    if target.read_text(encoding="utf-8") == serialized:
-        return False
-    atomic_write(target, serialized)
-    return True
+    return write_if_changed(target, serialized)
 
 
 def _finding(
@@ -182,14 +179,9 @@ def _finding(
     fixable: bool = False,
     kind: Literal["violation", "operational"] = "violation",
 ) -> Finding:
-    return Finding(
-        str(repository.id),
-        "typescript-stack",
-        path,
-        message,
-        fixable=fixable,
-        kind=kind,
-    )
+    if kind == "operational":
+        return operational(repository, "typescript-stack", path, message)
+    return violation(repository, "typescript-stack", path, message, fixable=fixable)
 
 
 def _manifest_paths(root: Path) -> tuple[Path, ...]:
@@ -468,16 +460,7 @@ def _strict_setting(root: Path, path: Path, seen: frozenset[Path] = frozenset())
 
 
 def _safe_repository_path(root: Path, path: Path) -> bool:
-    try:
-        relative = path.relative_to(root)
-        current = root
-        for part in relative.parts:
-            current = current / part
-            if current.is_symlink():
-                return False
-        return current.resolve().is_relative_to(root.resolve())
-    except (OSError, RuntimeError, ValueError):
-        return False
+    return safe_relative(root, path) is not None
 
 
 def _typescript_config_findings(

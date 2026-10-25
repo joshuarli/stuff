@@ -6,8 +6,8 @@ from pathlib import Path
 
 from repomod.git import GitError, run_git
 from repomod.rules.actions import _validate_workflows
-from repomod.rules.workflows import workflow_files
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.rules.workflows import read_workflow_sources, workflow_files
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _KEY = re.compile(r"^( *)([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 _GROUP = "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
@@ -119,26 +119,13 @@ def _mapping_location(lines: list[str], path: tuple[str, ...]) -> tuple[int, int
 
 
 def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = workflow_files(root, repository)
+    sources, problems = read_workflow_sources(root, repository)
     findings = [
-        Finding(str(repository.id), "gha-settings", path, message, kind="operational")
+        operational(repository, "gha-settings", path, message) for path, message in problems
         for path, message in problems
     ]
-    for workflow in workflows:
-        relative = workflow.relative_to(root).as_posix()
-        try:
-            lines = workflow.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError) as error:
-            findings.append(
-                Finding(
-                    str(repository.id),
-                    "gha-settings",
-                    relative,
-                    f"cannot read workflow: {error}",
-                    kind="operational",
-                )
-            )
-            continue
+    for relative, source in sources:
+        lines = source.splitlines()
         required = (
             (("concurrency", "group"), _GROUP),
             (("concurrency", "cancel-in-progress"), "true"),
@@ -148,8 +135,8 @@ def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
             if _mapping_value(lines, path) != expected:
                 line, column = _mapping_location(lines, path)
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         "gha-settings",
                         relative,
                         f"{'.'.join(path)} must be {expected!r}",
@@ -370,35 +357,22 @@ def _trigger_violation(lines: list[str]) -> tuple[int, int, bool, bool] | None:
 
 
 def _trigger_findings(root: Path, repository: Repository) -> list[Finding]:
-    workflows, problems = workflow_files(root, repository)
+    sources, problems = read_workflow_sources(root, repository)
     findings = [
-        Finding(str(repository.id), "gha-triggers", path, message, kind="operational")
+        operational(repository, "gha-triggers", path, message) for path, message in problems
         for path, message in problems
     ]
     default_branch = _local_default_branch(root)
-    for workflow in workflows:
-        relative = workflow.relative_to(root).as_posix()
-        try:
-            lines = workflow.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError) as error:
-            findings.append(
-                Finding(
-                    str(repository.id),
-                    "gha-triggers",
-                    relative,
-                    f"cannot read workflow: {error}",
-                    kind="operational",
-                )
-            )
+    for relative, source in sources:
+        lines = source.splitlines()
+        trigger = _trigger_violation(lines)
+        if trigger is None:
             continue
-        violation = _trigger_violation(lines)
-        if violation is None:
-            continue
-        push, indentation, mapping, _ = violation
+        push, indentation, mapping, _ = trigger
         if not mapping:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "gha-triggers",
                     relative,
                     "on.push shares unfiltered runs with on.pull_request; "
@@ -410,8 +384,8 @@ def _trigger_findings(root: Path, repository: Repository) -> list[Finding]:
             continue
         if default_branch is None:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     "gha-triggers",
                     relative,
                     "on.push has no branch filter while on.pull_request is present; "
@@ -422,8 +396,8 @@ def _trigger_findings(root: Path, repository: Repository) -> list[Finding]:
             )
             continue
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "gha-triggers",
                 relative,
                 f"on.push must limit branches to [{default_branch}] "
@@ -437,10 +411,10 @@ def _trigger_findings(root: Path, repository: Repository) -> list[Finding]:
 
 
 def _scope_triggers(lines: list[str], default_branch: str) -> bool:
-    violation = _trigger_violation(lines)
-    if violation is None:
+    trigger = _trigger_violation(lines)
+    if trigger is None:
         return False
-    push, push_indent, mapping, _ = violation
+    push, push_indent, mapping, _ = trigger
     if not mapping:
         return False
     end = _block_end(lines, push, push_indent)

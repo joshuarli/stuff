@@ -12,11 +12,11 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import unquote
 
-from repomod.catalog import atomic_write
+from repomod.catalog import write_if_changed
 from repomod.git import GitError, run_git
 from repomod.github import action_tags_many, resolve_tags_many
-from repomod.rules.workflows import workflow_files
-from repomod.types import Finding, Repository, Rule, Severity, TagPredicate
+from repomod.rules.workflows import read_workflow_sources, workflow_files
+from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, operational, violation
 
 _USES = re.compile(r"^(\s*(?:-\s*)?uses\s*:\s*)(.*?)(\r?\n)?$")
 _SHA = re.compile(r"[0-9a-f]{40}\Z", re.IGNORECASE)
@@ -131,10 +131,7 @@ def refresh_pins(path: Path | None = None) -> bool:
         for action, version in selected_versions.items()
     }
     serialized = _render_pins(updated)
-    if target.read_text(encoding="utf-8") == serialized:
-        return False
-    atomic_write(target, serialized)
-    return True
+    return write_if_changed(target, serialized)
 
 
 def _render_pins(pins: dict[str, Pin]) -> str:
@@ -215,9 +212,7 @@ def _action_reference(value: str) -> tuple[str | None, str | None, str | None]:
     return action.casefold(), reference, None
 
 
-def _scan_file(path: Path, repository_root: Path) -> list[ActionUse]:
-    relative = path.relative_to(repository_root).as_posix()
-    source = path.read_text(encoding="utf-8")
+def _scan_source(relative: str, source: str) -> list[ActionUse]:
     uses: list[ActionUse] = []
     block_indent: int | None = None
     for line_number, line in enumerate(source.splitlines(keepends=True), 1):
@@ -255,14 +250,17 @@ def _scan_file(path: Path, repository_root: Path) -> list[ActionUse]:
     return uses
 
 
+def _scan_file(path: Path, repository_root: Path) -> list[ActionUse]:
+    return _scan_source(
+        path.relative_to(repository_root).as_posix(), path.read_text(encoding="utf-8")
+    )
+
+
 def _uses(root: Path, repository: Repository) -> tuple[list[ActionUse], list[tuple[str, str]]]:
-    files, problems = workflow_files(root, repository)
+    sources, problems = read_workflow_sources(root, repository)
     entries: list[ActionUse] = []
-    for path in files:
-        try:
-            entries.extend(_scan_file(path, root))
-        except (OSError, UnicodeError) as error:
-            problems.append((path.relative_to(root).as_posix(), f"cannot read workflow: {error}"))
+    for relative, source in sources:
+        entries.extend(_scan_source(relative, source))
     return entries, problems
 
 
@@ -328,21 +326,21 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
     pins = load_pins()
     uses, problems = _uses(root, repository)
     rule_id = "gha-version" if version else "gha-pin"
-    findings = [Finding(str(repository.id), rule_id, path, message) for path, message in problems]
+    findings = [violation(repository, rule_id, path, message) for path, message in problems]
     for use in uses:
         if use.action is None and use.error is None:
             continue
         if use.error is not None:
             findings.append(
-                Finding(str(repository.id), rule_id, use.path, f"line {use.line_number}: {use.error}")
+                violation(repository, rule_id, use.path, f"line {use.line_number}: {use.error}")
             )
             continue
         assert use.action is not None
         pin = pins.get(use.action)
         if pin is None:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     rule_id,
                     use.path,
                     f"line {use.line_number}: {use.action} has no approved pin in actions.toml",
@@ -352,8 +350,8 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
         major_problem = _major_problem(use, pin)
         if major_problem is not None:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     rule_id,
                     use.path,
                     f"line {use.line_number}: {use.action}: {major_problem}",
@@ -364,8 +362,8 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
             version_comments = list(_VERSION_COMMENT.finditer(use.comment))
             if not version_comments or version_comments[-1].group(1) != pin.version:
                 findings.append(
-                    Finding(
-                        str(repository.id),
+                    violation(
+                        repository,
                         rule_id,
                         use.path,
                         f"line {use.line_number}: {use.action}: expected approved version comment "
@@ -375,8 +373,8 @@ def _findings(root: Path, repository: Repository, *, version: bool) -> list[Find
                 )
         elif use.reference is None or _SHA.fullmatch(use.reference) is None or use.reference.casefold() != pin.sha:
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     rule_id,
                     use.path,
                     f"line {use.line_number}: {use.action}: expected "
@@ -591,24 +589,22 @@ def _jactionlint_findings(
     executable = shutil.which("jactionlint")
     if executable is None:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "jactionlint is required for GitHub Actions checks; install jactionlint",
-                kind="operational",
             )
         ]
     try:
         fixable_rules = _jactionlint_fixable_rule_ids(executable)
     except (GitError, OSError, subprocess.TimeoutExpired) as error:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 f"cannot read jactionlint fix rules: {error}",
-                kind="operational",
             )
         ]
     try:
@@ -632,66 +628,60 @@ def _jactionlint_findings(
         )
     except subprocess.TimeoutExpired:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "jactionlint timed out while checking GitHub Actions files",
-                kind="operational",
             )
         ]
     except OSError as error:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 f"cannot run jactionlint: {error}",
-                kind="operational",
             )
         ]
     if result.returncode not in {0, 1}:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 result.stderr.strip() or result.stdout.strip() or f"jactionlint exited {result.returncode}",
-                kind="operational",
             )
         ]
     try:
         parsed = json.loads(result.stdout)
     except json.JSONDecodeError as error:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 f"jactionlint returned invalid JSON: {error}",
-                kind="operational",
             )
         ]
     if not isinstance(parsed, list):
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "jactionlint returned an invalid finding list",
-                kind="operational",
             )
         ]
     findings = []
     for item in parsed:
         if not isinstance(item, dict):
             return [
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     rule_id,
                     ".github/workflows",
                     "jactionlint returned an invalid finding record",
-                    kind="operational",
                 )
             ]
         item_rule = item.get("id")
@@ -701,12 +691,11 @@ def _jactionlint_findings(
         relative = _tool_relative_path(root, file_value) if isinstance(file_value, str) else None
         if relative is None:
             return [
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     rule_id,
                     ".github/workflows",
                     "jactionlint reported a path outside the repository",
-                    kind="operational",
                 )
             ]
         message = item.get("message")
@@ -714,8 +703,8 @@ def _jactionlint_findings(
         location = f"line {line_number}: " if isinstance(line_number, int) else ""
         fix = item.get("fix")
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 rule_id,
                 relative,
                 f"{location}jactionlint {item_rule}: {message if isinstance(message, str) else 'finding'}",
@@ -746,12 +735,11 @@ def _pinact_findings(
     executable = shutil.which("pinact")
     if executable is None:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "pinact is required for GitHub Actions checks; install pinact",
-                kind="operational",
             )
         ]
     try:
@@ -774,54 +762,49 @@ def _pinact_findings(
         )
     except subprocess.TimeoutExpired:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "pinact timed out while checking action pins",
-                kind="operational",
             )
         ]
     except OSError as error:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 f"cannot run pinact: {error}",
-                kind="operational",
             )
         ]
     if result.returncode not in {0, 1, 2}:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}",
-                kind="operational",
             )
         ]
     try:
         parsed = json.loads(result.stdout)
     except json.JSONDecodeError as error:
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 f"pinact returned invalid SARIF: {error}",
-                kind="operational",
             )
         ]
     if not isinstance(parsed, dict) or not isinstance(parsed.get("runs"), list):
         return [
-            Finding(
-                str(repository.id),
+            operational(
+                repository,
                 rule_id,
                 ".github/workflows",
                 "pinact returned invalid SARIF results",
-                kind="operational",
             )
         ]
     findings = []
@@ -829,12 +812,11 @@ def _pinact_findings(
         results = run.get("results") if isinstance(run, dict) else None
         if not isinstance(results, list):
             return [
-                Finding(
-                    str(repository.id),
+                operational(
+                    repository,
                     rule_id,
                     ".github/workflows",
                     "pinact returned an invalid SARIF run",
-                    kind="operational",
                 )
             ]
         for item in results:
@@ -848,12 +830,11 @@ def _pinact_findings(
             relative = _tool_relative_path(root, uri) if isinstance(uri, str) else None
             if relative is None:
                 return [
-                    Finding(
-                        str(repository.id),
+                    operational(
+                        repository,
                         rule_id,
                         ".github/workflows",
                         "pinact reported a path outside the repository",
-                        kind="operational",
                     )
                 ]
             message = item.get("message", {})
@@ -863,8 +844,8 @@ def _pinact_findings(
             line_number = region.get("startLine") if isinstance(region, dict) else None
             line_prefix = f"line {line_number}: " if isinstance(line_number, int) else ""
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     rule_id,
                     relative,
                     f"{line_prefix}pinact {code}: {text if isinstance(text, str) else 'finding'}",
@@ -1020,8 +1001,7 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
 def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
     files, problems = _action_tool_files(root, repository)
     findings = [
-        Finding(str(repository.id), "gha-syntax", path, message, kind="operational")
-        for path, message in problems
+        operational(repository, "gha-syntax", path, message) for path, message in problems
     ]
     if not files:
         return findings

@@ -90,6 +90,26 @@ def read_json_object(
     return value, None
 
 
+def safe_relative(root: Path, path: Path) -> str | None:
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return None
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            return None
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except (OSError, RuntimeError):
+        return None
+    if not resolved.is_relative_to(base):
+        return None
+    return relative.as_posix()
+
+
 def cache_file(name: str) -> Path:
     cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
     return cache_root / "repomod" / name

@@ -4,7 +4,7 @@ import json
 import subprocess
 from pathlib import Path, PurePosixPath
 
-from repomod.types import Finding, Repository, Rule, Severity, TagPredicate
+from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, operational, violation
 from repomod.workflow_policy import is_fork_workflow
 
 _SEVERITIES: dict[str, Severity] = {
@@ -23,7 +23,7 @@ def _is_excluded(path: PurePosixPath) -> bool:
 
 
 def _operational(repository: Repository, message: str) -> Finding:
-    return Finding(str(repository.id), "mdtool", None, message, kind="operational")
+    return operational(repository, "mdtool", None, message)
 
 
 def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -97,8 +97,8 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
         if target:
             detail += f": {target}"
         findings.append(
-            Finding(
-                str(repository.id),
+            violation(
+                repository,
                 "mdtool",
                 relative,
                 detail,

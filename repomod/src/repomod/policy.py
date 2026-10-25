@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from repomod.catalog import Catalog, repository_path
 from repomod.github import protection_many, topics_many
 from repomod.rules import rules
-from repomod.types import Finding, Repository, Rule
+from repomod.types import Finding, Repository, Rule, operational, violation
 
 
 class PolicyError(RuntimeError):
@@ -111,13 +111,7 @@ def lint_repositories(
             root = repository_path(catalog, repository)
         except (OSError, ValueError) as error:
             findings.append(
-                Finding(
-                    str(repository.id),
-                    "repo-integrity",
-                    None,
-                    f"cannot resolve canonical checkout: {error}",
-                    kind="operational",
-                )
+                operational(repository, "repo-integrity", None, f"cannot resolve canonical checkout: {error}")
             )
             continue
         for rule in rules_by_repository[str(repository.id)]:
@@ -127,25 +121,13 @@ def lint_repositories(
                 result = topic_results.get(str(repository.id))
                 if result is None:
                     findings.append(
-                        Finding(
-                            str(repository.id),
-                            "topics",
-                            None,
-                            "cannot read GitHub topics: missing result",
-                            kind="operational",
-                        )
+                        operational(repository, "topics", None, "cannot read GitHub topics: missing result")
                     )
                     continue
                 additions, removals, error = result
                 if error is not None:
                     findings.append(
-                        Finding(
-                            str(repository.id),
-                            "topics",
-                            None,
-                            f"cannot read GitHub topics: {error}",
-                            kind="operational",
-                        )
+                        operational(repository, "topics", None, f"cannot read GitHub topics: {error}")
                     )
                     continue
                 if additions or removals:
@@ -155,38 +137,31 @@ def lint_repositories(
                     if removals:
                         details.append(f"remove {', '.join(removals)}")
                     findings.append(
-                        Finding(str(repository.id), "topics", None, "; ".join(details), fixable=False)
+                        violation(repository, "topics", None, "; ".join(details), fixable=False)
                     )
                 continue
             if rule.id == "github-protection":
                 result = protection_results.get(str(repository.id))
                 if result is None:
                     findings.append(
-                        Finding(
-                            str(repository.id),
+                        operational(
+                            repository,
                             "github-protection",
                             None,
                             "cannot read branch protection: missing result",
-                            kind="operational",
                         )
                     )
                     continue
                 has_protection, count, error = result
                 if error is not None:
                     findings.append(
-                        Finding(
-                            str(repository.id),
-                            "github-protection",
-                            None,
-                            f"cannot read branch protection: {error}",
-                            kind="operational",
-                        )
+                        operational(repository, "github-protection", None, f"cannot read branch protection: {error}")
                     )
                     continue
                 if has_protection and count != 0:
                     findings.append(
-                        Finding(
-                            str(repository.id),
+                        violation(
+                            repository,
                             "github-protection",
                             None,
                             f"branch protection requires {count} approving review(s); "
@@ -199,7 +174,7 @@ def lint_repositories(
                 findings.extend(rule.check(root, repository))
             except (OSError, ValueError, RuntimeError) as error:
                 findings.append(
-                    Finding(str(repository.id), rule.id, None, f"rule could not complete: {error}", kind="operational")
+                    operational(repository, rule.id, None, f"rule could not complete: {error}")
                 )
     return sorted(
         findings,

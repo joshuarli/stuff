@@ -29,7 +29,7 @@ from repomod.audit import (
     _upgrade_tasks,
     _write_cache,
 )
-from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _RULE_ID = "audit-upgrades"
 
@@ -119,8 +119,8 @@ def _outdated_findings(
             unresolved.add(f"{item.ecosystem}:{item.name}")
         elif _is_outdated(item.locked, newest):
             findings.append(
-                Finding(
-                    str(repository.id),
+                violation(
+                    repository,
                     _RULE_ID,
                     None,
                     f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}",
@@ -128,13 +128,7 @@ def _outdated_findings(
                 )
             )
     findings.extend(
-        Finding(
-            str(repository.id),
-            _RULE_ID,
-            None,
-            f"could not resolve latest version for {name}",
-            kind="operational",
-        )
+        operational(repository, _RULE_ID, None, f"could not resolve latest version for {name}")
         for name in sorted(unresolved)
     )
     return findings

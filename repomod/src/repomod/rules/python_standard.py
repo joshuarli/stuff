@@ -14,8 +14,10 @@ from typing import Any
 
 from repomod.catalog import atomic_write
 from repomod.io import read_toml
-from repomod.rules.workflows import workflow_files
+from repomod.rules.workflows import read_workflow_sources, workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import operational as _operational
+from repomod.types import violation as _violation
 
 _RULE_ID = "python-standard"
 _TOOL_NAMES = ("uv", "ruff", "ty")
@@ -53,14 +55,9 @@ def _finding(
     fixable: bool = True,
     operational: bool = False,
 ) -> Finding:
-    return Finding(
-        str(repository.id),
-        _RULE_ID,
-        path,
-        message,
-        fixable=fixable and not operational,
-        kind="operational" if operational else "violation",
-    )
+    if operational:
+        return _operational(repository, _RULE_ID, path, message)
+    return _violation(repository, _RULE_ID, path, message, fixable=fixable)
 
 
 def _workflow_comment(value: str) -> tuple[str, str]:
@@ -257,18 +254,12 @@ def _workflow_plan(root: Path, repository: Repository) -> dict[str, str]:
 
 
 def _python_ci_findings(root: Path, repository: Repository) -> list[Finding]:
-    files, problems = workflow_files(root, repository)
+    sources, problems = read_workflow_sources(root, repository)
     findings = [
         _finding(repository, path, message, operational=True)
         for path, message in problems
     ]
-    for path in files:
-        relative = path.relative_to(root).as_posix()
-        try:
-            source = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            findings.append(_finding(repository, relative, f"cannot read workflow: {error}", operational=True))
-            continue
+    for relative, source in sources:
         lines = source.splitlines(keepends=True)
         for index, line in enumerate(lines):
             match = _PYTHON_VERSION_FIELD.fullmatch(line)

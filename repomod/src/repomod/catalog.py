@@ -301,6 +301,13 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     return True
 
 
+def write_if_changed(path: Path, content: str) -> bool:
+    if path.read_text(encoding="utf-8") == content:
+        return False
+    atomic_write(path, content)
+    return True
+
+
 def atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
