@@ -818,7 +818,8 @@ def test_topics_noop_and_permission_errors_are_reported_without_stopping_others(
 def test_rule_selection_is_independent_of_repository_tag_filters() -> None:
     rule_ids = {rule.id for rule in selected_rules()}
 
-    assert {"gha-pin", "repo-integrity", "topics", "repo-template"} <= rule_ids
+    assert {"gha-syntax", "repo-integrity", "topics", "repo-template"} <= rule_ids
+    assert not {"gha-pin", "gha-version"} & rule_ids
     assert {"cargo-release", "python-release", "npm-release"} <= rule_ids
 
 

@@ -11,7 +11,7 @@ import pytest
 
 import repomod.fix as fix_module
 from repomod.catalog import Catalog, load_catalog
-from repomod.fix import FixOutcome, _finding_signature, fix_repository, push_fix_branch, push_repository
+from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import head, status
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -114,31 +114,6 @@ def file_rule(
 def subjects(path: Path, base: str, target: str = "HEAD") -> list[str]:
     output = git("log", "--format=%s", f"{base}..{target}", cwd=path).stdout
     return output.splitlines()
-
-
-def test_action_pin_findings_keep_identity_when_pinact_resolves_a_sha_version() -> None:
-    unresolved = Finding(
-        "acme/demo",
-        "gha-pin",
-        ".github/workflows/ci.yml",
-        "line 18: actions/checkout: cannot identify the major version of this SHA",
-    )
-    resolved = Finding(
-        "acme/demo",
-        "gha-pin",
-        ".github/workflows/ci.yml",
-        "line 20: actions/checkout: expected actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    )
-    other_action = Finding(
-        "acme/demo",
-        "gha-pin",
-        ".github/workflows/ci.yml",
-        "line 20: actions/download-artifact: expected "
-        "actions/download-artifact@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    )
-
-    assert _finding_signature(unresolved) == _finding_signature(resolved)
-    assert _finding_signature(resolved) != _finding_signature(other_action)
 
 
 def test_fix_branch_keeps_commits_off_default_and_resumes_repeated_fixes(
@@ -305,7 +280,7 @@ def test_new_workflow_violation_rolls_back_an_otherwise_successful_fixer(
     )
 
     assert outcome.commits == []
-    assert any("gha-pin" in message for _, message in outcome.failures), outcome.failures
+    assert any("workflow" in message for _, message in outcome.failures), outcome.failures
     assert not (path / workflow).exists()
     assert head(path) == base
 

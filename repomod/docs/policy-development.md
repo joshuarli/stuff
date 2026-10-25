@@ -50,7 +50,7 @@ Findings carry the file, line, column, and code; `status` and `lint` share the
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
-`gha-syntax` validates GitHub Actions files offline with Pinact's correctness profile and the
+`gha-syntax` validates GitHub Actions files offline with Pinact's default profile and the
 explicit `actions.toml` catalog. Its fixer returns a catalog-backed Pinact plan from a disposable
 worktree; repomod keeps validation and repository writes.
 `no-formatters` rejects formatter
@@ -61,10 +61,11 @@ runs the read-only documentation audit at `~/.local/bin/mdtool` for each reposit
 ## GitHub Actions with Pinact
 
 Keep `pinact` on `PATH` when running repomod checks and fixes. `gha-syntax` runs
-`pinact lint --profile=correctness --format=json --catalog actions.toml` on workflow and action
+`pinact lint --profile=default --format=json --catalog actions.toml` on workflow and action
 metadata files. The other GitHub Actions fixers use the same Pinact validation command on their
 planned changes. The catalog path is explicit; repomod's `actions.toml` owns approval policy, and
 catalog-backed linting and fixing make no network requests.
+The former `gha-pin` and `gha-version` rule IDs are consolidated into `gha-syntax`.
 
 The `gha-syntax` fixer selects only workflow and action metadata files. It runs Pinact's
 catalog-backed `fix` in a detached worktree under the repository's `.work/tmp` directory by
@@ -79,9 +80,9 @@ GitHub's workflow validator; dynamic and unsupported syntax remain outside its c
 See the [Pinact guide](https://github.com/joshuarli/usr/blob/main/tools/pinact/README.md) and its
 [compatibility report](https://github.com/joshuarli/usr/blob/main/tools/pinact/docs/compatibility.md).
 
-`gha-version` updates action references and version comments from `actions.toml`. `pins refresh`
-fetches stable releases and commit SHAs. A clear version reference can move to a newer major; an
-unlabeled SHA still needs review.
+`pins refresh` fetches stable releases and commit SHAs for `actions.toml`. Pinact's catalog-backed
+fixer updates references and version comments only within an identifiable major; major changes and
+unlabeled SHAs still need review.
 
 `github-protection` requires zero approving reviews on protected branches so owner-only
 automation never waits on reviews. Repositories without branch protection are skipped.

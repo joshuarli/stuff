@@ -151,10 +151,6 @@ def _policy_findings(
 
 def _finding_signature(finding: Finding) -> tuple[str, str | None, str, str, str]:
     identity = re.sub(r"^line [0-9]+: ", "", finding.message, count=1)
-    if finding.rule in {"gha-pin", "gha-version"}:
-        action = re.match(r"^([^:\s]+/[^:\s]+):", identity)
-        if action is not None:
-            identity = f"action:{action.group(1)}"
     return (
         finding.rule,
         finding.file,

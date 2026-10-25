@@ -12,19 +12,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: joshuarli/usr
+          ref: main
+          path: usr
+          persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-      - name: Install actionlint
-        env:
-          ACTIONLINT_VERSION: "1.7.12"
-          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-        run: |
-          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$tarball" \
-            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$tarball"
-          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum -c -
-          mkdir -p "$RUNNER_TEMP/bin"
-          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/bin" actionlint
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - run: make test
+        env:
+          PINACT_LAUNCHER: ${{ github.workspace }}/usr/dotfiles/base/.local/bin/pinact
       - run: uv run ruff check src tests
       - run: uv run ty check

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -9,10 +11,16 @@ from typing import Any
 
 import pytest
 
-from repomod import github
+from repomod import cli, github
+from repomod.github import AutoMergeSkipped, FixPullRequest
 from repomod.rules import actions, release
 from repomod.rules.workflows import workflow_files
-from repomod.types import RepoId, Repository
+from repomod.types import (
+    Catalog,
+    RemoteRepository,
+    RepoId,
+    Repository,
+)
 
 
 def repository(tags: tuple[str, ...] = ("tool",)) -> Repository:
@@ -51,220 +59,6 @@ def write_cargo_release_script(root: Path) -> None:
         encoding="utf-8",
     )
     script.chmod(0o755)
-
-
-def test_action_scanner_handles_quoted_refs_comments_blocks_and_local_actions(
-    tmp_path: Path,
-) -> None:
-    workflow = write_workflow(
-        tmp_path,
-        "jobs:\n"
-        "  build:\n"
-        "    steps:\n"
-        "      - uses: actions/checkout@v4 # keep this\n"
-        "      - uses: 'actions/setup-python@v5'\n"
-        "      - uses: ./local-action\n"
-        "      - uses: docker://alpine:3\n"
-        "      - run: |\n"
-        "          uses: fake/action@v1\n"
-        "      - uses: actions/checkout@${{ env.REF }}\n"
-        "      - uses: actions/checkout/subdir@v4\n",
-    )
-
-    uses = actions._scan_file(workflow, tmp_path)
-
-    assert len(uses) == 6
-    assert uses[0].value == "actions/checkout@v4"
-    assert uses[0].comment == "# keep this"
-    assert uses[1].quote == "'"
-    assert uses[2].action is None
-    assert uses[2].error is None
-    assert uses[3].action is None
-    assert uses[3].error is None
-    assert uses[4].action is None
-    assert uses[4].error is not None
-    assert uses[5].action == "actions/checkout"
-    assert uses[5].value == "actions/checkout/subdir@v4"
-
-
-def test_action_pin_and_version_fixes_preserve_format_and_are_idempotent(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    write_pins(pins_path)
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    content = (
-        "jobs:\n"
-        "  build:\n"
-        "    steps:\n"
-        "      - uses: actions/checkout@v4.3.0 # keep v4.3.0\n"
-        "      - uses: 'actions/setup-python@v5' # old version\n"
-    )
-    workflow = write_workflow(tmp_path, content)
-    repo = repository()
-
-    pin_plan = actions._fix(tmp_path, repo, version=False)
-    changed_pin = pin_plan[".github/workflows/ci.yaml"]
-    assert "actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # keep v4.4.0" in changed_pin
-    assert (
-        "'actions/setup-python@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
-        " # old version # v5.6.0"
-    ) in changed_pin
-    version_plan = actions._fix(tmp_path, repo, version=True)
-    changed_version = version_plan[".github/workflows/ci.yaml"]
-    assert "'actions/setup-python@v5' # old version # v5.6.0" in changed_version
-
-    workflow.write_text(changed_pin, encoding="utf-8")
-    pin_findings = actions._findings(tmp_path, repo, version=False)
-    assert not any(finding.fixable for finding in pin_findings)
-    assert actions._fix(tmp_path, repo, version=False) == {}
-
-
-def test_action_pin_fixer_updates_unambiguous_cross_major_reference(
-    tmp_path: Path, monkeypatch
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    pins_path.write_text(
-        '[actions."actions/checkout"]\n'
-        'channel = "v7"\n'
-        'version = "v7.0.1"\n'
-        'sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n',
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    root = tmp_path / "repo"
-    workflow_path = write_workflow(
-        root,
-        "jobs:\n  test:\n    steps:\n"
-        "      - uses: actions/checkout@v4.4.0 # v4.4.0\n"
-        "      - uses: actions/checkout@cccccccccccccccccccccccccccccccccccccccc # v4.4.0\n",
-    )
-    repo = repository()
-
-    findings = actions._findings(root, repo, version=False)
-
-    assert len(findings) == 2
-    assert all(finding.fixable for finding in findings)
-    plan = actions._fix(root, repo, version=False)[".github/workflows/ci.yaml"]
-    assert plan.count(f"actions/checkout@{'a' * 40} # v7.0.1") == 2
-    version_plan = actions._fix(root, repo, version=True)[".github/workflows/ci.yaml"]
-    assert version_plan.count("# v7.0.1") == 2
-    assert workflow_path.read_text(encoding="utf-8").endswith(
-        "actions/checkout@cccccccccccccccccccccccccccccccccccccccc # v4.4.0\n"
-    )
-
-
-def test_newer_ref_with_stale_comment_is_never_downgraded(
-    tmp_path: Path, monkeypatch
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    pins_path.write_text(
-        '[actions."actions/checkout"]\nchannel = "v7"\nversion = "v7.0.1"\n'
-        'sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n',
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    root = tmp_path / "repo"
-    source = "uses: actions/checkout@v8 # v7.0.1"
-    workflow_path = write_workflow(root, "jobs:\n  test:\n    steps:\n      - " + source + "\n")
-
-    findings = actions._findings(root, repository(), version=False)
-
-    assert len(findings) == 1
-    assert not findings[0].fixable
-    assert "conflicts with action reference v8" in findings[0].message
-    assert actions._fix(root, repository(), version=False) == {}
-    assert workflow_path.read_text(encoding="utf-8").endswith(source + "\n")
-
-
-def test_unknown_action_ref_is_not_made_fixable_by_version_comment(
-    tmp_path: Path, monkeypatch
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    write_pins(pins_path)
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    root = tmp_path / "repo"
-    workflow = write_workflow(
-        root,
-        "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@main # v4.4.0\n",
-    )
-
-    findings = actions._findings(root, repository(), version=False)
-
-    assert len(findings) == 1
-    assert not findings[0].fixable
-    assert "cannot resolve" in findings[0].message
-    assert actions._fix(root, repository(), version=False) == {}
-    assert "@main # v4.4.0" in workflow.read_text(encoding="utf-8")
-
-
-def test_stale_unlabelled_sha_fails_closed_and_same_major_pin_is_fixable(
-    tmp_path: Path, monkeypatch
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    write_pins(pins_path)
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    root = tmp_path / "repo"
-    workflow_path = write_workflow(
-        root,
-        "jobs:\n  test:\n    steps:\n"
-        "      - uses: actions/checkout@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
-        "      - uses: actions/checkout@cccccccccccccccccccccccccccccccccccccccc # v4.3.0\n",
-    )
-    repo = repository()
-
-    findings = actions._findings(root, repo, version=False)
-    plan = actions._fix(root, repo, version=False)[".github/workflows/ci.yaml"]
-
-    assert len(findings) == 2
-    assert not findings[0].fixable
-    assert "cannot identify the major" in findings[0].message
-    assert f"actions/checkout@{'a' * 40} # v4.4.0" in plan
-    assert "actions/checkout@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n" in plan
-    assert workflow_path.read_text(encoding="utf-8").endswith(" # v4.3.0\n")
-
-
-def test_multiple_version_labels_are_ambiguous_and_never_rewritten(
-    tmp_path: Path, monkeypatch
-) -> None:
-    pins_path = tmp_path / "actions.toml"
-    write_pins(pins_path)
-    monkeypatch.setattr(actions, "actions_file", lambda: pins_path)
-    root = tmp_path / "repo"
-    workflow = write_workflow(
-        root,
-        "jobs:\n  test:\n    steps:\n"
-        "      - uses: actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # v4.2.0 from v4.3.0\n",
-    )
-
-    findings = actions._findings(root, repository(), version=False)
-
-    assert len(findings) == 1
-    assert not findings[0].fixable
-    assert "ambiguous" in findings[0].message
-    assert actions._fix(root, repository(), version=False) == {}
-    assert "# v4.2.0 from v4.3.0" in workflow.read_text(encoding="utf-8")
-
-
-def test_approved_pins_match_current_repomod_and_binary_release_workflows(
-    tmp_path: Path,
-) -> None:
-    root = Path(__file__).parents[1]
-    fixture = tmp_path / "laputa-release"
-    workflow = write_workflow(
-        fixture,
-        "jobs:\n  release:\n    steps:\n"
-        "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n"
-        "      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2\n",
-    )
-    current = Repository(RepoId("joshuarli", "repomod"), ("tool", "python"))
-
-    assert not actions._findings(root, current, version=False)
-    assert not actions._findings(root, current, version=True)
-    assert not actions._findings(fixture, repository(), version=False)
-    assert not actions._findings(fixture, repository(), version=True)
-    assert workflow.is_file()
 
 
 def test_action_symlink_parent_and_dynamic_reference_are_reported(
@@ -537,10 +331,135 @@ def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rule
     assert results[1].message == "line 1: pinact yaml-syntax: invalid YAML: bad mapping"
     assert results[2].severity == "info"
     argv = captured["args"]
-    assert argv[:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert argv[:4] == ["/bin/pinact", "lint", "--profile=default", "--format=json"]
     assert argv[4:6] == ["--catalog", str(actions.actions_file())]
     assert "--no-online" not in argv
     assert captured["cwd"] == tmp_path
+
+
+def test_pinact_rule_uses_real_launcher_for_security_and_fixing(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    pinact_launcher = os.environ.get("PINACT_LAUNCHER")
+    if pinact_launcher is None:
+        pytest.skip("PINACT_LAUNCHER is required for the cross-repository integration test")
+
+    executable = tmp_path / "bin" / "pinact"
+    executable.parent.mkdir()
+    executable.write_text(
+        "#!/bin/sh\n"
+        f"exec {shlex.quote(sys.executable)} -I {shlex.quote(pinact_launcher)} \"$@\"\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{executable.parent}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("TMPDIR", str(tmp_path / ".work" / "tmp"))
+
+    workspace = tmp_path / "workspace"
+    lint_repository = Repository(RepoId("acme", "lint-demo"), ("tool",))
+    fix_repository = Repository(RepoId("acme", "fix-demo"), ("tool",))
+    catalog = Catalog(
+        tmp_path / "catalog.toml",
+        workspace,
+        "personal",
+        (lint_repository, fix_repository),
+    )
+    monkeypatch.setattr(cli, "_catalog", lambda: catalog)
+
+    lint_root = workspace / "acme" / "lint-demo"
+    write_workflow(
+        lint_root,
+        "on:\n"
+        "  pull_request_target:\n"
+        "permissions: {}\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    permissions:\n"
+        "      contents: write\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v7\n"
+        "      - run: echo \"${{ github.event.pull_request.title }}\"\n",
+    )
+    for arguments in (
+        ["git", "init", "--initial-branch=main"],
+        ["git", "config", "user.name", "Test User"],
+        ["git", "config", "user.email", "test@example.invalid"],
+        ["git", "add", ".github/workflows/ci.yaml"],
+        ["git", "commit", "-m", "add workflow"],
+    ):
+        subprocess.run(arguments, cwd=lint_root, check=True, capture_output=True, text=True)
+    assert cli.main(
+        ["lint", "--repo", "acme/lint-demo", "--rule", "gha-syntax", "--json"]
+    ) == 1
+    lint_records = json.loads(capsys.readouterr().out)
+    lint_messages = "\n".join(record["message"] for record in lint_records)
+    assert "pinact dangerous-trigger" in lint_messages
+    assert "pinact checkout-credentials" in lint_messages
+
+    fix_root = workspace / "acme" / "fix-demo"
+    fix_root.mkdir()
+    fix_workflow = write_workflow(
+        fix_root,
+        'on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n'
+        '    steps:\n      - uses: actions/checkout@v7\n'
+        '      - run: echo "::set-output name=value::hello"\n',
+    )
+    for arguments in (
+        ["git", "init", "--initial-branch=main"],
+        ["git", "config", "user.name", "Test User"],
+        ["git", "config", "user.email", "test@example.invalid"],
+        ["git", "remote", "add", "origin", "https://github.com/acme/fix-demo.git"],
+        ["git", "add", ".github/workflows/ci.yaml"],
+        ["git", "commit", "-m", "add workflow"],
+    ):
+        subprocess.run(arguments, cwd=fix_root, check=True, capture_output=True, text=True)
+
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=fix_root, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    monkeypatch.setattr(
+        cli,
+        "remote_metadata",
+        lambda repositories: {
+            str(repo.id): RemoteRepository(str(repo.id), "main", head, False)
+            for repo in repositories
+        },
+    )
+    pushed: dict[str, str] = {}
+
+    def push_fix(_repo, _path, branch, _default_branch, _base_head, _branch_head):
+        pushed["branch"] = branch
+        return "pushed", None
+
+    monkeypatch.setattr(cli, "push_fix_branch", push_fix)
+    monkeypatch.setattr(
+        cli,
+        "ensure_fix_pull_request",
+        lambda *_: FixPullRequest(
+            "https://example.invalid/1", AutoMergeSkipped("integration test")
+        ),
+    )
+    assert cli.main(
+        ["fix", "--repo", "acme/fix-demo", "--rule", "gha-syntax", "--workers", "1"]
+    ) == 0
+    capsys.readouterr()
+    fixed_workflow = subprocess.run(
+        ["git", "show", f"{pushed['branch']}:.github/workflows/ci.yaml"],
+        cwd=fix_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+    assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1" in (
+        fixed_workflow
+    )
+    assert "GITHUB_OUTPUT" in fixed_workflow
+    assert "::set-output" not in fixed_workflow
+    assert "::set-output" in fix_workflow.read_text(encoding="utf-8")
 
 
 def test_pinact_lint_maps_tool_failures_to_operational_findings(
@@ -627,7 +546,7 @@ def test_pinact_lint_scopes_to_workflows_and_action_files(
     assert captured["args"] == [
         "/bin/pinact",
         "lint",
-        "--profile=correctness",
+        "--profile=default",
         "--format=json",
         "--catalog",
         str(actions.actions_file()),
@@ -642,97 +561,6 @@ def test_pinact_lint_scopes_to_workflows_and_action_files(
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("must not shell out")),
     )
     assert actions._pinact_lint_findings(tmp_path, repository(), [dependabot, lock]) == []
-
-
-def test_pinact_reports_unpinned_actions_as_fixable(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    workflow = write_workflow(
-        tmp_path,
-        "jobs:\n  test:\n    steps:\n" "      - uses: actions/checkout@v4\n",
-    )
-    captured: dict[str, list[str]] = {}
-
-    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
-        captured["args"] = list(args[0])
-        return SimpleNamespace(
-            returncode=1,
-            stdout="",
-            stderr=".github/workflows/ci.yaml:4: actions/checkout@v4\n",
-        )
-
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
-    monkeypatch.setattr(actions.subprocess, "run", fake_run)
-
-    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
-
-    assert len(findings) == 1
-    assert findings[0].fixable
-    assert "line 4" in findings[0].message
-    assert "unpinned-action" in findings[0].message
-    assert "actions/checkout@v4" in findings[0].message
-    argv = captured["args"]
-    assert "--format" not in argv
-    assert "--no-api" not in argv
-    assert "sarif" not in argv
-
-
-def test_pinact_reports_file_errors_as_unfixable_and_generic_errors_as_operational(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    workflow = write_workflow(tmp_path, "jobs: {}\n")
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
-    monkeypatch.setattr(
-        actions.subprocess,
-        "run",
-        lambda *args, **kwargs: SimpleNamespace(
-            returncode=2,
-            stdout="",
-            stderr="pinact: .github/workflows/ci.yaml:1: unsupported inline uses syntax\n",
-        ),
-    )
-
-    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
-
-    assert len(findings) == 1
-    assert not findings[0].fixable
-    assert "line 1" in findings[0].message
-
-    monkeypatch.setattr(
-        actions.subprocess,
-        "run",
-        lambda *args, **kwargs: SimpleNamespace(
-            returncode=2,
-            stdout="",
-            stderr="pinact: cannot resolve actions/checkout: git exited 128\n",
-        ),
-    )
-
-    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
-
-    assert len(findings) == 1
-    assert findings[0].kind == "operational"
-
-
-def test_pinact_check_clean_returns_no_findings(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    workflow = write_workflow(tmp_path, "jobs: {}\n")
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
-    monkeypatch.setattr(
-        actions.subprocess,
-        "run",
-        lambda *args, **kwargs: SimpleNamespace(
-            returncode=0,
-            stdout="",
-            stderr="",
-        ),
-    )
-
-    assert actions._pinact_findings(tmp_path, repository(), [workflow]) == []
 
 
 def test_pin_refresh_selects_latest_major_channel(
