@@ -23,6 +23,7 @@ from repomod.github import (
     ci_status,
     discover,
     ensure_fix_pull_request,
+    open_pull_requests,
     remote_metadata,
     topics_many,
 )
@@ -231,6 +232,23 @@ def _finding_color(finding: Finding) -> str:
     return "36"
 
 
+def _has_conflicting_pr(row: dict[str, object]) -> bool:
+    requests = row.get("open_prs")
+    if not isinstance(requests, list):
+        return False
+    return any(
+        isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
+        for request in requests
+    )
+
+
+def _pr_label(request: object) -> str:
+    if not isinstance(request, dict):
+        return "#? UNKNOWN"
+    number = request.get("number", "?")
+    return f"#{number} {request.get('mergeable', 'UNKNOWN')}·{request.get('merge_state', 'UNKNOWN')}"
+
+
 def _status_text(
     rows: Sequence[dict[str, object]],
     findings_by_repository: dict[str, list[Finding]],
@@ -285,6 +303,19 @@ def _status_text(
                     [(f"workflows {workflow_items[0][0]}", workflow_items[0][1]), *workflow_items[1:]]
                 )
 
+        prs = row.get("open_prs")
+        if isinstance(prs, list) and prs:
+            pr_items = [
+                (
+                    _pr_label(request),
+                    "31"
+                    if isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
+                    else "33",
+                )
+                for request in prs
+            ]
+            _print_wrapped_items([(f"PRs {pr_items[0][0]}", pr_items[0][1]), *pr_items[1:]])
+
         if lint_findings:
             for finding in lint_findings:
                 print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
@@ -316,6 +347,7 @@ def _status(args: argparse.Namespace) -> int:
             )
         remotes = {} if args.offline else remote_metadata(repositories)
         ci = ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
+        pull_requests = {} if args.offline else open_pull_requests(repositories)
         findings = [
             finding
             for name in sorted(findings_futures, key=str.casefold)
@@ -342,6 +374,8 @@ def _status(args: argparse.Namespace) -> int:
         lint_operational = sum(finding.kind == "operational" for finding in repository_findings)
         remote = remotes.get(name)
         ci_result = ci[name]
+        prs = pull_requests.get(name)
+        requests, prs_error = prs if prs is not None else ([], None)
         default_branch = remote.default_branch if remote else ci_result.default_branch
         remote_sha = remote.sha if remote else None
         row: dict[str, object] = {
@@ -379,6 +413,18 @@ def _status(args: argparse.Namespace) -> int:
             "lint_warnings": lint_warnings,
             "lint_operational": lint_operational,
             "todo_items": todo_items,
+            "open_prs": None
+            if prs is None
+            else [
+                {
+                    "number": request.number,
+                    "url": request.url,
+                    "mergeable": request.mergeable,
+                    "merge_state": request.merge_state,
+                }
+                for request in requests
+            ],
+            "prs_error": prs_error,
         }
         if args.json:
             row["lint_findings"] = [finding_dict(finding) for finding in repository_findings]
@@ -396,6 +442,7 @@ def _status(args: argparse.Namespace) -> int:
             )
             or row["lint_errors"] != 0
             or row["lint_operational"] != 0
+            or _has_conflicting_pr(row)
         ]
     if args.json:
         _print_json(rows)
@@ -409,6 +456,22 @@ def _status(args: argparse.Namespace) -> int:
             for check in ci[name].checks:
                 if check.state in {"failure", "failed", "error", "timed_out", "action_required", "startup_failure"}:
                     print(f"  {name}: {check.name} {check.state} {check.url or ''}", file=sys.stderr)
+            for row in rows:
+                if str(row["repository"]) != name:
+                    continue
+                requests = row.get("open_prs")
+                if not isinstance(requests, list):
+                    continue
+                for request in requests:
+                    if (
+                        isinstance(request, dict)
+                        and request.get("mergeable") == "CONFLICTING"
+                    ):
+                        print(
+                            f"  {name}: PR #{request.get('number')} has merge conflicts "
+                            f"{request.get('url') or ''}",
+                            file=sys.stderr,
+                        )
     return 0
 
 

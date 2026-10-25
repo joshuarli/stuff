@@ -151,6 +151,14 @@ class WorkflowStatus:
 
 
 @dataclass(frozen=True, slots=True)
+class OpenPullRequest:
+    number: int
+    url: str
+    mergeable: str
+    merge_state: str
+
+
+@dataclass(frozen=True, slots=True)
 class CiResult:
     repository: str
     default_branch: str | None

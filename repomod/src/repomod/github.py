@@ -18,6 +18,7 @@ from repomod.types import (
     CheckResult,
     CiResult,
     CiState,
+    OpenPullRequest,
     RemoteRepository,
     RepoId,
     Repository,
@@ -1391,6 +1392,73 @@ def protection_many(
         futures = [pool.submit(_protection_reviews_one, repository) for repository in repositories]
         output = [future.result() for future in as_completed(futures)]
     return sorted(output, key=lambda item: item[0].casefold())
+
+
+def _open_pull_requests_batch(
+    batch: tuple[Repository, ...],
+) -> dict[str, tuple[list[OpenPullRequest], str | None]]:
+    aliases = {f"r{index}": str(repository.id) for index, repository in enumerate(batch)}
+    by_alias = {f"r{index}": repository for index, repository in enumerate(batch)}
+    fields = []
+    for alias in aliases:
+        owner = json.dumps(by_alias[alias].id.owner)
+        repo_name = json.dumps(by_alias[alias].id.name)
+        fields.append(
+            f"{alias}: repository(owner: {owner}, name: {repo_name}) "
+            "{ pullRequests(states: OPEN, first: 20, orderBy: {field: CREATED_AT, direction: ASC}) "
+            "{ nodes { number url mergeable mergeStateStatus } } }"
+        )
+    try:
+        data = _graphql_batch_data(_graphql("query { " + " ".join(fields) + " }"), aliases)
+    except GitHubError as error:
+        return {str(repository.id): ([], str(error)) for repository in batch }
+    found: dict[str, tuple[list[OpenPullRequest], str | None]] = {}
+    for alias, repository in by_alias.items():
+        name = str(repository.id)
+        value = data.get(alias)
+        pulls = value.get("pullRequests") if isinstance(value, dict) else None
+        nodes = pulls.get("nodes") if isinstance(pulls, dict) else None
+        if not isinstance(nodes, list):
+            found[name] = ([], "GitHub returned invalid pull request data")
+            continue
+        requests: list[OpenPullRequest] = []
+        valid = True
+        for node in nodes:
+            number = node.get("number") if isinstance(node, dict) else None
+            url = node.get("url") if isinstance(node, dict) else None
+            mergeable = node.get("mergeable") if isinstance(node, dict) else None
+            merge_state = node.get("mergeStateStatus") if isinstance(node, dict) else None
+            if not isinstance(number, int) or not isinstance(url, str):
+                valid = False
+                break
+            requests.append(
+                OpenPullRequest(
+                    number,
+                    url,
+                    mergeable if mergeable in {"MERGEABLE", "CONFLICTING"} else "UNKNOWN",
+                    merge_state if isinstance(merge_state, str) and merge_state else "UNKNOWN",
+                )
+            )
+        found[name] = ([], "GitHub returned invalid pull request data") if not valid else (requests, None)
+    return found
+
+
+def open_pull_requests(
+    repositories: tuple[Repository, ...],
+) -> dict[str, tuple[list[OpenPullRequest], str | None]]:
+    found: dict[str, tuple[list[OpenPullRequest], str | None]] = {}
+    batches = _batches(repositories)
+    if not batches:
+        return found
+    if len(batches) == 1:
+        return _open_pull_requests_batch(batches[0])
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(batches)), thread_name_prefix="repomod-github"
+    ) as pool:
+        futures = [pool.submit(_open_pull_requests_batch, batch) for batch in batches]
+        for future in as_completed(futures):
+            found.update(future.result())
+    return found
 
 
 def _graphql_batch_data(response: dict[str, Any], aliases: dict[str, str]) -> dict[str, Any]:

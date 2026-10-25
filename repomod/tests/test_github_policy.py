@@ -32,6 +32,7 @@ from repomod.types import (
     CiResult,
     Finding,
     GitStatus,
+    OpenPullRequest,
     RemoteRepository,
     RepoId,
     Repository,
@@ -1421,4 +1422,119 @@ def test_status_failed_excludes_warning_only_lint_findings(
     assert row["lint"] == 1
     assert row["lint_warnings"] == 1
     assert row["lint_errors"] == 0
+
+
+def test_open_pull_requests_reports_merge_state_and_invalid_data(monkeypatch) -> None:
+    def graphql(query: str):
+        assert "pullRequests(states: OPEN" in query
+        return {
+            "data": {
+                "r0": {
+                    "pullRequests": {
+                        "nodes": [
+                            {
+                                "number": 3,
+                                "url": "https://github.invalid/acme/demo/pull/3",
+                                "mergeable": "CONFLICTING",
+                                "mergeStateStatus": "BLOCKED",
+                            },
+                            {
+                                "number": 4,
+                                "url": "https://github.invalid/acme/demo/pull/4",
+                                "mergeable": "MERGEABLE",
+                                "mergeStateStatus": "CLEAN",
+                            },
+                        ]
+                    }
+                },
+                "r1": {
+                    "pullRequests": {
+                        "nodes": [
+                            {"number": "five", "url": "https://github.invalid/acme/other/pull/5"},
+                        ]
+                    }
+                },
+            }
+        }
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+    first, second = repo("demo"), repo("other")
+
+    results = github.open_pull_requests((first, second))
+
+    assert [request.number for request in results["acme/demo"][0]] == [3, 4]
+    assert results["acme/demo"][0][0].mergeable == "CONFLICTING"
+    assert results["acme/demo"][0][1].merge_state == "CLEAN"
+    assert results["acme/demo"][1] is None
+    assert results["acme/other"] == ([], "GitHub returned invalid pull request data")
+
+
+def test_open_pull_requests_batch_errors_are_reported_per_repository(monkeypatch) -> None:
+    def graphql(query: str):
+        raise github.GitHubError("boom")
+
+    monkeypatch.setattr(github, "_graphql", graphql)
+
+    assert github.open_pull_requests((repo("demo"),)) == {"acme/demo": ([], "boom")}
+    assert github.open_pull_requests(()) == {}
+
+
+def test_status_failed_includes_conflicting_prs_and_renders_them(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
+    repository = catalog.repositories[0]
+    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cli.remote_metadata", lambda _: {})
+    monkeypatch.setattr(
+        "repomod.cli.ci_status",
+        lambda repos, remotes, **kwargs: {
+            str(repository.id): CiResult(str(repository.id), None, None, "passed", ())
+        },
+    )
+    monkeypatch.setattr(
+        "repomod.cli.open_pull_requests",
+        lambda repositories: {
+            str(repository.id): (
+                [OpenPullRequest(3, "https://github.invalid/acme/demo/pull/3", "CONFLICTING", "BLOCKED")],
+                None,
+            )
+        },
+    )
+    monkeypatch.setattr(
+        "repomod.cli._checkout_status",
+        lambda *_: (
+            tmp_path / "tool",
+            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
+        ),
+    )
+    monkeypatch.setattr("repomod.cli.lint_repositories", lambda *args, **kwargs: [])
+    args = argparse.Namespace(
+        repo=[], tag=[], offline=False, refresh=False, dirty=False,
+        failed=True, json=True, details=False,
+    )
+
+    assert _status(args) == 0
+    rows = json.loads(capsys.readouterr().out)
+
+    assert len(rows) == 1
+    assert rows[0]["open_prs"] == [
+        {
+            "number": 3,
+            "url": "https://github.invalid/acme/demo/pull/3",
+            "mergeable": "CONFLICTING",
+            "merge_state": "BLOCKED",
+        }
+    ]
+
+    args.failed = False
+    args.json = False
+    assert _status(args) == 0
+    assert "#3 CONFLICTING·BLOCKED" in capsys.readouterr().out
 
