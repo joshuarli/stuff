@@ -44,8 +44,10 @@ Findings carry the file, line, column, and code; `status` and `lint` share the
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
-`gha-syntax` runs jactionlint's safe
-fixes and pinact's action pinning in a disposable worktree. `no-formatters` rejects formatter
+`gha-syntax` validates GitHub Actions files offline with
+`pinact lint --profile=correctness --format=json` (error-gated). Its fixer still runs
+jactionlint's safe fixes and pinact's action pinning in a disposable worktree until the
+fixer swap. `no-formatters` rejects formatter
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
 runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository.

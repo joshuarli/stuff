@@ -431,20 +431,18 @@ def _validate_workflows(
 ) -> list[str]:
     if not changed:
         return []
-    executable = shutil.which("jactionlint")
+    executable = shutil.which("pinact")
     if executable is None:
         return [
-            "jactionlint is required to validate modified GitHub Actions files; "
-            "install jactionlint"
+            "pinact is required to validate modified GitHub Actions files; "
+            "install pinact"
         ]
     try:
         result = subprocess.run(
             [
                 executable,
+                "lint",
                 "--profile=correctness",
-                "--no-ignores",
-                "--no-baseline",
-                "--no-online",
                 "--format=json",
                 "--",
                 *[str(root / path) for path in changed],
@@ -456,13 +454,13 @@ def _validate_workflows(
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return ["jactionlint timed out while validating modified GitHub Actions files"]
+        return ["pinact timed out while validating modified GitHub Actions files"]
     except OSError as error:
-        return [f"cannot run jactionlint: {error}"]
+        return [f"cannot run pinact: {error}"]
     if result.returncode == 0:
         return []
     if result.returncode != 1:
-        return [result.stderr.strip() or result.stdout.strip() or "jactionlint rejected modified files"]
+        return [result.stderr.strip() or result.stdout.strip() or "pinact rejected modified files"]
     try:
         findings = json.loads(result.stdout)
     except json.JSONDecodeError:
@@ -470,14 +468,14 @@ def _validate_workflows(
     if isinstance(findings, list):
         messages = [
             f"{finding.get('filepath', 'file')}:{finding.get('line', 1)}: "
-            f"{finding.get('id', 'jactionlint')}: {finding.get('message', 'invalid file')}"
+            f"{finding.get('id', 'pinact')}: {finding.get('message', 'invalid file')}"
             for finding in findings
             if isinstance(finding, dict) and _jactionlint_severity(finding) == "error"
         ]
         if messages:
             return messages
         return []
-    return [result.stderr.strip() or result.stdout.strip() or "jactionlint rejected modified files"]
+    return [result.stderr.strip() or result.stdout.strip() or "pinact rejected modified files"]
 
 
 def _jactionlint_severity(finding: dict[str, object]) -> Severity:
@@ -718,6 +716,135 @@ def _jactionlint_findings(
                 and isinstance(fix.get("edits"), list)
                 and bool(fix["edits"])
                 and fix.get("unsafe") is not True,
+            )
+        )
+    return findings
+
+
+def _pinact_lint_findings(
+    root: Path, repository: Repository, files: list[Path]
+) -> list[Finding]:
+    rule_id = "gha-syntax"
+    workflow_and_action_files = [
+        path
+        for path in files
+        if path.name.casefold() in {"action.yml", "action.yaml"}
+        or (
+            path.parent == root / ".github" / "workflows"
+            and path.suffix.casefold() in {".yml", ".yaml"}
+        )
+    ]
+    if not workflow_and_action_files:
+        return []
+    executable = shutil.which("pinact")
+    if executable is None:
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                "pinact is required for GitHub Actions checks; install pinact",
+            )
+        ]
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "lint",
+                "--profile=correctness",
+                "--format=json",
+                "--",
+                *_tool_file_arguments(root, workflow_and_action_files),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                "pinact timed out while checking GitHub Actions files",
+            )
+        ]
+    except OSError as error:
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                f"cannot run pinact: {error}",
+            )
+        ]
+    if result.returncode not in {0, 1}:
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}",
+            )
+        ]
+    try:
+        parsed = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                f"pinact returned invalid JSON: {error}",
+            )
+        ]
+    if not isinstance(parsed, list):
+        return [
+            operational(
+                repository,
+                rule_id,
+                ".github/workflows",
+                "pinact returned an invalid finding list",
+            )
+        ]
+    findings = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            return [
+                operational(
+                    repository,
+                    rule_id,
+                    ".github/workflows",
+                    "pinact returned an invalid finding record",
+                )
+            ]
+        item_rule = item.get("id")
+        if item_rule == "concurrency-limits":
+            continue
+        file_value = item.get("filepath")
+        relative = _tool_relative_path(root, file_value) if isinstance(file_value, str) else None
+        if relative is None:
+            return [
+                operational(
+                    repository,
+                    rule_id,
+                    ".github/workflows",
+                    "pinact reported a path outside the repository",
+                )
+            ]
+        message = item.get("message")
+        line_number = item.get("line")
+        location = f"line {line_number}: " if isinstance(line_number, int) else ""
+        findings.append(
+            violation(
+                repository,
+                rule_id,
+                relative,
+                f"{location}pinact {item_rule}: {message if isinstance(message, str) else 'finding'}",
+                severity=_jactionlint_severity(item),
+                fixable=isinstance(item_rule, str) and item.get("fixable") is True,
             )
         )
     return findings
@@ -1036,8 +1163,7 @@ def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
     ]
     if not files:
         return findings
-    findings.extend(_jactionlint_findings(root, repository, files))
-    findings.extend(_pinact_findings(root, repository, files))
+    findings.extend(_pinact_lint_findings(root, repository, files))
     return findings
 
 

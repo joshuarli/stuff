@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
+import sys
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -279,7 +284,7 @@ def test_action_symlink_parent_and_dynamic_reference_are_reported(
     assert problems == [(".github", "workflow parent directory is a symlink")]
 
 
-def test_jactionlint_is_required_for_workflow_fixer_validation(
+def test_pinact_is_required_for_workflow_fixer_validation(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setattr(actions.shutil, "which", lambda _: None)
@@ -291,16 +296,16 @@ def test_jactionlint_is_required_for_workflow_fixer_validation(
     )
 
     assert errors == [
-        "jactionlint is required to validate modified GitHub Actions files; "
-        "install jactionlint"
+        "pinact is required to validate modified GitHub Actions files; "
+        "install pinact"
     ]
 
 
-def test_jactionlint_workflow_validation_only_blocks_errors(
+def test_pinact_workflow_validation_only_blocks_errors(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
     results = iter(
         [
             SimpleNamespace(
@@ -310,9 +315,11 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
                         {
                             "filepath": ".github/workflows/ci.yml",
                             "line": 3,
+                            "column": 9,
                             "id": "shellcheck",
                             "severity": "error",
                             "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+                            "fixable": False,
                         }
                     ]
                 ),
@@ -325,9 +332,11 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
                         {
                             "filepath": ".github/workflows/ci.yml",
                             "line": 3,
-                            "id": "syntax",
+                            "column": 1,
+                            "id": "yaml-syntax",
                             "severity": "error",
-                            "message": "invalid workflow",
+                            "message": "invalid YAML: bad mapping",
+                            "fixable": False,
                         }
                     ]
                 ),
@@ -335,12 +344,22 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
             ),
         ]
     )
-    monkeypatch.setattr(actions.subprocess, "run", lambda *args, **kwargs: next(results))
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        captured["cwd"] = kwargs.get("cwd")
+        return next(results)
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
 
     assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == []
     assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == [
-        ".github/workflows/ci.yml:3: syntax: invalid workflow"
+        ".github/workflows/ci.yml:3: yaml-syntax: invalid YAML: bad mapping"
     ]
+    assert captured["args"][:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert "--no-online" not in captured["args"]
+    assert captured["cwd"] == tmp_path
 
 
 def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
@@ -415,6 +434,173 @@ def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
 
     assert [finding.fixable for finding in results] == [False, False, True, False, False]
     assert results[-1].severity == "info"
+
+
+def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rules(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    findings = [
+        {
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 4,
+            "column": 9,
+            "id": "unpinned-uses",
+            "severity": "error",
+            "message": "actions/checkout@v4 is not pinned to an immutable commit SHA",
+            "fixable": True,
+        },
+        {
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 1,
+            "column": 1,
+            "id": "yaml-syntax",
+            "severity": "error",
+            "message": "invalid YAML: bad mapping",
+            "fixable": False,
+        },
+        {
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 2,
+            "column": 1,
+            "id": "concurrency-limits",
+            "severity": "error",
+            "message": "owned by gha-settings",
+            "fixable": False,
+        },
+        {
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 3,
+            "column": 5,
+            "id": "shellcheck",
+            "severity": "error",
+            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+            "fixable": False,
+        },
+    ]
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        captured["cwd"] = kwargs.get("cwd")
+        return SimpleNamespace(returncode=1, stdout=json.dumps(findings), stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    results = actions._pinact_lint_findings(tmp_path, repository(), [workflow])
+
+    assert [finding.fixable for finding in results] == [True, False, False]
+    assert results[0].message == (
+        "line 4: pinact unpinned-uses: "
+        "actions/checkout@v4 is not pinned to an immutable commit SHA"
+    )
+    assert results[1].message == "line 1: pinact yaml-syntax: invalid YAML: bad mapping"
+    assert results[2].severity == "info"
+    argv = captured["args"]
+    assert argv[:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert "--no-online" not in argv
+    assert captured["cwd"] == tmp_path
+
+
+def test_pinact_lint_maps_tool_failures_to_operational_findings(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    def _fixed_run(case: SimpleNamespace) -> Any:
+        def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+            return case
+
+        return fake_run
+
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    repo = repository()
+
+    monkeypatch.setattr(actions.shutil, "which", lambda _: None)
+    assert actions._pinact_lint_findings(tmp_path, repo, [workflow])[0].kind == "operational"
+
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+
+    def timeout(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        raise subprocess.TimeoutExpired(cmd=args[0], timeout=120)
+
+    monkeypatch.setattr(actions.subprocess, "run", timeout)
+    findings = actions._pinact_lint_findings(tmp_path, repo, [workflow])
+    assert findings[0].kind == "operational"
+    assert "timed out" in findings[0].message
+
+    cases = [
+        SimpleNamespace(returncode=2, stdout="", stderr="pinact: boom"),
+        SimpleNamespace(returncode=1, stdout="not json", stderr=""),
+        SimpleNamespace(returncode=1, stdout=json.dumps({"id": "unpinned-uses"}), stderr=""),
+        SimpleNamespace(returncode=1, stdout=json.dumps([37]), stderr=""),
+        SimpleNamespace(
+            returncode=1,
+            stdout=json.dumps(
+                [
+                    {
+                        "filepath": "../outside.yml",
+                        "line": 1,
+                        "column": 1,
+                        "id": "unpinned-uses",
+                        "severity": "error",
+                        "message": "escape",
+                        "fixable": True,
+                    }
+                ]
+            ),
+            stderr="",
+        ),
+    ]
+    for case in cases:
+        monkeypatch.setattr(
+            actions.subprocess, "run", _fixed_run(case)
+        )
+        findings = actions._pinact_lint_findings(tmp_path, repo, [workflow])
+        assert len(findings) == 1
+        assert findings[0].kind == "operational"
+
+
+def test_pinact_lint_scopes_to_workflows_and_action_files(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    action_file = tmp_path / "action.yml"
+    action_file.write_text("runs: {}\n", encoding="utf-8")
+    dependabot = tmp_path / ".github" / "dependabot.yml"
+    dependabot.write_text("version: 2\n", encoding="utf-8")
+    lock = tmp_path / ".github" / "workflows" / "actions.lock"
+    lock.write_text("pinned\n", encoding="utf-8")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        return SimpleNamespace(returncode=0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    assert actions._pinact_lint_findings(
+        tmp_path, repository(), [workflow, action_file, dependabot, lock]
+    ) == []
+    assert captured["args"] == [
+        "/bin/pinact",
+        "lint",
+        "--profile=correctness",
+        "--format=json",
+        "--",
+        ".github/workflows/ci.yaml",
+        "action.yml",
+    ]
+
+    monkeypatch.setattr(
+        actions.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("must not shell out")),
+    )
+    assert actions._pinact_lint_findings(tmp_path, repository(), [dependabot, lock]) == []
 
 
 def test_pinact_reports_unpinned_actions_as_fixable(
@@ -926,3 +1112,131 @@ def test_private_npm_package_without_public_workspaces_is_not_published(
     )
 
     assert release._npm_findings(tmp_path, repository(("tool", "npm"))) == []
+
+
+_R0_CORPUS = Path("/Users/josh/d/repomod/.work/tmp/r0-probe/copy")
+_LANE_PINACT = Path(
+    "/Users/josh/usr/.work/wt/lane-usr/dotfiles/base/.local/bin/pinact"
+)
+_R0_UNPINNED = frozenset(
+    [
+        (
+            "tests/fixtures/binary_release/joshuarli_mactop/.github/workflows/release.yml",
+            line,
+        )
+        for line in (20, 23, 37, 51)
+    ]
+    + [
+        (
+            "tests/fixtures/binary_release/joshuarli_pytest-parallel/.github/workflows/release.yml",
+            line,
+        )
+        for line in (18, 20, 25, 34, 46)
+    ]
+    + [
+        (
+            "tests/fixtures/binary_release/laputa-systems_zzz/.github/workflows/release.yml",
+            line,
+        )
+        for line in (23, 27, 46, 57)
+    ]
+)
+
+
+def test_pinact_lint_agrees_with_jactionlint_on_r0_corpus() -> None:
+    if not _R0_CORPUS.is_dir():
+        pytest.skip("R0 probe corpus is not available")
+    pinact_path = str(_LANE_PINACT) if _LANE_PINACT.is_file() else shutil.which("pinact")
+    if pinact_path is None:
+        pytest.skip("pinact is not available for the live agreement check")
+    repo_root = Path(__file__).parents[1]
+    scratch_base = repo_root / ".work" / "tmp"
+    scratch_base.mkdir(parents=True, exist_ok=True)
+    scratch = scratch_base / f"r1-live-{uuid.uuid4().hex}"
+    sources = sorted(
+        path.relative_to(_R0_CORPUS).as_posix()
+        for path in _R0_CORPUS.rglob("*")
+        if path.is_file()
+    )
+    assert len(sources) == 9
+    try:
+        for relative in sources:
+            target = scratch / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(_R0_CORPUS / relative, target)
+        env = dict(os.environ)
+        env["TMPDIR"] = str(scratch_base)
+        command = [
+            sys.executable,
+            "-I",
+            pinact_path,
+            "lint",
+            "--profile=correctness",
+            "--format=json",
+            "--",
+            *sources,
+        ]
+        first = subprocess.run(
+            command, cwd=scratch, capture_output=True, text=True, env=env, check=False
+        )
+        second = subprocess.run(
+            command, cwd=scratch, capture_output=True, text=True, env=env, check=False
+        )
+        assert first.returncode == 1
+        assert first.stderr == ""
+        assert first.stdout == second.stdout
+        records = json.loads(first.stdout)
+        assert isinstance(records, list)
+        for record in records:
+            assert tuple(sorted(record)) == (
+                "column",
+                "filepath",
+                "fixable",
+                "id",
+                "line",
+                "message",
+                "severity",
+            )
+        order = [
+            (record["filepath"], record["line"], record["column"], record["id"], record["message"])
+            for record in records
+        ]
+        assert order == sorted(order)
+        unpinned = frozenset(
+            (record["filepath"], record["line"])
+            for record in records
+            if record["id"] == "unpinned-uses"
+        )
+        assert unpinned == _R0_UNPINNED
+        assert {record["id"] for record in records} == {"unpinned-uses"}
+        jactionlint = shutil.which("jactionlint")
+        if jactionlint is None:
+            pytest.skip("jactionlint is not available for the live agreement check")
+        legacy = subprocess.run(
+            [
+                jactionlint,
+                "--profile=default",
+                "--no-ignores",
+                "--no-baseline",
+                "--no-online",
+                "--format=json",
+                "--show-fix-status",
+                "--",
+                *sources,
+            ],
+            cwd=scratch,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        assert legacy.returncode == 1
+        old_records = json.loads(legacy.stdout)
+        old_unpinned = frozenset(
+            (record["filepath"], record["line"])
+            for record in old_records
+            if record["id"] == "unpinned-uses"
+        )
+        assert old_unpinned == unpinned
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
