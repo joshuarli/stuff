@@ -305,24 +305,32 @@ def upstream_remote_state(path: Path, url: str) -> str:
     return "current" if urls == [url] else "different"
 
 
+def _configure_upstream_remote(path: Path) -> None:
+    run_git(["config", f"remote.{UPSTREAM_REMOTE}.promisor", "true"], cwd=path)
+    run_git(["config", f"remote.{UPSTREAM_REMOTE}.partialclonefilter", "blob:none"], cwd=path)
+    run_git(["config", f"remote.{UPSTREAM_REMOTE}.tagOpt", "--no-tags"], cwd=path)
+
+
 def ensure_upstream_remote(path: Path, url: str) -> str:
     state = upstream_remote_state(path, url)
     if state == "missing":
         run_git(["remote", "add", UPSTREAM_REMOTE, url], cwd=path)
+        _configure_upstream_remote(path)
         return "added"
     if state == "different":
         run_git(["remote", "remove", UPSTREAM_REMOTE], cwd=path)
         run_git(["remote", "add", UPSTREAM_REMOTE, url], cwd=path)
+        _configure_upstream_remote(path)
         return "updated"
+    _configure_upstream_remote(path)
     return "current"
 
 
 def fetch_upstream(path: Path, branch: str, deepen: int | None = None) -> None:
-    arguments = ["fetch", "--no-tags"]
+    arguments = ["fetch", "--no-tags", "--filter=blob:none"]
     if deepen is not None:
         arguments.append("--depth=1" if deepen == 1 else f"--deepen={deepen}")
     arguments.extend([UPSTREAM_REMOTE, f"+refs/heads/{branch}:refs/remotes/{UPSTREAM_REMOTE}/{branch}"])
-    run_git(arguments, cwd=path)
     run_git(arguments, cwd=path)
 
 
