@@ -429,7 +429,16 @@ def _fix(root: Path, repository: Repository, *, version: bool) -> dict[str, str]
 def _validate_workflows(
     root: Path, repository: Repository, changed: tuple[str, ...]
 ) -> list[str]:
-    if not changed:
+    workflow_paths = tuple(
+        relative
+        for relative in changed
+        if Path(relative).name.casefold() in {"action.yml", "action.yaml"}
+        or (
+            Path(relative).parent == Path(".github") / "workflows"
+            and Path(relative).suffix.casefold() in {".yml", ".yaml"}
+        )
+    )
+    if not workflow_paths:
         return []
     executable = shutil.which("pinact")
     if executable is None:
@@ -445,7 +454,7 @@ def _validate_workflows(
                 "--profile=correctness",
                 "--format=json",
                 "--",
-                *[str(root / path) for path in changed],
+                *[str(root / path) for path in workflow_paths],
             ],
             cwd=root,
             capture_output=True,
@@ -1065,16 +1074,25 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
     files, problems = _action_tool_files(root, repository)
     if problems:
         raise GitError("; ".join(f"{path}: {message}" for path, message in problems))
-    if not files:
+    pinact_files = [
+        path
+        for path in files
+        if path.name.casefold() in {"action.yml", "action.yaml"}
+        or (
+            path.parent == root / ".github" / "workflows"
+            and path.suffix.casefold() in {".yml", ".yaml"}
+        )
+    ]
+    if not pinact_files:
         return {}
-    jactionlint = shutil.which("jactionlint")
     pinact = shutil.which("pinact")
-    missing = [name for name, path in (("jactionlint", jactionlint), ("pinact", pinact)) if path is None]
-    if missing:
-        raise GitError("required GitHub Actions tools are missing: " + ", ".join(missing))
-    assert jactionlint is not None
-    assert pinact is not None
-    scratch = root.parent / f".{root.name}-gha-{uuid.uuid4().hex}"
+    if pinact is None:
+        raise GitError("pinact is required to fix GitHub Actions files")
+    scratch_parent = Path(os.environ.get(
+        "TMPDIR", str(Path(__file__).resolve().parents[3] / ".work" / "tmp")
+    ))
+    scratch_parent.mkdir(parents=True, exist_ok=True)
+    scratch = scratch_parent / f"gha-{uuid.uuid4().hex}"
     if scratch.exists() or scratch.is_symlink():
         raise GitError(f"GitHub Actions scratch worktree already exists: {scratch}")
     added = False
@@ -1083,17 +1101,12 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
     try:
         run_git(["worktree", "add", "--detach", str(scratch), "HEAD"], cwd=root)
         added = True
-        relative_files = _tool_file_arguments(root, files)
-        fixable_rules = _jactionlint_fix_rules(jactionlint)
+        relative_files = _tool_file_arguments(root, pinact_files)
         result = subprocess.run(
             [
-                jactionlint,
-                "--profile=default",
-                "--no-ignores",
-                "--no-baseline",
-                "--no-online",
-                "--fix",
-                f"--fix-rules={fixable_rules}",
+                pinact,
+                "fix",
+                "--pin",
                 "--",
                 *relative_files,
             ],
@@ -1105,32 +1118,8 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
         )
         if result.returncode not in {0, 1}:
             raise GitError(
-                result.stderr.strip() or result.stdout.strip() or f"jactionlint exited {result.returncode}"
+                result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}"
             )
-        pinact_files = [
-            path
-            for path in files
-            if path.name.casefold() in {"action.yml", "action.yaml"}
-            or path.parent == root / ".github" / "workflows"
-        ]
-        if pinact_files:
-            result = subprocess.run(
-                [
-                    pinact,
-                    "run",
-                    "--",
-                    *_tool_file_arguments(root, pinact_files),
-                ],
-                cwd=scratch,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                check=False,
-            )
-            if result.returncode != 0:
-                raise GitError(
-                    result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}"
-                )
         allowed = {path.relative_to(root).as_posix() for path in files}
         plan = _changed_tool_paths(scratch, allowed)
     except BaseException as error:
@@ -1171,7 +1160,7 @@ def action_rules() -> tuple[Rule, ...]:
     return (
         Rule(
             "gha-syntax",
-            "Check and repair GitHub Actions files with jactionlint and pinact",
+            "Check and repair GitHub Actions files with pinact",
             TagPredicate(),
             _syntax_findings,
             _general_actions_fix,

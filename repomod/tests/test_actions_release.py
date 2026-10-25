@@ -362,6 +362,109 @@ def test_pinact_workflow_validation_only_blocks_errors(
     assert captured["cwd"] == tmp_path
 
 
+def test_workflow_validation_filters_non_workflow_changes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        return SimpleNamespace(returncode=0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    errors = actions._validate_workflows(
+        tmp_path,
+        repository(),
+        (
+            ".github/workflows/ci.yml",
+            ".github/workflows/actions.lock",
+            ".github/dependabot.yml",
+            "README.md",
+            "action.yaml",
+        ),
+    )
+
+    assert errors == []
+    assert captured["args"][-2:] == [
+        str(tmp_path / ".github/workflows/ci.yml"),
+        str(tmp_path / "action.yaml"),
+    ]
+
+
+def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    workflow = write_workflow(
+        root,
+        "on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n"
+        "      - uses: ./local-action\n"
+        "      - run: echo \"::set-output name=foo::bar\"\n",
+    )
+
+    def git(*arguments: str) -> None:
+        subprocess.run(["git", *arguments], cwd=root, check=True,
+                       capture_output=True, text=True)
+
+    git("init", "--initial-branch=main")
+    git("config", "user.name", "Test User")
+    git("config", "user.email", "test@example.invalid")
+    git("add", ".github/workflows/ci.yaml")
+    git("commit", "-m", "add workflow")
+
+    scratch = tmp_path / "scratch"
+    call_path = tmp_path / "pinact-call.json"
+    executable = tmp_path / "bin" / "pinact"
+    executable.parent.mkdir()
+    executable.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "arguments = sys.argv[1:]\n"
+        "Path(os.environ['PINACT_CALL']).write_text(json.dumps({\n"
+        "    'arguments': arguments, 'cwd': os.getcwd()}), encoding='utf-8')\n"
+        "if arguments[0] == 'fix':\n"
+        "    assert '--pin' in arguments\n"
+        "    path = Path(arguments[-1])\n"
+        "    source = path.read_text(encoding='utf-8')\n"
+        "    path.write_text(source.replace(\n"
+        "        'echo \"::set-output name=foo::bar\"',\n"
+        "        'echo \"foo=bar\" >> \"$GITHUB_OUTPUT\"'), encoding='utf-8')\n"
+        "    raise SystemExit(1)\n"
+        "if arguments[0] == 'lint':\n"
+        "    print('[]')\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    monkeypatch.setattr(
+        actions.shutil,
+        "which",
+        lambda name: str(executable) if name == "pinact" else None,
+    )
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setenv("PINACT_CALL", str(call_path))
+
+    plan = actions._general_actions_fix(root, repository())
+
+    assert plan == {
+        ".github/workflows/ci.yaml": workflow.read_text(encoding="utf-8").replace(
+            'echo "::set-output name=foo::bar"',
+            'echo "foo=bar" >> "$GITHUB_OUTPUT"',
+        )
+    }
+    call = json.loads(call_path.read_text(encoding="utf-8"))
+    assert call["arguments"] == ["fix", "--pin", "--", ".github/workflows/ci.yaml"]
+    assert Path(call["cwd"]).is_relative_to(scratch)
+    assert list(scratch.iterdir()) == []
+
+
 def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
     tmp_path: Path,
     monkeypatch,
