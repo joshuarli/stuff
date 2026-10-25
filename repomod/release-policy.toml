@@ -14,3 +14,10 @@ bump_command = "uv version --bump patch"
 version_field = "package.json version"
 lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]
 bump_command = "use the package manager selected by packageManager or its lockfile"
+
+[binary]
+portable_targets = ["aarch64-apple-darwin", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl"]
+macos_targets = ["aarch64-apple-darwin"]
+linux_arches = ["x86_64", "aarch64"]
+linux_musl_suffix = "-linux-musl"
+forbidden_target_markers = ["unknown-linux-gnu", "gnueabi"]

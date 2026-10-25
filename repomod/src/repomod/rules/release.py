@@ -21,13 +21,14 @@ def _load_policy() -> dict[str, Any]:
         raise RuntimeError(
             f"cannot read release policy at {_POLICY_PATH}: {error}"
         ) from error
-    if set(value) != {"cargo", "pypi", "npm"}:
-        raise RuntimeError("release-policy.toml must define cargo, pypi, and npm")
-    if any(not isinstance(value[name], dict) for name in ("cargo", "pypi", "npm")):
+    if set(value) != {"cargo", "pypi", "npm", "binary"}:
+        raise RuntimeError("release-policy.toml must define cargo, pypi, npm, and binary")
+    if any(not isinstance(value[name], dict) for name in ("cargo", "pypi", "npm", "binary")):
         raise RuntimeError("release-policy.toml ecosystem contracts must be tables")
     cargo = value["cargo"]
     pypi = value["pypi"]
     npm = value["npm"]
+    binary = value["binary"]
     if (
         not isinstance(cargo.get("version_fields"), list)
         or any(not isinstance(field, str) for field in cargo["version_fields"])
@@ -80,6 +81,21 @@ def _load_policy() -> dict[str, Any]:
         raise RuntimeError(
             "release-policy.toml npm.lockfiles contains an unsupported file"
         )
+    if (
+        not isinstance(binary.get("portable_targets"), list)
+        or any(not isinstance(target, str) for target in binary["portable_targets"])
+        or len(binary["portable_targets"]) != len(set(binary["portable_targets"]))
+        or not isinstance(binary.get("macos_targets"), list)
+        or any(not isinstance(target, str) for target in binary["macos_targets"])
+        or len(binary["macos_targets"]) != len(set(binary["macos_targets"]))
+        or not isinstance(binary.get("linux_arches"), list)
+        or any(not isinstance(arch, str) for arch in binary["linux_arches"])
+        or not isinstance(binary.get("linux_musl_suffix"), str)
+        or not binary["linux_musl_suffix"]
+        or not isinstance(binary.get("forbidden_target_markers"), list)
+        or any(not isinstance(marker, str) for marker in binary["forbidden_target_markers"])
+    ):
+        raise RuntimeError("release-policy.toml has an invalid binary contract")
     return value
 
 

@@ -26,8 +26,10 @@ license, or agent files.
 ## Release policy
 
 `actions.toml` owns approved GitHub Action channels, versions, and commit SHAs.
-`release-policy.toml` owns package release conventions. Publishing checks require the matching
-catalog opt-in tag. Update these policy files when changing approved release rules.
+`release-policy.toml` owns package release conventions and the `[binary]` native
+prerelease target contract (portable and single-OS target sets plus forbidden glibc
+markers). Publishing checks require the matching catalog opt-in tag. Update these
+policy files when changing approved release rules.
 
 Action checks and fixes live in `rules/actions.py`. Package checks live in `rules/release.py`.
 Rules inspect repository files but do not install dependencies, build projects, or execute release

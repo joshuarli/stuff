@@ -6,7 +6,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import LANGUAGE_TAGS
+from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
 from repomod.rules.binary_release import has_binary_release_contract
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -582,7 +582,12 @@ def _language_sources(root: Path) -> set[str]:
 
 
 def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
-    if set(repository.tags) == {"tool"} and has_binary_release_contract(root, repository):
+    tags = set(repository.tags)
+    if (
+        "tool" in tags
+        and tags <= {"tool", "fork"} | PLATFORM_TAGS | LANGUAGE_TAGS
+        and has_binary_release_contract(root, repository)
+    ):
         return []
     detected = _language_sources(root)
     tags = set(repository.tags)

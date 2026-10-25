@@ -1,5 +1,23 @@
 Prefix: RPMD
-Next: 51
+Next: 53
+
+### RPMD-51 · P2 · Converge tool prerelease workflows on the ish format
+
+- **Area:** Release policy
+- **Where:** `.github/workflows/release.yml` in `joshuarli/mactop`, `laputa-systems/diff-pretty`, `e`, `fastermod`, `fd`, `fdu`, `fz`, `srv`, `tm`, and `zzz`
+- **Problem:** The `binary-release-standard` lint reports the remaining ish format gaps: no verified `SHA256SUMS` packaging, no two-phase GitHub API tag creation with `--verify-tag`, and no preflight default-branch guard. Target matrices are already conforming.
+- **Recommendation:** Migrate each workflow to the ish release job flow through reviewed repo fixers or PRs, keeping single-OS scopes for mactop and zzz.
+- **Fix with:** none
+- **Effort:** M (days)
+
+### RPMD-52 · P2 · Converge Rust builder images on the ish Dockerfile
+
+- **Area:** Release policy
+- **Where:** `Dockerfile` in `laputa-systems/diff-pretty`, `fastermod`, `fz`, `srv`, `tm`, and `vault`
+- **Problem:** The `rust-musl-image` lint reports unpinned `rustup/dist` installers and, for vault, the missing verified LLVM prebuilt, musl-cargo wrapper, and CRT stubs. Unpinned installers track latest instead of a checksummed archive.
+- **Recommendation:** Rebuild each image from the ish Dockerfile contract through reviewed repo fixers or PRs.
+- **Fix with:** none
+- **Effort:** M (days)
 
 ### RPMD-38 · P2 · Keep GitHub expressions out of Make target parsing
 
@@ -46,15 +64,6 @@ Next: 51
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-43 · P2 · Accept fork-tagged tools in binary release conformance
-
-- **Area:** Release policy
-- **Where:** `src/repomod/rules/binary_release.py:245`, `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/.github/workflows/prerelease.yml`
-- **Problem:** gh is correctly tagged `tool` and `fork`, but the binary release lint requires exactly `tool` and tells the catalog to remove `fork`. This conflicts with the fork classification and fork workflow policy.
-- **Recommendation:** Validate native binary prerelease conformance for `tool` repositories while allowing the `fork` tag.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-44 · P2 · Align language detection with managed project ecosystems
 
 - **Area:** Catalog policy
@@ -99,15 +108,6 @@ Next: 51
 - **Recommendation:** Add a workflow fixer that plans these exact root workflow edits, validates the resulting workflow, then apply it through the existing per-repository PR flow.
 - **Fix with:** none
 - **Effort:** M (days)
-
-### RPMD-49 · P2 · Recognize SHA-pinned releases created through the GitHub API
-
-- **Area:** Release policy
-- **Where:** `src/repomod/rules/binary_release.py:18`, `laputa-systems/ish/.github/workflows/release.yml:194`
-- **Problem:** ish creates its `release-${{ github.sha }}` tag through `gh api` with `sha=$GITHUB_SHA`, then publishes platform ZIPs and checksums. The release lint does not recognize that API request as targeting the triggering commit and reports the otherwise complete native release contract as ambiguous.
-- **Recommendation:** Recognize the checked `gh api` tag creation form as a source-target guarantee and retain the existing rejection of tags that do not point at the triggering commit.
-- **Fix with:** none
-- **Effort:** S (hours)
 
 ### RPMD-50 · P2 · Recognize manifest readme declarations in generated-data audit
 

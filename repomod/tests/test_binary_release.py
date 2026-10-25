@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from repomod.rules.binary_release import _binary_release_findings
+from repomod.rules.binary_release import (
+    _binary_release_findings,
+    _binary_release_standard_findings,
+    _rust_musl_image_findings,
+)
 from repomod.types import RepoId, Repository
 
 
@@ -24,7 +28,7 @@ def binary_workflow(command: str) -> str:
         "  build:\n"
         "    strategy:\n"
         "      matrix:\n"
-        "        target: [x86_64-unknown-linux-gnu, aarch64-apple-darwin]\n"
+        "        target: [x86_64-unknown-linux-musl, aarch64-apple-darwin]\n"
         "    steps:\n"
         f"      - run: {command}\n"
         "      - uses: actions/upload-artifact@v7\n"
@@ -39,10 +43,75 @@ def binary_workflow(command: str) -> str:
     )
 
 
+def standard_workflow(targets: list[str]) -> str:
+    matrix = "\n".join(f"            target: {target}" for target in targets)
+    return (
+        "name: release\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  preflight:\n"
+        "    steps:\n"
+        "      - run: |\n"
+        "          default_branch=$(gh api \"repos/$REPOSITORY\" --jq '.default_branch')\n"
+        "          if [[ \"$REF\" != \"refs/heads/$default_branch\" ]]; then exit 1; fi\n"
+        "  build:\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        include:\n"
+        f"{matrix}\n"
+        "    steps:\n"
+        "      - run: cargo build --locked --release --target \"${{ matrix.target }}\"\n"
+        "      - uses: actions/upload-artifact@v7\n"
+        "      - uses: actions/download-artifact@v7\n"
+        "  release:\n"
+        "    env:\n"
+        "      RELEASE_TAG: release-${{ github.sha }}\n"
+        "    steps:\n"
+        "      - run: |\n"
+        "          if response=$(gh api \"repos/$REPOSITORY/git/refs\" "
+        "-f \"ref=refs/tags/$RELEASE_TAG\" -f \"sha=$GITHUB_SHA\" 2>&1); then\n"
+        "            echo ok\n"
+        "          fi\n"
+        "      - run: |\n"
+        "          zip -9 dist/demo.zip demo\n"
+        "          sha256sum dist/demo.zip > dist/SHA256SUMS\n"
+        "          gh release create \"$RELEASE_TAG\" dist/demo.zip dist/SHA256SUMS "
+        "--prerelease --verify-tag --title \"$RELEASE_TAG\"\n"
+    )
+
+
+def write_rust_executable(root: Path) -> None:
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "1.0.0"\nedition = "2024"\n',
+        encoding="utf-8",
+    )
+    source = root / "src" / "main.rs"
+    source.parent.mkdir(exist_ok=True)
+    source.write_text("fn main() {}\n", encoding="utf-8")
+
+
+def write_musl_dockerfile(root: Path) -> None:
+    (root / "Dockerfile").write_text(
+        "FROM alpine:3.24.1\n"
+        "RUN wget -O /tmp/rustup-init "
+        "https://static.rust-lang.org/rustup/archive/1.29.1/x86_64-unknown-linux-musl/rustup-init "
+        "&& echo abc | sha256sum -c -\n"
+        "RUN wget -O /tmp/llvm.tar.xz https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/x.tar.xz "
+        "&& echo def | sha256sum -c -\n"
+        "RUN rustup toolchain install nightly --target x86_64-unknown-linux-musl "
+        "--target aarch64-unknown-linux-musl --component rust-src\n"
+        "RUN cat > /usr/local/bin/musl-cargo <<'EOF'\n"
+        "RUN for obj in crtbegin.o crtend.o; do echo $obj; done\n"
+        "RUN ar rcs /usr/lib/libutil.a\n",
+        encoding="utf-8",
+    )
+
+
 @pytest.mark.parametrize(
     ("language", "manifest", "command"),
     [
-        ("rust", "Cargo.toml", "cargo build --release --target x86_64-unknown-linux-gnu"),
+        ("rust", "Cargo.toml", "cargo build --release --target x86_64-unknown-linux-musl"),
         ("go", "go.mod", "go build -o demo ./cmd/demo"),
         ("swift", "Package.swift", "swift build -c release"),
     ],
@@ -71,13 +140,12 @@ def test_standard_native_prerelease_requires_tool_only(
     tool = Repository(RepoId("laputa-systems", "srv"), ("tool",))
 
     assert _binary_release_findings(tmp_path, tool) == []
-    multi_tagged = Repository(tool.id, ("tool", language))
-    findings = _binary_release_findings(tmp_path, multi_tagged)
+    vacuous = Repository(tool.id, ("library",))
+    vacuous_findings = _binary_release_findings(tmp_path, vacuous)
 
-    assert len(findings) == 1
-    assert findings[0].rule == "binary-release-tags"
-    assert "require exactly [tool]" in findings[0].message
-    assert "remove " + language in findings[0].message
+    assert len(vacuous_findings) == 1
+    assert vacuous_findings[0].rule == "binary-release-tags"
+    assert "require the tool role" in vacuous_findings[0].message
 
 
 _TOOL_FIXTURES = [
@@ -103,10 +171,10 @@ def test_captured_fleet_workflows_require_exactly_the_tool_role(tmp_path: Path) 
         ) == [], fixture_name
 
 
-def test_captured_binary_releases_reject_extra_roles_and_languages(tmp_path: Path) -> None:
+def test_captured_binary_releases_reject_extra_roles(tmp_path: Path) -> None:
     for fixture_name, repository_id in _TOOL_FIXTURES:
         fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
-        for extra_tag in ("rust", "library"):
+        for extra_tag in ("library", "app"):
             root = tmp_path / f"{fixture_name}-{extra_tag}"
             shutil.copytree(fixture, root)
             owner, name = repository_id.split("/")
@@ -117,7 +185,28 @@ def test_captured_binary_releases_reject_extra_roles_and_languages(tmp_path: Pat
 
             assert len(findings) == 1, (fixture_name, extra_tag)
             assert findings[0].severity == "error"
-            assert "require exactly [tool]" in findings[0].message
+            assert "remove " + extra_tag in findings[0].message
+
+
+def test_captured_binary_releases_allow_fork_platform_and_language_tags(
+    tmp_path: Path,
+) -> None:
+    allowed = [
+        ("tool", "fork"),
+        ("tool", "linux"),
+        ("tool", "macos", "swift"),
+        ("tool", "rust"),
+    ]
+    for fixture_name, repository_id in _TOOL_FIXTURES:
+        fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
+        owner, name = repository_id.split("/")
+        for tags in allowed:
+            root = tmp_path / f"{fixture_name}-{'-'.join(tags)}"
+            shutil.copytree(fixture, root)
+
+            assert _binary_release_findings(
+                root, Repository(RepoId(owner, name), tags)
+            ) == [], (fixture_name, tags)
 
 
 def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(
@@ -187,4 +276,146 @@ def test_unconventional_prerelease_is_reported_without_guessing_role(tmp_path: P
     assert len(findings) == 1
     assert findings[0].severity == "warning"
     assert "does not establish" in findings[0].message
-    assert "exactly [tool]" not in findings[0].message
+    assert "tool role" not in findings[0].message
+
+
+def test_api_tag_creation_establishes_binary_contract(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        "on:\n  workflow_dispatch:\njobs:\n  build:\n    steps:\n"
+        "      - run: cargo build --locked --release --target x86_64-unknown-linux-musl\n"
+        "      - uses: actions/upload-artifact@v7\n"
+        "      - uses: actions/download-artifact@v7\n"
+        "      - run: zip dist/demo.zip demo\n"
+        "  release:\n    steps:\n"
+        "      - run: |\n"
+        "          if response=$(gh api \"repos/$REPOSITORY/git/refs\" "
+        "-f \"ref=refs/tags/$RELEASE_TAG\" -f \"sha=$GITHUB_SHA\" 2>&1); then\n"
+        "            echo ok\n"
+        "          fi\n"
+        "      - run: gh release create \"release-${{ github.sha }}\" dist/demo.zip --prerelease --verify-tag\n",
+    )
+
+    assert _binary_release_findings(tmp_path, Repository(RepoId("acme", "demo"), ("tool",))) == []
+
+
+def test_standard_rule_accepts_portable_musl_matrix(tmp_path: Path) -> None:
+    write_workflow(
+        tmp_path,
+        standard_workflow(
+            [
+                "aarch64-apple-darwin",
+                "x86_64-unknown-linux-musl",
+                "aarch64-unknown-linux-musl",
+            ]
+        ),
+    )
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    assert _binary_release_standard_findings(tmp_path, repository) == []
+
+
+def test_standard_rule_enforces_scope_matrix(tmp_path: Path) -> None:
+    portable = Repository(RepoId("acme", "demo"), ("tool",))
+    write_workflow(tmp_path, standard_workflow(["aarch64-apple-darwin"]))
+
+    findings = _binary_release_standard_findings(tmp_path, portable)
+
+    assert any("must build exactly" in finding.message for finding in findings)
+
+    macos = Repository(RepoId("acme", "demo"), ("tool", "macos", "swift"))
+    assert _binary_release_standard_findings(tmp_path, macos) == []
+
+    linux = Repository(RepoId("acme", "demo"), ("tool", "linux"))
+    write_workflow(tmp_path, standard_workflow(["x86_64-linux-musl", "aarch64-linux-musl"]))
+
+    assert _binary_release_standard_findings(tmp_path, linux) == []
+    assert any(
+        "must build exactly" in finding.message
+        for finding in _binary_release_standard_findings(tmp_path, portable)
+    )
+
+
+def test_standard_rule_rejects_glibc_targets(tmp_path: Path) -> None:
+    write_workflow(
+        tmp_path,
+        standard_workflow(
+            [
+                "aarch64-apple-darwin",
+                "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+            ]
+        ),
+    )
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    findings = _binary_release_standard_findings(tmp_path, repository)
+
+    assert any("glibc" in finding.message for finding in findings)
+
+
+def test_standard_rule_requires_ish_format(tmp_path: Path) -> None:
+    write_workflow(tmp_path, binary_workflow("cargo build --release"))
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    findings = _binary_release_standard_findings(tmp_path, repository)
+    messages = [finding.message for finding in findings]
+
+    assert any("SHA256SUMS" in message for message in messages)
+    assert any("--verify-tag" in message for message in messages)
+    assert any("preflight" in message for message in messages)
+
+
+def test_standard_rule_skips_forks_and_private_tools(tmp_path: Path) -> None:
+    write_workflow(
+        tmp_path,
+        standard_workflow(
+            [
+                "aarch64-apple-darwin",
+                "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+            ]
+        ),
+    )
+    fork = Repository(RepoId("acme", "demo"), ("tool", "fork"))
+    private = Repository(RepoId("acme", "demo"), ("private-tool",))
+
+    assert _binary_release_standard_findings(tmp_path, fork) == []
+    assert _binary_release_standard_findings(tmp_path, private) == []
+
+
+def test_musl_image_accepts_ish_contract(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_musl_dockerfile(tmp_path)
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    assert _rust_musl_image_findings(tmp_path, repository) == []
+
+
+def test_musl_image_rejects_glibc_builder(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    (tmp_path / "Dockerfile").write_text(
+        "FROM debian:12\n"
+        "RUN apt-get install -y gcc\n"
+        "RUN cargo build --release --target x86_64-unknown-linux-gnu\n",
+        encoding="utf-8",
+    )
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    findings = _rust_musl_image_findings(tmp_path, repository)
+    messages = [finding.message for finding in findings]
+
+    assert any("Alpine" in message for message in messages)
+    assert any("glibc" in message for message in messages)
+    assert any("musl-cargo" in message for message in messages)
+
+
+def test_musl_image_skips_missing_dockerfile_and_non_rust(tmp_path: Path) -> None:
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+
+    assert _rust_musl_image_findings(tmp_path, repository) == []
+
+    (tmp_path / "Dockerfile").write_text("FROM alpine:3.24.1\n", encoding="utf-8")
+
+    assert _rust_musl_image_findings(tmp_path, repository) == []

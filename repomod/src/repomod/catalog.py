@@ -40,7 +40,8 @@ LANGUAGE_TAGS = frozenset(
     }
 )
 PUBLISHING_TAGS = frozenset({"crates-io", "pypi", "npm"})
-TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS | frozenset({"fork"})
+PLATFORM_TAGS = frozenset({"linux", "macos"})
+TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS | PLATFORM_TAGS | frozenset({"fork"})
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]+\Z")
 
 
