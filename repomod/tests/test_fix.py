@@ -333,7 +333,7 @@ def test_policy_fixer_compares_line_findings_by_content_and_multiplicity(
                 str(repo.id),
                 "line-policy",
                 "policy.txt",
-                f"line {line_number}: jactionlint rule: existing diagnostic",
+                f"line {line_number}: existing lint rule: existing diagnostic",
             )
             for line_number, line in enumerate(source.splitlines(), start=1)
             if line == "bad"

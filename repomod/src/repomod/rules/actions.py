@@ -8,7 +8,6 @@ import subprocess
 import tomllib
 import uuid
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -24,7 +23,6 @@ _VERSION = re.compile(r"v([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?\Z")
 _VERSION_CHANNEL = re.compile(r"v([0-9]+)\Z")
 _VERSION_REFERENCE = re.compile(r"v?([0-9]+)(?:\.[0-9]+){0,2}\Z")
 _VERSION_COMMENT = re.compile(r"(?<![A-Za-z0-9])(v[0-9]+(?:\.[0-9]+){0,2})(?![A-Za-z0-9])")
-_SHELLCHECK_SEVERITY = re.compile(r"\bSC[0-9]+:(error|warning|info|style):")
 _PINACT_CHECK_LINE = re.compile(r"^(?P<path>.+):(?P<line>[0-9]+):\s*(?P<reference>\S+)\s*$")
 _PINACT_FILE_ERROR = re.compile(r"^(?P<path>.+?):(?P<line>[0-9]+):\s*(?P<message>.*\S)\s*$")
 _PINACT_PATH_ERROR = re.compile(r"^(?P<path>.+?):\s*(?P<message>.*\S)\s*$")
@@ -481,7 +479,7 @@ def _validate_workflows(
             f"{finding.get('filepath', 'file')}:{finding.get('line', 1)}: "
             f"{finding.get('id', 'pinact')}: {finding.get('message', 'invalid file')}"
             for finding in findings
-            if isinstance(finding, dict) and _jactionlint_severity(finding) == "error"
+            if isinstance(finding, dict) and _finding_severity(finding) == "error"
         ]
         if messages:
             return messages
@@ -489,25 +487,13 @@ def _validate_workflows(
     return [result.stderr.strip() or result.stdout.strip() or "pinact rejected modified files"]
 
 
-def _jactionlint_severity(finding: dict[str, object]) -> Severity:
+def _finding_severity(finding: dict[str, object]) -> Severity:
     severity = finding.get("severity")
     if severity == "warning":
-        default: Severity = "warning"
-    elif severity == "info":
-        default = "info"
-    else:
-        default = "error"
-    message = finding.get("message")
-    if finding.get("id") == "shellcheck" and isinstance(message, str):
-        match = _SHELLCHECK_SEVERITY.search(message)
-        if match is not None:
-            level = match.group(1)
-            if level == "error":
-                return "error"
-            if level == "warning":
-                return "warning"
-            return "info"
-    return default
+        return "warning"
+    if severity == "info":
+        return "info"
+    return "error"
 
 
 def _action_tool_files(
@@ -557,30 +543,6 @@ def _tool_file_arguments(root: Path, files: list[Path]) -> list[str]:
     return [str(path.relative_to(root)) for path in files]
 
 
-@lru_cache(maxsize=8)
-def _jactionlint_fixable_rule_ids(executable: str) -> frozenset[str]:
-    result = subprocess.run(
-        [executable, "--list-rules", "--format", "json"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
-    )
-    if result.returncode:
-        raise GitError(result.stderr.strip() or "jactionlint could not list fixable rules")
-    try:
-        rules = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        raise GitError(f"jactionlint returned invalid rule metadata: {error}") from error
-    if not isinstance(rules, list):
-        raise GitError("jactionlint returned invalid rule metadata")
-    return frozenset(
-        str(rule["id"])
-        for rule in rules
-        if isinstance(rule, dict) and rule.get("fixable") is True and isinstance(rule.get("id"), str)
-    )
-
-
 def _tool_relative_path(root: Path, value: str) -> str | None:
     value = unquote(value)
     path = Path(value)
@@ -592,144 +554,6 @@ def _tool_relative_path(root: Path, value: str) -> str | None:
         return candidate.relative_to(root).as_posix()
     except (OSError, ValueError):
         return None
-
-
-def _jactionlint_findings(
-    root: Path, repository: Repository, files: list[Path]
-) -> list[Finding]:
-    rule_id = "gha-syntax"
-    executable = shutil.which("jactionlint")
-    if executable is None:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                "jactionlint is required for GitHub Actions checks; install jactionlint",
-            )
-        ]
-    try:
-        fixable_rules = _jactionlint_fixable_rule_ids(executable)
-    except (GitError, OSError, subprocess.TimeoutExpired) as error:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                f"cannot read jactionlint fix rules: {error}",
-            )
-        ]
-    try:
-        result = subprocess.run(
-            [
-                executable,
-                "--profile=default",
-                "--no-ignores",
-                "--no-baseline",
-                "--no-online",
-                "--format=json",
-                "--show-fix-status",
-                "--",
-                *_tool_file_arguments(root, files),
-            ],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                "jactionlint timed out while checking GitHub Actions files",
-            )
-        ]
-    except OSError as error:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                f"cannot run jactionlint: {error}",
-            )
-        ]
-    if result.returncode not in {0, 1}:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                result.stderr.strip() or result.stdout.strip() or f"jactionlint exited {result.returncode}",
-            )
-        ]
-    try:
-        parsed = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                f"jactionlint returned invalid JSON: {error}",
-            )
-        ]
-    if not isinstance(parsed, list):
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                "jactionlint returned an invalid finding list",
-            )
-        ]
-    findings = []
-    for item in parsed:
-        if not isinstance(item, dict):
-            return [
-                operational(
-                    repository,
-                    rule_id,
-                    ".github/workflows",
-                    "jactionlint returned an invalid finding record",
-                )
-            ]
-        item_rule = item.get("id")
-        if item_rule == "concurrency-limits":
-            continue
-        file_value = item.get("filepath")
-        relative = _tool_relative_path(root, file_value) if isinstance(file_value, str) else None
-        if relative is None:
-            return [
-                operational(
-                    repository,
-                    rule_id,
-                    ".github/workflows",
-                    "jactionlint reported a path outside the repository",
-                )
-            ]
-        message = item.get("message")
-        line_number = item.get("line")
-        location = f"line {line_number}: " if isinstance(line_number, int) else ""
-        fix = item.get("fix")
-        findings.append(
-            violation(
-                repository,
-                rule_id,
-                relative,
-                f"{location}jactionlint {item_rule}: {message if isinstance(message, str) else 'finding'}",
-                severity=_jactionlint_severity(item),
-                fixable=isinstance(item_rule, str)
-                and item_rule in fixable_rules
-                and isinstance(fix, dict)
-                and isinstance(fix.get("edits"), list)
-                and bool(fix["edits"])
-                and fix.get("unsafe") is not True,
-            )
-        )
-    return findings
 
 
 def _pinact_lint_findings(
@@ -856,7 +680,7 @@ def _pinact_lint_findings(
                 rule_id,
                 relative,
                 f"{location}pinact {item_rule}: {message if isinstance(message, str) else 'finding'}",
-                severity=_jactionlint_severity(item),
+                severity=_finding_severity(item),
                 fixable=isinstance(item_rule, str) and item.get("fixable") is True,
             )
         )
@@ -1065,13 +889,6 @@ def _changed_tool_paths(root: Path, allowed: set[str]) -> dict[str, str]:
         except (OSError, UnicodeError) as error:
             raise GitError(f"cannot read GitHub Actions fixer output {relative}: {error}") from error
     return plan
-
-
-def _jactionlint_fix_rules(executable: str) -> str:
-    fixable = set(_jactionlint_fixable_rule_ids(executable)) - {"concurrency-limits"}
-    if not fixable:
-        raise GitError("jactionlint reported no safe automatic fixes")
-    return ",".join(sorted(fixable))
 
 
 def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:

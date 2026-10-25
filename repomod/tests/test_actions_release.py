@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -316,9 +313,9 @@ def test_pinact_workflow_validation_only_blocks_errors(
                             "filepath": ".github/workflows/ci.yml",
                             "line": 3,
                             "column": 9,
-                            "id": "shellcheck",
-                            "severity": "error",
-                            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+                            "id": "pinact-note",
+                            "severity": "info",
+                            "message": "informational finding",
                             "fixable": False,
                         }
                     ]
@@ -477,80 +474,6 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
     assert list(scratch.iterdir()) == []
 
 
-def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    workflow = write_workflow(tmp_path, "jobs: {}\n")
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
-    monkeypatch.setattr(
-        actions,
-        "_jactionlint_fixable_rule_ids",
-        lambda _executable: frozenset(
-            {"concurrency-limits", "missing-timeout", "missing-permissions", "artipacked"}
-        ),
-    )
-    findings = [
-        {
-            "id": "duplicate-triggers",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 1,
-            "message": "manual branch choice",
-        },
-        {
-            "id": "missing-timeout",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 2,
-            "message": "no default configured",
-            "no_fix": {"code": "option-required"},
-        },
-        {
-            "id": "artipacked",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 3,
-            "message": "checkout credentials persist",
-            "fix": {"edits": [{"start": 0, "end": 0, "new_text": ""}]},
-        },
-        {
-            "id": "missing-permissions",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 3,
-            "message": "permissions need a deliberate selection",
-            "fix": {
-                "unsafe": True,
-                "edits": [{"start": 0, "end": 0, "new_text": "permissions: read-all\n"}],
-            },
-        },
-        {
-            "id": "concurrency-limits",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 1,
-            "message": "owned by gha-settings",
-        },
-        {
-            "id": "shellcheck",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 3,
-            "severity": "error",
-            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
-        },
-    ]
-    monkeypatch.setattr(
-        actions.subprocess,
-        "run",
-        lambda *args, **kwargs: SimpleNamespace(
-            returncode=1,
-            stdout=json.dumps(findings),
-            stderr="",
-        ),
-    )
-
-    results = actions._jactionlint_findings(tmp_path, repository(), [workflow])
-
-    assert [finding.fixable for finding in results] == [False, False, True, False, False]
-    assert results[-1].severity == "info"
-
-
 def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rules(
     tmp_path: Path,
     monkeypatch,
@@ -589,9 +512,9 @@ def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rule
             "filepath": ".github/workflows/ci.yaml",
             "line": 3,
             "column": 5,
-            "id": "shellcheck",
-            "severity": "error",
-            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+            "id": "pinact-note",
+            "severity": "info",
+            "message": "informational finding",
             "fixable": False,
         },
     ]
@@ -1230,131 +1153,3 @@ def test_private_npm_package_without_public_workspaces_is_not_published(
     )
 
     assert release._npm_findings(tmp_path, repository(("tool", "npm"))) == []
-
-
-_R0_CORPUS = Path("/Users/josh/d/repomod/.work/tmp/r0-probe/copy")
-_LANE_PINACT = Path(
-    "/Users/josh/usr/.work/wt/lane-usr/dotfiles/base/.local/bin/pinact"
-)
-_R0_UNPINNED = frozenset(
-    [
-        (
-            "tests/fixtures/binary_release/joshuarli_mactop/.github/workflows/release.yml",
-            line,
-        )
-        for line in (20, 23, 37, 51)
-    ]
-    + [
-        (
-            "tests/fixtures/binary_release/joshuarli_pytest-parallel/.github/workflows/release.yml",
-            line,
-        )
-        for line in (18, 20, 25, 34, 46)
-    ]
-    + [
-        (
-            "tests/fixtures/binary_release/laputa-systems_zzz/.github/workflows/release.yml",
-            line,
-        )
-        for line in (23, 27, 46, 57)
-    ]
-)
-
-
-def test_pinact_lint_agrees_with_jactionlint_on_r0_corpus() -> None:
-    if not _R0_CORPUS.is_dir():
-        pytest.skip("R0 probe corpus is not available")
-    pinact_path = str(_LANE_PINACT) if _LANE_PINACT.is_file() else shutil.which("pinact")
-    if pinact_path is None:
-        pytest.skip("pinact is not available for the live agreement check")
-    repo_root = Path(__file__).parents[1]
-    scratch_base = repo_root / ".work" / "tmp"
-    scratch_base.mkdir(parents=True, exist_ok=True)
-    scratch = scratch_base / f"r1-live-{uuid.uuid4().hex}"
-    sources = sorted(
-        path.relative_to(_R0_CORPUS).as_posix()
-        for path in _R0_CORPUS.rglob("*")
-        if path.is_file()
-    )
-    assert len(sources) == 9
-    try:
-        for relative in sources:
-            target = scratch / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(_R0_CORPUS / relative, target)
-        env = dict(os.environ)
-        env["TMPDIR"] = str(scratch_base)
-        command = [
-            sys.executable,
-            "-I",
-            pinact_path,
-            "lint",
-            "--profile=correctness",
-            "--format=json",
-            "--",
-            *sources,
-        ]
-        first = subprocess.run(
-            command, cwd=scratch, capture_output=True, text=True, env=env, check=False
-        )
-        second = subprocess.run(
-            command, cwd=scratch, capture_output=True, text=True, env=env, check=False
-        )
-        assert first.returncode == 1
-        assert first.stderr == ""
-        assert first.stdout == second.stdout
-        records = json.loads(first.stdout)
-        assert isinstance(records, list)
-        for record in records:
-            assert tuple(sorted(record)) == (
-                "column",
-                "filepath",
-                "fixable",
-                "id",
-                "line",
-                "message",
-                "severity",
-            )
-        order = [
-            (record["filepath"], record["line"], record["column"], record["id"], record["message"])
-            for record in records
-        ]
-        assert order == sorted(order)
-        unpinned = frozenset(
-            (record["filepath"], record["line"])
-            for record in records
-            if record["id"] == "unpinned-uses"
-        )
-        assert unpinned == _R0_UNPINNED
-        assert {record["id"] for record in records} == {"unpinned-uses"}
-        jactionlint = shutil.which("jactionlint")
-        if jactionlint is None:
-            pytest.skip("jactionlint is not available for the live agreement check")
-        legacy = subprocess.run(
-            [
-                jactionlint,
-                "--profile=default",
-                "--no-ignores",
-                "--no-baseline",
-                "--no-online",
-                "--format=json",
-                "--show-fix-status",
-                "--",
-                *sources,
-            ],
-            cwd=scratch,
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-        assert legacy.returncode == 1
-        old_records = json.loads(legacy.stdout)
-        old_unpinned = frozenset(
-            (record["filepath"], record["line"])
-            for record in old_records
-            if record["id"] == "unpinned-uses"
-        )
-        assert old_unpinned == unpinned
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
