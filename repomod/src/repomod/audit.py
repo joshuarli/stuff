@@ -168,6 +168,79 @@ def _js_spec_is_filesystem(spec: str) -> bool:
     return re.match(r"^[A-Za-z]:[\\/]", value) is not None
 
 
+def _is_relative_js_dependency(root: Path, project: Path, spec: str) -> bool:
+    value = spec.strip()
+    lowered = value.casefold()
+    for prefix in ("workspace:", "portal:", "link:"):
+        if lowered.startswith(prefix):
+            target = value[len(prefix) :].strip()
+            if not target or target == "*" or target.startswith(("^", "~")):
+                return True
+            candidate: Path | None = None
+            try:
+                if target.startswith(("./", "../", "/", "~/")):
+                    candidate = project / target
+                elif re.match(r"^[A-Za-z]:[\\/]", target) is not None:
+                    return False
+            except (OSError, ValueError):
+                return False
+            if candidate is None:
+                return True
+            try:
+                resolved = Path(os.path.normpath(candidate))
+                root_norm = Path(os.path.normpath(root))
+                is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+            except ValueError:
+                return False
+            if not is_inside:
+                return False
+            try:
+                manifest = resolved / "package.json"
+                if resolved.is_file():
+                    return True
+                return manifest.is_file() and not manifest.is_symlink()
+            except OSError:
+                return False
+    if lowered.startswith("file:"):
+        target = value[5:].strip()
+        try:
+            candidate_path = project / target if target else project
+            resolved = Path(os.path.normpath(candidate_path))
+            root_norm = Path(os.path.normpath(root))
+            is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+        except ValueError:
+            return False
+        if not is_inside:
+            return False
+        try:
+            if resolved.is_file():
+                return True
+            manifest = resolved / "package.json"
+            return manifest.is_file() and not manifest.is_symlink()
+        except OSError:
+            return False
+    if value.startswith(("./", "../", "/", "~/", ".")) or re.match(
+        r"^[A-Za-z]:[\\/]", value
+    ) is not None:
+        try:
+            candidate_path = project / value
+            resolved = Path(os.path.normpath(candidate_path))
+            root_norm = Path(os.path.normpath(root))
+            is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+        except ValueError:
+            return False
+        if not is_inside:
+            return False
+        try:
+            if resolved.is_file():
+                return True
+            manifest = resolved / "package.json"
+            return manifest.is_file() and not manifest.is_symlink()
+        except OSError:
+            return False
+    return False
+
+
 def _read_json(path: Path) -> tuple[Any | None, str | None]:
     try:
         return json.loads(path.read_text(encoding="utf-8")), None
@@ -200,6 +273,111 @@ class RustDependency:
     has_version: bool = False
     path_value: str | None = None
     git_value: str | None = None
+    version_req: str | None = None
+
+
+def _parse_cargo_version(value: str) -> tuple[int, ...]:
+    cleaned = value.strip().removeprefix("v").removeprefix("V")
+    cleaned = cleaned.split("+", 1)[0].split("-", 1)[0]
+    parts: list[int] = []
+    for piece in re.split(r"[.]", cleaned):
+        match = re.match(r"([0-9]+)", piece)
+        if match is None:
+            break
+        parts.append(int(match.group(1)))
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def _cargo_req_satisfies(req: str | None, version: str) -> bool:
+    if req is None:
+        return True
+    text = req.strip()
+    if not text or text == "*":
+        return True
+    try:
+        candidate = _parse_cargo_version(version)
+    except (ValueError, IndexError):
+        return True
+    for alternative in text.split("||"):
+        alternative = alternative.strip()
+        if not alternative:
+            continue
+        satisfied = True
+        for conjunct in alternative.split(","):
+            part = conjunct.strip()
+            if not part or part == "*":
+                continue
+            operator: str | None = None
+            remainder = part
+            for prefix in ("===", "==", ">=", "<=", "!=", "~=", "~", "^", "=", ">", "<"):
+                if part.startswith(prefix):
+                    operator = prefix
+                    remainder = part[len(prefix) :].strip()
+                    break
+            if operator is None:
+                operator = "^"
+            else:
+                if operator == "===":
+                    operator = "="
+            if not remainder or remainder == "*":
+                continue
+            try:
+                baseline = _parse_cargo_version(remainder)
+            except (ValueError, IndexError):
+                continue
+            if operator == "=":
+                if candidate != baseline:
+                    satisfied = False
+                    break
+            elif operator == "!=":
+                if candidate == baseline:
+                    satisfied = False
+                    break
+            elif operator == ">":
+                if not candidate > baseline:
+                    satisfied = False
+                    break
+            elif operator == ">=":
+                if not candidate >= baseline:
+                    satisfied = False
+                    break
+            elif operator == "<":
+                if not candidate < baseline:
+                    satisfied = False
+                    break
+            elif operator == "<=":
+                if not candidate <= baseline:
+                    satisfied = False
+                    break
+            elif operator in ("~=", "~"):
+                major, minor, _patch = baseline
+                if major > 0:
+                    upper = (major + 1, 0, 0)
+                elif minor > 0:
+                    upper = (0, minor + 1, 0)
+                else:
+                    upper = (0, 0, baseline[2] + 1)
+                if not (candidate >= baseline and candidate < upper):
+                    satisfied = False
+                    break
+            else:
+                major, minor, patch = baseline
+                if major > 0:
+                    upper = (major + 1, 0, 0)
+                elif minor > 0:
+                    upper = (0, minor + 1, 0)
+                elif patch > 0:
+                    upper = (0, 0, patch + 1)
+                else:
+                    upper = (0, 0, 1)
+                if not (candidate >= baseline and candidate < upper):
+                    satisfied = False
+                    break
+        if satisfied:
+            return True
+    return False
 
 
 def _cargo_manifests(root: Path) -> list[Path]:
@@ -242,16 +420,15 @@ def workspace_parent_candidates(manifest: Path, member: str) -> list[Path]:
 
 
 def _rust_manifest_dependencies(
-    document: dict[str, Any], relative: str
+    document: dict[str, Any],
+    relative: str,
+    *,
+    workspace_resolver: Callable[[str], tuple[dict[str, Any] | str, Path | None] | None]
+    | None = None,
 ) -> list[RustDependency]:
     tables: list[dict[str, Any]] = []
     for key in ("dependencies", "dev-dependencies", "build-dependencies"):
         value = document.get(key)
-        if isinstance(value, dict):
-            tables.append(value)
-    workspace = document.get("workspace")
-    if isinstance(workspace, dict):
-        value = workspace.get("dependencies")
         if isinstance(value, dict):
             tables.append(value)
     targets = document.get("target")
@@ -269,10 +446,66 @@ def _rust_manifest_dependencies(
             if name == "package":
                 continue
             if isinstance(spec, dict):
+                if spec.get("workspace") is True and workspace_resolver is not None:
+                    resolved = workspace_resolver(name)
+                    if resolved is not None:
+                        workspace_spec, workspace_dir = resolved
+                        if isinstance(workspace_spec, str):
+                            dependencies.append(
+                                RustDependency(
+                                    name, relative, False, False, True, version_req=workspace_spec
+                                )
+                            )
+                            continue
+                        real = workspace_spec.get("package", name)
+                        real_name = real if isinstance(real, str) else name
+                        has_path = "path" in spec or "path" in workspace_spec
+                        has_git = "git" in spec or "git" in workspace_spec
+                        has_version = "version" in spec or "version" in workspace_spec
+                        raw_path = spec.get("path", workspace_spec.get("path"))
+                        raw_git = spec.get("git", workspace_spec.get("git"))
+                        raw_version = spec.get("version", workspace_spec.get("version"))
+                        path_value = raw_path if isinstance(raw_path, str) else None
+                        git_value = raw_git if isinstance(raw_git, str) else None
+                        version_req = raw_version if isinstance(raw_version, str) else None
+                        if (
+                            path_value is not None
+                            and workspace_dir is not None
+                            and not os.path.isabs(path_value)
+                        ):
+                            try:
+                                absolute = os.path.normpath(
+                                    os.path.join(str(workspace_dir), path_value)
+                                )
+                                manifest_parent = os.path.normpath(
+                                    str(Path(relative).parent)
+                                )
+                                if manifest_parent == ".":
+                                    manifest_parent = ""
+                                rel = os.path.relpath(absolute, start=".")
+                                if manifest_parent:
+                                    rel = os.path.relpath(absolute, start=manifest_parent)
+                                path_value = rel
+                            except (OSError, ValueError):
+                                pass
+                        dependencies.append(
+                            RustDependency(
+                                name=real_name,
+                                manifest=relative,
+                                has_path=has_path,
+                                has_git=has_git,
+                                has_version=has_version,
+                                path_value=path_value,
+                                git_value=git_value,
+                                version_req=version_req,
+                            )
+                        )
+                        continue
                 real = spec.get("package", name)
                 real_name = real if isinstance(real, str) else name
                 raw_path = spec.get("path")
                 raw_git = spec.get("git")
+                raw_version = spec.get("version")
                 dependencies.append(
                     RustDependency(
                         name=real_name,
@@ -282,16 +515,19 @@ def _rust_manifest_dependencies(
                         has_version="version" in spec,
                         path_value=raw_path if isinstance(raw_path, str) else None,
                         git_value=raw_git if isinstance(raw_git, str) else None,
+                        version_req=raw_version if isinstance(raw_version, str) else None,
                     )
                 )
             elif isinstance(spec, str):
-                dependencies.append(RustDependency(name, relative, False, False, True))
+                dependencies.append(
+                    RustDependency(name, relative, False, False, True, version_req=spec)
+                )
     return dependencies
 
 
 def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[str]]:
     manifests = _cargo_manifests(root)
-    dependencies: list[RustDependency] = []
+    documents: dict[Path, dict[str, Any]] = {}
     problems: list[str] = []
     for manifest in manifests:
         relative = manifest.relative_to(root).as_posix()
@@ -299,7 +535,56 @@ def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[st
         if document is None:
             problems.append(f"{relative}: {error}")
             continue
-        dependencies.extend(_rust_manifest_dependencies(document, relative))
+        documents[manifest] = document
+    workspace_tables: dict[Path, dict[str, Any]] = {}
+    for manifest, document in documents.items():
+        workspace = document.get("workspace")
+        if not isinstance(workspace, dict):
+            continue
+        dependencies = workspace.get("dependencies")
+        if isinstance(dependencies, dict):
+            workspace_tables[manifest.parent] = dependencies
+
+    def make_resolver(
+        manifest: Path,
+    ) -> Callable[[str], tuple[dict[str, Any] | str, Path | None] | None]:
+        def resolve(
+            dep_key: str,
+        ) -> tuple[dict[str, Any] | str, Path | None] | None:
+            current = manifest.parent
+            root_norm = Path(os.path.normpath(root))
+            while True:
+                table = workspace_tables.get(current)
+                if table is not None and dep_key in table:
+                    spec = table[dep_key]
+                    if isinstance(spec, (dict, str)):
+                        return spec, current
+                if current == root_norm:
+                    break
+                try:
+                    if not current.is_relative_to(root_norm):
+                        break
+                except ValueError:
+                    break
+                parent = current.parent
+                if parent == current:
+                    break
+                current = parent
+            return None
+
+        return resolve
+
+    dependencies: list[RustDependency] = []
+    for manifest in manifests:
+        document = documents.get(manifest)
+        if document is None:
+            continue
+        relative = manifest.relative_to(root).as_posix()
+        dependencies.extend(
+            _rust_manifest_dependencies(
+                document, relative, workspace_resolver=make_resolver(manifest)
+            )
+        )
     return dependencies, problems
 
 
@@ -320,6 +605,31 @@ def _locked_versions(lock: Path, normalize: Callable[[str], str]) -> tuple[dict[
             if isinstance(name, str) and isinstance(version, str):
                 locked.setdefault(normalize(name), version)
     return locked, None
+
+
+def _locked_all_versions(
+    lock: Path, normalize: Callable[[str], str]
+) -> tuple[dict[str, list[str]], str | None]:
+    if not lock.is_file() or lock.is_symlink():
+        return {}, None
+    document, error = read_toml(lock)
+    if document is None:
+        return {}, error
+    locked: dict[str, list[str]] = {}
+    packages = document.get("package")
+    if isinstance(packages, list):
+        for package in packages:
+            if not isinstance(package, dict):
+                continue
+            name = package.get("name")
+            version = package.get("version")
+            if isinstance(name, str) and isinstance(version, str):
+                locked.setdefault(normalize(name), []).append(version)
+    return locked, None
+
+
+def _cargo_locked_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return _locked_all_versions(root / "Cargo.lock", _normalize_rust_name)
 
 
 def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
@@ -732,21 +1042,34 @@ def _collect_locked(
         if lock_error is not None:
             message = f"Cargo.lock is invalid TOML: {lock_error}"
             findings.append(_finding(repository, "audit-lock", "Cargo.lock", message, operational=True))
+        all_versions, _ = _cargo_locked_all_versions(root)
         seen: set[str] = set()
         for dependency in direct:
-            if (
-                dependency.has_path
-                and not dependency.has_version
-                and _is_self_dependency(root, dependency.manifest, dependency.path_value)
+            if dependency.has_path and _is_relative_crate(
+                root, dependency.manifest, dependency.path_value
             ):
                 continue
             key = _normalize_rust_name(dependency.name)
             if key in seen:
                 continue
             seen.add(key)
-            version = versions.get(key)
-            if version is None:
+            candidates = all_versions.get(key, [])
+            if not candidates:
+                version = versions.get(key)
+                if version is None:
+                    continue
+                locked.append(LockedDependency("crates", dependency.name, version, True))
                 continue
+            version: str | None = None
+            if len(candidates) == 1:
+                version = candidates[0]
+            else:
+                for candidate in candidates:
+                    if _cargo_req_satisfies(dependency.version_req, candidate):
+                        version = candidate
+                        break
+                if version is None:
+                    version = candidates[0]
             locked.append(LockedDependency("crates", dependency.name, version, True))
     if _has_ecosystem(tags, root, "go.mod", "go"):
         requirements, direct_map = _go_requirements(root)
@@ -827,6 +1150,45 @@ def _is_self_dependency(root: Path, manifest: str, path_value: str | None) -> bo
         return False
 
 
+def _is_relative_crate(root: Path, manifest: str, path_value: str | None) -> bool:
+    if path_value is None:
+        return False
+    parent = (root / manifest).parent
+    try:
+        resolved = Path(os.path.normpath(parent / path_value))
+        root_norm = Path(os.path.normpath(root))
+    except (OSError, ValueError):
+        return False
+    try:
+        is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+    except ValueError:
+        return False
+    if not is_inside:
+        return False
+    if resolved == root_norm:
+        return _is_self_dependency(root, manifest, path_value)
+    try:
+        candidate = resolved / "Cargo.toml"
+        return candidate.is_file() and not candidate.is_symlink()
+    except OSError:
+        return False
+
+
+def _local_rust_package_names(root: Path) -> set[str]:
+    names: set[str] = set()
+    for manifest in _cargo_manifests(root):
+        document, _ = read_toml(manifest)
+        if not isinstance(document, dict):
+            continue
+        package = document.get("package")
+        if not isinstance(package, dict):
+            continue
+        name = package.get("name")
+        if isinstance(name, str) and name:
+            names.add(_normalize_rust_name(name))
+    return names
+
+
 def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     tags = set(repository.tags)
@@ -878,7 +1240,7 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
         direct, _ = _rust_direct_dependencies(root)
         for dependency in sorted(direct, key=lambda item: item.name.casefold()):
             if dependency.has_path and not dependency.has_version:
-                if _is_self_dependency(root, dependency.manifest, dependency.path_value):
+                if _is_relative_crate(root, dependency.manifest, dependency.path_value):
                     continue
                 detail = f' "{dependency.path_value}"' if dependency.path_value is not None else ""
                 message = (
@@ -897,13 +1259,20 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
         for dependency in direct:
             if dependency.has_path and not dependency.has_version:
                 continue
+            if dependency.has_path and _is_relative_crate(
+                root, dependency.manifest, dependency.path_value
+            ):
+                continue
             normalized = _normalize_rust_name(dependency.name)
             if _is_banned_rust(dependency.name) and normalized not in seen_banned:
                 seen_banned.add(normalized)
                 message = _banned_rust_message(dependency.name, transitive=False)
                 findings.append(_finding(repository, "audit-banned", dependency.manifest, message))
         versions, _ = _cargo_locked_versions(root)
+        local_names = _local_rust_package_names(root)
         for normalized, version in sorted(versions.items()):
+            if normalized in local_names:
+                continue
             if _is_banned_rust(normalized) and normalized not in seen_banned:
                 seen_banned.add(normalized)
                 message = _banned_rust_message(normalized, transitive=True, version=version)
@@ -914,6 +1283,8 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             relative_manifest = (project / "package.json").relative_to(root).as_posix()
             for name in sorted(dependencies):
                 if _js_spec_is_filesystem(dependencies[name]):
+                    if _is_relative_js_dependency(root, project, dependencies[name]):
+                        continue
                     spec = dependencies[name].strip()
                     message = (
                         f"dependency '{name}' uses \"{spec}\"; depend on the registry version instead"

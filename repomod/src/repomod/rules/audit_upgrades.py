@@ -13,6 +13,7 @@ from typing import Any
 from repomod.audit import (
     UpgradeTask,
     _audit_cache_path,
+    _cargo_req_satisfies,
     _collect_locked,
     _is_outdated,
     _js_direct_dependencies,
@@ -90,6 +91,16 @@ def _non_registry_names(root: Path) -> set[tuple[str, str]]:
     return skipped
 
 
+def _rust_version_reqs(root: Path) -> dict[str, str | None]:
+    reqs: dict[str, str | None] = {}
+    direct, _ = _rust_direct_dependencies(root)
+    for dependency in direct:
+        key = _normalize_rust_name(dependency.name)
+        if key not in reqs or (reqs[key] is None and dependency.version_req is not None):
+            reqs[key] = dependency.version_req
+    return reqs
+
+
 def _outdated_findings(
     root: Path,
     repository: Repository,
@@ -111,6 +122,7 @@ def _outdated_findings(
     latest = _resolve_latest(
         direct, offline=False, refresh=False, cache=cache, now=now, fetcher=fetcher
     )
+    rust_reqs = _rust_version_reqs(root)
     findings: list[Finding] = []
     unresolved: set[str] = set()
     for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
@@ -118,13 +130,18 @@ def _outdated_findings(
         if newest is None:
             unresolved.add(f"{item.ecosystem}:{item.name}")
         elif _is_outdated(item.locked, newest):
+            fixable = True
+            if item.ecosystem == "crates":
+                req = rust_reqs.get(_normalize_rust_name(item.name))
+                if req is not None and not _cargo_req_satisfies(req, newest):
+                    fixable = False
             findings.append(
                 violation(
                     repository,
                     _RULE_ID,
                     None,
                     f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}",
-                    fixable=True,
+                    fixable=fixable,
                 )
             )
     findings.extend(

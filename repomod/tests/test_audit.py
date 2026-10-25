@@ -169,6 +169,88 @@ def test_rust_self_dependency_on_root_is_exempt(tmp_path: Path) -> None:
     assert all(not (item.ecosystem == "crates" and item.name == "rawzip") for item in locked)
 
 
+def test_rust_relative_crate_without_version_is_exempt(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[workspace]\nmembers = ["crates/foo", "crates/bar"]\n',
+        encoding="utf-8",
+    )
+    foo = root / "crates" / "foo"
+    foo.mkdir(parents=True)
+    (foo / "Cargo.toml").write_text(
+        '[package]\nname = "foo"\nversion = "0.1.0"\nedition = "2024"\n',
+        encoding="utf-8",
+    )
+    bar = root / "crates" / "bar"
+    bar.mkdir(parents=True)
+    (bar / "Cargo.toml").write_text(
+        '[package]\nname = "bar"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nfoo = { path = "../foo" }\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "foo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "bar"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    findings = _policy_findings(root, repository("tool", "rust"))
+    assert [finding for finding in findings if finding.rule == "audit-registry"] == []
+    locked, _ = _collect_locked(root, repository("tool", "rust"))
+    assert all(not (item.ecosystem == "crates" and item.name == "foo") for item in locked)
+
+
+def test_rust_workspace_inherited_relative_is_exempt_from_banned(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[workspace]\nmembers = ["crates/foo"]\n'
+        '[workspace.dependencies]\n'
+        'hyper = { package = "laputa-hyper-futures-lite", version = "1.12.0", '
+        'path = "crates/hyper-fork" }\n'
+        '[dependencies]\nhyper = { workspace = true }\n',
+        encoding="utf-8",
+    )
+    fork = root / "crates" / "hyper-fork"
+    fork.mkdir(parents=True)
+    (fork / "Cargo.toml").write_text(
+        '[package]\nname = "laputa-hyper-futures-lite"\nversion = "1.12.0"\nedition = "2021"\n',
+        encoding="utf-8",
+    )
+    foo = root / "crates" / "foo"
+    foo.mkdir(parents=True)
+    (foo / "Cargo.toml").write_text(
+        '[package]\nname = "foo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nhyper = { workspace = true }\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "laputa-hyper-futures-lite"\nversion = "1.12.0"\n',
+        encoding="utf-8",
+    )
+    findings = _policy_findings(root, repository("tool", "rust"))
+    assert [finding for finding in findings if finding.rule == "audit-banned"] == []
+    assert [finding for finding in findings if finding.rule == "audit-registry"] == []
+
+
+def test_js_relative_link_is_exempt(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    ts = root / "ts"
+    ts.mkdir()
+    (ts / "package.json").write_text('{"name":"shadowdriver","version":"0.1.0"}\n', encoding="utf-8")
+    (ts / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    app = root / "grab"
+    app.mkdir()
+    (app / "package.json").write_text(
+        '{"dependencies":{"shadowdriver":"link:../ts"}}\n', encoding="utf-8"
+    )
+    (app / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    findings = _policy_findings(root, repository("tool", "typescript"))
+    assert [finding for finding in findings if finding.rule == "audit-registry"] == []
+
+
 def test_rust_registry_message_names_mechanism_and_remedy(tmp_path: Path) -> None:
     root = repo_root(tmp_path)
     (root / "Cargo.toml").write_text(

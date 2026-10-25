@@ -11,8 +11,8 @@ start it while changing repomod code.
 
 ## Survey
 
-1. From the repomod checkout, run `uv run repomod sync`. Record which checkouts synchronized,
-   which are dirty, detached, or ahead, and which were skipped.
+1. From the repomod checkout, inspect existing checkouts without mutating them.
+   Record which are dirty, detached, or ahead.
 2. Run `uv run repomod status --failed` and list open fix PRs with
    `gh pr list --state open` per repository. For each open PR record its merge state and
    failing checks with `gh pr view --json mergeStateStatus,statusCheckRollup`.
@@ -64,7 +64,7 @@ result, remaining red checks with causes, and the PR URL.
    `gh pr merge --rebase` and say so.
 2. Never merge a red PR and never force-push a branch another lane owns. Merging needs all
    required checks green; a red product test is an owner decision, not an automation task.
-3. Resync once at the end and re-run the survey to confirm the fleet state.
+3. Re-run the survey at the end to confirm the fleet state.
 
 Report per repository: merged, green-awaiting-merge, red-blocked with the root cause and
 the exact owner decision needed, and skipped checkouts. List protected-branch mismatches

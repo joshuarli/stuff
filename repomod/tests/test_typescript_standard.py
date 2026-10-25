@@ -7,8 +7,7 @@ from typing import Any
 
 import pytest
 
-from repomod import cli
-from repomod.rules import actions, typescript_standard
+from repomod.rules import typescript_standard
 from repomod.rules.typescript_standard import (
     _fix_typescript_stack,
     _package_script_edits,
@@ -331,23 +330,3 @@ def test_tool_pin_refresh_uses_official_current_stable_release_sources(
     assert not typescript_standard.refresh_typescript_tool_pins(pins_path)
 
 
-def test_pins_refresh_updates_action_and_typescript_tool_sources(
-    monkeypatch,
-    capsys,
-) -> None:
-    refreshed = []
-    monkeypatch.setattr(actions, "refresh_pins", lambda: refreshed.append("actions") or True)
-    monkeypatch.setattr(
-        "repomod.rules.python_standard.refresh_python_tool_versions",
-        lambda: False,
-    )
-    monkeypatch.setattr(
-        typescript_standard,
-        "refresh_typescript_tool_pins",
-        lambda: refreshed.append("typescript-tools") or True,
-    )
-
-    assert cli.main(["pins", "refresh"]) == 0
-
-    assert refreshed == ["actions", "typescript-tools"]
-    assert capsys.readouterr().out == "approved pins updated: GitHub Actions, TypeScript tools\n"

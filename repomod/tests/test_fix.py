@@ -604,8 +604,10 @@ def test_unfixable_checkout_states_are_skipped_without_modification(
     branch = fix_repository(
         catalog, repository, (file_rule("first", "first.txt", "x"),), "main"
     )
-    assert branch.skipped == "checkout is on feature; default branch is main"
+    assert branch.skipped is None
+    assert branch.commits
     assert head(path) == base
+    assert git("rev-parse", "--abbrev-ref", "HEAD", cwd=path).stdout.strip() == "feature"
     git("checkout", "main", cwd=path)
 
     diverged = fix_repository(
@@ -615,7 +617,7 @@ def test_unfixable_checkout_states_are_skipped_without_modification(
         "main",
         "0" * 40,
     )
-    assert diverged.skipped == "checkout differs from GitHub default branch; sync before fixing"
+    assert diverged.skipped == "local default branch differs from GitHub default branch; sync before fixing"
     assert diverged.commits == []
     assert head(path) == base
 

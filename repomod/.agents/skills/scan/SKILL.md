@@ -7,13 +7,12 @@ description: "Resynchronize the catalogued repositories, inspect them for concre
 
 Use this skill when you want a fresh, repository-wide consistency review. It records actionable findings as TODO tickets and recommends whether each issue needs a repository-specific change or a shared repomod rule.
 
-## Synchronize the checkouts
+## Checkouts
 
-1. From the repomod checkout, run `uv run repomod sync`.
-2. Read the sync result and record which checkouts were synchronized or skipped.
-3. Do not reset, stash, clean, or switch canonical checkouts. Inspect skipped checkouts read-only and mark their findings as based on an unsynchronized worktree.
+1. Work from existing checkouts without mutating them.
+2. Do not reset, stash, clean, or switch canonical checkouts. Inspect checkouts read-only and mark findings based on a possibly stale worktree.
 
-`repomod sync` may fetch and fast-forward only clean checkouts on their default branch. Do not run this skill while changing repomod code.
+Do not run this skill while changing repomod code.
 
 ## Inspect the repositories
 

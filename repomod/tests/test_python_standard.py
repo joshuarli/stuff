@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from repomod import cli
 from repomod.rules.python_standard import (
     _latest_version,
     _python_standard_findings,
@@ -443,54 +442,6 @@ def test_python_standard_rule_has_a_stable_blacklistable_id() -> None:
     assert rule.fix is not None
 
 
-def test_pins_refresh_updates_action_and_python_tool_approvals(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    from repomod.rules import actions
-
-    monkeypatch.setattr(actions, "refresh_pins", lambda: True)
-    monkeypatch.setattr(
-        "repomod.rules.python_standard.refresh_python_tool_versions",
-        lambda: True,
-    )
-    monkeypatch.setattr(
-        "repomod.rules.typescript_standard.refresh_typescript_tool_pins",
-        lambda: True,
-    )
-
-    assert cli.main(["pins", "refresh"]) == 0
-    assert capsys.readouterr().out == (
-        "approved pins updated: GitHub Actions, Python tools, TypeScript tools\n"
-    )
-
-
-def test_pins_refresh_attempts_python_approvals_when_github_refresh_fails(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    from repomod.rules import actions
-
-    python_refresh_called = False
-
-    def fail_github() -> bool:
-        raise ValueError("offline")
-
-    def refresh_python() -> bool:
-        nonlocal python_refresh_called
-        python_refresh_called = True
-        return False
-
-    monkeypatch.setattr(actions, "refresh_pins", fail_github)
-    monkeypatch.setattr("repomod.rules.python_standard.refresh_python_tool_versions", refresh_python)
-    monkeypatch.setattr(
-        "repomod.rules.typescript_standard.refresh_typescript_tool_pins",
-        lambda: False,
-    )
-
-    assert cli.main(["pins", "refresh"]) == 2
-    assert python_refresh_called
-    assert "pin refresh failed: GitHub Actions: offline" in capsys.readouterr().err
 
 
 def test_latest_version_refresh_reports_unavailable_metadata(monkeypatch: pytest.MonkeyPatch) -> None:

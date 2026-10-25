@@ -1,7 +1,4 @@
-.PHONY: sync test lint
-
-sync:
-	@uv run repomod sync
+.PHONY: test lint
 
 test:
 	@uv run --group dev --quiet pytest tests/

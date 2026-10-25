@@ -11,7 +11,7 @@ import pytest
 
 from repomod import cli, github
 from repomod.catalog import load_catalog
-from repomod.cli import _audit, _discover, _fix, _lint, _status, _status_text
+from repomod.cli import _fix, _lint, _status, _status_text
 from repomod.fix import FixOutcome
 from repomod.policy import (
     filter_repositories,
@@ -911,45 +911,6 @@ def test_status_colors_respect_terminal_and_environment(monkeypatch) -> None:
     assert cli._local_color("dirty (1)") == "33"
 
 
-def test_discover_queries_both_configured_fleet_owners(tmp_path: Path, monkeypatch, capsys) -> None:
-    catalog_path = tmp_path / "catalog.toml"
-    catalog_path.write_text(
-        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "person"\n\n'
-        '[repos."person"]\ndemo = ["tool"]\n',
-        encoding="utf-8",
-    )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    owners: list[str] = []
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
-    monkeypatch.setattr(
-        "repomod.cli.discover", lambda values: owners.extend(values) or []
-    )
-
-    assert _discover(argparse.Namespace()) == 0
-    assert owners == ["person", "laputa-systems"]
-    assert "no uncatalogued" in capsys.readouterr().out
-
-
-def test_discover_fetches_owner_lists_concurrently(monkeypatch) -> None:
-    barrier = Barrier(2, timeout=2)
-
-    def gh_json(arguments: list[str], input_text: str | None = None):
-        if len(arguments) == 1:
-            owner = arguments[0].removeprefix("users/")
-            barrier.wait()
-            return {"type": "Organization" if owner == "org" else "User"}
-        owner = arguments[-1].split("/")[1].split("?")[0]
-        return [[
-            {
-                "full_name": f"{owner}/repo",
-                "archived": False,
-                "owner": {"login": owner},
-            }
-        ]]
-
-    monkeypatch.setattr(github, "_gh_json", gh_json)
-
-    assert github.discover(("person", "org")) == ["org/repo", "person/repo"]
 
 
 def test_fix_cli_reports_failed_outcomes_as_nonzero(
@@ -971,9 +932,7 @@ def test_fix_cli_reports_failed_outcomes_as_nonzero(
             )
         },
     )
-    args = argparse.Namespace(
-        repo=[], tag=[], rule=[], workers=1, push=False
-    )
+    args = argparse.Namespace(repo=[], tag=[], rule=[], workers=1)
 
     monkeypatch.setattr(
         "repomod.cli.fix_repository",
@@ -1391,31 +1350,6 @@ def test_lint_groups_findings_by_repository(
     assert out[4] == "acme/beta"
     assert out[5] == "    ci.yml G001"
 
-
-def test_audit_groups_findings_by_repository(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
-    from repomod.audit import AuditOutcome
-
-    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repo(),))
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
-    outcomes = [
-        AuditOutcome(
-            "acme/demo",
-            findings=[
-                Finding("acme/demo", "audit-outdated", None, "pypi:requests 1.0 is outdated")
-            ],
-        ),
-        AuditOutcome("acme/clean", findings=[]),
-    ]
-    monkeypatch.setattr("repomod.audit.audit_repositories", lambda *args, **kwargs: outcomes)
-    args = argparse.Namespace(
-        repo=[], tag=[], json=False, offline=True, refresh=False, fix=False, workers=1
-    )
-
-    assert _audit(args) == 1
-    out = capsys.readouterr().out.splitlines()
-    assert out == ["acme/demo", "    audit-outdated pypi:requests 1.0 is outdated"]
 
 
 def test_fix_groups_outcome_lines_by_repository(
@@ -1934,24 +1868,6 @@ def test_status_failed_includes_behind_forks(tmp_path: Path, monkeypatch, capsys
     assert _status(args) == 0
     assert len(json.loads(capsys.readouterr().out)) == 1
 
-
-def test_audit_reports_fork_behind_upstream(tmp_path: Path, monkeypatch, capsys) -> None:
-    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repo(),))
-    (tmp_path / "tool").mkdir()
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
-    monkeypatch.setattr(
-        "repomod.cli.upstream_status",
-        lambda *args, **kwargs: {"acme/tool": _upstream_status_for(7, 1, "diverged")},
-    )
-    args = argparse.Namespace(
-        repo=[], tag=[], json=False, offline=True, refresh=False, fix=False, workers=1
-    )
-
-    assert _audit(args) == 1
-    assert capsys.readouterr().out.splitlines() == [
-        "acme/tool",
-        "    audit-upstream fork is 7 commits behind cli/cli@trunk, 1 ahead",
-    ]
 
 
 def test_status_details_reports_upstream_errors(tmp_path: Path, monkeypatch, capsys) -> None:

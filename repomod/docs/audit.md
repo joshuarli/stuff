@@ -1,14 +1,12 @@
 # Dependency audit
 
-`repomod audit` is the fleet's own dependabot. It reports stale dependencies,
+`audit-upgrades` is the fleet's own dependabot rule. It reports stale dependencies,
 known vulnerabilities, and registry policy bans. It trusts lockfiles as the
 source of truth for installed versions. Swift is out of scope and is not
 audited.
 
 ```sh
-uv run repomod audit --offline
-uv run repomod audit --repo toolbox --refresh
-uv run repomod audit --fix
+uv run repomod fix --rule audit-upgrades
 ```
 
 ## Sources
@@ -65,7 +63,7 @@ selected audit rules per repository.
 
 ## Fixes
 
-`audit --fix` runs native upgraders in clean checkouts when the tool is
+The fixer runs native upgraders in clean checkouts when the tool is
 available: `uv lock --upgrade`, per-project `pnpm update --latest`,
 `cargo update`, and `go get -u ./...` followed by `go mod tidy`. It reports
 what it ran and what failed. Dirty checkouts are skipped. Version bumps that
@@ -73,16 +71,15 @@ need manifest edits, such as Rust major upgrades constrained by `Cargo.toml`,
 remain manual.
 
 The `audit-upgrades` rule rolls the same upgrades into the standard autofix
-flow: one commit per repository, with pull requests through `fix --push`.
+flow: one commit per repository, with pull requests through `fix`.
 
 ```sh
 uv run repomod fix --rule audit-upgrades
-uv run repomod fix --rule audit-upgrades --push
 ```
 
 The rule reports only outdated direct dependencies as fixable findings, so
 `lint` and `status` surface upgrade debt. Vulnerability, ban, and lockfile
-findings stay in `repomod audit` because the upgraders cannot fix them
+remaining findings stay manual because the upgraders cannot fix them
 deterministically. The rule is excluded from `status --offline` because its
 check refreshes the registry cache over the network. A repository can opt out
 with `ignore = ["audit-upgrades"]` in its catalog override.

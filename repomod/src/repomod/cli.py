@@ -12,9 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
-from repomod.clean import CleanResult, clean_repositories
-from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
+from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog, repository_path
+from repomod.fix import FixOutcome, fix_repository, push_fix_branch
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
     AutoMergeEnabled,
@@ -23,11 +22,9 @@ from repomod.github import (
     GitHubError,
     UpstreamStatus,
     ci_status,
-    discover,
     ensure_fix_pull_request,
     open_pull_requests,
     remote_metadata,
-    topics_many,
     upstream_status,
 )
 from repomod.policy import (
@@ -40,7 +37,6 @@ from repomod.policy import (
     selected_rules,
     validate_ignored_rules,
 )
-from repomod.sync import sync_repositories
 from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
 
 _TODO_ITEM = re.compile(r"### [A-Z][A-Z0-9]*-\d+ · P\d+ · .+")
@@ -585,107 +581,6 @@ def _lint(args: argparse.Namespace) -> int:
     )
     has_warnings = any(finding.severity == "warning" for finding in findings)
     return 1 if has_errors or (has_warnings and getattr(args, "strict", False)) else 0
-
-
-def _rules(args: argparse.Namespace) -> int:
-    for rule in selected_rules():
-        tags = rule.applies_to.describe()
-        action = "fixable" if rule.fix is not None else "lint only"
-        print(f"{rule.id:<18} {tags:<48} {action:<10} {rule.description}")
-    return 0
-
-
-def _discover(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    owners = tuple(dict.fromkeys((catalog.personal_owner, "laputa-systems")))
-    names = discover(owners)
-    catalogued = {str(repo.id).casefold() for repo in catalog.repositories}
-    for name in names:
-        if name.casefold() not in catalogued:
-            print(f"{name}  not catalogued")
-    if not any(name.casefold() not in catalogued for name in names):
-        print("no uncatalogued active repositories")
-    return 0
-
-
-def _add(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    parts = args.repository.split("/")
-    if len(parts) != 2:
-        raise CatalogError("add expects OWNER/REPO")
-    changed = add_repository(catalog, parts[0], parts[1], list(_tags(args.tag)))
-    print(f"{'added' if changed else 'already catalogued'} {args.repository}")
-    return 0
-
-
-def _list(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    for repository in catalog.repositories:
-        path, local = _checkout_status(catalog, repository)
-        presence = "missing" if not local.present else "valid" if local.valid else "invalid"
-        tags = ",".join(repository.tags)
-        suffix = f"; autofix disabled: {repository.autofix_reason}" if not repository.autofix else ""
-        print(f"{repository.id}\t{tags}\t{presence}\t{path}{suffix}")
-    return 0
-
-
-def _path(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    repository = find_repository(catalog, args.repository)
-    print(repository_path(catalog, repository))
-    return 0
-
-
-def _sync(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    repositories = catalog.repositories
-    if args.dry_run:
-        remotes = {}
-    else:
-        print(
-            f"Fetching GitHub metadata for {len(repositories)} repositories...",
-            file=sys.stderr,
-            flush=True,
-        )
-        remotes = remote_metadata(
-            repositories,
-            on_batch_complete=lambda completed, total: _sync_progress(
-                "GitHub metadata batches", completed, total
-            ),
-        )
-    print(
-        f"Syncing {len(repositories)} repositories...",
-        file=sys.stderr,
-        flush=True,
-    )
-    results = sync_repositories(
-        catalog,
-        remotes,
-        dry_run=args.dry_run,
-        jobs=args.workers,
-        on_complete=lambda completed, total, result: _sync_progress(
-            "Repository progress", completed, total, f"{result.repository}: {result.action}"
-        ),
-    )
-    failed = False
-    for result in results:
-        print(f"{result.repository}: {result.action}: {result.message}")
-        failed |= result.failed
-    return 1 if failed else 0
-
-
-def _sync_progress(stage: str, completed: int, total: int, detail: str = "") -> None:
-    message = f"{stage}: {completed}/{total} complete"
-    if detail:
-        message += f" ({detail})"
-    if sys.stderr.isatty():
-        print(f"\r{message}\033[K", end="", file=sys.stderr, flush=True)
-        if completed == total:
-            print(file=sys.stderr)
-    else:
-        print(message, file=sys.stderr, flush=True)
-
-
 def _fix(args: argparse.Namespace) -> int:
     if args.workers < 1:
         raise ValueError("--workers must be at least one")
@@ -703,7 +598,7 @@ def _fix(args: argparse.Namespace) -> int:
         for repository in repositories
         if (remote := remotes.get(str(repository.id))) is not None
         and remote.default_branch is not None
-        and (not args.push or remote.sha is not None)
+        and remote.sha is not None
         and remote.error is None
         and remote.archived is False
     ]
@@ -722,7 +617,7 @@ def _fix(args: argparse.Namespace) -> int:
                 repository,
                 repository_fixers,
                 remote.default_branch,
-                remote.sha if args.push else None,
+                remote.sha,
             )] = repository
         for future in as_completed(futures):
             repository = futures[future]
@@ -736,14 +631,14 @@ def _fix(args: argparse.Namespace) -> int:
             remote is None
             or remote.error is not None
             or remote.default_branch is None
-            or (args.push and remote.sha is None)
+            or remote.sha is None
             or remote.archived is not False
         ):
             message = (
                 remote.error
                 if remote is not None and remote.error is not None
                 else "GitHub did not report the default branch commit"
-                if args.push and remote is not None and remote.sha is None
+                if remote is not None and remote.sha is None
                 else "repository is archived or remote default branch is unavailable"
             )
             outcomes.append(FixOutcome(str(repository.id), failures=[("metadata", message)]))
@@ -786,298 +681,80 @@ def _fix(args: argparse.Namespace) -> int:
             stderr_lines.append(outcome.cleanup_error)
             failed = True
         _print_repository_block(outcome.repository, stdout_lines, stderr_lines)
-    if args.push:
-        branches = {
-            outcome.repository: outcome
-            for outcome in outcomes
-            if outcome.branch is not None
-            and outcome.base_head is not None
-            and outcome.branch_head is not None
-            and outcome.branch_head != outcome.base_head
-            and outcome.recovery_worktree is None
-        }
+    branches = {
+        outcome.repository: outcome
+        for outcome in outcomes
+        if outcome.branch is not None
+        and outcome.base_head is not None
+        and outcome.branch_head is not None
+        and outcome.branch_head != outcome.base_head
+        and outcome.recovery_worktree is None
+    }
 
-        def push_fix(repository: Repository) -> tuple[str, str | None]:
-            with repository_lock(catalog.root, repository.id):
-                outcome = branches[str(repository.id)]
-                remote = remotes[str(repository.id)]
-                assert remote.default_branch is not None
-                assert outcome.branch is not None
-                assert outcome.base_head is not None
-                assert outcome.branch_head is not None
-                state, message = push_fix_branch(
-                    repository,
-                    repository_path(catalog, repository),
-                    outcome.branch,
-                    remote.default_branch,
-                    outcome.base_head,
-                    outcome.branch_head,
-                )
-            if state != "pushed":
-                return state, message
-            try:
-                pull_request = ensure_fix_pull_request(
-                    repository.id,
-                    outcome.branch,
-                    remote.default_branch,
-                )
-            except Exception as error:
-                return "pr-failed", str(error)
-            match pull_request.auto_merge:
-                case AutoMergeEnabled():
-                    return "pushed", f"{pull_request.url}; auto-merge enabled"
-                case AutoMergeSkipped(reason):
-                    return "pushed", f"{pull_request.url}; auto-merge skipped: {reason}"
-                case AutoMergeFailed(error):
-                    return "pr-automerge-failed", f"{pull_request.url}; auto-merge failed: {error}"
-
-        with ThreadPoolExecutor(max_workers=min(4, max(1, len(branches)))) as pool:
-            futures = {
-                pool.submit(push_fix, repository): repository
-                for repository in repositories
-                if str(repository.id) in branches
-            }
-            push_results = []
-            for future, repository in futures.items():
-                try:
-                    push_results.append((repository, future.result()))
-                except Exception as error:
-                    push_results.append((repository, ("failed", str(error))))
-        for repository, (state, message) in sorted(
-            push_results, key=lambda item: str(item[0].id).casefold()
-        ):
-            if state == "pushed":
-                print(f"{repository.id}: pushed; PR {message}")
-            elif state == "pr-automerge-failed":
-                print(f"{repository.id}: pushed; PR {message}", file=sys.stderr)
-                failed = True
-            elif state == "pr-failed":
-                print(f"{repository.id}: pushed; PR failed: {message}", file=sys.stderr)
-                failed = True
-            else:
-                print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
-                failed |= state == "failed"
-    return 1 if failed else 0
-
-
-def _push_selected(catalog: Catalog, repositories: tuple[Repository, ...]) -> int:
-    if not repositories:
-        return 0
-    failed = False
-    def push(repository: Repository) -> tuple[str, str | None]:
+    def push_fix(repository: Repository) -> tuple[str, str | None]:
         with repository_lock(catalog.root, repository.id):
-            return push_repository(repository, repository_path(catalog, repository))
+            outcome = branches[str(repository.id)]
+            remote = remotes[str(repository.id)]
+            assert remote.default_branch is not None
+            assert outcome.branch is not None
+            assert outcome.base_head is not None
+            assert outcome.branch_head is not None
+            state, message = push_fix_branch(
+                repository,
+                repository_path(catalog, repository),
+                outcome.branch,
+                remote.default_branch,
+                outcome.base_head,
+                outcome.branch_head,
+            )
+        if state != "pushed":
+            return state, message
+        try:
+            pull_request = ensure_fix_pull_request(
+                repository.id,
+                outcome.branch,
+                remote.default_branch,
+            )
+        except Exception as error:
+            return "pr-failed", str(error)
+        match pull_request.auto_merge:
+            case AutoMergeEnabled():
+                return "pushed", f"{pull_request.url}; auto-merge enabled"
+            case AutoMergeSkipped(reason):
+                return "pushed", f"{pull_request.url}; auto-merge skipped: {reason}"
+            case AutoMergeFailed(error):
+                return "pr-automerge-failed", f"{pull_request.url}; auto-merge failed: {error}"
 
-    with ThreadPoolExecutor(max_workers=min(4, len(repositories))) as pool:
-        futures = {pool.submit(push, repository): repository for repository in repositories}
-        results = []
+    with ThreadPoolExecutor(max_workers=min(4, max(1, len(branches)))) as pool:
+        futures = {
+            pool.submit(push_fix, repository): repository
+            for repository in repositories
+            if str(repository.id) in branches
+        }
+        push_results = []
         for future, repository in futures.items():
             try:
-                results.append((repository, future.result()))
+                push_results.append((repository, future.result()))
             except Exception as error:
-                results.append((repository, ("failed", str(error))))
-    for repository, (state, message) in sorted(results, key=lambda item: str(item[0].id).casefold()):
-        print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
-        failed |= state == "failed"
-    return 1 if failed else 0
-
-
-def _push(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    repositories = _select(catalog, args.repo, args.tag)
-    return _push_selected(catalog, repositories)
-
-
-def _count(value: int, noun: str) -> str:
-    return f"{value} {noun}" if value == 1 else f"{value} {noun}s"
-
-
-def _confirm(prompt: str) -> bool:
-    if not sys.stdin.isatty():
-        raise ValueError("confirmation requires a terminal; pass --yes to remove without prompting")
-    print(prompt, end="", flush=True)
-    return input().strip().casefold() in {"y", "yes"}
-
-
-def _print_clean_results(results: Sequence[CleanResult]) -> None:
-    for result in results:
-        if result.action == "absent":
-            continue
-        detail = f"{result.message}" if result.path is None else f"{result.path}: {result.message}"
-        print(
-            f"{result.repository}: {result.action}: {detail}",
-            file=sys.stderr if result.failed else sys.stdout,
-        )
-
-
-def _clean(args: argparse.Namespace) -> int:
-    if args.workers < 1:
-        raise ValueError("--workers must be at least one")
-    catalog = _catalog()
-    repositories = _select(catalog, args.repo, args.tag)
-    plan = clean_repositories(
-        catalog, repositories, dry_run=True, force=args.force, jobs=args.workers
-    )
-    _print_clean_results(plan)
-    failed = any(result.failed for result in plan)
-    planned = {result.repository for result in plan if result.action == "planned"}
-    if not planned:
-        print("no checkouts to remove")
-        return 1 if failed else 0
-    if args.dry_run:
-        print(f"dry run: would remove {_count(len(planned), 'checkout')}")
-        return 1 if failed else 0
-    if not args.yes and not _confirm(
-        f"Remove {_count(len(planned), 'catalogued checkout')} from {catalog.root}? [y/N] "
+                push_results.append((repository, ("failed", str(error))))
+    for repository, (state, message) in sorted(
+        push_results, key=lambda item: str(item[0].id).casefold()
     ):
-        print("aborted; nothing removed", file=sys.stderr)
-        return 1 if failed else 0
-    results = clean_repositories(
-        catalog,
-        tuple(repository for repository in repositories if str(repository.id) in planned),
-        dry_run=False,
-        force=args.force,
-        jobs=args.workers,
-    )
-    _print_clean_results(results)
-    failed |= any(result.failed for result in results)
-    removed = sum(result.action == "removed" for result in results)
-    print(f"removed {_count(removed, 'checkout')}")
-    return 1 if failed else 0
-
-
-def _topics(args: argparse.Namespace) -> int:
-    catalog = _catalog()
-    repositories = _select(catalog, args.repo, args.tag)
-    results = topics_many(repositories, apply=args.operation == "apply", jobs=args.workers)
-    failed = False
-    for name, changed, additions, removals, error in results:
-        if error is not None:
-            print(f"{name}: failed: {error}", file=sys.stderr)
+        if state == "pushed":
+            print(f"{repository.id}: pushed; PR {message}")
+        elif state == "pr-automerge-failed":
+            print(f"{repository.id}: pushed; PR {message}", file=sys.stderr)
             failed = True
-            continue
-        if not additions and not removals:
-            print(f"{name}: already compliant")
-            continue
-        changes = []
-        if additions:
-            changes.append("add " + ", ".join(additions))
-        if removals:
-            changes.append("remove " + ", ".join(removals))
-        print(f"{name}: {'applied' if changed else 'diff'}: {'; '.join(changes)}")
+        elif state == "pr-failed":
+            print(f"{repository.id}: pushed; PR failed: {message}", file=sys.stderr)
+            failed = True
+        else:
+            print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
+            failed |= state == "failed"
     return 1 if failed else 0
-
-
-def _pins(args: argparse.Namespace) -> int:
-    from repomod.rules.actions import refresh_pins
-    from repomod.rules.python_standard import refresh_python_tool_versions
-    from repomod.rules.typescript_standard import refresh_typescript_tool_pins
-
-    updated = []
-    failures = []
-    try:
-        if refresh_pins():
-            updated.append("GitHub Actions")
-    except (GitHubError, OSError, ValueError) as error:
-        failures.append(f"GitHub Actions: {error}")
-    try:
-        if refresh_python_tool_versions():
-            updated.append("Python tools")
-    except (OSError, ValueError) as error:
-        failures.append(f"Python tools: {error}")
-    try:
-        if refresh_typescript_tool_pins():
-            updated.append("TypeScript tools")
-    except (GitHubError, OSError, ValueError) as error:
-        failures.append(f"TypeScript tools: {error}")
-    if failures:
-        raise ValueError("pin refresh failed: " + "; ".join(failures))
-    print("approved pins updated: " + ", ".join(updated) if updated else "approved pins are current")
-    return 0
-
-
-def _audit(args: argparse.Namespace) -> int:
-    from repomod.audit import audit_repositories
-    from repomod.audit import fix_repository as audit_fix_repository
-
-    catalog = _catalog()
-    repositories = _select(catalog, args.repo, args.tag)
-    validate_ignored_rules(repositories)
-    if args.fix:
-        from concurrent.futures import ThreadPoolExecutor as AuditPool
-
-        with AuditPool(max_workers=min(args.workers, 16, max(1, len(repositories)))) as pool:
-            fixes = list(
-                pool.map(
-                    lambda repository: audit_fix_repository(catalog, repository),
-                    repositories,
-                )
-            )
-        for outcome in sorted(fixes, key=lambda item: item.repository.casefold()):
-            _print_repository_block(
-                outcome.repository,
-                [f"fixed: {command}" for command in outcome.fixed],
-                [f"fix failed: {error}" for error in outcome.fix_errors],
-            )
-        if any(outcome.fix_errors for outcome in fixes):
-            return 2
-    outcomes = audit_repositories(
-        catalog,
-        tuple(repositories),
-        offline=args.offline,
-        refresh=args.refresh,
-        jobs=args.workers,
-        upstream_statuses=upstream_status(repositories, offline=args.offline, refresh=args.refresh),
-    )
-    findings = [finding for outcome in outcomes for finding in outcome.findings]
-    if args.json:
-        _print_json(
-            [
-                {
-                    "repository": outcome.repository,
-                    "findings": [finding_dict(finding) for finding in outcome.findings],
-                    "fixed": outcome.fixed,
-                    "fix_errors": outcome.fix_errors,
-                }
-                for outcome in outcomes
-            ]
-        )
-    else:
-        shown = False
-        for outcome in outcomes:
-            if not outcome.findings:
-                continue
-            if shown:
-                print()
-            print(_paint(outcome.repository, "36"))
-            for finding in outcome.findings:
-                print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
-            shown = True
-        if not findings:
-            print("no dependency audit findings")
-    if any(finding.kind == "operational" for finding in findings):
-        return 2
-    return 1 if findings else 0
-
-
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="repomod", description="Local-first repository fleet manager")
+    parser = argparse.ArgumentParser(prog="repomod", description="Repair policy violations and open pull requests")
     commands = parser.add_subparsers(dest="command", required=True)
-
-    commands.add_parser("discover", help="show active owned repositories missing from the catalog")
-
-    add = commands.add_parser("add", help="add a repository and its policy tags to the catalog")
-    add.add_argument("repository")
-    add.add_argument("--tag", action="append", required=True)
-
-    commands.add_parser("list", help="list catalogued repositories and local checkout presence")
-
-    path = commands.add_parser("path", help="print a repository's canonical checkout path")
-    path.add_argument("repository")
-
-    sync = commands.add_parser("sync", help="clone or safely fast-forward catalogued checkouts")
-    sync.add_argument("--dry-run", action="store_true")
-    sync.add_argument("--workers", type=int, default=4)
 
     status_parser = commands.add_parser("status", help="show local Git, remote CI, TODO, and lint status")
     _filters(status_parser)
@@ -1096,42 +773,10 @@ def _parser() -> argparse.ArgumentParser:
     lint.add_argument("--json", action="store_true")
     lint.add_argument("--strict", action="store_true", help="treat warnings as violations")
 
-    commands.add_parser("rules", help="list policy rules")
-
-    fix = commands.add_parser("fix", help="repair policy violations with one commit per fixer")
+    fix = commands.add_parser("fix", help="repair policy violations and open pull requests")
     _filters(fix)
     fix.add_argument("--rule", action="append", default=[])
     fix.add_argument("--workers", type=int, default=4)
-    fix.add_argument(
-        "--push",
-        action="store_true",
-        help="push fix branches and open or reuse pull requests",
-    )
-
-    push = commands.add_parser("push", help="push eligible local commits without force")
-    _filters(push)
-
-    topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
-    topic_commands = topics.add_subparsers(dest="operation", required=True)
-    for operation in ("diff", "apply"):
-        topic = topic_commands.add_parser(operation)
-        _filters(topic)
-        topic.add_argument("--workers", type=int, default=4)
-
-    pins = commands.add_parser(
-        "pins",
-        help="maintain centrally approved GitHub Action, Python, and TypeScript tool pins",
-    )
-    pin_commands = pins.add_subparsers(dest="pin_operation", required=True)
-    pin_commands.add_parser("refresh")
-
-    audit = commands.add_parser("audit", help="audit registry dependencies for staleness, vulns, and bans")
-    _filters(audit)
-    audit.add_argument("--json", action="store_true")
-    audit.add_argument("--offline", action="store_true", help="use cached registry and OSV data only")
-    audit.add_argument("--refresh", action="store_true", help="ignore cached registry and OSV data")
-    audit.add_argument("--fix", action="store_true", help="run native upgraders (uv, pnpm, cargo, go) when available")
-    audit.add_argument("--workers", type=int, default=4)
     return parser
 
 
@@ -1144,19 +789,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         dispatch = {
-            "discover": _discover,
-            "add": _add,
-            "list": _list,
-            "path": _path,
-            "sync": _sync,
             "status": _status,
             "lint": _lint,
-            "rules": _rules,
             "fix": _fix,
-            "push": _push,
-            "topics": _topics,
-            "pins": _pins,
-            "audit": _audit,
         }
         return dispatch[args.command](args)
     except (CatalogError, PolicyError, GitError, GitHubError, OSError, ValueError) as error:

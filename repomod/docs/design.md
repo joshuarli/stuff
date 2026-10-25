@@ -52,7 +52,7 @@ branch per repository, with repositories processed in parallel. Each fixer uses 
 worktree at the current branch tip and can change only its declared paths. Before a local commit,
 validation must pass, the fixer must leave no fixable findings for its rule, and it must introduce
 no policy errors. Every successful fixer gets its own commit on a new local
-`repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix --push` pushes
+`repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix` pushes
 that branch and opens or reuses a pull request against the default branch. It enables GitHub
 auto-merge only when the repository allows it and the default branch requires status checks. The
 next fix run resumes its unmerged branch from the current default branch. Failed or interrupted

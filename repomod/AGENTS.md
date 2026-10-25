@@ -18,7 +18,7 @@ tests. Set `TMPDIR` to `.work/tmp` for commands that create scratch data.
 ## Constraints
 
 - `catalog.toml` is curated user data. Read it before catalog work and preserve its comments and repository selection.
-- Do not run `sync`, `fix`, `push`, `topics apply`, or `pins refresh` against the live catalog while changing code.
+- Do not run `fix` against the live catalog while changing code.
 - Canonical checkouts are user data. Never reset, stash, clean, switch, or discard changes in them.
 - Sync may fetch and only fast-forward clean checkouts on their default branch. Fixers use detached worktrees and publish only from an unchanged canonical checkout.
 - Remote writes require `topics apply`, `push`, or `fix --push`. `pins refresh` writes the local approved-pin file.

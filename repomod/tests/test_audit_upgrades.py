@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from repomod.audit import _policy_findings, _upgrade_tasks
+from repomod.audit import _cargo_req_satisfies, _policy_findings, _upgrade_tasks
 from repomod.policy import selected_rules
 from repomod.rules import rules
 from repomod.rules.audit_upgrades import _fix, _outdated_findings, audit_upgrade_rules
@@ -353,3 +353,65 @@ def test_local_path_named_like_ban_is_not_banned(tmp_path: Path) -> None:
     findings = _policy_findings(root, repository("tool", "rust"))
     assert [finding for finding in findings if finding.rule == "audit-banned"] == []
     assert any(finding.rule == "audit-registry" for finding in findings)
+
+
+def test_cargo_req_satisfies_caret_and_exact() -> None:
+    assert _cargo_req_satisfies("0.22", "0.22.1")
+    assert not _cargo_req_satisfies("0.22", "0.23.0")
+    assert _cargo_req_satisfies("^1.2.3", "1.9.0")
+    assert not _cargo_req_satisfies("^1.2.3", "2.0.0")
+    assert _cargo_req_satisfies("=3.0.3", "3.0.3")
+    assert not _cargo_req_satisfies("=3.0.3", "3.0.9")
+    assert _cargo_req_satisfies("*", "99.0.0")
+    assert _cargo_req_satisfies(">=1.0, <2.0", "1.5.0")
+    assert not _cargo_req_satisfies(">=1.0, <2.0", "2.0.0")
+
+
+def test_manifest_blocked_upgrade_is_manual(tmp_path: Path) -> None:
+    from repomod.rules.audit_upgrades import _outdated_findings
+
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nfoo = "=1.0.0"\nbar = "1.0"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "foo"\nversion = "1.0.0"\n'
+        '[[package]]\nname = "bar"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+
+    def latest(ecosystem: str, name: str) -> str | None:
+        return {"foo": "2.0.0", "bar": "1.1.0"}[name]
+
+    findings = _outdated_findings(
+        root, repository("tool", "rust"), {"latest": {}, "osv": {}}, 1000.0, latest
+    )
+    by_name = {
+        finding.message.split(":")[1].split()[0]: finding
+        for finding in findings
+        if finding.rule == "audit-upgrades"
+    }
+    assert by_name["foo"].fixable is False
+    assert by_name["bar"].fixable is True
+
+
+def test_multi_version_lock_attributes_direct_req(tmp_path: Path) -> None:
+    from repomod.audit import _collect_locked
+
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nsyn = "=3.0.3"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "syn"\nversion = "2.0.119"\n'
+        '[[package]]\nname = "syn"\nversion = "3.0.3"\n',
+        encoding="utf-8",
+    )
+    locked, _ = _collect_locked(root, repository("tool", "rust"))
+    assert [(item.name, item.locked) for item in locked if item.name == "syn"] == [("syn", "3.0.3")]

@@ -394,12 +394,20 @@ def fix_repository(
             if current.detached:
                 outcome.skipped = "checkout HEAD is detached"
                 return outcome
-            if current.branch != default_branch:
-                outcome.skipped = f"checkout is on {current.branch}; default branch is {default_branch}"
+            try:
+                base_head = run_git(
+                    ["rev-parse", "--verify", f"refs/heads/{default_branch}"],
+                    cwd=canonical,
+                ).stdout.strip()
+            except GitError:
+                outcome.skipped = f"local default branch {default_branch} is unavailable; sync before fixing"
+                return outcome
+            if not base_head:
+                outcome.skipped = f"local default branch {default_branch} is unavailable; sync before fixing"
                 return outcome
             start_head = head(canonical)
-            if remote_head is not None and start_head != remote_head:
-                outcome.skipped = "checkout differs from GitHub default branch; sync before fixing"
+            if remote_head is not None and base_head != remote_head:
+                outcome.skipped = "local default branch differs from GitHub default branch; sync before fixing"
                 return outcome
             prior_refs = _recovery_references(canonical, repository)
             prior_worktrees = _prior_worktrees(catalog.root, repository)
@@ -415,7 +423,7 @@ def fix_repository(
                 return outcome
             try:
                 prior_fix_branches, diverged_fix_branches = _pending_fix_branches(
-                    canonical, start_head
+                    canonical, base_head
                 )
             except GitError as error:
                 outcome.failures.append(("branch", str(error)))
@@ -465,11 +473,11 @@ def fix_repository(
                 else prior_fix_branches[0]
             )
             if branch_created:
-                run_git(["worktree", "add", "-b", branch, str(worktree), start_head], cwd=canonical)
+                run_git(["worktree", "add", "-b", branch, str(worktree), base_head], cwd=canonical)
             else:
                 run_git(["worktree", "add", str(worktree), branch], cwd=canonical)
             outcome.branch = branch
-            outcome.base_head = start_head
+            outcome.base_head = base_head
             try:
                 for rule in selected:
                     if not rule.applies_to.matches(repository.tags):
@@ -482,7 +490,7 @@ def fix_repository(
             finally:
                 if worktree.exists():
                     branch_tip = head(worktree)
-                    if branch_tip != start_head:
+                    if branch_tip != base_head:
                         outcome.branch_head = branch_tip
                 if worktree.exists():
                     _remove_worktree(canonical, worktree, outcome)
@@ -501,8 +509,6 @@ def fix_repository(
                     current = status(canonical, repository.id)
                     if (
                         current.dirty
-                        or current.detached
-                        or current.branch != default_branch
                         or not current.origin_valid
                         or head(canonical) != start_head
                     ):
@@ -541,10 +547,13 @@ def push_fix_branch(
         return "failed", current.error or "origin is invalid"
     if current.dirty:
         return "skipped", "checkout is dirty"
-    if current.detached or current.branch != default_branch:
-        return "skipped", f"checkout is not on default branch {default_branch}"
-    if head(path) != base_head:
-        return "skipped", "canonical checkout changed since fixing"
+    local_default = run_git(
+        ["rev-parse", "--verify", f"refs/heads/{default_branch}"], cwd=path, check=False
+    )
+    if local_default.returncode or not local_default.stdout.strip():
+        return "skipped", f"local default branch {default_branch} is unavailable; sync before publishing fixes"
+    if local_default.stdout.strip() != base_head:
+        return "skipped", "local default branch changed since fixing; sync before publishing fixes"
     local_branch = run_git(["rev-parse", "--verify", f"refs/heads/{branch}"], cwd=path, check=False)
     if local_branch.returncode or local_branch.stdout.strip() != branch_head:
         return "failed", "fix branch tip changed before push"
@@ -555,7 +564,7 @@ def push_fix_branch(
     if remote_head != base_head:
         return "skipped", "remote default branch changed; sync before publishing fixes"
     confirmed = status(path, repository.id)
-    if confirmed != current or head(path) != base_head:
+    if confirmed.dirty or not confirmed.origin_valid:
         return "skipped", "checkout changed before push"
     result = run_git(
         ["push", "origin", f"refs/heads/{branch}:refs/heads/{branch}"],
