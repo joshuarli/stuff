@@ -907,6 +907,61 @@ def _pins(args: argparse.Namespace) -> int:
     return 0
 
 
+def _audit(args: argparse.Namespace) -> int:
+    from repomod.audit import audit_repositories
+    from repomod.audit import fix_repository as audit_fix_repository
+
+    catalog = _catalog()
+    repositories = _select(catalog, args.repo, args.tag)
+    validate_ignored_rules(repositories)
+    if args.fix:
+        from concurrent.futures import ThreadPoolExecutor as AuditPool
+
+        with AuditPool(max_workers=min(args.workers, 16, max(1, len(repositories)))) as pool:
+            fixes = list(
+                pool.map(
+                    lambda repository: audit_fix_repository(catalog, repository),
+                    repositories,
+                )
+            )
+        for outcome in sorted(fixes, key=lambda item: item.repository.casefold()):
+            for command in outcome.fixed:
+                print(f"{outcome.repository}: fixed: {command}")
+            for error in outcome.fix_errors:
+                print(f"{outcome.repository}: fix failed: {error}", file=sys.stderr)
+        if any(outcome.fix_errors for outcome in fixes):
+            return 2
+    outcomes = audit_repositories(
+        catalog,
+        tuple(repositories),
+        offline=args.offline,
+        refresh=args.refresh,
+        jobs=args.workers,
+    )
+    findings = [finding for outcome in outcomes for finding in outcome.findings]
+    if args.json:
+        _print_json(
+            [
+                {
+                    "repository": outcome.repository,
+                    "findings": [finding_dict(finding) for finding in outcome.findings],
+                    "fixed": outcome.fixed,
+                    "fix_errors": outcome.fix_errors,
+                }
+                for outcome in outcomes
+            ]
+        )
+    else:
+        for outcome in outcomes:
+            for finding in outcome.findings:
+                print(f"{outcome.repository} {format_finding_short(finding)}")
+        if not findings:
+            print("no dependency audit findings")
+    if any(finding.kind == "operational" for finding in findings):
+        return 2
+    return 1 if findings else 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="repomod", description="Local-first repository fleet manager")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -971,6 +1026,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     pin_commands = pins.add_subparsers(dest="pin_operation", required=True)
     pin_commands.add_parser("refresh")
+
+    audit = commands.add_parser("audit", help="audit registry dependencies for staleness, vulns, and bans")
+    _filters(audit)
+    audit.add_argument("--json", action="store_true")
+    audit.add_argument("--offline", action="store_true", help="use cached registry and OSV data only")
+    audit.add_argument("--refresh", action="store_true", help="ignore cached registry and OSV data")
+    audit.add_argument("--fix", action="store_true", help="run native upgraders (uv, pnpm, cargo, go) when available")
+    audit.add_argument("--workers", type=int, default=4)
     return parser
 
 
@@ -995,6 +1058,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "push": _push,
             "topics": _topics,
             "pins": _pins,
+            "audit": _audit,
         }
         return dispatch[args.command](args)
     except (CatalogError, PolicyError, GitError, GitHubError, OSError, ValueError) as error:

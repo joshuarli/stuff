@@ -29,7 +29,7 @@ def selected_rules(
         if (not selected_ids or rule.id in selected_ids)
     ]
     if local_only:
-        values = [rule for rule in values if rule.id not in ("topics", "github-protection")]
+        values = [rule for rule in values if rule.id not in ("topics", "github-protection", "audit-upgrades")]
     return tuple(values)
 
 

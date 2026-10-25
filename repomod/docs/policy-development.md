@@ -74,3 +74,11 @@ stable Node.js and pnpm releases, and `pins refresh` updates those approvals. Th
 runtime pins offline, requires TypeScript 7 or newer, strict type checking, Oxlint, and Vitest, and
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
 apps use Vite 8 and Solid 2.
+
+`audit-upgrades` reports locked direct dependencies that lag their registry's latest stable
+release as fixable findings. Its check refreshes the shared audit cache over the network, so it
+is excluded from `status --offline`. Its fixer runs the native upgraders (`uv lock --upgrade`,
+per-project `pnpm update --latest`, `cargo update`, `go get -u ./...` plus `go mod tidy`) in a
+disposable copy and returns the changed lockfiles and manifests as its file plan. Upgrades that
+need manifest edits, such as Rust majors constrained by `Cargo.toml`, fail the fixer postcondition
+and stay manual.

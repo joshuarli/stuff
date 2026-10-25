@@ -65,3 +65,15 @@ pushes. `fix --push` also opens or reuses a pull request for each published fix 
 `repomod pins refresh` updates the local approved GitHub Action, Python, and TypeScript tool pins.
 See [policy development](docs/policy-development.md) for rule behavior. Report problems in the
 [repomod issue tracker](https://github.com/joshuarli/repomod/issues).
+
+## Dependency audit
+
+`repomod audit` checks registry dependencies across Python, TypeScript, Rust, and Go
+(Swift is out of scope). It trusts lockfiles, reports outdated direct dependencies
+against their registries, queries OSV for known vulnerabilities, and enforces
+registry-only bans. Use `--offline` to reuse cached registry data, `--refresh` to
+ignore the cache, and `--fix` to run native upgraders (`uv lock --upgrade`,
+`pnpm update --latest`, `cargo update`, `go get -u`) when available.
+`repomod fix --rule audit-upgrades --push` puts the same upgrades up as pull
+requests through the standard autofix flow. See [dependency audit](docs/audit.md)
+for rule behavior.
