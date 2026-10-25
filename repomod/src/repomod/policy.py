@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from repomod.catalog import Catalog, repository_path
-from repomod.github import topics_many
+from repomod.github import protection_many, topics_many
 from repomod.rules import rules
 from repomod.types import Finding, Repository, Rule
 
@@ -29,7 +29,7 @@ def selected_rules(
         if (not selected_ids or rule.id in selected_ids)
     ]
     if local_only:
-        values = [rule for rule in values if rule.id != "topics"]
+        values = [rule for rule in values if rule.id not in ("topics", "github-protection")]
     return tuple(values)
 
 
@@ -93,6 +93,19 @@ def lint_repositories(
                 repositories_with_topics, apply=False
             )
         }
+    protection_results: dict[str, tuple[bool, int, str | None]] = {}
+    repositories_with_protection = tuple(
+        repository
+        for repository in selected
+        if any(rule.id == "github-protection" for rule in rules_by_repository[str(repository.id)])
+    )
+    if repositories_with_protection:
+        protection_results = {
+            name: (has_protection, count, error)
+            for name, has_protection, count, error in protection_many(
+                repositories_with_protection
+            )
+        }
     for repository in selected:
         try:
             root = repository_path(catalog, repository)
@@ -143,6 +156,43 @@ def lint_repositories(
                         details.append(f"remove {', '.join(removals)}")
                     findings.append(
                         Finding(str(repository.id), "topics", None, "; ".join(details), fixable=False)
+                    )
+                continue
+            if rule.id == "github-protection":
+                result = protection_results.get(str(repository.id))
+                if result is None:
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "github-protection",
+                            None,
+                            "cannot read branch protection: missing result",
+                            kind="operational",
+                        )
+                    )
+                    continue
+                has_protection, count, error = result
+                if error is not None:
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "github-protection",
+                            None,
+                            f"cannot read branch protection: {error}",
+                            kind="operational",
+                        )
+                    )
+                    continue
+                if has_protection and count != 0:
+                    findings.append(
+                        Finding(
+                            str(repository.id),
+                            "github-protection",
+                            None,
+                            f"branch protection requires {count} approving review(s); "
+                            "owner-only repositories must require none",
+                            fixable=False,
+                        )
                     )
                 continue
             try:

@@ -1348,6 +1348,51 @@ def topics_many(
     return sorted(output, key=lambda item: item[0].casefold())
 
 
+type ProtectionResult = tuple[str, bool, int, str | None]
+
+_SKIP_PROTECTION_MARKERS = (
+    "http 404",
+    "branch not protected",
+    "protection has been disabled",
+    "upgrade to github pro",
+)
+
+
+def _protection_reviews_one(repository: Repository) -> ProtectionResult:
+    name = str(repository.id)
+    try:
+        metadata = _gh_json([f"repos/{repository.id.owner}/{repository.id.name}"])
+        branch = metadata.get("default_branch") if isinstance(metadata, dict) else None
+        if not isinstance(branch, str) or not branch:
+            raise GitHubError("GitHub returned invalid repository metadata")
+        reviews = _gh_json(
+            [f"repos/{repository.id.owner}/{repository.id.name}/branches/{branch}/protection/required_pull_request_reviews"]
+        )
+    except GitHubError as error:
+        if any(marker in str(error).casefold() for marker in _SKIP_PROTECTION_MARKERS):
+            return name, False, 0, None
+        return name, False, 0, str(error)
+    count = reviews.get("required_approving_review_count") if isinstance(reviews, dict) else None
+    if not isinstance(count, int) or count < 0:
+        return name, False, 0, "GitHub returned invalid review protection"
+    return name, True, count, None
+
+
+def protection_many(
+    repositories: tuple[Repository, ...], jobs: int = 4
+) -> list[ProtectionResult]:
+    if jobs < 1:
+        raise ValueError("jobs must be at least one")
+    if not repositories:
+        return []
+    with ThreadPoolExecutor(
+        max_workers=min(jobs, 16, len(repositories)), thread_name_prefix="repomod-protection"
+    ) as pool:
+        futures = [pool.submit(_protection_reviews_one, repository) for repository in repositories]
+        output = [future.result() for future in as_completed(futures)]
+    return sorted(output, key=lambda item: item[0].casefold())
+
+
 def _graphql_batch_data(response: dict[str, Any], aliases: dict[str, str]) -> dict[str, Any]:
     errors = response.get("errors")
     if errors:

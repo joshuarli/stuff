@@ -6,13 +6,16 @@ from pathlib import Path
 
 from repomod.git import GitError
 from repomod.rules.actions import _validate_workflows
+from repomod.rules.binary_release import _has_prerelease_intent
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _KEY = re.compile(r"^( *)([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 _GROUP = "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
+_RELEASE_GROUP = "release-${{ github.sha }}"
 _SHELL = "bash -euo pipefail {0}"
 _GROUP_VALUE = json.dumps(_GROUP)
+_RELEASE_GROUP_VALUE = json.dumps(_RELEASE_GROUP)
 
 _CODES = {
     ("concurrency", "group"): "G001",
@@ -127,7 +130,7 @@ def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
     for workflow in workflows:
         relative = workflow.relative_to(root).as_posix()
         try:
-            lines = workflow.read_text(encoding="utf-8").splitlines()
+            source = workflow.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as error:
             findings.append(
                 Finding(
@@ -139,9 +142,41 @@ def _workflow_settings(root: Path, repository: Repository) -> list[Finding]:
                 )
             )
             continue
+        lines = source.splitlines()
+        release = _has_prerelease_intent(source)
+        group = _mapping_value(lines, ("concurrency", "group"))
+        if release:
+            if group is None or "github.sha" not in group:
+                line, column = _mapping_location(lines, ("concurrency", "group"))
+                findings.append(
+                    Finding(
+                        str(repository.id),
+                        "gha-settings",
+                        relative,
+                        "concurrency.group must scope releases to the triggering commit "
+                        f"like {_RELEASE_GROUP!r}",
+                        fixable=True,
+                        line=line,
+                        column=column,
+                        code="G001",
+                    )
+                )
+        elif group != _GROUP:
+            line, column = _mapping_location(lines, ("concurrency", "group"))
+            findings.append(
+                Finding(
+                    str(repository.id),
+                    "gha-settings",
+                    relative,
+                    f"concurrency.group must be {_GROUP!r}",
+                    fixable=True,
+                    line=line,
+                    column=column,
+                    code="G001",
+                )
+            )
         required = (
-            (("concurrency", "group"), _GROUP),
-            (("concurrency", "cancel-in-progress"), "true"),
+            (("concurrency", "cancel-in-progress"), "false" if release else "true"),
             (("defaults", "run", "shell"), _SHELL),
         )
         for path, expected in required:
@@ -197,10 +232,12 @@ def _insert_top_block(lines: list[str], block: list[str]) -> None:
     lines[jobs:jobs] = [*block, ""]
 
 
-def _ensure_concurrency(lines: list[str]) -> bool:
+def _ensure_concurrency(lines: list[str], release: bool = False) -> bool:
+    group_value = _RELEASE_GROUP_VALUE if release else _GROUP_VALUE
+    cancel_value = "false" if release else "true"
     index = _top_key_index(lines, "concurrency")
     if index is None:
-        _insert_top_block(lines, ["concurrency:", f"  group: {_GROUP_VALUE}", "  cancel-in-progress: true"])
+        _insert_top_block(lines, ["concurrency:", f"  group: {group_value}", f"  cancel-in-progress: {cancel_value}"])
         return True
     changed = False
     parsed = _key_value(lines[index])
@@ -211,24 +248,28 @@ def _ensure_concurrency(lines: list[str]) -> bool:
     end = _block_end(lines, index, 0)
     group = _child_index(lines, index, end, 0, "group")
     if group is None:
-        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}group: {_GROUP_VALUE}")
+        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}group: {group_value}")
         changed = True
     else:
         current = _key_value(lines[group])
         assert current is not None
-        if current[2] != _GROUP:
-            lines[group] = f"{' ' * current[0]}group: {_GROUP_VALUE}"
+        if release:
+            if "github.sha" not in current[2]:
+                lines[group] = f"{' ' * current[0]}group: {group_value}"
+                changed = True
+        elif current[2] != _GROUP:
+            lines[group] = f"{' ' * current[0]}group: {group_value}"
             changed = True
     end = _block_end(lines, index, 0)
     cancel = _child_index(lines, index, end, 0, "cancel-in-progress")
     if cancel is None:
-        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}cancel-in-progress: true")
+        lines.insert(end, f"{' ' * _child_indentation(lines, index, end, 0)}cancel-in-progress: {cancel_value}")
         changed = True
     else:
         current = _key_value(lines[cancel])
         assert current is not None
-        if current[2] != "true":
-            lines[cancel] = f"{' ' * current[0]}cancel-in-progress: true"
+        if current[2] != cancel_value:
+            lines[cancel] = f"{' ' * current[0]}cancel-in-progress: {cancel_value}"
             changed = True
     return changed
 
@@ -274,7 +315,8 @@ def _enforce_source(source: str) -> str:
     newline = "\r\n" if "\r\n" in source else "\n"
     trailing = source.endswith(("\n", "\r"))
     lines = source.splitlines()
-    _ensure_concurrency(lines)
+    release = _has_prerelease_intent(source)
+    _ensure_concurrency(lines, release)
     _ensure_defaults(lines)
     result = newline.join(lines)
     if trailing:
@@ -306,7 +348,7 @@ def workflow_settings_rules() -> tuple[Rule, ...]:
     return (
         Rule(
             "gha-settings",
-            "Require concurrency cancellation and bash run shell defaults",
+            "Require workflow concurrency and bash run shell defaults",
             TagPredicate(),
             _workflow_settings,
             _fix_workflow_settings,

@@ -50,6 +50,10 @@ runs the read-only documentation audit at `~/.local/bin/mdtool` for each reposit
 fetches stable releases and commit SHAs. A clear version reference can move to a newer major; an
 unlabeled SHA still needs review.
 
+`github-protection` requires zero approving reviews on protected branches so owner-only
+automation never waits on reviews. Repositories without branch protection are skipped.
+It has no fixer; change protection with explicit API calls.
+
 `rust-toolchain` requires Rust repositories to pin `nightly-2026-09-15` in the root
 `rust-toolchain.toml` and include `rust-src` and `clippy`. Its fixer preserves other toolchain
 settings and extra components. It leaves malformed TOML, symlinks, non-table `toolchain` values,

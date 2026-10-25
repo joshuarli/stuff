@@ -21,6 +21,10 @@ def _topics_placeholder(root: Path, repository: Repository) -> list[Finding]:
     return []
 
 
+def _protection_placeholder(root: Path, repository: Repository) -> list[Finding]:
+    return []
+
+
 def rules() -> tuple[Rule, ...]:
     return (
         *action_rules(),
@@ -40,6 +44,15 @@ def rules() -> tuple[Rule, ...]:
             "Compare GitHub repository topics with catalog tags",
             TagPredicate(),
             _topics_placeholder,
+            None,
+            None,
+            (),
+        ),
+        Rule(
+            "github-protection",
+            "Require zero approving reviews on protected branches",
+            TagPredicate(),
+            _protection_placeholder,
             None,
             None,
             (),

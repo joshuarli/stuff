@@ -1126,6 +1126,144 @@ def test_gha_settings_fixer_repairs_values_and_scalar_blocks(tmp_path: Path) -> 
     assert _fix_workflow_settings(tmp_path, repository) == {}
 
 
+def _prerelease_workflow() -> str:
+    return (
+        "name: release\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  release:\n"
+        "    steps:\n"
+        "      - run: gh release create \"release-${{ github.sha }}\" dist/demo.zip "
+        "--prerelease --target \"$GITHUB_SHA\"\n"
+    )
+
+
+def test_gha_settings_requires_sha_scoped_concurrency_for_prereleases(
+    tmp_path: Path,
+) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "release.yml").write_text(_prerelease_workflow(), encoding="utf-8")
+    findings = {finding.code: finding for finding in _workflow_settings(tmp_path, repo())}
+
+    assert set(findings) == {"G001", "G002", "G003"}
+    assert "triggering commit" in findings["G001"].message
+    assert findings["G002"].message == "concurrency.cancel-in-progress must be 'false'"
+
+    plan = _fix_workflow_settings(tmp_path, repo())
+
+    assert list(plan) == [".github/workflows/release.yml"]
+    assert 'group: "release-${{ github.sha }}"' in plan[".github/workflows/release.yml"]
+    assert "cancel-in-progress: false" in plan[".github/workflows/release.yml"]
+    (workflows / "release.yml").write_text(plan[".github/workflows/release.yml"], encoding="utf-8")
+
+    assert _workflow_settings(tmp_path, repo()) == []
+    assert _fix_workflow_settings(tmp_path, repo()) == {}
+
+
+def test_gha_settings_keeps_existing_sha_scoped_release_group(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "prerelease.yml").write_text(
+        "concurrency:\n  group: prerelease-${{ github.sha }}\n  cancel-in-progress: false\n"
+        + _prerelease_workflow(),
+        encoding="utf-8",
+    )
+    findings = {finding.code: finding for finding in _workflow_settings(tmp_path, repo())}
+
+    assert set(findings) == {"G003"}
+
+    plan = _fix_workflow_settings(tmp_path, repo())
+
+    assert "  group: prerelease-${{ github.sha }}\n" in plan[".github/workflows/prerelease.yml"]
+
+
+def test_protection_reviews_reports_counts_and_skips_unprotected(monkeypatch) -> None:
+    def gh_json(arguments: list[str], input_text: str | None = None):
+        endpoint = arguments[0]
+        name = endpoint.split("/")[2]
+        if "protection" not in endpoint:
+            return {"default_branch": "main"}
+        if name == "full":
+            return {"required_approving_review_count": 2}
+        if name == "clean":
+            return {"required_approving_review_count": 0}
+        if name == "unprotected":
+            raise github.GitHubError("Branch not protected (HTTP 404)")
+        if name == "private":
+            raise github.GitHubError("Upgrade to GitHub Pro (HTTP 403)")
+        if name == "badcount":
+            return {"required_approving_review_count": "many"}
+        raise github.GitHubError("boom")
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    repositories = tuple(
+        repo(name) for name in ("full", "clean", "unprotected", "private", "badcount", "broken")
+    )
+
+    results = {
+        name: (protected, count, error)
+        for name, protected, count, error in github.protection_many(repositories, jobs=1)
+    }
+
+    assert results["acme/full"] == (True, 2, None)
+    assert results["acme/clean"] == (True, 0, None)
+    assert results["acme/unprotected"] == (False, 0, None)
+    assert results["acme/private"] == (False, 0, None)
+    assert results["acme/badcount"][2] == "GitHub returned invalid review protection"
+    assert results["acme/broken"][2] == "boom"
+
+
+def test_protection_lint_flags_required_approvals(tmp_path: Path, monkeypatch) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
+    monkeypatch.setattr(
+        "repomod.policy.protection_many",
+        lambda repositories: [(str(repository.id), True, 1, None) for repository in repositories],
+    )
+
+    findings = lint_repositories(catalog, rule_ids=("github-protection",))
+
+    assert len(findings) == 1
+    assert findings[0].rule == "github-protection"
+    assert "must require none" in findings[0].message
+    assert not findings[0].fixable
+
+
+def test_protection_lint_skips_unprotected_and_reports_errors(
+    tmp_path: Path, monkeypatch
+) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
+    monkeypatch.setattr(
+        "repomod.policy.protection_many",
+        lambda repositories: [(str(repository.id), False, 0, None) for repository in repositories],
+    )
+
+    assert lint_repositories(catalog, rule_ids=("github-protection",)) == []
+
+    monkeypatch.setattr(
+        "repomod.policy.protection_many",
+        lambda repositories: [(str(repository.id), False, 0, "boom") for repository in repositories],
+    )
+    findings = lint_repositories(catalog, rule_ids=("github-protection",))
+
+    assert len(findings) == 1
+    assert findings[0].kind == "operational"
+    assert "cannot read branch protection" in findings[0].message
+
+
 def test_lint_and_status_share_short_format_with_legend(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
