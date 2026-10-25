@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import tempfile
 import time
-import tomllib
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
@@ -18,9 +17,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import Catalog, repository_path
+from repomod.catalog import Catalog, atomic_write, repository_path
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
+from repomod.io import cache_file, read_toml
 from repomod.types import Finding, Repository
 
 CACHE_TTL_SECONDS = 86400
@@ -170,13 +170,6 @@ def _js_spec_is_filesystem(spec: str) -> bool:
     return re.match(r"^[A-Za-z]:[\\/]", value) is not None
 
 
-def _read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
-    try:
-        return tomllib.loads(path.read_text(encoding="utf-8")), None
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
-        return None, str(error)
-
-
 def _read_json(path: Path) -> tuple[Any | None, str | None]:
     try:
         return json.loads(path.read_text(encoding="utf-8")), None
@@ -245,7 +238,7 @@ def _cargo_manifests(root: Path) -> list[Path]:
             if is_candidate and _safe_relative(root, match) is not None:
                 found.add(match)
     for manifest in sorted(found):
-        document, _ = _read_toml(manifest)
+        document, _ = read_toml(manifest)
         if not isinstance(document, dict):
             continue
         workspace = document.get("workspace")
@@ -324,7 +317,7 @@ def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[st
     problems: list[str] = []
     for manifest in manifests:
         relative = manifest.relative_to(root).as_posix()
-        document, error = _read_toml(manifest)
+        document, error = read_toml(manifest)
         if document is None:
             problems.append(f"{relative}: {error}")
             continue
@@ -336,7 +329,7 @@ def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
     lock = root / "Cargo.lock"
     if not lock.is_file() or lock.is_symlink():
         return {}, None
-    document, error = _read_toml(lock)
+    document, error = read_toml(lock)
     if document is None:
         return {}, error
     locked: dict[str, str] = {}
@@ -356,7 +349,7 @@ def _uv_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
     lock = root / "uv.lock"
     if not lock.is_file() or lock.is_symlink():
         return {}, None
-    document, error = _read_toml(lock)
+    document, error = read_toml(lock)
     if document is None:
         return {}, error
     locked: dict[str, str] = {}
@@ -376,7 +369,7 @@ def _python_direct_specs(root: Path) -> tuple[list[str], dict[str, Any] | None, 
     manifest = root / "pyproject.toml"
     if not manifest.is_file() or manifest.is_symlink():
         return [], None, None
-    document, error = _read_toml(manifest)
+    document, error = read_toml(manifest)
     if document is None:
         return [], None, error
     specs: list[str] = []
@@ -574,8 +567,7 @@ def _go_replace_filesystem(root: Path) -> list[str]:
 
 
 def _audit_cache_path() -> Path:
-    cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
-    return cache_root / "repomod" / "audit.json"
+    return cache_file("audit.json")
 
 
 def _read_cache(path: Path) -> dict[str, Any]:
@@ -587,18 +579,7 @@ def _read_cache(path: Path) -> dict[str, Any]:
 
 
 def _write_cache(path: Path, data: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=".audit.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as output:
-            json.dump(data, output, sort_keys=True, separators=(",", ":"))
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(Path(temporary_name), path)
-    except BaseException:
-        Path(temporary_name).unlink(missing_ok=True)
-        raise
+    atomic_write(path, json.dumps(data, sort_keys=True, separators=(",", ":")) + "\n")
 
 
 def _cache_fresh(fetched_at: Any, now: float) -> bool:
@@ -871,7 +852,7 @@ def _is_self_dependency(root: Path, manifest: str, path_value: str | None) -> bo
     root_manifest = root / "Cargo.toml"
     if not root_manifest.is_file() or root_manifest.is_symlink():
         return False
-    document, _ = _read_toml(root_manifest)
+    document, _ = read_toml(root_manifest)
     if not isinstance(document, dict) or not isinstance(document.get("package"), dict):
         return False
     parent = (root / manifest).parent

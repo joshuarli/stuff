@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import re
 import subprocess
-import tempfile
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,6 +12,8 @@ from pathlib import Path
 from typing import Any, cast, get_args
 from urllib.parse import quote
 
+from repomod.catalog import atomic_write
+from repomod.io import cache_file
 from repomod.types import (
     CheckResult,
     CiResult,
@@ -871,8 +871,7 @@ def _latest_workflow_statuses(
 
 
 def _cache_path() -> Path:
-    cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
-    return cache_root / "repomod" / "ci.json"
+    return cache_file("ci.json")
 
 
 def _read_cache(path: Path) -> tuple[dict[str, dict[str, Any]], str | None]:
@@ -888,19 +887,7 @@ def _read_cache(path: Path) -> tuple[dict[str, dict[str, Any]], str | None]:
 
 
 def _write_cache(path: Path, entries: dict[str, dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=".ci.", dir=path.parent)
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as output:
-            json.dump({"version": 1, "entries": entries}, output, sort_keys=True, separators=(",", ":"))
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temporary_path, path)
-    except BaseException:
-        temporary_path.unlink(missing_ok=True)
-        raise
+    atomic_write(path, json.dumps({"version": 1, "entries": entries}, sort_keys=True, separators=(",", ":")) + "\n")
 
 
 def _cached_for(entries: dict[str, dict[str, Any]], name: str) -> tuple[str, dict[str, Any]] | None:
@@ -1213,8 +1200,7 @@ class UpstreamStatus:
 
 
 def _upstream_cache_path() -> Path:
-    cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
-    return cache_root / "repomod" / "upstream.json"
+    return cache_file("upstream.json")
 
 
 def _upstream_from_cache(

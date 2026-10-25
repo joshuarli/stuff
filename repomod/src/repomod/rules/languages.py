@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import glob
-import json
-import tomllib
 from pathlib import Path
 from typing import Any
 
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
+from repomod.io import read_json_object, read_toml
 from repomod.rules.binary_release import has_binary_release_contract
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -50,14 +49,6 @@ _LANGUAGE_NAMES = {
 
 def _finding(repository: Repository, rule: str, path: str | None, message: str) -> Finding:
     return Finding(str(repository.id), rule, path, message)
-
-
-def _read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
-    try:
-        value = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
-        return None, str(error)
-    return value, None
 
 
 def _cargo_candidates(root: Path) -> list[Path]:
@@ -106,7 +97,7 @@ def _rust_manifests(
             continue
         if not _safe_manifest(root, path):
             continue
-        document, error = _read_toml(path)
+        document, error = read_toml(path)
         if document is None:
             problems.append((relative, f"Cargo manifest is unreadable: {error}"))
             continue
@@ -134,7 +125,7 @@ def _rust_manifests(
                 member = Path(member_name)
                 if not _safe_manifest(root, member) or member in documents:
                     continue
-                member_document, error = _read_toml(member)
+                member_document, error = read_toml(member)
                 if member_document is None:
                     problems.append(
                         (member.relative_to(root).as_posix(), f"Cargo manifest is unreadable: {error}")
@@ -163,7 +154,7 @@ def _rust_tool_configs(root: Path, repository: Repository) -> list[Finding]:
         if config.is_symlink():
             findings.append(_finding(repository, "rust-project", name, "Rust tool configuration is a symlink"))
             continue
-        document, error = _read_toml(config)
+        document, error = read_toml(config)
         if document is None:
             message = f"Rust tool configuration is invalid TOML: {error}"
             findings.append(_finding(repository, "rust-project", name, message))
@@ -256,88 +247,13 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
             _finding(repository, "rust-project", "Cargo.lock", "Cargo.lock is a symlink and is not followed")
         )
     elif lockfile.is_file():
-        _, error = _read_toml(lockfile)
+        _, error = read_toml(lockfile)
         if error is not None:
             findings.append(
                 _finding(repository, "rust-project", "Cargo.lock", f"Cargo.lock is invalid TOML: {error}")
             )
     findings.extend(_rust_tool_configs(root, repository))
     return findings
-
-
-def _jsonc_source(source: str) -> tuple[str | None, str | None]:
-    characters = list(source)
-    in_string = False
-    escaped = False
-    index = 0
-    while index < len(source):
-        character = source[index]
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
-        elif character == '"':
-            in_string = True
-        elif source.startswith("//", index):
-            while index < len(source) and source[index] not in "\r\n":
-                characters[index] = " "
-                index += 1
-            continue
-        elif source.startswith("/*", index):
-            start = index
-            end = source.find("*/", index + 2)
-            if end < 0:
-                return None, f"unterminated block comment at offset {start}"
-            for comment_index in range(index, end + 2):
-                if source[comment_index] not in "\r\n":
-                    characters[comment_index] = " "
-            index = end + 2
-            continue
-        index += 1
-    cleaned = "".join(characters)
-    characters = list(cleaned)
-    in_string = False
-    escaped = False
-    for index, character in enumerate(cleaned):
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
-        elif character == '"':
-            in_string = True
-        elif character == ",":
-            following = index + 1
-            while following < len(cleaned) and cleaned[following].isspace():
-                following += 1
-            if following < len(cleaned) and cleaned[following] in "]}":
-                characters[index] = " "
-    return "".join(characters), None
-
-
-def _json_object(
-    path: Path, *, allow_jsonc: bool = False
-) -> tuple[dict[str, Any] | None, str | None]:
-    try:
-        source = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        return None, str(error)
-    if allow_jsonc:
-        source, error = _jsonc_source(source)
-        if source is None:
-            return None, error
-    try:
-        value = json.loads(source)
-    except json.JSONDecodeError as error:
-        return None, str(error)
-    if not isinstance(value, dict):
-        return None, "top-level value must be an object"
-    return value, None
 
 
 def _js_manifests(root: Path) -> list[Path]:
@@ -365,7 +281,7 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
     root_package = None
     for path in manifests:
         relative = path.relative_to(root).as_posix()
-        package, error = _json_object(path)
+        package, error = read_json_object(path)
         if package is None:
             findings.append(
                 _finding(repository, "javascript-project", relative, f"package manifest is invalid JSON: {error}")
@@ -381,7 +297,7 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
                     _finding(repository, "javascript-project", relative_config, "TypeScript configuration is a symlink")
                 )
             elif config.is_file():
-                _, config_error = _json_object(config, allow_jsonc=True)
+                _, config_error = read_json_object(config, allow_jsonc=True)
                 if config_error is not None:
                     relative_config = config.relative_to(root).as_posix()
                     findings.append(
@@ -624,7 +540,7 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
         if "python" in repository.tags and not _python_source_present(root):
             return [_finding(repository, "python-project", None, "python language tag has no pyproject.toml")]
         return []
-    document, error = _read_toml(path)
+    document, error = read_toml(path)
     if document is None:
         return [_finding(repository, "python-project", path.name, f"pyproject.toml is invalid TOML: {error}")]
     project = document.get("project")
@@ -633,7 +549,7 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     if uv_lock.is_symlink():
         findings.append(_finding(repository, "python-project", "uv.lock", "uv.lock is a symlink and is not followed"))
     elif uv_lock.is_file():
-        lock, lock_error = _read_toml(uv_lock)
+        lock, lock_error = read_toml(uv_lock)
         if lock is None:
             findings.append(_finding(repository, "python-project", "uv.lock", f"uv.lock is invalid TOML: {lock_error}"))
         elif isinstance(project, dict):

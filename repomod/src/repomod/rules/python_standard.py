@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.catalog import atomic_write
+from repomod.io import read_toml
 from repomod.rules.workflows import workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -288,14 +289,6 @@ def _python_ci_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
-    try:
-        document = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
-        return None, str(error)
-    return document, None
-
-
 def python_tools_file() -> Path:
     return Path(__file__).resolve().parents[3] / "python-tools.toml"
 
@@ -533,7 +526,7 @@ def _python_standard_findings(root: Path, repository: Repository) -> list[Findin
                 fixable=False,
             )
         ]
-    project, error = _read_toml(project_path)
+    project, error = read_toml(project_path)
     if project is None:
         return [_finding(repository, project_path.name, f"pyproject.toml is invalid TOML: {error}", operational=True)]
 
@@ -620,7 +613,7 @@ def _python_standard_findings(root: Path, repository: Repository) -> list[Findin
     if not lock_path.is_file():
         findings.append(_finding(repository, lock_path.name, "uv.lock is required for Python standards"))
         return findings
-    lock, error = _read_toml(lock_path)
+    lock, error = read_toml(lock_path)
     if lock is None:
         findings.append(_finding(repository, lock_path.name, f"uv.lock is invalid TOML: {error}", operational=True))
         return findings

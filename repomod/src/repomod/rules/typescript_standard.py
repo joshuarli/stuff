@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 from repomod.catalog import atomic_write
 from repomod.github import action_tags_many
+from repomod.io import read_json_object
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
 _IGNORED_DIRS = {
@@ -242,87 +243,6 @@ def _typescript_manifests(
     return selected
 
 
-def _read_object(path: Path, *, jsonc: bool = False) -> tuple[dict[str, Any] | None, str | None]:
-    try:
-        source = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        return None, str(error)
-    if jsonc:
-        source, error = _jsonc_source(source)
-        if source is None:
-            return None, error
-    try:
-        value = json.loads(source)
-    except json.JSONDecodeError as error:
-        return None, str(error)
-    if not isinstance(value, dict):
-        return None, "top-level value must be an object"
-    return value, None
-
-
-def _jsonc_source(source: str) -> tuple[str | None, str | None]:
-    characters = list(source)
-    index = 0
-    in_string = False
-    escaped = False
-    while index < len(source):
-        character = source[index]
-        following = source[index + 1] if index + 1 < len(source) else ""
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
-        elif character == '"':
-            in_string = True
-        elif character == "/" and following == "/":
-            characters[index] = " "
-            characters[index + 1] = " "
-            index += 2
-            while index < len(source) and source[index] not in "\r\n":
-                characters[index] = " "
-                index += 1
-            continue
-        elif character == "/" and following == "*":
-            characters[index] = " "
-            characters[index + 1] = " "
-            index += 2
-            while index + 1 < len(source) and source[index : index + 2] != "*/":
-                if source[index] not in "\r\n":
-                    characters[index] = " "
-                index += 1
-            if index + 1 >= len(source):
-                return None, "unterminated block comment"
-            characters[index] = " "
-            characters[index + 1] = " "
-            index += 2
-            continue
-        index += 1
-    cleaned = "".join(characters)
-    characters = list(cleaned)
-    in_string = False
-    escaped = False
-    for index, character in enumerate(cleaned):
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
-        elif character == '"':
-            in_string = True
-        elif character == ",":
-            following = index + 1
-            while following < len(cleaned) and cleaned[following].isspace():
-                following += 1
-            if following < len(cleaned) and cleaned[following] in "]}":
-                characters[index] = " "
-    return "".join(characters), None
-
-
 def _dependency_versions(package: dict[str, Any]) -> dict[str, str]:
     dependencies: dict[str, str] = {}
     for field in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
@@ -414,7 +334,7 @@ def _root_package(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     manifest = path / "package.json"
     if manifest.is_symlink():
         return None, "package manifest is a symlink and is not followed"
-    return _read_object(manifest)
+    return read_json_object(manifest)
 
 
 def _check_package_authority(
@@ -507,7 +427,7 @@ def _manifest_data(
         if path.is_symlink():
             findings.append(_finding(repository, relative, "package manifest is a symlink and is not followed"))
             continue
-        package, error = _read_object(path)
+        package, error = read_json_object(path)
         if package is None:
             findings.append(
                 _finding(repository, relative, f"package manifest is invalid JSON: {error}", kind="operational")
@@ -523,7 +443,7 @@ def _strict_setting(root: Path, path: Path, seen: frozenset[Path] = frozenset())
     path = Path(os.path.normpath(path))
     if path in seen:
         return None
-    config, _error = _read_object(path, jsonc=True)
+    config, _error = read_json_object(path, allow_jsonc=True)
     if config is None:
         return None
     compiler_options = config.get("compilerOptions")
@@ -571,7 +491,7 @@ def _typescript_config_findings(
         return [_finding(repository, relative, "TypeScript configuration is a symlink and is not followed")]
     if not config_path.is_file():
         return [_finding(repository, relative, "commit a tsconfig.json with strict type checking enabled")]
-    config, error = _read_object(config_path, jsonc=True)
+    config, error = read_json_object(config_path, allow_jsonc=True)
     if config is None:
         return [
             _finding(
@@ -1144,7 +1064,7 @@ def _validate_typescript_stack(
 ) -> list[str]:
     errors = []
     for relative in changed:
-        package, error = _read_object(root / relative)
+        package, error = read_json_object(root / relative)
         if package is None:
             errors.append(f"{relative} is invalid JSON after the pnpm script repair: {error}")
             continue
