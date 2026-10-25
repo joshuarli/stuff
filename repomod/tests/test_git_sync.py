@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -361,3 +362,65 @@ def test_ensure_upstream_remote_states(tmp_path: Path, git_environment: None) ->
     assert ensure_upstream_remote(work, "file:///one.git") == "current"
     assert ensure_upstream_remote(work, "file:///two.git") == "updated"
     assert git("config", "--get", "remote.upstream.url", cwd=work) == "file:///two.git"
+
+
+def test_sync_clone_is_full_history_without_blobs(
+    tmp_path: Path, git_environment: None
+) -> None:
+    _, seed, _ = make_remote(tmp_path)
+    (seed / "SECOND.md").write_text("second\n", encoding="utf-8")
+    git("add", "SECOND.md", cwd=seed)
+    git("commit", "-m", "second", cwd=seed)
+    git("push", "origin", "main", cwd=seed)
+    catalog, repository = make_catalog(tmp_path)
+    remote = RemoteRepository(str(repository.id), "main", "unused", False)
+
+    result = sync_one(catalog, repository, remote)
+    checkout = repository_path(catalog, repository)
+
+    assert result.action == "cloned"
+    assert git("rev-parse", "--is-shallow-repository", cwd=checkout) == "false"
+    assert "second" in git("log", "--format=%s", cwd=checkout)
+    assert "initial" in git("log", "--format=%s", cwd=checkout)
+    assert git("config", "--get", "remote.origin.partialclonefilter", cwd=checkout) == "blob:none"
+
+
+def test_sync_unshallows_existing_shallow_checkout(
+    tmp_path: Path, git_environment: None
+) -> None:
+    _, seed, url = make_remote(tmp_path)
+    (seed / "SECOND.md").write_text("second\n", encoding="utf-8")
+    git("add", "SECOND.md", cwd=seed)
+    git("commit", "-m", "second", cwd=seed)
+    git("push", "origin", "main", cwd=seed)
+    catalog, repository = make_catalog(tmp_path)
+    checkout = repository_path(catalog, repository)
+    checkout.parent.mkdir(parents=True)
+    git("clone", "--depth", "1", url, str(checkout))
+    assert git("rev-parse", "--is-shallow-repository", cwd=checkout) == "true"
+    assert "initial" not in git("log", "--format=%s", cwd=checkout)
+
+    result = sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", False))
+
+    assert "completed full history" in result.message
+    assert git("rev-parse", "--is-shallow-repository", cwd=checkout) == "false"
+    assert "initial" in git("log", "--format=%s", cwd=checkout)
+    assert "second" in git("log", "--format=%s", cwd=checkout)
+
+
+def test_sync_shallow_unshallow_failure_fails(
+    tmp_path: Path, git_environment: None
+) -> None:
+    bare, _, url = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    checkout = repository_path(catalog, repository)
+    checkout.parent.mkdir(parents=True)
+    git("clone", "--depth", "1", url, str(checkout))
+    assert git("rev-parse", "--is-shallow-repository", cwd=checkout) == "true"
+    shutil.rmtree(bare)
+
+    result = sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", False))
+
+    assert result.action == "failed"
+    assert result.failed is True
+    assert "could not complete history from shallow clone" in result.message

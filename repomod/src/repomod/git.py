@@ -267,6 +267,20 @@ def shallow(path: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
+def complete_history(path: Path, branch: str) -> None:
+    run_git(
+        [
+            "fetch",
+            "--no-tags",
+            "--filter=blob:none",
+            "--unshallow",
+            "origin",
+            f"+refs/heads/{branch}:refs/remotes/origin/{branch}",
+        ],
+        cwd=path,
+    )
+
+
 def fetch_default(path: Path, branch: str, deepen: int | None = None) -> None:
     arguments = ["fetch", "--no-tags"]
     if deepen is not None:
@@ -375,7 +389,6 @@ def clone_repository(path: Path, repo: RepoId, remote_url: str, default_branch: 
             [
                 "clone",
                 "--filter=blob:none",
-                "--depth=1",
                 "--no-tags",
                 "--single-branch",
                 f"--branch={default_branch}",

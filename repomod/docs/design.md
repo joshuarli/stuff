@@ -21,7 +21,11 @@ fast-forwards. Policy rules live under `rules/`. See [policy development](policy
 
 ## Synchronization and status
 
-Sync reads current GitHub metadata for catalog entries. It skips fetch only when a clean checkout
+Sync reads current GitHub metadata for catalog entries. New clones are full-history, blobless
+partial clones: complete commit history so rebases and ancestry queries work, with file contents
+fetched on demand instead of up front. A checkout that is still shallow from an older clone is
+unshallowed during sync; if that fails the sync for that repository fails loudly rather than
+continuing on a shallow boundary. Sync skips fetch only when a clean checkout
 is attached to the default branch and its HEAD matches GitHub's reported branch tip. Otherwise it
 fetches that branch. It fast-forwards only a clean checkout on that branch when Git confirms the
 move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and

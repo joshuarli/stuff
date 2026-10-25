@@ -10,6 +10,7 @@ from repomod.git import (
     GitError,
     clone_repository,
     clone_url,
+    complete_history,
     ensure_upstream_remote,
     fetch_default,
     fetch_upstream,
@@ -106,8 +107,17 @@ def sync_one(
                 return SyncResult(name, "failed", current.error or "invalid checkout", True)
             if not current.origin_valid:
                 return SyncResult(name, "failed", current.error or "invalid checkout origin", True)
+            notes: list[str] = []
+            if shallow(path):
+                try:
+                    complete_history(path, remote.default_branch)
+                except (GitError, OSError) as error:
+                    return SyncResult(name, "failed", f"could not complete history from shallow clone: {error}", True)
+                notes.append("completed full history")
             upstream_note = _sync_upstream(path, remote)
-            trailer = f"; {upstream_note}" if upstream_note is not None else ""
+            if upstream_note is not None:
+                notes.append(upstream_note)
+            trailer = "".join(f"; {note}" for note in notes)
             starting_head = head(path)
             if (
                 not current.dirty
