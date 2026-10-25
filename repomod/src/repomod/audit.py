@@ -20,6 +20,7 @@ from typing import Any
 
 from repomod.catalog import Catalog, repository_path
 from repomod.git import GitError, status
+from repomod.github import UpstreamStatus
 from repomod.types import Finding, Repository
 
 CACHE_TTL_SECONDS = 86400
@@ -226,6 +227,8 @@ class RustDependency:
     has_path: bool
     has_git: bool
     has_version: bool = False
+    path_value: str | None = None
+    git_value: str | None = None
 
 
 def _cargo_manifests(root: Path) -> list[Path]:
@@ -297,6 +300,8 @@ def _rust_manifest_dependencies(
             if isinstance(spec, dict):
                 real = spec.get("package", name)
                 real_name = real if isinstance(real, str) else name
+                raw_path = spec.get("path")
+                raw_git = spec.get("git")
                 dependencies.append(
                     RustDependency(
                         name=real_name,
@@ -304,6 +309,8 @@ def _rust_manifest_dependencies(
                         has_path="path" in spec,
                         has_git="git" in spec,
                         has_version="version" in spec,
+                        path_value=raw_path if isinstance(raw_path, str) else None,
+                        git_value=raw_git if isinstance(raw_git, str) else None,
                     )
                 )
             elif isinstance(spec, str):
@@ -781,6 +788,12 @@ def _collect_locked(
             findings.append(_finding(repository, "audit-lock", "Cargo.lock", message, operational=True))
         seen: set[str] = set()
         for dependency in direct:
+            if (
+                dependency.has_path
+                and not dependency.has_version
+                and _is_self_dependency(root, dependency.manifest, dependency.path_value)
+            ):
+                continue
             key = _normalize_rust_name(dependency.name)
             if key in seen:
                 continue
@@ -852,6 +865,22 @@ def _banned_rust_message(name: str, *, transitive: bool, version: str | None = N
     return f"remove bloated dependency {name}"
 
 
+def _is_self_dependency(root: Path, manifest: str, path_value: str | None) -> bool:
+    if path_value is None:
+        return False
+    root_manifest = root / "Cargo.toml"
+    if not root_manifest.is_file() or root_manifest.is_symlink():
+        return False
+    document, _ = _read_toml(root_manifest)
+    if not isinstance(document, dict) or not isinstance(document.get("package"), dict):
+        return False
+    parent = (root / manifest).parent
+    try:
+        return Path(os.path.normpath(parent / path_value)) == Path(os.path.normpath(root))
+    except (OSError, ValueError):
+        return False
+
+
 def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     tags = set(repository.tags)
@@ -870,8 +899,17 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 if all(finding.file != relative for finding in findings):
                     findings.append(_finding(repository, "audit-banned", relative, "remove requirements file"))
         specs, document, _ = _python_direct_specs(root)
-        if any(_pep508_is_filesystem(spec) for spec in specs):
-            findings.append(_finding(repository, "audit-registry", "pyproject.toml", "remove filesystem dependency"))
+        seen_specs: set[str] = set()
+        for spec in specs:
+            if not _pep508_is_filesystem(spec) or spec in seen_specs:
+                continue
+            seen_specs.add(spec)
+            name = _pep508_name(spec) or spec.strip()
+            mechanism = spec.partition("@")[2].strip().split(";")[0].strip().strip("\"'")
+            message = (
+                f"dependency '{name}' uses {mechanism}; depend on the registry version instead"
+            )
+            findings.append(_finding(repository, "audit-registry", "pyproject.toml", message))
         if isinstance(document, dict):
             tool = document.get("tool")
             sources: Any = None
@@ -883,16 +921,31 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 for name, source in sorted(sources.items()):
                     if isinstance(source, dict) and ("path" in source or "git" in source):
                         kind = _source_kind(source)
-                        message = f"remove {kind} source for {name}"
+                        target = source.get("path", source.get("git"))
+                        detail = f' "{target}"' if isinstance(target, str) else ""
+                        message = (
+                            f"dependency '{name}' uses {kind} source{detail}; "
+                            "depend on the registry version instead"
+                        )
                         findings.append(_finding(repository, "audit-registry", "pyproject.toml", message))
     if "rust" in tags or (root / "Cargo.toml").is_file():
         direct, _ = _rust_direct_dependencies(root)
         for dependency in sorted(direct, key=lambda item: item.name.casefold()):
             if dependency.has_path and not dependency.has_version:
-                message = f"remove filesystem dependency {dependency.name}"
+                if _is_self_dependency(root, dependency.manifest, dependency.path_value):
+                    continue
+                detail = f' "{dependency.path_value}"' if dependency.path_value is not None else ""
+                message = (
+                    f"dependency '{dependency.name}' uses path{detail}; "
+                    "depend on the registry version instead"
+                )
                 findings.append(_finding(repository, "audit-registry", dependency.manifest, message))
             elif dependency.has_git:
-                message = f"remove git dependency {dependency.name}"
+                detail = f' "{dependency.git_value}"' if dependency.git_value is not None else ""
+                message = (
+                    f"dependency '{dependency.name}' uses git{detail}; "
+                    "depend on the registry version instead"
+                )
                 findings.append(_finding(repository, "audit-registry", dependency.manifest, message))
         seen_banned: set[str] = set()
         for dependency in direct:
@@ -915,7 +968,10 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             relative_manifest = (project / "package.json").relative_to(root).as_posix()
             for name in sorted(dependencies):
                 if _js_spec_is_filesystem(dependencies[name]):
-                    message = f"remove filesystem dependency {name}"
+                    spec = dependencies[name].strip()
+                    message = (
+                        f"dependency '{name}' uses \"{spec}\"; depend on the registry version instead"
+                    )
                     findings.append(_finding(repository, "audit-registry", relative_manifest, message))
             manifest, _ = _read_json(project / "package.json")
             manager = manifest.get("packageManager") if isinstance(manifest, dict) else None
@@ -1084,6 +1140,7 @@ def _audit_one(
     now: float,
     latest_fetcher: Callable[[str, str], str | None] | None = None,
     osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
+    upstream: UpstreamStatus | None = None,
 ) -> AuditOutcome:
     outcome = AuditOutcome(str(repository.id))
     try:
@@ -1108,6 +1165,36 @@ def _audit_one(
     outcome.findings.extend(
         finding for finding in _policy_findings(root, repository) if finding.rule not in ignored
     )
+    if (
+        upstream is not None
+        and upstream.parent is not None
+        and "audit-upstream" not in ignored
+    ):
+        if upstream.error is not None:
+            outcome.findings.append(
+                Finding(
+                    str(repository.id),
+                    "audit-upstream",
+                    None,
+                    f"could not compare with {upstream.parent}: {upstream.error}",
+                    kind="operational",
+                )
+            )
+        elif isinstance(upstream.behind_by, int) and upstream.behind_by > 0:
+            branch = ""
+            if upstream.parent_branch is not None and upstream.parent_branch != "":
+                branch = f"@{upstream.parent_branch}"
+            ahead = ""
+            if isinstance(upstream.ahead_by, int) and upstream.ahead_by > 0:
+                ahead = f", {upstream.ahead_by} ahead"
+            outcome.findings.append(
+                _finding(
+                    repository,
+                    "audit-upstream",
+                    None,
+                    f"fork is {upstream.behind_by} commits behind {upstream.parent}{branch}{ahead}",
+                )
+            )
     locked, lock_findings = _collect_locked(root, repository)
     outcome.findings.extend(finding for finding in lock_findings if finding.rule not in ignored)
     if locked:
@@ -1153,6 +1240,7 @@ def audit_repositories(
     jobs: int = 4,
     latest_fetcher: Callable[[str, str], str | None] | None = None,
     osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
+    upstream_statuses: dict[str, UpstreamStatus] | None = None,
 ) -> list[AuditOutcome]:
     current_time = time.time() if now is None else now
     path = cache_path or _audit_cache_path()
@@ -1178,6 +1266,7 @@ def audit_repositories(
                 now=current_time,
                 latest_fetcher=latest_fetcher,
                 osv_fetcher=osv_fetcher,
+                upstream=upstream_statuses.get(str(repository.id)) if upstream_statuses is not None else None,
             ): repository
             for repository in selected
         }

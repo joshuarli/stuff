@@ -15,6 +15,7 @@ from repomod.audit import (
     audit_repositories,
 )
 from repomod.catalog import Catalog
+from repomod.github import UpstreamStatus
 from repomod.types import RepoId, Repository
 
 
@@ -102,7 +103,25 @@ def test_python_git_source_is_registry_violation(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     findings = _policy_findings(root, repository("tool", "python"))
-    assert any(finding.rule == "audit-registry" for finding in findings)
+    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
+    assert any(
+        "'shadowdriver'" in message and "git" in message and "registry version" in message
+        for message in messages
+    )
+
+
+def test_js_registry_message_names_spec_and_remedy(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "package.json").write_text(
+        '{"dependencies":{"left-pad":"file:../left-pad"}}\n', encoding="utf-8"
+    )
+    (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    findings = _policy_findings(root, repository("tool", "typescript"))
+    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
+    assert any(
+        "'left-pad'" in message and "file:../left-pad" in message and "registry version" in message
+        for message in messages
+    )
 
 
 def test_rust_bans_direct_and_transitive(tmp_path: Path) -> None:
@@ -124,6 +143,50 @@ def test_rust_bans_direct_and_transitive(tmp_path: Path) -> None:
     assert rules.count("audit-registry") >= 2
     assert any("clap" in finding.message for finding in findings if finding.rule == "audit-banned")
     assert any("tokio" in finding.message for finding in findings if finding.rule == "audit-banned")
+
+
+def test_rust_self_dependency_on_root_is_exempt(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "rawzip"\nversion = "0.5.1"\nedition = "2024"\n',
+        encoding="utf-8",
+    )
+    bench = root / "bench"
+    bench.mkdir()
+    (bench / "Cargo.toml").write_text(
+        '[package]\nname = "rawzip-bench"\nversion = "0.0.1"\nedition = "2024"\n'
+        '[dependencies]\nrawzip = { path = ".." }\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "rawzip"\nversion = "0.5.1"\n'
+        '[[package]]\nname = "rawzip-bench"\nversion = "0.0.1"\n',
+        encoding="utf-8",
+    )
+    findings = _policy_findings(root, repository("tool", "rust"))
+    assert [finding for finding in findings if finding.rule == "audit-registry"] == []
+    locked, _ = _collect_locked(root, repository("tool", "rust"))
+    assert all(not (item.ecosystem == "crates" and item.name == "rawzip") for item in locked)
+
+
+def test_rust_registry_message_names_mechanism_and_remedy(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nlocal = { path = "crates/local" }\n'
+        'remote = { git = "https://example.com/repo.git" }\n',
+        encoding="utf-8",
+    )
+    findings = _policy_findings(root, repository("tool", "rust"))
+    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
+    assert any(
+        "'local'" in message and 'path "crates/local"' in message and "registry version" in message
+        for message in messages
+    )
+    assert any(
+        "'remote'" in message and "git" in message and "registry version" in message
+        for message in messages
+    )
 
 
 def test_rust_versioned_path_is_registry_compatible(tmp_path: Path) -> None:
@@ -226,3 +289,98 @@ def test_collect_locked_prefers_lockfile_versions(tmp_path: Path) -> None:
     assert [(item.ecosystem, item.name, item.locked) for item in locked] == [
         ("pypi", "requests", "2.0.0")
     ]
+
+
+def _upstream_status(
+    behind_by: int | None = 7,
+    ahead_by: int | None = 1,
+    state: str = "diverged",
+    error: str | None = None,
+) -> UpstreamStatus:
+    return UpstreamStatus(
+        "acme/demo",
+        "cli/cli",
+        "trunk",
+        "b" * 40,
+        "c" * 40,
+        behind_by,
+        ahead_by,
+        state,
+        False,
+        None,
+        error,
+    )
+
+
+def _upstream_outcomes(tmp_path: Path, statuses: dict[str, UpstreamStatus]):
+    repo_root(tmp_path)
+    repo = repository("tool", "fork")
+    catalog = catalog_for(tmp_path, repo)
+    return audit_repositories(
+        catalog,
+        (repo,),
+        offline=True,
+        cache_path=tmp_path / "cache.json",
+        now=1000.0,
+        upstream_statuses=statuses,
+    )
+
+
+def test_audit_upstream_behind_is_reported(tmp_path: Path) -> None:
+    outcomes = _upstream_outcomes(tmp_path, {"acme/demo": _upstream_status()})
+    rules = [finding.rule for finding in outcomes[0].findings]
+    assert rules == ["audit-upstream"]
+    assert outcomes[0].findings[0].message == (
+        "fork is 7 commits behind cli/cli@trunk, 1 ahead"
+    )
+
+
+def test_audit_upstream_ahead_only_is_not_reported(tmp_path: Path) -> None:
+    outcomes = _upstream_outcomes(
+        tmp_path, {"acme/demo": _upstream_status(behind_by=0, ahead_by=3, state="ahead")}
+    )
+    assert outcomes[0].findings == []
+
+
+def test_audit_upstream_in_sync_is_not_reported(tmp_path: Path) -> None:
+    outcomes = _upstream_outcomes(
+        tmp_path, {"acme/demo": _upstream_status(behind_by=0, ahead_by=0, state="identical")}
+    )
+    assert outcomes[0].findings == []
+
+
+def test_audit_upstream_respects_ignored_rules(tmp_path: Path) -> None:
+    repo_root(tmp_path)
+    repo = Repository(RepoId("acme", "demo"), ("tool", "fork"), ignored_rules=frozenset({"audit-upstream"}))
+    catalog = catalog_for(tmp_path, repo)
+    outcomes = audit_repositories(
+        catalog,
+        (repo,),
+        offline=True,
+        cache_path=tmp_path / "cache.json",
+        now=1000.0,
+        upstream_statuses={"acme/demo": _upstream_status()},
+    )
+    assert outcomes[0].findings == []
+
+
+def test_audit_upstream_error_is_operational(tmp_path: Path) -> None:
+    outcomes = _upstream_outcomes(
+        tmp_path,
+        {"acme/demo": _upstream_status(behind_by=None, ahead_by=None, state="unknown", error="boom")},
+    )
+    findings = outcomes[0].findings
+    assert len(findings) == 1
+    assert findings[0].rule == "audit-upstream"
+    assert findings[0].kind == "operational"
+    assert "boom" in findings[0].message
+
+
+def test_audit_without_upstream_statuses_skips_upstream(tmp_path: Path) -> None:
+    repo_root(tmp_path)
+    repo = repository("tool", "python")
+    catalog = catalog_for(tmp_path, repo)
+    outcomes = audit_repositories(
+        catalog, (repo,), offline=True, cache_path=tmp_path / "cache.json", now=1000.0
+    )
+    assert all(finding.rule != "audit-upstream" for finding in outcomes[0].findings)

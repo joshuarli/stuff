@@ -40,12 +40,13 @@ stderr. Sorted repository results go to stdout. A failure for one repository doe
 others.
 
 `repomod status` shows local Git, current default-branch CI, the latest status for each GitHub
-workflow, outstanding ticket headings in each root `TODO.md`, and lint rules with findings. It
+workflow, outstanding ticket headings in each root `TODO.md`, lint rules with findings, and, for
+forks, how many commits behind their upstream parent they are. It
 uses compact repository blocks with terminal colors when stdout is interactive. `status --details`
-prints each lint message and failed CI check. `status --json` includes workflow statuses, full lint
-findings, and the `todo_items` count. A TODO item is a standardized `### ID · Pn · title` heading.
-`status --offline` reads cached CI without network calls. `--failed` filters to CI failures,
-error-level policy findings, and operational lint findings.
+prints each lint message, failed CI check, and upstream error. `status --json` includes workflow statuses, full lint
+findings, upstream comparison details, and the `todo_items` count. A TODO item is a standardized `### ID · Pn · title` heading.
+`status --offline` reads cached CI and upstream data without network calls. `--failed` filters to CI failures,
+error-level policy findings, operational lint findings, and forks behind their upstream.
 
 ```sh
 uv run repomod sync

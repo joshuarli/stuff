@@ -31,9 +31,12 @@ without GitHub calls.
 Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
 upstream, so they are not current remote state. Online status checks CI for GitHub's current
 default-branch commit. The CI cache is keyed by repository and commit SHA and expires after five
-minutes. Offline status reads cached CI without network calls. Online status also lists open
+minutes. Offline status reads cached CI without network calls. For repositories that GitHub reports
+as forks, online status also compares the fork default branch against its upstream parent and
+reports behind and ahead counts. The upstream cache is keyed by repository and fork commit SHA and
+expires after one hour. Offline status reads cached upstream comparisons. Online status also lists open
 pull requests with their mergeable and merge-state status; `--failed` includes repositories
-with conflicting PRs. Offline status omits pull requests.
+with conflicting PRs and forks behind their upstream. Offline status omits pull requests.
 
 ## Repair and writes
 

@@ -338,7 +338,8 @@ def _repository_query(repositories: tuple[Repository, ...]) -> tuple[str, dict[s
         target = "target { ... on Commit { oid } }"
         fields.append(
             f'{alias}: repository(owner: {owner}, name: {name}) '
-            f"{{ isArchived defaultBranchRef {{ name {target} }} }}"
+            f"{{ isArchived defaultBranchRef {{ name {target} }} "
+            f"parent {{ nameWithOwner defaultBranchRef {{ name {target} }} }} }}"
         )
     return "query { " + " ".join(fields) + " }", aliases
 
@@ -391,6 +392,7 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
                 name, None, None, None, "repository not found or not accessible"
             )
             continue
+        parent, parent_branch, parent_sha = _parent_reference(repository.get("parent"))
         branch = repository.get("defaultBranchRef")
         if not isinstance(branch, dict):
             found[name] = RemoteRepository(
@@ -399,6 +401,9 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
                 None,
                 bool(repository.get("isArchived")),
                 "GitHub did not report a default branch",
+                parent,
+                parent_branch,
+                parent_sha,
             )
             continue
         target = branch.get("target")
@@ -408,8 +413,28 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
             branch.get("name") if isinstance(branch.get("name"), str) else None,
             sha if isinstance(sha, str) and _COMMIT_SHA.fullmatch(sha) else None,
             repository.get("isArchived") if isinstance(repository.get("isArchived"), bool) else None,
+            parent=parent,
+            parent_branch=parent_branch,
+            parent_sha=parent_sha,
         )
     return found
+
+
+def _parent_reference(value: Any) -> tuple[str | None, str | None, str | None]:
+    if not isinstance(value, dict):
+        return None, None, None
+    parent = value.get("nameWithOwner")
+    branch = value.get("defaultBranchRef")
+    if not isinstance(parent, str) or not parent or not isinstance(branch, dict):
+        return None, None, None
+    name = branch.get("name")
+    target = branch.get("target")
+    sha = target.get("oid") if isinstance(target, dict) else None
+    if not isinstance(name, str) or not name:
+        return None, None, None
+    if not isinstance(sha, str) or _COMMIT_SHA.fullmatch(sha) is None:
+        return parent, name, None
+    return parent, name, sha
 
 
 def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
@@ -1166,6 +1191,218 @@ def ci_status(
             _write_cache(path, cache)
     _filter_fork_workflows(repositories, results)
     return results
+
+
+UPSTREAM_CACHE_TTL_SECONDS = 3600
+_UPSTREAM_STATES = ("identical", "ahead", "behind", "diverged", "unknown")
+
+
+@dataclass(frozen=True, slots=True)
+class UpstreamStatus:
+    repository: str
+    parent: str | None
+    parent_branch: str | None
+    parent_sha: str | None
+    fork_sha: str | None
+    behind_by: int | None
+    ahead_by: int | None
+    state: str
+    cached: bool = False
+    age_seconds: int | None = None
+    error: str | None = None
+
+
+def _upstream_cache_path() -> Path:
+    cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
+    return cache_root / "repomod" / "upstream.json"
+
+
+def _upstream_from_cache(
+    repository: str, entry: dict[str, Any], now: float
+) -> UpstreamStatus | None:
+    parent = entry.get("parent")
+    behind = entry.get("behind_by")
+    ahead = entry.get("ahead_by")
+    state = entry.get("state")
+    fetched = entry.get("fetched_at")
+    if not isinstance(parent, str) or not parent:
+        return None
+    if not isinstance(behind, int) or isinstance(behind, bool):
+        return None
+    if not isinstance(ahead, int) or isinstance(ahead, bool):
+        return None
+    if state not in _UPSTREAM_STATES:
+        return None
+    if (
+        not isinstance(fetched, (int, float))
+        or isinstance(fetched, bool)
+        or not math.isfinite(fetched)
+    ):
+        return None
+    parent_branch = entry.get("parent_branch")
+    parent_sha = entry.get("parent_sha")
+    fork_sha = entry.get("fork_sha")
+    return UpstreamStatus(
+        repository,
+        parent,
+        parent_branch if isinstance(parent_branch, str) else None,
+        parent_sha if isinstance(parent_sha, str) else None,
+        fork_sha if isinstance(fork_sha, str) else None,
+        behind,
+        ahead,
+        state,
+        True,
+        max(0, int(now - fetched)),
+    )
+
+
+def _upstream_entry_fresh(entry: dict[str, Any], fork_sha: str, parent_sha: str, now: float) -> bool:
+    fetched = entry.get("fetched_at")
+    if not isinstance(fetched, (int, float)) or isinstance(fetched, bool):
+        return False
+    if not math.isfinite(fetched):
+        return False
+    fork_match = entry.get("fork_sha")
+    parent_match = entry.get("parent_sha")
+    return (
+        now - fetched < UPSTREAM_CACHE_TTL_SECONDS
+        and isinstance(fork_match, str)
+        and isinstance(parent_match, str)
+        and fork_match == fork_sha
+        and parent_match == parent_sha
+    )
+
+
+def _compare_fork_with_upstream(
+    parent: str, parent_branch: str, fork_owner: str, fork_branch: str
+) -> tuple[str, int, int]:
+    owner, _, name = parent.partition("/")
+    base = quote(parent_branch, safe="")
+    head = f"{quote(fork_owner, safe='')}:{quote(fork_branch, safe='')}"
+    data = _gh_json([f"repos/{quote(owner, safe='')}/{quote(name, safe='')}/compare/{base}...{head}"])
+    if not isinstance(data, dict):
+        raise GitHubError(f"GitHub returned invalid comparison for {parent}")
+    state = data.get("status")
+    ahead = data.get("ahead_by")
+    behind = data.get("behind_by")
+    if state not in ("identical", "ahead", "behind", "diverged"):
+        raise GitHubError(f"GitHub returned an invalid comparison status for {parent}")
+    assert isinstance(state, str)
+    if (
+        not isinstance(ahead, int)
+        or isinstance(ahead, bool)
+        or not isinstance(behind, int)
+        or isinstance(behind, bool)
+    ):
+        raise GitHubError(f"GitHub returned invalid comparison counts for {parent}")
+    return state, ahead, behind
+
+
+def _compare_many(
+    pending: dict[str, tuple[str, str, str, str]],
+) -> tuple[dict[str, tuple[str, int, int]], dict[str, str]]:
+    results: dict[str, tuple[str, int, int]] = {}
+    errors: dict[str, str] = {}
+    if not pending:
+        return results, errors
+    with ThreadPoolExecutor(
+        max_workers=min(MAX_API_WORKERS, len(pending)), thread_name_prefix="repomod-upstream"
+    ) as pool:
+        futures = {
+            pool.submit(_compare_fork_with_upstream, *spec): name
+            for name, spec in pending.items()
+        }
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                results[name] = future.result()
+            except GitHubError as error:
+                errors[name] = str(error)
+    return results, errors
+
+
+def upstream_status(
+    repositories: tuple[Repository, ...],
+    remotes: dict[str, RemoteRepository] | None = None,
+    *,
+    offline: bool = False,
+    refresh: bool = False,
+    cache_path: Path | None = None,
+    now: float | None = None,
+) -> dict[str, UpstreamStatus]:
+    current_time = time.time() if now is None else now
+    path = cache_path or _upstream_cache_path()
+    cache, _ = _read_cache(path)
+    remote_values = remote_metadata(repositories) if remotes is None and not offline else (remotes or {})
+    found: dict[str, UpstreamStatus] = {}
+    pending: dict[str, tuple[str, str, str, str]] = {}
+    contexts: dict[str, tuple[str, str, str, str]] = {}
+    for repository in repositories:
+        name = str(repository.id)
+        remote = remote_values.get(name)
+        candidates = _cached_for(cache, name)
+        entry = candidates[1] if candidates is not None else None
+        if offline:
+            if isinstance(entry, dict):
+                status = _upstream_from_cache(name, entry, current_time)
+                if status is not None:
+                    found[name] = status
+            continue
+        if remote is None or remote.error is not None:
+            continue
+        if (
+            remote.parent is None
+            or remote.parent_branch is None
+            or remote.default_branch is None
+            or remote.sha is None
+        ):
+            continue
+        parent_sha = remote.parent_sha
+        if (
+            not refresh
+            and isinstance(entry, dict)
+            and parent_sha is not None
+            and _upstream_entry_fresh(entry, remote.sha, parent_sha, current_time)
+        ):
+            status = _upstream_from_cache(name, entry, current_time)
+            if status is not None:
+                found[name] = status
+                continue
+        pending[name] = (remote.parent, remote.parent_branch, repository.id.owner, remote.default_branch)
+        contexts[name] = (remote.parent, remote.parent_branch, remote.parent_sha or "", remote.sha)
+    if pending:
+        try:
+            comparisons, errors = _compare_many(pending)
+        except GitHubError as error:
+            comparisons, errors = {}, {name: str(error) for name in pending}
+        fetched: dict[str, dict[str, Any]] = {}
+        for name in pending:
+            parent, parent_branch, parent_sha, fork_sha = contexts[name]
+            if name in errors:
+                found[name] = UpstreamStatus(
+                    name, parent, parent_branch, parent_sha or None, fork_sha,
+                    None, None, "unknown", error=errors[name],
+                )
+                continue
+            state, ahead, behind = comparisons[name]
+            found[name] = UpstreamStatus(
+                name, parent, parent_branch, parent_sha or None, fork_sha,
+                behind, ahead, state,
+            )
+            fetched[f"{name}@{fork_sha}"] = {
+                "parent": parent,
+                "parent_branch": parent_branch,
+                "parent_sha": parent_sha,
+                "fork_sha": fork_sha,
+                "behind_by": behind,
+                "ahead_by": ahead,
+                "state": state,
+                "fetched_at": current_time,
+            }
+        if fetched:
+            cache.update(fetched)
+            _write_cache(path, cache)
+    return found
 
 
 def _filter_fork_workflows(

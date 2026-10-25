@@ -25,7 +25,8 @@ uv run repomod audit --fix
 Latest stable versions come from PyPI, the npm registry, crates.io, and the Go
 proxy. Vulnerabilities come from the free OSV API with no authentication.
 Results are cached under `XDG_CACHE_HOME/repomod/audit.json` for 24 hours.
-`--offline` uses only cached data. `--refresh` ignores the cache.
+Upstream fork comparisons are cached under `XDG_CACHE_HOME/repomod/upstream.json`
+for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
 
 ## Rules
 
@@ -47,9 +48,17 @@ Results are cached under `XDG_CACHE_HOME/repomod/audit.json` for 24 hours.
   Python `tool.uv.sources` with `path` or `git` is banned. JavaScript
   `file:`, `link:`, `portal:`, `workspace:`, relative, and URL specs are
   banned. Go `replace` directives pointing at the filesystem are banned.
+  A `path` dependency that resolves to the repository's own root package (for
+  example a `bench/` harness depending on its parent library via
+  `path = ".."`) is exempt: it exercises the working copy and has no registry
+  alternative.
 - `audit-outdated`: a locked direct dependency is older than the latest stable
   release in its registry.
 - `audit-vuln`: a locked dependency has a known OSV vulnerability.
+- `audit-upstream`: a fork is behind its upstream parent. The finding names the
+  parent, its branch, and how many commits behind (and ahead, when diverged) the
+  fork is. Unresolvable comparisons are operational findings. `status` shows the
+  same comparison per fork and `--failed` includes forks that are behind.
 
 Catalog `[overrides."OWNER/REPO"]` entries with `ignore = ["audit-*"]` skip
 selected audit rules per repository.

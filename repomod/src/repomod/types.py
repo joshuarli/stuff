@@ -127,6 +127,9 @@ class RemoteRepository:
     sha: str | None
     archived: bool | None
     error: str | None = None
+    parent: str | None = None
+    parent_branch: str | None = None
+    parent_sha: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

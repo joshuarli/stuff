@@ -10,6 +10,7 @@ import sys
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 from repomod.catalog import TAGS, CatalogError, add_repository, find_repository, load_catalog, repository_path
 from repomod.clean import CleanResult, clean_repositories
@@ -20,12 +21,14 @@ from repomod.github import (
     AutoMergeFailed,
     AutoMergeSkipped,
     GitHubError,
+    UpstreamStatus,
     ci_status,
     discover,
     ensure_fix_pull_request,
     open_pull_requests,
     remote_metadata,
     topics_many,
+    upstream_status,
 )
 from repomod.policy import (
     PolicyError,
@@ -232,6 +235,22 @@ def _finding_color(finding: Finding) -> str:
     return "36"
 
 
+def _print_repository_block(
+    name: str, stdout_lines: Sequence[str], stderr_lines: Sequence[str]
+) -> None:
+    if not stdout_lines and not stderr_lines:
+        return
+    header = _paint(name, "36")
+    if stdout_lines:
+        print(header)
+    else:
+        print(header, file=sys.stderr)
+    for line in stdout_lines:
+        print(f"    {line}")
+    for line in stderr_lines:
+        print(f"    {line}", file=sys.stderr)
+
+
 def _has_conflicting_pr(row: dict[str, object]) -> bool:
     requests = row.get("open_prs")
     if not isinstance(requests, list):
@@ -247,6 +266,54 @@ def _pr_label(request: object) -> str:
         return "#? UNKNOWN"
     number = request.get("number", "?")
     return f"#{number} {request.get('mergeable', 'UNKNOWN')}·{request.get('merge_state', 'UNKNOWN')}"
+
+
+def _upstream_row(upstream: UpstreamStatus | None) -> dict[str, object] | None:
+    if upstream is None:
+        return None
+    return {
+        "parent": upstream.parent,
+        "parent_branch": upstream.parent_branch,
+        "parent_sha": upstream.parent_sha,
+        "behind_by": upstream.behind_by,
+        "ahead_by": upstream.ahead_by,
+        "state": upstream.state,
+        "cached": upstream.cached,
+        "age_seconds": upstream.age_seconds,
+        "error": upstream.error,
+    }
+
+
+def _upstream_behind(row: dict[str, object]) -> bool:
+    upstream = row.get("upstream")
+    if not isinstance(upstream, dict):
+        return False
+    behind = upstream.get("behind_by")
+    return isinstance(behind, int) and not isinstance(behind, bool) and behind > 0
+
+
+def _upstream_label(upstream: dict[str, Any]) -> tuple[str, str]:
+    parent = upstream.get("parent")
+    state = upstream.get("state")
+    cached = upstream.get("cached") is True and isinstance(upstream.get("age_seconds"), int)
+    suffix = f" (cached {upstream['age_seconds']}s)" if cached else ""
+    if not isinstance(parent, str) or not parent:
+        return f"unavailable{suffix}", "33"
+    behind = upstream.get("behind_by")
+    ahead = upstream.get("ahead_by")
+    behind_count = behind if isinstance(behind, int) and not isinstance(behind, bool) else None
+    ahead_count = ahead if isinstance(ahead, int) and not isinstance(ahead, bool) else None
+    if upstream.get("error") is not None or state == "unknown":
+        return f"{parent} unavailable{suffix}", "33"
+    if state == "identical":
+        return f"{parent} in sync{suffix}", "32"
+    if state == "ahead" and ahead_count is not None:
+        return f"{parent} ahead {ahead_count}{suffix}", "33"
+    if behind_count is not None and ahead_count is not None and ahead_count > 0:
+        return f"{parent} behind {behind_count} · ahead {ahead_count}{suffix}", "33"
+    if behind_count is not None:
+        return f"{parent} behind {behind_count}{suffix}", "33"
+    return f"{parent} {state}{suffix}", "33"
 
 
 def _status_text(
@@ -316,6 +383,13 @@ def _status_text(
             ]
             _print_wrapped_items([(f"PRs {pr_items[0][0]}", pr_items[0][1]), *pr_items[1:]])
 
+        upstream: Any = row.get("upstream")
+        if isinstance(upstream, dict) and (
+            isinstance(upstream.get("parent"), str) or isinstance(upstream.get("error"), str)
+        ):
+            label, color = _upstream_label(upstream)
+            print(f"  upstream {_paint(label, color)}")
+
         if lint_findings:
             for finding in lint_findings:
                 print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
@@ -347,6 +421,7 @@ def _status(args: argparse.Namespace) -> int:
             )
         remotes = {} if args.offline else remote_metadata(repositories)
         ci = ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
+        upstreams = upstream_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
         pull_requests = {} if args.offline else open_pull_requests(repositories)
         findings = [
             finding
@@ -425,6 +500,7 @@ def _status(args: argparse.Namespace) -> int:
                 for request in requests
             ],
             "prs_error": prs_error,
+            "upstream": _upstream_row(upstreams.get(name)),
         }
         if args.json:
             row["lint_findings"] = [finding_dict(finding) for finding in repository_findings]
@@ -443,6 +519,7 @@ def _status(args: argparse.Namespace) -> int:
             or row["lint_errors"] != 0
             or row["lint_operational"] != 0
             or _has_conflicting_pr(row)
+            or _upstream_behind(row)
         ]
     if args.json:
         _print_json(rows)
@@ -453,6 +530,12 @@ def _status(args: argparse.Namespace) -> int:
         for name in sorted(visible, key=str.casefold):
             if ci[name].error is not None:
                 print(f"  {name}: CI detail: {ci[name].error}", file=sys.stderr)
+            for row in rows:
+                if str(row["repository"]) != name:
+                    continue
+                upstream: Any = row.get("upstream")
+                if isinstance(upstream, dict) and isinstance(upstream.get("error"), str):
+                    print(f"  {name}: upstream detail: {upstream['error']}", file=sys.stderr)
             for check in ci[name].checks:
                 if check.state in {"failure", "failed", "error", "timed_out", "action_required", "startup_failure"}:
                     print(f"  {name}: {check.name} {check.state} {check.url or ''}", file=sys.stderr)
@@ -482,8 +565,14 @@ def _lint(args: argparse.Namespace) -> int:
     if args.json:
         _print_json([finding_dict(finding) for finding in findings])
     else:
+        current: str | None = None
         for finding in findings:
-            print(f"{finding.repository} {format_finding_short(finding)}")
+            if finding.repository != current:
+                if current is not None:
+                    print()
+                print(_paint(finding.repository, "36"))
+                current = finding.repository
+            print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
         for code, description in lint_legend(findings):
             print(f"{code}: {description}")
         if not findings:
@@ -661,42 +750,42 @@ def _fix(args: argparse.Namespace) -> int:
     outcomes.sort(key=lambda item: item.repository.casefold())
     failed = False
     for outcome in outcomes:
+        stdout_lines: list[str] = []
+        stderr_lines: list[str] = []
         if outcome.branch is not None:
-            print(f"{outcome.repository}: branch {outcome.branch}")
+            stdout_lines.append(f"branch {outcome.branch}")
         for rule, sha in outcome.commits:
-            print(f"{outcome.repository}: committed {rule} {sha[:12]}")
+            stdout_lines.append(f"committed {rule} {sha[:12]}")
         for rule, message in outcome.failures:
-            print(f"{outcome.repository}: failed {rule}: {message}", file=sys.stderr)
+            stderr_lines.append(f"failed {rule}: {message}")
             failed = True
         if outcome.skipped is not None:
-            print(f"{outcome.repository}: skipped: {outcome.skipped}", file=sys.stderr)
+            stderr_lines.append(f"skipped: {outcome.skipped}")
             failed |= bool(args.repo)
         if outcome.recovery_ref is not None:
             repository = next(repo for repo in repositories if str(repo.id) == outcome.repository)
             canonical = repository_path(catalog, repository)
-            print(
-                f"{outcome.repository}: recover with git -C {shlex.quote(str(canonical))} "
-                f"merge --ff-only {shlex.quote(outcome.recovery_ref)}",
-                file=sys.stderr,
+            stderr_lines.append(
+                f"recover with git -C {shlex.quote(str(canonical))} "
+                f"merge --ff-only {shlex.quote(outcome.recovery_ref)}"
             )
-            print(
-                f"{outcome.repository}: after verifying recovery, remove the ref with git -C "
-                f"{shlex.quote(str(canonical))} update-ref -d {shlex.quote(outcome.recovery_ref)}",
-                file=sys.stderr,
+            stderr_lines.append(
+                f"after verifying recovery, remove the ref with git -C "
+                f"{shlex.quote(str(canonical))} update-ref -d {shlex.quote(outcome.recovery_ref)}"
             )
             failed = True
         if outcome.recovery_worktree is not None:
-            print(
-                f"{outcome.repository}: preserved recovery worktree "
+            stderr_lines.append(
+                f"preserved recovery worktree "
                 f"{shlex.quote(outcome.recovery_worktree)}; inspect with "
                 f"git -C {shlex.quote(outcome.recovery_worktree)} status and "
-                f"git -C {shlex.quote(outcome.recovery_worktree)} log --oneline",
-                file=sys.stderr,
+                f"git -C {shlex.quote(outcome.recovery_worktree)} log --oneline"
             )
             failed = True
         if outcome.cleanup_error is not None:
-            print(f"{outcome.repository}: {outcome.cleanup_error}", file=sys.stderr)
+            stderr_lines.append(outcome.cleanup_error)
             failed = True
+        _print_repository_block(outcome.repository, stdout_lines, stderr_lines)
     if args.push:
         branches = {
             outcome.repository: outcome
@@ -925,10 +1014,11 @@ def _audit(args: argparse.Namespace) -> int:
                 )
             )
         for outcome in sorted(fixes, key=lambda item: item.repository.casefold()):
-            for command in outcome.fixed:
-                print(f"{outcome.repository}: fixed: {command}")
-            for error in outcome.fix_errors:
-                print(f"{outcome.repository}: fix failed: {error}", file=sys.stderr)
+            _print_repository_block(
+                outcome.repository,
+                [f"fixed: {command}" for command in outcome.fixed],
+                [f"fix failed: {error}" for error in outcome.fix_errors],
+            )
         if any(outcome.fix_errors for outcome in fixes):
             return 2
     outcomes = audit_repositories(
@@ -937,6 +1027,7 @@ def _audit(args: argparse.Namespace) -> int:
         offline=args.offline,
         refresh=args.refresh,
         jobs=args.workers,
+        upstream_statuses=upstream_status(repositories, offline=args.offline, refresh=args.refresh),
     )
     findings = [finding for outcome in outcomes for finding in outcome.findings]
     if args.json:
@@ -952,9 +1043,16 @@ def _audit(args: argparse.Namespace) -> int:
             ]
         )
     else:
+        shown = False
         for outcome in outcomes:
+            if not outcome.findings:
+                continue
+            if shown:
+                print()
+            print(_paint(outcome.repository, "36"))
             for finding in outcome.findings:
-                print(f"{outcome.repository} {format_finding_short(finding)}")
+                print(f"    {_paint(format_finding_short(finding), _finding_color(finding))}")
+            shown = True
         if not findings:
             print("no dependency audit findings")
     if any(finding.kind == "operational" for finding in findings):
