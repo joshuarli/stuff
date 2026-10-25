@@ -358,6 +358,7 @@ def test_pinact_workflow_validation_only_blocks_errors(
         ".github/workflows/ci.yml:3: yaml-syntax: invalid YAML: bad mapping"
     ]
     assert captured["args"][:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert captured["args"][4:6] == ["--catalog", str(actions.actions_file())]
     assert "--no-online" not in captured["args"]
     assert captured["cwd"] == tmp_path
 
@@ -419,6 +420,9 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
 
     scratch = tmp_path / "scratch"
     call_path = tmp_path / "pinact-call.json"
+    catalog = tmp_path / "actions.toml"
+    write_pins(catalog)
+    monkeypatch.setattr(actions, "actions_file", lambda: catalog)
     executable = tmp_path / "bin" / "pinact"
     executable.parent.mkdir()
     executable.write_text(
@@ -429,7 +433,8 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
         "Path(os.environ['PINACT_CALL']).write_text(json.dumps({\n"
         "    'arguments': arguments, 'cwd': os.getcwd()}), encoding='utf-8')\n"
         "if arguments[0] == 'fix':\n"
-        "    assert '--pin' in arguments\n"
+        "    assert '--pin' not in arguments\n"
+        "    assert arguments[1:3] == ['--catalog', os.environ['PINACT_CATALOG']]\n"
         "    path = Path(arguments[-1])\n"
         "    source = path.read_text(encoding='utf-8')\n"
         "    path.write_text(source.replace(\n"
@@ -450,6 +455,7 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
     )
     monkeypatch.setenv("TMPDIR", str(scratch))
     monkeypatch.setenv("PINACT_CALL", str(call_path))
+    monkeypatch.setenv("PINACT_CATALOG", str(catalog))
 
     plan = actions._general_actions_fix(root, repository())
 
@@ -460,7 +466,13 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
         )
     }
     call = json.loads(call_path.read_text(encoding="utf-8"))
-    assert call["arguments"] == ["fix", "--pin", "--", ".github/workflows/ci.yaml"]
+    assert call["arguments"] == [
+        "fix",
+        "--catalog",
+        str(catalog),
+        "--",
+        ".github/workflows/ci.yaml",
+    ]
     assert Path(call["cwd"]).is_relative_to(scratch)
     assert list(scratch.iterdir()) == []
 
@@ -603,6 +615,7 @@ def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rule
     assert results[2].severity == "info"
     argv = captured["args"]
     assert argv[:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert argv[4:6] == ["--catalog", str(actions.actions_file())]
     assert "--no-online" not in argv
     assert captured["cwd"] == tmp_path
 
@@ -693,6 +706,8 @@ def test_pinact_lint_scopes_to_workflows_and_action_files(
         "lint",
         "--profile=correctness",
         "--format=json",
+        "--catalog",
+        str(actions.actions_file()),
         "--",
         ".github/workflows/ci.yaml",
         "action.yml",
