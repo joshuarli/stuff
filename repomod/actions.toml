@@ -78,6 +78,11 @@ channel = "v2"
 version = "v2.9"
 sha = "6b69fcf40e9b5fb17adeb57e4b6ecd020649a239"
 
+[actions."pnpm/setup"]
+channel = "v3"
+version = "v3.1.1"
+sha = "a0881977cd8ea73b1ed212236c99ca10dcc80cf4"
+
 [actions."rustsec/audit-check"]
 channel = "v2"
 version = "v2.0.0"
