@@ -38,19 +38,40 @@ and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 
 `gha-settings` requires the shared concurrency group (G001), cancellation
 (G002), and `bash -euo pipefail {0}` defaults (G003) in every GitHub workflow.
-Its fixer inserts or corrects those root blocks and validates the result with jactionlint.
+Its fixer inserts or corrects those root blocks and validates the result with Pinact.
 Findings carry the file, line, column, and code; `status` and `lint` share the
 `file line:col CODE` format and print each code's description as a legend. `gha-triggers`
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
-`gha-syntax` validates GitHub Actions files offline with
-`pinact lint --profile=correctness --format=json` (error-gated). Its fixer still runs
-jactionlint's safe fixes and pinact's action pinning in a disposable worktree until the
-fixer swap. `no-formatters` rejects formatter
+`gha-syntax` validates GitHub Actions files offline with Pinact's correctness profile and the
+explicit `actions.toml` catalog. Its fixer returns a catalog-backed Pinact plan from a disposable
+worktree; repomod keeps validation and repository writes.
+`no-formatters` rejects formatter
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
 runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository.
+
+## GitHub Actions with Pinact
+
+Keep `pinact` on `PATH` when running repomod checks and fixes. `gha-syntax` runs
+`pinact lint --profile=correctness --format=json --catalog actions.toml` on workflow and action
+metadata files. The other GitHub Actions fixers use the same Pinact validation command on their
+planned changes. The catalog path is explicit; repomod's `actions.toml` owns approval policy, and
+catalog-backed linting and fixing make no network requests.
+
+The `gha-syntax` fixer selects only workflow and action metadata files. It runs Pinact's
+catalog-backed `fix` in a detached worktree under the repository's `.work/tmp` directory by
+default, honoring an explicitly set `TMPDIR`, and returns changed file contents as a normal
+repomod file plan. Repomod checks the plan's allowed paths and policy postconditions, then owns
+per-rule commits, push decisions, pull requests, and cleanup. The canonical checkout is not the
+Pinact write target.
+
+Catalog-backed fixes preserve action subpaths, refuse major changes and downgrades, and do not
+treat an unlabeled SHA as approval. The bounded checker is not a complete implementation of
+GitHub's workflow validator; dynamic and unsupported syntax remain outside its coverage claims.
+See the [Pinact guide](https://github.com/joshuarli/usr/blob/main/tools/pinact/README.md) and its
+[compatibility report](https://github.com/joshuarli/usr/blob/main/tools/pinact/docs/compatibility.md).
 
 `gha-version` updates action references and version comments from `actions.toml`. `pins refresh`
 fetches stable releases and commit SHAs. A clear version reference can move to a newer major; an
