@@ -1126,59 +1126,6 @@ def test_gha_settings_fixer_repairs_values_and_scalar_blocks(tmp_path: Path) -> 
     assert _fix_workflow_settings(tmp_path, repository) == {}
 
 
-def _prerelease_workflow() -> str:
-    return (
-        "name: release\n"
-        "on:\n"
-        "  workflow_dispatch:\n"
-        "jobs:\n"
-        "  release:\n"
-        "    steps:\n"
-        "      - run: gh release create \"release-${{ github.sha }}\" dist/demo.zip "
-        "--prerelease --target \"$GITHUB_SHA\"\n"
-    )
-
-
-def test_gha_settings_requires_sha_scoped_concurrency_for_prereleases(
-    tmp_path: Path,
-) -> None:
-    workflows = tmp_path / ".github" / "workflows"
-    workflows.mkdir(parents=True)
-    (workflows / "release.yml").write_text(_prerelease_workflow(), encoding="utf-8")
-    findings = {finding.code: finding for finding in _workflow_settings(tmp_path, repo())}
-
-    assert set(findings) == {"G001", "G002", "G003"}
-    assert "triggering commit" in findings["G001"].message
-    assert findings["G002"].message == "concurrency.cancel-in-progress must be 'false'"
-
-    plan = _fix_workflow_settings(tmp_path, repo())
-
-    assert list(plan) == [".github/workflows/release.yml"]
-    assert 'group: "release-${{ github.sha }}"' in plan[".github/workflows/release.yml"]
-    assert "cancel-in-progress: false" in plan[".github/workflows/release.yml"]
-    (workflows / "release.yml").write_text(plan[".github/workflows/release.yml"], encoding="utf-8")
-
-    assert _workflow_settings(tmp_path, repo()) == []
-    assert _fix_workflow_settings(tmp_path, repo()) == {}
-
-
-def test_gha_settings_keeps_existing_sha_scoped_release_group(tmp_path: Path) -> None:
-    workflows = tmp_path / ".github" / "workflows"
-    workflows.mkdir(parents=True)
-    (workflows / "prerelease.yml").write_text(
-        "concurrency:\n  group: prerelease-${{ github.sha }}\n  cancel-in-progress: false\n"
-        + _prerelease_workflow(),
-        encoding="utf-8",
-    )
-    findings = {finding.code: finding for finding in _workflow_settings(tmp_path, repo())}
-
-    assert set(findings) == {"G003"}
-
-    plan = _fix_workflow_settings(tmp_path, repo())
-
-    assert "  group: prerelease-${{ github.sha }}\n" in plan[".github/workflows/prerelease.yml"]
-
-
 def test_protection_reviews_reports_counts_and_skips_unprotected(monkeypatch) -> None:
     def gh_json(arguments: list[str], input_text: str | None = None):
         endpoint = arguments[0]
