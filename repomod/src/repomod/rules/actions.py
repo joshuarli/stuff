@@ -25,6 +25,9 @@ _VERSION_CHANNEL = re.compile(r"v([0-9]+)\Z")
 _VERSION_REFERENCE = re.compile(r"v?([0-9]+)(?:\.[0-9]+){0,2}\Z")
 _VERSION_COMMENT = re.compile(r"(?<![A-Za-z0-9])(v[0-9]+(?:\.[0-9]+){0,2})(?![A-Za-z0-9])")
 _SHELLCHECK_SEVERITY = re.compile(r"\bSC[0-9]+:(error|warning|info|style):")
+_PINACT_CHECK_LINE = re.compile(r"^(?P<path>.+):(?P<line>[0-9]+):\s*(?P<reference>\S+)\s*$")
+_PINACT_FILE_ERROR = re.compile(r"^(?P<path>.+?):(?P<line>[0-9]+):\s*(?P<message>.*\S)\s*$")
+_PINACT_PATH_ERROR = re.compile(r"^(?P<path>.+?):\s*(?P<message>.*\S)\s*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -748,9 +751,6 @@ def _pinact_findings(
                 executable,
                 "run",
                 "--check",
-                "--format",
-                "sarif",
-                "--no-api",
                 "--",
                 *_tool_file_arguments(root, workflow_and_action_files),
             ],
@@ -778,56 +778,32 @@ def _pinact_findings(
                 f"cannot run pinact: {error}",
             )
         ]
-    if result.returncode not in {0, 1, 2}:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}",
-            )
-        ]
-    try:
-        parsed = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                f"pinact returned invalid SARIF: {error}",
-            )
-        ]
-    if not isinstance(parsed, dict) or not isinstance(parsed.get("runs"), list):
-        return [
-            operational(
-                repository,
-                rule_id,
-                ".github/workflows",
-                "pinact returned invalid SARIF results",
-            )
-        ]
-    findings = []
-    for run in parsed["runs"]:
-        results = run.get("results") if isinstance(run, dict) else None
-        if not isinstance(results, list):
+    if result.returncode == 0:
+        return []
+    if result.returncode == 1:
+        output = result.stderr.strip() or result.stdout.strip()
+        if not output:
             return [
                 operational(
                     repository,
                     rule_id,
                     ".github/workflows",
-                    "pinact returned an invalid SARIF run",
+                    "pinact reported unpinned actions without details",
                 )
             ]
-        for item in results:
-            if not isinstance(item, dict):
-                continue
-            locations = item.get("locations", [])
-            location = locations[0] if locations and isinstance(locations[0], dict) else {}
-            physical = location.get("physicalLocation", {}) if isinstance(location, dict) else {}
-            artifact = physical.get("artifactLocation", {}) if isinstance(physical, dict) else {}
-            uri = artifact.get("uri") if isinstance(artifact, dict) else None
-            relative = _tool_relative_path(root, uri) if isinstance(uri, str) else None
+        findings = []
+        for line in output.splitlines():
+            match = _PINACT_CHECK_LINE.match(line.strip())
+            if match is None:
+                return [
+                    operational(
+                        repository,
+                        rule_id,
+                        ".github/workflows",
+                        f"pinact returned invalid check output: {line.strip()}",
+                    )
+                ]
+            relative = _tool_relative_path(root, match.group("path"))
             if relative is None:
                 return [
                     operational(
@@ -837,27 +813,83 @@ def _pinact_findings(
                         "pinact reported a path outside the repository",
                     )
                 ]
-            message = item.get("message", {})
-            text = message.get("text") if isinstance(message, dict) else None
-            code = item.get("ruleId")
-            region = physical.get("region", {}) if isinstance(physical, dict) else {}
-            line_number = region.get("startLine") if isinstance(region, dict) else None
-            line_prefix = f"line {line_number}: " if isinstance(line_number, int) else ""
+            line_number = int(match.group("line"))
+            reference = match.group("reference")
             findings.append(
                 violation(
                     repository,
                     rule_id,
                     relative,
-                    f"{line_prefix}pinact {code}: {text if isinstance(text, str) else 'finding'}",
-                    fixable=code == "unpinned-action"
-                    or (
-                        code == "parse-error"
-                        and isinstance(text, str)
-                        and "SHA-pinned action requires a version comment" in text
-                    ),
+                    f"line {line_number}: pinact unpinned-action: {reference} is not pinned",
+                    fixable=True,
                 )
             )
-    return findings
+        return findings
+    if result.returncode == 2:
+        output = result.stderr.strip() or result.stdout.strip()
+        if not output:
+            return [
+                operational(
+                    repository,
+                    rule_id,
+                    ".github/workflows",
+                    "pinact exited 2 without details",
+                )
+            ]
+        findings = []
+        for line in output.splitlines():
+            detail = line.strip().removeprefix("pinact: ").strip()
+            match = _PINACT_FILE_ERROR.match(detail)
+            if match is not None:
+                relative = _tool_relative_path(root, match.group("path"))
+                if relative is None:
+                    return [
+                        operational(
+                            repository,
+                            rule_id,
+                            ".github/workflows",
+                            "pinact reported a path outside the repository",
+                        )
+                    ]
+                findings.append(
+                    violation(
+                        repository,
+                        rule_id,
+                        relative,
+                        f"line {match.group('line')}: pinact: {match.group('message')}",
+                    )
+                )
+                continue
+            path_match = _PINACT_PATH_ERROR.match(detail)
+            if path_match is not None:
+                relative = _tool_relative_path(root, path_match.group("path"))
+                if relative is not None and (root / relative).exists():
+                    findings.append(
+                        violation(
+                            repository,
+                            rule_id,
+                            relative,
+                            f"pinact: {path_match.group('message')}",
+                        )
+                    )
+                    continue
+            return [
+                operational(
+                    repository,
+                    rule_id,
+                    ".github/workflows",
+                    detail or line.strip(),
+                )
+            ]
+        return findings
+    return [
+        operational(
+            repository,
+            rule_id,
+            ".github/workflows",
+            result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}",
+        )
+    ]
 
 
 def _changed_tool_paths(root: Path, allowed: set[str]) -> dict[str, str]:
@@ -959,7 +991,6 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
                 [
                     pinact,
                     "run",
-                    "--fix",
                     "--",
                     *_tool_file_arguments(root, pinact_files),
                 ],
@@ -969,7 +1000,7 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
                 timeout=120,
                 check=False,
             )
-            if result.returncode not in {0, 2}:
+            if result.returncode != 0:
                 raise GitError(
                     result.stderr.strip() or result.stdout.strip() or f"pinact exited {result.returncode}"
                 )

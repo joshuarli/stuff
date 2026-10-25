@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -416,55 +417,95 @@ def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
     assert results[-1].severity == "info"
 
 
-def test_pinact_reports_unverifiable_sha_comments_as_fixable(
+def test_pinact_reports_unpinned_actions_as_fixable(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     workflow = write_workflow(
         tmp_path,
-        "jobs:\n  test:\n    steps:\n"
-        "      - uses: actions/checkout@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+        "jobs:\n  test:\n    steps:\n" "      - uses: actions/checkout@v4\n",
     )
-    result = {
-        "runs": [
-            {
-                "results": [
-                    {
-                        "ruleId": "parse-error",
-                        "message": {
-                            "text": (
-                                "failed to handle a line: SHA-pinned action requires a version "
-                                "comment for verifiability"
-                            )
-                        },
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": ".github/workflows/ci.yaml"},
-                                    "region": {"startLine": 4},
-                                }
-                            }
-                        ],
-                    }
-                ]
-            }
-        ]
-    }
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        return SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr=".github/workflows/ci.yaml:4: actions/checkout@v4\n",
+        )
+
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
+
+    assert len(findings) == 1
+    assert findings[0].fixable
+    assert "line 4" in findings[0].message
+    assert "unpinned-action" in findings[0].message
+    assert "actions/checkout@v4" in findings[0].message
+    argv = captured["args"]
+    assert "--format" not in argv
+    assert "--no-api" not in argv
+    assert "sarif" not in argv
+
+
+def test_pinact_reports_file_errors_as_unfixable_and_generic_errors_as_operational(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
     monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
     monkeypatch.setattr(
         actions.subprocess,
         "run",
         lambda *args, **kwargs: SimpleNamespace(
             returncode=2,
-            stdout=json.dumps(result),
-            stderr="",
+            stdout="",
+            stderr="pinact: .github/workflows/ci.yaml:1: unsupported inline uses syntax\n",
         ),
     )
 
     findings = actions._pinact_findings(tmp_path, repository(), [workflow])
 
     assert len(findings) == 1
-    assert findings[0].fixable
+    assert not findings[0].fixable
+    assert "line 1" in findings[0].message
+
+    monkeypatch.setattr(
+        actions.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=2,
+            stdout="",
+            stderr="pinact: cannot resolve actions/checkout: git exited 128\n",
+        ),
+    )
+
+    findings = actions._pinact_findings(tmp_path, repository(), [workflow])
+
+    assert len(findings) == 1
+    assert findings[0].kind == "operational"
+
+
+def test_pinact_check_clean_returns_no_findings(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    monkeypatch.setattr(
+        actions.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="",
+            stderr="",
+        ),
+    )
+
+    assert actions._pinact_findings(tmp_path, repository(), [workflow]) == []
 
 
 def test_pin_refresh_selects_latest_major_channel(
