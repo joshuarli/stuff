@@ -209,6 +209,8 @@ class OpenPullRequest:
     url: str
     mergeable: str
     merge_state: str
+    title: str = ""
+    draft: bool = False
 
 
 @dataclass(frozen=True, slots=True)

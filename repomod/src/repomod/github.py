@@ -1629,7 +1629,7 @@ def _open_pull_requests_batch(
         fields.append(
             f"{alias}: repository(owner: {owner}, name: {repo_name}) "
             "{ pullRequests(states: OPEN, first: 20, orderBy: {field: CREATED_AT, direction: ASC}) "
-            "{ nodes { number url mergeable mergeStateStatus } } }"
+            "{ nodes { number url mergeable mergeStateStatus title isDraft } } }"
         )
     try:
         data = _graphql_batch_data(_graphql("query { " + " ".join(fields) + " }"), aliases)
@@ -1651,6 +1651,8 @@ def _open_pull_requests_batch(
             url = node.get("url") if isinstance(node, dict) else None
             mergeable = node.get("mergeable") if isinstance(node, dict) else None
             merge_state = node.get("mergeStateStatus") if isinstance(node, dict) else None
+            title = node.get("title") if isinstance(node, dict) else None
+            draft = node.get("isDraft") if isinstance(node, dict) else None
             if not isinstance(number, int) or not isinstance(url, str):
                 valid = False
                 break
@@ -1660,6 +1662,8 @@ def _open_pull_requests_batch(
                     url,
                     mergeable if mergeable in {"MERGEABLE", "CONFLICTING"} else "UNKNOWN",
                     merge_state if isinstance(merge_state, str) and merge_state else "UNKNOWN",
+                    title if isinstance(title, str) else "",
+                    draft is True,
                 )
             )
         found[name] = ([], "GitHub returned invalid pull request data") if not valid else (requests, None)

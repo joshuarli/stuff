@@ -6,6 +6,7 @@ from repomod.rules.actions import action_rules
 from repomod.rules.audit_upgrades import audit_upgrade_rules
 from repomod.rules.binary_release import binary_release_rules
 from repomod.rules.consistency import consistency_rules
+from repomod.rules.conventional_commits import conventional_commits_rules
 from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
 from repomod.rules.mdtool import mdtool_rules
@@ -33,6 +34,7 @@ def rules() -> tuple[Rule, ...]:
         *audit_upgrade_rules(),
         *binary_release_rules(),
         *consistency_rules(),
+        *conventional_commits_rules(),
         *formatter_rules(),
         *language_rules(),
         *mdtool_rules(),

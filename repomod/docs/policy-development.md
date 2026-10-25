@@ -102,6 +102,11 @@ Applications use `anyhow`; libraries use `thiserror`. Parametrize with
 `rstest`; keep `proptest` for property-based tests and migrate `test-case`
 to `rstest` when touched.
 
+`conventional-commits` requires Conventional Commit subjects (`type[(scope)][!]: description`
+with one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `revert`)
+on open pull requests; drafts are skipped and overlong subjects warn. It is lint-only with no
+fixer: rename the PR explicitly. It needs the network, so it is excluded from offline checks.
+
 `audit-upgrades` reports locked direct dependencies that lag their registry's latest stable
 release as fixable findings. Its check refreshes the shared audit cache over the network, so it
 is excluded from `status --offline`. Its fixer runs the native upgraders (`uv lock --upgrade`,

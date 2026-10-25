@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from repomod.catalog import Catalog, repository_path
-from repomod.github import protection_many, topics_many
+from repomod.github import open_pull_requests, protection_many, topics_many
 from repomod.rules import rules
-from repomod.types import Finding, Repository, Rule, operational, violation
+from repomod.rules.conventional_commits import titles_findings
+from repomod.types import Finding, OpenPullRequest, Repository, Rule, operational, violation
 
 
 class PolicyError(RuntimeError):
@@ -29,7 +30,11 @@ def selected_rules(
         if (not selected_ids or rule.id in selected_ids)
     ]
     if local_only:
-        values = [rule for rule in values if rule.id not in ("topics", "github-protection", "audit-upgrades")]
+        values = [
+        rule
+        for rule in values
+        if rule.id not in ("topics", "github-protection", "audit-upgrades", "conventional-commits")
+    ]
     return tuple(values)
 
 
@@ -106,6 +111,17 @@ def lint_repositories(
                 repositories_with_protection
             )
         }
+    pull_results: dict[str, tuple[list[OpenPullRequest], str | None]] = {}
+    repositories_with_pulls = tuple(
+        repository
+        for repository in selected
+        if any(rule.id == "conventional-commits" for rule in rules_by_repository[str(repository.id)])
+    )
+    if repositories_with_pulls:
+        pull_results = {
+            name: (requests, error)
+            for name, (requests, error) in open_pull_requests(repositories_with_pulls).items()
+        }
     for repository in selected:
         try:
             root = repository_path(catalog, repository)
@@ -169,6 +185,30 @@ def lint_repositories(
                             fixable=False,
                         )
                     )
+                continue
+            if rule.id == "conventional-commits":
+                result = pull_results.get(str(repository.id))
+                if result is None:
+                    findings.append(
+                        operational(
+                            repository,
+                            "conventional-commits",
+                            None,
+                            "cannot read open pull requests: missing result",
+                        )
+                    )
+                    continue
+                requests, error = result
+                findings.extend(
+                    titles_findings(
+                        repository,
+                        [
+                            (request.number, request.title, request.url, request.draft)
+                            for request in requests
+                        ],
+                        error,
+                    )
+                )
                 continue
             try:
                 findings.extend(rule.check(root, repository))
