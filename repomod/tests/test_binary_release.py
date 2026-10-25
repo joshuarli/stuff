@@ -8,6 +8,8 @@ import pytest
 from repomod.rules.binary_release import (
     _binary_release_findings,
     _binary_release_standard_findings,
+    _binary_release_static_findings,
+    _binary_release_static_fix,
     _rust_musl_image_findings,
 )
 from repomod.types import RepoId, Repository
@@ -33,12 +35,13 @@ def binary_workflow(command: str) -> str:
         f"      - run: {command}\n"
         "      - uses: actions/upload-artifact@v7\n"
         "        with:\n          path: demo\n"
-        "      - uses: actions/download-artifact@v7\n"
-        "      - run: zip dist/demo.zip demo\n"
         "  release:\n"
         "    env:\n"
         "      RELEASE_TAG: release-${{ github.sha }}\n"
         "    steps:\n"
+        "      - uses: actions/download-artifact@v7\n"
+        "        with:\n          path: dist\n"
+        "      - run: zip dist/demo.zip demo\n"
         "      - run: gh release create \"$RELEASE_TAG\" dist/demo.zip --prerelease --target \"$GITHUB_SHA\"\n"
     )
 
@@ -63,11 +66,12 @@ def standard_workflow(targets: list[str]) -> str:
         "    steps:\n"
         "      - run: cargo build --locked --release --target \"${{ matrix.target }}\"\n"
         "      - uses: actions/upload-artifact@v7\n"
-        "      - uses: actions/download-artifact@v7\n"
         "  release:\n"
         "    env:\n"
         "      RELEASE_TAG: release-${{ github.sha }}\n"
         "    steps:\n"
+        "      - uses: actions/download-artifact@v7\n"
+        "        with:\n          path: dist\n"
         "      - run: |\n"
         "          if response=$(gh api \"repos/$REPOSITORY/git/refs\" "
         "-f \"ref=refs/tags/$RELEASE_TAG\" -f \"sha=$GITHUB_SHA\" 2>&1); then\n"
@@ -222,6 +226,84 @@ def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(
     )
 
     assert findings == []
+
+
+def test_binary_static_fixer_checks_downloaded_linux_artifacts_before_prerelease(
+    tmp_path: Path,
+) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"),
+    )
+    tool = Repository(RepoId("acme", "demo"), ("tool", "fork"))
+
+    finding = _binary_release_static_findings(tmp_path, tool)
+    plan = _binary_release_static_fix(tmp_path, tool)
+
+    assert len(finding) == 1
+    assert finding[0].rule == "binary-release-static"
+    assert finding[0].fixable
+    assert set(plan) == {".github/workflows/release.yml"}
+    workflow = plan[".github/workflows/release.yml"]
+    release_job = workflow.split("  release:\n", 1)[1]
+    assert release_job.index("actions/download-artifact") < release_job.index(
+        "Verify Linux ELF artifacts are fully static"
+    ) < release_job.index("gh release create")
+    assert "readelf -lW" in release_job
+    assert "readelf -dW" in release_job
+    assert "INTERP" in release_job
+    assert "NEEDED" in release_job
+    assert "shopt -s globstar nullglob" in release_job
+    assert "Advanced Micro Devices X86-64" in release_job
+    assert "AArch64" in release_job
+
+    workflow_path = tmp_path / ".github" / "workflows" / "release.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert _binary_release_static_findings(tmp_path, tool) == []
+    assert _binary_release_static_fix(tmp_path, tool) == {}
+
+
+def test_binary_static_fixer_repositions_a_misplaced_smoke(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"),
+    )
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+    workflow_path = tmp_path / ".github" / "workflows" / "release.yml"
+    workflow = _binary_release_static_fix(tmp_path, tool)[".github/workflows/release.yml"]
+    smoke_start = workflow.index("      - name: Verify Linux ELF artifacts are fully static")
+    smoke_end = workflow.index("      - run: zip dist/demo.zip demo", smoke_start)
+    smoke = workflow[smoke_start:smoke_end]
+    misplaced = workflow[:smoke_start] + workflow[smoke_end:] + smoke
+    workflow_path.write_text(misplaced, encoding="utf-8")
+
+    finding = _binary_release_static_findings(tmp_path, tool)
+    plan = _binary_release_static_fix(tmp_path, tool)
+
+    assert len(finding) == 1
+    assert finding[0].fixable
+    fixed = plan[".github/workflows/release.yml"]
+    release_job = fixed.split("  release:\n", 1)[1]
+    assert release_job.index("actions/download-artifact") < release_job.index(
+        "Verify Linux ELF artifacts are fully static"
+    ) < release_job.index("gh release create")
+    assert fixed.count("Verify Linux ELF artifacts are fully static") == 1
+
+
+def test_binary_static_rule_skips_macos_only_tools(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"),
+    )
+
+    assert _binary_release_static_findings(
+        tmp_path,
+        Repository(RepoId("acme", "demo"), ("tool", "macos")),
+    ) == []
 
 def test_shared_library_prerelease_does_not_require_tool_only(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text(

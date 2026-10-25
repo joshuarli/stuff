@@ -29,10 +29,10 @@ jobs:
             asset_target: x86_64-apple-darwin
           - goos: linux
             goarch: amd64
-            asset_target: x86_64-unknown-linux-gnu
+            asset_target: x86_64-unknown-linux-musl
           - goos: linux
             goarch: arm64
-            asset_target: aarch64-unknown-linux-gnu
+            asset_target: aarch64-unknown-linux-musl
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

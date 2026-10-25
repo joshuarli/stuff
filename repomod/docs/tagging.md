@@ -63,6 +63,11 @@ and curated tags. It reports ambiguous workflows for review. The
 tools. The `rust-musl-image` rule checks the Alpine musl static builder image behind
 Rust tool releases against the ish Dockerfile.
 
+`binary-release-static` also checks fork workflows that publish tool prereleases. It checks
+downloaded Linux ELF binaries before packaging and publication. The smoke rejects ELF interpreters
+and shared-library dependencies and requires one binary for each Linux architecture in
+`release-policy.toml`. It skips tools tagged `macos` and `private-tool` repositories.
+
 ## Rule selection
 
 Rule predicates and repository filters are separate. `TagPredicate(all_of={"library", "rust"})`

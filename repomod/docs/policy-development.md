@@ -31,6 +31,12 @@ prerelease target contract (portable and single-OS target sets plus forbidden gl
 markers). Publishing checks require the matching catalog opt-in tag. Update these
 policy files when changing approved release rules.
 
+`binary-release-static` checks public tool prereleases that publish Linux ELF files, including fork
+workflows. It skips `private-tool` repositories and tools tagged `macos`. Its release-job smoke runs
+after artifact download and before packaging. It rejects ELF `PT_INTERP` and `DT_NEEDED` entries and
+requires exactly one `x86_64` and one `aarch64` ELF artifact. The fixer inserts this smoke when the
+workflow downloads artifacts in its prerelease job before publication.
+
 Action checks and fixes live in `rules/actions.py`. Package checks live in `rules/release.py`.
 Rules inspect repository files but do not install dependencies, build projects, or execute release
 scripts. Use offline fixtures under `tests/` for policy behavior. Tests use local Git repositories

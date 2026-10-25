@@ -72,10 +72,6 @@ jobs:
             -w /diff-pretty \
             diff-pretty-builder:${{ matrix.target }} \
             sh -ec '
-              make release-dynamic TARGET=${{ matrix.target }}
-              make verify-release-dynamic TARGET=${{ matrix.target }}
-              make test-ci TARGET=${{ matrix.target }}
-              cp target/${{ matrix.target }}/release/diff-pretty diff-pretty-${{ matrix.target }}
               make release TARGET=${{ matrix.target }}
               make verify-release TARGET=${{ matrix.target }}
               cp target/${{ matrix.target }}/release/diff-pretty diff-pretty-${{ matrix.target }}-static
