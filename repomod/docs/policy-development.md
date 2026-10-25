@@ -58,6 +58,23 @@ unlabeled SHA still needs review.
 automation never waits on reviews. Repositories without branch protection are skipped.
 It has no fixer; change protection with explicit API calls.
 
+`rust-release-profiles` rule for binary-shipping Rust repositories. `[profile.release]`
+is for performant testing and CI: `opt-level = 3`, `lto = "thin"`,
+`panic = "abort"`, `strip = false`, and no `codegen-units` cap, so debug
+and test builds link fast while staying optimized. Final prerelease binaries
+are built with `--profile dist`, never `--release`:
+
+```toml
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = true
+```
+
+CI workflows build and test the `release` profile; prerelease workflows package
+`target/<triple>/dist/`. Libraries without shipped binaries need no `dist` profile.
+
 `rust-toolchain` requires Rust repositories to pin `nightly-2026-09-15` in the root
 `rust-toolchain.toml` and include `rust-src` and `clippy`. Its fixer preserves other toolchain
 settings and extra components. It leaves malformed TOML, symlinks, non-table `toolchain` values,

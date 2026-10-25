@@ -11,6 +11,7 @@ from repomod.rules.languages import language_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.release import release_rules
+from repomod.rules.rust_profiles import rust_release_profiles_rules
 from repomod.rules.rust_toolchain import rust_toolchain_rules
 from repomod.rules.template import template_rules
 from repomod.rules.typescript_standard import typescript_standard_rules
@@ -41,6 +42,7 @@ def rules() -> tuple[Rule, ...]:
         *workflow_settings_rules(),
         *release_rules(),
         *rust_toolchain_rules(),
+        *rust_release_profiles_rules(),
         Rule(
             "topics",
             "Compare GitHub repository topics with catalog tags",
