@@ -5,8 +5,8 @@ repomod checks repository policy across the `catalog.toml` fleet and opens pull 
 ## Get started
 
 Use Python 3.15, [`uv`](https://docs.astral.sh/uv/), and Git. Install `gh` and authenticate with
-`gh auth login`. Install `actionlint` for workflow checks and fixes,
-and provide the read-only documentation auditor at `~/.local/bin/mdtool`.
+`gh auth login`. Keep `pinact` on `PATH` for GitHub Actions checks and fixes, and provide the
+read-only documentation auditor at `~/.local/bin/mdtool`.
 
 From this checkout:
 
@@ -50,6 +50,9 @@ uv run repomod fix --rule audit-upgrades
 
 See [policy development](docs/policy-development.md) for rule behavior. Report problems in the
 [repomod issue tracker](https://github.com/joshuarli/repomod/issues).
+
+See [GitHub Actions integration](docs/policy-development.md#github-actions-with-pinact) for the
+Pinact checker, approved catalog, and fix-plan flow.
 
 ## Dependency upgrades
 

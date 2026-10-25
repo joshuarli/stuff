@@ -47,8 +47,9 @@ and states:
 - Keep the fix minimal and product-scoped. Workflow and policy defects belong in repomod,
   not in the repository. Do not weaken or delete a failing test unless the test is wrong,
   and say so in the report.
-- Verify locally with the narrowest hard check (focused tests, `jactionlint` for workflow
-  edits), then push the branch and open or update a PR with `gh`. CI in most repositories
+- Verify locally with the narrowest hard check (focused tests, `pinact lint --profile=correctness
+  --format=json -- <workflow-files>` for workflow edits), then push the branch and open or update a PR
+  with `gh`. CI in most repositories
   runs on `pull_request`, so a PR is required to get a signal; do not push fixes straight
   to the default branch to "test" them.
 - Poll `gh pr view --json mergeStateStatus,statusCheckRollup` after each push. Stop after

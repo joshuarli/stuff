@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -279,7 +281,7 @@ def test_action_symlink_parent_and_dynamic_reference_are_reported(
     assert problems == [(".github", "workflow parent directory is a symlink")]
 
 
-def test_jactionlint_is_required_for_workflow_fixer_validation(
+def test_pinact_is_required_for_workflow_fixer_validation(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setattr(actions.shutil, "which", lambda _: None)
@@ -291,16 +293,16 @@ def test_jactionlint_is_required_for_workflow_fixer_validation(
     )
 
     assert errors == [
-        "jactionlint is required to validate modified GitHub Actions files; "
-        "install jactionlint"
+        "pinact is required to validate modified GitHub Actions files; "
+        "install pinact"
     ]
 
 
-def test_jactionlint_workflow_validation_only_blocks_errors(
+def test_pinact_workflow_validation_only_blocks_errors(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
     results = iter(
         [
             SimpleNamespace(
@@ -310,9 +312,11 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
                         {
                             "filepath": ".github/workflows/ci.yml",
                             "line": 3,
-                            "id": "shellcheck",
-                            "severity": "error",
-                            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+                            "column": 9,
+                            "id": "pinact-note",
+                            "severity": "info",
+                            "message": "informational finding",
+                            "fixable": False,
                         }
                     ]
                 ),
@@ -325,9 +329,11 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
                         {
                             "filepath": ".github/workflows/ci.yml",
                             "line": 3,
-                            "id": "syntax",
+                            "column": 1,
+                            "id": "yaml-syntax",
                             "severity": "error",
-                            "message": "invalid workflow",
+                            "message": "invalid YAML: bad mapping",
+                            "fixable": False,
                         }
                     ]
                 ),
@@ -335,86 +341,307 @@ def test_jactionlint_workflow_validation_only_blocks_errors(
             ),
         ]
     )
-    monkeypatch.setattr(actions.subprocess, "run", lambda *args, **kwargs: next(results))
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        captured["cwd"] = kwargs.get("cwd")
+        return next(results)
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
 
     assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == []
     assert actions._validate_workflows(tmp_path, repository(), (".github/workflows/ci.yml",)) == [
-        ".github/workflows/ci.yml:3: syntax: invalid workflow"
+        ".github/workflows/ci.yml:3: yaml-syntax: invalid YAML: bad mapping"
+    ]
+    assert captured["args"][:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert captured["args"][4:6] == ["--catalog", str(actions.actions_file())]
+    assert "--no-online" not in captured["args"]
+    assert captured["cwd"] == tmp_path
+
+
+def test_workflow_validation_filters_non_workflow_changes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        return SimpleNamespace(returncode=0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    errors = actions._validate_workflows(
+        tmp_path,
+        repository(),
+        (
+            ".github/workflows/ci.yml",
+            ".github/workflows/actions.lock",
+            ".github/dependabot.yml",
+            "README.md",
+            "action.yaml",
+        ),
+    )
+
+    assert errors == []
+    assert captured["args"][-2:] == [
+        str(tmp_path / ".github/workflows/ci.yml"),
+        str(tmp_path / "action.yaml"),
     ]
 
 
-def test_jactionlint_fixability_distinguishes_manual_and_safe_workflow_findings(
+def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    workflow = write_workflow(
+        root,
+        "on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n"
+        "      - uses: ./local-action\n"
+        "      - run: echo \"::set-output name=foo::bar\"\n",
+    )
+
+    def git(*arguments: str) -> None:
+        subprocess.run(["git", *arguments], cwd=root, check=True,
+                       capture_output=True, text=True)
+
+    git("init", "--initial-branch=main")
+    git("config", "user.name", "Test User")
+    git("config", "user.email", "test@example.invalid")
+    git("add", ".github/workflows/ci.yaml")
+    git("commit", "-m", "add workflow")
+
+    scratch = tmp_path / "scratch"
+    call_path = tmp_path / "pinact-call.json"
+    catalog = tmp_path / "actions.toml"
+    write_pins(catalog)
+    monkeypatch.setattr(actions, "actions_file", lambda: catalog)
+    executable = tmp_path / "bin" / "pinact"
+    executable.parent.mkdir()
+    executable.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "arguments = sys.argv[1:]\n"
+        "Path(os.environ['PINACT_CALL']).write_text(json.dumps({\n"
+        "    'arguments': arguments, 'cwd': os.getcwd()}), encoding='utf-8')\n"
+        "if arguments[0] == 'fix':\n"
+        "    assert '--pin' not in arguments\n"
+        "    assert arguments[1:3] == ['--catalog', os.environ['PINACT_CATALOG']]\n"
+        "    path = Path(arguments[-1])\n"
+        "    source = path.read_text(encoding='utf-8')\n"
+        "    path.write_text(source.replace(\n"
+        "        'echo \"::set-output name=foo::bar\"',\n"
+        "        'echo \"foo=bar\" >> \"$GITHUB_OUTPUT\"'), encoding='utf-8')\n"
+        "    raise SystemExit(1)\n"
+        "if arguments[0] == 'lint':\n"
+        "    print('[]')\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    monkeypatch.setattr(
+        actions.shutil,
+        "which",
+        lambda name: str(executable) if name == "pinact" else None,
+    )
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setenv("PINACT_CALL", str(call_path))
+    monkeypatch.setenv("PINACT_CATALOG", str(catalog))
+
+    plan = actions._general_actions_fix(root, repository())
+
+    assert plan == {
+        ".github/workflows/ci.yaml": workflow.read_text(encoding="utf-8").replace(
+            'echo "::set-output name=foo::bar"',
+            'echo "foo=bar" >> "$GITHUB_OUTPUT"',
+        )
+    }
+    call = json.loads(call_path.read_text(encoding="utf-8"))
+    assert call["arguments"] == [
+        "fix",
+        "--catalog",
+        str(catalog),
+        "--",
+        ".github/workflows/ci.yaml",
+    ]
+    assert Path(call["cwd"]).is_relative_to(scratch)
+    assert list(scratch.iterdir()) == []
+
+
+def test_pinact_lint_reports_rule_ids_with_fixable_and_skips_settings_owned_rules(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     workflow = write_workflow(tmp_path, "jobs: {}\n")
-    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/jactionlint")
-    monkeypatch.setattr(
-        actions,
-        "_jactionlint_fixable_rule_ids",
-        lambda _executable: frozenset(
-            {"concurrency-limits", "missing-timeout", "missing-permissions", "artipacked"}
-        ),
-    )
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
     findings = [
         {
-            "id": "duplicate-triggers",
             "filepath": ".github/workflows/ci.yaml",
-            "line": 1,
-            "message": "manual branch choice",
+            "line": 4,
+            "column": 9,
+            "id": "unpinned-uses",
+            "severity": "error",
+            "message": "actions/checkout@v4 is not pinned to an immutable commit SHA",
+            "fixable": True,
         },
         {
-            "id": "missing-timeout",
+            "filepath": ".github/workflows/ci.yaml",
+            "line": 1,
+            "column": 1,
+            "id": "yaml-syntax",
+            "severity": "error",
+            "message": "invalid YAML: bad mapping",
+            "fixable": False,
+        },
+        {
             "filepath": ".github/workflows/ci.yaml",
             "line": 2,
-            "message": "no default configured",
-            "no_fix": {"code": "option-required"},
-        },
-        {
-            "id": "artipacked",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 3,
-            "message": "checkout credentials persist",
-            "fix": {"edits": [{"start": 0, "end": 0, "new_text": ""}]},
-        },
-        {
-            "id": "missing-permissions",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 3,
-            "message": "permissions need a deliberate selection",
-            "fix": {
-                "unsafe": True,
-                "edits": [{"start": 0, "end": 0, "new_text": "permissions: read-all\n"}],
-            },
-        },
-        {
+            "column": 1,
             "id": "concurrency-limits",
-            "filepath": ".github/workflows/ci.yaml",
-            "line": 1,
+            "severity": "error",
             "message": "owned by gha-settings",
+            "fixable": False,
         },
         {
-            "id": "shellcheck",
             "filepath": ".github/workflows/ci.yaml",
             "line": 3,
-            "severity": "error",
-            "message": "shellcheck reported issue: SC2035:info:34:11: style finding",
+            "column": 5,
+            "id": "pinact-note",
+            "severity": "info",
+            "message": "informational finding",
+            "fixable": False,
         },
     ]
+    captured: dict[str, Any] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        captured["cwd"] = kwargs.get("cwd")
+        return SimpleNamespace(returncode=1, stdout=json.dumps(findings), stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    results = actions._pinact_lint_findings(tmp_path, repository(), [workflow])
+
+    assert [finding.fixable for finding in results] == [True, False, False]
+    assert results[0].message == (
+        "line 4: pinact unpinned-uses: "
+        "actions/checkout@v4 is not pinned to an immutable commit SHA"
+    )
+    assert results[1].message == "line 1: pinact yaml-syntax: invalid YAML: bad mapping"
+    assert results[2].severity == "info"
+    argv = captured["args"]
+    assert argv[:4] == ["/bin/pinact", "lint", "--profile=correctness", "--format=json"]
+    assert argv[4:6] == ["--catalog", str(actions.actions_file())]
+    assert "--no-online" not in argv
+    assert captured["cwd"] == tmp_path
+
+
+def test_pinact_lint_maps_tool_failures_to_operational_findings(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    def _fixed_run(case: SimpleNamespace) -> Any:
+        def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+            return case
+
+        return fake_run
+
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    repo = repository()
+
+    monkeypatch.setattr(actions.shutil, "which", lambda _: None)
+    assert actions._pinact_lint_findings(tmp_path, repo, [workflow])[0].kind == "operational"
+
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+
+    def timeout(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        raise subprocess.TimeoutExpired(cmd=args[0], timeout=120)
+
+    monkeypatch.setattr(actions.subprocess, "run", timeout)
+    findings = actions._pinact_lint_findings(tmp_path, repo, [workflow])
+    assert findings[0].kind == "operational"
+    assert "timed out" in findings[0].message
+
+    cases = [
+        SimpleNamespace(returncode=2, stdout="", stderr="pinact: boom"),
+        SimpleNamespace(returncode=1, stdout="not json", stderr=""),
+        SimpleNamespace(returncode=1, stdout=json.dumps({"id": "unpinned-uses"}), stderr=""),
+        SimpleNamespace(returncode=1, stdout=json.dumps([37]), stderr=""),
+        SimpleNamespace(
+            returncode=1,
+            stdout=json.dumps(
+                [
+                    {
+                        "filepath": "../outside.yml",
+                        "line": 1,
+                        "column": 1,
+                        "id": "unpinned-uses",
+                        "severity": "error",
+                        "message": "escape",
+                        "fixable": True,
+                    }
+                ]
+            ),
+            stderr="",
+        ),
+    ]
+    for case in cases:
+        monkeypatch.setattr(
+            actions.subprocess, "run", _fixed_run(case)
+        )
+        findings = actions._pinact_lint_findings(tmp_path, repo, [workflow])
+        assert len(findings) == 1
+        assert findings[0].kind == "operational"
+
+
+def test_pinact_lint_scopes_to_workflows_and_action_files(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workflow = write_workflow(tmp_path, "jobs: {}\n")
+    action_file = tmp_path / "action.yml"
+    action_file.write_text("runs: {}\n", encoding="utf-8")
+    dependabot = tmp_path / ".github" / "dependabot.yml"
+    dependabot.write_text("version: 2\n", encoding="utf-8")
+    lock = tmp_path / ".github" / "workflows" / "actions.lock"
+    lock.write_text("pinned\n", encoding="utf-8")
+    monkeypatch.setattr(actions.shutil, "which", lambda _: "/bin/pinact")
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["args"] = list(args[0])
+        return SimpleNamespace(returncode=0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(actions.subprocess, "run", fake_run)
+
+    assert actions._pinact_lint_findings(
+        tmp_path, repository(), [workflow, action_file, dependabot, lock]
+    ) == []
+    assert captured["args"] == [
+        "/bin/pinact",
+        "lint",
+        "--profile=correctness",
+        "--format=json",
+        "--catalog",
+        str(actions.actions_file()),
+        "--",
+        ".github/workflows/ci.yaml",
+        "action.yml",
+    ]
+
     monkeypatch.setattr(
         actions.subprocess,
         "run",
-        lambda *args, **kwargs: SimpleNamespace(
-            returncode=1,
-            stdout=json.dumps(findings),
-            stderr="",
-        ),
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("must not shell out")),
     )
-
-    results = actions._jactionlint_findings(tmp_path, repository(), [workflow])
-
-    assert [finding.fixable for finding in results] == [False, False, True, False, False]
-    assert results[-1].severity == "info"
+    assert actions._pinact_lint_findings(tmp_path, repository(), [dependabot, lock]) == []
 
 
 def test_pinact_reports_unpinned_actions_as_fixable(
