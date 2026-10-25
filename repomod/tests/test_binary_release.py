@@ -80,61 +80,44 @@ def test_standard_native_prerelease_requires_tool_only(
     assert "remove " + language in findings[0].message
 
 
-@pytest.mark.parametrize(
-    ("fixture_name", "repository_id"),
-    [
-        ("laputa-systems_srv", "laputa-systems/srv"),
-        ("joshuarli_ish", "joshuarli/ish"),
-        ("laputa-systems_diff-pretty", "laputa-systems/diff-pretty"),
-        ("laputa-systems_xsh", "laputa-systems/xsh"),
-        ("joshuarli_mactop", "joshuarli/mactop"),
-        ("joshuarli_gh", "joshuarli/gh"),
-        ("laputa-systems_zzz", "laputa-systems/zzz"),
-    ],
-)
-def test_captured_fleet_workflows_require_exactly_the_tool_role(
-    tmp_path: Path, fixture_name: str, repository_id: str
-) -> None:
-    fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
-    root = tmp_path / fixture_name
-    shutil.copytree(fixture, root)
-    owner, name = repository_id.split("/")
-
-    findings = _binary_release_findings(
-        root, Repository(RepoId(owner, name), ("tool",))
-    )
-
-    assert findings == []
+_TOOL_FIXTURES = [
+    ("laputa-systems_srv", "laputa-systems/srv"),
+    ("joshuarli_ish", "joshuarli/ish"),
+    ("laputa-systems_diff-pretty", "laputa-systems/diff-pretty"),
+    ("laputa-systems_xsh", "laputa-systems/xsh"),
+    ("joshuarli_mactop", "joshuarli/mactop"),
+    ("joshuarli_gh", "joshuarli/gh"),
+    ("laputa-systems_zzz", "laputa-systems/zzz"),
+]
 
 
-@pytest.mark.parametrize(
-    ("fixture_name", "repository_id"),
-    [
-        ("laputa-systems_srv", "laputa-systems/srv"),
-        ("joshuarli_ish", "joshuarli/ish"),
-        ("laputa-systems_diff-pretty", "laputa-systems/diff-pretty"),
-        ("laputa-systems_xsh", "laputa-systems/xsh"),
-        ("joshuarli_mactop", "joshuarli/mactop"),
-        ("joshuarli_gh", "joshuarli/gh"),
-        ("laputa-systems_zzz", "laputa-systems/zzz"),
-    ],
-)
-@pytest.mark.parametrize("extra_tag", ["rust", "library"])
-def test_captured_binary_releases_reject_extra_roles_and_languages(
-    tmp_path: Path, fixture_name: str, repository_id: str, extra_tag: str
-) -> None:
-    fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
-    root = tmp_path / fixture_name
-    shutil.copytree(fixture, root)
-    owner, name = repository_id.split("/")
+def test_captured_fleet_workflows_require_exactly_the_tool_role(tmp_path: Path) -> None:
+    for fixture_name, repository_id in _TOOL_FIXTURES:
+        fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
+        root = tmp_path / fixture_name
+        shutil.copytree(fixture, root)
+        owner, name = repository_id.split("/")
 
-    findings = _binary_release_findings(
-        root, Repository(RepoId(owner, name), ("tool", extra_tag))
-    )
+        assert _binary_release_findings(
+            root, Repository(RepoId(owner, name), ("tool",))
+        ) == [], fixture_name
 
-    assert len(findings) == 1
-    assert findings[0].severity == "error"
-    assert "require exactly [tool]" in findings[0].message
+
+def test_captured_binary_releases_reject_extra_roles_and_languages(tmp_path: Path) -> None:
+    for fixture_name, repository_id in _TOOL_FIXTURES:
+        fixture = Path(__file__).parent / "fixtures" / "binary_release" / fixture_name
+        for extra_tag in ("rust", "library"):
+            root = tmp_path / f"{fixture_name}-{extra_tag}"
+            shutil.copytree(fixture, root)
+            owner, name = repository_id.split("/")
+
+            findings = _binary_release_findings(
+                root, Repository(RepoId(owner, name), ("tool", extra_tag))
+            )
+
+            assert len(findings) == 1, (fixture_name, extra_tag)
+            assert findings[0].severity == "error"
+            assert "require exactly [tool]" in findings[0].message
 
 
 def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(

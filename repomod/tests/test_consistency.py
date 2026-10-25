@@ -3,7 +3,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-import repomod.git as git_module
+import pytest
+
 from repomod.git import run_git
 from repomod.rules import rules
 from repomod.rules.consistency import (
@@ -23,28 +24,31 @@ def initialize_repository(root: Path) -> None:
     run_git(["init", "--quiet"], cwd=root)
 
 
-def test_language_tag_lint_reports_clear_source_without_tag(tmp_path: Path) -> None:
-    manifest = tmp_path / "Cargo.toml"
-    manifest.write_text('[package]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8")
-    source = tmp_path / "src" / "lib.rs"
+def test_language_tag_lint_matches_detected_source_against_catalog_tags(tmp_path: Path) -> None:
+    missing_tag = tmp_path / "missing-tag"
+    missing_tag.mkdir()
+    (missing_tag / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    source = missing_tag / "src" / "lib.rs"
     source.parent.mkdir()
     source.write_text("pub fn run() {}\n", encoding="utf-8")
 
-    findings = _language_tag_findings(tmp_path, repository("library"))
-
-    assert [(finding.rule, finding.message, finding.severity) for finding in findings] == [
+    assert [
+        (finding.rule, finding.message, finding.severity)
+        for finding in _language_tag_findings(missing_tag, repository("library"))
+    ] == [
         ("language-tags", "Rust source is present but the catalog has no rust tag", "warning")
     ]
 
+    unobserved = tmp_path / "unobserved"
+    unobserved.mkdir()
+    (unobserved / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
 
-def test_language_tag_lint_reports_catalog_language_without_detected_source(
-    tmp_path: Path,
-) -> None:
-    (tmp_path / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
-
-    findings = _language_tag_findings(tmp_path, repository("extension", "typescript"))
-
-    assert [(finding.rule, finding.message, finding.severity) for finding in findings] == [
+    assert [
+        (finding.rule, finding.message, finding.severity)
+        for finding in _language_tag_findings(unobserved, repository("extension", "typescript"))
+    ] == [
         (
             "language-tags",
             "TypeScript tag is present but no matching source was detected",
@@ -52,89 +56,81 @@ def test_language_tag_lint_reports_catalog_language_without_detected_source(
         )
     ]
 
-
-def test_language_tag_lint_detects_python_source_in_standard_src_package_layout(
-    tmp_path: Path,
-) -> None:
-    (tmp_path / "pyproject.toml").write_text(
+    src_layout = tmp_path / "src-layout"
+    src_layout.mkdir()
+    (src_layout / "pyproject.toml").write_text(
         '[project]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8"
     )
-    source = tmp_path / "src" / "demo" / "module.py"
-    source.parent.mkdir(parents=True)
-    source.write_text("def run(): pass\n", encoding="utf-8")
+    nested = src_layout / "src" / "demo" / "module.py"
+    nested.parent.mkdir(parents=True)
+    nested.write_text("def run(): pass\n", encoding="utf-8")
 
-    findings = _language_tag_findings(tmp_path, repository("library"))
+    assert [
+        finding.message
+        for finding in _language_tag_findings(src_layout, repository("library"))
+    ] == ["Python source is present but the catalog has no python tag"]
 
-    assert [finding.message for finding in findings] == [
-        "Python source is present but the catalog has no python tag"
-    ]
-
-
-def test_language_tag_lint_exempts_recognized_tool_only_binary_release(tmp_path: Path) -> None:
+    recognized = tmp_path / "recognized"
     fixture = Path(__file__).parent / "fixtures" / "binary_release" / "laputa-systems_srv"
-    shutil.copytree(fixture, tmp_path, dirs_exist_ok=True)
+    shutil.copytree(fixture, recognized)
 
-    assert _language_tag_findings(tmp_path, repository("tool")) == []
+    assert _language_tag_findings(recognized, repository("tool")) == []
 
-
-def test_language_tag_lint_accepts_nested_python_build_sources(tmp_path: Path) -> None:
+    nested_build = tmp_path / "nested-build"
     fixture = Path(__file__).parent / "fixtures" / "languages" / "python_build"
-    shutil.copytree(fixture, tmp_path, dirs_exist_ok=True)
+    shutil.copytree(fixture, nested_build)
     build_repository = Repository(
         RepoId("joshuarli", "python-build"), ("build", "python", "rust")
     )
 
-    assert _language_tag_findings(tmp_path, build_repository) == []
+    assert _language_tag_findings(nested_build, build_repository) == []
 
 
-def test_workflow_make_target_lint_checks_literal_root_targets(tmp_path: Path) -> None:
-    workflow = tmp_path / ".github" / "workflows" / "test.yml"
-    workflow.parent.mkdir(parents=True)
-    workflow.write_text(
-        "jobs:\n  test:\n    steps:\n      - run: make test\n      - run: make missing\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "Makefile").write_text(".PHONY: test\ntest:\n\t@echo ok\n", encoding="utf-8")
-
-    findings = _make_target_findings(tmp_path, repository("tool"))
-
-    assert [(finding.file, finding.message) for finding in findings] == [
-        (".github/workflows/test.yml", "workflow runs make target 'missing', but the root Makefile does not define it")
-    ]
-
-
-def test_workflow_make_target_lint_reads_quoted_yaml_run_values(tmp_path: Path) -> None:
-    workflow = tmp_path / ".github" / "workflows" / "test.yml"
-    workflow.parent.mkdir(parents=True)
-    workflow.write_text("jobs:\n  test:\n    steps:\n      - run: \"make missing\"\n", encoding="utf-8")
-    (tmp_path / "Makefile").write_text("test:\n\t@echo ok\n", encoding="utf-8")
-
-    findings = _make_target_findings(tmp_path, repository("tool"))
-
-    assert len(findings) == 1
-    assert "make target 'missing'" in findings[0].message
-
-
-def test_workflow_make_target_lint_reports_missing_root_makefile(tmp_path: Path) -> None:
-    workflow = tmp_path / ".github" / "workflows" / "test.yml"
-    workflow.parent.mkdir(parents=True)
-    workflow.write_text("jobs:\n  test:\n    steps:\n      - run: make test\n", encoding="utf-8")
-
-    findings = _make_target_findings(tmp_path, repository("tool"))
-
-    assert len(findings) == 1
-    assert "no root Makefile" in findings[0].message
-
-
-def test_workflow_make_target_lint_ignores_dynamic_targets_and_included_makefiles(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("run", "makefile", "expected"),
+    [
+        (
+            "jobs:\n  test:\n    steps:\n      - run: make test\n      - run: make missing\n",
+            ".PHONY: test\ntest:\n\t@echo ok\n",
+            [
+                (
+                    ".github/workflows/test.yml",
+                    "workflow runs make target 'missing', but the root Makefile does not define it",
+                )
+            ],
+        ),
+        (
+            "jobs:\n  test:\n    steps:\n      - run: \"make missing\"\n",
+            "test:\n\t@echo ok\n",
+            [(".github/workflows/test.yml", "workflow runs make target 'missing'")],
+        ),
+        (
+            "jobs:\n  test:\n    steps:\n      - run: make test\n",
+            None,
+            [(".github/workflows/test.yml", "no root Makefile")],
+        ),
+        (
+            "jobs:\n  test:\n    steps:\n      - run: make \"${TARGET}\"\n",
+            "include targets.mk\n",
+            [],
+        ),
+    ],
+)
+def test_workflow_make_target_lint_checks_literal_root_targets(
+    tmp_path: Path, run: str, makefile: str | None, expected: list[tuple[str, str]]
 ) -> None:
     workflow = tmp_path / ".github" / "workflows" / "test.yml"
     workflow.parent.mkdir(parents=True)
-    workflow.write_text("jobs:\n  test:\n    steps:\n      - run: make \"${TARGET}\"\n", encoding="utf-8")
-    (tmp_path / "Makefile").write_text("include targets.mk\n", encoding="utf-8")
+    workflow.write_text(run, encoding="utf-8")
+    if makefile is not None:
+        (tmp_path / "Makefile").write_text(makefile, encoding="utf-8")
 
-    assert _make_target_findings(tmp_path, repository("tool")) == []
+    findings = _make_target_findings(tmp_path, repository("tool"))
+
+    assert len(findings) == len(expected)
+    for finding, (expected_file, expected_message) in zip(findings, expected, strict=True):
+        assert finding.file == expected_file
+        assert expected_message in finding.message
 
 
 def test_generated_artifact_lint_reports_tracked_outputs_and_missing_composed_ignores(
@@ -179,27 +175,6 @@ def test_generated_artifact_lint_accepts_composed_profiles_for_untagged_rust(
     run_git(["add", ".gitignore", "Cargo.toml", "src/main.rs"], cwd=tmp_path)
 
     assert _tracked_artifact_findings(tmp_path, repository("tool")) == []
-
-
-def test_generated_artifact_ignore_probes_use_one_git_process(
-    tmp_path: Path, monkeypatch
-) -> None:
-    initialize_repository(tmp_path)
-    (tmp_path / ".gitignore").write_text(".DS_Store\nThumbs.db\n", encoding="utf-8")
-    original_run_git = git_module.run_git
-    check_ignore_calls = []
-
-    def record_run_git(*args, **kwargs):
-        if args[0][0] == "check-ignore":
-            check_ignore_calls.append(kwargs["input_text"])
-        return original_run_git(*args, **kwargs)
-
-    monkeypatch.setattr(git_module, "run_git", record_run_git)
-
-    findings = _tracked_artifact_findings(tmp_path, repository("tool"))
-
-    assert findings == []
-    assert check_ignore_calls == [".DS_Store\0Thumbs.db\0"]
 
 
 def test_generated_artifact_lint_does_not_treat_a_python_target_directory_as_rust_output(

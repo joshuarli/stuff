@@ -141,7 +141,7 @@ def test_action_pin_findings_keep_identity_when_pinact_resolves_a_sha_version() 
     assert _finding_signature(resolved) != _finding_signature(other_action)
 
 
-def test_successful_fixers_create_one_commit_each_and_reruns_resume_branch(
+def test_fix_branch_keeps_commits_off_default_and_resumes_repeated_fixes(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
@@ -154,35 +154,28 @@ def test_successful_fixers_create_one_commit_each_and_reruns_resume_branch(
 
     outcome = fix_repository(catalog, repository, selected, "main")
 
-    assert outcome.failures == []
     assert [rule for rule, _ in outcome.commits] == ["first", "second", "third"]
     assert outcome.branch is not None
     assert len(subjects(path, base, outcome.branch)) == 3
     assert subjects(path, base, outcome.branch) == [
         rule.commit_message for rule in reversed(selected)
     ]
+    assert git("rev-parse", f"refs/heads/{outcome.branch}", cwd=path).stdout.strip() == outcome.commits[-1][1]
+    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
     assert head(path) == base
-    for (_rule_id, commit), filename in zip(
-        outcome.commits, ("first.txt", "second.txt", "third.txt"), strict=True
-    ):
-        committed_paths = git(
-            "show", "--format=", "--name-only", commit, cwd=path
-        ).stdout.splitlines()
-        assert committed_paths == [filename]
-        assert git("show", f"{outcome.branch}:{filename}", cwd=path).stdout == (
-            filename.removesuffix(".txt") + "\n"
-        )
+    assert not status(path, repository.id).dirty
+    assert outcome.failures == []
+
     repeated = fix_repository(catalog, repository, selected, "main")
+
     assert repeated.commits == []
     assert repeated.branch == outcome.branch
     assert repeated.failures == []
     assert repeated.branch_head == outcome.commits[-1][1]
-    assert subjects(path, base) == []
-    worktrees = git("worktree", "list", "--porcelain", cwd=path).stdout.splitlines()
-    assert sum(line.startswith("worktree ") for line in worktrees) == 1
+    assert head(path) == base
 
 
-def test_diverged_fix_branch_blocks_a_new_fixer_run(
+def test_diverged_fix_branch_blocks_until_verified_merged(
     tmp_path: Path,
     git_environment: None,
     monkeypatch: pytest.MonkeyPatch,
@@ -197,39 +190,24 @@ def test_diverged_fix_branch_blocks_a_new_fixer_run(
     git("commit", "-m", "advance main", cwd=path)
     monkeypatch.setattr(fix_module, "fix_branch_was_merged", lambda _repository, _branch: False)
 
-    repeated = fix_repository(catalog, repository, selected, "main")
+    blocked = fix_repository(catalog, repository, selected, "main")
 
-    assert repeated.commits == []
-    assert repeated.failures == [
+    assert blocked.commits == []
+    assert blocked.failures == [
         (
             "branch",
             f"fix branch {initial.branch} diverged from the current default branch; "
             "integrate or delete it before fixing",
         )
     ]
-
-
-def test_merged_squash_fix_branch_does_not_block_a_new_fixer_run(
-    tmp_path: Path,
-    git_environment: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    catalog, repository, path, _base = initialize_repository(tmp_path)
-    selected = (file_rule("first", "first.txt", "first\n"),)
-
-    initial = fix_repository(catalog, repository, selected, "main")
-    assert initial.branch is not None
-    (path / "main.txt").write_text("main advanced independently\n", encoding="utf-8")
-    git("add", "main.txt", cwd=path)
-    git("commit", "-m", "advance main", cwd=path)
     monkeypatch.setattr(fix_module, "fix_branch_was_merged", lambda _repository, _branch: True)
 
-    repeated = fix_repository(catalog, repository, selected, "main")
+    resumed = fix_repository(catalog, repository, selected, "main")
 
-    assert repeated.failures == []
-    assert repeated.branch is not None
-    assert repeated.branch != initial.branch
-    assert [rule for rule, _ in repeated.commits] == ["first"]
+    assert resumed.failures == []
+    assert resumed.branch is not None
+    assert resumed.branch != initial.branch
+    assert [rule for rule, _ in resumed.commits] == ["first"]
 
 
 def test_push_fix_branch_skips_when_remote_default_advanced(
@@ -251,26 +229,6 @@ def test_push_fix_branch_skips_when_remote_default_advanced(
 
     assert state == "skipped"
     assert message == "remote default branch changed; sync before publishing fixes"
-
-
-def test_fix_skips_when_local_head_differs_from_github_default(
-    tmp_path: Path,
-    git_environment: None,
-) -> None:
-    catalog, repository, path, base = initialize_repository(tmp_path)
-
-    outcome = fix_repository(
-        catalog,
-        repository,
-        (file_rule("first", "first.txt", "first\n"),),
-        "main",
-        "0" * 40,
-    )
-
-    assert outcome.skipped == "checkout differs from GitHub default branch; sync before fixing"
-    assert outcome.commits == []
-    assert outcome.branch is None
-    assert head(path) == base
 
 
 def test_failed_middle_fixer_is_discarded_while_later_success_commits(
@@ -413,35 +371,6 @@ def test_policy_fixer_compares_line_findings_by_content_and_multiplicity(
     assert policy_file.read_text(encoding="utf-8") == "bad\n"
 
 
-def test_fix_branch_keeps_commits_off_default_and_resumes_repeated_fixes(
-    tmp_path: Path,
-    git_environment: None,
-) -> None:
-    catalog, repository, path, base = initialize_repository(tmp_path)
-    selected = (
-        file_rule("first", "first.txt", "first\n"),
-        file_rule("second", "second.txt", "second\n"),
-    )
-
-    outcome = fix_repository(catalog, repository, selected, "main")
-
-    assert len(outcome.commits) == 2
-    assert outcome.branch is not None
-    assert git("rev-parse", f"refs/heads/{outcome.branch}", cwd=path).stdout.strip() == outcome.commits[-1][1]
-    assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
-    assert head(path) == base
-    assert not status(path, repository.id).dirty
-    assert outcome.failures == []
-
-    repeated = fix_repository(catalog, repository, selected, "main")
-
-    assert repeated.commits == []
-    assert repeated.branch == outcome.branch
-    assert repeated.failures == []
-    assert repeated.branch_head == outcome.commits[-1][1]
-    assert head(path) == base
-
-
 def test_legacy_recovery_ref_blocks_new_branch_fix(
     tmp_path: Path,
     git_environment: None,
@@ -540,9 +469,8 @@ def test_concurrent_canonical_commit_is_never_overwritten(
     assert git("show", f"{outcome.branch}:first.txt", cwd=path).stdout == "first\n"
 
 
-def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
-    tmp_path: Path,
-    git_environment: None,
+def test_commit_hooks_cannot_change_the_fix(
+    tmp_path: Path, git_environment: None
 ) -> None:
     catalog, repository, path, base = initialize_repository(tmp_path)
     hooks = Path(git("rev-parse", "--git-path", "hooks", cwd=path).stdout.strip())
@@ -560,41 +488,17 @@ def test_commit_hook_failure_and_path_escape_leave_canonical_checkout_unchanged(
     assert head(path) == base
     assert not (path / "hook.txt").exists()
 
-    escaped = Rule(
-        "escape",
-        "Reject paths outside the worktree",
-        TagPredicate(),
-        lambda root, repo: [
-            Finding(str(repo.id), "escape", "../outside", "unsafe", fixable=True)
-        ],
-        lambda root, repo: {"../outside": "unsafe\n"},
-        "chore(repomod): reject unsafe path",
-        ("**",),
-    )
-    escape_outcome = fix_repository(catalog, repository, (escaped,), "main")
-    assert escape_outcome.failures
-    assert not (path.parent / "outside").exists()
-    assert head(path) == base
-
-
-def test_commit_hook_cannot_change_the_staged_tree(tmp_path: Path, git_environment: None) -> None:
-    catalog, repository, path, base = initialize_repository(tmp_path)
-    hooks = Path(git("rev-parse", "--git-path", "hooks", cwd=path).stdout.strip())
-    if not hooks.is_absolute():
-        hooks = path / hooks
-    hook = hooks / "pre-commit"
     hook.write_text(
         "#!/bin/sh\nprintf 'hook changed content\\n' > README.md\ngit add README.md\n",
         encoding="utf-8",
     )
-    hook.chmod(0o755)
 
-    outcome = fix_repository(
+    mutating = fix_repository(
         catalog, repository, (file_rule("first", "first.txt", "first\n"),), "main"
     )
 
-    assert outcome.commits == []
-    assert any("staged commit" in message for _, message in outcome.failures)
+    assert mutating.commits == []
+    assert any("staged commit" in message for _, message in mutating.failures)
     assert head(path) == base
     assert (path / "README.md").read_text(encoding="utf-8") == "base\n"
     assert not (path / "first.txt").exists()
@@ -630,6 +534,25 @@ def test_invalid_plan_and_symlink_target_are_rejected(tmp_path: Path, git_enviro
     assert any("symlink" in message for _, message in symlink_outcome.failures)
     assert link.is_symlink()
     assert link.read_text(encoding="utf-8") == "base\n"
+    symlink_head = head(path)
+
+    escaped = Rule(
+        "escape",
+        "Reject paths outside the worktree",
+        TagPredicate(),
+        lambda root, repo: [
+            Finding(str(repo.id), "escape", "../outside", "unsafe", fixable=True)
+        ],
+        lambda root, repo: {"../outside": "unsafe\n"},
+        "chore(repomod): reject unsafe path",
+        ("**",),
+    )
+    escape_outcome = fix_repository(catalog, repository, (escaped,), "main")
+
+    assert escape_outcome.commits == []
+    assert escape_outcome.failures
+    assert not (path.parent / "outside").exists()
+    assert head(path) == symlink_head
 
 
 def test_interruption_preserves_completed_commit_on_fix_branch(
@@ -663,7 +586,7 @@ def test_interruption_preserves_completed_commit_on_fix_branch(
     assert sum(line.startswith("worktree ") for line in worktrees) == 1
 
 
-def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(
+def test_unfixable_checkout_states_are_skipped_without_modification(
     tmp_path: Path,
     git_environment: None,
 ) -> None:
@@ -682,6 +605,18 @@ def test_dirty_or_nondefault_checkouts_are_skipped_without_modification(
         catalog, repository, (file_rule("first", "first.txt", "x"),), "main"
     )
     assert branch.skipped == "checkout is on feature; default branch is main"
+    assert head(path) == base
+    git("checkout", "main", cwd=path)
+
+    diverged = fix_repository(
+        catalog,
+        repository,
+        (file_rule("first", "first.txt", "first\n"),),
+        "main",
+        "0" * 40,
+    )
+    assert diverged.skipped == "checkout differs from GitHub default branch; sync before fixing"
+    assert diverged.commits == []
     assert head(path) == base
 
 

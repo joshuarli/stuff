@@ -37,114 +37,149 @@ def repo(name: str = "tool", tags: tuple[str, ...] = ("tool",)) -> Repository:
     return Repository(RepoId("acme", name), tags)
 
 
-def test_ci_states_distinguish_empty_incomplete_failure_pending_and_skips() -> None:
-    assert github._state_for_checks((), True) == "none"
-    assert github._state_for_checks((), False) == "unknown"
-    assert github._state_for_checks(
-        (CheckResult("build", "failure", None),), True
-    ) == "failed"
-    assert github._state_for_checks(
-        (
-            CheckResult("old success", "success", None),
-            CheckResult("rerun", "failure", None),
-        ),
-        True,
-    ) == "failed"
-    assert github._state_for_checks(
-        (CheckResult("build", "in_progress", None),), True
-    ) == "pending"
-    assert github._state_for_checks(
-        (CheckResult("build", "cancelled", None),), True
-    ) == "cancelled"
-    assert github._state_for_checks(
-        (CheckResult("workflow", "skipped", None),), True
-    ) == "skipped"
-    assert github._state_for_checks(
-        (CheckResult("external", "neutral", None),), True
-    ) == "neutral"
-    assert github._state_for_checks(
-        (CheckResult("build", "success", None),), True
-    ) == "passed"
-
-
-def test_latest_check_attempt_controls_the_aggregate_state() -> None:
-    assert github._state_for_checks(
-        (
-            CheckResult(
-                "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
-            check_suite_id="suite-a", workflow_run_id="run-a", run_attempt=1,
-            ),
-            CheckResult(
-                "build", "success", None, "GitHub Actions", "2026-10-21T12:00:00Z",
-            check_suite_id="suite-b", workflow_run_id="run-a", run_attempt=2,
-            ),
-        ),
-        True,
-    ) == "passed"
-    assert github._state_for_checks(
-        (
-            CheckResult(
-                "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
-                check_suite_id="suite-a", run_attempt=1,
-            ),
-            CheckResult(
-                "build", "cancelled", None, "GitHub Actions", "2026-10-21T12:00:00Z",
-                check_suite_id="suite-a", run_attempt=2,
-            ),
-        ),
-        True,
-    ) == "cancelled"
-
-
-def test_distinct_workflows_with_same_job_name_keep_failure_visible() -> None:
-    checks = (
-        CheckResult(
-            "build", "failure", None, "GitHub Actions", "2026-10-21T12:00:00Z",
-            check_suite_id="suite-a", run_attempt=1,
-        ),
-        CheckResult(
-            "build", "success", None, "GitHub Actions", "2026-10-21T12:01:00Z",
-            check_suite_id="suite-b", run_attempt=1,
-        ),
+def _check(
+    name: str,
+    state: str,
+    url: str | None = None,
+    source: str | None = None,
+    updated_at: str | None = None,
+    check_suite_id: str | None = None,
+    workflow_run_id: str | None = None,
+    run_attempt: int | None = None,
+) -> CheckResult:
+    return CheckResult(
+        name,
+        state,
+        url,
+        source,
+        updated_at,
+        check_suite_id,
+        workflow_run_id,
+        run_attempt,
     )
 
-    assert github._state_for_checks(checks, True) == "failed"
 
-
-def test_latest_attempt_pending_state_and_external_contexts_are_preserved() -> None:
-    checks = (
-        CheckResult(
-            "build", "failure", None, "GitHub Actions", None,
-            check_suite_id="suite-a", run_attempt=1,
+@pytest.mark.parametrize(
+    ("checks", "complete", "expected"),
+    [
+        ((), True, "none"),
+        ((), False, "unknown"),
+        ((_check("build", "failure"),), True, "failed"),
+        (
+            (
+                _check("old success", "success"),
+                _check("rerun", "failure"),
+            ),
+            True,
+            "failed",
         ),
-        CheckResult(
-            "build", "in_progress", None, "GitHub Actions", None,
-            check_suite_id="suite-a", run_attempt=2,
+        ((_check("build", "in_progress"),), True, "pending"),
+        ((_check("build", "cancelled"),), True, "cancelled"),
+        ((_check("workflow", "skipped"),), True, "skipped"),
+        ((_check("external", "neutral"),), True, "neutral"),
+        ((_check("build", "success"),), True, "passed"),
+        (
+            (
+                _check(
+                    "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
+                    "suite-a", "run-a", 1,
+                ),
+                _check(
+                    "build", "success", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+                    "suite-b", "run-a", 2,
+                ),
+            ),
+            True,
+            "passed",
         ),
-        CheckResult("deploy preview", "success", None, "status:preview", "2026-10-21T12:00:00Z"),
-        CheckResult("security scan", "failure", None, "status:scanner", "2026-10-21T12:00:00Z"),
-    )
+        (
+            (
+                _check(
+                    "build", "failure", None, "GitHub Actions", "2026-10-20T12:00:00Z",
+                    "suite-a", None, 1,
+                ),
+                _check(
+                    "build", "cancelled", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+                    "suite-a", None, 2,
+                ),
+            ),
+            True,
+            "cancelled",
+        ),
+        (
+            (
+                _check(
+                    "build", "failure", None, "GitHub Actions", "2026-10-21T12:00:00Z",
+                    "suite-a", None, 1,
+                ),
+                _check(
+                    "build", "success", None, "GitHub Actions", "2026-10-21T12:01:00Z",
+                    "suite-b", None, 1,
+                ),
+            ),
+            True,
+            "failed",
+        ),
+        (
+            (
+                _check("build", "failure", None, "GitHub Actions", None, "suite-a", None, 1),
+                _check("build", "in_progress", None, "GitHub Actions", None, "suite-a", None, 2),
+                _check("deploy preview", "success", None, "status:preview", "2026-10-21T12:00:00Z"),
+                _check("security scan", "failure", None, "status:scanner", "2026-10-21T12:00:00Z"),
+            ),
+            True,
+            "failed",
+        ),
+        (
+            (
+                _check("build", "failure", None, "GitHub Actions", None, "suite-a", None, 1),
+                _check("build", "in_progress", None, "GitHub Actions", None, "suite-a", None, 2),
+            ),
+            True,
+            "pending",
+        ),
+        (
+            (
+                _check("deploy", "failure", None, "status:preview-a", "2026-10-21T12:00:00Z"),
+                _check("deploy", "success", None, "status:preview-b", "2026-10-21T12:01:00Z"),
+            ),
+            True,
+            "failed",
+        ),
+    ],
+)
+def test_ci_check_states_aggregate_across_attempts_suites_and_creators(
+    checks: tuple[CheckResult, ...], complete: bool, expected: str
+) -> None:
+    assert github._state_for_checks(checks, complete) == expected
 
-    assert github._state_for_checks(checks, True) == "failed"
-    assert github._state_for_checks(checks[:2], True) == "pending"
 
-
-def test_same_named_external_statuses_from_distinct_creators_are_independent() -> None:
-    checks = (
-        CheckResult("deploy", "failure", None, "status:preview-a", "2026-10-21T12:00:00Z"),
-        CheckResult("deploy", "success", None, "status:preview-b", "2026-10-21T12:01:00Z"),
-    )
-
-    assert github._state_for_checks(checks, True) == "failed"
-
-
-def test_fix_pull_request_auto_merge_requires_a_configured_ci_gate(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "scenario",
+    ["required-checks", "no-checks", "rulesets", "disabled"],
+)
+def test_fix_pull_request_auto_merge_decisions(monkeypatch, scenario: str) -> None:
     def gh_json(arguments: list[str], input_text: str | None = None):
         endpoint = arguments[0]
         if endpoint == "repos/acme/demo":
-            return {"allow_auto_merge": True}
+            return {"allow_auto_merge": scenario != "disabled"}
+        if scenario == "disabled":
+            raise AssertionError(f"auto-merge must short-circuit before {endpoint}")
         if endpoint == "repos/acme/demo/branches/main/protection":
+            if scenario == "no-checks":
+                return {"required_status_checks": None}
+            if scenario == "rulesets":
+                raise github.GitHubError("HTTP 404 Branch not protected")
             return {"required_status_checks": {"contexts": ["CI"], "checks": []}}
+        if endpoint == "repos/acme/demo/rules/branches/main":
+            if scenario == "rulesets":
+                return [
+                    {
+                        "type": "required_status_checks",
+                        "parameters": {"required_status_checks": [{"context": "CI"}]},
+                    }
+                ]
+            return []
         raise AssertionError(endpoint)
 
     queries: list[str] = []
@@ -163,96 +198,28 @@ def test_fix_pull_request_auto_merge_requires_a_configured_ci_gate(monkeypatch) 
         }
 
     monkeypatch.setattr(github, "_gh_json", gh_json)
-    monkeypatch.setattr(github, "_graphql", graphql)
+    if scenario in {"no-checks", "disabled"}:
+        monkeypatch.setattr(
+            github,
+            "_graphql",
+            lambda _query: (_ for _ in ()).throw(AssertionError("must not enable auto-merge")),
+        )
+    else:
+        monkeypatch.setattr(github, "_graphql", graphql)
 
     result = github._enable_fix_pull_request_auto_merge(
         RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
     )
 
-    assert isinstance(result, github.AutoMergeEnabled)
-    assert len(queries) == 1
-    assert 'pullRequestId: "pull-request-node-id"' in queries[0]
-    assert "mergeMethod: REBASE" in queries[0]
-
-
-def test_fix_pull_request_auto_merge_skips_when_no_required_checks_exist(monkeypatch) -> None:
-    def gh_json(arguments: list[str], input_text: str | None = None):
-        endpoint = arguments[0]
-        if endpoint == "repos/acme/demo":
-            return {"allow_auto_merge": True}
-        if endpoint == "repos/acme/demo/branches/main/protection":
-            return {"required_status_checks": None}
-        if endpoint == "repos/acme/demo/rules/branches/main":
-            return []
-        raise AssertionError(endpoint)
-
-    monkeypatch.setattr(github, "_gh_json", gh_json)
-    monkeypatch.setattr(
-        github,
-        "_graphql",
-        lambda _query: (_ for _ in ()).throw(AssertionError("must not enable auto-merge")),
-    )
-
-    result = github._enable_fix_pull_request_auto_merge(
-        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
-    )
-
-    assert result == github.AutoMergeSkipped("the default branch has no required status checks")
-
-
-def test_fix_pull_request_auto_merge_reads_required_checks_from_rulesets(monkeypatch) -> None:
-    def gh_json(arguments: list[str], input_text: str | None = None):
-        endpoint = arguments[0]
-        if endpoint == "repos/acme/demo":
-            return {"allow_auto_merge": True}
-        if endpoint == "repos/acme/demo/branches/main/protection":
-            raise github.GitHubError("HTTP 404 Branch not protected")
-        if endpoint == "repos/acme/demo/rules/branches/main":
-            return [
-                {
-                    "type": "required_status_checks",
-                    "parameters": {"required_status_checks": [{"context": "CI"}]},
-                }
-            ]
-        raise AssertionError(endpoint)
-
-    monkeypatch.setattr(github, "_gh_json", gh_json)
-    monkeypatch.setattr(
-        github,
-        "_graphql",
-        lambda _query: {
-            "data": {
-                "enablePullRequestAutoMerge": {
-                    "pullRequest": {"url": "https://github.invalid/acme/demo/pull/1"}
-                }
-            }
-        },
-    )
-
-    result = github._enable_fix_pull_request_auto_merge(
-        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
-    )
-
-    assert isinstance(result, github.AutoMergeEnabled)
-
-
-def test_fix_pull_request_auto_merge_skips_when_repository_setting_is_disabled(monkeypatch) -> None:
-    def gh_json(arguments: list[str], input_text: str | None = None):
-        assert arguments == ["repos/acme/demo"]
-        return {"allow_auto_merge": False}
-
-    monkeypatch.setattr(github, "_gh_json", gh_json)
-    monkeypatch.setattr(
-        github,
-        "_graphql",
-        lambda _query: (_ for _ in ()).throw(AssertionError("must not enable auto-merge")),
-    )
-
-    result = github._enable_fix_pull_request_auto_merge(
-        RepoId("acme", "demo"), "pull-request-node-id", "main", already_enabled=False
-    )
-
-    assert result == github.AutoMergeSkipped("repository setting is disabled")
+    if scenario == "no-checks":
+        assert result == github.AutoMergeSkipped("the default branch has no required status checks")
+    elif scenario == "disabled":
+        assert result == github.AutoMergeSkipped("repository setting is disabled")
+    else:
+        assert isinstance(result, github.AutoMergeEnabled)
+        assert len(queries) == 1
+        assert 'pullRequestId: "pull-request-node-id"' in queries[0]
+        assert "mergeMethod: REBASE" in queries[0]
 
 
 def test_ensure_fix_pull_request_reuses_an_existing_auto_merge_request(monkeypatch) -> None:
@@ -921,33 +888,30 @@ def test_status_offline_never_calls_remote_metadata(
     assert _status(args) == 0
 
 
-def test_status_colors_are_disabled_with_no_color_environment(
-    monkeypatch,
-) -> None:
+def test_status_colors_respect_terminal_and_environment(monkeypatch) -> None:
     monkeypatch.setattr(cli.sys, "stdout", argparse.Namespace(isatty=lambda: True))
-    monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.setenv("TERM", "tmux-256color")
 
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.delenv("CLICOLOR", raising=False)
     assert cli._paint("FAIL", "31") == "FAIL"
 
-
-def test_status_colors_use_plain_codes_without_bold(
-    monkeypatch,
-) -> None:
-    monkeypatch.setattr(cli.sys, "stdout", argparse.Namespace(isatty=lambda: True))
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("CLICOLOR", "1")
-    monkeypatch.setenv("TERM", "tmux-256color")
-
     assert cli._paint("FAIL", "31") == "\033[31mFAIL\033[0m"
     assert cli._state_color("failed") == "31"
     assert cli._state_color("passed") == "32"
     assert cli._local_color("dirty (1)") == "33"
 
 
-def test_discover_queries_both_configured_fleet_owners(monkeypatch, capsys) -> None:
-    catalog_path = Path(__file__).resolve().parents[1] / "catalog.toml"
-    catalog = load_catalog(catalog_path)
+def test_discover_queries_both_configured_fleet_owners(tmp_path: Path, monkeypatch, capsys) -> None:
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "person"\n\n'
+        '[repos."person"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     owners: list[str] = []
     monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
     monkeypatch.setattr(
@@ -955,7 +919,7 @@ def test_discover_queries_both_configured_fleet_owners(monkeypatch, capsys) -> N
     )
 
     assert _discover(argparse.Namespace()) == 0
-    assert owners == ["joshuarli", "laputa-systems"]
+    assert owners == ["person", "laputa-systems"]
     assert "no uncatalogued" in capsys.readouterr().out
 
 
@@ -981,7 +945,7 @@ def test_discover_fetches_owner_lists_concurrently(monkeypatch) -> None:
     assert github.discover(("person", "org")) == ["org/repo", "person/repo"]
 
 
-def test_fix_reports_cleanup_failure_as_nonzero(
+def test_fix_cli_reports_failed_outcomes_as_nonzero(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     catalog_path = tmp_path / "catalog.toml"
@@ -1000,16 +964,40 @@ def test_fix_reports_cleanup_failure_as_nonzero(
             )
         },
     )
-    monkeypatch.setattr(
-        "repomod.cli.fix_repository",
-        lambda *_: FixOutcome("acme/demo", cleanup_error="worktree remains"),
-    )
     args = argparse.Namespace(
         repo=[], tag=[], rule=[], workers=1, push=False
     )
 
+    monkeypatch.setattr(
+        "repomod.cli.fix_repository",
+        lambda *_: FixOutcome("acme/demo", cleanup_error="worktree remains"),
+    )
     assert _fix(args) == 1
     assert "worktree remains" in capsys.readouterr().err
+
+    monkeypatch.setattr(
+        "repomod.cli.fix_repository",
+        lambda *_: FixOutcome("acme/demo", skipped="checkout is dirty"),
+    )
+    args.repo = ["acme/demo"]
+    assert _fix(args) == 1
+    assert "checkout is dirty" in capsys.readouterr().err
+
+    reference = "refs/repomod/recovery/acme/demo/1234"
+    monkeypatch.setattr(
+        "repomod.cli.fix_repository",
+        lambda *_: FixOutcome(
+            "acme/demo",
+            commits=[("release", "b" * 40)],
+            failures=[("publish", "injected merge failure")],
+            recovery_ref=reference,
+        ),
+    )
+    assert _fix(args) == 1
+    output = capsys.readouterr().err
+    assert "git -C" in output
+    assert "merge --ff-only " + reference in output
+    assert "update-ref -d " + reference in output
 
 
 def test_warning_only_lint_is_nonfatal_unless_strict(
@@ -1177,14 +1165,12 @@ def test_lint_and_status_share_short_format_with_legend(
     assert "G001: concurrency.group must be 'x'" in out
     assert "G003: defaults.run.shell must be 'y'" in out
 
-
-def test_status_lists_all_findings_without_truncation(capsys) -> None:
-    findings = [
+    many = [
         Finding("acme/tool", "gha-settings", f"flow-{index}.yml", f"message {index}",
                 line=index + 1, column=1, code="G001")
         for index in range(5)
     ]
-    rows: list[dict[str, object]] = [{
+    many_rows: list[dict[str, object]] = [{
         "repository": "acme/tool",
         "local": "clean",
         "lint": 5,
@@ -1193,8 +1179,7 @@ def test_status_lists_all_findings_without_truncation(capsys) -> None:
         "lint_operational": 0,
         "todo_items": 0,
     }]
-    ci = {"acme/tool": CiResult("acme/tool", None, None, "passed", (), workflows=())}
-    _status_text(rows, {"acme/tool": findings}, ci)
+    _status_text(many_rows, {"acme/tool": many}, ci)
     out = capsys.readouterr().out
 
     for index in range(5):
@@ -1257,61 +1242,3 @@ def test_status_failed_excludes_warning_only_lint_findings(
     assert row["lint_warnings"] == 1
     assert row["lint_errors"] == 0
 
-
-def test_explicit_fix_skip_returns_nonzero(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
-    catalog_path = tmp_path / "catalog.toml"
-    catalog_path.write_text(
-        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
-        '[repos."acme"]\ndemo = ["tool"]\n',
-        encoding="utf-8",
-    )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
-    monkeypatch.setattr(
-        "repomod.cli.remote_metadata",
-        lambda _: {"acme/demo": RemoteRepository("acme/demo", "main", "a" * 40, False)},
-    )
-    monkeypatch.setattr(
-        "repomod.cli.fix_repository",
-        lambda *_: FixOutcome("acme/demo", skipped="checkout is dirty"),
-    )
-    args = argparse.Namespace(repo=["acme/demo"], tag=[], rule=[], workers=1, push=False)
-
-    assert _fix(args) == 1
-    assert "checkout is dirty" in capsys.readouterr().err
-
-
-def test_fix_reports_recovery_command_after_publication_failure(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
-    catalog_path = tmp_path / "catalog.toml"
-    catalog_path.write_text(
-        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
-        '[repos."acme"]\ndemo = ["tool"]\n',
-        encoding="utf-8",
-    )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    reference = "refs/repomod/recovery/acme/demo/1234"
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog)
-    monkeypatch.setattr(
-        "repomod.cli.remote_metadata",
-        lambda _: {"acme/demo": RemoteRepository("acme/demo", "main", "a" * 40, False)},
-    )
-    monkeypatch.setattr(
-        "repomod.cli.fix_repository",
-        lambda *_: FixOutcome(
-            "acme/demo",
-            commits=[("release", "b" * 40)],
-            failures=[("publish", "injected merge failure")],
-            recovery_ref=reference,
-        ),
-    )
-    args = argparse.Namespace(repo=["acme/demo"], tag=[], rule=[], workers=1, push=False)
-
-    assert _fix(args) == 1
-    output = capsys.readouterr().err
-    assert "git -C" in output
-    assert "merge --ff-only " + reference in output
-    assert "update-ref -d " + reference in output
