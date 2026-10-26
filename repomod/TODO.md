@@ -73,15 +73,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** S (hours)
 
-### RPMD-48 · P2 · Autofix required workflow concurrency and shell defaults
-
-- **Area:** GitHub Actions
-- **Where:** `.github/workflows/*.yml` and `.yaml` in catalog repositories with `gha-settings` findings
-- **Problem:** The new lint identifies workflows that do not use the required concurrency group, cancel setting, or `bash -euo pipefail {0}` shell default. The linter reports these, but the fixer has no validated file plan for them, leaving repeated policy edits manual across repositories.
-- **Recommendation:** Add a workflow fixer that plans these exact root workflow edits, validates the resulting workflow, then apply it through the existing per-repository PR flow.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-50 · P2 · Recognize manifest readme declarations in generated-data audit
 
 - **Area:** Lint accuracy

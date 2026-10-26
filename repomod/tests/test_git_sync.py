@@ -141,6 +141,22 @@ def test_sync_clones_missing_checkout_then_fast_forwards_safely(
     assert head(checkout) == expected
 
 
+def test_sync_clone_sets_origin_head_for_default_branch_resolution(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    remote = RemoteRepository(str(repository.id), "main", "unused", False)
+
+    sync_one(catalog, repository, remote)
+
+    assert (
+        git("symbolic-ref", "refs/remotes/origin/HEAD", cwd=repository_path(catalog, repository))
+        == "refs/remotes/origin/main"
+    )
+
+
 def test_sync_noop_leaves_a_current_checkout_untouched(
     tmp_path: Path,
     git_environment: None,

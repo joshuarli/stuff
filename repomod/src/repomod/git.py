@@ -407,6 +407,14 @@ def clone_repository(path: Path, repo: RepoId, remote_url: str, default_branch: 
         actual_origin = origin_url(staging)
         if actual_origin is None or not expected_origin(repo, actual_origin):
             raise GitError(f"cloned origin does not match catalogued repository {repo}")
+        run_git(
+            [
+                "symbolic-ref",
+                "refs/remotes/origin/HEAD",
+                f"refs/remotes/origin/{default_branch}",
+            ],
+            cwd=staging,
+        )
         if path.exists() or path.is_symlink():
             raise GitError(f"checkout path appeared during clone: {path}")
         os.rename(staging, path)
