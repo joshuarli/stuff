@@ -114,6 +114,16 @@ def test_language_tag_lint_matches_detected_source_against_catalog_tags(tmp_path
             "include targets.mk\n",
             [],
         ),
+        (
+            "jobs:\n  test:\n    steps:\n      - run: make release TARGET=${{ matrix.target }}\n",
+            ".PHONY: release\nrelease:\n\t@echo ok\n",
+            [],
+        ),
+        (
+            "jobs:\n  test:\n    steps:\n      - run: make ${{ matrix.target }}\n",
+            ".PHONY: release\nrelease:\n\t@echo ok\n",
+            [],
+        ),
     ],
 )
 def test_workflow_make_target_lint_checks_literal_root_targets(

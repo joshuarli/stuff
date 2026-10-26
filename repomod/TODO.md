@@ -28,15 +28,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-38 · P2 · Keep GitHub expressions out of Make target parsing
-
-- **Area:** Lint accuracy
-- **Where:** `src/repomod/rules/consistency.py:94`, `.github/workflows/release.yml` in `laputa-systems/diff-pretty`, `e`, `fastermod`, `fdu`, `fz`, `srv`, `tm`, `vault`, and `zzz`
-- **Problem:** `_make_targets` tokenizes `${{ matrix.target }}` with `shlex` and reports `matrix.target` as a missing Make target. The workflows pass that expression as a `TARGET` variable while invoking targets that exist in their Makefiles.
-- **Recommendation:** Treat GitHub expressions as opaque before collecting positional Make targets, and retain variable assignments as assignments.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-39 · P2 · Limit the Markdown audit to maintained documentation
 
 - **Area:** Lint accuracy

@@ -11,6 +11,7 @@ from repomod.rules.workflows import read_workflow_sources
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _RUN = re.compile(r"^(?P<indent> *)(?:-\s*)?run\s*:\s*(?P<value>.*)$")
+_GITHUB_EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
 _MAKE_TARGET = re.compile(r"^[A-Za-z0-9_./%-]+\Z")
 _MAKE_OPTIONS_WITH_VALUE = {"-C", "-f", "-I", "-j", "-l", "-o", "-W", "--directory", "--file"}
 _TRACKED_ARTIFACTS = {
@@ -93,7 +94,7 @@ def _run_commands(source: str) -> list[str]:
 
 def _make_targets(command: str) -> list[str]:
     try:
-        tokens = shlex.split(command, comments=True, posix=True)
+        tokens = shlex.split(_GITHUB_EXPRESSION.sub(" ", command), comments=True, posix=True)
     except ValueError:
         return []
     operators = {";", "&&", "||", "|"}
