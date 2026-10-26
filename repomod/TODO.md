@@ -73,15 +73,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** S (hours)
 
-### RPMD-47 · P2 · Reconcile GitHub topics with the curated catalog
-
-- **Area:** Repository metadata
-- **Where:** `catalog.toml` and the GitHub repository topics for all 27 catalog repositories
-- **Problem:** The read-only scan found catalog topic differences on all 27 repositories, including topics to add and a few existing topics to remove. The repositories therefore present different classifications locally and on GitHub.
-- **Recommendation:** Review the proposed topic changes and run `repomod topics apply` for the catalog once approved.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-48 · P2 · Autofix required workflow concurrency and shell defaults
 
 - **Area:** GitHub Actions

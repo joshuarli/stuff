@@ -25,6 +25,7 @@ from repomod.github import (
     ensure_fix_pull_request,
     open_pull_requests,
     remote_metadata,
+    topics_many,
     upstream_status,
 )
 from repomod.policy import (
@@ -584,6 +585,28 @@ def _lint(args: argparse.Namespace) -> int:
     return 1 if has_errors or (has_warnings and getattr(args, "strict", False)) else 0
 
 
+def _topics(args: argparse.Namespace) -> int:
+    catalog = _catalog()
+    repositories = _select(catalog, args.repo, args.tag)
+    results = topics_many(repositories, apply=args.operation == "apply", jobs=args.workers)
+    failed = False
+    for name, changed, additions, removals, error in results:
+        if error is not None:
+            print(f"{name}: failed: {error}", file=sys.stderr)
+            failed = True
+            continue
+        if not additions and not removals:
+            print(f"{name}: already compliant")
+            continue
+        changes = []
+        if additions:
+            changes.append("add " + ", ".join(additions))
+        if removals:
+            changes.append("remove " + ", ".join(removals))
+        print(f"{name}: {'applied' if changed else 'diff'}: {'; '.join(changes)}")
+    return 1 if failed else 0
+
+
 def _sync(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = catalog.repositories
@@ -834,6 +857,13 @@ def _parser() -> argparse.ArgumentParser:
     sync = commands.add_parser("sync", help="clone or safely fast-forward catalogued checkouts")
     sync.add_argument("--dry-run", action="store_true")
     sync.add_argument("--workers", type=int, default=4)
+
+    topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
+    topic_commands = topics.add_subparsers(dest="operation", required=True)
+    for operation in ("diff", "apply"):
+        topic = topic_commands.add_parser(operation)
+        _filters(topic)
+        topic.add_argument("--workers", type=int, default=4)
     return parser
 
 
@@ -850,6 +880,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "lint": _lint,
             "fix": _fix,
             "sync": _sync,
+            "topics": _topics,
         }
         return dispatch[args.command](args)
     except (CatalogError, PolicyError, GitError, GitHubError, OSError, ValueError) as error:
