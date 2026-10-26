@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path, PurePosixPath
 
+from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
 from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, operational, violation
 
 _SEVERITIES: dict[str, Severity] = {
@@ -47,6 +48,7 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
 
     findings = []
     excluded_error = False
+    excluded_prefixes = workspace_excluded(root)
     for line in result.stdout.splitlines():
         try:
             record = json.loads(line)
@@ -76,7 +78,7 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
             continue
         path = PurePosixPath(relative)
-        if _is_excluded(path):
+        if _is_excluded(path) or is_workspace_excluded(excluded_prefixes, path):
             if mapped_severity == "error":
                 excluded_error = True
             continue

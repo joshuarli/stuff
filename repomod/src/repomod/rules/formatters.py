@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from repomod.git import GitError, working_paths
+from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 from repomod.workflow_policy import is_fork_workflow
 
@@ -471,8 +472,11 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
             )
         ]
     findings = []
+    excluded_prefixes = workspace_excluded(root)
     for relative in paths:
         path = PurePosixPath(relative)
+        if is_workspace_excluded(excluded_prefixes, path):
+            continue
         if (
             "fork" in repository.tags
             and path.parts[:2] == (".github", "workflows")

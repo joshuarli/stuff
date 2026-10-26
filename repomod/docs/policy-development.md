@@ -57,7 +57,8 @@ worktree; repomod keeps validation and repository writes.
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
 runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository,
-except repositories tagged `fork`, which are exempt.
+except repositories tagged `fork`, which are exempt. Both rules skip paths under directories
+excluded from the Cargo workspace, since vendored fork crates are not maintained documentation.
 `generated-artifacts` reports tracked build outputs and requires ignore coverage for
 language artifact directories. Operating-system metadata files such as `.DS_Store` and
 `Thumbs.db` are environment noise covered by the global ignore file, so the rule does not

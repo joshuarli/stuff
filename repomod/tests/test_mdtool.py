@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 import pytest
 
 from repomod.rules.mdtool import _is_excluded
+from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
 
 
 @pytest.mark.parametrize(
@@ -28,3 +29,16 @@ from repomod.rules.mdtool import _is_excluded
 )
 def test_documentation_audit_exclusions(path: str, excluded: bool) -> None:
     assert _is_excluded(PurePosixPath(path)) is excluded
+
+
+def test_workspace_excluded_dirs_skip_vendored_forks(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text(
+        '[workspace]\nexclude = ["crates/laputa-h2-futures-lite"]\n', encoding="utf-8"
+    )
+
+    prefixes = workspace_excluded(tmp_path)
+
+    assert is_workspace_excluded(prefixes, PurePosixPath("crates/laputa-h2-futures-lite/README.md"))
+    assert not is_workspace_excluded(prefixes, PurePosixPath("crates/h12tiny-core/README.md"))
+    assert not is_workspace_excluded(prefixes, PurePosixPath("README.md"))
+    assert workspace_excluded(tmp_path / "missing") == frozenset()
