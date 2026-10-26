@@ -238,14 +238,19 @@ def test_generated_artifact_lint_does_not_follow_a_root_gitignore_symlink(
 ) -> None:
     initialize_repository(tmp_path)
     outside = tmp_path.parent / "outside.gitignore"
-    outside.write_text(".DS_Store\nThumbs.db\n", encoding="utf-8")
+    outside.write_text("target/\n", encoding="utf-8")
     (tmp_path / ".gitignore").symlink_to(outside)
+    (tmp_path / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    source = tmp_path / "src" / "main.rs"
+    source.parent.mkdir()
+    source.write_text("fn main() {}\n", encoding="utf-8")
 
     findings = _tracked_artifact_findings(tmp_path, repository("tool"))
 
     assert len(findings) == 1
-    assert ".DS_Store" in findings[0].message
-    assert "Thumbs.db" in findings[0].message
+    assert "target/" in findings[0].message
 
 
 def test_consistency_and_language_lints_are_registered() -> None:

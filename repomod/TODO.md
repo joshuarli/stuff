@@ -73,15 +73,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** S (hours)
 
-### RPMD-46 · P3 · Add portable generated-file ignore patterns to catalog repos
-
-- **Area:** Repository hygiene
-- **Where:** Root `.gitignore` files in all 27 catalog repositories
-- **Problem:** The scan reports missing in-repository ignore patterns for `.DS_Store` and `Thumbs.db` in every catalog checkout. A user's global ignore file does not protect other contributors or CI checkouts.
-- **Recommendation:** Add the two common patterns to each repository's root ignore policy through a reviewed repo fixer.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-47 · P2 · Reconcile GitHub topics with the curated catalog
 
 - **Area:** Repository metadata

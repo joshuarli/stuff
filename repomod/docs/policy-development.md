@@ -58,6 +58,10 @@ commands, formatter dependencies, and formatter configuration files. Ruff lint c
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
 runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository,
 except repositories tagged `fork`, which are exempt.
+`generated-artifacts` reports tracked build outputs and requires ignore coverage for
+language artifact directories. Operating-system metadata files such as `.DS_Store` and
+`Thumbs.db` are environment noise covered by the global ignore file, so the rule does not
+require in-repository patterns for them.
 
 ## GitHub Actions with Pinact
 

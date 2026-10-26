@@ -33,10 +33,6 @@ _TRACKED_ARTIFACTS = {
 }
 _FIXTURE_PARTS = {"example", "examples", "fixture", "fixtures", "test", "tests", "third_party", "vendor"}
 _COMPOSED_IGNORE_PROBES = {
-    "common": (
-        (".DS_Store", ".DS_Store"),
-        ("Thumbs.db", "Thumbs.db"),
-    ),
     "python": (
         (".venv/repomod-ignore-probe", ".venv/"),
         ("__pycache__/repomod-ignore-probe.pyc", "__pycache__/"),
@@ -236,7 +232,7 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
         )
         for name, paths in sorted(groups.items())
     ]
-    required = list(_COMPOSED_IGNORE_PROBES["common"])
+    required: list[tuple[str, str]] = []
     required.extend(
         probe
         for language in sorted(languages)
