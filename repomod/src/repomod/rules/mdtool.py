@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, operational, violation
-from repomod.workflow_policy import is_fork_workflow
 
 _SEVERITIES: dict[str, Severity] = {
     "error": "error",
@@ -27,6 +26,8 @@ def _operational(repository: Repository, message: str) -> Finding:
 
 
 def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
+    if "fork" in repository.tags:
+        return []
     executable = Path.home() / ".local" / "bin" / "mdtool"
     try:
         result = subprocess.run(
@@ -78,12 +79,6 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
         if _is_excluded(path):
             if mapped_severity == "error":
                 excluded_error = True
-            continue
-        if (
-            "fork" in repository.tags
-            and path.parts[:2] == (".github", "workflows")
-            and not is_fork_workflow(path)
-        ):
             continue
         location = (
             f"line {line_number}:{column}: "

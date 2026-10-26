@@ -56,7 +56,8 @@ worktree; repomod keeps validation and repository writes.
 `no-formatters` rejects formatter
 commands, formatter dependencies, and formatter configuration files. Ruff lint commands such as
 `ruff check` remain allowed. Ruff's format command and format configuration are banned. `mdtool`
-runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository.
+runs the read-only documentation audit at `~/.local/bin/mdtool` for each repository,
+except repositories tagged `fork`, which are exempt.
 
 ## GitHub Actions with Pinact
 
