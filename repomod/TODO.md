@@ -10,24 +10,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-51 · P2 · Converge tool prerelease workflows on the ish format
-
-- **Area:** Release policy
-- **Where:** `.github/workflows/release.yml` in `joshuarli/mactop`, `laputa-systems/diff-pretty`, `e`, `fastermod`, `fd`, `fdu`, `fz`, `srv`, `tm`, and `zzz`
-- **Problem:** The `binary-release-standard` lint reports the remaining ish format gaps: no verified `SHA256SUMS` packaging, no two-phase GitHub API tag creation with `--verify-tag`, and no preflight default-branch guard. Target matrices are already conforming.
-- **Recommendation:** Migrate each workflow to the ish release job flow through reviewed repo fixers or PRs, keeping single-OS scopes for mactop and zzz.
-- **Fix with:** none
-- **Effort:** M (days)
-
-### RPMD-52 · P2 · Converge Rust builder images on the ish Dockerfile
-
-- **Area:** Release policy
-- **Where:** `Dockerfile` in `laputa-systems/diff-pretty`, `fastermod`, `fz`, `srv`, `tm`, and `vault`
-- **Problem:** The `rust-musl-image` lint reports unpinned `rustup/dist` installers and, for vault, the missing verified LLVM prebuilt, musl-cargo wrapper, and CRT stubs. Unpinned installers track latest instead of a checksummed archive.
-- **Recommendation:** Rebuild each image from the ish Dockerfile contract through reviewed repo fixers or PRs.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-39 · P2 · Limit the Markdown audit to maintained documentation
 
 - **Area:** Lint accuracy
