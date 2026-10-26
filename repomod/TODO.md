@@ -46,15 +46,6 @@ Next: 54
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-41 · P2 · Match formatter names only in command positions
-
-- **Area:** Lint accuracy
-- **Where:** `src/repomod/rules/formatters.py:255`, `laputa-systems/rg/crates/core/flags/complete/rg.zsh:378`
-- **Problem:** The formatter scanner reports `black` in ripgrep's color completion list as a formatter command. It is a color name, not an executable invocation.
-- **Recommendation:** Restrict command detection to executable positions and ignore completion values and other command arguments.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-42 · P2 · Check Rust lockfiles at executable workspace roots
 
 - **Area:** Lint accuracy

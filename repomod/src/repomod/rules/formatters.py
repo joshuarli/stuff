@@ -177,6 +177,14 @@ _COMMAND_FILES = {
     "dockerfile",
 }
 _WORKFLOW_RUN = re.compile(r"^(?P<indent> *)(?:-\s*)?run\s*:\s*(?P<value>.*)$")
+_QUOTED_SPAN = re.compile(r"'[^']*'|\"[^\"]*\"")
+_COMMENT_START = re.compile(r"(?:^|\s)#")
+
+
+def _paren_balance(line: str) -> int:
+    code = _COMMENT_START.split(line, maxsplit=1)[0]
+    code = _QUOTED_SPAN.sub(" ", code)
+    return code.count("(") - code.count(")")
 
 
 def _read_file(root: Path, relative: str) -> str:
@@ -234,7 +242,12 @@ def _workflow_run_lines(source: str) -> tuple[str, ...]:
 
 def _commands(source: str) -> tuple[str, ...]:
     found: set[str] = set()
+    depth = 0
     for line in source.splitlines():
+        balance = _paren_balance(line)
+        if depth > 0:
+            depth = max(0, depth + balance)
+            continue
         try:
             lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|")
             lexer.whitespace_split = True
@@ -249,6 +262,7 @@ def _commands(source: str) -> tuple[str, ...]:
                 segment = []
             else:
                 segment.append(token)
+        depth = max(0, depth + balance)
     return tuple(sorted(found))
 
 
