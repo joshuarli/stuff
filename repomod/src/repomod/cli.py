@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog, repository_path
+from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog, repository_path, validate_identifier
 from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
@@ -22,6 +22,7 @@ from repomod.github import (
     GitHubError,
     UpstreamStatus,
     ci_status,
+    discover,
     ensure_fix_pull_request,
     open_pull_requests,
     remote_metadata,
@@ -607,6 +608,51 @@ def _topics(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _discover(args: argparse.Namespace) -> int:
+    catalog = _catalog()
+    if args.owner:
+        seen: dict[str, str] = {}
+        for owner in args.owner:
+            validate_identifier(owner, "owner")
+            key = owner.casefold()
+            if key not in seen:
+                seen[key] = owner
+        owner_names = sorted(seen.values(), key=str.casefold)
+    else:
+        owner_names = sorted(
+            {repo.id.owner for repo in catalog.repositories}, key=str.casefold
+        )
+    found = discover(tuple(owner_names))
+    catalogued = {str(repo.id).casefold(): str(repo.id) for repo in catalog.repositories}
+    discovered = {name.casefold(): name for name in found}
+    uncatalogued = sorted(
+        (name for key, name in discovered.items() if key not in catalogued),
+        key=str.casefold,
+    )
+    missing = sorted(
+        (name for key, name in catalogued.items() if key not in discovered),
+        key=str.casefold,
+    )
+    if args.json:
+        _print_json(
+            {"owners": owner_names, "uncatalogued": uncatalogued, "missing": missing}
+        )
+        return 0
+    if uncatalogued:
+        print(f"uncatalogued ({len(uncatalogued)}):")
+        for name in uncatalogued:
+            print(f"  {name}")
+    else:
+        print("uncatalogued (0): none")
+    if missing:
+        print(f"missing from GitHub ({len(missing)}):")
+        for name in missing:
+            print(f"  {name}")
+    elif not uncatalogued:
+        print("catalog matches GitHub")
+    return 0
+
+
 def _sync(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = catalog.repositories
@@ -902,6 +948,12 @@ def _parser() -> argparse.ArgumentParser:
     _filters(push)
     push.add_argument("--workers", type=int, default=4)
 
+    discover = commands.add_parser(
+        "discover", help="compare GitHub owner repositories against catalogued entries"
+    )
+    discover.add_argument("--owner", action="append", default=[])
+    discover.add_argument("--json", action="store_true")
+
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)
     for operation in ("diff", "apply"):
@@ -925,6 +977,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "fix": _fix,
             "sync": _sync,
             "push": _push,
+            "discover": _discover,
             "topics": _topics,
         }
         return dispatch[args.command](args)

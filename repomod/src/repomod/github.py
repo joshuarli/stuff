@@ -437,13 +437,7 @@ def _parent_reference(value: Any) -> tuple[str | None, str | None, str | None]:
     return parent, name, sha
 
 
-def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
-    owner_metadata = _gh_json([f"users/{owner_name}"])
-    owner_type = owner_metadata.get("type") if isinstance(owner_metadata, dict) else None
-    endpoint = "orgs" if owner_type == "Organization" else "users"
-    pages = _gh_json(
-        ["--paginate", "--slurp", f"{endpoint}/{owner_name}/repos?type=all&per_page=100"]
-    )
+def _collect_discover_items(pages: object, owners: set[str], owner_name: str) -> list[str]:
     if not isinstance(pages, list):
         raise GitHubError(f"GitHub returned an invalid repository list for {owner_name}")
     repositories: list[str] = []
@@ -464,6 +458,28 @@ def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
                 and archived is False
             ):
                 repositories.append(full_name)
+    return repositories
+
+
+def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
+    owner_metadata = _gh_json([f"users/{owner_name}"])
+    owner_type = owner_metadata.get("type") if isinstance(owner_metadata, dict) else None
+    endpoint = "orgs" if owner_type == "Organization" else "users"
+    pages = _gh_json(
+        ["--paginate", "--slurp", f"{endpoint}/{owner_name}/repos?type=all&per_page=100"]
+    )
+    repositories = _collect_discover_items(pages, owners, owner_name)
+    if endpoint == "users":
+        try:
+            viewer = _gh_json(["user"])
+        except GitHubError:
+            return repositories
+        login = viewer.get("login") if isinstance(viewer, dict) else None
+        if isinstance(login, str) and login.casefold() == owner_name.casefold():
+            private_pages = _gh_json(
+                ["--paginate", "--slurp", "user/repos?type=all&per_page=100"]
+            )
+            repositories.extend(_collect_discover_items(private_pages, owners, owner_name))
     return repositories
 
 
