@@ -54,6 +54,17 @@ See [policy development](docs/policy-development.md) for rule behavior. Report p
 See [GitHub Actions integration](docs/policy-development.md#github-actions-with-pinact) for the
 Pinact checker, approved catalog, and fix-plan flow.
 
+## Push
+
+`repomod push` pushes each selected checkout's current branch when it is ahead of
+its origin upstream. It reports `pushed`, skips clean or non-pushable checkouts
+with a reason, and fails loudly without rewriting remote history when the remote
+has moved. Use `--repo`/`--tag` to select repositories.
+
+```sh
+uv run repomod push
+```
+
 ## Dependency upgrades
 
 The `audit-upgrades` rule reports locked direct dependencies that lag their registry.

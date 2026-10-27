@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog, repository_path
-from repomod.fix import FixOutcome, fix_repository, push_fix_branch
+from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
     AutoMergeEnabled,
@@ -828,6 +828,44 @@ def _fix(args: argparse.Namespace) -> int:
             print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
             failed |= state == "failed"
     return 1 if failed else 0
+
+
+def _push(args: argparse.Namespace) -> int:
+    if args.workers < 1:
+        raise ValueError("--workers must be at least one")
+    catalog = _catalog()
+    repositories = _select(catalog, args.repo, args.tag)
+
+    def push_one(repository: Repository) -> tuple[str, str, str | None]:
+        try:
+            with repository_lock(catalog.root, repository.id):
+                path = repository_path(catalog, repository)
+                state, message = push_repository(repository, path)
+                return str(repository.id), state, message
+        except (CatalogError, GitError, OSError) as error:
+            return str(repository.id), "failed", str(error)
+
+    results: list[tuple[str, str, str | None]] = []
+    with ThreadPoolExecutor(
+        max_workers=min(args.workers, 32, max(1, len(repositories))),
+        thread_name_prefix="repomod-push",
+    ) as pool:
+        futures = {pool.submit(push_one, repository): repository for repository in repositories}
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as error:
+                repository = futures[future]
+                results.append((str(repository.id), "failed", str(error)))
+    failed = False
+    for name, state, message in sorted(results, key=lambda item: item[0].casefold()):
+        line = f"{name}: {state}" + (f": {message}" if message is not None else "")
+        if state == "failed":
+            print(line, file=sys.stderr)
+            failed = True
+        else:
+            print(line)
+    return 1 if failed else 0
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="repomod", description="Repair policy violations and open pull requests")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -858,6 +896,12 @@ def _parser() -> argparse.ArgumentParser:
     sync.add_argument("--dry-run", action="store_true")
     sync.add_argument("--workers", type=int, default=4)
 
+    push = commands.add_parser(
+        "push", help="push checked-out branches that are ahead of their origin upstream"
+    )
+    _filters(push)
+    push.add_argument("--workers", type=int, default=4)
+
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)
     for operation in ("diff", "apply"):
@@ -880,6 +924,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "lint": _lint,
             "fix": _fix,
             "sync": _sync,
+            "push": _push,
             "topics": _topics,
         }
         return dispatch[args.command](args)

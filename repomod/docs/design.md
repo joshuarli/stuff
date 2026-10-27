@@ -58,6 +58,8 @@ auto-merge only when the repository allows it and the default branch requires st
 next fix run resumes its unmerged branch from the current default branch. Failed or interrupted
 work remains on its branch or in its worktree.
 
-Push uses a normal fast-forward Git push and keeps local commits on failure. `topics apply`
+Push uses a normal fast-forward Git push and keeps local commits on failure. `push` pushes
+each selected checkout's current branch when it is ahead of its origin upstream and skips
+anything else with a reason. `topics apply`
 replaces GitHub topics with the catalog's complete tag set. `pins refresh` updates the local
 approved GitHub Action, Python tool, and TypeScript tool versions from their upstream sources.
