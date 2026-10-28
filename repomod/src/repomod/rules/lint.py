@@ -128,7 +128,7 @@ def _setup_steps(languages: set[str]) -> list[str]:
 
 
 def _install_steps(root: Path, languages: set[str]) -> list[str]:
-    if {"typescript", "javascript"} & languages:
+    if {"typescript", "javascript"} & languages and (root / "package.json").is_file():
         if (root / "pnpm-lock.yaml").is_file():
             return ["      - run: pnpm install --frozen-lockfile"]
         return ["      - run: pnpm install"]

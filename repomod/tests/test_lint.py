@@ -47,6 +47,7 @@ def test_missing_lint_workflow_is_fixable_and_template_runs_make_lint(
 
 
 def test_lint_template_provisions_python_and_typescript_toolchains(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text('{"name": "demo"}\n', encoding="utf-8")
     (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: 9\n", encoding="utf-8")
     rendered = _lint_workflow_source(tmp_path, {"python", "typescript"})
 
@@ -68,10 +69,18 @@ def test_lint_template_needs_no_setup_for_rust_only(tmp_path: Path) -> None:
 
 
 def test_lint_template_installs_without_a_lockfile(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text('{"name": "demo"}\n', encoding="utf-8")
     rendered = _lint_workflow_source(tmp_path, {"typescript"})
 
     assert "run: pnpm install\n" in rendered
     assert "--frozen-lockfile" not in rendered
+
+
+def test_lint_template_skips_install_without_a_root_package(tmp_path: Path) -> None:
+    rendered = _lint_workflow_source(tmp_path, {"typescript"})
+
+    assert "pnpm install" not in rendered
+    assert "pnpm/setup@" in rendered
 
 
 def test_lint_workflow_without_make_lint_needs_manual_repair(tmp_path: Path) -> None:
