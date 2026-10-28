@@ -600,7 +600,8 @@ def _static_smoke_step(indentation: int) -> list[str]:
         f"{script}  fi",
         f"{script}done",
         f"{script}if [[ \"$X86_64_COUNT\" -lt 1 || \"$AARCH64_COUNT\" -lt 1 ]]; then",
-        f"{script}  printf 'Expected at least one x86_64 and one aarch64 Linux ELF artifact, found x86_64=%s aarch64=%s\\n' "
+        f"{script}  printf 'Expected at least one x86_64 and one aarch64 Linux ELF artifact, "
+        f"found x86_64=%s aarch64=%s\\n' "
         f"\"$X86_64_COUNT\" \"$AARCH64_COUNT\" >&2",
         f"{script}  exit 1",
         f"{script}fi",
