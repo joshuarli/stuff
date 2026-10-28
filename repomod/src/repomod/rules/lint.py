@@ -127,7 +127,15 @@ def _setup_steps(languages: set[str]) -> list[str]:
     return steps
 
 
-def _lint_workflow_source(languages: set[str]) -> str:
+def _install_steps(root: Path, languages: set[str]) -> list[str]:
+    if {"typescript", "javascript"} & languages:
+        if (root / "pnpm-lock.yaml").is_file():
+            return ["      - run: pnpm install --frozen-lockfile"]
+        return ["      - run: pnpm install"]
+    return []
+
+
+def _lint_workflow_source(root: Path, languages: set[str]) -> str:
     try:
         pins = load_pins()
     except ValueError as error:
@@ -164,6 +172,7 @@ def _lint_workflow_source(languages: set[str]) -> str:
         "        with:",
         "          persist-credentials: false",
         *_setup_steps(languages),
+        *_install_steps(root, languages),
         "      - name: lint",
         "        run: make lint",
     ]
@@ -173,7 +182,7 @@ def _lint_workflow_source(languages: set[str]) -> str:
 def _lint_workflow_fix(root: Path, repository: Repository) -> dict[str, str]:
     if _lint_workflow_path(root) is not None:
         return {}
-    return {".github/workflows/lint.yml": _lint_workflow_source(_language_sources(root))}
+    return {".github/workflows/lint.yml": _lint_workflow_source(root, _language_sources(root))}
 
 
 def _root_makefile(root: Path) -> Path | None:

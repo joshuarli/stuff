@@ -46,22 +46,32 @@ def test_missing_lint_workflow_is_fixable_and_template_runs_make_lint(
     assert "actions/checkout@" in rendered
 
 
-def test_lint_template_provisions_python_and_typescript_toolchains() -> None:
-    rendered = _lint_workflow_source({"python", "typescript"})
+def test_lint_template_provisions_python_and_typescript_toolchains(tmp_path: Path) -> None:
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: 9\n", encoding="utf-8")
+    rendered = _lint_workflow_source(tmp_path, {"python", "typescript"})
 
     assert "astral-sh/setup-uv@" in rendered
     assert "uv python install 3.15" in rendered
     assert "pnpm/setup@" in rendered
     assert "runtime: node@" in rendered
+    assert "run: pnpm install --frozen-lockfile" in rendered
     assert "run: make lint" in rendered
 
 
-def test_lint_template_needs_no_setup_for_rust_only() -> None:
-    rendered = _lint_workflow_source({"rust"})
+def test_lint_template_needs_no_setup_for_rust_only(tmp_path: Path) -> None:
+    rendered = _lint_workflow_source(tmp_path, {"rust"})
 
     assert "setup-uv" not in rendered
     assert "pnpm/setup" not in rendered
+    assert "pnpm install" not in rendered
     assert "run: make lint" in rendered
+
+
+def test_lint_template_installs_without_a_lockfile(tmp_path: Path) -> None:
+    rendered = _lint_workflow_source(tmp_path, {"typescript"})
+
+    assert "run: pnpm install\n" in rendered
+    assert "--frozen-lockfile" not in rendered
 
 
 def test_lint_workflow_without_make_lint_needs_manual_repair(tmp_path: Path) -> None:
