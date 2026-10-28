@@ -83,9 +83,14 @@ Pinact write target.
 `lint.yaml`) that runs `make lint`. Its fixer creates the workflow from a template pinned to the
 current `actions.toml` checkout when it is missing; a present workflow that does not run
 `make lint` is a manual finding. `make-lint-target` requires a root `Makefile` that defines a
-`lint` target. The lint command itself is a per-repository human choice, so a missing Makefile
-or a missing target is always manual: add the target running the repository's linters as a
-non-mutating check.
+`lint` target, and pins the linter by detected language: `cargo clippy` for Rust, `ruff`
+for Python (never `flake8`), and `oxlint` (or a `pnpm`/`npm` `lint`/`check` script, which
+`typescript-standard` already pins to Oxlint) for TypeScript. The rest of the lint command
+stays a per-repository human choice, so a missing Makefile or a missing target is always
+manual: add the target running the repository's linters as a non-mutating check.
+`make-lint-target` rejects `--fix` in the lint recipe. Linter versions ride the existing
+pins: the `rust-toolchain` nightly for clippy, `python-tools.toml` for ruff, and
+`typescript-tools.toml` for oxlint.
 
 Catalog-backed fixes preserve action subpaths, refuse major changes and downgrades, and do not
 treat an unlabeled SHA as approval. The bounded checker is not a complete implementation of

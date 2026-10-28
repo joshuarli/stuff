@@ -6,11 +6,18 @@ from pathlib import Path
 from repomod.git import GitError
 from repomod.rules.actions import _validate_workflows, load_pins
 from repomod.rules.consistency import _declared_make_targets
+from repomod.rules.languages import _language_sources
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _LINT_WORKFLOW_NAMES = ("lint.yml", "lint.yaml")
 _MAKE_LINT = re.compile(r"(?m)\bmake\s+(?:[^\n#]*\s)?lint\b")
 _MAKEFILE_NAMES = ("GNUmakefile", "makefile", "Makefile")
+_TARGET = re.compile(r"^([A-Za-z0-9_./%-][^:]*?)\s*:(?!/=)([^=]*)$")
+_PACKAGE_LINT = re.compile(
+    r"\b(?:pnpm|npm|yarn)\b[^\n]*\brun\s+(?:lint|check)\b"
+    r"|\bpnpm\s+(?:lint|check)\b"
+    r"|\bnpm\s+run\s+(?:lint|check)\b"
+)
 
 
 def _lint_workflow_path(root: Path) -> Path | None:
@@ -131,6 +138,109 @@ def _root_makefile(root: Path) -> Path | None:
     return None
 
 
+def _makefile_parts(source: str) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    recipes: dict[str, list[str]] = {}
+    prerequisites: dict[str, list[str]] = {}
+    current: str | None = None
+    for line in source.splitlines():
+        if not line or line[0] in (" ", "\t"):
+            if current is not None:
+                recipes[current].append(line.strip())
+            continue
+        if line.lstrip().startswith("#"):
+            current = None
+            continue
+        match = _TARGET.match(line)
+        if match is None or match.group(2).strip().startswith("="):
+            current = None
+            continue
+        parts: list[str] = [part for part in match.group(1).split() if "%" not in part and "$" not in part]
+        if not parts:
+            current = None
+            continue
+        current = parts[0]
+        recipes.setdefault(current, [])
+        prerequisites[current] = [
+            part
+            for part in match.group(2).split()
+            if "%" not in part and "$" not in part and "=" not in part
+        ]
+    return recipes, prerequisites
+
+
+def _lint_recipe_text(source: str) -> str | None:
+    recipes, prerequisites = _makefile_parts(source)
+    if "lint" not in recipes:
+        return None
+    seen = {"lint"}
+    queue = ["lint"]
+    chunks: list[str] = []
+    while queue:
+        name = queue.pop(0)
+        chunks.extend(recipes.get(name, []))
+        for prerequisite in prerequisites.get(name, []):
+            if prerequisite not in seen:
+                seen.add(prerequisite)
+                queue.append(prerequisite)
+    return "\n".join(chunk for chunk in chunks if chunk)
+
+
+def _linter_findings(
+    repository: Repository, relative: str, languages: set[str], recipe: str
+) -> list[Finding]:
+    findings = []
+    lowered = recipe.lower()
+    if "--fix" in lowered:
+        findings.append(
+            violation(
+                repository,
+                "make-lint-target",
+                relative,
+                "lint target must be a non-mutating check; remove --fix",
+            )
+        )
+    if "rust" in languages and "clippy" not in lowered:
+        findings.append(
+            violation(
+                repository,
+                "make-lint-target",
+                relative,
+                "lint target must run cargo clippy for Rust sources",
+            )
+        )
+    if "python" in languages:
+        if "ruff" not in lowered:
+            findings.append(
+                violation(
+                    repository,
+                    "make-lint-target",
+                    relative,
+                    "lint target must run ruff for Python sources",
+                )
+            )
+        if "flake8" in lowered:
+            findings.append(
+                violation(
+                    repository,
+                    "make-lint-target",
+                    relative,
+                    "lint target must never run flake8; use ruff",
+                )
+            )
+    if {"typescript", "javascript"} & languages and (
+        "oxlint" not in lowered and _PACKAGE_LINT.search(recipe) is None
+    ):
+        findings.append(
+            violation(
+                repository,
+                "make-lint-target",
+                relative,
+                "lint target must run oxlint for TypeScript sources",
+            )
+        )
+    return findings
+
+
 def _make_lint_target_findings(root: Path, repository: Repository) -> list[Finding]:
     makefile = _root_makefile(root)
     if makefile is None:
@@ -165,19 +275,28 @@ def _make_lint_target_findings(root: Path, repository: Repository) -> list[Findi
         ]
     targets = _declared_make_targets(makefile)
     if targets is not None:
-        if "lint" in targets:
-            return []
-    elif re.search(r"(?m)^lint\s*:", source) is not None:
-        return []
-    return [
-        violation(
-            repository,
-            "make-lint-target",
-            relative,
-            "root Makefile does not define a lint target; "
-            "add one so the lint workflow can run make lint",
-        )
-    ]
+        if "lint" not in targets:
+            return [
+                violation(
+                    repository,
+                    "make-lint-target",
+                    relative,
+                    "root Makefile does not define a lint target; "
+                    "add one so the lint workflow can run make lint",
+                )
+            ]
+    elif re.search(r"(?m)^lint\s*:", source) is None:
+        return [
+            violation(
+                repository,
+                "make-lint-target",
+                relative,
+                "root Makefile does not define a lint target; "
+                "add one so the lint workflow can run make lint",
+            )
+        ]
+    recipe = _lint_recipe_text(source) or ""
+    return _linter_findings(repository, relative, _language_sources(root), recipe)
 
 
 def lint_rules() -> tuple[Rule, ...]:

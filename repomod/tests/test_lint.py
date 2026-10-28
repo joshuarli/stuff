@@ -102,6 +102,85 @@ def test_makefile_with_lint_target_passes(tmp_path: Path) -> None:
     assert _make_lint_target_findings(tmp_path, repository("tool")) == []
 
 
+def test_rust_lint_target_must_run_non_mutating_clippy(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text('[package]\nname = "demo"\n', encoding="utf-8")
+    source = tmp_path / "src" / "main.rs"
+    source.parent.mkdir()
+    source.write_text("fn main() {}\n", encoding="utf-8")
+
+    (tmp_path / "Makefile").write_text(".PHONY: test\ntest:\n\tcargo test\n", encoding="utf-8")
+    assert any(
+        "does not define a lint target" in finding.message
+        for finding in _make_lint_target_findings(tmp_path, repository("tool"))
+    )
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\tcargo clippy --fix --allow-dirty -- --deny warnings\n",
+        encoding="utf-8",
+    )
+    assert any(
+        "--fix" in finding.message
+        for finding in _make_lint_target_findings(tmp_path, repository("tool"))
+    )
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\tcargo clippy --all-targets -- --deny warnings\n",
+        encoding="utf-8",
+    )
+    assert _make_lint_target_findings(tmp_path, repository("tool")) == []
+
+
+def test_python_lint_target_must_run_ruff_never_flake8(tmp_path: Path) -> None:
+    (tmp_path / "demo.py").write_text("def run(): pass\n", encoding="utf-8")
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\tflake8 src tests\n", encoding="utf-8"
+    )
+    messages = [
+        finding.message for finding in _make_lint_target_findings(tmp_path, repository("tool"))
+    ]
+    assert any("ruff" in message for message in messages)
+    assert any("flake8" in message for message in messages)
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\truff check src tests\n", encoding="utf-8"
+    )
+    assert _make_lint_target_findings(tmp_path, repository("tool")) == []
+
+
+def test_typescript_lint_target_must_reach_oxlint(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text('{"name": "demo"}\n', encoding="utf-8")
+    source = tmp_path / "src" / "index.ts"
+    source.parent.mkdir()
+    source.write_text("export {};\n", encoding="utf-8")
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\ttsc --noEmit\n", encoding="utf-8"
+    )
+    assert any(
+        "oxlint" in finding.message
+        for finding in _make_lint_target_findings(tmp_path, repository("tool", "typescript"))
+    )
+
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint\nlint:\n\tpnpm run lint\n", encoding="utf-8"
+    )
+    assert _make_lint_target_findings(tmp_path, repository("tool", "typescript")) == []
+
+
+def test_lint_target_follows_prerequisites(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text('[package]\nname = "demo"\n', encoding="utf-8")
+    source = tmp_path / "src" / "main.rs"
+    source.parent.mkdir()
+    source.write_text("fn main() {}\n", encoding="utf-8")
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: lint lint-rs\nlint: lint-rs\nlint-rs:\n\tcargo clippy -- --deny warnings\n",
+        encoding="utf-8",
+    )
+
+    assert _make_lint_target_findings(tmp_path, repository("tool")) == []
+
+
 def test_lint_rules_are_registered_and_blacklistable() -> None:
     rule_ids = {rule.id for rule in rules()}
 
