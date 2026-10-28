@@ -81,7 +81,10 @@ per-rule commits, push decisions, pull requests, and cleanup. The canonical chec
 Pinact write target.
 `gha-lint-workflow` requires every repository to have `.github/workflows/lint.yml` (or
 `lint.yaml`) that runs `make lint`. Its fixer creates the workflow from a template pinned to the
-current `actions.toml` checkout when it is missing; a present workflow that does not run
+current `actions.toml` checkout when it is missing, provisioning the lint toolchain from the
+approved pins (`astral-sh/setup-uv` with the approved uv and Python 3.15 for Python sources,
+`pnpm/setup` with the approved pnpm and Node for TypeScript sources; Rust resolves its pinned
+toolchain file via rustup with no setup step). A present workflow that does not run
 `make lint` is a manual finding. `make-lint-target` requires a root `Makefile` that defines a
 `lint` target, and pins the linter by detected language: `cargo clippy` for Rust, `ruff`
 for Python (never `flake8`), and `oxlint` (or a `pnpm`/`npm` `lint`/`check` script, which
