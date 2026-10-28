@@ -252,6 +252,34 @@ def test_make_without_c_sources_is_not_a_native_build(tmp_path: Path) -> None:
     assert "does not establish" in findings[0].message
 
 
+def write_c_dockerfile(root: Path) -> None:
+    (root / "Dockerfile").write_text(
+        "FROM alpine:3.24.1\n"
+        "ADD --checksum=sha256:abc --unpack=true "
+        "https://www.kernel.org/pub/software/scm/git/git-2.56.0.tar.xz /src/\n"
+        "WORKDIR /src/git-2.56.0\n"
+        'RUN make CC=clang CFLAGS="-O3" git git-shell\n',
+        encoding="utf-8",
+    )
+
+
+def test_docker_c_build_recognizes_tarball_layout_without_sources(
+    tmp_path: Path,
+) -> None:
+    write_c_dockerfile(tmp_path)
+    write_workflow(tmp_path, binary_workflow("make git"))
+    repository = Repository(RepoId("laputa-systems", "git-build"), ("tool", "c"))
+
+    assert _binary_release_findings(tmp_path, repository) == []
+
+    (tmp_path / "Dockerfile").write_text("FROM alpine:3.24.1\n", encoding="utf-8")
+
+    findings = _binary_release_findings(tmp_path, repository)
+
+    assert len(findings) == 1
+    assert findings[0].severity == "warning"
+
+
 def test_captured_c_makefile_fixture_passes_binary_policy(tmp_path: Path) -> None:
     fixture = (
         Path(__file__).parent
