@@ -7,6 +7,8 @@ from repomod.git import GitError
 from repomod.rules.actions import _validate_workflows, load_pins
 from repomod.rules.consistency import _declared_make_targets
 from repomod.rules.languages import _language_sources
+from repomod.rules.python_standard import load_approved_python_tool_versions
+from repomod.rules.typescript_standard import load_typescript_tool_pins
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _LINT_WORKFLOW_NAMES = ("lint.yml", "lint.yaml")
@@ -83,7 +85,49 @@ def _gha_lint_workflow_findings(root: Path, repository: Repository) -> list[Find
     return []
 
 
-def _lint_workflow_source() -> str:
+def _setup_steps(languages: set[str]) -> list[str]:
+    try:
+        pins = load_pins()
+    except ValueError as error:
+        raise GitError(f"cannot template the lint workflow: {error}") from error
+    steps: list[str] = []
+    if "python" in languages:
+        setup = pins.get("astral-sh/setup-uv")
+        if setup is None:
+            raise GitError("cannot template the lint workflow: actions.toml has no astral-sh/setup-uv pin")
+        try:
+            uv = load_approved_python_tool_versions()["uv"]
+        except ValueError as error:
+            raise GitError(f"cannot template the lint workflow: {error}") from error
+        steps.extend(
+            [
+                f"      - uses: astral-sh/setup-uv@{setup.sha} # {setup.version}",
+                "        with:",
+                f"          version: {uv}",
+                "      - run: uv python install 3.15",
+            ]
+        )
+    if {"typescript", "javascript"} & languages:
+        setup = pins.get("pnpm/setup")
+        if setup is None:
+            raise GitError("cannot template the lint workflow: actions.toml has no pnpm/setup pin")
+        try:
+            tools = load_typescript_tool_pins()
+        except ValueError as error:
+            raise GitError(f"cannot template the lint workflow: {error}") from error
+        steps.extend(
+            [
+                f"      - uses: pnpm/setup@{setup.sha} # {setup.version}",
+                "        with:",
+                f"          version: {tools.pnpm}",
+                f"          runtime: node@{tools.node}",
+                "          install: false",
+            ]
+        )
+    return steps
+
+
+def _lint_workflow_source(languages: set[str]) -> str:
     try:
         pins = load_pins()
     except ValueError as error:
@@ -91,43 +135,45 @@ def _lint_workflow_source() -> str:
     checkout = pins.get("actions/checkout")
     if checkout is None:
         raise GitError("cannot template the lint workflow: actions.toml has no actions/checkout pin")
-    return (
-        "name: lint\n"
-        "\n"
-        "on:\n"
-        "  pull_request:\n"
-        "  push:\n"
-        "    branches: [main, master]\n"
-        "\n"
-        "permissions: {}\n"
-        "\n"
-        "concurrency:\n"
-        '  group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"\n'
-        "  cancel-in-progress: true\n"
-        "\n"
-        "defaults:\n"
-        "  run:\n"
-        "    shell: bash -euo pipefail {0}\n"
-        "\n"
-        "jobs:\n"
-        "  lint:\n"
-        "    name: lint\n"
-        "    runs-on: ubuntu-latest\n"
-        "    permissions:\n"
-        "      contents: read\n"
-        "    steps:\n"
-        f"      - uses: actions/checkout@{checkout.sha} # {checkout.version}\n"
-        "        with:\n"
-        "          persist-credentials: false\n"
-        "      - name: lint\n"
-        "        run: make lint\n"
-    )
+    lines = [
+        "name: lint",
+        "",
+        "on:",
+        "  pull_request:",
+        "  push:",
+        "    branches: [main, master]",
+        "",
+        "permissions: {}",
+        "",
+        "concurrency:",
+        '  group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"',
+        "  cancel-in-progress: true",
+        "",
+        "defaults:",
+        "  run:",
+        "    shell: bash -euo pipefail {0}",
+        "",
+        "jobs:",
+        "  lint:",
+        "    name: lint",
+        "    runs-on: ubuntu-latest",
+        "    permissions:",
+        "      contents: read",
+        "    steps:",
+        f"      - uses: actions/checkout@{checkout.sha} # {checkout.version}",
+        "        with:",
+        "          persist-credentials: false",
+        *_setup_steps(languages),
+        "      - name: lint",
+        "        run: make lint",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def _lint_workflow_fix(root: Path, repository: Repository) -> dict[str, str]:
     if _lint_workflow_path(root) is not None:
         return {}
-    return {".github/workflows/lint.yml": _lint_workflow_source()}
+    return {".github/workflows/lint.yml": _lint_workflow_source(_language_sources(root))}
 
 
 def _root_makefile(root: Path) -> Path | None:
