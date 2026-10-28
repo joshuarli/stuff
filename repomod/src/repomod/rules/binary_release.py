@@ -218,6 +218,39 @@ def _make_zig_build(root: Path, source: str) -> bool:
     return False
 
 
+def _c_has_executable(root: Path) -> bool:
+    makefile = root / "Makefile"
+    if makefile.is_symlink() or not makefile.is_file():
+        return False
+    try:
+        text = makefile.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return False
+    if re.search(r"(?m)^\s*(?:CC|CFLAGS|LDFLAGS)\s*[:?+!]?=", text) is None:
+        return False
+    for pattern in ("*.c", "src/*.c", "src/*/*.c"):
+        try:
+            candidates = glob.glob(str(root / pattern))
+        except OSError:
+            continue
+        for name in candidates:
+            path = Path(name)
+            if not path.is_file() or path.is_symlink():
+                continue
+            try:
+                if path.resolve().is_relative_to(root.resolve()):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def _make_c_build(root: Path, source: str) -> bool:
+    if re.search(r"\bmake\b", source) is None:
+        return False
+    return _c_has_executable(root)
+
+
 def _native_build(root: Path, source: str) -> bool:
     cargo_command = re.search(r"\bcargo\s+(?:build|dev\s+dist)\b", source)
     rust = (cargo_command is not None or _make_release_build(root, source)) and _cargo_has_executable(root)
@@ -238,7 +271,8 @@ def _native_build(root: Path, source: str) -> bool:
         and re.search(r"\baddExecutable\s*\(", zig_manifest.read_text(encoding="utf-8"))
     )
     zig_make = _make_zig_build(root, source)
-    return any((rust, go, swift, cmake, zig, zig_make))
+    c_make = _make_c_build(root, source)
+    return any((rust, go, swift, cmake, zig, zig_make, c_make))
 
 
 def _release_kind(root: Path, source: str) -> str:
@@ -565,8 +599,8 @@ def _static_smoke_step(indentation: int) -> list[str]:
         f"{script}    exit 1",
         f"{script}  fi",
         f"{script}done",
-        f"{script}if [[ \"$X86_64_COUNT\" -ne 1 || \"$AARCH64_COUNT\" -ne 1 ]]; then",
-        f"{script}  printf 'Expected one x86_64 and one aarch64 Linux ELF artifact, found x86_64=%s aarch64=%s\\n' "
+        f"{script}if [[ \"$X86_64_COUNT\" -lt 1 || \"$AARCH64_COUNT\" -lt 1 ]]; then",
+        f"{script}  printf 'Expected at least one x86_64 and one aarch64 Linux ELF artifact, found x86_64=%s aarch64=%s\\n' "
         f"\"$X86_64_COUNT\" \"$AARCH64_COUNT\" >&2",
         f"{script}  exit 1",
         f"{script}fi",

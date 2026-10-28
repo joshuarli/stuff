@@ -160,6 +160,7 @@ _TOOL_FIXTURES = [
     ("joshuarli_mactop", "joshuarli/mactop"),
     ("joshuarli_gh", "joshuarli/gh"),
     ("laputa-systems_zzz", "laputa-systems/zzz"),
+    ("laputa-systems_git-build", "laputa-systems/git-build"),
 ]
 
 
@@ -211,6 +212,82 @@ def test_captured_binary_releases_allow_fork_platform_and_language_tags(
             assert _binary_release_findings(
                 root, Repository(RepoId(owner, name), tags)
             ) == [], (fixture_name, tags)
+
+
+def write_c_executable(root: Path) -> None:
+    (root / "Makefile").write_text(
+        "CC ?= clang\nCFLAGS ?= -O3\n\ndemo: src/demo/demo.c\n"
+        "\t$(CC) $(CFLAGS) src/demo/demo.c -o demo\n",
+        encoding="utf-8",
+    )
+    source = root / "src" / "demo" / "demo.c"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("int main(void) { return 0; }\n", encoding="utf-8")
+
+
+def test_make_c_build_recognizes_c_makefile_layout(tmp_path: Path) -> None:
+    write_c_executable(tmp_path)
+    write_workflow(tmp_path, binary_workflow("make git"))
+    tool = Repository(RepoId("laputa-systems", "git-build"), ("tool",))
+
+    assert _binary_release_findings(tmp_path, tool) == []
+    assert _binary_release_findings(tmp_path, Repository(tool.id, ("tool", "c"))) == []
+
+    bare = Repository(tool.id, ("library",))
+    bare_findings = _binary_release_findings(tmp_path, bare)
+
+    assert len(bare_findings) == 1
+    assert bare_findings[0].rule == "binary-release-tags"
+
+
+def test_make_without_c_sources_is_not_a_native_build(tmp_path: Path) -> None:
+    (tmp_path / "Makefile").write_text("help:\n\techo help\n", encoding="utf-8")
+    write_workflow(tmp_path, binary_workflow("make git"))
+    repository = Repository(RepoId("laputa-systems", "git-build"), ("tool",))
+
+    findings = _binary_release_findings(tmp_path, repository)
+
+    assert len(findings) == 1
+    assert findings[0].severity == "warning"
+    assert "does not establish" in findings[0].message
+
+
+def test_captured_c_makefile_fixture_passes_binary_policy(tmp_path: Path) -> None:
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "binary_release"
+        / "laputa-systems_git-build"
+    )
+    root = tmp_path / "git-build"
+    shutil.copytree(fixture, root)
+    repository = Repository(RepoId("laputa-systems", "git-build"), ("tool", "c"))
+
+    assert _binary_release_findings(root, repository) == []
+    assert _binary_release_standard_findings(root, repository) == []
+
+    plan = _binary_release_static_fix(root, repository)
+    assert set(plan) == {".github/workflows/release.yml"}
+    (root / ".github" / "workflows" / "release.yml").write_text(
+        plan[".github/workflows/release.yml"], encoding="utf-8"
+    )
+
+    assert _binary_release_static_findings(root, repository) == []
+
+
+def test_static_smoke_permits_multiple_elf_artifacts_per_arch(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"),
+    )
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+    workflow = _binary_release_static_fix(tmp_path, tool)[
+        ".github/workflows/release.yml"
+    ]
+
+    assert "-lt 1" in workflow
+    assert "at least one x86_64 and one aarch64" in workflow
 
 
 def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(

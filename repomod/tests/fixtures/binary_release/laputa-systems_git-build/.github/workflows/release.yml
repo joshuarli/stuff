@@ -1,0 +1,54 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          default_branch=$(gh api "repos/$REPOSITORY" --jq '.default_branch')
+          if [[ "$REF" != "refs/heads/$default_branch" ]]; then exit 1; fi
+
+  build:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-aarch64
+            runner: macos-26
+            triple: aarch64-apple-darwin
+          - name: linux-arm64
+            runner: ubuntu-24.04-arm
+            triple: aarch64-unknown-linux-musl
+          - name: linux-amd64
+            runner: ubuntu-latest
+            triple: x86_64-unknown-linux-musl
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e... # v7.0.1
+      - run: make demo
+      - uses: actions/upload-artifact@3d3c42e... # v7.0.1
+        with:
+          name: demo-${{ matrix.name }}
+          path: demo.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: release-${{ github.sha }}
+    steps:
+      - uses: actions/download-artifact@3d3c42e... # v7.0.1
+        with:
+          path: dist
+      - run: |
+          sha256sum dist/*.zip | sort > dist/SHA256SUMS
+          sha256sum -c dist/SHA256SUMS
+      - run: |
+          gh api "repos/$REPOSITORY/git/refs" -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
+      - run: gh release create "$RELEASE_TAG" dist/*.zip dist/SHA256SUMS --prerelease --verify-tag --target "$GITHUB_SHA"
