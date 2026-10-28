@@ -79,6 +79,13 @@ default, honoring an explicitly set `TMPDIR`, and returns changed file contents 
 repomod file plan. Repomod checks the plan's allowed paths and policy postconditions, then owns
 per-rule commits, push decisions, pull requests, and cleanup. The canonical checkout is not the
 Pinact write target.
+`gha-lint-workflow` requires every repository to have `.github/workflows/lint.yml` (or
+`lint.yaml`) that runs `make lint`. Its fixer creates the workflow from a template pinned to the
+current `actions.toml` checkout when it is missing; a present workflow that does not run
+`make lint` is a manual finding. `make-lint-target` requires a root `Makefile` that defines a
+`lint` target. The lint command itself is a per-repository human choice, so a missing Makefile
+or a missing target is always manual: add the target running the repository's linters as a
+non-mutating check.
 
 Catalog-backed fixes preserve action subpaths, refuse major changes and downgrades, and do not
 treat an unlabeled SHA as approval. The bounded checker is not a complete implementation of

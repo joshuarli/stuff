@@ -9,6 +9,7 @@ from repomod.rules.consistency import consistency_rules
 from repomod.rules.conventional_commits import conventional_commits_rules
 from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
+from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.release import release_rules
@@ -37,6 +38,7 @@ def rules() -> tuple[Rule, ...]:
         *conventional_commits_rules(),
         *formatter_rules(),
         *language_rules(),
+        *lint_rules(),
         *mdtool_rules(),
         *python_standard_rules(),
         *template_rules(),
