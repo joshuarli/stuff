@@ -33,9 +33,13 @@ LOCAL_SITE=http://127.0.0.1:$STATIC_PORT
 cargo build -p mycrates -p stuff-server --manifest-path "$STUFF_DIR/Cargo.toml"
 mkdir -p "$STATE_DIR" "$SITE_DIR"
 "$MYCRATES_BIN" init --state-dir "$STATE_DIR" --site-dir "$SITE_DIR" >/dev/null
-python3 -c "import json; p='$STATE_DIR/config.json'; c=json.load(open(p)); c['public_base_url']='$LOCAL_API'; json.dump(c, open(p, 'w'), indent=2)"
+"$MYCRATES_BIN" config set-public-base-url "$LOCAL_API" --state-dir "$STATE_DIR"
 "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
-python3 -c "import secrets; open('$TOKEN_FILE', 'w').write(secrets.token_hex(32))"
+if command -v openssl >/dev/null 2>&1; then
+  openssl rand -hex 32 >"$TOKEN_FILE"
+else
+  od -An -tx1 -N32 /dev/urandom | tr -d ' \n' >"$TOKEN_FILE"
+fi
 chmod 600 "$TOKEN_FILE"
 "$MYCRATES_BIN" serve-publish --bind "127.0.0.1:$PUBLISH_PORT" --token-file "$TOKEN_FILE" \
   --state-dir "$STATE_DIR" --site-dir "$SITE_DIR" >/dev/null 2>&1 &
@@ -57,7 +61,7 @@ for c in $CRATES; do
 done
 kill $SRV_PID $STATIC_PID 2>/dev/null
 trap - EXIT
-python3 -c "import json; p='$STATE_DIR/config.json'; c=json.load(open(p)); c['public_base_url']='$PUBLIC_URL'; json.dump(c, open(p, 'w'), indent=2)"
+"$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
 rm -rf "$SITE_DIR"
 mkdir -p "$SITE_DIR"
 "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"

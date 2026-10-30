@@ -25,6 +25,7 @@ pub enum Command {
     Publish,
     Validate,
     Doctor,
+    InitConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +37,10 @@ pub struct Parsed {
     pub project: Option<String>,
     pub manager: Option<String>,
     pub client: Option<String>,
+    pub node_version: Option<String>,
+    pub public_url: Option<String>,
+    pub upstream_registry: Option<String>,
+    pub output: Option<String>,
     pub json: bool,
     pub smoke_executables: bool,
     pub targets: Vec<String>,
@@ -52,6 +57,7 @@ fn is_command(s: &str) -> Option<Command> {
         "publish" => Some(Command::Publish),
         "validate" => Some(Command::Validate),
         "doctor" => Some(Command::Doctor),
+        "init-config" => Some(Command::InitConfig),
         _ => None,
     }
 }
@@ -76,6 +82,10 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut project = None;
     let mut manager = None;
     let mut client = None;
+    let mut node_version = None;
+    let mut public_url = None;
+    let mut upstream_registry = None;
+    let mut output = None;
     let mut json = false;
     let mut smoke = false;
     let mut targets: Vec<String> = Vec::new();
@@ -108,7 +118,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             i += 1;
             continue;
         }
-        if ["--config", "--state-dir", "--site-dir", "--project", "--manager", "--client", "--target"]
+        if ["--config", "--state-dir", "--site-dir", "--project", "--manager", "--client", "--target", "--node-version", "--public-url", "--upstream-registry", "--output"]
             .contains(&arg)
         {
             let value = argv.get(i + 1).ok_or_else(|| Error::Usage(format!("{arg} requires a value")))?;
@@ -130,6 +140,10 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 "--project" => project = Some(value.clone()),
                 "--manager" => manager = Some(value.clone()),
                 "--client" => client = Some(value.clone()),
+                "--node-version" => node_version = Some(value.clone()),
+                "--public-url" => public_url = Some(value.clone()),
+                "--upstream-registry" => upstream_registry = Some(value.clone()),
+                "--output" => output = Some(value.clone()),
                 _ => {}
             }
             continue;
@@ -162,6 +176,24 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     }
     if site_dir.is_some() && command != Command::Publish {
         return Err(Error::Usage("--site-dir is only valid with publish".to_string()));
+    }
+    if node_version.is_some() && command != Command::InitConfig {
+        return Err(Error::Usage("--node-version is only valid with init-config".to_string()));
+    }
+    if public_url.is_some() && command != Command::InitConfig {
+        return Err(Error::Usage("--public-url is only valid with init-config".to_string()));
+    }
+    if upstream_registry.is_some() && command != Command::InitConfig {
+        return Err(Error::Usage("--upstream-registry is only valid with init-config".to_string()));
+    }
+    if output.is_some() && command != Command::InitConfig {
+        return Err(Error::Usage("--output is only valid with init-config".to_string()));
+    }
+    if config.is_some() && command == Command::InitConfig {
+        return Err(Error::Usage("--config is not valid with init-config".to_string()));
+    }
+    if state_dir.is_some() && command == Command::InitConfig {
+        return Err(Error::Usage("--state-dir is not valid with init-config".to_string()));
     }
     if !targets.is_empty() && command != Command::ImportLock && command != Command::Add {
         return Err(Error::Usage(
@@ -213,6 +245,14 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 return Err(Error::Usage("doctor requires one project path".to_string()));
             }
         }
+        Command::InitConfig => {
+            if !positionals.is_empty() {
+                return Err(Error::Usage("init-config does not take positional arguments".to_string()));
+            }
+            if node_version.is_none() {
+                return Err(Error::Usage("init-config requires --node-version".to_string()));
+            }
+        }
     }
     Ok(Parsed {
         command,
@@ -222,6 +262,10 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         project,
         manager,
         client,
+        node_version,
+        public_url,
+        upstream_registry,
+        output,
         json,
         smoke_executables: smoke,
         targets,
@@ -235,6 +279,7 @@ pub fn print_help() {
     println!("Usage: mynpm [--config path] [--state-dir path] [--site-dir path] [--target id] command");
     println!();
     println!("Commands:");
+    println!("  init-config --node-version V [--public-url URL] [--upstream-registry URL] [--output FILE]");
     println!("  import-lock <lockfile> --project NAME [--target T]...");
     println!("  add <name@version>... --manager npm|pnpm [--target T]...");
     println!("  plan [--json]");
@@ -301,6 +346,30 @@ fn target_ids_for(config: &Config, requested: &[String]) -> Result<Vec<String>> 
         return Err(Error::Input("target IDs must be unique".to_string()));
     }
     Ok(sorted)
+}
+
+fn run_init_config(parsed: &Parsed) -> Result<()> {
+    let node = parsed.node_version.clone().unwrap_or_default();
+    if node.split('.').count() != 3
+        || !node.split('.').all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()) && (p.len() == 1 || !p.starts_with('0')))
+    {
+        return Err(Error::Input(format!("--node-version must be an exact major.minor.patch version: {node}")));
+    }
+    let public_url = parsed.public_url.clone().unwrap_or_else(|| "https://npm.17166969.xyz".to_string());
+    let upstream = parsed.upstream_registry.clone().unwrap_or_else(|| "https://registry.npmjs.org/".to_string());
+    if !public_url.starts_with("https://") || public_url.contains('@') || public_url.contains('?') || public_url.contains('#') {
+        return Err(Error::Input("--public-url must be an HTTPS URL without credentials, query, or fragment".to_string()));
+    }
+    let base = format!("{}/", public_url.trim_end_matches('/'));
+    let text = format!(
+        "{{\n  \"schemaVersion\": 1,\n  \"publicBaseUrl\": \"{base}\",\n  \"upstreamRegistry\": \"{upstream}\",\n  \"targets\": [\n    {{\"id\": \"mac-arm64\", \"os\": \"darwin\", \"cpu\": \"arm64\", \"node\": \"{node}\"}},\n    {{\"id\": \"linux-x64-gnu\", \"os\": \"linux\", \"cpu\": \"x64\", \"libc\": \"glibc\", \"node\": \"{node}\"}}\n  ],\n  \"policy\": {{\n    \"externalSources\": \"reject\",\n    \"remoteInstallScripts\": \"report\",\n    \"allowLegacySha1Only\": false\n  }}\n}}\n"
+    );
+    crate::config::parse_config(&text)?;
+    let output = parsed.output.clone().unwrap_or_else(|| "mynpm.json".to_string());
+    std::fs::write(&output, text.as_bytes())
+        .map_err(|e| Error::Operation(format!("could not write configuration file {output}: {e}")))?;
+    println!("Wrote {output}.");
+    Ok(())
 }
 
 fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
@@ -501,6 +570,9 @@ fn run_plan(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
 
 pub fn run(argv: &[String]) -> Result<()> {
     let parsed = parse_args(argv)?;
+    if parsed.command == Command::InitConfig {
+        return run_init_config(&parsed);
+    }
     let cwd = std::env::current_dir().map_err(|e| Error::Operation(format!("could not resolve working directory: {e}")))?;
     let config_path = cwd.join(parsed.config.clone().unwrap_or_else(|| "mynpm.json".to_string()));
     let config_text = std::fs::read_to_string(&config_path).map_err(|e| {
@@ -513,6 +585,7 @@ pub fn run(argv: &[String]) -> Result<()> {
     let config = crate::config::parse_config(&config_text)?;
     let state_dir = cwd.join(parsed.state_dir.clone().unwrap_or_else(|| "state".to_string()));
     match parsed.command {
+        Command::InitConfig => run_init_config(&parsed),
         Command::Plan => run_plan(&parsed, &config, &cwd),
         Command::ImportLock => run_import_lock(&parsed, &config, &cwd),
         Command::Doctor => {

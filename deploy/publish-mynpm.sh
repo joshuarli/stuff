@@ -31,24 +31,7 @@ R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 cargo build -p mynpm --manifest-path "$STUFF_DIR/Cargo.toml"
 mkdir -p "$STATE_DIR" "$SITE_DIR" "$(dirname "$CONFIG_FILE")"
 NODE_VERSION=$(node -e 'console.log(process.version.slice(1))')
-python3 -c "
-import json
-config = {
-    'schemaVersion': 1,
-    'publicBaseUrl': '$PUBLIC_URL/',
-    'upstreamRegistry': '$UPSTREAM_REGISTRY',
-    'targets': [
-        {'id': 'mac-arm64', 'os': 'darwin', 'cpu': 'arm64', 'node': '$NODE_VERSION'},
-        {'id': 'linux-x64-gnu', 'os': 'linux', 'cpu': 'x64', 'libc': 'glibc', 'node': '$NODE_VERSION'},
-    ],
-    'policy': {
-        'externalSources': 'reject',
-        'remoteInstallScripts': 'report',
-        'allowLegacySha1Only': False,
-    },
-}
-open('$CONFIG_FILE', 'w').write(json.dumps(config, indent=2) + '\n')
-"
+"$MYNPM_BIN" init-config --node-version "$NODE_VERSION" --public-url "$PUBLIC_URL" --upstream-registry "$UPSTREAM_REGISTRY" --output "$CONFIG_FILE"
 # The bare pass imports the host target; each TARGETS entry merges its
 # platform-specific entries on top.
 "$MYNPM_BIN" --config "$CONFIG_FILE" --state-dir "$STATE_DIR" import-lock "$LOCKFILE" --project "$PROJECT"

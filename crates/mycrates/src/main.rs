@@ -14,6 +14,7 @@ fn main() {
 
     let res = match args.command {
         cli::Command::Init => mycrates::cli::init::run(&args.args),
+        cli::Command::Config => mycrates::cli::config::run(&args.args),
         cli::Command::Plan => mycrates::cli::plan::run(&args.args),
         cli::Command::ImportLock => mycrates::cli::import_lock::run(&args.args),
         cli::Command::Add => mycrates::cli::add::run(&args.args),

@@ -1,5 +1,7 @@
 #[path = "cli/init.rs"]
 pub mod init;
+#[path = "cli/config.rs"]
+pub mod config;
 #[path = "cli/plan.rs"]
 pub mod plan;
 #[path = "cli/import_lock.rs"]
@@ -24,6 +26,7 @@ use crate::error::{Error, Result};
 #[derive(Debug)]
 pub enum Command {
     Init,
+    Config,
     Plan,
     ImportLock,
     Add,
@@ -44,6 +47,7 @@ pub struct Args {
 fn parse_command(s: &str) -> Option<Command> {
     match s {
         "init" => Some(Command::Init),
+        "config" => Some(Command::Config),
         "plan" => Some(Command::Plan),
         "import-lock" => Some(Command::ImportLock),
         "add" => Some(Command::Add),
@@ -121,6 +125,7 @@ pub fn print_help() {
     println!();
     println!("Commands:");
     println!("  init [--state-dir DIR] [--site-dir DIR]");
+    println!("  config set-public-base-url <URL> [--state-dir DIR]");
     println!("  plan [--state-dir DIR]");
     println!("  import-lock <Cargo.lock> [--project NAME] [--state-dir DIR]");
     println!("  add <name>@<version> [--state-dir DIR]");
