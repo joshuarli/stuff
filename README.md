@@ -72,14 +72,26 @@ and serves `index.html` inside directories (PEP 503 simple pages).
 ## Deploy
 
 The Cloudflare Worker in `crates/stuff-worker` serves the same layouts from
-R2. Its project files (`wrangler.toml`, generated `cloudflare.config.ts`)
-live next to the crate. Validate without credentials:
+R2. URL routing and response planning live in the crate's Rust code
+(`src/map.rs`, `src/api.rs`, shared `stuff-http` semantics, `deser` for
+config parsing — no `worker` SDK, no async runtime in the dependency tree);
+the thin fetch handler is `src/entry.ts`, which calls the compiled wasm for
+routing decisions and talks to R2 directly. Its project files
+(`wrangler.toml`, generated `cloudflare.config.ts`) live next to the crate.
+Build the wasm and validate without credentials:
 
 ```sh
 cd crates/stuff-worker
+npm run build:wasm
 cf migrate --dry-run ./wrangler.toml
 cf deploy --dry-run
 ```
+
+`npm run build:wasm` compiles the crate for `wasm32-unknown-unknown` and
+runs `wasm-bindgen --target bundler` into `build/`; keep the installed
+`wasm-bindgen` CLI at the version pinned in `Cargo.lock`. `wrangler deploy`
+(and `cf deploy`) runs the same build automatically via the `[build]`
+command before bundling `src/entry.ts`.
 
 Real deploys are manual: `cf deploy` (use `--provision` once to create the
 `stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). Sync a
