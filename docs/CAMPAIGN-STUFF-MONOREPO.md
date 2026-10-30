@@ -4,12 +4,14 @@
 
 Goal: one `stuff` repo serving mycrates/mynpm/mypypi from shared Rust HTTP
 serving + storage/generation code; per-registry pipelines stay independent.
-Prerequisite (owner): land mycrates green; campaign imports clean HEADs only.
-Accepted: none (doc only). Red: mycrates worktree in flux, see Baseline.
-Next: S1 skeleton once mycrates is green. Resume: run S1 acceptance, then S2.
+S0 done: mycrates green at HEAD `f96961d` (cargo test all ok, 0 failed).
+Accepted: S1 (workspace root, AGENTS.md, CI). Red: baseline known-reds only
+(mypypi 2, mynpm 1 flaky toolchain test). Next: S2d h12tiny subdirs, then
+S2a mycrates + path rewrite, then S2b/c (parallel OK). Resume: S2d import.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
-everywhere; CF build-only, owner deploys via `cf` (not wrangler); old repos
-stay live. Launch: `/campaign-exec docs/CAMPAIGN-STUFF-MONOREPO.md`.
+everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
+Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
+changes); empty workspace proves via `cargo metadata`.
 
 ## Charter
 
@@ -52,6 +54,9 @@ Prescribed (evidence, overrulable):
   `httparse` loop (`mycrates/src/serve.rs:313-366`) stays write-path only.
 - Keep in force: `#![forbid(unsafe_code)]`, no lifecycle scripts during
   acquire/validate, native-target build checks, exclusive file locks.
+- h12tiny path deps stay on exact HEAD code via S2d subdir import: registry
+  0.6.0 predates local TLS trust changes (proven by diff), so a version swap
+  would regress behavior. Imported crates keep MIT license fields.
 
 Delegated (bound + tie-break):
 - Exact `stuff-*` crate split within `crates/`; tie-break: fewest crates
@@ -83,13 +88,18 @@ Delegated (bound + tie-break):
 - S0 prerequisite (owner, not a slice): mycrates green at HEAD. No slice
   starts on a red baseline.
 - S1 skeleton. Owns: `Cargo.toml`, `tools/`, `.github/workflows`, `AGENTS.md`.
-  Acceptance: `cargo build --workspace` + the three suite commands below pass
-  from empty placeholder paths. Gates the rest.
-- S2a/b/c imports (parallel OK: disjoint paths, shared nothing).
-  S2a owns `crates/mycrates`; S2b owns `tools/mynpm`; S2c owns `tools/mypypi`.
-  Prereq: S1. Acceptance per slice: history present
-  (`git log -- crates/mycrates` non-empty), suite passes from the new path,
-  Apache-2.0 file present. Record release build time + size here as budget.
+  Acceptance: `cargo metadata --format-version 1 --no-deps` green, CI and
+  guide present (`build/test --workspace` take over at S2a). Gates the rest.
+- S2a/b/c/d imports (parallel OK only for b+c: disjoint paths, shared
+  nothing; a+d serial: shared `Cargo.toml`, path rewrite).
+  S2a owns `crates/mycrates`; S2b owns `tools/mynpm`; S2c owns `tools/mypypi`;
+  S2d owns `crates/h12tiny-*` (client-sync, client-normalize, tls-system
+  subdirs with history; `workspace = true` inlined to h12tiny HEAD versions,
+  `src/` untouched).
+  Prereq: S1 (d after S2a's path lands, or with it; b+c anytime). Acceptance
+  per slice: history present (`git log -- crates/mycrates` non-empty),
+  suite passes from the new path with only baseline known-reds, Apache-2.0
+  file present. Record release build time + size here as budget.
 - S3 shared crates (serial; owns `crates/stuff-*`). Prereq: S2a. Acceptance:
   `cargo test -p stuff-store -p stuff-http`; mycrates store/publish/index
   suites pass against extracted code. Exit test for infra: S4 pilot below.
@@ -115,8 +125,9 @@ blocker gets one owner.
 
 - D1 monorepo: `git log --oneline -- <each path>` non-empty AND
   `cargo test` (crates/mycrates) AND `pnpm check` (tools/mynpm) AND
-  `pytest -q -m "not network"` (tools/mypypi) green from new paths.
-  Fail: any suite red, history missing, license missing.
+  `pytest -q -m "not network"` (tools/mypypi) green from new paths,
+  baseline known-reds excepted.
+  Fail: any NEW red vs source HEAD, history missing, license missing.
 - D2 shared serving/storage: `cargo test --workspace` green AND S4 pilot
   clients green. Fail: behavior differs from pre-extraction output on the
   same fixtures (existing suites are the parity corpus).
