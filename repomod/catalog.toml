@@ -111,3 +111,7 @@ ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\
 [overrides."laputa-systems/ptytest"]
 ignore = ["mdtool:R003"]
 ignore_reason = "docs/baselines.md quotes the baseline command of another repository."
+
+[overrides."joshuarli/obsidian-ferrisearch"]
+ignore = ["audit-upgrades:crates:getrandom"]
+ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build."
