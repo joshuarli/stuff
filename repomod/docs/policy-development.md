@@ -8,8 +8,9 @@ Return structured `Finding` values with concrete messages and deterministic orde
 unavailable tools, unreadable files, and failed API calls as operational findings, not policy
 violations.
 
-Lint IDs are durable catalog policy codes. Catalog version 2 supports per-repository
-`[overrides."OWNER/REPO"]` entries with `ignore = ["rule-id"]`. Validate each code against the
+Lint IDs are durable catalog policy codes. Catalog version 3 supports per-repository
+`[overrides."OWNER/REPO"]` entries with `ignore = ["rule-id"]` and a required `ignore_reason`
+string. Validate each code against the
 registered rule IDs. An entry of the form `mdtool:R005` ignores one `mdtool` finding code in that
 repository and keeps the rest of the documentation audit. Document policy changes alongside the rule.
 

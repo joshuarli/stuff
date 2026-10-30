@@ -44,6 +44,7 @@ class Repository:
     autofix: bool = True
     autofix_reason: str | None = None
     ignored_rules: frozenset[str] = frozenset()
+    ignore_reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

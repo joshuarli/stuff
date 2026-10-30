@@ -1,4 +1,4 @@
-version = 2
+version = 3
 
 [workspace]
 root = "~/repos"
@@ -96,24 +96,29 @@ zzz = ["tool", "linux"]
 # does not describe its release workflow.
 [overrides."joshuarli/obsidian-ferrisearch"]
 ignore = ["binary-release-tags"]
+ignore_reason = "Ships an Obsidian plugin zip, not a standalone native binary, so the binary prerelease contract does not describe its release workflow."
 
 # Build-recipe repositories publish build archives, not a standalone native tool, so the binary
 # prerelease contract does not describe their release workflows. The macos-native README names
 # Chromium source paths that live in the Chromium checkout.
 [overrides."laputa-systems/chromium-build"]
 ignore = ["binary-release-tags", "mdtool:R005"]
+ignore_reason = "binary-release-tags: build-recipe repositories publish build archives, not a standalone native tool. mdtool:R005: the macos-native README names Chromium source paths that live in the Chromium checkout."
 
 # Fork pinned to the stable channel through a symlinked rust-toolchain.toml that its release job
 # and Dockerfile read.
 [overrides."laputa-systems/ntpd-rs"]
 ignore = ["rust-toolchain"]
+ignore_reason = "Fork pinned to the stable channel through a symlinked rust-toolchain.toml that its release job and Dockerfile read."
 
 # Fork whose CI and flake pin the nightly the Verus build needs.
 [overrides."laputa-systems/bbtree"]
 ignore = ["rust-toolchain"]
+ignore_reason = "Fork whose CI and flake pin the nightly the Verus build needs."
 
 [overrides."laputa-systems/node-build"]
 ignore = ["binary-release-tags"]
+ignore_reason = "binary-release-tags: build-recipe repositories publish build archives, not a standalone native tool."
 
 # Vendored rustls, webpki, and CPython sources carry "section N" text and paths into the CPython
 # tree. The .agents and .claude skill trees mirror each other on purpose. The benchmark README
@@ -126,7 +131,9 @@ ignore = [
   "mdtool:R001",
   "mdtool:R005",
 ]
+ignore_reason = "binary-release-tags: build-recipe repositories publish build archives, not a standalone native tool. mdtool:D001, mdtool:P002, mdtool:R001, mdtool:R005: vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees mirror each other on purpose, and the benchmark README names files its commands generate."
 
 # docs/baselines.md quotes the baseline command of another repository.
 [overrides."laputa-systems/ptytest"]
 ignore = ["mdtool:R003"]
+ignore_reason = "docs/baselines.md quotes the baseline command of another repository."

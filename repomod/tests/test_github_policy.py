@@ -986,6 +986,22 @@ def test_warning_only_lint_is_nonfatal_unless_strict(
     assert _lint(args) == 1
 
 
+def test_lint_prints_ignored_rules_with_their_reason(tmp_path: Path, monkeypatch, capsys) -> None:
+    repository = Repository(
+        RepoId("acme", "tool"),
+        ("tool",),
+        ignored_rules=frozenset({"rust-toolchain", "binary-release-tags"}),
+        ignore_reason="vendored fork",
+    )
+    catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
+    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
+    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+
+    assert _lint(args) == 0
+    assert "ignored acme/tool: binary-release-tags, rust-toolchain - vendored fork" in capsys.readouterr().out
+
+
 def test_gha_settings_findings_carry_codes_locations_and_legend(tmp_path: Path) -> None:
     workflows = tmp_path / ".github" / "workflows"
     workflows.mkdir(parents=True)
