@@ -184,6 +184,23 @@ fn features_compared_semantically() {
 }
 
 #[test]
+fn target_cfg_whitespace_ignored() {
+    let packaged_src = "[package]\nname = \"foo\"\nversion = \"1.0.0\"\n\n[target.'cfg(all(unix, not(target_os=\"vita\")))'.dev-dependencies]\nsignal-hook = \"0.3\"\n";
+    let packaged = parse_packaged_manifest(packaged_src).unwrap();
+    let mut body = base_body("foo", "1.0.0");
+    body.deps.push(dep(
+        Some("signal-hook"),
+        "^0.3",
+        Some("dev"),
+        Some("cfg(all(unix, not(target_os = \"vita\")))"),
+        Some("https://github.com/rust-lang/crates.io-index"),
+        None,
+        None,
+    ));
+    publish_to_index_with_manifest(&body, Some(&packaged)).unwrap();
+}
+
+#[test]
 fn wrong_kind_still_rejected() {
     let packaged_src = "[package]\nname = \"foo\"\nversion = \"1.0.0\"\n\n[dependencies]\nbar = \"1.0\"\n";
     let packaged = parse_packaged_manifest(packaged_src).unwrap();

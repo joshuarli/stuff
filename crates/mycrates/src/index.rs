@@ -208,7 +208,7 @@ fn reconcile_manifest(body: &PublishBody, manifest: &crate::crate_file::Packaged
                 alias: d.alias.clone(),
                 real,
                 kind,
-                target: d.target.clone(),
+                target: normalize_target(&d.target),
             },
             version_req: d.version_req.as_str(),
             features: d.features.as_slice(),
@@ -231,7 +231,7 @@ fn reconcile_manifest(body: &PublishBody, manifest: &crate::crate_file::Packaged
                     alias,
                     real,
                     kind,
-                    target: dep.target.clone(),
+                    target: normalize_target(&dep.target),
                 },
                 version_req: dep.version_req.as_str(),
                 features: dep.features.as_slice(),
@@ -371,6 +371,14 @@ fn package_matches(raw: &crate::model::Dependency, expected_package: Option<&str
         .or(raw.name.as_deref())
         .or(raw.explicit_name_in_toml.as_deref());
     raw.package.is_none() && expected_package.is_some() && real == expected_package
+}
+
+/// Cargo strips whitespace inside `target` cfg expressions when it writes
+/// the packaged manifest but preserves the author's spacing in the publish
+/// metadata. Whitespace is insignificant in cfg expressions, so key deps by
+/// the whitespace-free form instead of rejecting identical predicates.
+fn normalize_target(target: &Option<String>) -> Option<String> {
+    target.as_ref().map(|t| t.split_whitespace().collect())
 }
 
 fn version_req_matches(publish_req: &str, packaged_req: &str) -> bool {
