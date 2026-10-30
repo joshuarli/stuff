@@ -5,7 +5,10 @@ use crate::store::{Store, UpstreamRecord};
 use crate::upstream::UpstreamClient;
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Mutex;
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanItem {
@@ -74,52 +77,99 @@ pub fn fetch(state_dir: &Path, config: &Config) -> Result<FetchSummary> {
     let client = UpstreamClient::new(config.upstream.index_url.clone(), config.limits.clone())?;
     let dl_template = client.fetch_dl_template()?;
 
-    let mut summary = FetchSummary::default();
-    let mut bytes_budget = config.limits.fetch_bytes;
+    let deadline = Instant::now() + Duration::from_secs(config.limits.fetch_timeout_secs);
+    let workers = config.limits.concurrent_requests.clamp(1, items.len());
+    let next = AtomicUsize::new(0);
+    let aborted = AtomicBool::new(false);
+    let shared = Mutex::new(FetchState {
+        summary: FetchSummary::default(),
+        bytes_budget: config.limits.fetch_bytes,
+        error: None,
+    });
 
-    for item in items {
-        let (raw_line, index_entry) = client.fetch_index_entry(&item.name, &item.version)?;
-
-        if index_entry.cksum != item.checksum {
-            return Err(Error::Integrity(format!(
-                "trust chain violation for {} {}: pin checksum {} != index cksum {}",
-                item.name, item.version, item.checksum, index_entry.cksum
-            )));
+    thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| {
+                while !aborted.load(Ordering::Relaxed) {
+                    let Some(item) = items.get(next.fetch_add(1, Ordering::Relaxed)) else {
+                        return;
+                    };
+                    let outcome = if Instant::now() >= deadline {
+                        Err(Error::Limit("fetch_timeout_secs exceeded".to_string()))
+                    } else {
+                        fetch_item(&store, &client, &dl_template, item, &shared)
+                    };
+                    if let Err(e) = outcome {
+                        aborted.store(true, Ordering::Relaxed);
+                        let mut state = shared.lock().unwrap_or_else(|p| p.into_inner());
+                        state.error.get_or_insert(e);
+                        return;
+                    }
+                }
+            });
         }
+    });
 
-        let dl_url = client.expand_dl_url(&dl_template, &item.name, &item.version, &item.checksum)?;
+    let state = shared.into_inner().unwrap_or_else(|p| p.into_inner());
+    match state.error {
+        Some(e) => Err(e),
+        None => Ok(state.summary),
+    }
+}
 
-        let staged = client.download_crate(&dl_url, &item.checksum, &item.name, &item.version)?;
-        let byte_len = staged.as_file().metadata().map(|m| m.len()).unwrap_or(0);
+struct FetchState {
+    summary: FetchSummary,
+    bytes_budget: u64,
+    error: Option<Error>,
+}
 
-        if byte_len > bytes_budget {
-            return Err(Error::Limit("fetch byte budget exceeded".to_string()));
-        }
-        bytes_budget -= byte_len;
-        summary.total_bytes += byte_len;
+fn fetch_item(
+    store: &Store,
+    client: &UpstreamClient,
+    dl_template: &str,
+    item: &PlanItem,
+    shared: &Mutex<FetchState>,
+) -> Result<()> {
+    let (raw_line, index_entry) = client.fetch_index_entry(&item.name, &item.version)?;
 
-        let staged_path = staged.path().to_path_buf();
-        let ingested_sha = store.ingest_staged_file(&staged_path, &item.checksum)?;
-        if ingested_sha != item.checksum {
-            return Err(Error::Integrity("ingested checksum mismatch".to_string()));
-        }
-
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
-        let record = UpstreamRecord {
-            name: item.name,
-            vers: item.version,
-            checksum: item.checksum,
-            raw_index_line: raw_line,
-            acquired_at: now,
-        };
-        store.put_upstream_record(&record)?;
-        summary.fetched_count += 1;
+    if index_entry.cksum != item.checksum {
+        return Err(Error::Integrity(format!(
+            "trust chain violation for {} {}: pin checksum {} != index cksum {}",
+            item.name, item.version, item.checksum, index_entry.cksum
+        )));
     }
 
-    Ok(summary)
+    let dl_url = client.expand_dl_url(dl_template, &item.name, &item.version, &item.checksum)?;
+
+    let staged = client.download_crate(&dl_url, &item.checksum, &item.name, &item.version)?;
+    let byte_len = staged.as_file().metadata().map(|m| m.len()).unwrap_or(0);
+
+    let mut state = shared.lock().unwrap_or_else(|p| p.into_inner());
+    if byte_len > state.bytes_budget {
+        return Err(Error::Limit("fetch byte budget exceeded".to_string()));
+    }
+    state.bytes_budget -= byte_len;
+    state.summary.total_bytes += byte_len;
+
+    let ingested_sha = store.ingest_staged_file(staged.path(), &item.checksum)?;
+    if ingested_sha != item.checksum {
+        return Err(Error::Integrity("ingested checksum mismatch".to_string()));
+    }
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let record = UpstreamRecord {
+        name: item.name.clone(),
+        vers: item.version.clone(),
+        checksum: item.checksum.clone(),
+        raw_index_line: raw_line,
+        acquired_at: now,
+    };
+    store.put_upstream_record(&record)?;
+    state.summary.fetched_count += 1;
+    Ok(())
 }
 
 pub fn verify(state_dir: &Path) -> Result<()> {

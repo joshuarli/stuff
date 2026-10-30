@@ -81,6 +81,11 @@ Import exact crate versions and checksums from an existing `Cargo.lock`:
 mycrates import-lock Cargo.lock --project myproject
 ```
 
+To archive many lockfiles into one state directory, import each under its own project name with
+`deploy/import-cargo-locks.sh STATE_DIR LOCKFILE...`. The project name is the lockfile's directory
+path with `/` replaced by `-`, so nested lockfiles do not collide, and re-running rewrites the same
+pin files.
+
 Inspect the planned downloads:
 
 ```sh verified
@@ -92,6 +97,10 @@ Fetch and verify all pinned upstream artifacts:
 ```sh verified
 mycrates fetch
 ```
+
+`fetch` downloads up to `limits.concurrent_requests` crates at once and stops with a limit error once
+`limits.fetch_timeout_secs` has elapsed. The first failure aborts the run; crates already stored are
+kept and skipped on the next run.
 
 Verify storage integrity:
 

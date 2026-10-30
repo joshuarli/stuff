@@ -431,3 +431,71 @@ fn fetch_budget_limit() {
         other => panic!("expected Limit error, got {other:?}"),
     }
 }
+
+#[test]
+fn fetch_runs_many_pins_with_bounded_workers() {
+    let crates: Vec<(String, Vec<u8>, String)> = (0..12)
+        .map(|i| {
+            let name = format!("par-pkg-{i}");
+            let (bytes, sha) = make_test_crate(&name, "1.0.0");
+            (name, bytes, sha)
+        })
+        .collect();
+    let served = crates.clone();
+
+    let upstream = MockUpstream::start(move |_method, path, host| {
+        if path == "/config.json" {
+            return (
+                200,
+                format!("{{\"dl\":\"http://{}/{{crate}}/{{crate}}-{{version}}.crate\"}}", host).into_bytes(),
+                "application/json",
+            );
+        }
+        for (name, bytes, sha) in &served {
+            if path.ends_with(&format!("/{name}")) {
+                let line = deser_json::to_string(&deser_value::value!({
+                    "name": name.clone(),
+                    "vers": "1.0.0",
+                    "deps": [],
+                    "cksum": sha.clone(),
+                    "features": {},
+                    "yanked": false
+                }))
+                .unwrap();
+                return (200, format!("{line}\n").into_bytes(), "text/plain");
+            }
+            if path.ends_with(&format!("/{name}-1.0.0.crate")) {
+                return (200, bytes.clone(), "application/x-tar");
+            }
+        }
+        (404, b"not found".to_vec(), "text/plain")
+    });
+
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let store = Store::new(state_dir.clone());
+    store.ensure_dirs().unwrap();
+
+    let pins = Pins {
+        registry: crates
+            .iter()
+            .map(|(name, _, sha)| PinEntry {
+                name: name.clone(),
+                version: "1.0.0".to_string(),
+                checksum: sha.clone(),
+                source: "registry+https://github.com/rust-lang/crates.io-index".to_string(),
+            })
+            .collect(),
+        ..Default::default()
+    };
+    write_pins(&store.pins_dir().join("default.toml"), &pins).unwrap();
+
+    let mut cfg = Config::default();
+    cfg.upstream.index_url = format!("http://127.0.0.1:{}", upstream.port);
+    cfg.limits.concurrent_requests = 4;
+
+    let summary = fetch(&state_dir, &cfg).unwrap();
+    assert_eq!(summary.fetched_count, 12);
+    assert!(plan(&state_dir).unwrap().is_empty());
+    verify(&state_dir).unwrap();
+}
