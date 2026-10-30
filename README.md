@@ -91,7 +91,10 @@ Real deploys are manual: `cf deploy` (use `--provision` once to create the
 `stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). Sync a
 published site to its bucket per registry with `deploy/r2-sync.sh`, which
 translates the `current` symlink to a marker object holding the generation
-id (verified against the local R2 simulation).
+id (verified against the local R2 simulation). Generation-scoped
+immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
+the worker resolves them to the shared store instead. Files over the 300 MB
+single-PUT cap fail loudly and need an out-of-band multipart upload.
 
 ## License
 

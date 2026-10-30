@@ -110,16 +110,18 @@ pub struct PointerJson {
 
 /// Shared-store alias for generation-scoped paths that r2-sync does not
 /// upload as separate objects:
-/// - `wheels/...` (mypypi publishes `generations/<id>/wheels` as a symlink
-///   to the shared immutable wheel store),
-/// - `tarballs/...` and `-/tarballs/...` (mynpm publishes hardlink aliases
-///   of the shared immutable tarball store).
+/// - `wheels/...`: mypypi publishes `generations/<id>/wheels` as a symlink
+///   to the shared immutable wheel store.
+/// - `tarballs/...` and `-/tarballs/...`: mynpm publishes hardlink aliases
+///   of the shared immutable tarball store.
+///
 /// Wheel filenames and content-hash tarball names are immutable, so serving
 /// the shared object is byte-identical to serving a generation copy.
 fn alias_key_for(key_prefix: &str, rel_path: &str) -> Option<String> {
-    let target = if rel_path == "wheels" || rel_path.starts_with("wheels/") {
-        rel_path
-    } else if rel_path.starts_with("tarballs/") {
+    let target = if rel_path == "wheels"
+        || rel_path.starts_with("wheels/")
+        || rel_path.starts_with("tarballs/")
+    {
         rel_path
     } else if rel_path.starts_with("-/tarballs/") {
         &rel_path["-/".len()..]
