@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog
+from repomod.git import validated_checkout
 from repomod.policy import filter_repositories
 from repomod.types import Catalog, Finding, Repository
 
@@ -36,6 +37,17 @@ def _select(
         repositories = tuple(find_repository(catalog, value) for value in repo_values)
         return filter_repositories(repositories, tags=selected_tags)
     return filter_repositories(catalog.repositories, tags=selected_tags)
+
+
+def _checkouts(
+    checkout: Path | None, repo_values: Sequence[str], repositories: Sequence[Repository]
+) -> dict[str, Path]:
+    if checkout is None:
+        return {}
+    if len(repo_values) != 1 or len(repositories) != 1:
+        raise CatalogError("--checkout requires exactly one --repo that selects one repository")
+    repository = repositories[0]
+    return {str(repository.id): validated_checkout(checkout, repository.id)}
 
 
 def _print_json(value: object) -> None:

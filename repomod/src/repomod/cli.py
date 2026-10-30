@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from repomod.catalog import CatalogError
 from repomod.cmd.discover import _discover
@@ -24,6 +25,7 @@ def _parser() -> argparse.ArgumentParser:
 
     status_parser = commands.add_parser("status", help="show local Git, remote CI, TODO, and lint status")
     _filters(status_parser)
+    _checkout_option(status_parser)
     status_parser.add_argument("--offline", action="store_true")
     status_parser.add_argument("--dirty", action="store_true")
     status_parser.add_argument("--failed", action="store_true")
@@ -35,6 +37,7 @@ def _parser() -> argparse.ArgumentParser:
 
     lint = commands.add_parser("lint", help="check declarative repository policies")
     _filters(lint)
+    _checkout_option(lint)
     lint.add_argument("--rule", action="append", default=[])
     lint.add_argument("--json", action="store_true")
     lint.add_argument("--strict", action="store_true", help="treat warnings as violations")
@@ -79,6 +82,15 @@ def _parser() -> argparse.ArgumentParser:
 def _filters(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repo", action="append", default=[])
     parser.add_argument("--tag", action="append", default=[])
+
+
+def _checkout_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--checkout",
+        type=Path,
+        metavar="PATH",
+        help="evaluate this Git work tree instead of the canonical checkout (requires exactly one --repo)",
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

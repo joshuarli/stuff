@@ -59,7 +59,11 @@ def _ci_label(value: CiResult) -> str:
     return label
 
 
-def _checkout_status(catalog: Catalog, repository: Repository) -> tuple[Path, GitStatus]:
+def _checkout_status(
+    catalog: Catalog, repository: Repository, checkout: Path | None = None
+) -> tuple[Path, GitStatus]:
+    if checkout is not None:
+        return checkout, status(checkout, repository.id)
     parts = (
         (repository.id.name,)
         if repository.id.owner.casefold() == catalog.personal_owner.casefold()
@@ -100,8 +104,10 @@ def _todo_item_count(path: Path) -> int:
         return sum(_TODO_ITEM.fullmatch(line.rstrip("\r\n")) is not None for line in todo_file)
 
 
-def _status_checkout(catalog: Catalog, repository: Repository) -> tuple[Path, GitStatus, int]:
-    path, local = _checkout_status(catalog, repository)
+def _status_checkout(
+    catalog: Catalog, repository: Repository, checkout: Path | None = None
+) -> tuple[Path, GitStatus, int]:
+    path, local = _checkout_status(catalog, repository, checkout)
     todo_items = _todo_item_count(path) if local.valid else 0
     return path, local, todo_items
 
@@ -313,6 +319,7 @@ def _status_text(
 def _status(args: argparse.Namespace) -> int:
     catalog = common._catalog()
     repositories = common._select(catalog, args.repo, args.tag)
+    checkouts = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
     with ThreadPoolExecutor(
         max_workers=min(32, max(1, 2 * len(repositories))), thread_name_prefix="repomod-status"
     ) as pool:
@@ -320,12 +327,13 @@ def _status(args: argparse.Namespace) -> int:
         findings_futures = {}
         for repository in repositories:
             name = str(repository.id)
-            checkout_futures[name] = pool.submit(_status_checkout, catalog, repository)
+            checkout_futures[name] = pool.submit(_status_checkout, catalog, repository, checkouts.get(name))
             findings_futures[name] = pool.submit(
                 policy.lint_repositories,
                 catalog,
                 (repository,),
                 local_only=True,
+                checkouts=checkouts,
             )
         remotes = {} if args.offline else github.remote_metadata(repositories)
         ci = github.ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
