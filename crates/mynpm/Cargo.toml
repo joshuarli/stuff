@@ -21,7 +21,12 @@ base64 = "0.22"
 deser = { version = "0.10", features = ["derive"] }
 deser-json = "0.10"
 deser-value = "0.10"
+deser-yaml = "0.10"
+flate2 = { version = "1.0", features = ["miniz_oxide"] }
+h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", features = ["tls"] }
 sha2 = "0.10"
+tar = "0.4"
+tempfile = "3.13"
 url = "2.5"
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
 

@@ -1,7 +1,12 @@
 #![forbid(unsafe_code)]
 
+pub mod archive;
 pub mod cli;
 pub mod config;
 pub mod error;
+pub mod fetch_budget;
+pub mod inventory;
+pub mod inventory_store;
 pub mod limits;
 pub mod lock_npm;
+pub mod process;
