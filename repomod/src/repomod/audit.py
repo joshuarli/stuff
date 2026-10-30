@@ -1495,8 +1495,10 @@ def _newest_installable(
         if _version_key(version) <= ceiling
         and (published <= cutoff or policy.exempts(name, version))
     ]
+    if not eligible:
+        return None
     published = releases["published"]
-    return max(eligible, key=lambda version: (_version_key(version), published[version]), default=None)
+    return max(eligible, key=lambda version: (_version_key(version), published[version]))
 
 
 def _resolve_npm_installable(
