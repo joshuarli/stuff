@@ -16,6 +16,7 @@ from repomod.audit import (
     _audit_cache_path,
     _cargo_req_satisfies,
     _collect_locked,
+    _crate_release,
     _is_outdated,
     _js_direct_dependencies,
     _js_project_roots,
@@ -163,6 +164,30 @@ def _specifier_admits(specifier: str, version: str) -> bool:
     return True
 
 
+def _exact_version(requirement: str) -> str | None:
+    text = requirement.strip()
+    if text.startswith("=") and not text.startswith("=="):
+        return text[1:].strip()
+    return None
+
+
+def _pin_conflict(
+    release: dict[str, Any], rust_reqs: dict[str, str | None]
+) -> str | None:
+    for crate, requirement in release["requirements"]:
+        direct = rust_reqs.get(_normalize_rust_name(crate))
+        if direct is None:
+            continue
+        required_exact = _exact_version(requirement)
+        pinned = _exact_version(direct)
+        conflicts = (
+            required_exact is not None and not _cargo_req_satisfies(direct, required_exact)
+        ) or (pinned is not None and not _cargo_req_satisfies(requirement, pinned))
+        if conflicts:
+            return f"it requires {crate} {requirement} but the repository pins {crate} {direct}"
+    return None
+
+
 def _outdated_findings(
     root: Path,
     repository: Repository,
@@ -194,10 +219,17 @@ def _outdated_findings(
             unresolved.add(f"{item.ecosystem}:{item.name}")
         elif _is_outdated(item.locked, newest):
             fixable = True
+            blocker = ""
             if item.ecosystem == "crates":
                 req = rust_reqs.get(_normalize_rust_name(item.name))
                 if req is not None and not _cargo_req_satisfies(req, newest):
                     fixable = False
+                else:
+                    release = _crate_release(item.name, newest, cache=cache, now=now)
+                    reason = None if release is None else _pin_conflict(release, rust_reqs)
+                    if reason is not None:
+                        fixable = False
+                        blocker = f"; manual because {reason}"
             if item.ecosystem == "pypi":
                 fixable = all(
                     _specifier_admits(specifier, newest)
@@ -208,7 +240,7 @@ def _outdated_findings(
                     repository,
                     _RULE_ID,
                     None,
-                    f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}",
+                    f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}{blocker}",
                     fixable=fixable,
                 )
             )

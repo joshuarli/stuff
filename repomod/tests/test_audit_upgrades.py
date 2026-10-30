@@ -23,6 +23,11 @@ def repo_root(tmp_path: Path) -> Path:
     return root
 
 
+@pytest.fixture(autouse=True)
+def offline_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("repomod.audit._http_json", lambda url, headers=None: None)
+
+
 @pytest.fixture
 def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     global_config = tmp_path / "gitconfig"
@@ -606,3 +611,88 @@ def test_python_upgrade_blocked_by_specifier_is_manual(tmp_path: Path) -> None:
     )
     fixable = {finding.message.split()[0]: finding.fixable for finding in findings}
     assert fixable == {"pypi:pinned": False, "pypi:ranged": True, "pypi:open": True}
+
+
+def crate_release(rust_version: str | None, *requirements: tuple[str, str]) -> dict[str, object]:
+    return {
+        "version": {"rust_version": rust_version},
+        "dependencies": [
+            {"crate_id": crate, "req": req, "kind": "normal", "optional": False}
+            for crate, req in requirements
+        ],
+    }
+
+
+def fake_crates(
+    monkeypatch: pytest.MonkeyPatch, releases: dict[str, dict[str, object]]
+) -> list[str]:
+    calls: list[str] = []
+
+    def http_json(url: str, headers: dict[str, str] | None = None) -> object:
+        calls.append(url)
+        prefix = "https://crates.io/api/v1/crates/"
+        crate_version, _, tail = url.removeprefix(prefix).partition("/dependencies")
+        document = releases[crate_version]
+        if tail == "" and url.endswith("/dependencies"):
+            return {"dependencies": document["dependencies"]}
+        return {"version": document["version"]}
+
+    monkeypatch.setattr("repomod.audit._http_json", http_json)
+    return calls
+
+
+def write_wasm_workspace(root: Path) -> None:
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nwasm-bindgen = "=0.2.129"\nwasm-bindgen-test = "0.3.79"\nserde = "1"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "wasm-bindgen"\nversion = "0.2.129"\n'
+        '[[package]]\nname = "wasm-bindgen-test"\nversion = "0.3.79"\n'
+        '[[package]]\nname = "serde"\nversion = "1.0.1"\n',
+        encoding="utf-8",
+    )
+
+
+def test_exact_pin_blocks_lockstep_crates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    write_wasm_workspace(root)
+    fake_crates(
+        monkeypatch,
+        {
+            "wasm-bindgen-test/0.3.80": crate_release(None, ("wasm-bindgen", "=0.2.130")),
+            "serde/1.0.2": crate_release(None, ("wasm-bindgen", "^0.2")),
+        },
+    )
+    latest = {"wasm-bindgen": "0.2.130", "wasm-bindgen-test": "0.3.80", "serde": "1.0.2"}
+    findings = _outdated_findings(
+        root, repository("tool", "rust"), {}, NOW, lambda _e, name: latest[name]
+    )
+    by_name = {finding.message.split()[0]: finding for finding in findings}
+    assert by_name["crates:wasm-bindgen"].fixable is False
+    assert by_name["crates:wasm-bindgen-test"].fixable is False
+    assert "requires wasm-bindgen =0.2.130" in by_name["crates:wasm-bindgen-test"].message
+    assert by_name["crates:serde"].fixable is True
+
+
+def test_loose_requirement_does_not_block_lockstep_crates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    write_wasm_workspace(root)
+    cargo = (root / "Cargo.toml").read_text(encoding="utf-8")
+    (root / "Cargo.toml").write_text(cargo.replace("=0.2.129", "0.2.128"), encoding="utf-8")
+    fake_crates(
+        monkeypatch,
+        {"wasm-bindgen-test/0.3.80": crate_release(None, ("wasm-bindgen", "=0.2.130"))},
+    )
+    findings = _outdated_findings(
+        root,
+        repository("tool", "rust"),
+        {},
+        NOW,
+        lambda _e, name: {"wasm-bindgen": "0.2.129", "wasm-bindgen-test": "0.3.80", "serde": "1.0.1"}[name],
+    )
+    assert [finding.fixable for finding in findings] == [True]

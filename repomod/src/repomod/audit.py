@@ -997,6 +997,50 @@ def _latest_crates(name: str) -> str | None:
     return None
 
 
+def _fetch_crate_release(name: str, version: str) -> dict[str, Any] | None:
+    base = (
+        f"https://crates.io/api/v1/crates/{urllib.parse.quote(name, safe='')}"
+        f"/{urllib.parse.quote(version, safe='')}"
+    )
+    headers = {"Accept": "application/json"}
+    release = _registry_document(base, headers)
+    dependencies = _registry_document(f"{base}/dependencies", headers)
+    if release is None or dependencies is None:
+        return None
+    detail = release.get("version")
+    entries = dependencies.get("dependencies")
+    if not isinstance(detail, dict) or not isinstance(entries, list):
+        return None
+    requirements = [
+        [entry["crate_id"], entry["req"]]
+        for entry in entries
+        if isinstance(entry, dict)
+        and entry.get("kind") in {"normal", "build"}
+        and not entry.get("optional")
+        and isinstance(entry.get("crate_id"), str)
+        and isinstance(entry.get("req"), str)
+    ]
+    return {"rust_version": _non_empty_str(detail.get("rust_version")), "requirements": requirements}
+
+
+def _crate_release(
+    name: str, version: str, *, cache: dict[str, Any], now: float
+) -> dict[str, Any] | None:
+    entries = cache.get("crate_releases")
+    if not isinstance(entries, dict):
+        entries = {}
+        cache["crate_releases"] = entries
+    key = f"{name.casefold()}:{version}"
+    entry = entries.get(key)
+    if isinstance(entry, dict) and isinstance(entry.get("release"), dict):
+        if _cache_fresh(entry.get("fetched_at"), now):
+            return entry["release"]
+    release = _fetch_crate_release(name, version)
+    if release is not None:
+        entries[key] = {"release": release, "fetched_at": now}
+    return release
+
+
 def _escape_go_module(path: str) -> str:
     return "".join(
         f"!{character.lower()}" if character.isupper() else character for character in path
