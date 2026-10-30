@@ -28,6 +28,7 @@ fn generation_payload(
     public_base_url: &str,
     artifacts: &[ArtifactRecord],
     packuments: &[PackumentFile],
+    renderer: u32,
 ) -> Result<deser_value::Value> {
     let mut artifact_entries = Vec::new();
     for record in artifacts {
@@ -55,7 +56,7 @@ fn generation_payload(
     }
     let mut payload = deser_value::Map::new();
     payload.insert("schemaVersion".to_string(), deser_value::Value::from(1u64));
-    payload.insert("rendererVersion".to_string(), deser_value::Value::from(u64::from(RENDERER_VERSION)));
+    payload.insert("rendererVersion".to_string(), deser_value::Value::from(u64::from(renderer)));
     payload.insert("publicBaseUrl".to_string(), deser_value::Value::from(public_base_url.to_string()));
     let mut artifacts_seq = deser_value::Seq::new();
     for entry in artifact_entries {
@@ -75,7 +76,16 @@ fn generation_payload(
 }
 
 pub fn generation_id_for(public_base_url: &str, artifacts: &[ArtifactRecord], packuments: &[PackumentFile]) -> Result<String> {
-    let payload = generation_payload(public_base_url, artifacts, packuments)?;
+    generation_id_for_renderer(public_base_url, artifacts, packuments, RENDERER_VERSION)
+}
+
+fn generation_id_for_renderer(
+    public_base_url: &str,
+    artifacts: &[ArtifactRecord],
+    packuments: &[PackumentFile],
+    renderer: u32,
+) -> Result<String> {
+    let payload = generation_payload(public_base_url, artifacts, packuments, renderer)?;
     let text = canonical_json(&payload)?;
     let mut hasher = Sha256::new();
     hasher.update(text.as_bytes());
@@ -290,7 +300,7 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
         .collect::<Result<Vec<_>>>()?;
     let files = render_packument_files(&artifact_values, &manifest.public_base_url, Some(manifest.renderer_version))
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
-    let computed = generation_id_for(&manifest.public_base_url, &manifest.artifacts, &files)
+    let computed = generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version)
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
     if computed != id || manifest.generation_id != id {
         return Err(Error::Corrupt(format!("generation identity does not match its contents: {id}")));

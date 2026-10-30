@@ -114,7 +114,7 @@ else
 fi
 
 echo "note: generation alias paths resolve server-side (see worker alias_key); skipping their upload"
-find "$SITE_DIR" -type l ! -path '*/.*' | sort | while IFS= read -r f; do
+find "$SITE_DIR" -type l ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do
   echo "note: skipping symlink ${f#$SITE_DIR/}"
 done
 
@@ -122,7 +122,7 @@ MARKER=$(mktemp)
 LIST=$(mktemp)
 REMOTE_LIST=$(mktemp)
 trap 'rm -f "$MARKER" "$LIST" "$REMOTE_LIST"' EXIT
-find "$SITE_DIR" -type f ! -path '*/.*' | sort > "$LIST"
+find "$SITE_DIR" -type f ! -path "$SITE_DIR/.*" | sort > "$LIST"
 # shellcheck disable=SC2086
 cf r2 objects list --bucket-name "$BUCKET" --per-page 1000 $LOCAL_ARGS >"$REMOTE_LIST"
 if [ "$(jaq 'length' "$REMOTE_LIST")" -ge 1000 ]; then
