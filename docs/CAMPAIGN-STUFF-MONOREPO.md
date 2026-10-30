@@ -5,8 +5,8 @@
 Goal: one `stuff` repo serving mycrates/mynpm/mypypi from shared Rust HTTP
 serving + storage/generation code; per-registry pipelines stay independent.
 S0 done: mycrates green at HEAD `f96961d` (cargo test all ok, 0 failed).
-Accepted: S1, S2d, S2a (mycrates; readme test fixed for workspace
-target dir; nested Cargo.lock removed, root owns the lock). Red: baseline known-reds only
+Accepted: S1, S2d, S2a, S2b (mynpm; LICENSE + manifest license field;
+106 passed, 1 pre-existing toolchain red, same as source HEAD). Red: baseline known-reds only
 (mypypi 2, mynpm 1 flaky toolchain test). Next: S2a mycrates + path
 rewrite, then S2b/c (parallel OK). Resume: S2a import.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
