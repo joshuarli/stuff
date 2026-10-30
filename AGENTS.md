@@ -9,8 +9,12 @@ Monorepo for three static registries sharing one Rust serving platform.
   inlined (no workspace root). Keep `src/` byte-identical to upstream.
 - `tools/mynpm`: npm archive (TypeScript 7 ESM, Node 26, pnpm 12.15.0).
 - `tools/mypypi`: wheel index (CPython 3.15, uv).
-- `crates/stuff-*`: shared Rust serving/storage (from S3 on).
-- `deploy/`: Cloudflare `cf` config (from S5 on).
+- `crates/stuff-server`: native static file server (blocking httparse +
+  std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
+- `crates/stuff-worker`: Cloudflare Worker adapter; the wrangler/cf
+  project lives next to the crate (`cf deploy --dry-run` validates).
+- `deploy/`: pipeline checks (`check-pipeline-independence.sh`) and R2
+  sync (`r2-sync.sh`; verify with `CF_LOCAL_STATE`).
 
 ## Commands
 

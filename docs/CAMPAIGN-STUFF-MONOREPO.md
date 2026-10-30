@@ -15,8 +15,10 @@ mycrates blocking stack; real cargo/npm/uv install from it, 135 passed
 0 failed, clippy clean. S5 done: stuff-worker core (asset-map, 7 tests)
 + wasm glue compiles to wasm32 (debug + release 1.1 M pre-opt);
 cf migrate validates wrangler.toml into committed cloudflare.config.ts
-with 3 R2 bindings. Next: S6 pipelines + docs.
-Resume: R2 upload wiring, per-registry CI, README/AGENTS.md.
+with 3 R2 bindings. S6 done: independence script green locally + CI job
+wired, README/AGENTS.md current, `r2-sync.sh` uploads a site with the
+`current` marker (proven against local R2 sim). Next: S7 close.
+Resume: review pass, fix P1/P2, final report.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
 everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
 Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
