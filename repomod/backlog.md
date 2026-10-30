@@ -27,7 +27,7 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 - [x] laputa-systems/zzz (8 -> 0; release asset names changed)
 - [x] joshuarli/ish (6 -> 0)
 - [x] joshuarli/pytest-parallel (5 -> 0)
-- [ ] laputa-systems/deser (5 -> 1)
+- [x] laputa-systems/deser (5 -> 0)
 - [x] laputa-systems/git-build (4 -> 0)
 - [x] joshuarli/mactop (3 -> 0)
 - [x] laputa-systems/fz (3 -> 0)
@@ -36,7 +36,7 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 - [x] laputa-systems/fd (2 -> 0)
 - [x] laputa-systems/rust-brotli (2 -> 0)
 - [x] laputa-systems/srv (2 -> 0)
-- [ ] laputa-systems/tm (2): dirty checkout, leave until clean
+- [x] laputa-systems/tm (2 -> 0; checkout still has the owner's uncommitted changes)
 - [x] laputa-systems/vault (2 -> 0)
 - [x] joshuarli/defuddle-rs (1 -> 0)
 - [ ] laputa-systems/bbtree (1): rust-toolchain pin conflicts with Verus nightly; owner decision
