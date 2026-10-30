@@ -27,7 +27,7 @@ def write_catalog(path: Path, repos: str, **kwargs: str) -> Path:
     return path
 
 
-def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
+def test_user_catalog_loads_without_rewriting_and_defaults_the_workspace_root(
     tmp_path: Path,
 ) -> None:
     before = CATALOG_PATH.read_bytes()
@@ -36,8 +36,25 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
 
     assert before == after
     assert catalog.root == tmp_path / "repos"
-    srv = find_repository(catalog, "laputa-systems/srv")
-    assert set(srv.tags) == {"tool"}
+    assert len(catalog.repositories) > 0
+
+
+def test_catalog_tags_are_loaded_per_repository(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        """[repos."laputa-systems"]
+srv = ["tool"]
+
+[repos."joshuarli"]
+tansu = ["app", "javascript", "rust", "shell", "typescript"]
+shadowdriver = ["javascript", "library", "private-tool", "rust", "typescript"]
+discover = ["app", "typescript"]
+toolbox = ["private-tool", "python"]
+pytest-parallel = ["library", "pypi", "python"]""",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert set(find_repository(catalog, "laputa-systems/srv").tags) == {"tool"}
     assert set(find_repository(catalog, "joshuarli/tansu").tags) == {
         "app",
         "javascript",
@@ -54,8 +71,11 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
     }
     assert set(find_repository(catalog, "joshuarli/discover").tags) == {"app", "typescript"}
     assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"private-tool", "python"}
-    assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {"library", "pypi", "python"}
-    assert len(catalog.repositories) > 0
+    assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {
+        "library",
+        "pypi",
+        "python",
+    }
 
 
 def test_repomod_root_overrides_catalog_root(tmp_path: Path) -> None:
