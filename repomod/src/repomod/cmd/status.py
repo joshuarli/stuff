@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -12,15 +13,33 @@ from typing import Any
 
 from repomod import github, policy
 from repomod.catalog import CatalogError, repository_path
-from repomod.git import status
+from repomod.git import branch_checked_out_time, oldest_unpushed_commit_time, status
 from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
 
 from . import common
 
+STALE_LOCAL_WORK_DAYS = 7
+_SECONDS_PER_DAY = 86400
+
 _TODO_ITEM = re.compile(r"### [A-Z][A-Z0-9]*-\d+ · P\d+ · .+")
 
 
-def _local_label(value: GitStatus, default_branch: str | None) -> str:
+def _age_days(since: int | None, now: float) -> int | None:
+    return None if since is None else max(0, int((now - since) // _SECONDS_PER_DAY))
+
+
+def _stale_local_work(branch_days: int | None, unpushed_days: int | None) -> bool:
+    return any(
+        days is not None and days >= STALE_LOCAL_WORK_DAYS for days in (branch_days, unpushed_days)
+    )
+
+
+def _local_label(
+    value: GitStatus,
+    default_branch: str | None,
+    branch_days: int | None = None,
+    unpushed_days: int | None = None,
+) -> str:
     if not value.present:
         return "missing"
     if not value.valid:
@@ -45,8 +64,12 @@ def _local_label(value: GitStatus, default_branch: str | None) -> str:
         state = f"behind {value.behind} (last fetch)"
     else:
         state = "clean"
+    if unpushed_days is not None:
+        state += f", oldest unpushed {unpushed_days}d"
     if value.branch is not None and value.branch != default_branch:
-        return f"{state} on {value.branch}"
+        state += f" on {value.branch}"
+        if branch_days is not None:
+            state += f" for {branch_days}d"
     return state
 
 
@@ -140,8 +163,8 @@ def _workflow_label(state: str) -> str:
     }.get(state, "UNKNOWN")
 
 
-def _local_color(value: str) -> str:
-    if value.startswith(("missing", "invalid")):
+def _local_color(value: str, stale: bool = False) -> str:
+    if value.startswith(("missing", "invalid")) or stale:
         return "31"
     if value.startswith(("dirty", "diverged", "ahead", "behind", "detached")):
         return "33"
@@ -258,7 +281,7 @@ def _status_text(
         print(common._paint(name, "36"))
         _print_wrapped_items(
             (
-                (f"local {local}", _local_color(local)),
+                (f"local {local}", _local_color(local, row.get("stale_local_work") is True)),
                 (f"CI {_ci_label(ci)}", _state_color(ci.state)),
                 (f"TODO {todo_count}", "33" if todo_count else "90"),
                 (f"lints {row['lint']}", lint_color),
@@ -365,13 +388,29 @@ def _status(args: argparse.Namespace) -> int:
         lint_operational = sum(finding.kind == "operational" for finding in repository_findings)
         remote = remotes.get(name)
         ci_result = ci[name]
+        default_branch = remote.default_branch if remote else ci_result.default_branch
+        now = time.time()
+        unpushed_since = (
+            oldest_unpushed_commit_time(local.path)
+            if local.valid and local.ahead is not None and local.ahead > 0
+            else None
+        )
+        branch_since = (
+            branch_checked_out_time(local.path, local.branch)
+            if local.valid and local.branch is not None and local.branch != default_branch
+            else None
+        )
+        branch_days = _age_days(branch_since, now)
+        unpushed_days = _age_days(unpushed_since, now)
         prs = pull_requests.get(name)
         requests, prs_error = prs if prs is not None else ([], None)
-        default_branch = remote.default_branch if remote else ci_result.default_branch
         remote_sha = remote.sha if remote else None
         row: dict[str, object] = {
             "repository": name,
-            "local": _local_label(local, default_branch),
+            "local": _local_label(local, default_branch, branch_days, unpushed_days),
+            "stale_local_work": _stale_local_work(branch_days, unpushed_days),
+            "branch_checked_out_at": branch_since,
+            "oldest_unpushed_commit_at": unpushed_since,
             "branch": local.branch,
             "default_branch": default_branch,
             "default_sha": remote_sha,
