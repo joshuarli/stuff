@@ -17,6 +17,7 @@ from repomod.rules.rust_profiles import rust_release_profiles_rules
 from repomod.rules.rust_toolchain import rust_toolchain_rules
 from repomod.rules.template import template_rules
 from repomod.rules.typescript_standard import typescript_standard_rules
+from repomod.rules.workflow_redundancy import workflow_redundancy_rules
 from repomod.rules.workflow_settings import workflow_settings_rules
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -43,6 +44,7 @@ def rules() -> tuple[Rule, ...]:
         *python_standard_rules(),
         *template_rules(),
         *typescript_standard_rules(),
+        *workflow_redundancy_rules(),
         *workflow_settings_rules(),
         *release_rules(),
         *rust_toolchain_rules(),

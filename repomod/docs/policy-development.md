@@ -63,6 +63,10 @@ excluded from the Cargo workspace, since vendored fork crates are not maintained
 mdtool's consumer advisories (C001, C002, C003) say that code reads or embeds a document, so they
 are not repository defects and `mdtool` does not report them. A README title that is the repository's own name is not a developer-topic
 heading (T003), so `node-build` is not flagged for containing "build".
+`workflow-redundancy` flags a workflow other than `lint.yml` or `lint.yaml` that runs `make lint` as a
+`run` command when the lint workflow also runs it and the two workflows share a trigger event. Lookalikes such as
+`make lint-fix`, `echo make lint`, or step names do not count, and a workflow whose triggers cannot be read is
+skipped. The finding is not fixable because choosing which workflow keeps the step is a human decision.
 `generated-artifacts` reports tracked build outputs and requires ignore coverage for
 language artifact directories. Operating-system metadata files such as `.DS_Store` and
 `Thumbs.db` are environment noise covered by the global ignore file, so the rule does not
