@@ -78,6 +78,7 @@ export default {
     }
     let key: string;
     let route: "immutable" | "pointer";
+    let aliasKey: string | undefined;
     if (mapped.kind === "direct") {
       if (!mapped.key) {
         throw new Error("mapping");
@@ -100,16 +101,17 @@ export default {
       }
       key = resolved.key;
       route = "pointer";
+      aliasKey = resolved.alias_key;
     }
     const store = bucket(env, mapped.bucket_binding);
     let object = await store.get(key);
     // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
     // and -/tarballs/) are not uploaded as separate R2 objects; the shared
     // store copy is byte-identical by the immutability invariant.
-    if (object === null && resolved.alias_key) {
-      const aliased = await store.get(resolved.alias_key);
+    if (object === null && aliasKey) {
+      const aliased = await store.get(aliasKey);
       if (aliased !== null) {
-        key = resolved.alias_key;
+        key = aliasKey;
         object = aliased;
       }
     }
