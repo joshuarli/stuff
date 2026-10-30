@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import glob
+import os
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,7 @@ _IGNORED_SOURCE_PARTS = {
     "third_party",
     "vendor",
 }
+_MANIFEST_SEARCH_DEPTH = 4
 _LANGUAGE_NAMES = {
     "c": "C",
     "cpp": "C++",
@@ -52,21 +54,38 @@ def _finding(repository: Repository, rule: str, path: str | None, message: str) 
     return _violation(repository, rule, path, message)
 
 
-def _cargo_candidates(root: Path) -> list[Path]:
-    patterns = (
-        "Cargo.toml",
-        "*/Cargo.toml",
-        "crates/*/Cargo.toml",
-        "*/crates/*/Cargo.toml",
-        "packages/*/Cargo.toml",
-        "rust/*/Cargo.toml",
-        "rust-cpython/overlay/Cargo.toml",
-        "rust-cpython/overlay/Modules/*/Cargo.toml",
-    )
-    found = set()
-    for pattern in patterns:
-        found.update(Path(path) for path in glob.glob(str(root / pattern)))
+def _manifest_paths(root: Path, name: str) -> list[Path]:
+    found = []
+    pending = [(root, 0)]
+    while pending:
+        directory, depth = pending.pop()
+        try:
+            entries = sorted(os.scandir(directory), key=lambda entry: entry.name.casefold())
+        except OSError:
+            continue
+        for entry in entries:
+            if entry.name == name and (entry.is_file(follow_symlinks=False) or entry.is_symlink()):
+                found.append(Path(entry.path))
+            elif (
+                depth < _MANIFEST_SEARCH_DEPTH
+                and entry.name not in _IGNORED_SOURCE_PARTS
+                and entry.is_dir(follow_symlinks=False)
+            ):
+                pending.append((Path(entry.path), depth + 1))
     return sorted(found, key=lambda path: path.relative_to(root).as_posix().casefold())
+
+
+def _manifest_bases(root: Path, name: str) -> tuple[str, ...]:
+    bases = (
+        path.parent.relative_to(root).as_posix()
+        for path in _manifest_paths(root, name)
+        if not path.is_symlink() and safe_relative(root, path) is not None
+    )
+    return tuple("" if base == "." else base for base in bases)
+
+
+def _cargo_candidates(root: Path) -> list[Path]:
+    return _manifest_paths(root, "Cargo.toml")
 
 
 def _safe_manifest(root: Path, path: Path) -> bool:
@@ -326,7 +345,8 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
 
 
 def _python_source_present(root: Path) -> bool:
-    patterns = (
+    bases = {"", *_manifest_bases(root, "pyproject.toml")}
+    root_patterns = (
         "*.py",
         "build/*.py",
         "buildsys/*.py",
@@ -344,7 +364,12 @@ def _python_source_present(root: Path) -> bool:
         "packages/*/src/*.py",
         "packages/*/src/*/*.py",
     )
-    for pattern in patterns:
+    patterns = {
+        f"{glob.escape(base)}/{pattern}" if base else pattern
+        for base in bases
+        for pattern in root_patterns
+    }
+    for pattern in sorted(patterns):
         for candidate_name in glob.glob(str(root / pattern)):
             candidate = Path(candidate_name)
             if not _safe_manifest(root, candidate) or any(
@@ -445,17 +470,12 @@ def _language_sources(root: Path) -> set[str]:
         observed.add("rust")
     if _python_source_present(root):
         observed.add("python")
-    go_manifest = any(
-        _safe_manifest(root, path)
-        for pattern in ("go.mod", "*/go.mod", "cmd/*/go.mod", "internal/*/go.mod")
-        for path in root.glob(pattern)
+    go_patterns = tuple(
+        f"{glob.escape(base)}/{pattern}" if base else pattern
+        for base in _manifest_bases(root, "go.mod")
+        for pattern in ("*.go", "cmd/*/*.go", "cmd/*/*/*.go", "internal/*/*.go", "pkg/*/*.go")
     )
-    go_sources = _source_present(
-        root,
-        ("*.go", "cmd/*/*.go", "cmd/*/*/*.go", "internal/*/*.go", "pkg/*/*.go"),
-        frozenset({".go"}),
-    )
-    if go_manifest and go_sources:
+    if _source_present(root, go_patterns, frozenset({".go"})):
         observed.add("go")
     swift_manifest = root / "Package.swift"
     if (
