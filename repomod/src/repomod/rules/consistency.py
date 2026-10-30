@@ -232,29 +232,48 @@ def _tracked_artifact_findings(root: Path, repository: Repository) -> list[Findi
         )
         for name, paths in sorted(groups.items())
     ]
-    required: list[tuple[str, str]] = []
-    required.extend(
-        probe
-        for language in sorted(languages)
-        for probe in _COMPOSED_IGNORE_PROBES.get(language, ())
-    )
-    ignored = root_ignore_matches(root, tuple(probe for probe, _ in required))
-    missing = [
-        pattern
-        for probe, pattern in required
-        if probe not in ignored
-    ]
+    missing = _missing_ignore_patterns(root, languages)
     if missing:
         findings.append(
             violation(
                 repository,
                 "generated-artifacts",
                 ".gitignore",
-                "composed ignore policy is missing in-repository patterns for " + ", ".join(sorted(set(missing))),
+                "composed ignore policy is missing in-repository patterns for " + ", ".join(missing),
                 severity="warning",
+                fixable=_gitignore_is_appendable(root),
             )
         )
     return findings
+
+
+def _missing_ignore_patterns(root: Path, languages: set[str]) -> list[str]:
+    required = [
+        probe
+        for language in sorted(languages)
+        for probe in _COMPOSED_IGNORE_PROBES.get(language, ())
+    ]
+    ignored = root_ignore_matches(root, tuple(probe for probe, _ in required))
+    return sorted({pattern for probe, pattern in required if probe not in ignored})
+
+
+def _gitignore_is_appendable(root: Path) -> bool:
+    path = root / ".gitignore"
+    return not path.is_symlink() and (path.is_file() or not path.exists())
+
+
+def _fix_ignore_coverage(root: Path, repository: Repository) -> dict[str, str]:
+    missing = _missing_ignore_patterns(root, _language_sources(root))
+    if not missing:
+        return {}
+    if not _gitignore_is_appendable(root):
+        raise ValueError("cannot fix .gitignore because it is not a regular file")
+    path = root / ".gitignore"
+    source = path.read_text(encoding="utf-8", newline="") if path.exists() else ""
+    newline = "\r\n" if "\r\n" in source else "\n"
+    if source and not source.endswith("\n"):
+        source += newline
+    return {".gitignore": source + "".join(pattern + newline for pattern in missing)}
 
 
 def consistency_rules() -> tuple[Rule, ...]:
@@ -264,9 +283,9 @@ def consistency_rules() -> tuple[Rule, ...]:
             "Check tracked generated files and composed ignore coverage",
             TagPredicate(),
             _tracked_artifact_findings,
-            None,
-            None,
-            (),
+            _fix_ignore_coverage,
+            "chore(repomod): ignore generated artifact directories",
+            (".gitignore",),
         ),
         Rule(
             "workflow-make-targets",
