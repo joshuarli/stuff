@@ -45,7 +45,7 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
         "rust",
         "typescript",
     }
-    assert set(find_repository(catalog, "joshuarli/pypi").tags) == {"private-tool", "python"}
+    assert set(find_repository(catalog, "joshuarli/mypypi").tags) == {"app", "python"}
     assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"private-tool", "python"}
     assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {"library", "pypi", "python"}
     assert len(catalog.repositories) > 0

@@ -21,6 +21,46 @@ uv run repomod --help
 Set `REPOMOD_ROOT` to use another absolute path. Personal-owner repositories use a flat path.
 Other owners use `OWNER/REPO`.
 
+## Discover and add repositories
+
+`repomod discover` compares GitHub against `catalog.toml`. It lists uncatalogued
+repositories and catalog entries missing from GitHub. It checks every catalogued
+owner unless you pass `--owner`.
+
+```sh
+uv run repomod discover
+uv run repomod discover --owner joshuarli
+```
+
+Add each wanted repository to `catalog.toml` as `name = ["tags"]` under its
+`[repos."owner"]` section. Include at least one primary tag. See
+[tagging semantics](docs/tagging.md) for tag meanings. Then fetch checkouts:
+
+```sh
+uv run repomod sync --dry-run
+uv run repomod sync
+```
+
+Tag edits need a separate publish step: `sync` only manages checkouts and never
+touches GitHub topics. Preview the difference with `topics diff`, then publish
+the catalog tag set with `topics apply`:
+
+```sh
+uv run repomod topics diff --repo joshuarli/mypypi
+uv run repomod topics apply --repo joshuarli/mypypi
+```
+
+When a repository leaves the catalog (for example after a rename), its old
+checkout stays on disk. Preview the leftovers with `gc --dry-run`, then remove
+them with `gc`. `gc` only removes clean checkouts and empty directories. It
+skips checkouts with uncommitted changes, unpushed commits, or an unverified
+layout, as well as stray files and symlinks, unless you pass `--force`:
+
+```sh
+uv run repomod gc --dry-run
+uv run repomod gc
+```
+
 ## Status and lint
 
 `repomod status` shows local Git, current default-branch CI, the latest status for each GitHub

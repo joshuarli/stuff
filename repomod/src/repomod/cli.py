@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog, repository_path, validate_identifier
+from repomod.clean import gc_repositories
 from repomod.fix import FixOutcome, fix_repository, push_fix_branch, push_repository
 from repomod.git import GitError, repository_lock, status
 from repomod.github import (
@@ -876,6 +877,20 @@ def _fix(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _gc(args: argparse.Namespace) -> int:
+    catalog = _catalog()
+    results = gc_repositories(
+        catalog, dry_run=args.dry_run, force=args.force, jobs=args.workers
+    )
+    failed = False
+    for result in results:
+        print(f"{result.repository}: {result.action}: {result.message}")
+        failed |= result.failed
+    if not results:
+        print("no unreferenced checkouts")
+    return 1 if failed else 0
+
+
 def _push(args: argparse.Namespace) -> int:
     if args.workers < 1:
         raise ValueError("--workers must be at least one")
@@ -948,6 +963,13 @@ def _parser() -> argparse.ArgumentParser:
     _filters(push)
     push.add_argument("--workers", type=int, default=4)
 
+    gc = commands.add_parser(
+        "gc", help="remove checkouts the catalog no longer references"
+    )
+    gc.add_argument("--dry-run", action="store_true")
+    gc.add_argument("--force", action="store_true")
+    gc.add_argument("--workers", type=int, default=4)
+
     discover = commands.add_parser(
         "discover", help="compare GitHub owner repositories against catalogued entries"
     )
@@ -977,6 +999,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "fix": _fix,
             "sync": _sync,
             "push": _push,
+            "gc": _gc,
             "discover": _discover,
             "topics": _topics,
         }
