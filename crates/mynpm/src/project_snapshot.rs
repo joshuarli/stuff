@@ -328,13 +328,18 @@ fn preflight_pnpm_lock(value: &deser_value::Value, label: &str) -> Result<()> {
             if let Some(em) = entry.as_map() {
                 for probe in ["configDependencies", "packageManagerDependencies"] {
                     if em.get(probe).is_some_and(has_entries) {
-                        let kind = if probe == "configDependencies" {
-                            "configuration dependency"
-                        } else {
-                            "package-manager boot dependency"
-                        };
+                        if probe == "packageManagerDependencies" {
+                            // pnpm records its own boot packages here; they are
+                            // toolchain packages, never installed into the
+                            // project's node_modules, so the mirror skips them
+                            // instead of rejecting the lockfile.
+                            eprintln!(
+                                "note: skipping pnpm package-manager boot dependencies in {label}.importers.{importer}"
+                            );
+                            continue;
+                        }
                         return Err(Error::Input(format!(
-                            "unsupported pnpm project configuration: {kind} in {label}.importers.{importer}"
+                            "unsupported pnpm project configuration: configuration dependency in {label}.importers.{importer}"
                         )));
                     }
                 }
@@ -529,9 +534,54 @@ mod tests {
         assert!(snapshot.workspace_files.is_empty());
     }
 
+    fn pnpm_project() -> ProjectRecord {
+        ProjectRecord {
+            id: "demo".to_string(),
+            manager: Manager::Pnpm,
+            package_manager_pin: None,
+            lockfile_path: "pnpm-lock.yaml".to_string(),
+            lockfile_version: crate::inventory::LockfileVersion::Pnpm("9.0".to_string()),
+            targets: vec![],
+            importers: vec![".".to_string()],
+            roots: vec![],
+            packages: vec![],
+            snapshot: None,
+        }
+    }
+
     #[test]
-    fn rejects_pnpm_hooks_and_registries() {
+    fn skips_pnpm_boot_dependencies() {
         let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("package.json"), r#"{"name":"demo","version":"1.0.0"}"#).unwrap();
+        let lock = "lockfileVersion: '9.0'\nimporters:\n  .:\n    packageManagerDependencies:\n      pnpm:\n        specifier: 12.15.0\n        version: 12.15.0\n";
+        let project = pnpm_project();
+        capture_project_snapshot(&CaptureOptions {
+            manager: &Manager::Pnpm,
+            project_directory: dir.path().to_str().unwrap(),
+            lockfile_text: lock,
+            project: &project,
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn rejects_pnpm_config_dependencies() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("package.json"), r#"{"name":"demo","version":"1.0.0"}"#).unwrap();
+        let lock = "lockfileVersion: '9.0'\nimporters:\n  .:\n    configDependencies:\n      foo:\n        specifier: 1.0.0\n        version: 1.0.0\n";
+        let project = pnpm_project();
+        let err = capture_project_snapshot(&CaptureOptions {
+            manager: &Manager::Pnpm,
+            project_directory: dir.path().to_str().unwrap(),
+            lockfile_text: lock,
+            project: &project,
+        })
+        .unwrap_err();
+        assert!(format!("{err}").contains("configuration dependency"));
+    }
+
+    #[test]
+    fn rejects_pnpm_hooks_and_registries() {        let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".pnpmfile.cjs"), "module.exports = {}").unwrap();
         let project = ProjectRecord {
             id: "demo".to_string(),
