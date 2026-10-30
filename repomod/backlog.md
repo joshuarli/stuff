@@ -17,13 +17,13 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 - [ ] joshuarli/shadowdriver (103): gitignore `grab/node_modules/`, then triage the rest
 - [ ] laputa-systems/python-build (106)
-- [ ] joshuarli/discover (51)
+- [x] joshuarli/discover (51 -> 0, 2 local commits)
 - [ ] laputa-systems/node-build (32)
 - [ ] joshuarli/obsidian-ferrisearch (22)
 - [ ] joshuarli/toolbox (16): on a `repomod/fix/*` branch; resolve first
 - [ ] laputa-systems/chromium-build (16)
 - [ ] laputa-systems/h12tiny (11)
-- [ ] joshuarli/tansu (9)
+- [ ] joshuarli/tansu (9 -> 5): needs catalog tags javascript+shell; typescript-stack Solid rules are a policy call (vanilla TS frontend)
 - [ ] laputa-systems/zzz (8)
 - [ ] joshuarli/ish (6)
 - [ ] joshuarli/pytest-parallel (5)
