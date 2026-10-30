@@ -45,7 +45,7 @@ impl Drop for TestServer {
 
 fn seed_fixtures() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/mynpm/test/fixtures/protocol-seed")
+        .join("../../tests/fixtures/mynpm/protocol-seed")
 }
 
 #[test]
