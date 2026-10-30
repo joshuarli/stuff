@@ -374,17 +374,17 @@ fn add_digest_claims(
     Ok(())
 }
 
-fn sort_value(value: &mut deser_value::Value) {
+pub fn sort_canonical_value(value: &mut deser_value::Value) {
     if let Some(seq) = value.as_seq_mut() {
         for item in seq.iter_mut() {
-            sort_value(item);
+            sort_canonical_value(item);
         }
         return;
     }
     if let Some(map) = value.as_map_mut() {
         for i in 0..map.len() {
             if let Some((_, v)) = map.get_index_mut(i) {
-                sort_value(v);
+                sort_canonical_value(v);
             }
         }
         map.sort_by(|k1, _, k2, _| {
@@ -397,7 +397,7 @@ fn sort_value(value: &mut deser_value::Value) {
 
 pub fn canonical_string(value: &deser_value::Value) -> Result<String> {
     let mut owned = value.clone();
-    sort_value(&mut owned);
+    sort_canonical_value(&mut owned);
     deser_json::to_string(&owned).map_err(|e| Error::Input(format!("value is not JSON serializable: {e}")))
 }
 
@@ -689,7 +689,7 @@ fn canonical_json_object(v: &deser_value::Value, label: &str, category: Category
         .map_err(|_| err(category, format!("{label} is not JSON serializable")))?;
     let normalized = normalize_json_value(&reparsed, label, category)?;
     let mut owned = normalized;
-    sort_value(&mut owned);
+    sort_canonical_value(&mut owned);
     Ok(owned)
 }
 
@@ -742,7 +742,7 @@ fn normalize_metadata(
             if let Some(cmap_mut) = canonical.as_map_mut() {
                 cmap_mut.insert("dist", deser_value::Value::from(new_map));
             }
-            sort_value(&mut canonical);
+            sort_canonical_value(&mut canonical);
         }
     }
     let serialized = canonical_string(&canonical).map_err(|_| err(category, format!("{label} is not JSON serializable")))?;
@@ -844,7 +844,7 @@ fn normalize_artifact(
     }
     meta_out.insert("dist".to_string(), deser_value::Value::from(meta_dist));
     let mut meta_val = deser_value::Value::from(meta_out);
-    sort_value(&mut meta_val);
+    sort_canonical_value(&mut meta_val);
     Ok(Some((meta_val, ArtifactVerification { sha512, integrity, shasum, source_url, legacy_sha1_only: legacy })))
 }
 
@@ -1195,7 +1195,7 @@ fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {
     }
     root.insert("artifacts".to_string(), deser_value::Value::from(artifacts));
     let mut out = deser_value::Value::from(root);
-    sort_value(&mut out);
+    sort_canonical_value(&mut out);
     Ok(out)
 }
 
@@ -1356,14 +1356,20 @@ pub fn artifact_to_value(a: &ArtifactRecord) -> Result<deser_value::Value> {
 
 pub fn serialize_inventory(inv: &Inventory) -> Result<String> {
     let value = inventory_to_value(inv)?;
-    let reparsed: Inventory = parse_inventory(&deser_json::to_string(&value).map_err(|e| Error::Operation(e.to_string()))?)?;
-    let _ = reparsed;
-    let mut pretty = value;
-    sort_value(&mut pretty);
+    let _reparsed: Inventory = parse_inventory(&deser_json::to_string(&value).map_err(|e| Error::Operation(e.to_string()))?)?;
+    canonical_json(&value)
+}
+
+pub fn canonical_json(value: &deser_value::Value) -> Result<String> {
+    Ok(format!("{}\n", render_pretty(value)))
+}
+
+pub fn render_pretty(value: &deser_value::Value) -> String {
+    let mut owned = value.clone();
+    sort_canonical_value(&mut owned);
     let mut out = String::new();
-    write_pretty(&pretty, &mut out, 0);
-    out.push('\n');
-    Ok(out)
+    write_pretty(&owned, &mut out, 0);
+    out
 }
 
 fn write_pretty(v: &deser_value::Value, out: &mut String, indent: usize) {

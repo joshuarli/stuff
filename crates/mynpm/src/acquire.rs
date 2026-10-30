@@ -6,7 +6,6 @@ use crate::error::{Error, Result};
 use crate::fetch_budget::FetchByteBudget;
 use crate::inventory::{
     record_verified_artifact, validate_artifact_record, ArtifactRecord, Inventory, PackageRecord,
-    PlatformConstraints,
 };
 use crate::inventory_store::{load_inventory, update_inventory};
 use crate::limits;
@@ -170,11 +169,10 @@ impl Exchange for HttpsExchange {
         if status != 200 {
             return Err(Error::Operation(format!("upstream returned HTTP {status} for {url}")));
         }
-        if let Some(raw) = resp.headers().get(http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()) {
-            if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+        if let Some(raw) = resp.headers().get(http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok())
+            && (raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit())) {
                 return Err(Error::Operation("upstream returned an invalid Content-Length".to_string()));
             }
-        }
         let mut body = Vec::new();
         {
             let reader = resp.body_mut();
@@ -311,11 +309,10 @@ pub fn parse_integrity_claims(text: Option<&str>, label: &str) -> Result<BTreeMa
             return Err(Error::Operation(format!("{label} contains a malformed {algo} digest")));
         }
         let hex: String = raw.iter().map(|b| format!("{b:02x}")).collect();
-        if let Some(prior) = claims.get(algo) {
-            if prior != &hex {
+        if let Some(prior) = claims.get(algo)
+            && prior != &hex {
                 return Err(Error::Conflict(format!("{label} contains conflicting {algo} integrity claims")));
             }
-        }
         claims.insert(algo.to_string(), hex);
     }
     Ok(claims)
@@ -336,14 +333,14 @@ fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Res
     for record in records {
         let label = format!("lockfile integrity for {}@{}", record.name, record.version.clone().unwrap_or_default());
         for (algo, digest) in parse_integrity_claims(record.integrity.as_deref(), &label)? {
-            if let Some(prior) = claims.get(&algo) {
-                if prior != &digest {
-                    return Err(Error::Conflict(format!(
-                        "upstream {algo} integrity conflicts for {}@{}",
-                        metadata_name(metadata),
-                        metadata_version(metadata)
-                    )));
-                }
+            if let Some(prior) = claims.get(&algo)
+                && prior != &digest
+            {
+                return Err(Error::Conflict(format!(
+                    "upstream {algo} integrity conflicts for {}@{}",
+                    metadata_name(metadata),
+                    metadata_version(metadata)
+                )));
             }
             claims.insert(algo, digest);
         }
@@ -351,29 +348,28 @@ fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Res
     let dist = metadata_dist(metadata);
     let upstream = parse_integrity_claims(dist_integrity(&dist).as_deref(), "upstream metadata integrity")?;
     for (algo, digest) in upstream {
-        if let Some(prior) = claims.get(&algo) {
-            if prior != &digest {
+        if let Some(prior) = claims.get(&algo)
+            && prior != &digest {
                 return Err(Error::Conflict(format!(
                     "upstream {algo} integrity conflicts for {}@{}",
                     metadata_name(metadata),
                     metadata_version(metadata)
                 )));
             }
-        }
         claims.insert(algo, digest);
     }
     if let Some(shasum) = dist_shasum(&dist) {
         if !crate::value::is_sha1_hex(&shasum) {
             return Err(Error::Operation("upstream shasum is malformed".to_string()));
         }
-        if let Some(prior) = claims.get("sha1") {
-            if prior != &shasum {
-                return Err(Error::Conflict(format!(
-                    "upstream SHA-1 integrity conflicts for {}@{}",
-                    metadata_name(metadata),
-                    metadata_version(metadata)
-                )));
-            }
+        if let Some(prior) = claims.get("sha1")
+            && prior != &shasum
+        {
+            return Err(Error::Conflict(format!(
+                "upstream SHA-1 integrity conflicts for {}@{}",
+                metadata_name(metadata),
+                metadata_version(metadata)
+            )));
         }
         claims.insert("sha1".to_string(), shasum);
     }
@@ -393,14 +389,14 @@ fn lock_claims(records: &[PackageRecord]) -> Result<BTreeMap<String, String>> {
     for record in records {
         let label = format!("lockfile integrity for {}@{}", record.name, record.version.clone().unwrap_or_default());
         for (algo, digest) in parse_integrity_claims(record.integrity.as_deref(), &label)? {
-            if let Some(prior) = claims.get(&algo) {
-                if prior != &digest {
-                    return Err(Error::Conflict(format!(
-                        "lockfiles disagree about {algo} for {}@{}",
-                        record.name,
-                        record.version.clone().unwrap_or_default()
-                    )));
-                }
+            if let Some(prior) = claims.get(&algo)
+                && prior != &digest
+            {
+                return Err(Error::Conflict(format!(
+                    "lockfiles disagree about {algo} for {}@{}",
+                    record.name,
+                    record.version.clone().unwrap_or_default()
+                )));
             }
             claims.insert(algo, digest);
         }
@@ -557,7 +553,7 @@ pub fn group_packages(inventory: &Inventory, config: &Config) -> Result<Vec<Pack
         }
     }
     let mut out: Vec<PackageTask> = packages.into_values().collect();
-    out.sort_by(|a, b| (a.name.clone(), a.version.clone()).cmp(&(b.name.clone(), b.version.clone())));
+    out.sort_by_key(|a| (a.name.clone(), a.version.clone()));
     Ok(out)
 }
 
@@ -726,22 +722,21 @@ fn inspect_object(
         .as_ref()
         .map(|r| r.artifact.sha512.clone())
         .or_else(|| expected_claims.get("sha512").cloned())
+        && actual.get("sha512") != Some(&stored)
     {
-        if actual.get("sha512") != Some(&stored) {
-            return Err(fail(format!(
-                "stored artifact SHA-512 does not match inventory for {}@{}",
-                task.name, task.version
-            )));
-        }
+        return Err(fail(format!(
+            "stored artifact SHA-512 does not match inventory for {}@{}",
+            task.name, task.version
+        )));
     }
     let dist = metadata_dist(metadata);
-    if let Some(shasum) = dist_shasum(&dist) {
-        if actual.get("sha1") != Some(&shasum) {
-            return Err(fail(format!(
-                "stored artifact SHA-1 does not match metadata for {}@{}",
-                task.name, task.version
-            )));
-        }
+    if let Some(shasum) = dist_shasum(&dist)
+        && actual.get("sha1") != Some(&shasum)
+    {
+        return Err(fail(format!(
+            "stored artifact SHA-1 does not match metadata for {}@{}",
+            task.name, task.version
+        )));
     }
     let inspected = inspect_package_archive(path.to_str().unwrap_or(""), &task.name, &task.version).map_err(|cause| {
         fail(format!("stored package archive is invalid for {}@{}: {cause}", task.name, task.version))
@@ -905,13 +900,13 @@ fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instan
                 task.name, task.version
             )));
         }
-        if let Some(lock_sha) = expected.get("sha512") {
-            if lock_sha != &record.artifact.sha512 {
-                return Err(Error::Conflict(format!(
-                    "stored digest conflicts with lockfile for {}@{}",
-                    task.name, task.version
-                )));
-            }
+        if let Some(lock_sha) = expected.get("sha512")
+            && lock_sha != &record.artifact.sha512
+        {
+            return Err(Error::Conflict(format!(
+                "stored digest conflicts with lockfile for {}@{}",
+                task.name, task.version
+            )));
         }
         expected.insert("sha512".to_string(), record.artifact.sha512.clone());
         if let Some(ref shasum) = record.artifact.shasum {
@@ -1228,9 +1223,8 @@ pub fn fetch_inventory(
         }
         Ok(results.lock().map(|mut r| std::mem::take(&mut *r)).unwrap_or_default())
     });
-    let mut results = result.map_err(|e| {
+    let mut results = result.inspect_err(|_| {
         let _ = std::fs::remove_dir_all(&staging_dir);
-        e
     })?;
     if Instant::now() >= deadline {
         let _ = std::fs::remove_dir_all(&staging_dir);
@@ -1486,7 +1480,7 @@ mod tests {
             use sha2::Digest;
             let mut h = Sha512::new();
             h.update(&tarball);
-            format!("sha512-{}", base64_engine_encode(&h.finalize().to_vec()))
+            format!("sha512-{}", base64_engine_encode(&h.finalize()))
         };
         let mut inv = fixture_inventory("flatdemo", "1.2.3", Some(&integrity));
         inv.projects[0].packages[0].resolved = Some(tarball_url);

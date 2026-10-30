@@ -44,7 +44,7 @@ pub fn parse_root_pins(specs: &[String]) -> Result<Vec<RootPin>> {
             version: version.to_string(),
         });
     }
-    roots.sort_by(|a, b| (a.name.clone(), a.version.clone()).cmp(&(b.name.clone(), b.version.clone())));
+    roots.sort_by_key(|r| (r.name.clone(), r.version.clone()));
     let names: Vec<&str> = roots.iter().map(|r| r.name.as_str()).collect();
     let mut dedup = names.clone();
     dedup.sort();
@@ -198,7 +198,7 @@ fn resolve_target(
         Error::Input(_) => e,
         other => Error::Operation(format!("{other}")),
     })?;
-    let found = version_out.stdout.trim().split_whitespace().next().unwrap_or("").to_string();
+    let found = version_out.stdout.split_whitespace().next().unwrap_or("").to_string();
     let expected = if *manager == Manager::Npm { NPM_VERSION } else { PNPM_VERSION };
     if found != expected {
         return Err(Error::Operation(format!(

@@ -8,39 +8,46 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
-pub struct InventoryLock {
+pub struct FileLock {
     _file: std::fs::File,
 }
 
-fn lock_path(state_dir: &Path) -> PathBuf {
-    state_dir.join(".inventory.lock")
-}
-
-fn inventory_path(state_dir: &Path) -> PathBuf {
-    state_dir.join("inventory.json")
-}
-
-pub fn acquire_inventory_lock(state_dir: &Path) -> Result<InventoryLock> {
-    fs::create_dir_all(state_dir)
-        .map_err(|e| Error::Operation(format!("could not prepare inventory directory {}: {e}", state_dir.display())))?;
-    let path = lock_path(state_dir);
+pub fn acquire_file_lock(dir: &Path, name: &str, resource: &str) -> Result<FileLock> {
+    fs::create_dir_all(dir)
+        .map_err(|e| Error::Operation(format!("could not prepare inventory directory {}: {e}", dir.display())))?;
+    let path = dir.join(name);
     let file = OpenOptions::new()
         .create(true)
         .truncate(false)
         .write(true)
         .mode(0o600)
         .open(&path)
-        .map_err(|e| Error::Operation(format!("could not open inventory lock at {}: {e}", path.display())))?;
+        .map_err(|e| Error::Operation(format!("could not open {resource} lock at {}: {e}", path.display())))?;
     match file.try_lock() {
-        Ok(()) => Ok(InventoryLock { _file: file }),
-        Err(std::fs::TryLockError::WouldBlock) => Err(Error::Conflict(
-            "another mynpm operation is updating inventory".to_string(),
-        )),
+        Ok(()) => Ok(FileLock { _file: file }),
+        Err(std::fs::TryLockError::WouldBlock) => Err(Error::Conflict(format!(
+            "another mynpm operation is updating {resource}"
+        ))),
         Err(std::fs::TryLockError::Error(e)) => Err(Error::Operation(format!(
-            "could not acquire inventory lock at {}: {e}",
+            "could not acquire {resource} lock at {}: {e}",
             path.display()
         ))),
     }
+}
+
+fn inventory_path(state_dir: &Path) -> PathBuf {
+    state_dir.join("inventory.json")
+}
+
+#[derive(Debug)]
+pub struct InventoryLock {
+    _inner: FileLock,
+}
+
+pub fn acquire_inventory_lock(state_dir: &Path) -> Result<InventoryLock> {
+    Ok(InventoryLock {
+        _inner: acquire_file_lock(state_dir, ".inventory.lock", "inventory")?,
+    })
 }
 
 pub fn load_inventory(state_dir: &Path) -> Result<Inventory> {
