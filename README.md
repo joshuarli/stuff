@@ -53,6 +53,11 @@ Pipeline independence (also runs in CI):
 deploy/check-pipeline-independence.sh
 ```
 
+All three publish CLIs share one exit-code contract: `2` usage/input,
+`3` integrity, `4` conflict, `5` limit, `6` network, `1` other
+operational failures (`mynpm` adds `130` for a cancelled run; `stuff
+doctor` exits `1` on a failed check and `2` on its own error).
+
 ## Serve
 
 Serve a published site directory (or a mounted registry prefix) locally:

@@ -112,7 +112,10 @@ pub struct PointerJson {
 }
 
 /// Shared-store alias for generation-scoped paths that r2-sync does not
-/// upload as separate objects:
+/// upload as separate objects (see the skip list in deploy/r2-sync.sh:
+/// `generations/*/tarballs/*`, which also matches `-/tarballs/`, and the
+/// symlinked `wheels/` dirs). Keep the two lists in agreement; the
+/// `pointer_alias_covers_shared_stores` test below pins this side.
 /// - `wheels/...`: mypypi publishes `generations/<id>/wheels` as a symlink
 ///   to the shared immutable wheel store.
 /// - `tarballs/...` and `-/tarballs/...`: mynpm publishes hardlink aliases
@@ -575,6 +578,28 @@ mod tests {
         ))
         .expect("parses");
         assert_eq!(plain.alias_key, None);
+
+        // Mirrors the r2-sync.sh skip list: generation-scoped tarball
+        // hardlinks resolve to the shared store instead of being uploaded.
+        let tarballs: PointerJson = deser_json::from_str(&resolve_pointer_json(
+            "current",
+            "abc123",
+            "tarballs/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(
+            tarballs.alias_key.as_deref(),
+            Some("tarballs/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.tgz")
+        );
+
+        // The bare wheels dir is the symlinked shared store itself.
+        let wheels_dir: PointerJson = deser_json::from_str(&resolve_pointer_json(
+            "current",
+            "abc123",
+            "wheels",
+        ))
+        .expect("parses");
+        assert_eq!(wheels_dir.alias_key.as_deref(), Some("wheels"));
     }
 
     fn parse_plan_pointer(s: &str) -> String {

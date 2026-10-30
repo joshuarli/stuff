@@ -28,7 +28,7 @@ for repair.
 ## Commands
 
 - Rust: `cargo build --workspace`, `cargo test --workspace`,
-  `cargo clippy --locked --all-targets -- -D warnings` (per crate from S2).
+  `cargo clippy --locked --all-targets -- -D warnings`.
 - Ecosystem smoke (Node 26 + pinned npm, uv + CPython 3.15, network):
   `deploy/ecosystem-smoke.sh`. `TMPDIR="$PWD/.work/tmp"` for campaign commands.
 - Python: `uv run --locked --python 3.15 pytest -q -m "not network" tests`

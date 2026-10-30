@@ -1,9 +1,8 @@
 #!/bin/sh
 # Prove per-registry publication pipelines never touch each other's output.
-# Publishes mycrates (offline) and mypypi (one tiny wheel) through the Rust
-# binaries and asserts mutual non-interference plus publish determinism.
-# mynpm participates through disjoint state/site paths; its publish needs
-# the npm toolchain, so it is covered by deploy/ecosystem-smoke.sh instead.
+# Publishes mycrates (offline), mypypi (one tiny wheel), and mynpm (empty
+# inventory, offline) through the Rust binaries and asserts mutual
+# non-interference plus publish determinism.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${1:-"$ROOT/.work/pipecheck"}
@@ -14,6 +13,8 @@ CRATES_STATE="$WORK/crates-state"
 CRATES_SITE="$WORK/crates-site"
 PYPI_STATE="$WORK/pypi-state"
 PYPI_OUT="$WORK/pypi-site"
+NPM_STATE="$WORK/npm-state"
+NPM_SITE="$WORK/npm-site"
 
 if command -v sha256sum >/dev/null 2>&1; then
   hash_file() { sha256sum "$1" | cut -d' ' -f1; }
@@ -25,7 +26,7 @@ snapshot() {
   out=$1
   only=${2:-}
   : > "$out"
-  for d in "$CRATES_SITE" "$PYPI_OUT"; do
+  for d in "$CRATES_SITE" "$PYPI_OUT" "$NPM_SITE"; do
     [ -e "$d" ] || continue
     case $d in
       *"$only"*) ;;
@@ -102,5 +103,31 @@ if cmp -s "$WORK/after-pypi.txt" "$WORK/after-pypi-again.txt"; then
   echo "determinism: pypi republish is a noop"
 else
   echo "FAIL: pypi republish changed output"; exit 1
+fi
+
+(cd "$WORK" && cargo run -q -p mynpm -- init-config --node-version 26.12.1 --public-url https://npm.17166969.xyz --output "$WORK/mynpm.json" >/dev/null)
+(cd "$ROOT" && cargo run -q -p mynpm -- --config "$WORK/mynpm.json" --state-dir "$NPM_STATE" publish --site-dir "$NPM_SITE" >/dev/null)
+snapshot "$WORK/after-npm-crates.txt" "crates-site"
+if cmp -s "$WORK/after-crates-again.txt" "$WORK/after-npm-crates.txt"; then
+  echo "crosstalk: npm publish left crates-site untouched"
+else
+  echo "FAIL: npm publish changed crates-site"; exit 1
+fi
+snapshot "$WORK/after-npm-pypi.txt" "pypi-site"
+if cmp -s "$WORK/after-pypi-again.txt" "$WORK/after-npm-pypi.txt"; then
+  echo "crosstalk: npm publish left pypi-site untouched"
+else
+  echo "FAIL: npm publish changed pypi-site"; exit 1
+fi
+snapshot "$WORK/after-npm.txt" "npm-site"
+NPM_GEN_1=$(readlink "$NPM_SITE/mirror/current")
+(cd "$ROOT" && cargo run -q -p mynpm -- --config "$WORK/mynpm.json" --state-dir "$NPM_STATE" publish --site-dir "$NPM_SITE" >/dev/null)
+snapshot "$WORK/after-npm-again.txt" "npm-site"
+NPM_GEN_2=$(readlink "$NPM_SITE/mirror/current")
+[ "$NPM_GEN_1" = "$NPM_GEN_2" ] || { echo "FAIL: npm republish changed generation"; exit 1; }
+if cmp -s "$WORK/after-npm.txt" "$WORK/after-npm-again.txt"; then
+  echo "determinism: npm republish is a noop"
+else
+  echo "FAIL: npm republish changed output"; exit 1
 fi
 echo "OK: single-registry publishes leave other generations untouched"

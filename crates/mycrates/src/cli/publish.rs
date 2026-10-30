@@ -38,6 +38,7 @@ pub fn run(args: &[String]) -> Result<()> {
     let config = Config::load(&config_file)?;
 
     let store = Store::new(state_dir);
+    let _guard = store.lock_exclusive()?;
     let publisher = Publisher::new(&store, site_dir, config.public_base_url);
     let res = publisher.publish()?;
 

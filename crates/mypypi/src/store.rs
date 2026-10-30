@@ -11,6 +11,9 @@ use std::time::{Duration, Instant};
 
 const STAGING_PREFIX: &str = ".mypypi-staging-";
 const STAGING_OWNER: &str = ".mypypi-owner";
+/// Staging dirs older than this with no owner marker are orphans of a crash
+/// between directory creation and marker write, and are safe to remove.
+const STALE_STAGING_AGE: Duration = Duration::from_secs(3600);
 
 fn pub_error(kind: Kind, detail: impl Into<String>, path: Option<&Path>, item: Option<&IndexArtifact>) -> Error {
     let mut detail = detail.into();
@@ -126,6 +129,14 @@ fn recover_staging(output: &Path) -> Result<()> {
             Ok(text) if text == "mypypi\n" => {
                 let _ = std::fs::remove_dir_all(&candidate);
             }
+            // No (or invalid) marker: either a foreign dir sharing the
+            // prefix, a staging dir from a publisher still running under
+            // the output lock, or an orphan of a crash between mkdir and
+            // marker write. Only the last is safe to remove, identified by
+            // the creation timestamp embedded in the staging name.
+            _ if staging_age(&name).is_some_and(|age| age > STALE_STAGING_AGE) => {
+                let _ = std::fs::remove_dir_all(&candidate);
+            }
             _ => continue,
         }
     }
@@ -234,6 +245,24 @@ fn store_metadata(wheels: &Path, item: &IndexArtifact) -> Result<()> {
     })();
     let _ = std::fs::remove_file(&tmp);
     write_result
+}
+
+fn now_nanos() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)
+}
+
+/// Age of a staging dir from the creation timestamp in its name, or `None`
+/// when the name carries no parseable timestamp.
+fn staging_age(name: &str) -> Option<Duration> {
+    let rest = name.strip_prefix(STAGING_PREFIX)?;
+    let (nanos_hex, _) = rest.split_once('-')?;
+    let nanos = u128::from_str_radix(nanos_hex, 16).ok()?;
+    Some(Duration::from_nanos(now_nanos().saturating_sub(nanos).min(u64::MAX as u128) as u64))
+}
+
+fn staging_name() -> String {
+    format!("{STAGING_PREFIX}{:x}-{:x}", now_nanos(), std::process::id())
 }
 
 fn rand_hex() -> u64 {
@@ -443,7 +472,7 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
         remove_staging_owner(&final_dir)?;
         return Ok(generation);
     }
-    let staging = output.join(format!("{STAGING_PREFIX}{:x}", rand_hex()));
+    let staging = output.join(staging_name());
     std::fs::create_dir(&staging)
         .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
     let built: Result<()> = (|| {
@@ -962,5 +991,32 @@ mod tests {
     #[test]
     fn package_version_parses() {
         let _ = PackageVersion::parse("sample-pkg", "1.0").unwrap();
+    }
+
+    #[test]
+    fn recover_staging_ages_out_markerless_orphans() {
+        let dir = tempfile::tempdir().unwrap();
+        let out = dir.path();
+        // Staging with a valid marker is a crashed build: removed.
+        let marked = out.join(format!("{STAGING_PREFIX}abc-1"));
+        std::fs::create_dir(&marked).unwrap();
+        std::fs::write(marked.join(STAGING_OWNER), "mypypi\n").unwrap();
+        // Fresh marker-less staging may belong to a live publisher: kept.
+        let fresh = out.join(staging_name());
+        std::fs::create_dir(&fresh).unwrap();
+        // Ancient marker-less staging is a mkdir/marker-write crash orphan: removed.
+        let orphan = out.join(format!("{STAGING_PREFIX}1-1234"));
+        std::fs::create_dir(&orphan).unwrap();
+        // Unparseable marker-less name: kept (conservative for foreign dirs).
+        let foreign = out.join(format!("{STAGING_PREFIX}not-a-timestamp"));
+        std::fs::create_dir(&foreign).unwrap();
+        let other = out.join("other");
+        std::fs::create_dir(&other).unwrap();
+        recover_staging(out).unwrap();
+        assert!(!marked.exists());
+        assert!(fresh.exists());
+        assert!(!orphan.exists());
+        assert!(foreign.exists());
+        assert!(other.exists());
     }
 }
