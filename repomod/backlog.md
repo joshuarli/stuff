@@ -16,7 +16,7 @@ and fast-forwarded into the clean canonical default branch. Nothing is pushed.
 Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 - [x] joshuarli/shadowdriver (103 -> 0, 5 local commits)
-- [ ] laputa-systems/python-build (106 -> 5): AGENTS.md/README restructure in progress, cachix pin
+- [ ] laputa-systems/python-build (106 -> 1): cachix pin awaiting approval
 - [x] joshuarli/discover (51 -> 0, 2 local commits)
 - [x] laputa-systems/node-build (32 -> 0; binary-release-tags ignored via override)
 - [x] joshuarli/obsidian-ferrisearch (22 -> 0; binary-release-tags ignored via override)
