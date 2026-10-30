@@ -69,8 +69,9 @@ The Cloudflare Worker in `crates/stuff-worker` serves the same layouts from
 R2. URL routing and response planning live in the crate's Rust code
 (`src/map.rs`, `src/api.rs`, shared `stuff-http` semantics, `deser` for
 config parsing — no `worker` SDK, no async runtime in the dependency tree);
-the thin fetch handler is `src/entry.ts`, which calls the compiled wasm for
-routing decisions and talks to R2 directly. Its project files
+routes match on the request hostname, so each registry serves from its own
+domain root. The thin fetch handler is `src/entry.ts`, which initializes the
+compiled wasm once (`initSync`) and talks to R2 directly. Its project files
 (`wrangler.toml`, generated `cloudflare.config.ts`) live next to the crate.
 Build the wasm and validate without credentials:
 
@@ -82,16 +83,19 @@ cf deploy --dry-run
 ```
 
 `npm run build:wasm` compiles the crate for `wasm32-unknown-unknown` and
-runs `wasm-bindgen --target bundler` into `build/`; keep the installed
-`wasm-bindgen` CLI at the version pinned in `Cargo.lock`. `wrangler deploy`
-(and `cf deploy`) runs the same build automatically via the `[build]`
-command before bundling `src/entry.ts`.
+runs `wasm-bindgen --target web` into `build/` (explicit init: the bundler
+target's namespace import does not resolve to the wasm exports under
+wrangler); keep the installed `wasm-bindgen` CLI at the version pinned in
+`Cargo.lock`. `wrangler deploy` (and `cf deploy`) runs the same build
+automatically via the `[build]` command before bundling `src/entry.ts`.
 
 Real deploys are manual: `cf deploy` (use `--provision` once to create the
-`stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). Sync a
-published site to its bucket per registry with `deploy/r2-sync.sh`, which
-translates the `current` symlink to a marker object holding the generation
-id (verified against the local R2 simulation). Generation-scoped
+`stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). The
+`[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`, and
+`pypi` custom domains, each serving its registry from `/` (see `STUFF_ROUTES`
+hosts). Sync a published site to its bucket per registry with
+`deploy/r2-sync.sh`, which translates the `current` symlink to a marker
+object holding the generation id (verified against the local R2 simulation). Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
 the worker resolves them to the shared store instead. Files over the 300 MB
 single-PUT cap fail loudly and need an out-of-band multipart upload.
