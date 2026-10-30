@@ -10,11 +10,18 @@ use std::time::{Duration, Instant};
 const DIAGNOSTIC_LIMIT: usize = 16 * 1024;
 const KILL_GRACE: Duration = Duration::from_secs(5);
 
+#[derive(Debug, Clone, Copy)]
+pub enum StdoutMode {
+    Tail(usize),
+    Full { max_bytes: u64 },
+}
+
 #[derive(Debug, Clone)]
 pub struct ProcessOptions {
     pub cwd: String,
     pub env: HashMap<String, String>,
     pub timeout_ms: u64,
+    pub stdout_mode: StdoutMode,
 }
 
 #[derive(Debug, Clone)]
@@ -23,11 +30,26 @@ pub struct ProcessResult {
     pub stderr: String,
 }
 
-fn append_tail(current: &mut Vec<u8>, next: &[u8]) {
-    current.extend_from_slice(next);
-    if current.len() > DIAGNOSTIC_LIMIT {
-        let excess = current.len() - DIAGNOSTIC_LIMIT;
-        current.drain(..excess);
+fn append_tail(current: &mut Vec<u8>, next: &[u8], mode: StdoutMode, command: &str) -> Result<()> {
+    match mode {
+        StdoutMode::Tail(limit) => {
+            current.extend_from_slice(next);
+            if current.len() > limit {
+                let excess = current.len() - limit;
+                current.drain(..excess);
+            }
+            Ok(())
+        }
+        StdoutMode::Full { max_bytes } => {
+            current.extend_from_slice(next);
+            if current.len() as u64 > max_bytes {
+                return Err(Error::Operation(format!(
+                    "{command} output exceeds the {} limit",
+                    crate::limits::format_bytes(max_bytes)
+                )));
+            }
+            Ok(())
+        }
     }
 }
 
@@ -44,10 +66,18 @@ fn signal_group(pid: u32, sig: &str) {
 fn drain_available(
     rx: &mpsc::Receiver<Vec<u8>>,
     buf: &mut Vec<u8>,
-) {
+    mode: StdoutMode,
+    command: &str,
+    is_stdout: bool,
+) -> Result<()> {
     while let Ok(chunk) = rx.try_recv() {
-        append_tail(buf, &chunk);
+        if is_stdout {
+            append_tail(buf, &chunk, mode, command)?;
+        } else {
+            append_tail(buf, &chunk, StdoutMode::Tail(DIAGNOSTIC_LIMIT), command)?;
+        }
     }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -60,10 +90,11 @@ fn wait_for_exit(
     pid: u32,
     command: &str,
     deadline: Instant,
+    mode: StdoutMode,
 ) -> Result<(bool, Option<i32>)> {
     loop {
-        drain_available(rx_out, stdout);
-        drain_available(rx_err, stderr);
+        drain_available(rx_out, stdout, mode, command, true)?;
+        drain_available(rx_err, stderr, mode, command, false)?;
         if let Some(status) = child.try_wait().map_err(|e| Error::Operation(format!("could not wait for {command}: {e}")))? {
             return Ok((false, status.code()));
         }
@@ -71,8 +102,8 @@ fn wait_for_exit(
             signal_group(pid, "-TERM");
             let grace_end = Instant::now() + KILL_GRACE;
             loop {
-                drain_available(rx_out, stdout);
-                drain_available(rx_err, stderr);
+                drain_available(rx_out, stdout, mode, command, true)?;
+                drain_available(rx_err, stderr, mode, command, false)?;
                 if let Some(status) = child.try_wait().map_err(|e| Error::Operation(format!("could not wait for {command}: {e}")))? {
                     return Ok((true, status.code()));
                 }
@@ -148,15 +179,28 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
 
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
-    let (timed_out, exit_code) = wait_for_exit(&mut child, &rx_out, &rx_err, &mut stdout, &mut stderr, pid, command, deadline)?;
-    while let Ok(chunk) = rx_out.try_recv() {
-        append_tail(&mut stdout, &chunk);
-    }
-    while let Ok(chunk) = rx_err.try_recv() {
-        append_tail(&mut stderr, &chunk);
-    }
+    let mode = options.stdout_mode;
+    let overflow = (|| -> Result<(bool, Option<i32>)> {
+        let (timed_out, exit_code) = wait_for_exit(&mut child, &rx_out, &rx_err, &mut stdout, &mut stderr, pid, command, deadline, mode)?;
+        while let Ok(chunk) = rx_out.try_recv() {
+            append_tail(&mut stdout, &chunk, mode, command)?;
+        }
+        while let Ok(chunk) = rx_err.try_recv() {
+            append_tail(&mut stderr, &chunk, StdoutMode::Tail(DIAGNOSTIC_LIMIT), command)?;
+        }
+        Ok((timed_out, exit_code))
+    })();
     let _ = out_handle.join();
     let _ = err_handle.join();
+    let (timed_out, exit_code) = match overflow {
+        Ok(values) => values,
+        Err(e) => {
+            signal_group(pid, "-KILL");
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(e);
+        }
+    };
 
     if timed_out {
         return Err(Error::Operation(format!(
@@ -194,6 +238,7 @@ mod tests {
             cwd: "/tmp".to_string(),
             env: HashMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]),
             timeout_ms: 10_000,
+            stdout_mode: StdoutMode::Tail(16384),
         }
     }
 

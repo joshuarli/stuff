@@ -792,7 +792,6 @@ dependencies = [
  "deser-toml",
  "deser-value",
  "h12tiny-client-sync",
- "libc",
  "pep440_rs",
  "sha2",
  "stuff-store",

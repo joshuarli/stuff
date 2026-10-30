@@ -22,7 +22,7 @@ fn err(category: Category, message: impl Into<String>) -> Error {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Manager {
     Npm,
     Pnpm,
@@ -34,6 +34,12 @@ impl Manager {
             Manager::Npm => "npm",
             Manager::Pnpm => "pnpm",
         }
+    }
+}
+
+impl std::fmt::Display for Manager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -148,6 +154,12 @@ pub struct ProjectRecord {
     pub roots: Vec<RootDependency>,
     pub packages: Vec<PackageRecord>,
     pub snapshot: Option<ProjectSnapshot>,
+}
+
+impl ProjectRecord {
+    pub fn manager(&self) -> Manager {
+        self.manager
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1199,7 +1211,7 @@ fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {
     Ok(out)
 }
 
-fn project_to_value(p: &ProjectRecord) -> Result<deser_value::Value> {
+pub fn project_to_value(p: &ProjectRecord) -> Result<deser_value::Value> {
     let mut m = deser_value::Map::new();
     m.insert("id".to_string(), deser_value::Value::from(p.id.clone()));
     m.insert("manager".to_string(), deser_value::Value::from(p.manager.as_str().to_string()));
@@ -1463,14 +1475,30 @@ fn inventory_roundtrip(inv: &Inventory) -> Result<String> {
     deser_json::to_string(&value).map_err(|e| Error::Corrupt(format!("inventory is not JSON serializable: {e}")))
 }
 
-pub fn package_identities(inv: &Inventory) -> Vec<(String, String, Vec<String>)> {
-    let mut out: BTreeMap<(String, String), Vec<SourceKind>> = BTreeMap::new();
+pub fn package_identities(inv: &Inventory) -> Vec<(String, String, Vec<String>, Vec<String>)> {
+    let mut out: BTreeMap<(String, String), (Vec<SourceKind>, Vec<String>)> = BTreeMap::new();
     for p in &inv.projects {
         for pkg in &p.packages {
             if let Some(ref ver) = pkg.version {
-                out.entry((pkg.name.clone(), ver.clone())).or_default().push(pkg.source_kind.clone());
+                let entry = out.entry((pkg.name.clone(), ver.clone())).or_default();
+                entry.0.push(pkg.source_kind.clone());
+                entry.1.extend(pkg.targets.iter().cloned());
             }
         }
     }
-    out.into_iter().map(|((n, v), kinds)| (n, v, kinds.into_iter().map(|k| k.as_str().to_string()).collect())).collect()
+    out.into_iter()
+        .map(|((n, v), (kinds, mut targets))| {
+            let mut kinds: Vec<String> = kinds.into_iter().map(|k| k.as_str().to_string()).collect();
+            kinds.sort();
+            kinds.dedup();
+            targets.sort();
+            targets.dedup();
+            (
+                n,
+                v,
+                kinds,
+                targets,
+            )
+        })
+        .collect()
 }

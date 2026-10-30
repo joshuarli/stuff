@@ -192,6 +192,7 @@ fn resolve_target(
             cwd: project_dir.clone(),
             env: environment.clone(),
             timeout_ms: 30_000,
+            stdout_mode: crate::process::StdoutMode::Tail(16384),
         },
     )
     .map_err(|e| match e {
@@ -227,6 +228,7 @@ fn resolve_target(
             cwd: project_dir.clone(),
             env: environment,
             timeout_ms: OPERATION_TIMEOUT_MS,
+            stdout_mode: crate::process::StdoutMode::Tail(16384),
         },
     )?;
     let lockfile_name = if *manager == Manager::Npm { "package-lock.json" } else { "pnpm-lock.yaml" };
