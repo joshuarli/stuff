@@ -649,7 +649,7 @@ pub fn validate_wheel_metadata_at(
     let wheel_headers = parse_email_headers(&wheel_bytes);
     let meta_name = headers_one(&metadata, "Name").ok_or_else(|| integ("wheel has invalid package metadata".to_string()))?;
     let meta_version = headers_one(&metadata, "Version").ok_or_else(|| integ("wheel has invalid package metadata".to_string()))?;
-    let meta_pkg = PackageVersion::parse(&meta_name, &meta_version)
+    let meta_pkg = PackageVersion::parse(&canonicalize_name(&meta_name), &meta_version)
         .map_err(|_| integ("wheel has invalid package metadata".to_string()))?;
     if meta_pkg != *package {
         return Err(integ("wheel filename and METADATA identity differ".to_string()));
@@ -1069,5 +1069,33 @@ mod tests {
         let id = validate_wheel_metadata(&path, &pkg, &t, "manylinux_2_28", true).unwrap();
         assert_eq!(id.filename, "validation_fixture-1.0-py3-none-any.whl");
         validate_wheel_architectures(&path, &t).unwrap();
+    }
+
+    #[test]
+    fn accepts_noncanonical_metadata_name() {
+        // Real-world wheels keep the project's original capitalization in
+        // METADATA's Name field (e.g. Pygments) while filenames are
+        // normalized; identity comparison must normalize, not reject.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0-py3-none-any.whl");
+        {
+            let file = std::fs::File::create(&path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let opts = zip::write::SimpleFileOptions::default();
+            zip.start_file("pkg-1.0.dist-info/METADATA", opts).unwrap();
+            use std::io::Write;
+            zip.write_all(b"Metadata-Version: 2.1\nName: Pkg\nVersion: 1.0\nRequires-Python: >=3.9\n")
+                .unwrap();
+            zip.start_file("pkg-1.0.dist-info/WHEEL", opts).unwrap();
+            zip.write_all(b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+                .unwrap();
+            zip.start_file("pkg-1.0.dist-info/RECORD", opts).unwrap();
+            zip.write_all(b"").unwrap();
+            zip.finish().unwrap();
+        }
+        let pkg = PackageVersion::parse("pkg", "1.0").unwrap();
+        let t = Target::new("3.15", "macos-arm64").unwrap();
+        let id = validate_wheel_metadata(&path, &pkg, &t, "manylinux_2_28", true).unwrap();
+        assert_eq!(id.filename, "pkg-1.0-py3-none-any.whl");
     }
 }
