@@ -188,7 +188,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed, String> {
             }
         }
         Command::Render => {
-            if parsed.command == Command::Render && !parsed.positionals.is_empty() {
+            if !parsed.positionals.is_empty() {
                 return Err(usage_error("render does not take positional arguments"));
             }
             if parsed.versions {
@@ -219,7 +219,7 @@ pub fn print_help() {
     println!("  search <query> [--registry cargo|npm|pypi] [--json] [sources...]");
     println!("  diff <before.json> <after.json> [--json]");
     println!("  doctor [--remote|--cargo-dir DIR ...] [--expected-generation ID] [--sample-artifacts]");
-    println!("  render --output index.html [sources...]");
+    println!("  render --output index.html [--registry cargo|npm|pypi] [sources...]");
     println!();
     println!("Sources default to the live registries (no credentials needed).");
     println!("Pass --cargo-dir/--npm-dir/--pypi-dir (site, generation, or catalog.json)");
