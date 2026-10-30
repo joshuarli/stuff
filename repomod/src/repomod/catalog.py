@@ -43,6 +43,18 @@ PUBLISHING_TAGS = frozenset({"crates-io", "pypi", "npm"})
 PLATFORM_TAGS = frozenset({"linux", "macos"})
 TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS | PLATFORM_TAGS | frozenset({"fork"})
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]+\Z")
+DEPENDENCY_IGNORE_PREFIX = "audit-upgrades:"
+_DEPENDENCY_IGNORE = re.compile(
+    r"audit-upgrades:(pypi|npm|crates|go):([A-Za-z0-9@_./+-]+)\Z"
+)
+
+
+def parse_dependency_ignore(value: str) -> tuple[str, str] | None:
+    match = _DEPENDENCY_IGNORE.fullmatch(value)
+    if match is None:
+        return None
+    ecosystem, name = match.groups()
+    return str(ecosystem), str(name)
 
 
 class CatalogError(ValueError):
@@ -176,6 +188,13 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         if len(ignored_rules) != len(ignored_values):
             raise CatalogError(f"duplicate ignored rule codes for {repo_id}")
         for ignored_rule in ignored_rules:
+            if ignored_rule.startswith(DEPENDENCY_IGNORE_PREFIX):
+                if parse_dependency_ignore(ignored_rule) is None:
+                    raise CatalogError(
+                        f"invalid dependency ignore {ignored_rule!r} for {repo_id}; "
+                        "use audit-upgrades:ECOSYSTEM:NAME with pypi, npm, crates, or go"
+                    )
+                continue
             validate_identifier(ignored_rule.replace(":", "-", 1), "ignored rule code")
         if "ignore" in raw_override and not ignored_rules:
             raise CatalogError(f"override for {repo_id} must ignore at least one rule code")

@@ -12,7 +12,9 @@ Lint IDs are durable catalog policy codes. Catalog version 3 supports per-reposi
 `[overrides."OWNER/REPO"]` entries with `ignore = ["rule-id"]` and a required `ignore_reason`
 string. Validate each code against the
 registered rule IDs. An entry of the form `mdtool:R005` ignores one `mdtool` finding code in that
-repository and keeps the rest of the documentation audit. Document policy changes alongside the rule.
+repository and keeps the rest of the documentation audit. An entry of the form
+`audit-upgrades:crates:NAME` (ecosystem `pypi`, `npm`, `crates`, or `go`) exempts one dependency
+from `audit-upgrades`. Document policy changes alongside the rule.
 
 ## Fixers
 

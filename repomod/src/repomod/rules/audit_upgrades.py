@@ -35,6 +35,7 @@ from repomod.audit import (
     _version_key,
     _write_cache,
 )
+from repomod.catalog import parse_dependency_ignore
 from repomod.io import read_toml
 from repomod.rules.python_standard import load_approved_python_tool_versions
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
@@ -242,7 +243,14 @@ def _outdated_findings(
     def key_for(ecosystem: str, name: str) -> tuple[str, str]:
         if ecosystem == "crates":
             return (ecosystem, _normalize_rust_name(name))
+        if ecosystem == "pypi":
+            return (ecosystem, _normalize_python_name(name))
         return (ecosystem, name.casefold())
+
+    for ignored in repository.ignored_rules:
+        parsed = parse_dependency_ignore(ignored)
+        if parsed is not None:
+            skipped.add(key_for(*parsed))
 
     direct = [item for item in locked if item.direct and key_for(item.ecosystem, item.name) not in skipped]
     if not direct:

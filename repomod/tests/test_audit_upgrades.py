@@ -737,3 +737,40 @@ def test_msrv_blocks_upgrades_beyond_lowest_workspace_rust_version(
     assert by_name["crates:rcgen"].fixable is False
     assert "needs Rust 1.88 but the lowest workspace rust-version is 1.85" in by_name["crates:rcgen"].message
     assert by_name["crates:rand"].fixable is True
+
+
+def test_dependency_ignore_skips_only_that_dependency(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\ngetrandom = "0.3"\nuuid = "1"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "getrandom"\nversion = "0.3.4"\n'
+        '[[package]]\nname = "uuid"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    ignoring = Repository(
+        RepoId("acme", "demo"),
+        ("rust",),
+        ignored_rules=frozenset({"audit-upgrades:crates:getrandom"}),
+    )
+    latest = {"getrandom": "0.4.3", "uuid": "1.29.0"}
+    findings = _outdated_findings(root, ignoring, {}, NOW, lambda _e, name: latest[name])
+    assert [finding.message.split()[0] for finding in findings] == ["crates:uuid"]
+
+
+def test_dependency_ignore_passes_policy_validation() -> None:
+    from repomod.policy import validate_ignored_rules
+
+    validate_ignored_rules(
+        (
+            Repository(
+                RepoId("acme", "demo"),
+                ("rust",),
+                ignored_rules=frozenset({"audit-upgrades:crates:getrandom"}),
+            ),
+        )
+    )

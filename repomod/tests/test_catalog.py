@@ -322,3 +322,30 @@ def test_remove_repository_returns_false_for_unknown_entries(tmp_path: Path) -> 
     assert not remove_repository(catalog, "acme", "missing")
     assert not remove_repository(catalog, "unknown", "tool")
     assert path.read_text(encoding="utf-8") == before
+
+
+def test_dependency_ignores_are_validated_and_kept(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(
+            3,
+            'ignore = ["audit-upgrades:crates:getrandom", "audit-upgrades:npm:@types/node"]\n'
+            'ignore_reason = "tantivy needs getrandom 0.3"',
+        ),
+        encoding="utf-8",
+    )
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+    assert repository.ignored_rules == {
+        "audit-upgrades:crates:getrandom",
+        "audit-upgrades:npm:@types/node",
+    }
+
+
+@pytest.mark.parametrize("code", ["audit-upgrades:getrandom", "audit-upgrades:swift:x", "audit-upgrades:crates:"])
+def test_malformed_dependency_ignores_are_rejected(tmp_path: Path, code: str) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, f'ignore = ["{code}"]\nignore_reason = "y"'), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="dependency ignore"):
+        load_catalog(path, {"HOME": str(tmp_path)})
