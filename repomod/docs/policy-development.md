@@ -10,7 +10,8 @@ violations.
 
 Lint IDs are durable catalog policy codes. Catalog version 2 supports per-repository
 `[overrides."OWNER/REPO"]` entries with `ignore = ["rule-id"]`. Validate each code against the
-registered rule IDs. Document policy changes alongside the rule.
+registered rule IDs. An entry of the form `mdtool:R005` ignores one `mdtool` finding code in that
+repository and keeps the rest of the documentation audit. Document policy changes alongside the rule.
 
 ## Fixers
 

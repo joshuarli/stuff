@@ -6,7 +6,8 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 
-from repomod.rules.mdtool import _is_excluded, _mdtool_findings
+from repomod.policy import PolicyError, validate_ignored_rules
+from repomod.rules.mdtool import _is_excluded, _mdtool_findings, is_mdtool_code_ignore
 from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
 from repomod.types import RepoId, Repository
 
@@ -73,3 +74,30 @@ def test_advisories_and_project_titles_are_not_findings(tmp_path: Path, monkeypa
         "line 5:1: T003 README has a developer-topic heading: ## Build",
         "line 3:1: L001 destination does not exist: missing.md",
     ]
+
+
+def test_per_code_ignore_drops_only_that_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    records = [
+        {"code": code, "severity": "warn", "file": "README.md", "line": 1, "col": 1,
+         "message": "finding", "target": "x"}
+        for code in ("R005", "L001")
+    ]
+    executable = tmp_path / ".local" / "bin" / "mdtool"
+    executable.parent.mkdir(parents=True)
+    output = "\n".join(json.dumps(record) for record in records)
+    executable.write_text(f"#!/bin/sh\ncat <<'EOF'\n{output}\nEOF\n", encoding="utf-8")
+    executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    repository = Repository(RepoId("acme", "demo"), (), ignored_rules=frozenset({"mdtool:R005"}))
+
+    findings = _mdtool_findings(tmp_path, repository)
+
+    assert [finding.message for finding in findings] == ["line 1:1: L001 finding: x"]
+
+
+def test_only_well_formed_mdtool_code_ignores_validate() -> None:
+    assert is_mdtool_code_ignore("mdtool:R005")
+    assert not is_mdtool_code_ignore("mdtool:r5")
+    assert not is_mdtool_code_ignore("mdtool")
+    with pytest.raises(PolicyError):
+        validate_ignored_rules((Repository(RepoId("acme", "demo"), (), ignored_rules=frozenset({"mdtool:nope"})),))

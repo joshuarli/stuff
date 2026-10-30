@@ -6,6 +6,7 @@ from repomod.catalog import Catalog, repository_path
 from repomod.github import open_pull_requests, protection_many, topics_many
 from repomod.rules import rules
 from repomod.rules.conventional_commits import titles_findings
+from repomod.rules.mdtool import is_mdtool_code_ignore
 from repomod.types import Finding, OpenPullRequest, Repository, Rule, operational, violation
 
 
@@ -41,7 +42,11 @@ def selected_rules(
 def validate_ignored_rules(repositories: Iterable[Repository]) -> None:
     known_ids = {rule.id for rule in rules()}
     for repository in repositories:
-        unknown = repository.ignored_rules - known_ids
+        unknown = {
+            value
+            for value in repository.ignored_rules - known_ids
+            if not is_mdtool_code_ignore(value)
+        }
         if unknown:
             raise PolicyError(
                 f"unknown ignored rule codes for {repository.id}: {', '.join(sorted(unknown))}"

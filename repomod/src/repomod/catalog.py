@@ -176,7 +176,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         if len(ignored_rules) != len(ignored_values):
             raise CatalogError(f"duplicate ignored rule codes for {repo_id}")
         for ignored_rule in ignored_rules:
-            validate_identifier(ignored_rule, "ignored rule code")
+            validate_identifier(ignored_rule.replace(":", "-", 1), "ignored rule code")
         if "ignore" in raw_override and not ignored_rules:
             raise CatalogError(f"override for {repo_id} must ignore at least one rule code")
         index = repositories.index(repo)

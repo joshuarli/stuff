@@ -7,7 +7,7 @@ repair ledger.
 ## State and ownership
 
 `catalog.toml` owns repository identity, policy tags, checkout root, autofix overrides, and
-per-repository ignored rule codes. Version 2 adds the `ignore` override for stable lint IDs.
+per-repository ignored rule codes. Version 2 adds the `ignore` override for stable lint IDs and `mdtool:CODE` documentation findings.
 `REPOMOD_ROOT` overrides the configured root for one process. The catalog does not record branch
 state or lint results.
 

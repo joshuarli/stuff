@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
@@ -16,11 +17,19 @@ _SEVERITIES: dict[str, Severity] = {
 }
 _EXCLUDED_DIRS = frozenset({"expected", "fixtures", "snapshots", "testdata"})
 _EXCLUDED_FILES = frozenset({"TODO.md"})
+MDTOOL_IGNORE_PREFIX = "mdtool:"
+_FINDING_CODE = re.compile(r"[A-Z]\d{3}\Z")
 _CONSUMER_ADVISORY_CODES = frozenset({"C001", "C002", "C003"})
 
 
 def _is_excluded(path: PurePosixPath) -> bool:
     return path.name in _EXCLUDED_FILES or not _EXCLUDED_DIRS.isdisjoint(path.parent.parts)
+
+
+def is_mdtool_code_ignore(value: str) -> bool:
+    return value.startswith(MDTOOL_IGNORE_PREFIX) and bool(
+        _FINDING_CODE.fullmatch(value.removeprefix(MDTOOL_IGNORE_PREFIX))
+    )
 
 
 def _is_project_title(code: str, target: str, repository: Repository) -> bool:
@@ -81,6 +90,8 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             or not isinstance(target, str)
         ):
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
+            continue
+        if MDTOOL_IGNORE_PREFIX + code in repository.ignored_rules:
             continue
         if code in _CONSUMER_ADVISORY_CODES or _is_project_title(code, target, repository):
             continue

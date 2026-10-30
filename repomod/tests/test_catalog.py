@@ -38,8 +38,15 @@ def test_user_catalog_tags_and_workspace_default_are_loaded_without_rewriting(
     assert catalog.root == tmp_path / "repos"
     srv = find_repository(catalog, "laputa-systems/srv")
     assert set(srv.tags) == {"tool"}
-    assert set(find_repository(catalog, "joshuarli/tansu").tags) == {"app", "rust", "typescript"}
+    assert set(find_repository(catalog, "joshuarli/tansu").tags) == {
+        "app",
+        "javascript",
+        "rust",
+        "shell",
+        "typescript",
+    }
     assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {
+        "javascript",
         "library",
         "private-tool",
         "rust",
