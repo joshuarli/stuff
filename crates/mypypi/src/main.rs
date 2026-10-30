@@ -40,7 +40,7 @@ fn main() {
                 .map(std::path::PathBuf::from)
                 .and_then(|p| mypypi::config::load_project_settings(&p).ok());
             eprintln!("{}", cli::format_error(&e, settings.as_ref()));
-            std::process::exit(if e.usage { 2 } else { 1 });
+            std::process::exit(e.exit_code());
         }
     }
 }

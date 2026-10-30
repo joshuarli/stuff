@@ -125,7 +125,19 @@ impl Error {
     }
 
     pub fn exit_code(&self) -> i32 {
-        1
+        if self.usage {
+            return 2;
+        }
+        match self.kind {
+            Kind::InvalidInput | Kind::Configuration | Kind::MissingArtifact => 2,
+            Kind::Integrity => 3,
+            Kind::Conflict => 4,
+            Kind::Incompatible
+            | Kind::Dependency
+            | Kind::Build
+            | Kind::Validation
+            | Kind::Io => 1,
+        }
     }
 }
 
@@ -144,3 +156,21 @@ impl From<std::io::Error> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exit_codes_follow_the_shared_contract() {
+        let kind_code = |kind: Kind| Error::new(kind, "x", Stage::Command).exit_code();
+        assert_eq!(kind_code(Kind::InvalidInput), 2);
+        assert_eq!(kind_code(Kind::Configuration), 2);
+        assert_eq!(kind_code(Kind::MissingArtifact), 2);
+        assert_eq!(kind_code(Kind::Integrity), 3);
+        assert_eq!(kind_code(Kind::Conflict), 4);
+        assert_eq!(kind_code(Kind::Io), 1);
+        assert_eq!(kind_code(Kind::Build), 1);
+        assert_eq!(Error::usage("x").exit_code(), 2);
+    }
+}

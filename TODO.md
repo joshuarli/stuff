@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 9
 
-### STUF-4 · P2 · error models diverge across the three publish binaries
-
-- **Area:** Errors
-- **Where:** `crates/mycrates/src/error.rs:4-11`, `crates/mycrates/src/error.rs:40-62`, `crates/mycrates/src/error.rs:67-76`, `crates/mynpm/src/error.rs:6-13`, `crates/mynpm/src/error.rs:42-50`, `crates/mynpm/src/error.rs:56-65`, `crates/mypypi/src/error.rs:4-52`, `crates/mypypi/src/error.rs:127-129`, `crates/stuff/src/main.rs:20-34`
-- **Problem:** the same failure classes exit differently per binary (usage/input: 2/2/1-always-1; integrity: 3 vs Corrupt-1 vs 1; conflict: 4 vs 1 vs 1), `Limit`/`Network` fold lossily into `Operation` and `Integrity` into `Corrupt` at the `stuff-store` boundary, and `stuff doctor` stringifies typed errors. Callers cannot distinguish usage vs conflict vs transient failures across registries, which breaks scripting and retry policy.
-- **Recommendation:** adopt one exit-code and conversion contract across the publish binaries (or document the per-binary contract in `README.md`/`AGENTS.md`) and pin it with tests; preserve `Limit`/`Network` through `stuff-store` conversions instead of folding them into `Operation`.
-- **Fix with:** error-model
-- **Effort:** M
-
 ### STUF-5 · P3 · mypypi staging crash window leaks orphan dirs permanently
 
 - **Area:** Data

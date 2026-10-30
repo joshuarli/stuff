@@ -5,6 +5,8 @@ pub enum Error {
     Input(String),
     Integrity(String),
     Conflict(String),
+    Limit(String),
+    Network(String),
     Operation(String),
 }
 
@@ -14,6 +16,8 @@ impl std::fmt::Display for Error {
             Error::Input(s) => write!(f, "input: {s}"),
             Error::Integrity(s) => write!(f, "integrity: {s}"),
             Error::Conflict(s) => write!(f, "conflict: {s}"),
+            Error::Limit(s) => write!(f, "limit: {s}"),
+            Error::Network(s) => write!(f, "network: {s}"),
             Error::Operation(s) => write!(f, "operation: {s}"),
         }
     }
