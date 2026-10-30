@@ -779,6 +779,60 @@ mod tests {
     use super::*;
 
     #[test]
+    fn generation_writes_catalog_and_landing_page() {
+        use base64::Engine;
+        use sha2::{Digest, Sha512};
+        let tgz = b"fake-npm-tarball";
+        let mut h = Sha512::new();
+        h.update(tgz);
+        let digest = format!("{:x}", h.finalize());
+        let raw: Vec<u8> = (0..digest.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&digest[i..i + 2], 16).unwrap())
+            .collect();
+        let integrity = format!("sha512-{}", base64::engine::general_purpose::STANDARD.encode(&raw));
+        let tarball = "https://registry.npmjs.org/flatdemo/-/flatdemo-1.2.3.tgz";
+        let text = format!(
+            "{{\"name\":\"flatdemo\",\"version\":\"1.2.3\",\"packument\":{{\"name\":\"flatdemo\",\"dist-tags\":{{\"latest\":\"1.2.3\"}}}},\"metadata\":{{\"name\":\"flatdemo\",\"version\":\"1.2.3\",\"dist\":{{\"tarball\":\"{tarball}\"}}}},\"artifact\":{{\"sha512\":\"{digest}\",\"integrity\":\"{integrity}\",\"shasum\":null,\"sourceUrl\":\"{tarball}\",\"legacySha1Only\":false}}}}"
+        );
+        let value: deser_value::Value = deser_json::from_str(&text).unwrap();
+        let record = validate_artifact_record(&value).unwrap();
+        let base = "http://127.0.0.1:8080/mirror/";
+        let files = render_packument_files(
+            &[crate::inventory::artifact_to_value(&record).unwrap()],
+            base,
+            None,
+        )
+        .unwrap();
+        let id = generation_id_for(base, std::slice::from_ref(&record), &files).unwrap();
+
+        let catalog = catalog_for(&id, std::slice::from_ref(&record), &files).unwrap();
+        assert_eq!(catalog.generation, id);
+        assert_eq!(catalog.packages.len(), 1);
+        assert_eq!(catalog.packages[0].latest, "1.2.3");
+        let parsed = stuff_catalog::parse_catalog_json(&stuff_catalog::render_catalog_json(&catalog)).unwrap();
+        assert_eq!(parsed, catalog);
+
+        let dir = tempfile::tempdir().unwrap();
+        let mirror_root = dir.path().join("mirror");
+        std::fs::create_dir_all(mirror_root.join("tarballs")).unwrap();
+        std::fs::create_dir_all(mirror_root.join("generations")).unwrap();
+        std::fs::write(mirror_root.join("tarballs").join(format!("{digest}.tgz")), tgz).unwrap();
+        let manifest_text = canonical_json(&manifest_value(base, &id, std::slice::from_ref(&record)).unwrap()).unwrap();
+        let manifest = parse_manifest(&manifest_text, Path::new("candidate manifest")).unwrap();
+        ensure_generation(&mirror_root.join("generations"), &id, &manifest, &files, &mirror_root).unwrap();
+        let gen_dir = mirror_root.join("generations").join(&id);
+        let stored = stuff_catalog::parse_catalog_json(
+            &std::fs::read_to_string(gen_dir.join("catalog.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(stored, catalog);
+        let landing = std::fs::read_to_string(gen_dir.join("index.html")).unwrap();
+        assert!(landing.contains("flatdemo"));
+        assert!(validate_generation(&mirror_root.join("generations"), &id, &mirror_root).unwrap().is_some());
+    }
+
+    #[test]
     fn generation_ids_are_stable() {
         use base64::Engine;
         let zeros = "0".repeat(128);

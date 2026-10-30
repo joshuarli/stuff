@@ -155,7 +155,7 @@ pub fn render_catalog_json(catalog: &Catalog) -> String {
     out
 }
 
-fn value_as_str<'a>(v: &'a deser_value::Value) -> Option<&'a str> {
+fn value_as_str(v: &deser_value::Value) -> Option<&str> {
     v.as_str()
 }
 
@@ -297,7 +297,7 @@ fn latest_semver(versions: &[VersionEntry]) -> String {
         .unwrap_or_else(|| versions.last().map(|v| v.version.clone()).unwrap_or_default())
 }
 
-fn sort_semver_versions(versions: &mut Vec<VersionEntry>) {
+fn sort_semver_versions(versions: &mut [VersionEntry]) {
     versions.sort_by(|a, b| compare_semver(&a.version, &b.version));
 }
 
@@ -326,10 +326,8 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
             None => {
                 sources.insert(input.name.clone(), input.source);
             }
-            Some(existing) if *existing != input.source => {
-                if input.source == CargoSource::Native {
-                    sources.insert(input.name.clone(), CargoSource::Native);
-                }
+            Some(existing) if *existing != input.source && input.source == CargoSource::Native => {
+                sources.insert(input.name.clone(), CargoSource::Native);
             }
             _ => {}
         }

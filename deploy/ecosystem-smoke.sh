@@ -35,6 +35,8 @@ GEN_1=$(echo "$OUT" | sed 's/.*generation //;s/ .*//')
 OUT2=$(cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" publish --site-dir "$MYNPM_WORK/site") || fail "mynpm republish"
 echo "$OUT2" | grep -q "Already published generation $GEN_1" || fail "mynpm republish not noop: $OUT2"
 (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" validate --client npm) || fail "mynpm validate npm"
+(cd "$ROOT" && cargo run -q -p stuff -- ls --npm-dir "$MYNPM_WORK/site/mirror" | grep -q "is-odd") || fail "published is-odd not visible in stuff ls"
+(cd "$ROOT" && cargo run -q -p stuff -- doctor --npm-dir "$MYNPM_WORK/site/mirror") || fail "stuff doctor failed on published npm site"
 echo "smoke: mynpm npm flow green (generation $GEN_1)"
 
 if [ "$(pnpm --version 2>/dev/null || echo none)" = "12.15.0" ]; then
@@ -77,6 +79,8 @@ M="--catalog $PYPI_WORK/packages.toml --config $PYPI_WORK/pyproject.toml --state
 (cd "$ROOT" && cargo run -q -p mypypi -- $M --output "$PYPI_WORK/out" build) || fail "mypypi build"
 (cd "$ROOT" && cargo run -q -p mypypi -- $M --output "$PYPI_WORK/out" --platform "$HOST_PLATFORM" validate) || fail "mypypi validate"
 (cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$PYPI_WORK/packages.toml" --config "$PYPI_WORK/pyproject.toml" --state-dir "$PYPI_WORK/state" --output "$PYPI_WORK/out" --platform "$HOST_PLATFORM" publish) || fail "mypypi publish"
+(cd "$ROOT" && cargo run -q -p stuff -- ls --pypi-dir "$PYPI_WORK/out" | grep -q "six") || fail "published six not visible in stuff ls"
+(cd "$ROOT" && cargo run -q -p stuff -- doctor --pypi-dir "$PYPI_WORK/out" --sample-artifacts) || fail "stuff doctor failed on published pypi index"
 uv venv -q --python 3.15 "$PYPI_WORK/.venv" || fail "uv venv"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv pip install -q --python 3.15 --index-url "file://$PYPI_WORK/out/current/simple/" --only-binary :all: "six==1.16.0" || fail "uv pip install from published index"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv run -q --python 3.15 --no-sync --project "$PYPI_WORK" python -c "import six, sys; assert six.__version__ == '1.16.0', six.__version__; print('six', six.__version__)" || fail "import six"

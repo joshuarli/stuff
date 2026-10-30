@@ -1,4 +1,4 @@
-.PHONY: help build test clippy smoke pipecheck worker-build worker-check worker-deploy sync serve
+.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy sync serve
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -14,6 +14,10 @@ clippy: ## Lint the workspace (denies warnings)
 
 smoke: ## Drive the registry binaries with real npm/uv toolchains (needs Node 26, pinned npm, uv + CPython 3.15, network)
 	deploy/ecosystem-smoke.sh
+
+smoke-deployed: ## Read-only live check of the deployed registries (needs built stuff binary, network)
+	cargo build -p stuff
+	deploy/deployed-smoke.sh
 
 pipecheck: ## Prove one registry's publication never touches another's output
 	deploy/check-pipeline-independence.sh

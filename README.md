@@ -65,6 +65,34 @@ cargo run -p stuff-server -- --route /mirror=path/to/mirror --max-connections 64
 The server resolves `current/` through the generation symlink, serves
 `generations/` paths as immutable, supports conditional and range requests,
 and serves `index.html` inside directories (PEP 503 simple pages).
+`/` serves the generation's catalog landing page (`current/index.html`).
+
+## Catalog
+
+Every publish renders a normalized package catalog from the registry's
+authoritative published state (never from input lockfiles), plus a
+human-readable landing page, into each generation:
+
+```sh
+cargo run -p stuff -- ls
+cargo run -p stuff -- ls --registry npm --versions
+cargo run -p stuff -- search h12tiny
+cargo run -p stuff -- diff before/catalog.json after/catalog.json
+cargo run -p stuff -- doctor --remote --sample-artifacts
+```
+
+`ls` works against the live registries by default (no credentials), and
+against local output with `--cargo-dir/--npm-dir/--pypi-dir` (site,
+generation, or `catalog.json`). `--json` emits machine-readable inventory,
+`--versions` lists every published version, and `render --output index.html`
+aggregates the three catalogs into one page. Health checks cover the
+active generations, pinned catalog objects, essential endpoints, and one
+fully hash-verified sample artifact per registry.
+
+`stuff.17166969.xyz` serves that aggregate page from the Worker, rendered
+with the same Rust catalog code from the three current snapshots (cached
+60 s at the edge). The machine-readable packuments, sparse indexes, and
+`/simple/` pages are unchanged.
 
 ## Deploy
 
@@ -94,17 +122,34 @@ automatically via the `[build]` command before bundling `src/entry.ts`.
 
 Real deploys are manual: `cf deploy` (use `--provision` once to create the
 `stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). The
-`[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`, and
-`pypi` custom domains, each serving its registry from `/` (see `STUFF_ROUTES`
-hosts). Registry roots for clients include the generation pointer:
+`[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`,
+`pypi`, and `stuff` custom domains, each serving its registry from `/`
+(see `STUFF_ROUTES` hosts). Registry roots for clients include the
+generation pointer:
 `https://crates.17166969.xyz/current/registry/` (cargo sparse),
 `https://npm.17166969.xyz/current/` (npm), and
 `https://pypi.17166969.xyz/current/simple/` (pip). Sync a published site to its bucket per registry with
-`deploy/r2-sync.sh`, which translates the `current` symlink to a marker
-object holding the generation id (verified against the local R2 simulation). Generation-scoped
+`deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN_ID]`, which translates
+the `current` symlink to a marker object holding the generation id
+(verified against the local R2 simulation). Sync is incremental and
+content-aware: remote objects whose size and MD5 match are skipped, so
+re-syncing an unchanged generation uploads nothing. `--expected` guards
+promotion against competing publishers, and the marker is read back after
+activation. Roll back with `deploy/r2-rollback.sh SITE_DIR BUCKET GEN_ID`.
+Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
 the worker resolves them to the shared store instead. Files over the 300 MB
-single-PUT cap fail loudly and need an out-of-band multipart upload.
+single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
+`R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`).
+
+After deploying, run the read-only live check (no credentials):
+
+```sh
+deploy/deployed-smoke.sh
+```
+
+It runs `stuff doctor --remote --sample-artifacts` plus `npm view` and
+`uv pip install --dry-run` probes against the deployed origins.
 
 ## License
 

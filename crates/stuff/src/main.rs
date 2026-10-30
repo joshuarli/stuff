@@ -217,7 +217,7 @@ fn print_diff_json(diff: &stuff_catalog::CatalogDiff) {
             Some(v) => out.push_str(&escape_json(v)),
             None => out.push_str("null"),
         }
-        out.push_str("}");
+        out.push('}');
     }
     out.push_str("]}\n");
     print!("{out}");

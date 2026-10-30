@@ -228,7 +228,7 @@ pub fn print_help() {
 
 pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) -> String {
     let mut out = String::new();
-    let _ = writeln!(out, "{:<8} {:<24} {:<8} {}", "REGISTRY", "PACKAGE", "VERSIONS", "LATEST");
+    let _ = writeln!(out, "{:<8} {:<24} {:<8} LATEST", "REGISTRY", "PACKAGE", "VERSIONS");
     let mut total_packages = 0usize;
     let mut total_versions = 0usize;
     for catalog in catalogs {

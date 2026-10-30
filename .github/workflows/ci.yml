@@ -25,7 +25,13 @@ jobs:
         run: cargo test --locked
 
   ecosystem-smoke:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # x86_64 Linux, ARM64 Linux, and ARM64 macOS: each runner builds,
+        # validates, and installs the host platform's native wheels.
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

@@ -335,3 +335,74 @@ fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::dec
     blobs_store.recover_staging().unwrap();
     assert!(!bdir.join(".upload.orphan.999").exists());
 }
+
+#[test]
+fn catalog_tracks_publish_and_rollback() {
+    let dir = tempdir().unwrap();
+    let store = Store::new(dir.path().join("state"));
+    let site = dir.path().join("site");
+
+    let data = b"catalog-acceptance-tarball";
+    let sha = store.ingest_blob(Cursor::new(data)).unwrap();
+    let rec = NativeRecord {
+        name: "widget".to_string(),
+        vers: "1.0.0".to_string(),
+        checksum: sha.clone(),
+        yanked: false,
+        entry: sample_entry("widget", "1.0.0", &sha),
+    };
+    store.put_native_record(&rec).unwrap();
+
+    let publ = Publisher::new(&store, site.clone(), "http://localhost:8080".to_string());
+    let first = publ.publish().unwrap();
+    assert!(!first.is_noop);
+
+    // New version is visible in the published catalog and landing page.
+    let gen1 = site.join("generations").join(&first.generation_id);
+    let catalog_text = fs::read_to_string(gen1.join("catalog.json")).unwrap();
+    let catalog = stuff_catalog::parse_catalog_json(&catalog_text).unwrap();
+    assert_eq!(catalog.generation, first.generation_id);
+    let pkg = catalog.find("widget").expect("widget in catalog");
+    assert_eq!(pkg.latest, "1.0.0");
+    assert!(!pkg.versions[0].yanked);
+    let landing = fs::read_to_string(gen1.join("index.html")).unwrap();
+    assert!(landing.contains("widget") && landing.contains("catalog.json"));
+
+    // Yanking advances the catalog; the old generation is byte-identical.
+    store.set_native_yank("widget", "1.0.0", true).unwrap();
+    let second = publ.publish().unwrap();
+    assert!(!second.is_noop);
+    assert_ne!(second.generation_id, first.generation_id);
+    let gen2 = site.join("generations").join(&second.generation_id);
+    let yanked = stuff_catalog::parse_catalog_json(
+        &fs::read_to_string(gen2.join("catalog.json")).unwrap(),
+    )
+    .unwrap();
+    assert!(yanked.find("widget").unwrap().versions[0].yanked);
+    assert_eq!(
+        fs::read(gen1.join("catalog.json")).unwrap(),
+        catalog_text.as_bytes(),
+        "old generation must be immutable"
+    );
+
+    // Rolling back to the first generation restores its catalog view.
+    let site_handle = Site::new(site.clone());
+    let staged = site_handle.stage().unwrap();
+    let staged_path = staged.into_path();
+    site_handle
+        .activate(
+            staged_path,
+            &first.generation_id,
+            &|gen_dir| Ok(gen_dir.join("catalog.json").is_file()),
+        )
+        .unwrap();
+    assert_eq!(
+        fs::read_link(site.join("current")).unwrap().to_string_lossy(),
+        format!("generations/{}", first.generation_id)
+    );
+    let restored = stuff_catalog::parse_catalog_json(
+        &fs::read_to_string(site.join("current").join("catalog.json")).unwrap(),
+    )
+    .unwrap();
+    assert!(!restored.find("widget").unwrap().versions[0].yanked);
+}
