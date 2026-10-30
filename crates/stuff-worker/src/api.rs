@@ -109,6 +109,10 @@ pub struct PointerJson {
     pub key: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub alias_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub npm_packument_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub npm_version: Option<String>,
 }
 
 /// Shared-store alias for generation-scoped paths that r2-sync does not
@@ -146,16 +150,47 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
     let resolved = match parse_pointer(pointer_text.as_bytes()) {
         Some(generation_id) => {
             let key_prefix = pointer_key.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            let segments: Vec<String> = rel_path.split('/').map(str::to_string).collect();
+            let npm = stuff_http::parse_npm_tarball_path(&segments);
             PointerJson {
                 kind: "key".to_string(),
                 key: Some(object_key_for(key_prefix, &generation_id, rel_path)),
                 alias_key: alias_key_for(key_prefix, rel_path),
+                npm_packument_key: npm
+                    .as_ref()
+                    .map(|n| object_key_for(key_prefix, &generation_id, &n.package)),
+                npm_version: npm.map(|n| n.version),
             }
         }
         None => PointerJson {
             kind: "not_found".to_string(),
             key: None,
             alias_key: None,
+            npm_packument_key: None,
+            npm_version: None,
+        },
+    };
+    to_json(&resolved, "not_found")
+}
+
+pub fn resolve_npm_tarball_json(pointer_key: &str, packument_text: &str, version: &str) -> String {
+    let resolved = match stuff_http::packument_tarball_digest(packument_text, version) {
+        Some(digest) => {
+            let key_prefix = pointer_key.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            PointerJson {
+                kind: "key".to_string(),
+                key: None,
+                alias_key: alias_key_for(key_prefix, &format!("tarballs/{digest}.tgz")),
+                npm_packument_key: None,
+                npm_version: None,
+            }
+        }
+        None => PointerJson {
+            kind: "not_found".to_string(),
+            key: None,
+            alias_key: None,
+            npm_packument_key: None,
+            npm_version: None,
         },
     };
     to_json(&resolved, "not_found")
@@ -558,6 +593,110 @@ mod tests {
         .expect("parses");
         assert_eq!(bad.kind, "not_found");
         assert_eq!(bad.key, None);
+    }
+
+    #[test]
+    fn npm_standard_tarball_path_resolves_through_the_packument() {
+        let flat = deser_json::from_str::<PointerJson>(&resolve_pointer_json(
+            "current",
+            "gen1",
+            "acorn/-/acorn-8.1.0.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(flat.npm_packument_key.as_deref(), Some("generations/gen1/acorn"));
+        assert_eq!(flat.npm_version.as_deref(), Some("8.1.0"));
+
+        let scoped = deser_json::from_str::<PointerJson>(&resolve_pointer_json(
+            "mirror/current",
+            "gen1",
+            "@types/node/-/node-22.0.0-beta.1.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(
+            scoped.npm_packument_key.as_deref(),
+            Some("mirror/generations/gen1/@types/node")
+        );
+        assert_eq!(scoped.npm_version.as_deref(), Some("22.0.0-beta.1"));
+
+        let digest = "cd".repeat(64);
+        let packument = format!(
+            r#"{{"versions":{{"22.0.0-beta.1":{{"dist":{{"tarball":"https://h/mirror/current/-/tarballs/{digest}.tgz"}}}}}}}}"#
+        );
+        let alias = deser_json::from_str::<PointerJson>(&resolve_npm_tarball_json(
+            "mirror/current",
+            &packument,
+            "22.0.0-beta.1",
+        ))
+        .expect("parses");
+        assert_eq!(alias.kind, "key");
+        assert_eq!(alias.alias_key, Some(format!("mirror/tarballs/{digest}.tgz")));
+
+        let unknown = deser_json::from_str::<PointerJson>(&resolve_npm_tarball_json(
+            "mirror/current",
+            &packument,
+            "9.9.9",
+        ))
+        .expect("parses");
+        assert_eq!(unknown.kind, "not_found");
+        assert_eq!(unknown.alias_key, None);
+
+        let digest_url = deser_json::from_str::<PointerJson>(&resolve_pointer_json(
+            "current",
+            "gen1",
+            "-/tarballs/x.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(digest_url.npm_packument_key, None);
+    }
+
+    #[test]
+    fn npm_standard_tarball_alias_is_immutable_and_honors_ranges_and_conditionals() {
+        let key = "tarballs/x.tgz";
+        let full = parse_plan(&plan_object_response_json("immutable", "GET", key, "{}", 1000, "\"e\""));
+        assert_eq!(full.status, 200);
+        assert_eq!(
+            full.headers.get("cache-control").map(String::as_str),
+            Some("public, max-age=31536000, immutable")
+        );
+
+        let ranged = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            key,
+            r#"{"range":"bytes=10-19"}"#,
+            1000,
+            "\"e\"",
+        ));
+        assert_eq!(ranged.status, 206);
+        assert_eq!((ranged.range_start, ranged.range_length), (Some(10), Some(10)));
+        assert_eq!(
+            ranged.headers.get("content-range").map(String::as_str),
+            Some("bytes 10-19/1000")
+        );
+
+        let unsatisfiable = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            key,
+            r#"{"range":"bytes=5000-"}"#,
+            1000,
+            "\"e\"",
+        ));
+        assert_eq!(unsatisfiable.status, 416);
+
+        let not_modified = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            key,
+            r#"{"if_none_match":"\"e\""}"#,
+            1000,
+            "\"e\"",
+        ));
+        assert_eq!(not_modified.status, 304);
+
+        let head = parse_plan(&plan_object_response_json("immutable", "HEAD", key, "{}", 1000, "\"e\""));
+        assert!(head.head);
+        assert_eq!(head.status, 200);
     }
 
     #[test]

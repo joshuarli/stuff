@@ -1313,6 +1313,10 @@ dependencies = [
 [[package]]
 name = "stuff-http"
 version = "0.1.0"
+dependencies = [
+ "deser-json",
+ "deser-value",
+]
 
 [[package]]
 name = "stuff-server"
