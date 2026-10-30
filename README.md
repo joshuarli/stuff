@@ -96,7 +96,10 @@ Real deploys are manual: `cf deploy` (use `--provision` once to create the
 `stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). The
 `[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`, and
 `pypi` custom domains, each serving its registry from `/` (see `STUFF_ROUTES`
-hosts). Sync a published site to its bucket per registry with
+hosts). Registry roots for clients include the generation pointer:
+`https://crates.17166969.xyz/current/registry/` (cargo sparse),
+`https://npm.17166969.xyz/current/` (npm), and
+`https://pypi.17166969.xyz/current/simple/` (pip). Sync a published site to its bucket per registry with
 `deploy/r2-sync.sh`, which translates the `current` symlink to a marker
 object holding the generation id (verified against the local R2 simulation). Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
