@@ -15,7 +15,7 @@ and fast-forwarded into the clean canonical default branch. Nothing is pushed.
 
 Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
-- [ ] joshuarli/shadowdriver (103): gitignore `grab/node_modules/`, then triage the rest
+- [ ] joshuarli/shadowdriver (103 -> 1): oxlint in make lint remaining: gitignore `grab/node_modules/`, then triage the rest
 - [ ] laputa-systems/python-build (106)
 - [x] joshuarli/discover (51 -> 0, 2 local commits)
 - [ ] laputa-systems/node-build (32)
