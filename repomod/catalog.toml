@@ -97,13 +97,36 @@ zzz = ["tool", "linux"]
 [overrides."joshuarli/obsidian-ferrisearch"]
 ignore = ["binary-release-tags"]
 
-# Build-recipe repositories publish build artifacts, not a standalone native tool, so the binary
-# prerelease contract does not describe their release workflows.
+# Build-recipe repositories publish build archives, not a standalone native tool, so the binary
+# prerelease contract does not describe their release workflows. The macos-native README names
+# Chromium source paths that live in the Chromium checkout.
 [overrides."laputa-systems/chromium-build"]
-ignore = ["binary-release-tags"]
+ignore = ["binary-release-tags", "mdtool:R005"]
+
+# Fork pinned to the stable channel through a symlinked rust-toolchain.toml that its release job
+# and Dockerfile read.
+[overrides."laputa-systems/ntpd-rs"]
+ignore = ["rust-toolchain"]
+
+# Fork whose CI and flake pin the nightly the Verus build needs.
+[overrides."laputa-systems/bbtree"]
+ignore = ["rust-toolchain"]
 
 [overrides."laputa-systems/node-build"]
 ignore = ["binary-release-tags"]
 
+# Vendored rustls, webpki, and CPython sources carry "section N" text and paths into the CPython
+# tree. The .agents and .claude skill trees mirror each other on purpose. The benchmark README
+# names files its commands generate.
 [overrides."laputa-systems/python-build"]
-ignore = ["binary-release-tags"]
+ignore = [
+  "binary-release-tags",
+  "mdtool:D001",
+  "mdtool:P002",
+  "mdtool:R001",
+  "mdtool:R005",
+]
+
+# docs/baselines.md quotes the baseline command of another repository.
+[overrides."laputa-systems/ptytest"]
+ignore = ["mdtool:R003"]
