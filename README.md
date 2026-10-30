@@ -71,12 +71,15 @@ The server resolves `current/` through the generation symlink, serves
 `generations/` paths as immutable, supports conditional and range requests,
 and serves `index.html` inside directories (PEP 503 simple pages).
 `/` serves the generation's catalog landing page (`current/index.html`).
+`/llms.txt` serves the generation's LLM-readable inventory
+(`current/llms.txt`, also pinned under `generations/<id>/llms.txt`).
 
 ## Catalog
 
 Every publish renders a normalized package catalog from the registry's
 authoritative published state (never from input lockfiles), plus a
-human-readable landing page, into each generation:
+human-readable landing page and an LLM-readable `llms.txt`, into each
+generation:
 
 ```sh
 cargo run -p stuff -- ls
@@ -90,14 +93,17 @@ cargo run -p stuff -- doctor --remote --sample-artifacts
 against local output with `--cargo-dir/--npm-dir/--pypi-dir` (site,
 generation, or `catalog.json`). `--json` emits machine-readable inventory,
 `--versions` lists every published version, and `render --output index.html`
-aggregates the three catalogs into one page. Health checks cover the
-active generations, pinned catalog objects, essential endpoints, and one
+aggregates the three catalogs into one page (`render --output llms.txt`
+renders the aggregate `llms.txt` instead). Health checks cover the
+active generations, pinned catalog objects, essential endpoints (including
+`current/llms.txt`), and one
 fully hash-verified sample artifact per registry.
 
 `stuff.17166969.xyz` serves that aggregate page from the Worker, rendered
 with the same Rust catalog code from the three current snapshots (cached
-60 s at the edge). The machine-readable packuments, sparse indexes, and
-`/simple/` pages are unchanged.
+60 s at the edge). The machine-readable packuments, sparse indexes,
+`/simple/` pages, and per-registry `llms.txt` files are unchanged; the
+aggregate host also serves the combined inventory at `/llms.txt`.
 
 ## Deploy
 

@@ -49,6 +49,7 @@ mime_for() {
   case $1 in
     *.json) printf 'application/json' ;;
     *.html) printf 'text/html; charset=utf-8' ;;
+    *.txt | *.md) printf 'text/markdown; charset=utf-8' ;;
     *.toml) printf 'text/plain; charset=utf-8' ;;
     *.crate) printf 'application/x-tar' ;;
     *.tgz | *.whl | *.gz) printf 'application/octet-stream' ;;

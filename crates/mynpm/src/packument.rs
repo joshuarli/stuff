@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord};
 
-pub const RENDERER_VERSION: u32 = 4;
+pub const RENDERER_VERSION: u32 = 5;
 
 #[derive(Debug, Clone)]
 pub struct PackumentFile {
@@ -244,7 +244,7 @@ pub fn render_packument_files(
     renderer: Option<u32>,
 ) -> Result<Vec<PackumentFile>> {
     let renderer = renderer.unwrap_or(RENDERER_VERSION);
-    if renderer != 1 && renderer != 2 && renderer != 3 && renderer != 4 {
+    if renderer != 1 && renderer != 2 && renderer != 3 && renderer != 4 && renderer != 5 {
         return Err(Error::Input(format!("unsupported renderer version: {renderer}")));
     }
     let base = validate_base_url(public_base_url)?;

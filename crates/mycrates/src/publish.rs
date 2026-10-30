@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use stuff_store::{sync_immutable_file, HashAlg, Site, sync_tree, write_file_durable};
 
-const RENDERER_VERSION: u32 = 2;
+const RENDERER_VERSION: u32 = 3;
 
 #[derive(Debug, Clone)]
 pub struct PublishResult {
@@ -199,14 +199,19 @@ impl<'a> Publisher<'a> {
             .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
         let catalog_json = stuff_catalog::render_catalog_json(&catalog);
         let catalog_html = stuff_catalog::render_html(&catalog);
+        let catalog_llms = stuff_catalog::render_llms_txt(&catalog);
         write_file_durable(&staging_dir.join("catalog.json"), catalog_json.as_bytes())?;
         write_file_durable(&staging_dir.join("index.html"), catalog_html.as_bytes())?;
+        write_file_durable(&staging_dir.join("llms.txt"), catalog_llms.as_bytes())?;
         let mut h = Sha256::new();
         h.update(catalog_json.as_bytes());
         manifest.insert((String::new(), "catalog.json".to_string()), format!("{:x}", h.finalize_reset()));
         let mut h = Sha256::new();
         h.update(catalog_html.as_bytes());
         manifest.insert((String::new(), "index.html".to_string()), format!("{:x}", h.finalize_reset()));
+        let mut h = Sha256::new();
+        h.update(catalog_llms.as_bytes());
+        manifest.insert((String::new(), "llms.txt".to_string()), format!("{:x}", h.finalize_reset()));
 
         sync_tree(&staging_dir)?;
         let activation = site.activate(staging_dir, &gen_id, &|gen_dir| {

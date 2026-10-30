@@ -180,7 +180,7 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let schema_ok = record.get("schemaVersion").unwrap_or(&null).as_u64() == Some(1);
     let renderer = record.get("rendererVersion").unwrap_or(&null).as_u64().unwrap_or(0);
-    let renderer_ok = renderer == 1 || renderer == 2 || renderer == 3 || renderer == 4;
+    let renderer_ok = renderer == 1 || renderer == 2 || renderer == 3 || renderer == 4 || renderer == 5;
     let base_ok = record.get("publicBaseUrl").unwrap_or(&null).as_str().is_some();
     let gen_id = record.get("generationId").unwrap_or(&null).as_str().unwrap_or("").to_string();
     let artifacts_ok = record.get("artifacts").unwrap_or(&null).as_seq().is_some();
@@ -327,6 +327,9 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
         expected.push("catalog.json".to_string());
         expected.push("index.html".to_string());
     }
+    if manifest.renderer_version >= 5 {
+        expected.push("llms.txt".to_string());
+    }
     expected.push("manifest.json".to_string());
     expected.sort();
     let mut actual = generation_files(&generation_dir)?;
@@ -355,6 +358,15 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
         let actual_html = read_regular_file(&generation_dir.join("index.html"))?;
         if actual_html != expected_html.as_bytes() {
             return Err(Error::Corrupt(format!("generation catalog page does not match its manifest: {id}")));
+        }
+    }
+    if manifest.renderer_version >= 5 {
+        let catalog = catalog_for(id, &manifest.artifacts, &files)
+            .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
+        let expected_llms = stuff_catalog::render_llms_txt(&catalog);
+        let actual_llms = read_regular_file(&generation_dir.join("llms.txt"))?;
+        if actual_llms != expected_llms.as_bytes() {
+            return Err(Error::Corrupt(format!("generation llms.txt does not match its manifest: {id}")));
         }
     }
     for record in &manifest.artifacts {
@@ -644,6 +656,9 @@ fn ensure_generation(
                 .map_err(|e| Error::Operation(format!("could not render generation catalog: {e}")))?;
             write_durable_file(&tmp.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog).as_bytes())?;
             write_durable_file(&tmp.join("index.html"), stuff_catalog::render_html(&catalog).as_bytes())?;
+            if manifest.renderer_version >= 5 {
+                write_durable_file(&tmp.join("llms.txt"), stuff_catalog::render_llms_txt(&catalog).as_bytes())?;
+            }
         }
         let manifest_text = canonical_json(&manifest_value(&manifest.public_base_url, &manifest.generation_id, &manifest.artifacts)?)?;
         write_durable_file(&tmp.join("manifest.json"), manifest_text.as_bytes())?;
@@ -839,6 +854,9 @@ mod tests {
         assert_eq!(stored, catalog);
         let landing = std::fs::read_to_string(gen_dir.join("index.html")).unwrap();
         assert!(landing.contains("flatdemo"));
+        let llms = std::fs::read_to_string(gen_dir.join("llms.txt")).unwrap();
+        assert!(llms.starts_with("# npm registry\n"));
+        assert!(llms.contains("flatdemo"));
         assert!(validate_generation(&mirror_root.join("generations"), &id, &mirror_root).unwrap().is_some());
     }
 

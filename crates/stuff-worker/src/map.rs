@@ -116,6 +116,13 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
         }
         Err(_) => return MappedAsset::NotFound,
     };
+    if resolved.segments.len() == 1 && resolved.segments[0] == "llms.txt" {
+        return MappedAsset::ViaPointer {
+            bucket_binding: route.bucket_binding.clone(),
+            pointer_key: pointer_key(&route.key_prefix),
+            rel_path: "llms.txt".to_string(),
+        };
+    }
     let Some((first, remaining)) = resolved.segments.split_first() else {
         return MappedAsset::NotFound;
     };
@@ -298,6 +305,19 @@ mod tests {
         match map_asset(&c, "", "/current") {
             MappedAsset::ViaPointer { rel_path, .. } => {
                 assert_eq!(rel_path, "index.html");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn root_llms_txt_maps_through_pointer() {
+        let c = config();
+        match map_asset(&c, "", "/llms.txt") {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+                assert_eq!(bucket_binding, "MYCRATES");
+                assert_eq!(pointer_key, "current");
+                assert_eq!(rel_path, "llms.txt");
             }
             other => panic!("unexpected {other:?}"),
         }

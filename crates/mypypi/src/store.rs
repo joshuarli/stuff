@@ -358,7 +358,7 @@ pub fn project_pages(items: &[IndexArtifact]) -> BTreeMap<String, Vec<u8>> {
 
 pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: &[IndexArtifact]) -> String {
     let mut h = Sha256::new();
-    h.update(b"mypypi-simple-html-v3\0");
+    h.update(b"mypypi-simple-html-v4\0");
     h.update(manifest);
     let mut names: Vec<&String> = pages.keys().collect();
     names.sort();
@@ -435,6 +435,12 @@ fn verify_generation(
     if !md.file_type().is_file() || std::fs::read(&index_path).map(|b| b != expected_html.as_bytes()).unwrap_or(true) {
         return Err(inv("existing package index generation has an invalid catalog page", generation));
     }
+    let expected_llms = stuff_catalog::render_llms_txt(&catalog);
+    let llms_path = generation.join("llms.txt");
+    let md = std::fs::symlink_metadata(&llms_path).map_err(|_| inv("existing package index generation has an invalid llms.txt", generation))?;
+    if !md.file_type().is_file() || std::fs::read(&llms_path).map(|b| b != expected_llms.as_bytes()).unwrap_or(true) {
+        return Err(inv("existing package index generation has an invalid llms.txt", generation));
+    }
     Ok(())
 }
 
@@ -497,6 +503,8 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
         std::fs::write(staging.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog))
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         std::fs::write(staging.join("index.html"), stuff_catalog::render_html(&catalog))
+            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+        std::fs::write(staging.join("llms.txt"), stuff_catalog::render_llms_txt(&catalog))
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         // fsync tree: files then dirs (bottom-up)
         let mut dirs = vec![staging.clone()];

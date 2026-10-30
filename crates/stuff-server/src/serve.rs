@@ -26,6 +26,9 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
     let Some((first, rest)) = resolved.segments.split_first() else {
         return map_root(route);
     };
+    if first == "llms.txt" && rest.is_empty() {
+        return map_generation_file(route, "llms.txt");
+    }
     if first == "current" {
         let link = route.site_dir.join("current");
         let Ok(target) = std::fs::read_link(&link) else {
@@ -56,6 +59,10 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
 }
 
 fn map_root(route: &Route) -> Mapped {
+    map_generation_file(route, "index.html")
+}
+
+fn map_generation_file(route: &Route, file: &str) -> Mapped {
     let link = route.site_dir.join("current");
     let Ok(target) = std::fs::read_link(&link) else {
         return Mapped::NotFound;
@@ -65,7 +72,7 @@ fn map_root(route: &Route) -> Mapped {
     {
         return Mapped::NotFound;
     }
-    let path = route.site_dir.join(&target).join("index.html");
+    let path = route.site_dir.join(&target).join(file);
     Mapped::File(MappedFile {
         path,
         kind: RouteKind::GenerationPointer,
@@ -360,6 +367,42 @@ mod tests {
             Mapped::NotFound => {}
             Mapped::File(_) => panic!("traversal must not resolve"),
         }
+    }
+
+    #[test]
+    fn root_llms_txt_resolves_through_current() {
+        let (_tmp, route) = test_route();
+        match map_request(&route, "/llms.txt") {
+            Mapped::File(f) => {
+                assert_eq!(f.kind, RouteKind::GenerationPointer);
+                assert_eq!(
+                    f.path,
+                    route
+                        .site_dir
+                        .join("generations/gen1")
+                        .join("llms.txt")
+                );
+            }
+            Mapped::NotFound => panic!("should resolve"),
+        }
+        let no_headers: Vec<(String, String)> = Vec::new();
+        let r = respond(&route, "/llms.txt", "GET", &no_headers);
+        assert_eq!((r.status, r.reason), (404, "Not Found"));
+
+        std::fs::write(
+            route.site_dir.join("generations/gen1/llms.txt"),
+            b"# Cargo registry\n",
+        )
+        .unwrap();
+        let r = respond(&route, "/llms.txt", "GET", &no_headers);
+        assert_eq!((r.status, r.reason), (200, "OK"));
+        assert!(
+            r.headers
+                .iter()
+                .any(|(k, v)| k == "content-type" && v == "text/markdown; charset=utf-8"),
+            "{:?}",
+            r.headers
+        );
     }
 
     #[test]

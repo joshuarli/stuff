@@ -4,6 +4,7 @@ pub fn content_type_for(file_name: &str) -> &'static str {
     match ext {
         "json" => "application/json",
         "html" => "text/html; charset=utf-8",
+        "txt" | "md" => "text/markdown; charset=utf-8",
         "toml" => "text/plain; charset=utf-8",
         "crate" => "application/x-tar",
         "tgz" | "whl" | "gz" => "application/octet-stream",
@@ -23,6 +24,7 @@ mod tests {
         assert_eq!(content_type_for("ab/cd/pkg"), "text/plain; charset=utf-8");
         assert_eq!(content_type_for("index.html"), "text/html; charset=utf-8");
         assert_eq!(content_type_for("simple/index.html"), "text/html; charset=utf-8");
+        assert_eq!(content_type_for("llms.txt"), "text/markdown; charset=utf-8");
     }
 
     #[test]

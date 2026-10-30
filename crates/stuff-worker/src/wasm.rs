@@ -26,3 +26,8 @@ pub fn plan_object_response_json(
 pub fn render_unified_index_json(catalogs_json: &str) -> String {
     crate::api::render_unified_index_json(catalogs_json)
 }
+
+#[wasm_bindgen]
+pub fn render_unified_llms_txt_json(catalogs_json: &str) -> String {
+    crate::api::render_unified_llms_txt_json(catalogs_json)
+}

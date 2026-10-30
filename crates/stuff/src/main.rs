@@ -239,8 +239,12 @@ fn run_render(parsed: &stuff::cli::Parsed) -> i32 {
             return 2;
         }
     };
-    let html = stuff_catalog::render_unified(&catalogs);
-    match std::fs::write(output, html.as_bytes()) {
+    let body = if output.ends_with(".txt") || output.ends_with(".md") {
+        stuff_catalog::render_unified_llms_txt(&catalogs)
+    } else {
+        stuff_catalog::render_unified(&catalogs)
+    };
+    match std::fs::write(output, body.as_bytes()) {
         Ok(()) => {
             println!("rendered {} catalogs to {output}", catalogs.len());
             0

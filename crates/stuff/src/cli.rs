@@ -219,7 +219,8 @@ pub fn print_help() {
     println!("  search <query> [--registry cargo|npm|pypi] [--json] [sources...]");
     println!("  diff <before.json> <after.json> [--json]");
     println!("  doctor [--remote|--cargo-dir DIR ...] [--expected-generation ID] [--sample-artifacts]");
-    println!("  render --output index.html [--registry cargo|npm|pypi] [sources...]");
+    println!("  render --output index.html [--registry cargo|npm|pypi] [sources...]
+  render --output llms.txt [--registry cargo|npm|pypi] [sources...]");
     println!();
     println!("Sources default to the live registries (no credentials needed).");
     println!("Pass --cargo-dir/--npm-dir/--pypi-dir (site, generation, or catalog.json)");

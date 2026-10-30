@@ -194,6 +194,14 @@ fn run_local_checks(
         checks.push(Check::pass(format!("{name} endpoints"), "empty catalog: nothing further to check"));
         return;
     }
+    let expected_llms = stuff_catalog::render_llms_txt(catalog);
+    match std::fs::read_to_string(gen_dir.join("llms.txt")) {
+        Ok(actual) if actual == expected_llms => {
+            checks.push(Check::pass(format!("{name} llms.txt"), "llms.txt matches catalog".to_string()));
+        }
+        Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "llms.txt does not match catalog".to_string())),
+        Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), format!("llms.txt missing: {e}"))),
+    }
     let first = &catalog.packages[0];
     match name {
         "cargo" => {
@@ -267,6 +275,17 @@ fn run_remote_checks(
     }
     if catalog.packages.is_empty() {
         return;
+    }
+    match fetch_bytes(&format!("{base}/current/llms.txt")) {
+        Ok((200, body)) => match String::from_utf8(body) {
+            Ok(text) if text == stuff_catalog::render_llms_txt(catalog) => {
+                checks.push(Check::pass(format!("{name} llms.txt"), "current/llms.txt matches".to_string()));
+            }
+            Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt does not match catalog".to_string())),
+            Err(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt is not UTF-8".to_string())),
+        },
+        Ok((status, _)) => checks.push(Check::fail(format!("{name} llms.txt"), format!("HTTP {status}"))),
+        Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), e)),
     }
     let first = &catalog.packages[0];
     match name {

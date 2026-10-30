@@ -171,6 +171,20 @@ pub struct UnifiedJson {
 }
 
 pub fn render_unified_index_json(catalogs_json: &str) -> String {
+    render_unified_json(catalogs_json, UnifiedBody::Html)
+}
+
+pub fn render_unified_llms_txt_json(catalogs_json: &str) -> String {
+    render_unified_json(catalogs_json, UnifiedBody::Markdown)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UnifiedBody {
+    Html,
+    Markdown,
+}
+
+fn render_unified_json(catalogs_json: &str, body: UnifiedBody) -> String {
     let parsed: deser_value::Value = match deser_json::from_str(catalogs_json) {
         Ok(v) => v,
         Err(e) => {
@@ -221,10 +235,14 @@ pub fn render_unified_index_json(catalogs_json: &str) -> String {
         }
     }
     catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
+    let (kind, body) = match body {
+        UnifiedBody::Html => ("html", stuff_catalog::render_unified(&catalogs)),
+        UnifiedBody::Markdown => ("markdown", stuff_catalog::render_unified_llms_txt(&catalogs)),
+    };
     to_json(
         &UnifiedJson {
-            kind: "html".to_string(),
-            body: Some(stuff_catalog::render_unified(&catalogs)),
+            kind: kind.to_string(),
+            body: Some(body),
             message: None,
         },
         "error",
@@ -621,6 +639,24 @@ mod tests {
 
         let bad: UnifiedJson =
             deser_json::from_str(&render_unified_index_json("not json")).expect("parses");
+        assert_eq!(bad.kind, "error");
+    }
+
+    #[test]
+    fn unified_llms_txt_render_combines_catalogs() {
+        let cargo = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
+        let npm = r#"{"schema_version":1,"registry":"npm","generation":"b","packages":[{"name":"@mine/utils","source":null,"latest":"1.3.0","versions":[{"version":"1.3.0","yanked":false}]}]}"#;
+        let input = format!("[{},{}]", deser_json::to_string(&cargo).unwrap(), deser_json::to_string(&npm).unwrap());
+        let parsed: UnifiedJson =
+            deser_json::from_str(&render_unified_llms_txt_json(&input)).expect("parses");
+        assert_eq!(parsed.kind, "markdown");
+        let body = parsed.body.expect("markdown body");
+        assert!(body.starts_with("# stuff registries\n"));
+        assert!(body.contains("h12tiny"));
+        assert!(body.contains("@mine/utils"));
+
+        let bad: UnifiedJson =
+            deser_json::from_str(&render_unified_llms_txt_json("not json")).expect("parses");
         assert_eq!(bad.kind, "error");
     }
 

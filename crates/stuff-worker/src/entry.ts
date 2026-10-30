@@ -3,6 +3,7 @@ import {
   map_asset_json,
   plan_object_response_json,
   render_unified_index_json,
+  render_unified_llms_txt_json,
   resolve_pointer_json,
 } from "../build/wasm/stuff_worker.js";
 import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
@@ -56,7 +57,7 @@ interface ResponsePlan {
 }
 
 interface UnifiedRendered {
-  kind: "html" | "error";
+  kind: "html" | "markdown" | "error";
   body?: string;
   message?: string;
 }
@@ -100,14 +101,19 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
     }
     parts.push(text);
   }
+  const url = new URL(req.url);
+  const wantMarkdown = url.pathname === "/llms.txt";
   const rendered = JSON.parse(
-    render_unified_index_json(JSON.stringify(parts)),
+    wantMarkdown
+      ? render_unified_llms_txt_json(JSON.stringify(parts))
+      : render_unified_index_json(JSON.stringify(parts)),
   ) as UnifiedRendered;
-  if (rendered.kind !== "html" || !rendered.body) {
+  const wantKind = wantMarkdown ? "markdown" : "html";
+  if (rendered.kind !== wantKind || !rendered.body) {
     throw new Error(rendered.message ?? "unified render");
   }
   const headers = new Headers({
-    "content-type": "text/html; charset=utf-8",
+    "content-type": wantMarkdown ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8",
     "cache-control": "public, max-age=60",
   });
   const response = new Response(rendered.body, { status: 200, headers });
@@ -128,7 +134,7 @@ export default {
       typeof unifiedHost === "string" &&
       unifiedHost !== "" &&
       url.hostname === unifiedHost &&
-      (url.pathname === "/" || url.pathname === "")
+      (url.pathname === "/" || url.pathname === "" || url.pathname === "/llms.txt")
     ) {
       if (req.method === "HEAD") {
         const res = await unifiedIndex(req, env);
