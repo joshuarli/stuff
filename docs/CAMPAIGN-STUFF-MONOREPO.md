@@ -5,8 +5,8 @@
 Goal: one `stuff` repo serving mycrates/mynpm/mypypi from shared Rust HTTP
 serving + storage/generation code; per-registry pipelines stay independent.
 S0 done: mycrates green at HEAD `f96961d` (cargo test all ok, 0 failed).
-Accepted: S1 (workspace root, AGENTS.md, CI), S2d (h12tiny subdirs,
-src identical to upstream `dcdf4f2`). Red: baseline known-reds only
+Accepted: S1, S2d, S2a (mycrates; readme test fixed for workspace
+target dir; nested Cargo.lock removed, root owns the lock). Red: baseline known-reds only
 (mypypi 2, mynpm 1 flaky toolchain test). Next: S2a mycrates + path
 rewrite, then S2b/c (parallel OK). Resume: S2a import.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
@@ -83,6 +83,9 @@ Delegated (bound + tie-break):
 - Foundation proofs (rung 4, ran real code): dumb static server serves a
   mycrates generation through the `current` symlink as `application/json`
   (200 both paths); prefix import works without `git subtree`.
+- Release budget (S2a, workspace = mycrates + 3 h12tiny crates):
+  `cargo build --release --workspace` 10.6 s wall, `target/release` 137 M,
+  `mycrates` binary 5.4 M. Gate: flag >50% growth in S3-S5 reviews.
 
 ## Sequence
 
