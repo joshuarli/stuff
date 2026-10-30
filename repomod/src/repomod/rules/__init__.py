@@ -11,12 +11,14 @@ from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
 from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
+from repomod.rules.mirrored_docs import mirrored_docs_rules
 from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.release import release_rules
 from repomod.rules.rust_profiles import rust_release_profiles_rules
 from repomod.rules.rust_toolchain import rust_toolchain_rules
 from repomod.rules.template import template_rules
 from repomod.rules.typescript_standard import typescript_standard_rules
+from repomod.rules.workflow_redundancy import workflow_redundancy_rules
 from repomod.rules.workflow_settings import workflow_settings_rules
 from repomod.types import Finding, Repository, Rule, TagPredicate
 
@@ -40,9 +42,11 @@ def rules() -> tuple[Rule, ...]:
         *language_rules(),
         *lint_rules(),
         *mdtool_rules(),
+        *mirrored_docs_rules(),
         *python_standard_rules(),
         *template_rules(),
         *typescript_standard_rules(),
+        *workflow_redundancy_rules(),
         *workflow_settings_rules(),
         *release_rules(),
         *rust_toolchain_rules(),
