@@ -1,0 +1,42 @@
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14"]
+build-backend = "uv_build"
+
+[project]
+name = "mypypi"
+version = "0.1.0"
+description = "Build and publish validated Python wheels to a local index"
+requires-python = ">=3.15,<3.16"
+dependencies = ["packaging>=26.3"]
+
+[project.scripts]
+mypypi = "mypypi.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9.1.1", "ruff==0.17.2", "uv==0.13.5", "ty==0.0.91"]
+repair-linux = ["auditwheel>=6.8.2,<7; sys_platform == 'linux'"]
+repair-macos = ["delocate>=0.13,<0.14; sys_platform == 'darwin'"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.mypypi.targets]
+platforms = ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-arm64"]
+linux_repair_policy = "manylinux_2_28"
+
+[tool.uv.build-backend]
+source-exclude = [".work/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["network: resolves packages from public PyPI"]
+
+[tool.ruff]
+target-version = "py315"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ty.environment]
+python-version = "3.15"
