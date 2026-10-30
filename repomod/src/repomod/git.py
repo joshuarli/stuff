@@ -262,6 +262,24 @@ def status(path: Path, repo: RepoId) -> GitStatus:
     )
 
 
+def oldest_unpushed_commit_time(path: Path) -> int | None:
+    result = run_git(["log", "--format=%ct", "@{upstream}..HEAD"], cwd=path)
+    times = [int(line) for line in result.stdout.split()]
+    return min(times) if times else None
+
+
+def branch_checked_out_time(path: Path, branch: str) -> int | None:
+    result = run_git(["reflog", "show", "--date=unix", "--format=%gd%x09%gs", "HEAD"], cwd=path, check=False)
+    if result.returncode != 0:
+        return None
+    suffix = f" to {branch}"
+    for line in result.stdout.splitlines():
+        selector, _, subject = line.partition("\t")
+        if subject.startswith("checkout: moving from ") and subject.endswith(suffix):
+            return int(selector.removeprefix("HEAD@{").removesuffix("}"))
+    return None
+
+
 def shallow(path: Path) -> bool:
     result = run_git(["rev-parse", "--is-shallow-repository"], cwd=path, check=False)
     return result.returncode == 0 and result.stdout.strip() == "true"

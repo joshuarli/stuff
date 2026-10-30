@@ -54,6 +54,14 @@ expires after one hour. Offline status reads cached upstream comparisons. Online
 pull requests with their mergeable and merge-state status; `--failed` includes repositories
 with conflicting PRs and forks behind their upstream. Offline status omits pull requests.
 
+The local item also shows how old unpushed work is, derived only from Git data. When the branch is
+ahead of its last-fetched upstream it adds `oldest unpushed Nd`, the age of the oldest commit not in
+the upstream. When the checkout is on a non-default branch it adds `for Nd`, the time since HEAD's
+reflog last switched onto that branch (omitted if the reflog has no such entry). An age of seven days
+or more turns the item red and sets `stale_local_work` in `--json`, which also carries the raw
+`branch_checked_out_at` and `oldest_unpushed_commit_at` timestamps. This is status information
+only; it is not a lint finding and does not count toward `lints` or `--failed`.
+
 ## Repair and writes
 
 Fix requires a clean checkout attached to the default branch. Fixers run serially in a dedicated
