@@ -23,6 +23,8 @@ stay live. Launch: `/campaign-exec docs/CAMPAIGN-STUFF-MONOREPO.md`.
 - Parity before optimization. Budgets are logged, gated only on >50% regress.
 - One writer by default. Parallel lanes only for the disjoint pairs in
   Sequence, in worktrees at `.work/wt/<lane>`, never `/tmp`.
+- Workspace-wide changes (versions, lints, lockfiles, CI) are serial and
+  coordinator-owned; import lanes never touch them.
 - Every commit is Conventional Commit with workstream scope; item ID in body.
   Code comments never cite this doc.
 
