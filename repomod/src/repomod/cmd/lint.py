@@ -30,6 +30,10 @@ def _lint(args: argparse.Namespace) -> int:
             print(f"    {common._paint(policy.format_finding_short(finding), common._finding_color(finding))}")
         for code, description in policy.lint_legend(findings):
             print(f"{code}: {description}")
+        for repository in repositories:
+            if repository.ignore_reason is not None:
+                rules = ", ".join(sorted(repository.ignored_rules))
+                print(f"ignored {repository.id}: {rules} - {repository.ignore_reason}")
         if not findings:
             print("no policy findings")
     if any(finding.kind == "operational" for finding in findings):

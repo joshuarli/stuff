@@ -78,8 +78,8 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides"})
         raise CatalogError(f"unknown catalog keys: {', '.join(unknown)}")
     version = parsed.get("version")
-    if type(version) is not int or version not in {1, 2}:
-        raise CatalogError("catalog version must be 1 or 2")
+    if type(version) is not int or version not in {1, 2, 3}:
+        raise CatalogError("catalog version must be 1, 2, or 3")
     workspace = parsed.get("workspace")
     if not isinstance(workspace, dict) or set(workspace) != {"root", "personal_owner"}:
         raise CatalogError("[workspace] must contain only root and personal_owner")
@@ -150,8 +150,8 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
             raise CatalogError(f"override for {repo_id} must be a non-empty table")
         raw_override = cast(dict[str, object], raw_override)
         allowed_override_keys = {"autofix", "reason"}
-        if version >= 2:
-            allowed_override_keys.add("ignore")
+        if version >= 3:
+            allowed_override_keys |= {"ignore", "ignore_reason"}
         unknown_override_keys = set(raw_override) - allowed_override_keys
         if unknown_override_keys:
             raise CatalogError(
@@ -179,6 +179,15 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
             validate_identifier(ignored_rule.replace(":", "-", 1), "ignored rule code")
         if "ignore" in raw_override and not ignored_rules:
             raise CatalogError(f"override for {repo_id} must ignore at least one rule code")
+        ignore_reason_value = raw_override.get("ignore_reason")
+        if ignored_rules:
+            if not isinstance(ignore_reason_value, str) or not ignore_reason_value.strip():
+                raise CatalogError(f"override for {repo_id} must explain ignored rules with ignore_reason")
+            ignore_reason = ignore_reason_value.strip()
+        elif ignore_reason_value is not None:
+            raise CatalogError(f"override for {repo_id} has ignore_reason without ignore")
+        else:
+            ignore_reason = None
         index = repositories.index(repo)
         repositories[index] = Repository(
             repo.id,
@@ -186,6 +195,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
             autofix is not False,
             reason,
             ignored_rules,
+            ignore_reason,
         )
 
     root = _expand_root(workspace["root"], environment)

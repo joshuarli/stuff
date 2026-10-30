@@ -142,7 +142,7 @@ def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:
     "contents",
     [
         (
-            'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            'version = 4\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
             '[repos.joshuarli]\na = ["tool"]'
         ),
         (
@@ -168,6 +168,46 @@ def test_invalid_catalog_contracts_are_rejected(tmp_path: Path, contents: str) -
     path.write_text(contents, encoding="utf-8")
 
     with pytest.raises(CatalogError):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def versioned_catalog(version: int, override: str) -> str:
+    return (
+        f'version = {version}\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+        f'[repos.joshuarli]\na = ["tool"]\n[overrides."joshuarli/a"]\n{override}\n'
+    )
+
+
+def test_ignored_rules_carry_a_trimmed_reason(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, 'ignore = ["make-lint-target"]\nignore_reason = "  vendored build  "'),
+        encoding="utf-8",
+    )
+
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+
+    assert repository.ignored_rules == {"make-lint-target"}
+    assert repository.ignore_reason == "vendored build"
+
+
+@pytest.mark.parametrize(
+    ("version", "override", "message"),
+    [
+        (3, 'ignore = ["make-lint-target"]', "ignore_reason"),
+        (3, 'ignore = ["make-lint-target"]\nignore_reason = "  "', "ignore_reason"),
+        (3, 'ignore = ["make-lint-target"]\nignore_reason = 3', "ignore_reason"),
+        (3, 'autofix = false\nreason = "x"\nignore_reason = "y"', "without ignore"),
+        (2, 'ignore = ["make-lint-target"]\nignore_reason = "y"', "unknown keys"),
+    ],
+)
+def test_ignored_rules_require_a_reason(
+    tmp_path: Path, version: int, override: str, message: str
+) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(versioned_catalog(version, override), encoding="utf-8")
+
+    with pytest.raises(CatalogError, match=message):
         load_catalog(path, {"HOME": str(tmp_path)})
 
 
