@@ -1339,6 +1339,8 @@ version = "0.1.0"
 dependencies = [
  "deser",
  "deser-json",
+ "deser-value",
+ "stuff-catalog",
  "stuff-http",
  "wasm-bindgen",
 ]

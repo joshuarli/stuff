@@ -158,6 +158,76 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
     to_json(&resolved, "not_found")
 }
 
+#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+pub struct UnifiedJson {
+    pub kind: String,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub body: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub message: Option<String>,
+}
+
+pub fn render_unified_index_json(catalogs_json: &str) -> String {
+    let parsed: deser_value::Value = match deser_json::from_str(catalogs_json) {
+        Ok(v) => v,
+        Err(e) => {
+            return to_json(
+                &UnifiedJson {
+                    kind: "error".to_string(),
+                    body: None,
+                    message: Some(format!("catalogs: {e}")),
+                },
+                "error",
+            );
+        }
+    };
+    let Some(seq) = parsed.as_seq() else {
+        return to_json(
+            &UnifiedJson {
+                kind: "error".to_string(),
+                body: None,
+                message: Some("catalogs must be an array".to_string()),
+            },
+            "error",
+        );
+    };
+    let mut catalogs = Vec::with_capacity(seq.len());
+    for item in seq.iter() {
+        let Some(text) = item.as_str() else {
+            return to_json(
+                &UnifiedJson {
+                    kind: "error".to_string(),
+                    body: None,
+                    message: Some("catalogs must be an array of JSON strings".to_string()),
+                },
+                "error",
+            );
+        };
+        match stuff_catalog::parse_catalog_json(text) {
+            Ok(catalog) => catalogs.push(catalog),
+            Err(e) => {
+                return to_json(
+                    &UnifiedJson {
+                        kind: "error".to_string(),
+                        body: None,
+                        message: Some(format!("catalog: {e}")),
+                    },
+                    "error",
+                );
+            }
+        }
+    }
+    catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
+    to_json(
+        &UnifiedJson {
+            kind: "html".to_string(),
+            body: Some(stuff_catalog::render_unified(&catalogs)),
+            message: None,
+        },
+        "error",
+    )
+}
+
 #[derive(Debug, Clone, Default, deser::Deserialize)]
 pub struct RequestHeadersJson {
     #[deser(default)]
@@ -511,6 +581,22 @@ mod tests {
         let parsed: PointerJson = deser_json::from_str(s).expect("pointer json parses");
         assert_eq!(parsed.kind, "key");
         parsed.key.expect("key present")
+    }
+
+    #[test]
+    fn unified_render_combines_catalogs() {
+        let cargo = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
+        let npm = r#"{"schema_version":1,"registry":"npm","generation":"b","packages":[{"name":"@mine/utils","source":null,"latest":"1.3.0","versions":[{"version":"1.3.0","yanked":false}]}]}"#;
+        let input = format!("[{},{}]", deser_json::to_string(&cargo).unwrap(), deser_json::to_string(&npm).unwrap());
+        let parsed: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        assert_eq!(parsed.kind, "html");
+        let body = parsed.body.expect("html body");
+        assert!(body.contains("h12tiny"));
+        assert!(body.contains("@mine/utils"));
+
+        let bad: UnifiedJson =
+            deser_json::from_str(&render_unified_index_json("not json")).expect("parses");
+        assert_eq!(bad.kind, "error");
     }
 
     #[test]

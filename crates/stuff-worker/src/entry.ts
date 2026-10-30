@@ -2,6 +2,7 @@ import {
   initSync,
   map_asset_json,
   plan_object_response_json,
+  render_unified_index_json,
   resolve_pointer_json,
 } from "../build/wasm/stuff_worker.js";
 import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
@@ -24,6 +25,7 @@ interface R2BucketLike {
 
 interface WorkerEnv {
   readonly STUFF_ROUTES: string;
+  readonly STUFF_UNIFIED_HOST?: string;
   readonly [binding: string]: R2BucketLike | string | undefined;
 }
 
@@ -53,6 +55,12 @@ interface ResponsePlan {
   message?: string;
 }
 
+interface UnifiedRendered {
+  kind: "html" | "error";
+  body?: string;
+  message?: string;
+}
+
 function bucket(env: WorkerEnv, binding: string): R2BucketLike {
   const found = env[binding];
   if (!found || typeof found === "string" || typeof found.get !== "function") {
@@ -61,12 +69,73 @@ function bucket(env: WorkerEnv, binding: string): R2BucketLike {
   return found;
 }
 
+async function catalogText(env: WorkerEnv, binding: string): Promise<string | null> {
+  const store = bucket(env, binding);
+  const pointer = await store.get("current");
+  if (pointer === null) {
+    return null;
+  }
+  const id = (await pointer.text()).trim();
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    return null;
+  }
+  const object = await store.get(`generations/${id}/catalog.json`);
+  if (object === null) {
+    return null;
+  }
+  return object.text();
+}
+
+async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
+  const cache = caches.default;
+  const cached = await cache.match(req);
+  if (cached) {
+    return cached;
+  }
+  const parts: string[] = [];
+  for (const binding of ["MYCRATES", "MYNPM", "PYPI"]) {
+    const text = await catalogText(env, binding);
+    if (text === null) {
+      return new Response("unified catalog not ready", { status: 404 });
+    }
+    parts.push(text);
+  }
+  const rendered = JSON.parse(
+    render_unified_index_json(JSON.stringify(parts)),
+  ) as UnifiedRendered;
+  if (rendered.kind !== "html" || !rendered.body) {
+    throw new Error(rendered.message ?? "unified render");
+  }
+  const headers = new Headers({
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "public, max-age=60",
+  });
+  const response = new Response(rendered.body, { status: 200, headers });
+  // Cache only the successful aggregate; per-generation catalogs stay
+  // immutable, so a short edge cache keeps the landing page fresh.
+  await cache.put(req, response.clone());
+  return response;
+}
+
 export default {
   async fetch(req: Request, env: WorkerEnv): Promise<Response> {
     if (req.method !== "GET" && req.method !== "HEAD") {
       return new Response("method not allowed", { status: 405 });
     }
     const url = new URL(req.url);
+    const unifiedHost = env.STUFF_UNIFIED_HOST;
+    if (
+      typeof unifiedHost === "string" &&
+      unifiedHost !== "" &&
+      url.hostname === unifiedHost &&
+      (url.pathname === "/" || url.pathname === "")
+    ) {
+      if (req.method === "HEAD") {
+        const res = await unifiedIndex(req, env);
+        return new Response(null, { status: res.status, headers: res.headers });
+      }
+      return unifiedIndex(req, env);
+    }
     const mapped = JSON.parse(
       map_asset_json(env.STUFF_ROUTES, url.hostname, url.pathname),
     ) as Mapped;

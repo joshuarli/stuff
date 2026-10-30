@@ -11,6 +11,8 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 deser = { version = "0.10", features = ["derive"] }
 deser-json = "0.10"
+deser-value = "0.10"
+stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-http = { version = "0.1.0", path = "../stuff-http" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

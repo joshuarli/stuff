@@ -20,10 +20,11 @@ pub enum Mapped {
 pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
     let resolved = match stuff_http::resolve_path(raw_target) {
         Ok(r) => r,
+        Err(stuff_http::PathError::Empty) => return map_root(route),
         Err(_) => return Mapped::NotFound,
     };
     let Some((first, rest)) = resolved.segments.split_first() else {
-        return Mapped::NotFound;
+        return map_root(route);
     };
     if first == "current" {
         let link = route.site_dir.join("current");
@@ -51,6 +52,23 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
     Mapped::File(MappedFile {
         path,
         kind: RouteKind::ImmutableFile,
+    })
+}
+
+fn map_root(route: &Route) -> Mapped {
+    let link = route.site_dir.join("current");
+    let Ok(target) = std::fs::read_link(&link) else {
+        return Mapped::NotFound;
+    };
+    if target.components().count() != 2
+        || target.components().next().is_none_or(|c| c.as_os_str() != "generations")
+    {
+        return Mapped::NotFound;
+    }
+    let path = route.site_dir.join(&target).join("index.html");
+    Mapped::File(MappedFile {
+        path,
+        kind: RouteKind::GenerationPointer,
     })
 }
 
@@ -325,6 +343,23 @@ mod tests {
             site_dir,
         };
         assert!(matches!(map_request(&route, "/current/x"), Mapped::NotFound));
+    }
+
+    #[test]
+    fn root_serves_current_index() {
+        let (_tmp, route) = test_route();
+        let no_headers: Vec<(String, String)> = Vec::new();
+        let r = respond(&route, "/", "GET", &no_headers);
+        assert_eq!((r.status, r.reason), (404, "Not Found"));
+
+        std::fs::write(route.site_dir.join("generations/gen1/index.html"), b"<html></html>").unwrap();
+        let r = respond(&route, "/", "GET", &no_headers);
+        assert_eq!((r.status, r.reason), (200, "OK"));
+
+        match map_request(&route, "/current/%2e%2e/x") {
+            Mapped::NotFound => {}
+            Mapped::File(_) => panic!("traversal must not resolve"),
+        }
     }
 
     #[test]

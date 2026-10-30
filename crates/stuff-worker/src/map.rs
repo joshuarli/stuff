@@ -107,6 +107,13 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
 
     let resolved = match stuff_http::resolve_path(&rest) {
         Ok(r) => r,
+        Err(stuff_http::PathError::Empty) => {
+            return MappedAsset::ViaPointer {
+                bucket_binding: route.bucket_binding.clone(),
+                pointer_key: pointer_key(&route.key_prefix),
+                rel_path: "index.html".to_string(),
+            };
+        }
         Err(_) => return MappedAsset::NotFound,
     };
     let Some((first, remaining)) = resolved.segments.split_first() else {
@@ -118,7 +125,7 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
             rel.push_str("/index.html");
         }
         if rel.is_empty() {
-            return MappedAsset::NotFound;
+            rel = "index.html".to_string();
         }
         return MappedAsset::ViaPointer {
             bucket_binding: route.bucket_binding.clone(),
@@ -278,9 +285,27 @@ mod tests {
     }
 
     #[test]
-    fn rejects_escape_and_bare_current() {
+    fn root_and_bare_current_serve_catalog_page() {
         let c = config();
-        assert!(matches!(map_asset(&c, "", "/current"), MappedAsset::NotFound));
+        match map_asset(&c, "", "/") {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+                assert_eq!(bucket_binding, "MYCRATES");
+                assert_eq!(pointer_key, "current");
+                assert_eq!(rel_path, "index.html");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match map_asset(&c, "", "/current") {
+            MappedAsset::ViaPointer { rel_path, .. } => {
+                assert_eq!(rel_path, "index.html");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_escape() {
+        let c = config();
         assert!(matches!(map_asset(&c, "", "/current/%2e%2e/x"), MappedAsset::NotFound));
         assert!(matches!(map_asset(&c, "", "/current/../../etc/passwd"), MappedAsset::NotFound));
     }
