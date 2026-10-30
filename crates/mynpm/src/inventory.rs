@@ -1335,7 +1335,7 @@ fn snapshot_to_value(s: &Option<ProjectSnapshot>) -> Result<deser_value::Value> 
     }
 }
 
-fn artifact_to_value(a: &ArtifactRecord) -> Result<deser_value::Value> {
+pub fn artifact_to_value(a: &ArtifactRecord) -> Result<deser_value::Value> {
     let mut m = deser_value::Map::new();
     m.insert("name".to_string(), deser_value::Value::from(a.name.clone()));
     m.insert("version".to_string(), deser_value::Value::from(a.version.clone()));

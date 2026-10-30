@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod acquire;
 pub mod archive;
 pub mod cli;
 pub mod config;
