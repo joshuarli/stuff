@@ -276,6 +276,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     while !STOP.load(Ordering::Relaxed) {
         match listener.accept() {
             Ok((mut stream, _)) => {
+                if stream.set_nonblocking(false).is_err() {
+                    continue;
+                }
                 if active.load(Ordering::SeqCst) >= max_connections {
                     send_text(&mut stream, 503, "Service Unavailable", TOO_MANY_REQUESTS);
                     continue;

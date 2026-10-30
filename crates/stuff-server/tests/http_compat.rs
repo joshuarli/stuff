@@ -198,3 +198,24 @@ fn static_read_semantics() {
     let r = get(&server, &format!("/generations/{gen_id}/sneaky"), &[]);
     assert_eq!(r.status, 404);
 }
+
+#[test]
+fn large_body_survives_a_slow_reader() {
+    let (tmp, site_dir, _) = fixture_site();
+    let body = vec![9u8; 16 << 20];
+    fs::write(site_dir.join("blobs/large.crate"), &body).unwrap();
+    let server = TestServer::boot(&site_dir, tmp);
+    let addr = server.base_url.trim_start_matches("http://");
+    let mut stream = TcpStream::connect(addr).expect("connect");
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(20)))
+        .unwrap();
+    stream
+        .write_all(b"GET /blobs/large.crate HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n")
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    let mut raw = Vec::new();
+    stream.read_to_end(&mut raw).unwrap();
+    let header_end = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+    assert_eq!(raw.len() - header_end, body.len());
+}
