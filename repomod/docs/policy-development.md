@@ -139,7 +139,10 @@ invalid component arrays, and toolchain settings declared outside `[toolchain]` 
 the approved releases. `pins refresh` updates them from PyPI, and the fixer regenerates `uv.lock` in
 a disposable copy before returning its file plan. It updates `.python-version` pins and explicit
 GitHub Actions Python versions below 3.15, and removes matrix rows made identical by that update.
-Block-style workflow version lists remain manual findings.
+Block-style workflow version lists remain manual findings. When a repository has no
+`pyproject.toml`, the fixer creates an unpackaged project (`[tool.uv] package = false`, version
+`0.0.0`, no runtime dependencies, repository name as project name, approved dev pins) and its
+`uv.lock`; it never replaces or merges an existing file.
 
 `typescript-stack` applies to TypeScript repositories. `typescript-tools.toml` records the latest
 stable Node.js and pnpm releases, and `pins refresh` updates those approvals. The rule checks

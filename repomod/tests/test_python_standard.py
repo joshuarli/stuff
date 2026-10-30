@@ -586,3 +586,58 @@ def test_refreshed_lock_reports_uv_failure_and_cleans_its_copy(
         _refreshed_lock(root, '[project]\nname = "demo"\n')
 
     assert list(temporary_root.iterdir()) == []
+
+
+def _fake_lock(root: Path, pyproject: str, python_version: str | None = None) -> str:
+    return (
+        'version = 1\nrequires-python = ">=3.15"\n\n'
+        '[[package]]\nname = "uv"\nversion = "0.9.9"\n\n'
+        '[[package]]\nname = "ruff"\nversion = "0.15.16"\n\n'
+        '[[package]]\nname = "ty"\nversion = "0.0.90"\n'
+    )
+
+
+def test_python_standard_creates_an_unpackaged_project_when_pyproject_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_approvals(tmp_path, monkeypatch, uv="0.9.9", ruff="0.15.16", ty="0.0.90")
+    monkeypatch.setattr("repomod.rules.python_standard._refreshed_lock", _fake_lock)
+    findings = _python_standard_findings(tmp_path, _repository())
+    assert [(finding.file, finding.fixable) for finding in findings] == [("pyproject.toml", True)]
+
+    plan = refresh_python_standard(tmp_path, _repository())
+
+    assert set(plan) == {"pyproject.toml", "uv.lock"}
+    assert plan["pyproject.toml"] == (
+        '[project]\nname = "demo"\nversion = "0.0.0"\nrequires-python = ">=3.15"\n'
+        "dependencies = []\n\n[tool.uv]\npackage = false\n\n"
+        '[dependency-groups]\ndev = [\n    "uv==0.9.9",\n    "ruff==0.15.16",\n    "ty==0.0.90",\n]\n\n'
+        '[tool.ruff]\ntarget-version = "py315"\n\n'
+        '[tool.ty.environment]\npython-version = "3.15"\n'
+    )
+    for relative, contents in plan.items():
+        (tmp_path / relative).write_text(contents, encoding="utf-8")
+    assert _python_standard_findings(tmp_path, _repository()) == []
+
+
+def test_python_standard_rejects_repository_names_that_are_not_project_names(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_approvals(tmp_path, monkeypatch)
+    repository = Repository(RepoId("acme", ".github"), ("python",))
+
+    with pytest.raises(RuntimeError, match="not a valid Python project name"):
+        refresh_python_standard(tmp_path, repository)
+
+
+def test_python_standard_never_creates_over_a_pyproject_symlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_approvals(tmp_path, monkeypatch)
+    (tmp_path / "pyproject.toml").symlink_to(tmp_path / "missing.toml")
+
+    with pytest.raises(RuntimeError, match=r"without a regular pyproject\.toml"):
+        refresh_python_standard(tmp_path, _repository())

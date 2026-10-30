@@ -25,6 +25,7 @@ _PIN = re.compile(r"^(uv|ruff|ty)==([0-9]+(?:\.[0-9]+){1,3})$")
 _VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}\Z")
 _PYTHON_FLOOR = re.compile(r">=\s*3\.15(?:\.0+)?\Z")
 _SECTION = re.compile(r"^\[([^]]+)\][ \t]*(?:#.*)?(?:\r?\n)?$")
+_PROJECT_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _PACKAGE_NAME = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^]]*\])?(.*)$")
 _DEPENDENCY_LINE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<quote>['\"])(?P<value>[^'\"]*)(?P=quote)"
@@ -514,7 +515,6 @@ def _python_standard_findings(root: Path, repository: Repository) -> list[Findin
                 repository,
                 project_path.name,
                 "Python standards require a root pyproject.toml",
-                fixable=False,
             )
         ]
     project, error = read_toml(project_path)
@@ -910,22 +910,53 @@ def _validate_refreshed_lock(
             raise RuntimeError(f"uv lock did not lock the refreshed {name} version {version}")
 
 
+def _unpackaged_project_skeleton(repository: Repository, versions: dict[str, str]) -> str:
+    name = repository.id.name
+    if _PROJECT_NAME.match(name) is None:
+        raise RuntimeError(f"repository name {name!r} is not a valid Python project name")
+    return (
+        "[project]\n"
+        f"name = {json.dumps(name)}\n"
+        'version = "0.0.0"\n'
+        'requires-python = ">=3.15"\n'
+        "dependencies = []\n\n"
+        "[tool.uv]\n"
+        "package = false\n\n"
+        "[dependency-groups]\n"
+        "dev = [\n"
+        + "".join(f'    "{tool}=={versions[tool]}",\n' for tool in _TOOL_NAMES)
+        + "]\n\n"
+        "[tool.ruff]\n"
+        'target-version = "py315"\n\n'
+        "[tool.ty.environment]\n"
+        'python-version = "3.15"\n'
+    )
+
+
 def refresh_python_standard(root: Path, repository: Repository) -> dict[str, str]:
     project_path = root / "pyproject.toml"
     lock_path = root / "uv.lock"
-    if project_path.is_symlink() or not project_path.is_file():
-        raise RuntimeError("cannot refresh Python standards without a regular pyproject.toml")
     if lock_path.is_symlink():
         raise RuntimeError("uv.lock is a symlink and is not followed")
-    try:
-        source = project_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        raise RuntimeError(f"cannot read pyproject.toml: {error}") from error
+    creating = not project_path.exists() and not project_path.is_symlink()
+    if not creating and (project_path.is_symlink() or not project_path.is_file()):
+        raise RuntimeError("cannot refresh Python standards without a regular pyproject.toml")
+    if creating:
+        source = ""
+    else:
+        try:
+            source = project_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise RuntimeError(f"cannot read pyproject.toml: {error}") from error
     python_version_finding, python_version = _python_version_pin(root, repository)
     if python_version_finding is not None and not python_version_finding.fixable:
         raise RuntimeError(python_version_finding.message)
     versions = load_approved_python_tool_versions()
-    updated = _updated_pyproject(source, versions)
+    updated = (
+        _unpackaged_project_skeleton(repository, versions)
+        if creating
+        else _updated_pyproject(source, versions)
+    )
     lock = _refreshed_lock(root, updated, python_version)
     updated_document = tomllib.loads(updated)
     updated_metadata = updated_document.get("project")
