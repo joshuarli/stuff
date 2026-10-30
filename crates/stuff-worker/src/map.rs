@@ -1,5 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct RegistryRoute {
+    pub host: String,
     pub url_prefix: String,
     pub bucket_binding: String,
     pub key_prefix: String,
@@ -72,9 +73,12 @@ pub fn parse_pointer(bytes: &[u8]) -> Option<String> {
     Some(text.to_string())
 }
 
-pub fn map_asset(config: &WorkerConfig, raw_path: &str) -> MappedAsset {
+pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAsset {
     let mut best: Option<(&RegistryRoute, String)> = None;
     for route in &config.routes {
+        if !route.host.is_empty() && route.host != host {
+            continue;
+        }
         let rest = if route.url_prefix.is_empty() {
             raw_path.to_string()
         } else {
@@ -146,11 +150,13 @@ mod tests {
         WorkerConfig {
             routes: vec![
                 RegistryRoute {
+                    host: String::new(),
                     url_prefix: "mirror".to_string(),
                     bucket_binding: "MYNPM".to_string(),
                     key_prefix: String::new(),
                 },
                 RegistryRoute {
+                    host: String::new(),
                     url_prefix: String::new(),
                     bucket_binding: "MYCRATES".to_string(),
                     key_prefix: String::new(),
@@ -160,9 +166,60 @@ mod tests {
     }
 
     #[test]
+    fn host_scoping_selects_registry() {
+        let c = WorkerConfig {
+            routes: vec![
+                RegistryRoute {
+                    host: "crates.17166969.xyz".to_string(),
+                    url_prefix: String::new(),
+                    bucket_binding: "MYCRATES".to_string(),
+                    key_prefix: String::new(),
+                },
+                RegistryRoute {
+                    host: "npm.17166969.xyz".to_string(),
+                    url_prefix: String::new(),
+                    bucket_binding: "MYNPM".to_string(),
+                    key_prefix: String::new(),
+                },
+                RegistryRoute {
+                    host: "pypi.17166969.xyz".to_string(),
+                    url_prefix: String::new(),
+                    bucket_binding: "PYPI".to_string(),
+                    key_prefix: String::new(),
+                },
+            ],
+        };
+        match map_asset(&c, "crates.17166969.xyz", "/current/registry/config.json") {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+                assert_eq!(bucket_binding, "MYCRATES");
+                assert_eq!(pointer_key, "current");
+                assert_eq!(rel_path, "registry/config.json");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match map_asset(&c, "npm.17166969.xyz", "/current/flatdemo") {
+            MappedAsset::ViaPointer { bucket_binding, .. } => {
+                assert_eq!(bucket_binding, "MYNPM");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match map_asset(&c, "pypi.17166969.xyz", "/current/simple/proj/") {
+            MappedAsset::ViaPointer { bucket_binding, rel_path, .. } => {
+                assert_eq!(bucket_binding, "PYPI");
+                assert_eq!(rel_path, "simple/proj/index.html");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        assert!(matches!(
+            map_asset(&c, "unknown.17166969.xyz", "/current/x"),
+            MappedAsset::NotFound
+        ));
+    }
+
+    #[test]
     fn longest_prefix_selects_bucket() {
         let c = config();
-        match map_asset(&c, "/mirror/current/flatdemo") {
+        match map_asset(&c, "", "/mirror/current/flatdemo") {
             MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
                 assert_eq!(bucket_binding, "MYNPM");
                 assert_eq!(pointer_key, "current");
@@ -170,7 +227,7 @@ mod tests {
             }
             other => panic!("unexpected {other:?}"),
         }
-        match map_asset(&c, "/current/registry/config.json") {
+        match map_asset(&c, "", "/current/registry/config.json") {
             MappedAsset::ViaPointer { bucket_binding, .. } => {
                 assert_eq!(bucket_binding, "MYCRATES");
             }
@@ -181,7 +238,7 @@ mod tests {
     #[test]
     fn scoped_route_maps_to_nested_key() {
         let c = config();
-        match map_asset(&c, "/mirror/current/@flatrepo%2fdemo") {
+        match map_asset(&c, "", "/mirror/current/@flatrepo%2fdemo") {
             MappedAsset::ViaPointer { rel_path, .. } => {
                 assert_eq!(rel_path, "@flatrepo/demo");
             }
@@ -192,14 +249,14 @@ mod tests {
     #[test]
     fn generation_and_direct_keys() {
         let c = config();
-        match map_asset(&c, "/mirror/generations/abc/tarballs/x.tgz") {
+        match map_asset(&c, "", "/mirror/generations/abc/tarballs/x.tgz") {
             MappedAsset::Direct(a) => {
                 assert_eq!(a.key, "generations/abc/tarballs/x.tgz");
                 assert_eq!(a.bucket_binding, "MYNPM");
             }
             other => panic!("unexpected {other:?}"),
         }
-        match map_asset(&c, "/mirror/tarballs/x.tgz") {
+        match map_asset(&c, "", "/mirror/tarballs/x.tgz") {
             MappedAsset::Direct(a) => assert_eq!(a.key, "tarballs/x.tgz"),
             other => panic!("unexpected {other:?}"),
         }
@@ -208,13 +265,13 @@ mod tests {
     #[test]
     fn trailing_slash_appends_index() {
         let c = config();
-        match map_asset(&c, "/current/simple/proj/") {
+        match map_asset(&c, "", "/current/simple/proj/") {
             MappedAsset::ViaPointer { rel_path, .. } => {
                 assert_eq!(rel_path, "simple/proj/index.html");
             }
             other => panic!("unexpected {other:?}"),
         }
-        match map_asset(&c, "/generations/g/simple/") {
+        match map_asset(&c, "", "/generations/g/simple/") {
             MappedAsset::Direct(a) => assert_eq!(a.key, "generations/g/simple/index.html"),
             other => panic!("unexpected {other:?}"),
         }
@@ -223,9 +280,9 @@ mod tests {
     #[test]
     fn rejects_escape_and_bare_current() {
         let c = config();
-        assert!(matches!(map_asset(&c, "/current"), MappedAsset::NotFound));
-        assert!(matches!(map_asset(&c, "/current/%2e%2e/x"), MappedAsset::NotFound));
-        assert!(matches!(map_asset(&c, "/current/../../etc/passwd"), MappedAsset::NotFound));
+        assert!(matches!(map_asset(&c, "", "/current"), MappedAsset::NotFound));
+        assert!(matches!(map_asset(&c, "", "/current/%2e%2e/x"), MappedAsset::NotFound));
+        assert!(matches!(map_asset(&c, "", "/current/../../etc/passwd"), MappedAsset::NotFound));
     }
 
     #[test]
@@ -243,12 +300,13 @@ mod tests {
     fn key_prefix_scopes_objects() {
         let config = WorkerConfig {
             routes: vec![RegistryRoute {
+                host: String::new(),
                 url_prefix: "pypi".to_string(),
                 bucket_binding: "PYPI".to_string(),
                 key_prefix: "indexes/main".to_string(),
             }],
         };
-        match map_asset(&config, "/pypi/current/simple/") {
+        match map_asset(&config, "", "/pypi/current/simple/") {
             MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
                 assert_eq!(bucket_binding, "PYPI");
                 assert_eq!(pointer_key, "indexes/main/current");

@@ -1,8 +1,12 @@
 import {
+  initSync,
   map_asset_json,
   plan_object_response_json,
   resolve_pointer_json,
 } from "../build/wasm/stuff_worker.js";
+import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
+
+initSync(wasmModule);
 
 interface R2ObjectLike {
   readonly size: number;
@@ -62,8 +66,9 @@ export default {
     if (req.method !== "GET" && req.method !== "HEAD") {
       return new Response("method not allowed", { status: 405 });
     }
+    const url = new URL(req.url);
     const mapped = JSON.parse(
-      map_asset_json(env.STUFF_ROUTES, new URL(req.url).pathname),
+      map_asset_json(env.STUFF_ROUTES, url.hostname, url.pathname),
     ) as Mapped;
     if (mapped.kind === "error") {
       throw new Error(mapped.message ?? "routes");

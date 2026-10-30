@@ -8,6 +8,8 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, deser::Deserialize)]
 pub struct RouteEntry {
     #[deser(default)]
+    pub host: String,
+    #[deser(default)]
     pub url_prefix: String,
     pub bucket_binding: String,
     #[deser(default)]
@@ -21,6 +23,7 @@ pub fn parse_routes(raw: &str) -> Result<WorkerConfig, String> {
         routes: routes
             .into_iter()
             .map(|r| RegistryRoute {
+                host: r.host,
                 url_prefix: r.url_prefix,
                 bucket_binding: r.bucket_binding,
                 key_prefix: r.key_prefix,
@@ -49,7 +52,7 @@ pub struct MappedJson {
     pub message: Option<String>,
 }
 
-pub fn map_asset_json(routes_json: &str, raw_path: &str) -> String {
+pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
     let config = match parse_routes(routes_json) {
         Ok(config) => config,
         Err(message) => {
@@ -66,7 +69,7 @@ pub fn map_asset_json(routes_json: &str, raw_path: &str) -> String {
             );
         }
     };
-    let mapped = match map_asset(&config, raw_path) {
+    let mapped = match map_asset(&config, host, raw_path) {
         MappedAsset::Direct(asset) => MappedJson {
             kind: "direct".to_string(),
             bucket_binding: Some(asset.bucket_binding),
@@ -378,6 +381,7 @@ mod tests {
     fn routes_require_bucket_binding_but_default_the_rest() {
         let config = parse_routes(r#"[{"bucket_binding":"B"}]"#).expect("parses");
         assert_eq!(config.routes.len(), 1);
+        assert_eq!(config.routes[0].host, "");
         assert_eq!(config.routes[0].url_prefix, "");
         assert_eq!(config.routes[0].bucket_binding, "B");
         assert_eq!(config.routes[0].key_prefix, "");
@@ -396,7 +400,7 @@ mod tests {
 
     #[test]
     fn map_json_shapes() {
-        let direct = parse_mapped(&map_asset_json(ROUTES, "/mycrates/generations/abc/tarballs/x.tgz"));
+        let direct = parse_mapped(&map_asset_json(ROUTES, "", "/mycrates/generations/abc/tarballs/x.tgz"));
         assert_eq!(direct.kind, "direct");
         assert_eq!(direct.bucket_binding.as_deref(), Some("MYCRATES"));
         assert_eq!(
@@ -404,18 +408,43 @@ mod tests {
             Some("generations/abc/tarballs/x.tgz")
         );
 
-        let via = parse_mapped(&map_asset_json(ROUTES, "/mirror/current/@flatrepo%2fdemo"));
+        let via = parse_mapped(&map_asset_json(ROUTES, "", "/mirror/current/@flatrepo%2fdemo"));
         assert_eq!(via.kind, "via_pointer");
         assert_eq!(via.bucket_binding.as_deref(), Some("MYNPM"));
         assert_eq!(via.pointer_key.as_deref(), Some("current"));
         assert_eq!(via.rel_path.as_deref(), Some("@flatrepo/demo"));
 
-        let missing = parse_mapped(&map_asset_json(ROUTES, "/nope/current/x"));
+        let missing = parse_mapped(&map_asset_json(ROUTES, "", "/nope/current/x"));
         assert_eq!(missing.kind, "not_found");
 
-        let error = parse_mapped(&map_asset_json("bogus", "/mycrates/x"));
+        let error = parse_mapped(&map_asset_json("bogus", "", "/mycrates/x"));
         assert_eq!(error.kind, "error");
         assert!(error.message.unwrap().starts_with("STUFF_ROUTES: "));
+    }
+
+    #[test]
+    fn map_json_routes_by_host() {
+        const HOST_ROUTES: &str = r#"[{"host":"crates.17166969.xyz","bucket_binding":"MYCRATES","key_prefix":""},{"host":"npm.17166969.xyz","bucket_binding":"MYNPM","key_prefix":""},{"host":"pypi.17166969.xyz","bucket_binding":"PYPI","key_prefix":""}]"#;
+        let via = parse_mapped(&map_asset_json(
+            HOST_ROUTES,
+            "pypi.17166969.xyz",
+            "/current/simple/proj/",
+        ));
+        assert_eq!(via.kind, "via_pointer");
+        assert_eq!(via.bucket_binding.as_deref(), Some("PYPI"));
+        assert_eq!(via.pointer_key.as_deref(), Some("current"));
+        assert_eq!(via.rel_path.as_deref(), Some("simple/proj/index.html"));
+
+        let cross = parse_mapped(&map_asset_json(
+            HOST_ROUTES,
+            "npm.17166969.xyz",
+            "/current/simple/proj/",
+        ));
+        assert_eq!(cross.kind, "via_pointer");
+        assert_eq!(cross.bucket_binding.as_deref(), Some("MYNPM"));
+
+        let unknown = parse_mapped(&map_asset_json(HOST_ROUTES, "other.example", "/current/x"));
+        assert_eq!(unknown.kind, "not_found");
     }
 
     #[test]

@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn map_asset_json(routes_json: &str, raw_path: &str) -> String {
-    crate::api::map_asset_json(routes_json, raw_path)
+pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
+    crate::api::map_asset_json(routes_json, host, raw_path)
 }
 
 #[wasm_bindgen]

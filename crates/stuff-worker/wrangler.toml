@@ -26,4 +26,16 @@ binding = "PYPI"
 bucket_name = "stuff-mypypi"
 
 [vars]
-STUFF_ROUTES = '[{"url_prefix":"mycrates","bucket_binding":"MYCRATES","key_prefix":""},{"url_prefix":"mirror","bucket_binding":"MYNPM","key_prefix":""},{"url_prefix":"pypi","bucket_binding":"PYPI","key_prefix":""}]'
+STUFF_ROUTES = '[{"host":"crates.17166969.xyz","bucket_binding":"MYCRATES","key_prefix":""},{"host":"npm.17166969.xyz","bucket_binding":"MYNPM","key_prefix":""},{"host":"pypi.17166969.xyz","bucket_binding":"PYPI","key_prefix":""}]'
+
+[[routes]]
+pattern = "crates.17166969.xyz"
+custom_domain = true
+
+[[routes]]
+pattern = "npm.17166969.xyz"
+custom_domain = true
+
+[[routes]]
+pattern = "pypi.17166969.xyz"
+custom_domain = true

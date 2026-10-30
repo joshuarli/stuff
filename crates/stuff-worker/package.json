@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:wasm": "cargo build --target wasm32-unknown-unknown --release -p stuff-worker && wasm-bindgen --target bundler --out-dir build/wasm ../../target/wasm32-unknown-unknown/release/stuff_worker.wasm"
+    "build:wasm": "cargo build --target wasm32-unknown-unknown --release -p stuff-worker && wasm-bindgen --target web --out-dir build/wasm ../../target/wasm32-unknown-unknown/release/stuff_worker.wasm"
   },
   "devDependencies": {
     "cf": "^1.0.0-beta.26",
