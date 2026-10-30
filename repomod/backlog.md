@@ -15,8 +15,7 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 
 ## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
 
-- [ ] mycrates: ingest every fleet Cargo.lock (889 versions) into the crates-io archive; fetch
-  concurrency; verified with `cargo fetch --locked` per repo against a local stuff-server
+- [x] mycrates: 926 crates ingested and published locally; 20 of 26 lockfiles pass `cargo fetch --locked` unchanged (merged to stuff main, unpushed)
 - [ ] mynpm: ingest every pnpm-lock.yaml (477 versions); verified with
   `pnpm install --frozen-lockfile` per repo; decide whether pnpm locks stay valid
 - [ ] mypypi: ingest from uv.lock; fleet wheels (48 versions); sdist-only and musllinux gaps;
