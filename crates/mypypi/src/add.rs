@@ -108,6 +108,50 @@ fn parse_exact_requirements(requirements: &[String]) -> Result<(Vec<PackageVersi
     Ok((deduped, source))
 }
 
+pub fn pins_from_uv_lock(source: &str) -> Result<Vec<String>> {
+    let value: deser_value::Value = deser_toml::from_str(source)
+        .map_err(|e| Error::invalid_input(format!("invalid uv.lock: {e}"), Stage::Command))?;
+    let packages = value
+        .as_map()
+        .and_then(|doc| doc.get("package"))
+        .and_then(|v| v.as_seq())
+        .ok_or_else(|| Error::invalid_input("uv.lock has no [[package]] entries", Stage::Command))?;
+    let mut pins = Vec::new();
+    for package in packages.iter() {
+        let Some(table) = package.as_map() else {
+            return Err(Error::invalid_input("uv.lock package entry must be a table", Stage::Command));
+        };
+        let is_registry = table
+            .get("source")
+            .and_then(|v| v.as_map())
+            .is_some_and(|source| source.get("registry").is_some());
+        if !is_registry {
+            continue;
+        }
+        let name = table.get("name").and_then(|v| v.as_str());
+        let version = table.get("version").and_then(|v| v.as_str());
+        let (Some(name), Some(version)) = (name, version) else {
+            return Err(Error::invalid_input(
+                "uv.lock registry package is missing name or version",
+                Stage::Command,
+            ));
+        };
+        pins.push(format!("{name}=={version}"));
+    }
+    Ok(pins)
+}
+
+pub fn pins_from_requirements(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .filter_map(|line| {
+            let line = line.split('#').next().unwrap_or("").trim().trim_end_matches('\\').trim();
+            let pin = line.split(" --hash").next().unwrap_or("").trim();
+            (!pin.is_empty() && !pin.starts_with("--hash")).then(|| pin.to_string())
+        })
+        .collect()
+}
+
 pub fn parse_pins(requirements: &[String]) -> Result<Vec<PackageVersion>> {
     Ok(parse_exact_requirements(requirements)?.0)
 }
@@ -489,6 +533,19 @@ mod tests {
         assert!(parse_pins(&["foo @ https://example.test/foo.tar.gz".to_string()]).is_err());
         assert!(parse_pins(&[] as &[String]).is_err());
         assert!(parse_pins(&["a==1.0".to_string(), "a==2.0".to_string()]).is_err());
+    }
+
+    #[test]
+    fn reads_registry_pins_from_uv_lock() {
+        let lock = "version = 1\n\n[[package]]\nname = \"app\"\nversion = \"0.1.0\"\nsource = { virtual = \".\" }\n\n[[package]]\nname = \"colorama\"\nversion = \"0.4.6\"\nsource = { registry = \"https://pypi.org/simple\" }\n\n[[package]]\nname = \"lib\"\nversion = \"1.0\"\nsource = { git = \"https://example.test/lib\" }\n";
+        assert_eq!(pins_from_uv_lock(lock).unwrap(), vec!["colorama==0.4.6".to_string()]);
+        assert!(pins_from_uv_lock("version = 1\n").is_err());
+    }
+
+    #[test]
+    fn reads_pins_from_requirements_with_hashes_and_comments() {
+        let text = "# header\nfoo==1.0 \\\n    --hash=sha256:abc\nbar==2.0  # note\n\n";
+        assert_eq!(pins_from_requirements(text), vec!["foo==1.0".to_string(), "bar==2.0".to_string()]);
     }
 
     #[test]

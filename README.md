@@ -74,6 +74,30 @@ and serves `index.html` inside directories (PEP 503 simple pages).
 `/llms.txt` serves the generation's LLM-readable inventory
 (`current/llms.txt`, also pinned under `generations/<id>/llms.txt`).
 
+## Ingest Python pins from lockfiles
+
+`mypypi add` takes exact `name==version` pins and resolves their
+dependencies with `uv pip compile` for every configured target. Pins can come
+from the registry packages of `uv.lock` files and from requirements files
+(comments and `--hash` continuations are ignored):
+
+```sh
+mypypi --catalog packages.toml --config pyproject.toml --state-dir state add \
+  --uv-lock ../app/uv.lock --requirements pins.txt extra==1.0
+```
+
+Only `[[package]]` entries whose `source` is a registry are read; virtual,
+editable, path, and git packages are skipped. Run `add` once per lockfile:
+one invocation rejects two versions of the same package, and lockfiles in a
+fleet usually disagree. The lockfile hashes are not carried into the catalog;
+compare them with the published wheel hashes after publishing.
+
+Wheels are validated on a native runner, so one host publishes only its own
+platform. Packages that exist only for other operating systems (for example
+`pyobjc-*` on Linux) need `platforms = [...]` in their catalog entry, and
+wheels that fail validation by design need `exclude_platforms` or
+`validate_skip_imports` entries with a reason.
+
 ## Catalog
 
 Every publish renders a normalized package catalog from the registry's
