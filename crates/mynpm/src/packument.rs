@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord};
 
-pub const RENDERER_VERSION: u32 = 3;
+pub const RENDERER_VERSION: u32 = 4;
 
 #[derive(Debug, Clone)]
 pub struct PackumentFile {
@@ -52,14 +52,41 @@ fn latest_snapshot(records: &[ArtifactRecord]) -> Result<&ArtifactRecord> {
         .ok_or_else(|| Error::Corrupt("packument has no versions".to_string()))
 }
 
-fn packument_modified(record: &ArtifactRecord) -> String {
-    record
+fn packument_modified(record: &ArtifactRecord) -> String {    record
         .packument
         .as_map()
         .and_then(|m| m.get("modified"))
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string()
+}
+
+pub fn dist_latest_tags(records: &[ArtifactRecord]) -> std::collections::BTreeMap<String, String> {
+    let mut grouped: std::collections::BTreeMap<&str, Vec<&ArtifactRecord>> =
+        std::collections::BTreeMap::new();
+    for record in records {
+        grouped.entry(record.name.as_str()).or_default().push(record);
+    }
+    let mut out = std::collections::BTreeMap::new();
+    for (name, group) in grouped {
+        let owned: Vec<ArtifactRecord> = group.into_iter().cloned().collect();
+        let Ok(snapshot) = latest_snapshot(&owned) else {
+            continue;
+        };
+        let latest = snapshot
+            .packument
+            .as_map()
+            .and_then(|m| m.get("dist-tags"))
+            .and_then(|v| v.as_map())
+            .and_then(|m| m.get("latest"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        if let Some(tag) = latest
+            && owned.iter().any(|r| r.version == tag) {
+                out.insert(name.to_string(), tag);
+            }
+    }
+    out
 }
 
 fn package_time(
@@ -158,8 +185,7 @@ fn render_package(
     records: &[ArtifactRecord],
     public_base_url: &str,
     renderer: u32,
-) -> Result<deser_value::Value> {
-    let mut versions = deser_value::Map::new();
+) -> Result<deser_value::Value> {    let mut versions = deser_value::Map::new();
     let mut selected = std::collections::BTreeSet::new();
     for record in records {
         selected.insert(record.version.clone());
@@ -218,7 +244,7 @@ pub fn render_packument_files(
     renderer: Option<u32>,
 ) -> Result<Vec<PackumentFile>> {
     let renderer = renderer.unwrap_or(RENDERER_VERSION);
-    if renderer != 1 && renderer != 2 && renderer != RENDERER_VERSION {
+    if renderer != 1 && renderer != 2 && renderer != 3 && renderer != 4 {
         return Err(Error::Input(format!("unsupported renderer version: {renderer}")));
     }
     let base = validate_base_url(public_base_url)?;

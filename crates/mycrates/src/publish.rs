@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use stuff_store::{sync_immutable_file, HashAlg, Site, sync_tree, write_file_durable};
 
-const RENDERER_VERSION: u32 = 1;
+const RENDERER_VERSION: u32 = 2;
 
 #[derive(Debug, Clone)]
 pub struct PublishResult {
@@ -52,7 +52,11 @@ impl<'a> Publisher<'a> {
 
     fn generation_matches(&self, gen_dir: &Path, expected_manifest: &BTreeMap<(String, String), String>) -> Result<bool> {
         for ((view, rel), sha) in expected_manifest {
-            let p = gen_dir.join(view).join(rel);
+            let p = if view.is_empty() {
+                gen_dir.join(rel)
+            } else {
+                gen_dir.join(view).join(rel)
+            };
             let Ok(bytes) = fs::read(&p) else {
                 return Ok(false);
             };
@@ -197,6 +201,20 @@ impl<'a> Publisher<'a> {
         let full_sha = format!("{:x}", h.finalize_reset());
         let gen_id = full_sha[..24].to_string();
 
+        let catalog_inputs = catalog_inputs(&native_records, &upstream_records);
+        let catalog = stuff_catalog::cargo_catalog(&gen_id, catalog_inputs)
+            .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
+        let catalog_json = stuff_catalog::render_catalog_json(&catalog);
+        let catalog_html = stuff_catalog::render_html(&catalog);
+        write_file_durable(&staging_dir.join("catalog.json"), catalog_json.as_bytes())?;
+        write_file_durable(&staging_dir.join("index.html"), catalog_html.as_bytes())?;
+        let mut h = Sha256::new();
+        h.update(catalog_json.as_bytes());
+        manifest.insert((String::new(), "catalog.json".to_string()), format!("{:x}", h.finalize_reset()));
+        let mut h = Sha256::new();
+        h.update(catalog_html.as_bytes());
+        manifest.insert((String::new(), "index.html".to_string()), format!("{:x}", h.finalize_reset()));
+
         sync_tree(&staging_dir)?;
         let activation = site.activate(staging_dir, &gen_id, &|gen_dir| {
             self.generation_matches(gen_dir, &manifest)
@@ -208,4 +226,37 @@ impl<'a> Publisher<'a> {
             is_noop: activation.is_noop,
         })
     }
+}
+
+fn catalog_inputs(
+    native: &[crate::store::NativeRecord],
+    upstream: &[crate::store::UpstreamRecord],
+) -> Vec<stuff_catalog::CargoInput> {
+    use std::collections::BTreeSet;
+    let mut seen: BTreeSet<(&str, &str)> = BTreeSet::new();
+    let mut out = Vec::with_capacity(native.len() + upstream.len());
+    for rec in native {
+        seen.insert((rec.name.as_str(), rec.vers.as_str()));
+        out.push(stuff_catalog::CargoInput {
+            name: rec.name.clone(),
+            version: rec.vers.clone(),
+            yanked: rec.yanked,
+            source: stuff_catalog::CargoSource::Native,
+        });
+    }
+    for rec in upstream {
+        if !seen.insert((rec.name.as_str(), rec.vers.as_str())) {
+            continue;
+        }
+        let yanked = crate::json::from_str::<crate::model::IndexEntry>(&rec.raw_index_line)
+            .map(|e| e.yanked)
+            .unwrap_or(false);
+        out.push(stuff_catalog::CargoInput {
+            name: rec.name.clone(),
+            version: rec.vers.clone(),
+            yanked,
+            source: stuff_catalog::CargoSource::Upstream,
+        });
+    }
+    out
 }

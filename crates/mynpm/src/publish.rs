@@ -82,6 +82,31 @@ pub fn generation_id_for(public_base_url: &str, artifacts: &[ArtifactRecord], pa
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+fn catalog_for(
+    generation_id: &str,
+    artifacts: &[ArtifactRecord],
+    files: &[PackumentFile],
+) -> std::result::Result<stuff_catalog::Catalog, String> {
+    let mut dist_latest: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
+    for file in files {
+        let text = String::from_utf8(file.bytes.clone()).map_err(|_| "packument is not valid UTF-8".to_string())?;
+        let value: deser_value::Value =
+            deser_json::from_str(&text).map_err(|_| "packument is not valid JSON".to_string())?;
+        if let Some(map) = value.as_map()
+            && let Some(tags) = map.get("dist-tags")
+            && let Some(tags_map) = tags.as_map()
+            && let Some(latest) = tags_map.get("latest")
+            && let Some(latest_str) = latest.as_str() {
+                dist_latest.insert(file.name.clone(), latest_str.to_string());
+            }
+    }
+    let inputs = artifacts
+        .iter()
+        .map(|r| stuff_catalog::NpmInput { name: r.name.clone(), version: r.version.clone() })
+        .collect();
+    stuff_catalog::npm_catalog(generation_id, inputs, &dist_latest)
+}
+
 fn manifest_value(
     public_base_url: &str,
     generation_id: &str,
@@ -145,7 +170,7 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let schema_ok = record.get("schemaVersion").unwrap_or(&null).as_u64() == Some(1);
     let renderer = record.get("rendererVersion").unwrap_or(&null).as_u64().unwrap_or(0);
-    let renderer_ok = renderer == 1 || renderer == 2 || u32::try_from(renderer).map(|r| r == RENDERER_VERSION).unwrap_or(false);
+    let renderer_ok = renderer == 1 || renderer == 2 || renderer == 3 || renderer == 4;
     let base_ok = record.get("publicBaseUrl").unwrap_or(&null).as_str().is_some();
     let gen_id = record.get("generationId").unwrap_or(&null).as_str().unwrap_or("").to_string();
     let artifacts_ok = record.get("artifacts").unwrap_or(&null).as_seq().is_some();
@@ -288,6 +313,10 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
             }
         }
     }
+    if manifest.renderer_version >= 4 {
+        expected.push("catalog.json".to_string());
+        expected.push("index.html".to_string());
+    }
     expected.push("manifest.json".to_string());
     expected.sort();
     let mut actual = generation_files(&generation_dir)?;
@@ -304,6 +333,20 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
             )));
         }
     }
+    if manifest.renderer_version >= 4 {
+        let catalog = catalog_for(id, &manifest.artifacts, &files)
+            .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
+        let expected_json = stuff_catalog::render_catalog_json(&catalog);
+        let actual_json = read_regular_file(&generation_dir.join("catalog.json"))?;
+        if actual_json != expected_json.as_bytes() {
+            return Err(Error::Corrupt(format!("generation catalog does not match its manifest: {id}")));
+        }
+        let expected_html = stuff_catalog::render_html(&catalog);
+        let actual_html = read_regular_file(&generation_dir.join("index.html"))?;
+        if actual_html != expected_html.as_bytes() {
+            return Err(Error::Corrupt(format!("generation catalog page does not match its manifest: {id}")));
+        }
+    }
     for record in &manifest.artifacts {
         hash_file(&mirror_root.join("tarballs").join(format!("{}.tgz", record.artifact.sha512)), &record.artifact.sha512)?;
         if manifest.renderer_version != 1 {
@@ -312,7 +355,7 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
                 &record.artifact.sha512,
             )?;
         }
-        if manifest.renderer_version == RENDERER_VERSION {
+        if manifest.renderer_version >= 3 {
             hash_file(
                 &generation_dir.join("-").join("tarballs").join(format!("{}.tgz", record.artifact.sha512)),
                 &record.artifact.sha512,
@@ -586,6 +629,12 @@ fn ensure_generation(
             write_durable_file(&path, &file.bytes)?;
         }
         write_tarball_aliases(&tmp, &manifest.artifacts, mirror_root)?;
+        if manifest.renderer_version >= 4 {
+            let catalog = catalog_for(id, &manifest.artifacts, files)
+                .map_err(|e| Error::Operation(format!("could not render generation catalog: {e}")))?;
+            write_durable_file(&tmp.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog).as_bytes())?;
+            write_durable_file(&tmp.join("index.html"), stuff_catalog::render_html(&catalog).as_bytes())?;
+        }
         let manifest_text = canonical_json(&manifest_value(&manifest.public_base_url, &manifest.generation_id, &manifest.artifacts)?)?;
         write_durable_file(&tmp.join("manifest.json"), manifest_text.as_bytes())?;
         sync_generation_tree(&tmp)?;

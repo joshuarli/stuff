@@ -23,6 +23,7 @@ h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", feat
 pep440_rs = "0.7"
 sha2 = "0.10"
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
+stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 url = "2.5"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 

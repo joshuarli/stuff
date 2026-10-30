@@ -1,0 +1,20 @@
+[package]
+name = "stuff-catalog"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "Normalized published-package catalog for stuff registries"
+repository = "https://github.com/joshuarli/stuff"
+
+[lib]
+name = "stuff_catalog"
+path = "src/lib.rs"
+
+[dependencies]
+deser-json = "0.10"
+deser-value = "0.10"
+pep440_rs = "0.7"
+
+[dev-dependencies]
+tempfile = "3.13"

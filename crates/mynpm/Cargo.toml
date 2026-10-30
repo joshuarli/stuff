@@ -30,6 +30,7 @@ sha2 = "0.10"
 tar = "0.4"
 url = "2.5"
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
+stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 
 [dev-dependencies]
 tempfile = "3.13"

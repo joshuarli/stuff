@@ -11,4 +11,5 @@ members = [
   "crates/stuff-http",
   "crates/stuff-server",
   "crates/stuff-worker",
+  "crates/stuff-catalog",
 ]

@@ -329,7 +329,7 @@ pub fn project_pages(items: &[IndexArtifact]) -> BTreeMap<String, Vec<u8>> {
 
 pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: &[IndexArtifact]) -> String {
     let mut h = Sha256::new();
-    h.update(b"mypypi-simple-html-v2\0");
+    h.update(b"mypypi-simple-html-v3\0");
     h.update(manifest);
     let mut names: Vec<&String> = pages.keys().collect();
     names.sort();
@@ -344,7 +344,25 @@ pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: 
     format!("{:x}", h.finalize())
 }
 
-fn verify_generation(generation: &Path, manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>) -> Result<()> {
+pub fn catalog_for(generation: &str, items: &[IndexArtifact]) -> stuff_catalog::Catalog {
+    let inputs = items
+        .iter()
+        .map(|item| stuff_catalog::PypiInput {
+            name: item.package_name.clone(),
+            version: item.package_version.clone(),
+            yanked: item.yanked_reason.is_some(),
+        })
+        .collect();
+    stuff_catalog::pypi_catalog(generation, inputs).expect("index artifacts form a valid catalog")
+}
+
+fn verify_generation(
+    generation: &Path,
+    manifest: &[u8],
+    pages: &BTreeMap<String, Vec<u8>>,
+    items: &[IndexArtifact],
+    id: &str,
+) -> Result<()> {
     let inv = |d: &str, p: &Path| pub_error(Kind::Integrity, d, Some(p), None);
     let wheels_link = generation.join("wheels");
     let md = std::fs::symlink_metadata(&wheels_link).map_err(|_| inv("existing package index wheel URL path is invalid", &wheels_link))?;
@@ -374,6 +392,19 @@ fn verify_generation(generation: &Path, manifest: &[u8], pages: &BTreeMap<String
         if !md.file_type().is_file() || std::fs::read(&page).map(|b| b != *expected).unwrap_or(true) {
             return Err(inv("existing package index generation has an invalid project page", &page));
         }
+    }
+    let catalog = catalog_for(id, items);
+    let expected_json = stuff_catalog::render_catalog_json(&catalog);
+    let catalog_path = generation.join("catalog.json");
+    let md = std::fs::symlink_metadata(&catalog_path).map_err(|_| inv("existing package index generation has an invalid catalog", generation))?;
+    if !md.file_type().is_file() || std::fs::read(&catalog_path).map(|b| b != expected_json.as_bytes()).unwrap_or(true) {
+        return Err(inv("existing package index generation has an invalid catalog", generation));
+    }
+    let expected_html = stuff_catalog::render_html(&catalog);
+    let index_path = generation.join("index.html");
+    let md = std::fs::symlink_metadata(&index_path).map_err(|_| inv("existing package index generation has an invalid catalog page", generation))?;
+    if !md.file_type().is_file() || std::fs::read(&index_path).map(|b| b != expected_html.as_bytes()).unwrap_or(true) {
+        return Err(inv("existing package index generation has an invalid catalog page", generation));
     }
     Ok(())
 }
@@ -408,7 +439,7 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
         if !md.file_type().is_dir() || md.file_type().is_symlink() {
             return Err(pub_error(Kind::Integrity, "package index generation is not a real directory", Some(&final_dir), None));
         }
-        verify_generation(&final_dir, manifest, &pages)?;
+        verify_generation(&final_dir, manifest, &pages, items, &generation)?;
         remove_staging_owner(&final_dir)?;
         return Ok(generation);
     }
@@ -432,6 +463,11 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
                 .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         }
         std::fs::write(staging.join("manifest.json"), manifest)
+            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+        let catalog = catalog_for(&generation, items);
+        std::fs::write(staging.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog))
+            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+        std::fs::write(staging.join("index.html"), stuff_catalog::render_html(&catalog))
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         // fsync tree: files then dirs (bottom-up)
         let mut dirs = vec![staging.clone()];
