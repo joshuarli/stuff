@@ -239,6 +239,87 @@ def test_sync_dry_run_does_not_clone_or_fetch(
     assert not repository_path(catalog, repository).exists()
 
 
+def test_sync_removes_clean_checkout_when_github_reports_archived(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    _, _, _ = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    active = RemoteRepository(str(repository.id), "main", "unused", False)
+    sync_one(catalog, repository, active)
+    checkout = repository_path(catalog, repository)
+    assert checkout.is_dir()
+
+    result = sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", True))
+
+    assert result.action == "removed"
+    assert result.failed is False
+    assert not checkout.exists()
+
+
+def test_sync_archived_without_checkout_is_skipped(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    catalog, repository = make_catalog(tmp_path)
+    result = sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", True))
+
+    assert result.action == "skipped"
+    assert result.failed is False
+    assert "no checkout" in result.message
+    assert not repository_path(catalog, repository).exists()
+
+
+def test_sync_refuses_to_remove_dirty_archived_checkout(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    _, _, _ = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", False))
+    checkout = repository_path(catalog, repository)
+    (checkout / "README.md").write_text("local edit\n", encoding="utf-8")
+
+    result = sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", True))
+
+    assert result.action == "skipped"
+    assert result.failed is True
+    assert "refusing to remove" in result.message
+    assert checkout.is_dir()
+    assert (checkout / "README.md").read_text(encoding="utf-8") == "local edit\n"
+
+
+def test_sync_archived_dry_run_plans_removal_without_deleting(
+    tmp_path: Path,
+    git_environment: None,
+) -> None:
+    _, _, _ = make_remote(tmp_path)
+    catalog, repository = make_catalog(tmp_path)
+    sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", False))
+    checkout = repository_path(catalog, repository)
+
+    result = sync_one(
+        catalog, repository, RemoteRepository(str(repository.id), "main", "unused", True), dry_run=True
+    )
+
+    assert result.action == "planned"
+    assert "would remove" in result.message
+    assert checkout.is_dir()
+
+
+def test_sync_archived_dry_run_without_checkout_is_skipped(
+    tmp_path: Path, git_environment: None
+) -> None:
+    catalog, repository = make_catalog(tmp_path)
+    result = sync_one(
+        catalog, repository, RemoteRepository(str(repository.id), "main", "unused", True), dry_run=True
+    )
+
+    assert result.action == "skipped"
+    assert result.failed is False
+    assert "no checkout" in result.message
+
+
 
 def make_parent(tmp_path: Path) -> tuple[Path, str]:
     bare = tmp_path / "upstream.git"

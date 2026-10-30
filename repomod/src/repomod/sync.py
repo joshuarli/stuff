@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -18,10 +19,11 @@ from repomod.git import (
     repository_lock,
     safe_fast_forward,
     shallow,
+    stash_count,
     status,
     upstream_url,
 )
-from repomod.types import Catalog, RemoteRepository, Repository
+from repomod.types import Catalog, GitStatus, RemoteRepository, Repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +55,76 @@ def _sync_upstream(path: Path, remote: RemoteRepository) -> str | None:
     return f"upstream {remote.parent} fetched"
 
 
+def _removal_blocker(current: GitStatus, stashes: int) -> str | None:
+    if current.dirty:
+        return "checkout has uncommitted changes"
+    if current.detached:
+        return "HEAD is detached"
+    if current.branch is None:
+        return "no branch is checked out"
+    if current.upstream is None:
+        return f"branch {current.branch} has no upstream"
+    if current.ahead is None:
+        return f"branch {current.branch} has an unknown number of unpushed commits"
+    if current.ahead:
+        return f"branch {current.branch} is {current.ahead} commits ahead of {current.upstream}"
+    if stashes:
+        noun = "entry" if stashes == 1 else "entries"
+        return f"repository has {stashes} stash {noun}"
+    return None
+
+
+def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bool) -> SyncResult:
+    name = str(repo.id)
+    try:
+        path = repository_path(catalog, repo)
+    except (CatalogError, OSError) as error:
+        return SyncResult(name, "failed", str(error), True)
+    try:
+        if dry_run:
+            current = status(path, repo.id)
+            if not current.present:
+                return SyncResult(name, "skipped", "repository is archived; no checkout to remove")
+            if not current.valid:
+                return SyncResult(name, "failed", current.error or "invalid checkout", True)
+            if not current.origin_valid:
+                return SyncResult(name, "failed", current.error or "invalid origin", True)
+            blocker = _removal_blocker(current, stash_count(path))
+            if blocker is not None:
+                return SyncResult(
+                    name, "skipped", f"{blocker}; refusing to remove archived checkout", True
+                )
+            return SyncResult(name, "planned", f"would remove archived checkout at {path}")
+        with repository_lock(catalog.root, repo.id):
+            path = repository_path(catalog, repo)
+            current = status(path, repo.id)
+            if not current.present:
+                return SyncResult(name, "skipped", "repository is archived; no checkout to remove")
+            if not current.valid:
+                return SyncResult(
+                    name,
+                    "skipped",
+                    f"{current.error or 'invalid checkout'}; refusing to remove an unverified path",
+                    True,
+                )
+            if not current.origin_valid:
+                return SyncResult(
+                    name,
+                    "skipped",
+                    f"{current.error or 'invalid origin'}; refusing to remove an unverified checkout",
+                    True,
+                )
+            blocker = _removal_blocker(current, stash_count(path))
+            if blocker is not None:
+                return SyncResult(
+                    name, "skipped", f"{blocker}; refusing to remove archived checkout", True
+                )
+            shutil.rmtree(path)
+            return SyncResult(name, "removed", "removed archived checkout")
+    except (CatalogError, GitError, OSError) as error:
+        return SyncResult(name, "failed", str(error), True)
+
+
 def sync_one(
     catalog: Catalog,
     repo: Repository,
@@ -66,6 +138,8 @@ def sync_one(
     except (CatalogError, OSError) as error:
         return SyncResult(name, "failed", str(error), True)
     if dry_run:
+        if remote is not None and remote.archived is True:
+            return _remove_archived_checkout(catalog, repo, dry_run=True)
         try:
             current = status(path, repo.id)
         except (GitError, OSError) as error:
@@ -84,10 +158,10 @@ def sync_one(
         )
     if remote is None:
         return SyncResult(name, "failed", "GitHub repository is unavailable", True)
+    if remote.archived is True:
+        return _remove_archived_checkout(catalog, repo, dry_run=False)
     if remote.error is not None:
         return SyncResult(name, "failed", remote.error, True)
-    if remote.archived is True:
-        return SyncResult(name, "skipped", "repository is archived")
     if remote.archived is not False:
         return SyncResult(name, "failed", "GitHub did not confirm repository is active", True)
     if remote.default_branch is None:

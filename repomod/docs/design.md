@@ -29,8 +29,12 @@ continuing on a shallow boundary. Sync skips fetch only when a clean checkout
 is attached to the default branch and its HEAD matches GitHub's reported branch tip. Otherwise it
 fetches that branch. It fast-forwards only a clean checkout on that branch when Git confirms the
 move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and
-local commits. A fetch may update the matching remote-tracking ref. Dry-run checks local state
-without GitHub calls. For repositories that GitHub reports as forks of a parent, sync also
+local commits. A fetch may update the matching remote-tracking ref. GitHub is the source of truth
+for archival: when GitHub reports a catalogued repository as archived, sync removes its local
+checkout instead of cloning or fetching it. Removal requires a verified checkout whose origin
+matches the catalogued repository and refuses dirty, detached, ahead, stashed, or otherwise
+unverifiable checkouts without deleting anything. Dry-run fetches GitHub metadata but does not
+mutate checkouts; it reports what would be cloned, updated, or removed. For repositories that GitHub reports as forks of a parent, sync also
 ensures a conventional `upstream` remote pointing at the parent and fetches the parent's default
 branch, so fork-behind comparisons stay verifiable locally; a failing upstream fetch is reported
 in the result without failing the sync.

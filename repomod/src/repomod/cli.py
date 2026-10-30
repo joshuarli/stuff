@@ -657,20 +657,17 @@ def _discover(args: argparse.Namespace) -> int:
 def _sync(args: argparse.Namespace) -> int:
     catalog = _catalog()
     repositories = catalog.repositories
-    if args.dry_run:
-        remotes = {}
-    else:
-        print(
-            f"Fetching GitHub metadata for {len(repositories)} repositories...",
-            file=sys.stderr,
-            flush=True,
-        )
-        remotes = remote_metadata(
-            repositories,
-            on_batch_complete=lambda completed, total: _sync_progress(
-                "GitHub metadata batches", completed, total
-            ),
-        )
+    print(
+        f"Fetching GitHub metadata for {len(repositories)} repositories...",
+        file=sys.stderr,
+        flush=True,
+    )
+    remotes = remote_metadata(
+        repositories,
+        on_batch_complete=lambda completed, total: _sync_progress(
+            "GitHub metadata batches", completed, total
+        ),
+    )
     print(
         f"Syncing {len(repositories)} repositories...",
         file=sys.stderr,
