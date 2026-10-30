@@ -293,7 +293,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     if purelib[0] != "true" && purelib[0] != "false" {
         return Err(fail("wheel Root-Is-Purelib must be true or false".to_string()));
     }
-    let parsed_pkg = PackageVersion::parse(&meta_names[0], &meta_pkg_versions[0])
+    let parsed_pkg = PackageVersion::parse(&canonicalize_name(&meta_names[0]), &meta_pkg_versions[0])
         .map_err(|_| fail("wheel has invalid package metadata".to_string()))?;
     if parsed_pkg != package {
         return Err(fail("wheel filename and METADATA identity differ".to_string()));
@@ -871,5 +871,43 @@ mod tests {
         let t = target();
         let tags = supported_tags(&t, "manylinux_2_28").unwrap();
         assert!(tags.iter().any(|tag| tag == "py3-none-any"));
+    }
+
+    #[test]
+    fn accepts_noncanonical_metadata_name() {
+        // Upstream wheels keep the project's original capitalization in
+        // METADATA's Name field (e.g. Pygments); identity comparison must
+        // normalize, not reject.
+        use sha2::{Digest, Sha256};
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0-py3-none-any.whl");
+        let metadata = b"Metadata-Version: 2.1\nName: Pkg\nVersion: 1.0\nRequires-Python: >=3.9\n";
+        let wheel = b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n";
+        let record_row = |name: &str, bytes: &[u8]| {
+            let mut h = Sha256::new();
+            h.update(bytes);
+            format!("{name},sha256={},{}", base64_url_nopad(&h.finalize()), bytes.len())
+        };
+        let record = format!(
+            "{}\n{}\n{},,\n",
+            record_row("pkg-1.0.dist-info/METADATA", metadata),
+            record_row("pkg-1.0.dist-info/WHEEL", wheel),
+            "pkg-1.0.dist-info/RECORD"
+        );
+        {
+            let file = std::fs::File::create(&path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let opts = zip::write::SimpleFileOptions::default();
+            zip.start_file("pkg-1.0.dist-info/METADATA", opts).unwrap();
+            use std::io::Write;
+            zip.write_all(metadata).unwrap();
+            zip.start_file("pkg-1.0.dist-info/WHEEL", opts).unwrap();
+            zip.write_all(wheel).unwrap();
+            zip.start_file("pkg-1.0.dist-info/RECORD", opts).unwrap();
+            zip.write_all(record.as_bytes()).unwrap();
+            zip.finish().unwrap();
+        }
+        let meta = inspect_wheel(&path, &target(), "manylinux_2_28").unwrap();
+        assert_eq!(meta.identity.package.name, "pkg");
     }
 }
