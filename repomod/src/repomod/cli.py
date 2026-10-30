@@ -40,7 +40,7 @@ from repomod.policy import (
     selected_rules,
     validate_ignored_rules,
 )
-from repomod.sync import sync_repositories
+from repomod.sync import sync_repositories, untrack_archived_repositories
 from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
 
 _TODO_ITEM = re.compile(r"### [A-Z][A-Z0-9]*-\d+ · P\d+ · .+")
@@ -684,6 +684,9 @@ def _sync(args: argparse.Namespace) -> int:
     )
     failed = False
     for result in results:
+        print(f"{result.repository}: {result.action}: {result.message}")
+        failed |= result.failed
+    for result in untrack_archived_repositories(catalog, remotes, results, dry_run=args.dry_run):
         print(f"{result.repository}: {result.action}: {result.message}")
         failed |= result.failed
     return 1 if failed else 0

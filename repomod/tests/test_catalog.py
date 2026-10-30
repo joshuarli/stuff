@@ -217,3 +217,41 @@ def test_add_repository_is_idempotent_and_preserves_catalog_comments(
     assert not add_repository(updated_catalog, "new-owner", "new-tool", ["tool"])
     assert path.read_text(encoding="utf-8") == updated
     assert updated != before
+
+
+def test_remove_repository_comments_out_entry_and_preserves_rest(
+    tmp_path: Path,
+) -> None:
+    from repomod.catalog import remove_repository
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."acme"]\n# keep-comment = ["tool"]\ntool = ["tool"]\ntoolbox = ["tool"]\n'
+        '[repos."other"]\ntool = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert remove_repository(catalog, "acme", "tool")
+
+    updated = path.read_text(encoding="utf-8")
+    assert "# tool = [\"tool\"]" in updated
+    assert "toolbox = [\"tool\"]" in updated
+    assert '[repos."other"]\ntool = ["tool"]' in updated
+    assert "# keep-comment" in updated
+    reloaded = load_catalog(path, {"HOME": str(tmp_path)})
+    assert {str(repo.id) for repo in reloaded.repositories} == {"acme/toolbox", "other/tool"}
+
+    assert not remove_repository(reloaded, "acme", "tool")
+    assert path.read_text(encoding="utf-8") == updated
+
+
+def test_remove_repository_returns_false_for_unknown_entries(tmp_path: Path) -> None:
+    from repomod.catalog import remove_repository
+
+    path = write_catalog(tmp_path / "catalog.toml", '[repos."acme"]\ntool = ["tool"]')
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    before = path.read_text(encoding="utf-8")
+
+    assert not remove_repository(catalog, "acme", "missing")
+    assert not remove_repository(catalog, "unknown", "tool")
+    assert path.read_text(encoding="utf-8") == before

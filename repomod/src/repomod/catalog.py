@@ -301,6 +301,37 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     return True
 
 
+def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
+    validate_identifier(owner, "owner")
+    validate_identifier(name, "repository")
+    original = catalog.path.read_text(encoding="utf-8")
+    owner_header = f'[repos."{_toml_string(owner)}"]'
+    owner_match = re.search(rf"(?m)^{re.escape(owner_header)}\s*$", original)
+    if owner_match is None:
+        return False
+    section_start = owner_match.end()
+    next_header = re.search(r"(?m)^\[", original[section_start:])
+    section_end = section_start + next_header.start() if next_header else len(original)
+    entry = re.search(
+        rf"(?m)^(?P<indent>\s*){re.escape(name)}\s*=.*$",
+        original[section_start:section_end],
+    )
+    if entry is None:
+        return False
+    commented = f"{entry.group('indent')}# {entry.group(0).lstrip()}"
+    updated = (
+        original[: section_start + entry.start()]
+        + commented
+        + original[section_start + entry.end() :]
+    )
+    try:
+        tomllib.loads(updated)
+    except tomllib.TOMLDecodeError as error:
+        raise CatalogError(f"removing {owner}/{name} would make catalog invalid: {error}") from error
+    atomic_write(catalog.path, updated)
+    return True
+
+
 def write_if_changed(path: Path, content: str) -> bool:
     if path.read_text(encoding="utf-8") == content:
         return False

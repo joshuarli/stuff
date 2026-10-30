@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
-from repomod.catalog import CatalogError, repository_path
+from repomod.catalog import CatalogError, remove_repository, repository_path
 from repomod.git import (
     GitError,
     clone_repository,
@@ -23,7 +23,7 @@ from repomod.git import (
     status,
     upstream_url,
 )
-from repomod.types import Catalog, GitStatus, RemoteRepository, Repository
+from repomod.types import Catalog, GitStatus, RemoteRepository, RepoId, Repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,6 +218,54 @@ def sync_one(
         return SyncResult(name, "failed", str(error), True)
     except (GitError, OSError) as error:
         return SyncResult(name, "failed", str(error), True)
+
+
+def untrack_archived_repositories(
+    catalog: Catalog,
+    remotes: dict[str, RemoteRepository],
+    results: list[SyncResult],
+    *,
+    dry_run: bool = False,
+) -> list[SyncResult]:
+    untracked: list[SyncResult] = []
+    for result in sorted(results, key=lambda item: item.repository.casefold()):
+        if result.failed:
+            continue
+        remote = remotes.get(result.repository)
+        if remote is None or remote.archived is not True:
+            continue
+        try:
+            repo_id = RepoId.parse(result.repository)
+        except ValueError as error:
+            untracked.append(SyncResult(result.repository, "failed", str(error), True))
+            continue
+        if dry_run:
+            untracked.append(
+                SyncResult(
+                    result.repository,
+                    "planned",
+                    "would untrack archived repository from catalog",
+                )
+            )
+            continue
+        try:
+            changed = remove_repository(catalog, repo_id.owner, repo_id.name)
+        except (CatalogError, OSError) as error:
+            untracked.append(SyncResult(result.repository, "failed", str(error), True))
+            continue
+        if changed:
+            untracked.append(
+                SyncResult(
+                    result.repository,
+                    "untracked",
+                    "commented out of catalog.toml (archived on GitHub)",
+                )
+            )
+        else:
+            untracked.append(
+                SyncResult(result.repository, "skipped", "already untracked from catalog")
+            )
+    return untracked
 
 
 def sync_repositories(
