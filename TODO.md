@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 9
 
-### STUF-5 · P3 · mypypi staging crash window leaks orphan dirs permanently
-
-- **Area:** Data
-- **Where:** `crates/mypypi/src/store.rs:446-451`, `crates/mypypi/src/store.rs:107-133`
-- **Problem:** staging dirs are created at `:447` and the `.mypypi-owner` marker is written afterwards at `:450`; `recover_staging()` only removes dirs whose marker reads exactly `"mypypi\n"` and skips the rest forever. A crash between the two calls (or a foreign dir with the same prefix) leaks an orphan staging dir on every subsequent publish. Window proven by code walk; the leak not executed.
-- **Recommendation:** make recovery robust to the window, e.g. remove prefix-matching dirs with absent/invalid markers once older than a bound, and fsync the marker immediately after writing it.
-- **Fix with:** durable-state
-- **Effort:** S
-
 ### STUF-6 · P3 · Cargo index sharding is implemented twice
 
 - **Area:** Config
