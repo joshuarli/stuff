@@ -23,6 +23,8 @@ pub struct Parsed {
     pub strict_build_deps: bool,
     pub build_constraints: Option<String>,
     pub require_build_hashes: bool,
+    pub uv_locks: Vec<String>,
+    pub requirements_files: Vec<String>,
     pub positionals: Vec<String>,
 }
 
@@ -41,6 +43,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut strict = false;
     let mut constraints = None;
     let mut require_hashes = false;
+    let mut uv_locks: Vec<String> = Vec::new();
+    let mut requirements_files: Vec<String> = Vec::new();
     let mut positionals = Vec::new();
 
     let mut i = 0;
@@ -78,7 +82,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         }
         match arg {
             "--catalog" | "--state-dir" | "--config" | "--output" | "--platform"
-            | "--build-index" | "--build-constraints" => {
+            | "--build-index" | "--build-constraints" | "--uv-lock" | "--requirements" => {
                 let value = argv.get(i + 1).ok_or_else(|| fail(format!("{arg} requires a value")))?;
                 i += 2;
                 match arg {
@@ -88,6 +92,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                     "--output" => output = Some(value.clone()),
                     "--platform" => platforms.push(value.clone()),
                     "--build-index" => build_index = Some(value.clone()),
+                    "--uv-lock" => uv_locks.push(value.clone()),
+                    "--requirements" => requirements_files.push(value.clone()),
                     _ => constraints = Some(value.clone()),
                 }
             }
@@ -111,8 +117,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     }
     let command = command.ok_or_else(|| fail("a command is required"))?;
     match command {
-        Command::Add if positionals.is_empty() => {
-            return Err(fail("add requires at least one requirement"));
+        Command::Add if positionals.is_empty() && uv_locks.is_empty() && requirements_files.is_empty() => {
+            return Err(fail("add requires at least one requirement, --uv-lock, or --requirements"));
         }
         Command::Add => {}
         _ if !positionals.is_empty() => {
@@ -131,6 +137,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         strict_build_deps: strict,
         build_constraints: constraints,
         require_build_hashes: require_hashes,
+        uv_locks,
+        requirements_files,
         positionals,
     })
 }
@@ -141,7 +149,7 @@ pub fn print_help() {
     println!("Usage: mypypi [OPTIONS] <COMMAND> [OPTIONS]");
     println!();
     println!("Commands:");
-    println!("  add <requirement>...");
+    println!("  add [--uv-lock FILE]... [--requirements FILE]... [<requirement>...]");
     println!("  plan [--output DIR] [--platform P]...");
     println!("  build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps]");
     println!("  validate [--output DIR] [--platform P]...");
@@ -151,8 +159,8 @@ pub fn print_help() {
 pub fn print_command_help(command: &Command) {
     match command {
         Command::Add => {
-            println!("mypypi add <requirement>...");
-            println!("resolve package requirements into the catalog");
+            println!("mypypi add [--uv-lock FILE]... [--requirements FILE]... [<requirement>...]");
+            println!("resolve exact package pins, including registry packages of uv.lock files, into the catalog");
         }
         Command::Plan => {
             println!("mypypi plan [--output DIR] [--platform P]...");
@@ -614,6 +622,9 @@ pub fn resolve_paths(parsed: &Parsed) -> Result<ResolvedPaths> {
             return Err(Error::usage("unrecognized arguments: --output"));
         }
     }
+    if parsed.command != Command::Add && (!parsed.uv_locks.is_empty() || !parsed.requirements_files.is_empty()) {
+        return Err(Error::usage("--uv-lock and --requirements apply only to add"));
+    }
     if parsed.command != Command::Build
         && (parsed.build_index.is_some()
             || parsed.strict_build_deps
@@ -646,10 +657,22 @@ pub fn run(parsed: &Parsed) -> Result<i32> {
     }
 }
 
+fn read_input(path: &str) -> Result<String> {
+    std::fs::read_to_string(path)
+        .map_err(|e| Error::io(format!("could not read {path}: {e}"), Stage::Command))
+}
+
 fn command_add(parsed: &Parsed, settings: &ProjectSettings, paths: &ResolvedPaths) -> Result<i32> {
+    let mut requirements = parsed.positionals.clone();
+    for path in &parsed.uv_locks {
+        requirements.extend(crate::add::pins_from_uv_lock(&read_input(path)?)?);
+    }
+    for path in &parsed.requirements_files {
+        requirements.extend(crate::add::pins_from_requirements(&read_input(path)?));
+    }
     let resolved = crate::add::add_packages(
         &paths.catalog,
-        &parsed.positionals,
+        &requirements,
         &settings.targets(),
         &crate::platforms::python_binary(),
     )?;
@@ -1158,6 +1181,12 @@ mod tests {
         let p = parse_args(&args(&["plan", "--platform", "linux-x86_64"])).unwrap();
         assert_eq!(p.platforms, vec!["linux-x86_64".to_string()]);
         assert!(parse_args(&args(&["plan", "extra"])).is_err());
+        let p = parse_args(&args(&["add", "--uv-lock", "uv.lock", "--requirements", "r.txt"])).unwrap();
+        assert_eq!(p.uv_locks, vec!["uv.lock".to_string()]);
+        assert_eq!(p.requirements_files, vec!["r.txt".to_string()]);
+        assert!(parse_args(&args(&["add"])).is_err());
+        let p = parse_args(&args(&["plan", "--uv-lock", "uv.lock"])).unwrap();
+        assert!(match resolve_paths(&p) { Ok(_) => panic!("expected error"), Err(e) => e }.usage);
     }
 
     #[test]

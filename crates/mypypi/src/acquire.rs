@@ -464,8 +464,7 @@ fn validate_wheel_architectures_at(
         if name.ends_with('/') {
             continue;
         }
-        let is_native_hint =
-            name.ends_with(".so") || name.ends_with(".dylib") || name.ends_with(".pyd") || name.ends_with(".dll") || name.ends_with(".exe") || name.contains(".so.");
+        let is_native_hint = is_native_member_name(name);
         let mut content = Vec::new();
         {
             let member = archive.by_name(name).map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
@@ -513,6 +512,14 @@ fn validate_wheel_architectures_at(
         }
     }
     Ok(())
+}
+
+fn is_native_member_name(name: &str) -> bool {
+    let file_name = name.rsplit('/').next().unwrap_or(name);
+    [".so", ".dylib", ".pyd", ".dll", ".exe"].iter().any(|suffix| name.ends_with(suffix))
+        || file_name.rsplit_once(".so.").is_some_and(|(_, version)| {
+            version.split('.').all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
+        })
 }
 
 fn safe_member_names(
@@ -1097,5 +1104,13 @@ mod tests {
         let t = Target::new("3.15", "macos-arm64").unwrap();
         let id = validate_wheel_metadata(&path, &pkg, &t, "manylinux_2_28", true).unwrap();
         assert_eq!(id.filename, "pkg-1.0-py3-none-any.whl");
+    }
+
+    #[test]
+    fn dsym_bundle_members_are_not_native_hints() {
+        assert!(is_native_member_name("pkg/_ext.cpython-315-darwin.so"));
+        assert!(is_native_member_name("pkg/libfoo.so.1"));
+        assert!(!is_native_member_name("PyObjCTest/NULL.cpython-314-darwin.so.dSYM/Contents/Info.plist"));
+        assert!(!is_native_member_name("PyObjCTest/x.so.dSYM/Contents/Resources/Relocations/aarch64/x.so.yml"));
     }
 }
