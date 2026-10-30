@@ -21,6 +21,14 @@ changing repomod code, because `fix` runs the working tree's rules against the l
   `audit-registry`, and `audit-lock` findings are always manual.
 - `status --offline` does not run `audit-upgrades`. Use `lint` for the survey.
 - Registry and OSV data is cached for 24 hours. A survey older than that is stale.
+- The rule compares against what the repository can install: npm releases newer than pnpm's
+  `minimumReleaseAge` do not count, `uv`/`ruff`/`ty` follow `python-tools.toml` (bumped with
+  `pins refresh`), and a finding is manual when a specifier, exact `=` pin, or workspace MSRV
+  blocks the latest version. A deliberate pin is suppressed with
+  `audit-upgrades:ECOSYSTEM:NAME` in a catalog `ignore` list plus `ignore_reason`.
+- `fix` leaves the canonical checkout on its `repomod/fix/*` branch after it runs. Those
+  checkouts are not eligible for another `fix` until the PR is merged and the checkout is back
+  on the default branch.
 
 ## Survey
 
