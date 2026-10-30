@@ -135,6 +135,37 @@ impl WheelIdentity {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ValidatedArtifact {
+    pub wheel: WheelIdentity,
+    pub path: std::path::PathBuf,
+    pub sha256: String,
+    pub targets: Vec<Target>,
+}
+
+impl ValidatedArtifact {
+    pub fn new(
+        wheel: WheelIdentity,
+        path: std::path::PathBuf,
+        sha256: String,
+        targets: Vec<Target>,
+    ) -> Result<Self> {
+        if !is_lower_hex(&sha256) {
+            return Err(Error::configuration("SHA-256 must contain 64 lowercase hexadecimal characters"));
+        }
+        if targets.is_empty() {
+            return Err(Error::configuration(
+                "validated artifact must cover at least one target",
+            ));
+        }
+        Ok(Self { wheel, path, sha256, targets })
+    }
+}
+
+fn is_lower_hex(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
