@@ -7,4 +7,5 @@ members = [
   "crates/mycrates",
   "crates/stuff-store",
   "crates/stuff-http",
+  "crates/stuff-server",
 ]

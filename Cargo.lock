@@ -1190,6 +1190,20 @@ name = "stuff-http"
 version = "0.1.0"
 
 [[package]]
+name = "stuff-server"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "httparse",
+ "mycrates",
+ "sha2",
+ "stuff-http",
+ "stuff-store",
+ "tar",
+ "tempfile",
+]
+
+[[package]]
 name = "stuff-store"
 version = "0.1.0"
 dependencies = [

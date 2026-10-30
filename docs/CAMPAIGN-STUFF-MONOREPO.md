@@ -10,8 +10,10 @@ Accepted: S1, S2d, S2a, S2b, S2c (mypypi; ruff clean, pytest
 D1 done: histories reachable via merge parents, licenses present.
 S3 done: stuff-store (site/blob/hash/fsync) + stuff-http (mime/cache/
 route/condition) extracted; mycrates publishes through them, 125 passed
-0 failed workspace-wide, clippy clean. Next: S4 native read server.
-Resume: design crates/stuff-server on Site + stuff-http.
+0 failed workspace-wide, clippy clean. S4 done: stuff-server on the
+mycrates blocking stack; real cargo/npm/uv install from it, 135 passed
+0 failed, clippy clean. Next: S5 worker + deploy config.
+Resume: design crates/stuff-worker on the same stack.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
 everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
 Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
@@ -48,14 +50,17 @@ Owner (goal text + 2026-10-30 answers):
   covers the static read path first.
 - Apache-2.0 for the whole monorepo (mynpm gains LICENSE + package field).
 - CF worker ships built, owner deploys with `cf`; old repos stay live.
+- Transport: same crates mycrates has, no tokio (owner, S4).
 
 Prescribed (evidence, overrulable):
 - Import via `git fetch` + `git read-tree --prefix=` + merge; the `git
   subtree` subcommand is absent here (proven in `.work/tmp/prefix-demo`).
 - Common interface is small: store immutable object, activate generation,
   resolve request, return object. Nothing wider.
-- Native server uses an established transport (Hyper); the hand-rolled
-  `httparse` loop (`mycrates/src/serve.rs:313-366`) stays write-path only.
+- Native server uses the same crates mycrates has (httparse + std
+  blocking sockets, thread-per-connection with a cap, per owner
+  direction 2026-10-30); no async runtime. The hand-rolled `httparse`
+  loop (`crates/mycrates/src/serve.rs:313-366`) stays write-path only.
 - Keep in force: `#![forbid(unsafe_code)]`, no lifecycle scripts during
   acquire/validate, native-target build checks, exclusive file locks.
 - h12tiny path deps stay on exact HEAD code via S2d subdir import: registry
@@ -89,6 +94,10 @@ Delegated (bound + tie-break):
 - Release budget (S2a, workspace = mycrates + 3 h12tiny crates):
   `cargo build --release --workspace` 10.6 s wall, `target/release` 137 M,
   `mycrates` binary 5.4 M. Gate: flag >50% growth in S3-S5 reviews.
+- Release budget (S4, adds stuff-store/http/server): `target/release`
+  148 M (+8%, under gate), `stuff-server` binary 560 K. Deliberate
+  deviations from the TestServer reference: size+mtime etags (no
+  per-request hashing) and directory index.html serving for PEP 503.
 
 ## Sequence
 
@@ -112,8 +121,11 @@ Delegated (bound + tie-break):
   suites pass against extracted code. Exit test for infra: S4 pilot below.
 - S4 native static read server (owns `crates/stuff-server`; serial after S3).
   The end-to-end pilot. Acceptance: real clients install from it —
-  mycrates `cargo_native` suite, mynpm `validate --client npm/pnpm`
-  against the server, mypypi uv-resolution test. All three green.
+  `cargo_compat` (cargo fetch+build, mirrors cargo_native consume flow),
+  `npm_compat` (npm install + npm ci, mirrors static-install seed flow),
+  `test_stuff_server.py` (uv pip install from a published index),
+  plus `http_compat` semantics (200/206/304/404/405/412/416, HEAD,
+  etag/cache/range, `%2f`, dir index.html). All green.
 - S5 worker + deploy config (owns `crates/stuff-worker`, `deploy/`).
   Prereq: S4. Acceptance: wasm bundle builds; asset-map tests map all
   three layouts (incl. `%2f` scoped routes); `cf` config parses if the tool
@@ -140,8 +152,8 @@ blocker gets one owner.
   same fixtures (existing suites are the parity corpus).
 - D3 native read server: serves mycrates sparse index + blobs, npm
   packuments + sha512 tarballs, pypi simple pages + wheels, with correct
-  content-type/cache headers and `%2f` routes. Proved by the S4 client
-  suites, not by curl spot checks.
+  content-type/cache headers and `%2f` routes. Proved by the S4 compat
+  tests (real cargo/npm/uv clients), not by curl spot checks.
 - D4 Cloudflare: wasm bundle builds; layout mapping tests pass; `cf`
   deploy runs from Needs environment. Fail: any layout 404s in mapping.
 - D5 independent pipelines: two consecutive single-registry publishes leave
