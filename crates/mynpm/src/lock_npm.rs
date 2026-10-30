@@ -199,6 +199,7 @@ pub struct NpmOptions {
     pub package_manager_pin: Option<String>,
     pub lockfile_path: String,
     pub target_ids: Vec<String>,
+    pub snapshot: Option<crate::inventory::ProjectSnapshot>,
 }
 
 fn exact_target_ids(ids: Vec<String>) -> Result<Vec<String>> {
@@ -361,7 +362,7 @@ pub fn parse_npm_lock(text: &str, options: NpmOptions) -> Result<ProjectRecord> 
         importers: vec![".".to_string()],
         roots,
         packages: records,
-        snapshot: None,
+        snapshot: options.snapshot,
     })
 }
 
@@ -375,6 +376,7 @@ mod tests {
             package_manager_pin: None,
             lockfile_path: "package-lock.json".to_string(),
             target_ids: vec!["linux-x64-gnu".to_string()],
+            snapshot: None,
         }
     }
 

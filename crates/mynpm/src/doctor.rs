@@ -201,6 +201,7 @@ pub fn run_doctor(project_path: &Path, config: &Config) -> Result<()> {
                 package_manager_pin: pin.as_ref().map(|p| p.raw.clone()),
                 lockfile_path: lockfile_name.to_string(),
                 target_ids: options_targets,
+                snapshot: None,
             },
         )?
     } else {

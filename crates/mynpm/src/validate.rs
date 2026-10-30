@@ -20,7 +20,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use sha2::Sha256;
+use sha2::Sha512;
 
 pub const CLIENT_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 
@@ -378,7 +378,7 @@ fn handle_connection(mut stream: std::net::TcpStream, mirror_dir: &Path, request
         let out_body = if is_head { None } else { body };
         record.response_bytes = out_body.map(|b| b.len()).unwrap_or(0);
         record.response_sha512 = out_body.map(|b| {
-            let mut h = Sha256::new();
+            let mut h = Sha512::new();
             h.update(b);
             format!("{:x}", h.finalize())
         });
@@ -509,9 +509,6 @@ fn canonical_text(value: &deser_value::Value) -> Result<String> {
 
 fn parse_project_lock(manager: &Manager, text: &str, options: LockParseOptions) -> Result<ProjectRecord> {
     if *manager == Manager::Npm {
-        let parsed: deser_value::Value = deser_json::from_str(text)
-            .map_err(|_| Error::Input(format!("{manager} package-lock.json is not valid JSON")))?;
-        let _ = parsed;
         parse_npm_lock(
             text,
             NpmOptions {
@@ -519,6 +516,7 @@ fn parse_project_lock(manager: &Manager, text: &str, options: LockParseOptions) 
                 package_manager_pin: options.package_manager_pin,
                 lockfile_path: options.lockfile_path,
                 target_ids: options.target_ids,
+                snapshot: options.snapshot,
             },
         )
         .map_err(|e| Error::Input(format!("could not parse npm package-lock.json: {e}")))
@@ -721,11 +719,11 @@ fn package_artifact<'a>(_project: &ProjectRecord, item: &PackageRecord, artifact
 }
 
 fn local_tarball_url(registry: &str, digest: &str) -> String {
-    format!("{}-/tarballs/{digest}.tgz", registry.trim_end_matches('/'))
+    format!("{registry}-/tarballs/{digest}.tgz")
 }
 
 fn unavailable_tarball_url(registry: &str) -> String {
-    format!("{}-/tarballs/unavailable.tgz", registry.trim_end_matches('/'))
+    format!("{registry}-/tarballs/unavailable.tgz")
 }
 
 fn rewrite_npm_lock(project: &ProjectRecord, target: &Target, artifacts: &[ArtifactRecord], registry: &str) -> Result<String> {

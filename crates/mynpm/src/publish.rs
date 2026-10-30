@@ -6,7 +6,7 @@ use crate::error::{Error, Result};
 use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord};
 use crate::inventory_store::{acquire_file_lock, load_inventory};
 use crate::packument::{render_packument_files, PackumentFile, RENDERER_VERSION};
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -226,7 +226,7 @@ fn read_regular_file(path: &Path) -> Result<Vec<u8>> {
 
 fn hash_file(path: &Path, expected: &str) -> Result<()> {
     let bytes = read_regular_file(path)?;
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha512::new();
     hasher.update(&bytes);
     let actual = format!("{:x}", hasher.finalize());
     if actual != expected {
@@ -458,7 +458,7 @@ fn copy_artifact(record: &ArtifactRecord, state_dir: &Path, tarballs_dir: &Path)
             .mode(0o644)
             .open(&tmp)
             .map_err(|_| Error::Operation(format!("could not create temporary artifact {}", tmp.display())))?;
-        let mut hasher = Sha256::new();
+        let mut hasher = Sha512::new();
         let mut buf = [0u8; 65536];
         loop {
             let n = reader.read(&mut buf).map_err(|_| {

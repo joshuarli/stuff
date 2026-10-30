@@ -247,7 +247,7 @@ pub fn print_help() {
 
 fn current_target_id(config: &Config) -> Result<String> {
     let os = match std::env::consts::OS {
-        "darwin" => Some("darwin"),
+        "macos" => Some("darwin"),
         "linux" => Some("linux"),
         _ => None,
     };
@@ -341,6 +341,7 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
                 package_manager_pin: pin.as_ref().map(|p| p.raw.clone()),
                 lockfile_path: lockfile_rel.clone(),
                 target_ids: targets.clone(),
+                snapshot: None,
             },
         )?;
         let snapshot = capture_project_snapshot(&CaptureOptions {
@@ -356,12 +357,9 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
                 package_manager_pin: pin.as_ref().map(|p| p.raw.clone()),
                 lockfile_path: lockfile_rel,
                 target_ids: targets.clone(),
+                snapshot: Some(snapshot),
             },
-        )
-        .map(|mut p| {
-            p.snapshot = Some(snapshot);
-            p
-        })?;
+        )?;
         let state_dir = cwd.join(parsed.state_dir.clone().unwrap_or_else(|| "state".to_string()));
         update_inventory(&state_dir, |inv| {
             let mut acc = inv.clone();

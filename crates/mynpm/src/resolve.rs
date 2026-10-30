@@ -255,6 +255,7 @@ fn resolve_target(
                 package_manager_pin: Some(pin.to_string()),
                 lockfile_path: format!("add/{manager_bin}/{}/{lockfile_name}", target.id()),
                 target_ids,
+                snapshot: Some(snapshot),
             },
         )
         .map_err(|e| Error::Input(format!("could not parse {manager_bin} lockfile: {e}")))?
