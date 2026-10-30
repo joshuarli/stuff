@@ -11,4 +11,5 @@ pub mod limits;
 pub mod lock_npm;
 pub mod lock_pnpm;
 pub mod process;
+pub mod project_snapshot;
 pub mod value;

@@ -776,6 +776,7 @@ dependencies = [
  "deser-yaml",
  "flate2",
  "h12tiny-client-sync",
+ "rustix",
  "sha2",
  "stuff-store",
  "tar",
