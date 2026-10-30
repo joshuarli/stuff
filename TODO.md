@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 9
 
-### STUF-2 · P2 · mycrates CLI publish takes no store lock while the serve path does
-
-- **Area:** Concurrency
-- **Where:** `crates/mycrates/src/cli/publish.rs:40-42`, `crates/mycrates/src/serve.rs:226`, `crates/mycrates/src/serve.rs:285`, `crates/mycrates/src/store.rs:77`
-- **Problem:** the serve path holds `store.lock_exclusive()` across ingest/record-write/`publisher.publish()`, and the mynpm (`crates/mynpm/src/publish.rs:746`) and mypypi (`crates/mypypi/src/store.rs:805`) publish paths both hold their output locks. The mycrates CLI path calls `publisher.publish()` with no lock, so two concurrent CLI publishes (or CLI vs serve publish) interleave staging and `current` activation. Atomic renames bound the damage, but `current` can flip-flop and generations are wasted. Interleaving not executed; the missing lock is proven by reading.
-- **Recommendation:** acquire `Store::lock_exclusive()` in CLI publish around `Publisher::publish()`, matching the serve path.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### STUF-3 · P2 · R2 alias skip-list and worker alias map are one contract in two languages
 
 - **Area:** Config
