@@ -774,3 +774,21 @@ def test_dependency_ignore_passes_policy_validation() -> None:
             ),
         )
     )
+
+
+def test_npm_package_published_only_as_prereleases_is_still_resolved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    (root / "package.json").write_text(
+        '{"name": "demo", "dependencies": {"solid": "2.0.0-rc.18"}}', encoding="utf-8"
+    )
+    (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "repomod.audit._http_json",
+        lambda url, headers=None: {
+            "dist-tags": {"latest": "2.0.0-rc.0"},
+            "time": {"2.0.0-rc.0": iso(900 * HOUR), "2.0.0-rc.18": iso(300 * HOUR)},
+        },
+    )
+    assert effect_messages(root) == []

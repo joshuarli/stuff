@@ -1473,7 +1473,9 @@ def _fetch_npm_releases(name: str) -> dict[str, Any] | None:
         return None
     published: dict[str, float] = {}
     for version, stamp in times.items():
-        if version in {"created", "modified"} or "-" in version or not isinstance(stamp, str):
+        if version in {"created", "modified"} or not isinstance(stamp, str):
+            continue
+        if "-" in version and "-" not in latest:
             continue
         try:
             published[version] = datetime.fromisoformat(stamp).timestamp()
@@ -1493,7 +1495,8 @@ def _newest_installable(
         if _version_key(version) <= ceiling
         and (published <= cutoff or policy.exempts(name, version))
     ]
-    return max(eligible, key=_version_key, default=None)
+    published = releases["published"]
+    return max(eligible, key=lambda version: (_version_key(version), published[version]), default=None)
 
 
 def _resolve_npm_installable(
