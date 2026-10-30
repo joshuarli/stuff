@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import fnmatch
 import json
 import math
 import os
@@ -14,6 +15,7 @@ import urllib.request
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +28,7 @@ from repomod.types import operational as _operational
 from repomod.types import violation as _violation
 
 CACHE_TTL_SECONDS = 86400
+DEFAULT_MINIMUM_RELEASE_AGE_MINUTES = 1440
 _OSV_URL = "https://api.osv.dev/v1/querybatch"
 _OSV_BATCH_SIZE = 100
 _NETWORK_TIMEOUT = 30
@@ -782,6 +785,88 @@ def _pnpm_locked_versions(root: Path) -> dict[str, str]:
     return _pnpm_inline_versions(source)
 
 
+@dataclass(frozen=True, slots=True)
+class ReleasePolicy:
+    minimum_age_minutes: int
+    exempt: tuple[str, ...] = ()
+
+    def exempts(self, name: str, version: str) -> bool:
+        for entry in self.exempt:
+            package, separator, versions = entry.rpartition("@")
+            if not separator or not package:
+                package, versions = entry, ""
+            if not fnmatch.fnmatchcase(name, package):
+                continue
+            if not versions:
+                return True
+            if version in {item.strip() for item in versions.split("||")}:
+                return True
+        return False
+
+
+def _unquote(value: str) -> str:
+    return value.strip().strip("\"'")
+
+
+def _pnpm_workspace_policy(source: str) -> tuple[int | None, tuple[str, ...]]:
+    minimum_age: int | None = None
+    exempt: list[str] = []
+    in_exempt = False
+    for line in source.splitlines():
+        if in_exempt:
+            item = re.match(r"^\s+-\s+(.+?)\s*$", line)
+            if item is not None:
+                exempt.append(_unquote(item.group(1)))
+                continue
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            in_exempt = False
+        age = re.match(r"^minimumReleaseAge:\s*(.*?)\s*(?:#.*)?$", line)
+        if age is not None:
+            minimum_age = _parse_minutes(age.group(1), "minimumReleaseAge")
+        elif re.match(r"^minimumReleaseAgeExclude:\s*$", line):
+            in_exempt = True
+    return minimum_age, tuple(exempt)
+
+
+def _npmrc_minimum_age(source: str) -> int | None:
+    for line in source.splitlines():
+        match = re.match(r"^\s*minimum-release-age\s*=\s*(.*?)\s*$", line)
+        if match is not None:
+            return _parse_minutes(match.group(1), "minimum-release-age")
+    return None
+
+
+def _parse_minutes(value: str, setting: str) -> int:
+    text = _unquote(value)
+    if re.fullmatch(r"[0-9]+", text) is None:
+        raise ValueError(f"{setting} must be a whole number of minutes, got {value!r}")
+    return int(text)
+
+
+def _js_release_policy(root: Path, project: Path) -> ReleasePolicy:
+    directories = [project] if project == root else [project, root]
+    workspace_age: int | None = None
+    exempt: tuple[str, ...] = ()
+    for directory in directories:
+        source = _read_text_if_regular(directory / "pnpm-workspace.yaml")
+        if source is not None:
+            workspace_age, exempt = _pnpm_workspace_policy(source)
+            break
+    npmrc_age: int | None = None
+    for directory in directories:
+        source = _read_text_if_regular(directory / ".npmrc")
+        if source is not None:
+            npmrc_age = _npmrc_minimum_age(source)
+            if npmrc_age is not None:
+                break
+    minimum_age = next(
+        (age for age in (workspace_age, npmrc_age) if age is not None),
+        DEFAULT_MINIMUM_RELEASE_AGE_MINUTES,
+    )
+    return ReleasePolicy(minimum_age, exempt)
+
+
 def _go_requirements(root: Path) -> tuple[dict[str, str], dict[str, bool]]:
     source = _read_text_if_regular(root / "go.mod")
     if source is None:
@@ -980,6 +1065,7 @@ class LockedDependency:
     name: str
     locked: str
     direct: bool = True
+    release_policy: ReleasePolicy | None = None
 
 
 @dataclass(slots=True)
@@ -1031,7 +1117,11 @@ def _collect_locked(
                     if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+[^ ]*", spec) is not None:
                         version = spec
                 if version is not None:
-                    locked.append(LockedDependency("npm", name, version, True))
+                    locked.append(
+                        LockedDependency(
+                            "npm", name, version, True, _js_release_policy(root, project)
+                        )
+                    )
     if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
         direct, problems = _rust_direct_dependencies(root)
         for problem in problems:
@@ -1324,6 +1414,82 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
+def _fetch_npm_releases(name: str) -> dict[str, Any] | None:
+    encoded = urllib.parse.quote(name, safe="@")
+    document = _registry_document(f"https://registry.npmjs.org/{encoded}")
+    if document is None:
+        return None
+    tags = document.get("dist-tags")
+    times = document.get("time")
+    latest = _non_empty_str(tags.get("latest")) if isinstance(tags, dict) else None
+    if latest is None or not isinstance(times, dict):
+        return None
+    published: dict[str, float] = {}
+    for version, stamp in times.items():
+        if version in {"created", "modified"} or "-" in version or not isinstance(stamp, str):
+            continue
+        try:
+            published[version] = datetime.fromisoformat(stamp).timestamp()
+        except ValueError:
+            continue
+    return {"latest": latest, "published": published}
+
+
+def _newest_installable(
+    name: str, releases: dict[str, Any], policy: ReleasePolicy, now: float
+) -> str | None:
+    cutoff = now - policy.minimum_age_minutes * 60
+    ceiling = _version_key(releases["latest"])
+    eligible = [
+        version
+        for version, published in releases["published"].items()
+        if _version_key(version) <= ceiling
+        and (published <= cutoff or policy.exempts(name, version))
+    ]
+    return max(eligible, key=_version_key, default=None)
+
+
+def _resolve_npm_installable(
+    items: list[LockedDependency],
+    *,
+    offline: bool,
+    refresh: bool,
+    cache: dict[str, Any],
+    now: float,
+) -> dict[tuple[str, str], str | None]:
+    entries = cache.get("npm_releases")
+    if not isinstance(entries, dict):
+        entries = {}
+        cache["npm_releases"] = entries
+    releases: dict[str, dict[str, Any] | None] = {}
+    missing: list[str] = []
+    for name in sorted({item.name for item in items}):
+        entry = entries.get(name.casefold())
+        usable = isinstance(entry, dict) and isinstance(entry.get("releases"), dict)
+        if usable and (offline or (not refresh and _cache_fresh(entry.get("fetched_at"), now))):
+            releases[name] = entry["releases"]
+        elif offline:
+            releases[name] = None
+        else:
+            missing.append(name)
+    if missing:
+        with ThreadPoolExecutor(
+            max_workers=min(8, len(missing)), thread_name_prefix="repomod-audit"
+        ) as pool:
+            for name, fetched in zip(missing, pool.map(_fetch_npm_releases, missing), strict=True):
+                releases[name] = fetched
+                if fetched is not None:
+                    entries[name.casefold()] = {"releases": fetched, "fetched_at": now}
+    resolved: dict[tuple[str, str], str | None] = {}
+    for item in items:
+        found = releases[item.name]
+        assert item.release_policy is not None
+        resolved[(item.ecosystem, item.name)] = (
+            None if found is None else _newest_installable(item.name, found, item.release_policy, now)
+        )
+    return resolved
+
+
 def _resolve_latest(
     locked: list[LockedDependency],
     *,
@@ -1337,9 +1503,18 @@ def _resolve_latest(
     if not isinstance(latest_entries, dict):
         latest_entries = {}
         cache["latest"] = latest_entries
-    resolved: dict[tuple[str, str], str | None] = {}
+    aged = [
+        item
+        for item in locked
+        if item.release_policy is not None and item.release_policy.minimum_age_minutes > 0
+    ]
+    resolved = _resolve_npm_installable(
+        aged, offline=offline, refresh=refresh, cache=cache, now=now
+    ) if aged else {}
     missing: list[LockedDependency] = []
     for item in locked:
+        if (item.ecosystem, item.name) in resolved:
+            continue
         if fetcher is not None:
             resolved[(item.ecosystem, item.name)] = fetcher(item.ecosystem, item.name)
             continue

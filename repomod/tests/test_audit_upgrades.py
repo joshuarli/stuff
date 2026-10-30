@@ -415,3 +415,148 @@ def test_multi_version_lock_attributes_direct_req(tmp_path: Path) -> None:
     )
     locked, _ = _collect_locked(root, repository("tool", "rust"))
     assert [(item.name, item.locked) for item in locked if item.name == "syn"] == [("syn", "3.0.3")]
+
+
+NOW = 1_800_000_000.0
+HOUR = 3600.0
+
+
+def iso(seconds_ago: float) -> str:
+    from datetime import UTC, datetime
+
+    return datetime.fromtimestamp(NOW - seconds_ago, UTC).isoformat().replace("+00:00", "Z")
+
+
+def effect_packument() -> dict[str, object]:
+    return {
+        "dist-tags": {"latest": "4.1.1"},
+        "time": {
+            "created": iso(900 * 24 * HOUR),
+            "modified": iso(HOUR),
+            "4.0.6": iso(72 * HOUR),
+            "4.1.0": iso(30 * HOUR),
+            "4.1.1": iso(HOUR),
+            "4.2.0-beta.1": iso(48 * HOUR),
+        },
+    }
+
+
+def write_pnpm_project(root: Path, workspace: str | None = None, npmrc: str | None = None) -> None:
+    (root / "package.json").write_text(
+        '{"name": "demo", "dependencies": {"effect": "4.0.6"}}', encoding="utf-8"
+    )
+    (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    if workspace is not None:
+        (root / "pnpm-workspace.yaml").write_text(workspace, encoding="utf-8")
+    if npmrc is not None:
+        (root / ".npmrc").write_text(npmrc, encoding="utf-8")
+
+
+def fake_registry(monkeypatch: pytest.MonkeyPatch, calls: list[str] | None = None) -> None:
+    def http_json(url: str, headers: dict[str, str] | None = None) -> object:
+        if calls is not None:
+            calls.append(url)
+        assert url == "https://registry.npmjs.org/effect"
+        return effect_packument()
+
+    monkeypatch.setattr("repomod.audit._http_json", http_json)
+
+
+def effect_messages(root: Path, cache: dict[str, object] | None = None) -> list[str]:
+    findings = _outdated_findings(
+        root, repository("tool", "typescript"), cache if cache is not None else {}, NOW, None
+    )
+    return [finding.message for finding in findings]
+
+
+def test_npm_latest_waits_for_default_release_age(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    write_pnpm_project(root)
+    fake_registry(monkeypatch)
+    assert effect_messages(root) == ["npm:effect 4.0.6 is outdated; latest is 4.1.0"]
+
+
+def test_npm_release_age_comes_from_workspace_then_npmrc(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    fake_registry(monkeypatch)
+    write_pnpm_project(root, workspace="minimumReleaseAge: 90 # minutes\n")
+    assert effect_messages(root) == ["npm:effect 4.0.6 is outdated; latest is 4.1.0"]
+    write_pnpm_project(root, workspace="minimumReleaseAge: 30\n")
+    assert effect_messages(root) == ["npm:effect 4.0.6 is outdated; latest is 4.1.1"]
+    (root / "pnpm-workspace.yaml").unlink()
+    write_pnpm_project(root, npmrc="minimum-release-age=4320\n")
+    assert effect_messages(root) == []
+
+
+def test_npm_release_age_exclusions_admit_young_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    fake_registry(monkeypatch)
+    for entry, expected in (
+        ("effect@4.1.1", "4.1.1"),
+        ("effect@4.1.0 || 4.1.1", "4.1.1"),
+        ("effect", "4.1.1"),
+        ("'effect@4.0.6'", "4.1.0"),
+        ("other@4.1.1", "4.1.0"),
+    ):
+        write_pnpm_project(root, workspace=f"minimumReleaseAgeExclude:\n  - {entry}\n")
+        assert effect_messages(root) == [
+            f"npm:effect 4.0.6 is outdated; latest is {expected}"
+        ]
+
+
+def test_npm_release_age_zero_uses_registry_latest(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    write_pnpm_project(root, workspace="minimumReleaseAge: 0\n")
+    findings = _outdated_findings(
+        root, repository("tool", "typescript"), {}, NOW, lambda _e, _n: "4.1.1"
+    )
+    assert [finding.message for finding in findings] == [
+        "npm:effect 4.0.6 is outdated; latest is 4.1.1"
+    ]
+
+
+def test_npm_release_times_are_cached(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    write_pnpm_project(root)
+    calls: list[str] = []
+    fake_registry(monkeypatch, calls)
+    cache: dict[str, object] = {}
+    first = effect_messages(root, cache)
+    second = effect_messages(root, cache)
+    assert first == second
+    assert len(calls) == 1
+
+
+def test_invalid_release_age_fails_loudly(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    write_pnpm_project(root, workspace="minimumReleaseAge: soon\n")
+    with pytest.raises(ValueError, match="minimumReleaseAge"):
+        effect_messages(root)
+
+
+def test_policy_pinned_python_tools_are_not_outdated(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "1.0.0"\n'
+        '[dependency-groups]\ndev = ["ruff==0.17.2", "ty==0.0.91", "uv==0.13.5", "requests"]\n',
+        encoding="utf-8",
+    )
+    (root / "uv.lock").write_text(
+        'version = 1\n[[package]]\nname = "ruff"\nversion = "0.17.2"\n'
+        '[[package]]\nname = "ty"\nversion = "0.0.91"\n'
+        '[[package]]\nname = "uv"\nversion = "0.13.5"\n'
+        '[[package]]\nname = "requests"\nversion = "2.0.0"\n',
+        encoding="utf-8",
+    )
+    findings = _outdated_findings(
+        root, repository("tool", "python"), {}, NOW, lambda _e, _n: "9.9.9"
+    )
+    assert [finding.message for finding in findings] == [
+        "pypi:requests 2.0.0 is outdated; latest is 9.9.9"
+    ]

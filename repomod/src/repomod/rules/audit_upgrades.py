@@ -30,6 +30,7 @@ from repomod.audit import (
     _upgrade_tasks,
     _write_cache,
 )
+from repomod.rules.python_standard import load_approved_python_tool_versions
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _RULE_ID = "audit-upgrades"
@@ -80,6 +81,8 @@ def _non_registry_names(root: Path) -> set[tuple[str, str]]:
             for name, source in sources.items():
                 if isinstance(name, str) and isinstance(source, dict) and ("path" in source or "git" in source):
                     skipped.add(("pypi", _normalize_python_name(name)))
+    if specs:
+        skipped.update(("pypi", name) for name in load_approved_python_tool_versions())
     direct, _ = _rust_direct_dependencies(root)
     for dependency in direct:
         if dependency.has_git or (dependency.has_path and not dependency.has_version):

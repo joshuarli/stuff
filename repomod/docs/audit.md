@@ -22,6 +22,14 @@ uv run repomod fix --rule audit-upgrades
 
 Latest stable versions come from PyPI, the npm registry, crates.io, and the Go
 proxy. Vulnerabilities come from the free OSV API with no authentication.
+For npm, "latest" is the newest stable release the repository's pnpm can
+install: versions younger than `minimumReleaseAge` (minutes, from
+`pnpm-workspace.yaml`, then `.npmrc` `minimum-release-age`, default 1440 as in
+pnpm 11+) are ignored unless `minimumReleaseAgeExclude` admits them (bare name,
+`name@version`, `name@v1 || v2`, `*` patterns). Publish times come from the
+packument and are cached with the rest. `audit-upgrades` also skips `uv`,
+`ruff`, and `ty`, whose versions are set by `python-tools.toml` and bumped
+only through `pins refresh`.
 Results are cached under `XDG_CACHE_HOME/repomod/audit.json` for 24 hours.
 Upstream fork comparisons are cached under `XDG_CACHE_HOME/repomod/upstream.json`
 for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
