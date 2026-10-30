@@ -9,4 +9,6 @@ pub mod inventory;
 pub mod inventory_store;
 pub mod limits;
 pub mod lock_npm;
+pub mod lock_pnpm;
 pub mod process;
+pub mod value;
