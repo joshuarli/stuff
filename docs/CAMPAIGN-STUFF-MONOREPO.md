@@ -5,9 +5,10 @@
 Goal: one `stuff` repo serving mycrates/mynpm/mypypi from shared Rust HTTP
 serving + storage/generation code; per-registry pipelines stay independent.
 S0 done: mycrates green at HEAD `f96961d` (cargo test all ok, 0 failed).
-Accepted: S1 (workspace root, AGENTS.md, CI). Red: baseline known-reds only
-(mypypi 2, mynpm 1 flaky toolchain test). Next: S2d h12tiny subdirs, then
-S2a mycrates + path rewrite, then S2b/c (parallel OK). Resume: S2d import.
+Accepted: S1 (workspace root, AGENTS.md, CI), S2d (h12tiny subdirs,
+src identical to upstream `dcdf4f2`). Red: baseline known-reds only
+(mypypi 2, mynpm 1 flaky toolchain test). Next: S2a mycrates + path
+rewrite, then S2b/c (parallel OK). Resume: S2a import.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
 everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
 Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
