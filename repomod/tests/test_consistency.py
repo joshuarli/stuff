@@ -8,6 +8,7 @@ import pytest
 from repomod.git import run_git
 from repomod.rules import rules
 from repomod.rules.consistency import (
+    _fix_ignore_coverage,
     _make_target_findings,
     _tracked_artifact_findings,
 )
@@ -251,6 +252,82 @@ def test_generated_artifact_lint_does_not_follow_a_root_gitignore_symlink(
 
     assert len(findings) == 1
     assert "target/" in findings[0].message
+
+
+def write_python_project(root: Path) -> None:
+    (root / "pyproject.toml").write_text('[project]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8")
+    source = root / "src" / "demo.py"
+    source.parent.mkdir()
+    source.write_text("def run(): pass\n", encoding="utf-8")
+
+
+def test_generated_artifact_fixer_appends_only_missing_patterns_after_existing_content(
+    tmp_path: Path,
+) -> None:
+    initialize_repository(tmp_path)
+    write_python_project(tmp_path)
+    original = "# local\n.venv/\n*.log\n.pytest_cache"
+    (tmp_path / ".gitignore").write_text(original, encoding="utf-8")
+    project = repository("python")
+
+    findings = _tracked_artifact_findings(tmp_path, project)
+    plan = _fix_ignore_coverage(tmp_path, project)
+
+    assert [finding.fixable for finding in findings] == [True]
+    assert list(plan) == [".gitignore"]
+    assert plan[".gitignore"] == original + "\n.mypy_cache/\n.ruff_cache/\n.tox/\n__pycache__/\n"
+    (tmp_path / ".gitignore").write_text(plan[".gitignore"], encoding="utf-8")
+    assert _tracked_artifact_findings(tmp_path, project) == []
+    assert _fix_ignore_coverage(tmp_path, project) == {}
+
+
+def test_generated_artifact_fixer_creates_a_missing_root_gitignore(tmp_path: Path) -> None:
+    initialize_repository(tmp_path)
+    (tmp_path / "Cargo.toml").write_text('[package]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8")
+    source = tmp_path / "src" / "main.rs"
+    source.parent.mkdir()
+    source.write_text("fn main() {}\n", encoding="utf-8")
+    project = repository("rust")
+
+    plan = _fix_ignore_coverage(tmp_path, project)
+
+    assert plan == {".gitignore": "target/\n"}
+    (tmp_path / ".gitignore").write_text(plan[".gitignore"], encoding="utf-8")
+    assert _tracked_artifact_findings(tmp_path, project) == []
+
+
+def test_generated_artifact_fixer_refuses_a_symlinked_root_gitignore(tmp_path: Path) -> None:
+    initialize_repository(tmp_path)
+    write_python_project(tmp_path)
+    outside = tmp_path.parent / "outside.gitignore"
+    outside.write_text("*.log\n", encoding="utf-8")
+    (tmp_path / ".gitignore").symlink_to(outside)
+    project = repository("python")
+
+    findings = _tracked_artifact_findings(tmp_path, project)
+
+    assert [finding.fixable for finding in findings] == [False]
+    with pytest.raises(ValueError, match=r"cannot fix \.gitignore"):
+        _fix_ignore_coverage(tmp_path, project)
+    assert outside.read_text(encoding="utf-8") == "*.log\n"
+
+
+def test_generated_artifact_fixer_leaves_tracked_outputs_as_manual_findings(tmp_path: Path) -> None:
+    initialize_repository(tmp_path)
+    write_python_project(tmp_path)
+    (tmp_path / ".gitignore").write_text(
+        ".venv/\n__pycache__/\n.pytest_cache/\n.ruff_cache/\n.mypy_cache/\n.tox/\n", encoding="utf-8"
+    )
+    cache = tmp_path / ".tox" / "log"
+    cache.parent.mkdir()
+    cache.write_text("x\n", encoding="utf-8")
+    run_git(["add", "--force", ".tox/log"], cwd=tmp_path)
+    project = repository("python")
+
+    findings = _tracked_artifact_findings(tmp_path, project)
+
+    assert [(finding.file, finding.fixable) for finding in findings] == [(".tox/log", False)]
+    assert _fix_ignore_coverage(tmp_path, project) == {}
 
 
 def test_consistency_and_language_lints_are_registered() -> None:

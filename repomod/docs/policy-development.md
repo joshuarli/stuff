@@ -66,7 +66,9 @@ heading (T003), so `node-build` is not flagged for containing "build".
 `generated-artifacts` reports tracked build outputs and requires ignore coverage for
 language artifact directories. Operating-system metadata files such as `.DS_Store` and
 `Thumbs.db` are environment noise covered by the global ignore file, so the rule does not
-require in-repository patterns for them.
+require in-repository patterns for them. Its fixer appends missing language patterns to the end of
+a regular or absent root `.gitignore`, preserving existing content; a symlinked `.gitignore` and
+tracked outputs stay manual findings.
 
 ## GitHub Actions with Pinact
 
