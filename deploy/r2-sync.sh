@@ -38,14 +38,14 @@ case $GEN_ID in
   *[!A-Za-z0-9_-]* | "") echo "FAIL: bad generation id: $GEN_ID"; exit 1 ;;
 esac
 
-find "$SITE_DIR" -type f | sort | while IFS= read -r f; do
+MARKER=$(mktemp)
+trap 'rm -f "$MARKER"' EXIT
+find "$SITE_DIR" -type f ! -path '*/.*' | sort | while IFS= read -r f; do
   key=${f#$SITE_DIR/}
   put_file "$f" "$key" "$(mime_for "$key")"
   echo "put $key"
 done
 
-MARKER="$SITE_DIR/.current-marker"
 printf '%s' "$GEN_ID" > "$MARKER"
 put_file "$MARKER" "current" "text/plain"
-rm -f "$MARKER"
 echo "activate $GEN_ID"

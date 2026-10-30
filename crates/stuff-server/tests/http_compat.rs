@@ -189,4 +189,12 @@ fn static_read_semantics() {
     let raw = "POST /current/registry/config.json HTTP/1.1\r\nHost: x\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
     let r = request(&server, raw);
     assert_eq!(r.status, 405);
+
+    std::os::unix::fs::symlink(
+        "registry/config.json",
+        site_dir.join("generations").join(&gen_id).join("sneaky"),
+    )
+    .unwrap();
+    let r = get(&server, &format!("/generations/{gen_id}/sneaky"), &[]);
+    assert_eq!(r.status, 404);
 }

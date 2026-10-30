@@ -6,9 +6,25 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use stuff_server::{respond, Config, ResponseBody, Route};
+use stuff_server::{etag_for, respond, Config, ResponseBody, Route};
 
 const DEFAULT_MAX_CONNECTIONS: usize = 64;
+
+const NOT_FOUND: &[u8] = b"not found";
+const HEADER_LINE_TOO_LONG: &[u8] = b"header line too long";
+const HEADERS_TOO_LARGE: &[u8] = b"headers too large";
+const TOO_MANY_REQUESTS: &[u8] = b"too many concurrent requests";
+
+fn send_text(stream: &mut TcpStream, status: u16, reason: &str, body: &'static [u8]) {
+    let _ = stream.write_all(
+        format!(
+            "HTTP/1.1 {status} {reason}\r\nConnection: close\r\nContent-Length: {}\r\nContent-Type: text/plain\r\n\r\n",
+            body.len()
+        )
+        .as_bytes(),
+    );
+    let _ = stream.write_all(body);
+}
 
 fn usage() -> ! {
     eprintln!("usage: stuff-server --bind ADDR --route PREFIX=DIR [--route PREFIX=DIR ...]");
@@ -30,18 +46,29 @@ fn send_response(stream: &mut TcpStream, resp: &stuff_server::FileResponse, inli
     }
 }
 
-fn send_file(stream: &mut TcpStream, path: &std::path::Path, offset: u64, len: u64) {
-    let mut file = match std::fs::File::open(path) {
-        Ok(f) => f,
-        Err(_) => {
-            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 9\r\nContent-Type: text/plain\r\n\r\nnot found");
-            return;
-        }
-    };
-    if offset != 0 && file.seek(std::io::SeekFrom::Start(offset)).is_err() {
-        let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 9\r\nContent-Type: text/plain\r\n\r\nnot found");
-        return;
+fn open_verified(path: &std::path::Path) -> Option<std::fs::File> {
+    use std::os::unix::fs::MetadataExt;
+    let pre = std::fs::symlink_metadata(path).ok()?;
+    if pre.file_type().is_symlink() || !pre.file_type().is_file() {
+        return None;
     }
+    let file = std::fs::File::open(path).ok()?;
+    let post = file.metadata().ok()?;
+    if !post.is_file() || post.dev() != pre.dev() || post.ino() != pre.ino() {
+        return None;
+    }
+    Some(file)
+}
+
+fn set_header(headers: &mut Vec<(String, String)>, name: &str, value: String) {
+    if let Some(slot) = headers.iter_mut().find(|(k, _)| k == name) {
+        slot.1 = value;
+    } else {
+        headers.push((name.to_string(), value));
+    }
+}
+
+fn send_opened(stream: &mut TcpStream, mut file: std::fs::File, len: u64) {
     let mut remaining = len;
     let mut buf = [0u8; 65536];
     while remaining > 0 {
@@ -77,22 +104,26 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
             return;
         }
         if line.len() > 8192 + 2 {
-            send_response(&mut stream, &stuff_server::FileResponse {
+            let mut resp = stuff_server::FileResponse {
                 status: 400,
                 reason: "Bad Request",
-                headers: vec![("content-length".to_string(), "19".to_string())],
+                headers: Vec::new(),
                 body: ResponseBody::Empty,
-            }, Some(b"header line too long"));
+            };
+            set_header(&mut resp.headers, "content-length", HEADER_LINE_TOO_LONG.len().to_string());
+            send_response(&mut stream, &resp, Some(HEADER_LINE_TOO_LONG));
             return;
         }
         header_bytes.extend_from_slice(&line);
         if header_bytes.len() > 65536 + 4096 || header_bytes.len() > 65536 {
-            send_response(&mut stream, &stuff_server::FileResponse {
+            let mut resp = stuff_server::FileResponse {
                 status: 400,
                 reason: "Bad Request",
-                headers: vec![("content-length".to_string(), "17".to_string())],
+                headers: Vec::new(),
                 body: ResponseBody::Empty,
-            }, Some(b"headers too large"));
+            };
+            set_header(&mut resp.headers, "content-length", HEADERS_TOO_LARGE.len().to_string());
+            send_response(&mut stream, &resp, Some(HEADERS_TOO_LARGE));
             return;
         }
         if header_bytes.ends_with(b"\r\n\r\n") || header_bytes.ends_with(b"\n\n") {
@@ -115,23 +146,73 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
     }
 
     let Some((route, rest)) = config.match_route(path) else {
-        let r = stuff_server::FileResponse {
-            status: 404,
-            reason: "Not Found",
-            headers: vec![("content-length".to_string(), "9".to_string())],
-            body: ResponseBody::Empty,
-        };
-        send_response(&mut stream, &r, Some(b"not found"));
+        send_text(&mut stream, 404, "Not Found", NOT_FOUND);
         return;
     };
-    let resp = respond(route, &rest, method, &headers);
-    match &resp.body {
+    let mut resp = respond(route, &rest, method, &headers);
+    match resp.body.clone() {
         ResponseBody::Empty => send_response(&mut stream, &resp, None),
-        ResponseBody::Inline(bytes) => send_response(&mut stream, &resp, Some(bytes)),
+        ResponseBody::Inline(bytes) => send_response(&mut stream, &resp, Some(&bytes)),
         ResponseBody::File { path, offset, len } => {
+            let (mut file, fd_size, fd_mtime) = match open_verified(&path) {
+                Some(opened) => {
+                    let meta = opened.metadata().ok();
+                    (
+                        opened,
+                        meta.as_ref().map(|m| m.len()).unwrap_or(0),
+                        meta.and_then(|m| m.modified().ok()),
+                    )
+                }
+                None => {
+                    send_text(&mut stream, 404, "Not Found", NOT_FOUND);
+                    return;
+                }
+            };
+            let (status, reason, send_len, content_range) = if resp.status == 206 {
+                if offset >= fd_size || len == 0 {
+                    let mut r = stuff_server::FileResponse {
+                        status: 416,
+                        reason: "Range Not Satisfiable",
+                        headers: vec![(
+                            "content-range".to_string(),
+                            format!("bytes */{fd_size}"),
+                        )],
+                        body: ResponseBody::Empty,
+                    };
+                    if let Some(e) = etag_for(fd_size, fd_mtime) {
+                        r.headers.push(("etag".to_string(), e));
+                    }
+                    send_response(&mut stream, &r, None);
+                    return;
+                }
+                let clamped_end = (offset + len - 1).min(fd_size - 1);
+                (
+                    206u16,
+                    "Partial Content",
+                    clamped_end - offset + 1,
+                    Some(format!("bytes {offset}-{clamped_end}/{fd_size}")),
+                )
+            } else {
+                (200u16, "OK", fd_size, None)
+            };
+            if offset != 0 && file.seek(std::io::SeekFrom::Start(offset)).is_err() {
+                send_text(&mut stream, 404, "Not Found", NOT_FOUND);
+                return;
+            }
+            resp.status = status;
+            resp.reason = reason;
+            set_header(&mut resp.headers, "content-length", send_len.to_string());
+            if let Some(e) = etag_for(fd_size, fd_mtime) {
+                set_header(&mut resp.headers, "etag", e);
+            }
+            if let Some(cr) = content_range {
+                set_header(&mut resp.headers, "content-range", cr);
+            } else {
+                resp.headers.retain(|(k, _)| k != "content-range");
+            }
             send_response(&mut stream, &resp, None);
             if method == "GET" {
-                send_file(&mut stream, path, *offset, *len);
+                send_opened(&mut stream, file, send_len);
             }
         }
     }
@@ -196,7 +277,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         match listener.accept() {
             Ok((mut stream, _)) => {
                 if active.load(Ordering::SeqCst) >= max_connections {
-                    let _ = stream.write_all(b"HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 26\r\nContent-Type: text/plain\r\n\r\ntoo many concurrent requests");
+                    send_text(&mut stream, 503, "Service Unavailable", TOO_MANY_REQUESTS);
                     continue;
                 }
                 active.fetch_add(1, Ordering::SeqCst);

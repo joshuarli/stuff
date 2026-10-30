@@ -197,6 +197,12 @@ impl Site {
         } else if verify(&target_gen_dir)? {
             let _ = fs::remove_dir_all(&staging);
         } else {
+            if !verify(&staging)? {
+                let _ = fs::remove_dir_all(&staging);
+                return Err(Error::Integrity(format!(
+                    "staged generation {generation_id} failed verification"
+                )));
+            }
             let _ = fs::remove_dir_all(&target_gen_dir);
             fs::rename(&staging, &target_gen_dir)?;
             sync_dir(&self.generations_dir())?;
@@ -286,6 +292,24 @@ mod tests {
             let name = entry.unwrap().file_name().to_string_lossy().to_string();
             assert!(!name.starts_with(".staging"), "leftover {name}");
         }
+    }
+
+    #[test]
+    fn invalid_staging_leaves_live_target_untouched() {
+        let (_tmp, site) = test_site();
+        let staged = site.stage().unwrap();
+        let staged_path = staged.into_path();
+        site.activate(staged_path, "gen-c", &|_: &Path| Ok(true)).unwrap();
+        fs::write(site.generations_dir().join("gen-c/index"), b"corrupt").unwrap();
+
+        let staged = site.stage().unwrap();
+        let staged_path = staged.into_path();
+        let err = site
+            .activate(staged_path, "gen-c", &|_: &Path| Ok(false))
+            .unwrap_err();
+        assert!(matches!(err, Error::Integrity(_)));
+        assert!(site.generations_dir().join("gen-c").exists());
+        assert_eq!(site.current_generation().unwrap(), Some("gen-c".to_string()));
     }
 
     #[test]

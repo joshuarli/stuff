@@ -62,6 +62,12 @@ pub fn content_type_for_path(path: &Path) -> &'static str {
     content_type_for(name)
 }
 
+pub fn etag_for(size: u64, modified: Option<std::time::SystemTime>) -> Option<String> {
+    modified
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| format!("\"{size}-{}\"", d.as_secs()))
+}
+
 pub fn cache_header_for(kind: RouteKind) -> String {
     cache_policy_for(kind).header_value()
 }
@@ -95,6 +101,23 @@ impl FileResponse {
     }
 }
 
+fn has_symlink_component(route: &Route, path: &Path) -> bool {
+    let Ok(rel) = path.strip_prefix(&route.site_dir) else {
+        return true;
+    };
+    let mut cur = route.site_dir.clone();
+    for comp in rel.components() {
+        cur.push(comp);
+        if std::fs::symlink_metadata(&cur)
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            return true;
+        }
+    }
+    false
+}
+
 fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
     headers
         .iter()
@@ -116,6 +139,9 @@ pub fn respond(
     let Mapped::File(mapped) = map_request(route, raw_target) else {
         return FileResponse::text(404, "Not Found", "not found");
     };
+    if has_symlink_component(route, &mapped.path) {
+        return FileResponse::text(404, "Not Found", "not found");
+    }
     let Ok(mut canon) = std::fs::canonicalize(&mapped.path) else {
         return FileResponse::text(404, "Not Found", "not found");
     };
@@ -137,11 +163,7 @@ pub fn respond(
         _ => return FileResponse::text(404, "Not Found", "not found"),
     };
     let size = meta.len();
-    let etag = meta
-        .modified()
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| format!("\"{size}-{}\"", d.as_secs()));
+    let etag = etag_for(size, meta.modified().ok());
 
     match evaluate_preconditions(
         etag.as_deref(),

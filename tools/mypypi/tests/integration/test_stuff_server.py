@@ -4,15 +4,14 @@ import hashlib
 import shutil
 import socket
 import subprocess
-import sys
 import time
 import zipfile
 from base64 import urlsafe_b64encode
 from pathlib import Path
+from urllib.request import urlopen
 
 import pytest
 from packaging.version import Version
-from urllib.request import urlopen
 
 import mypypi.store as store
 from mypypi.models import Target, ValidatedArtifact, WheelIdentity

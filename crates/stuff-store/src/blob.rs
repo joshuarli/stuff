@@ -32,7 +32,7 @@ pub fn sync_immutable_file(src: &Path, dst: &Path, expected_hex: &str, alg: Hash
             return Ok(());
         }
         return Err(Error::Integrity(format!(
-            "served file mismatch for {}: destination is stale or replaced",
+            "served blob mismatch for {expected_hex}: destination is stale or replaced ({})",
             dst.display()
         )));
     }
@@ -67,12 +67,15 @@ pub fn sync_immutable_file(src: &Path, dst: &Path, expected_hex: &str, alg: Hash
         }
         fs::rename(&tmp, dst).map_err(|_| {
             let _ = fs::remove_file(&tmp);
-            Error::Integrity(format!("served file changed during install: {}", dst.display()))
+            Error::Integrity(format!(
+                "served blob changed during install: {expected_hex} ({})",
+                dst.display()
+            ))
         })?;
         let installed = stream_file_hash(dst, alg)?;
         if installed != expected_hex {
             return Err(Error::Integrity(format!(
-                "served file changed during install: {}",
+                "served blob changed during install: {expected_hex} ({})",
                 dst.display()
             )));
         }
@@ -80,7 +83,7 @@ pub fn sync_immutable_file(src: &Path, dst: &Path, expected_hex: &str, alg: Hash
         let dst_hash = stream_file_hash(dst, alg)?;
         if dst_hash != expected_hex {
             return Err(Error::Integrity(format!(
-                "served file mismatch for {}: destination is stale or replaced",
+                "served blob mismatch for {expected_hex}: destination is stale or replaced ({})",
                 dst.display()
             )));
         }
@@ -133,7 +136,21 @@ mod tests {
         fs::write(&dst, b"other").unwrap();
         let err = sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap_err();
         assert!(matches!(err, Error::Integrity(_)));
+        assert!(format!("{err}").contains("served blob mismatch"));
         assert_eq!(fs::read(&dst).unwrap(), b"other");
+    }
+
+    #[test]
+    fn detects_replaced_served_copy() {
+        let dir = tempdir().unwrap();
+        let (src, hex) = fixture(dir.path(), "a.bin", b"payload", HashAlg::Sha256);
+        let dst = dir.path().join("out/a.bin");
+        sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap();
+        let evil = dir.path().join("evil.bin");
+        fs::write(&evil, b"tampered").unwrap();
+        fs::rename(&evil, &dst).unwrap();
+        let err = sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap_err();
+        assert!(format!("{err}").contains("served blob mismatch"));
     }
 
     #[test]
