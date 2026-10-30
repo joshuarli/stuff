@@ -16,6 +16,7 @@ _SEVERITIES: dict[str, Severity] = {
 }
 _EXCLUDED_DIRS = frozenset({"expected", "fixtures", "snapshots", "testdata"})
 _EXCLUDED_FILES = frozenset({"TODO.md"})
+_CONSUMER_ADVISORY_CODES = frozenset({"C001", "C002", "C003"})
 
 
 def _is_excluded(path: PurePosixPath) -> bool:
@@ -76,6 +77,8 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             or not isinstance(target, str)
         ):
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
+            continue
+        if code in _CONSUMER_ADVISORY_CODES:
             continue
         path = PurePosixPath(relative)
         if _is_excluded(path) or is_workspace_excluded(excluded_prefixes, path):

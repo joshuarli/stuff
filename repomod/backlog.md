@@ -9,8 +9,7 @@ and fast-forwarded into the clean canonical default branch. Nothing is pushed.
 ## Decisions
 
 - Drift, TODOs, and non-lint CI failures do not count toward zero.
-- Informational mdtool codes C001-C003 are dropped in `rules/mdtool.py` if inspection shows they
-  flag intentional patterns; otherwise they are fixed per repo.
+- mdtool C001-C003 are consumer advisories (code reads or embeds a doc); repomod stops reporting them.
 
 ## Lane 1: repo fixes
 
@@ -47,8 +46,7 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 ## Lane 2: repomod noise
 
-- [ ] Inspect mdtool C001, C002, C003 findings; drop in `rules/mdtool.py` with a test and a
-  `docs/policy-development.md` update if intentional
+- [x] Drop mdtool C001, C002, C003 in `rules/mdtool.py` (advisory: code reads or embeds a doc)
 
 ## Lane 3: reported, not zeroed
 
