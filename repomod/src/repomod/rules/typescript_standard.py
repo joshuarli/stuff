@@ -738,15 +738,10 @@ def _is_frontend(root: Path, package: dict[str, Any]) -> bool:
     dependencies = _dependency_versions(package)
     if any(
         name in dependencies
-        for name in ("react", "react-dom", "solid-js", "@solidjs/web", "vite", "vite-plugin-solid")
+        for name in ("react", "react-dom", "solid-js", "@solidjs/web", "vite-plugin-solid")
     ):
         return True
     markers = (
-        "index.html",
-        "vite.config.ts",
-        "vite.config.js",
-        "vite.config.mts",
-        "vite.config.mjs",
         "src/main.tsx",
         "src/index.tsx",
         "app/entry-client.tsx",

@@ -144,7 +144,8 @@ Block-style workflow version lists remain manual findings.
 stable Node.js and pnpm releases, and `pins refresh` updates those approvals. The rule checks
 runtime pins offline, requires TypeScript 7 or newer, strict type checking, Oxlint, and Vitest, and
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
-apps use Vite 8 and Solid 2.
+apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI framework
+(React or Solid) or contains JSX sources; a plain Vite bundle of vanilla TypeScript does not.
 
 `rust-deps` notes the fleet's minimal Rust stack. Libraries emit via `log`;
 binaries initialize with `env_logger`. Use `tracing` only when spans are needed,

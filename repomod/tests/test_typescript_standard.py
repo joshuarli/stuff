@@ -230,8 +230,7 @@ def test_frontend_app_requires_current_app_stack(tmp_path: Path) -> None:
 def test_frontend_app_reports_missing_solid_and_effect_without_affecting_library(
     tmp_path: Path,
 ) -> None:
-    make_project(tmp_path)
-    (tmp_path / "index.html").write_text("<main></main>\n", encoding="utf-8")
+    make_project(tmp_path, package_data(dependencies={"react": "^19.0.0"}))
 
     app_messages = [
         finding.message
@@ -246,6 +245,18 @@ def test_frontend_app_reports_missing_solid_and_effect_without_affecting_library
     assert any("solid-js" in message for message in app_messages)
     assert any("@solidjs/web" in message for message in app_messages)
     assert not any("effect" in message or "solid-js" in message or "vite" in message for message in library_messages)
+
+
+def test_vanilla_vite_app_does_not_require_solid(tmp_path: Path) -> None:
+    make_project(tmp_path, package_data(dependencies={"vite": "^8.0.0"}))
+    (tmp_path / "index.html").write_text("<main></main>\n", encoding="utf-8")
+
+    messages = [
+        finding.message
+        for finding in _typescript_stack_findings(tmp_path, repository("app", "typescript"))
+    ]
+
+    assert not any("solid" in message for message in messages)
 
 
 def test_strict_mode_can_be_inherited_from_local_jsonc_config(tmp_path: Path) -> None:
