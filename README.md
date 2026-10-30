@@ -30,6 +30,9 @@ rebuilds or republishes another's output.
 
 ## Develop
 
+High-level admin tasks are wrapped in the top-level `Makefile` (`make help`
+lists them: build, test, smoke, worker deploy, R2 sync, local serve).
+
 Rust (nightly-2026-09-15, see `rust-toolchain.toml`):
 
 ```sh
