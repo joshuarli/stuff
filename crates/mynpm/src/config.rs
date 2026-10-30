@@ -37,6 +37,27 @@ impl Target {
             Target::Linux(t) => format!("linux/{}/{}", t.cpu, t.libc),
         }
     }
+
+    pub fn os(&self) -> &'static str {
+        match self {
+            Target::Darwin(_) => "darwin",
+            Target::Linux(_) => "linux",
+        }
+    }
+
+    pub fn cpu(&self) -> &str {
+        match self {
+            Target::Darwin(t) => &t.cpu,
+            Target::Linux(t) => &t.cpu,
+        }
+    }
+
+    pub fn node(&self) -> &str {
+        match self {
+            Target::Darwin(t) => &t.node,
+            Target::Linux(t) => &t.node,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
