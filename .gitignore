@@ -1,6 +1,7 @@
 /target
 .work/
 .venv/
+.cloudflare/
 node_modules/
 __pycache__/
 *.pyc

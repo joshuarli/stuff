@@ -12,8 +12,11 @@ S3 done: stuff-store (site/blob/hash/fsync) + stuff-http (mime/cache/
 route/condition) extracted; mycrates publishes through them, 125 passed
 0 failed workspace-wide, clippy clean. S4 done: stuff-server on the
 mycrates blocking stack; real cargo/npm/uv install from it, 135 passed
-0 failed, clippy clean. Next: S5 worker + deploy config.
-Resume: design crates/stuff-worker on the same stack.
+0 failed, clippy clean. S5 done: stuff-worker core (asset-map, 7 tests)
++ wasm glue compiles to wasm32 (debug + release 1.1 M pre-opt);
+cf migrate validates wrangler.toml into committed cloudflare.config.ts
+with 3 R2 bindings. Next: S6 pipelines + docs.
+Resume: R2 upload wiring, per-registry CI, README/AGENTS.md.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
 everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
 Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
@@ -51,6 +54,11 @@ Owner (goal text + 2026-10-30 answers):
 - Apache-2.0 for the whole monorepo (mynpm gains LICENSE + package field).
 - CF worker ships built, owner deploys with `cf`; old repos stay live.
 - Transport: same crates mycrates has, no tokio (owner, S4).
+- Deploy: wrangler.toml is the source of truth; `cf migrate` generates the
+  committed cloudflare.config.ts + wrangler.config.ts (validated S5).
+  Entrypoint is worker-build output `build/worker/shim.mjs`. R2 layout per
+  registry is the published site root; the `current` symlink becomes a
+  marker object holding the generation id (strict `[A-Za-z0-9_-]{1,128}`).
 
 Prescribed (evidence, overrulable):
 - Import via `git fetch` + `git read-tree --prefix=` + merge; the `git
@@ -98,6 +106,8 @@ Delegated (bound + tie-break):
   148 M (+8%, under gate), `stuff-server` binary 560 K. Deliberate
   deviations from the TestServer reference: size+mtime etags (no
   per-request hashing) and directory index.html serving for PEP 503.
+- Release budget (S5): wasm32 release `stuff_worker.wasm` 1.1 M before
+  worker-build's wasm-opt; owner verifies the deployed bundle size.
 
 ## Sequence
 
