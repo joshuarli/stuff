@@ -43,6 +43,7 @@ pub struct Parsed {
     pub output: Option<String>,
     pub json: bool,
     pub smoke_executables: bool,
+    pub all_targets: bool,
     pub targets: Vec<String>,
     pub positionals: Vec<String>,
 }
@@ -88,6 +89,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut output = None;
     let mut json = false;
     let mut smoke = false;
+    let mut all_targets = false;
     let mut targets: Vec<String> = Vec::new();
     let mut positionals: Vec<String> = Vec::new();
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
@@ -115,6 +117,14 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 ));
             }
             smoke = true;
+            i += 1;
+            continue;
+        }
+        if arg == "--all-targets" {
+            if all_targets {
+                return Err(Error::Usage("--all-targets may only be specified once".to_string()));
+            }
+            all_targets = true;
             i += 1;
             continue;
         }
@@ -173,6 +183,9 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     }
     if smoke && command != Command::Validate {
         return Err(Error::Usage("--smoke-executables is only valid with validate".to_string()));
+    }
+    if all_targets && command != Command::InitConfig {
+        return Err(Error::Usage("--all-targets is only valid with init-config".to_string()));
     }
     if site_dir.is_some() && command != Command::Publish {
         return Err(Error::Usage("--site-dir is only valid with publish".to_string()));
@@ -268,6 +281,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         output,
         json,
         smoke_executables: smoke,
+        all_targets,
         targets,
         positionals,
     })
@@ -279,7 +293,7 @@ pub fn print_help() {
     println!("Usage: mynpm [--config path] [--state-dir path] [--site-dir path] [--target id] command");
     println!();
     println!("Commands:");
-    println!("  init-config --node-version V [--public-url URL] [--upstream-registry URL] [--output FILE]");
+    println!("  init-config --node-version V [--all-targets] [--public-url URL] [--upstream-registry URL] [--output FILE]");
     println!("  import-lock <lockfile> --project NAME [--target T]...");
     println!("  add <name@version>... --manager npm|pnpm [--target T]...");
     println!("  plan [--json]");
@@ -348,6 +362,22 @@ fn target_ids_for(config: &Config, requested: &[String]) -> Result<Vec<String>> 
     Ok(sorted)
 }
 
+type TargetSpec = (&'static str, &'static str, &'static str, Option<&'static str>);
+
+const DEFAULT_TARGETS: &[TargetSpec] = &[
+    ("mac-arm64", "darwin", "arm64", None),
+    ("linux-x64-gnu", "linux", "x64", Some("glibc")),
+];
+
+const ALL_TARGETS: &[TargetSpec] = &[
+    ("mac-arm64", "darwin", "arm64", None),
+    ("mac-x64", "darwin", "x64", None),
+    ("linux-x64-gnu", "linux", "x64", Some("glibc")),
+    ("linux-x64-musl", "linux", "x64", Some("musl")),
+    ("linux-arm64-gnu", "linux", "arm64", Some("glibc")),
+    ("linux-arm64-musl", "linux", "arm64", Some("musl")),
+];
+
 fn run_init_config(parsed: &Parsed) -> Result<()> {
     let node = parsed.node_version.clone().unwrap_or_default();
     if node.split('.').count() != 3
@@ -361,8 +391,17 @@ fn run_init_config(parsed: &Parsed) -> Result<()> {
         return Err(Error::Input("--public-url must be an HTTPS URL without credentials, query, or fragment".to_string()));
     }
     let base = format!("{}/", public_url.trim_end_matches('/'));
+    let targets = if parsed.all_targets { ALL_TARGETS } else { DEFAULT_TARGETS };
+    let target_lines: Vec<String> = targets
+        .iter()
+        .map(|(id, os, cpu, libc)| match libc {
+            Some(libc) => format!("    {{\"id\": \"{id}\", \"os\": \"{os}\", \"cpu\": \"{cpu}\", \"libc\": \"{libc}\", \"node\": \"{node}\"}}"),
+            None => format!("    {{\"id\": \"{id}\", \"os\": \"{os}\", \"cpu\": \"{cpu}\", \"node\": \"{node}\"}}"),
+        })
+        .collect();
     let text = format!(
-        "{{\n  \"schemaVersion\": 1,\n  \"publicBaseUrl\": \"{base}\",\n  \"upstreamRegistry\": \"{upstream}\",\n  \"targets\": [\n    {{\"id\": \"mac-arm64\", \"os\": \"darwin\", \"cpu\": \"arm64\", \"node\": \"{node}\"}},\n    {{\"id\": \"linux-x64-gnu\", \"os\": \"linux\", \"cpu\": \"x64\", \"libc\": \"glibc\", \"node\": \"{node}\"}}\n  ],\n  \"policy\": {{\n    \"externalSources\": \"reject\",\n    \"remoteInstallScripts\": \"report\",\n    \"allowLegacySha1Only\": false\n  }}\n}}\n"
+        "{{\n  \"schemaVersion\": 1,\n  \"publicBaseUrl\": \"{base}\",\n  \"upstreamRegistry\": \"{upstream}\",\n  \"targets\": [\n{}\n  ],\n  \"policy\": {{\n    \"externalSources\": \"reject\",\n    \"remoteInstallScripts\": \"report\",\n    \"allowLegacySha1Only\": false\n  }}\n}}\n",
+        target_lines.join(",\n")
     );
     crate::config::parse_config(&text)?;
     let output = parsed.output.clone().unwrap_or_else(|| "mynpm.json".to_string());
@@ -683,5 +722,22 @@ mod tests {
         assert!(parse_args(&args(&["validate", "--client", "npm"])).is_ok());
         assert!(parse_args(&args(&["add", "--manager", "npm", "a@1.0.0"])).is_ok());
         assert!(parse_args(&args(&["import-lock", "p.json"])).is_err());
+    }
+
+    #[test]
+    fn all_targets_config_lists_every_supported_platform() {
+        assert!(parse_args(&args(&["fetch", "--all-targets"])).is_err());
+        let dir = std::env::temp_dir().join(format!("mynpm-all-targets-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("mynpm.json");
+        let argv = args(&["init-config", "--node-version", "26.12.1", "--all-targets", "--output", out.to_str().unwrap()]);
+        run(&argv).unwrap();
+        let config = crate::config::parse_config(&std::fs::read_to_string(&out).unwrap()).unwrap();
+        let ids: Vec<&str> = config.targets.iter().map(|t| t.id()).collect();
+        assert_eq!(
+            ids,
+            ["mac-arm64", "mac-x64", "linux-x64-gnu", "linux-x64-musl", "linux-arm64-gnu", "linux-arm64-musl"]
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

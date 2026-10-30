@@ -1,0 +1,6 @@
+discover/pnpm-lock.yaml discover
+tansu/pnpm-lock.yaml tansu
+obsidian-ferrisearch/pnpm-lock.yaml obsidian-ferrisearch
+shadowdriver/ts/pnpm-lock.yaml shadowdriver-ts
+shadowdriver/grab-ts/pnpm-lock.yaml shadowdriver-grab-ts
+shadowdriver/ig-ts/pnpm-lock.yaml shadowdriver-ig-ts
