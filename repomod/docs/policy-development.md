@@ -60,7 +60,8 @@ runs the read-only documentation audit at `~/.local/bin/mdtool` for each reposit
 except repositories tagged `fork`, which are exempt. Both rules skip paths under directories
 excluded from the Cargo workspace, since vendored fork crates are not maintained documentation.
 mdtool's consumer advisories (C001, C002, C003) say that code reads or embeds a document, so they
-are not repository defects and `mdtool` does not report them.
+are not repository defects and `mdtool` does not report them. A README title that is the repository's own name is not a developer-topic
+heading (T003), so `node-build` is not flagged for containing "build".
 `generated-artifacts` reports tracked build outputs and requires ignore coverage for
 language artifact directories. Operating-system metadata files such as `.DS_Store` and
 `Thumbs.db` are environment noise covered by the global ignore file, so the rule does not

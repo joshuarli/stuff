@@ -47,12 +47,16 @@ def test_workspace_excluded_dirs_skip_vendored_forks(tmp_path: Path) -> None:
     assert workspace_excluded(tmp_path / "missing") == frozenset()
 
 
-def test_consumer_advisories_are_not_findings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_advisories_and_project_titles_are_not_findings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     records = [
         {"code": code, "severity": "warn", "file": "src/main.rs", "line": 1, "col": 1,
          "message": "advisory", "target": "README.md"}
         for code in ("C001", "C002", "C003")
     ] + [
+        {"code": "T003", "severity": "warn", "file": "README.md", "line": 1, "col": 1,
+         "message": "README has a developer-topic heading", "target": "# demo"},
+        {"code": "T003", "severity": "warn", "file": "README.md", "line": 5, "col": 1,
+         "message": "README has a developer-topic heading", "target": "## Build"},
         {"code": "L001", "severity": "error", "file": "README.md", "line": 3, "col": 1,
          "message": "destination does not exist", "target": "missing.md"}
     ]
@@ -66,5 +70,6 @@ def test_consumer_advisories_are_not_findings(tmp_path: Path, monkeypatch: pytes
     findings = _mdtool_findings(tmp_path, Repository(RepoId("acme", "demo"), ()))
 
     assert [finding.message for finding in findings] == [
-        "line 3:1: L001 destination does not exist: missing.md"
+        "line 5:1: T003 README has a developer-topic heading: ## Build",
+        "line 3:1: L001 destination does not exist: missing.md",
     ]

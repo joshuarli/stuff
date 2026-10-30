@@ -18,10 +18,10 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 - [x] joshuarli/shadowdriver (103 -> 0, 5 local commits)
 - [ ] laputa-systems/python-build (106)
 - [x] joshuarli/discover (51 -> 0, 2 local commits)
-- [ ] laputa-systems/node-build (32)
+- [ ] laputa-systems/node-build (32 -> 1): binary-release-tags (YYYYMMDD tags per docs/RELEASE.md) pending decision
 - [x] joshuarli/obsidian-ferrisearch (22 -> 0; binary-release-tags ignored via override)
 - [x] joshuarli/toolbox (16 -> 0, on fix branch)
-- [ ] laputa-systems/chromium-build (16)
+- [ ] laputa-systems/chromium-build (16 -> 7): R005 x6 legit external paths, binary-release-tags pending decision
 - [x] laputa-systems/h12tiny (11 -> 0)
 - [ ] joshuarli/tansu (9 -> 5): needs catalog tags javascript+shell; typescript-stack Solid rules are a policy call (vanilla TS frontend)
 - [x] laputa-systems/zzz (8 -> 0; release asset names changed)

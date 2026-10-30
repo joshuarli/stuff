@@ -23,6 +23,10 @@ def _is_excluded(path: PurePosixPath) -> bool:
     return path.name in _EXCLUDED_FILES or not _EXCLUDED_DIRS.isdisjoint(path.parent.parts)
 
 
+def _is_project_title(code: str, target: str, repository: Repository) -> bool:
+    return code == "T003" and target.lstrip("#").strip().casefold() == repository.id.name.casefold()
+
+
 def _operational(repository: Repository, message: str) -> Finding:
     return operational(repository, "mdtool", None, message)
 
@@ -78,7 +82,7 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
         ):
             findings.append(_operational(repository, "mdtool returned a finding with invalid fields"))
             continue
-        if code in _CONSUMER_ADVISORY_CODES:
+        if code in _CONSUMER_ADVISORY_CODES or _is_project_title(code, target, repository):
             continue
         path = PurePosixPath(relative)
         if _is_excluded(path) or is_workspace_excluded(excluded_prefixes, path):
