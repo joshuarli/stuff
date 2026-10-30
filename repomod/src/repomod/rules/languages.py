@@ -385,11 +385,14 @@ def _source_present(root: Path, patterns: tuple[str, ...], suffixes: frozenset[s
     return False
 
 
-def _shallow_source_patterns(directories: tuple[str, ...], suffixes: tuple[str, ...]) -> tuple[str, ...]:
-    patterns = [f"*.{suffix}" for suffix in suffixes]
+def _shallow_source_patterns(
+    directories: tuple[str, ...], suffixes: tuple[str, ...], base: str = ""
+) -> tuple[str, ...]:
+    prefix = f"{base}/" if base else ""
+    patterns = [f"{prefix}*.{suffix}" for suffix in suffixes]
     for directory in directories:
         patterns.extend(
-            f"{directory}/{'/'.join('*' for _ in range(depth))}.{suffix}"
+            f"{prefix}{directory}/{'/'.join('*' for _ in range(depth))}.{suffix}"
             for depth in range(1, 4)
             for suffix in suffixes
         )
@@ -419,13 +422,20 @@ def _language_sources(root: Path) -> set[str]:
     observed = set()
     javascript_packages = _js_manifests(root)
     if javascript_packages:
-        javascript_patterns = _shallow_source_patterns(
-            ("src", "web", "app", "packages", "extensions"),
-            ("js", "jsx", "mjs", "cjs"),
+        bases = tuple(
+            "" if manifest.parent == root else manifest.parent.relative_to(root).as_posix()
+            for manifest in javascript_packages
         )
-        typescript_patterns = _shallow_source_patterns(
-            ("src", "web", "app", "packages", "extensions"),
-            ("ts", "tsx", "mts", "cts"),
+        directories = ("src", "web", "app", "packages", "extensions")
+        javascript_patterns = tuple(
+            pattern
+            for base in bases
+            for pattern in _shallow_source_patterns(directories, ("js", "jsx", "mjs", "cjs"), base)
+        )
+        typescript_patterns = tuple(
+            pattern
+            for base in bases
+            for pattern in _shallow_source_patterns(directories, ("ts", "tsx", "mts", "cts"), base)
         )
         if _source_present(root, javascript_patterns, frozenset({".js", ".jsx", ".mjs", ".cjs"})):
             observed.add("javascript")

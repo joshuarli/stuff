@@ -3,7 +3,12 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from repomod.rules.languages import _javascript_findings, _python_findings, _rust_findings
+from repomod.rules.languages import (
+    _javascript_findings,
+    _language_sources,
+    _python_findings,
+    _rust_findings,
+)
 from repomod.types import RepoId, Repository
 
 
@@ -114,3 +119,13 @@ def test_python_build_nested_first_party_sources_need_no_root_package_manifests(
     assert (root / "buildsys" / "targets.py").is_file()
     assert _rust_findings(root, repository) == []
     assert _python_findings(root, repository) == []
+
+
+def test_typescript_source_is_found_in_nested_package_directories(tmp_path: Path) -> None:
+    package = tmp_path / "app-ts"
+    (package / "src").mkdir(parents=True)
+    (package / "package.json").write_text("{}\n", encoding="utf-8")
+    (package / "src" / "index.ts").write_text("export {};\n", encoding="utf-8")
+
+    assert "typescript" in _language_sources(tmp_path)
+    assert "javascript" not in _language_sources(tmp_path)
