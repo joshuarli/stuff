@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -28,6 +29,7 @@ from repomod.audit import (
     _resolve_latest,
     _rust_direct_dependencies,
     _upgrade_tasks,
+    _version_key,
     _write_cache,
 )
 from repomod.rules.python_standard import load_approved_python_tool_versions
@@ -104,6 +106,63 @@ def _rust_version_reqs(root: Path) -> dict[str, str | None]:
     return reqs
 
 
+_SPECIFIER_CLAUSE = re.compile(r"\s*(===|==|!=|~=|<=|>=|<|>)\s*([0-9A-Za-z.*+!_-]+)\s*")
+_REQUIREMENT_SPECIFIERS = re.compile(
+    r"^\s*[A-Za-z0-9_.-]+\s*(?:\[[^\]]*\])?\s*\(?\s*([^;()]*?)\s*\)?\s*(?:;.*)?$"
+)
+
+
+def _python_specifiers(root: Path) -> dict[str, list[str]]:
+    specifiers: dict[str, list[str]] = {}
+    specs, _, _ = _python_direct_specs(root)
+    for spec in specs:
+        name = _pep508_name(spec)
+        match = _REQUIREMENT_SPECIFIERS.match(spec)
+        if name is not None and match is not None and match.group(1):
+            specifiers.setdefault(name, []).append(match.group(1))
+    return specifiers
+
+
+def _padded(left: tuple[int, ...], right: tuple[int, ...]) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    width = max(len(left), len(right))
+    return left + (0,) * (width - len(left)), right + (0,) * (width - len(right))
+
+
+def _specifier_admits(specifier: str, version: str) -> bool:
+    candidate = _version_key(version)
+    for clause in specifier.split(","):
+        match = _SPECIFIER_CLAUSE.fullmatch(clause)
+        if match is None:
+            raise ValueError(f"unsupported Python version specifier {clause.strip()!r}")
+        operator, target = match.groups()
+        if target.endswith(".*"):
+            prefix = _version_key(target.removesuffix(".*"))
+            matches_prefix = candidate[: len(prefix)] == prefix
+            if matches_prefix != (operator == "=="):
+                return False
+            continue
+        left, right = _padded(candidate, _version_key(target))
+        if operator in {"==", "==="}:
+            admitted = left == right
+        elif operator == "!=":
+            admitted = left != right
+        elif operator == "<":
+            admitted = left < right
+        elif operator == "<=":
+            admitted = left <= right
+        elif operator == ">":
+            admitted = left > right
+        elif operator == ">=":
+            admitted = left >= right
+        else:
+            floor = _version_key(target)
+            ceiling = floor[:-1] if len(floor) > 1 else floor
+            admitted = left >= right and candidate[: len(ceiling)] == ceiling
+        if not admitted:
+            return False
+    return True
+
+
 def _outdated_findings(
     root: Path,
     repository: Repository,
@@ -126,6 +185,7 @@ def _outdated_findings(
         direct, offline=False, refresh=False, cache=cache, now=now, fetcher=fetcher
     )
     rust_reqs = _rust_version_reqs(root)
+    python_specifiers = _python_specifiers(root)
     findings: list[Finding] = []
     unresolved: set[str] = set()
     for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
@@ -138,6 +198,11 @@ def _outdated_findings(
                 req = rust_reqs.get(_normalize_rust_name(item.name))
                 if req is not None and not _cargo_req_satisfies(req, newest):
                     fixable = False
+            if item.ecosystem == "pypi":
+                fixable = all(
+                    _specifier_admits(specifier, newest)
+                    for specifier in python_specifiers.get(item.name, [])
+                )
             findings.append(
                 violation(
                     repository,

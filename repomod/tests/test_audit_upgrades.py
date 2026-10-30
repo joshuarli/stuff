@@ -560,3 +560,49 @@ def test_policy_pinned_python_tools_are_not_outdated(tmp_path: Path) -> None:
     assert [finding.message for finding in findings] == [
         "pypi:requests 2.0.0 is outdated; latest is 9.9.9"
     ]
+
+
+@pytest.mark.parametrize(
+    ("specifier", "version", "admitted"),
+    [
+        ("==0.17.2", "0.17.3", False),
+        ("==0.17.2", "0.17.2", True),
+        ("===0.17.2", "0.17.3", False),
+        ("==0.17.*", "0.17.9", True),
+        ("==0.17.*", "0.18.0", False),
+        ("!=0.17.3", "0.17.3", False),
+        (">=1.0,<2", "2.1.0", False),
+        (">=1.0,<2", "1.9.0", True),
+        ("<=2.0", "2.0.0", True),
+        (">1", "1.0.0", False),
+        ("~=1.4.2", "1.4.9", True),
+        ("~=1.4.2", "1.5.0", False),
+        ("~=1.4", "1.9", True),
+        ("~=1.4", "2.0", False),
+    ],
+)
+def test_python_specifiers_follow_pep_440(specifier: str, version: str, admitted: bool) -> None:
+    from repomod.rules.audit_upgrades import _specifier_admits
+
+    assert _specifier_admits(specifier, version) is admitted
+
+
+def test_python_upgrade_blocked_by_specifier_is_manual(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "1.0.0"\n'
+        'dependencies = ["pinned[extra]==1.0.0 ; python_version >= \'3.15\'", "ranged>=1,<2", "open"]\n',
+        encoding="utf-8",
+    )
+    (root / "uv.lock").write_text(
+        'version = 1\n[[package]]\nname = "pinned"\nversion = "1.0.0"\n'
+        '[[package]]\nname = "ranged"\nversion = "1.0.0"\n'
+        '[[package]]\nname = "open"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    latest = {"pinned": "1.1.0", "ranged": "1.5.0", "open": "3.0.0"}
+    findings = _outdated_findings(
+        root, repository("tool", "python"), {}, NOW, lambda _e, name: latest[name]
+    )
+    fixable = {finding.message.split()[0]: finding.fixable for finding in findings}
+    assert fixable == {"pypi:pinned": False, "pypi:ranged": True, "pypi:open": True}
