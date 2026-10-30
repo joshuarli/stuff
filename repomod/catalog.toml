@@ -60,18 +60,18 @@ toolbox = ["private-tool", "python"]
 [repos."laputa-systems"]
 bbtree = ["library", "rust", "fork"]
 chromium-build = ["build", "python"]
-deser = ["library", "rust", "fork"]
+deser = ["library", "python", "rust", "shell", "fork"]
 diff-pretty = ["tool"]
 e = ["tool"]
 fastermod = ["tool"]
-fd = ["tool", "fork"]
+fd = ["tool", "rust", "shell", "fork"]
 fdu = ["tool"]
 # fs = ["tool"]
 fz = ["tool"]
 git-build = ["tool", "c"]
 h12tiny = ["library", "crates-io", "rust", "shell"]
 hi-lite = ["library", "crates-io", "rust"]
-jaq = ["tool", "fork"]
+jaq = ["tool", "rust", "shell", "fork"]
 # laputa = ["system", "xsh"]
 # libudev-zero = ["library"]
 # llvm-clang-crabc = ["build"]
@@ -95,4 +95,15 @@ zzz = ["tool", "linux"]
 # Ships an Obsidian plugin zip, not a standalone native binary, so the binary prerelease contract
 # does not describe its release workflow.
 [overrides."joshuarli/obsidian-ferrisearch"]
+ignore = ["binary-release-tags"]
+
+# Build-recipe repositories publish build artifacts, not a standalone native tool, so the binary
+# prerelease contract does not describe their release workflows.
+[overrides."laputa-systems/chromium-build"]
+ignore = ["binary-release-tags"]
+
+[overrides."laputa-systems/node-build"]
+ignore = ["binary-release-tags"]
+
+[overrides."laputa-systems/python-build"]
 ignore = ["binary-release-tags"]

@@ -16,33 +16,42 @@ and fast-forwarded into the clean canonical default branch. Nothing is pushed.
 Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 - [x] joshuarli/shadowdriver (103 -> 0, 5 local commits)
-- [ ] laputa-systems/python-build (106)
+- [ ] laputa-systems/python-build (106 -> 55): see Open decisions
 - [x] joshuarli/discover (51 -> 0, 2 local commits)
-- [ ] laputa-systems/node-build (32 -> 1): binary-release-tags (YYYYMMDD tags per docs/RELEASE.md) pending decision
+- [x] laputa-systems/node-build (32 -> 0; binary-release-tags ignored via override)
 - [x] joshuarli/obsidian-ferrisearch (22 -> 0; binary-release-tags ignored via override)
 - [x] joshuarli/toolbox (16 -> 0, on fix branch)
-- [ ] laputa-systems/chromium-build (16 -> 7): R005 x6 legit external paths, binary-release-tags pending decision
+- [ ] laputa-systems/chromium-build (16 -> 6): R005 x6 are legit external paths; see Open decisions
 - [x] laputa-systems/h12tiny (11 -> 0)
-- [ ] joshuarli/tansu (9 -> 5): needs catalog tags javascript+shell; typescript-stack Solid rules are a policy call (vanilla TS frontend)
+- [ ] joshuarli/tansu (9 -> 3): typescript-stack Solid rules; see Open decisions
 - [x] laputa-systems/zzz (8 -> 0; release asset names changed)
 - [x] joshuarli/ish (6 -> 0)
-- [ ] joshuarli/pytest-parallel (5)
-- [ ] laputa-systems/deser (5)
-- [ ] laputa-systems/git-build (4)
-- [ ] joshuarli/mactop (3)
-- [ ] laputa-systems/fz (3)
-- [ ] laputa-systems/jaq (3)
-- [ ] laputa-systems/ptytest (3)
-- [ ] laputa-systems/fd (2)
-- [ ] laputa-systems/rust-brotli (2)
-- [ ] laputa-systems/srv (2)
+- [x] joshuarli/pytest-parallel (5 -> 0)
+- [ ] laputa-systems/deser (5 -> 1)
+- [x] laputa-systems/git-build (4 -> 0)
+- [x] joshuarli/mactop (3 -> 0)
+- [x] laputa-systems/fz (3 -> 0)
+- [x] laputa-systems/jaq (3 -> 0)
+- [ ] laputa-systems/ptytest (3 -> 1): R003 quotes another repo's cargo package
+- [x] laputa-systems/fd (2 -> 0)
+- [x] laputa-systems/rust-brotli (2 -> 0)
+- [x] laputa-systems/srv (2 -> 0)
 - [ ] laputa-systems/tm (2): dirty checkout, leave until clean
-- [ ] laputa-systems/vault (2)
-- [ ] joshuarli/defuddle-rs (1)
-- [ ] laputa-systems/bbtree (1)
-- [ ] laputa-systems/fdu (1)
-- [ ] laputa-systems/ntpd-rs (1)
-- [ ] laputa-systems/rustybench (1)
+- [x] laputa-systems/vault (2 -> 0)
+- [x] joshuarli/defuddle-rs (1 -> 0)
+- [ ] laputa-systems/bbtree (1): rust-toolchain pin conflicts with Verus nightly; owner decision
+- [x] laputa-systems/fdu (1 -> 0)
+- [ ] laputa-systems/ntpd-rs (1): rust-toolchain.toml symlink to stable channel; owner decision
+- [x] laputa-systems/rustybench (1 -> 0)
+
+## Open decisions
+
+- Per-code mdtool ignore (`mdtool:R005`) in catalog overrides: needed for chromium-build R005 x6 and
+  python-build D001/P002/R005/R001 (vendored and mirrored docs).
+- tansu: narrow `_is_frontend` to framework dependencies, or ignore `typescript-stack`.
+- python-build: approve `cachix/install-nix-action` in `actions.toml`; AGENTS.md T002 needs owner restructuring.
+- ntpd-rs, bbtree: rust-toolchain rule vs project nightly/stable pins.
+- ptytest R003: command quotes another repo's package.
 
 ## Lane 2: repomod noise
 
