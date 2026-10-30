@@ -67,6 +67,10 @@ heading (T003), so `node-build` is not flagged for containing "build".
 `run` command when the lint workflow also runs it and the two workflows share a trigger event. Lookalikes such as
 `make lint-fix`, `echo make lint`, or step names do not count, and a workflow whose triggers cannot be read is
 skipped. The finding is not fixable because choosing which workflow keeps the step is a human decision.
+`mirrored-docs` compares `.agents/skills` with `.claude/skills` and `.agents/agents` with `.claude/agents`.
+For each path that is a regular file in both trees with identical bytes it reports the `.claude` copy; the
+owner makes one tree a symlink to the other. Symlinks, files present in only one tree, and files that differ
+are not reported, and repositories tagged `fork` are skipped. The finding is not fixable.
 `generated-artifacts` reports tracked build outputs and requires ignore coverage for
 language artifact directories. Operating-system metadata files such as `.DS_Store` and
 `Thumbs.db` are environment noise covered by the global ignore file, so the rule does not

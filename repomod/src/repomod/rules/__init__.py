@@ -11,6 +11,7 @@ from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
 from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
+from repomod.rules.mirrored_docs import mirrored_docs_rules
 from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.release import release_rules
 from repomod.rules.rust_profiles import rust_release_profiles_rules
@@ -41,6 +42,7 @@ def rules() -> tuple[Rule, ...]:
         *language_rules(),
         *lint_rules(),
         *mdtool_rules(),
+        *mirrored_docs_rules(),
         *python_standard_rules(),
         *template_rules(),
         *typescript_standard_rules(),
