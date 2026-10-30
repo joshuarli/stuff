@@ -649,8 +649,8 @@ pub fn validate_wheel_metadata_at(
     let wheel_headers = parse_email_headers(&wheel_bytes);
     let meta_name = headers_one(&metadata, "Name").ok_or_else(|| integ("wheel has invalid package metadata".to_string()))?;
     let meta_version = headers_one(&metadata, "Version").ok_or_else(|| integ("wheel has invalid package metadata".to_string()))?;
-    let meta_pkg = PackageVersion::parse(&canonicalize_name(&meta_name), &meta_version)
-        .map_err(|_| integ("wheel has invalid package metadata".to_string()))?;
+    let meta_pkg =
+        crate::wheel_metadata::metadata_identity(&meta_name, &meta_version).map_err(integ)?;
     if meta_pkg != *package {
         return Err(integ("wheel filename and METADATA identity differ".to_string()));
     }

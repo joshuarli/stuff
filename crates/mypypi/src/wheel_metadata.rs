@@ -1,6 +1,16 @@
 #![forbid(unsafe_code)]
 
-use crate::models::canonicalize_name;
+use crate::models::{canonicalize_name, PackageVersion};
+
+/// METADATA `(name, version)` identity with PyPA name canonicalization.
+/// Upstream wheels keep the project's original capitalization in `Name`
+/// (e.g. Pygments) while filenames are normalized. Names are
+/// case-insensitive, so parsing canonicalizes first; versions must already
+/// be canonical. Callers enforce singleton presence with their own errors.
+pub fn metadata_identity(name: &str, version: &str) -> Result<PackageVersion, String> {
+    PackageVersion::parse(&canonicalize_name(name), version)
+        .map_err(|_| "wheel has invalid package metadata".to_string())
+}
 
 pub fn matches_dist_info(package_name: &str, version: &pep440_rs::Version, directory: &str) -> bool {
     let suffix = ".dist-info";
@@ -31,5 +41,12 @@ mod tests {
         assert!(!matches_dist_info("other", &v, "validation_fixture-1.0.dist-info"));
         assert!(!matches_dist_info("validation-fixture", &v, "validation_fixture-1.1.dist-info"));
         assert!(!matches_dist_info("validation-fixture", &v, "validation_fixture-1.0.data"));
+    }
+
+    #[test]
+    fn identity_canonicalizes_name() {
+        let id = metadata_identity("Pkg", "1.0").unwrap();
+        assert_eq!(id.name, "pkg");
+        assert!(metadata_identity("Pkg", "not-a-version").is_err());
     }
 }

@@ -293,8 +293,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     if purelib[0] != "true" && purelib[0] != "false" {
         return Err(fail("wheel Root-Is-Purelib must be true or false".to_string()));
     }
-    let parsed_pkg = PackageVersion::parse(&canonicalize_name(&meta_names[0]), &meta_pkg_versions[0])
-        .map_err(|_| fail("wheel has invalid package metadata".to_string()))?;
+    let parsed_pkg =
+        crate::wheel_metadata::metadata_identity(&meta_names[0], &meta_pkg_versions[0]).map_err(fail)?;
     if parsed_pkg != package {
         return Err(fail("wheel filename and METADATA identity differ".to_string()));
     }
