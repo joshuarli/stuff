@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from repomod.catalog import CatalogError, remove_repository, repository_path
+from repomod.clean import removal_blocker
 from repomod.git import (
     GitError,
     clone_repository,
@@ -23,7 +24,7 @@ from repomod.git import (
     status,
     upstream_url,
 )
-from repomod.types import Catalog, GitStatus, RemoteRepository, RepoId, Repository
+from repomod.types import Catalog, RemoteRepository, RepoId, Repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,25 +56,6 @@ def _sync_upstream(path: Path, remote: RemoteRepository) -> str | None:
     return f"upstream {remote.parent} fetched"
 
 
-def _removal_blocker(current: GitStatus, stashes: int) -> str | None:
-    if current.dirty:
-        return "checkout has uncommitted changes"
-    if current.detached:
-        return "HEAD is detached"
-    if current.branch is None:
-        return "no branch is checked out"
-    if current.upstream is None:
-        return f"branch {current.branch} has no upstream"
-    if current.ahead is None:
-        return f"branch {current.branch} has an unknown number of unpushed commits"
-    if current.ahead:
-        return f"branch {current.branch} is {current.ahead} commits ahead of {current.upstream}"
-    if stashes:
-        noun = "entry" if stashes == 1 else "entries"
-        return f"repository has {stashes} stash {noun}"
-    return None
-
-
 def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bool) -> SyncResult:
     name = str(repo.id)
     try:
@@ -89,7 +71,7 @@ def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bo
                 return SyncResult(name, "failed", current.error or "invalid checkout", True)
             if not current.origin_valid:
                 return SyncResult(name, "failed", current.error or "invalid origin", True)
-            blocker = _removal_blocker(current, stash_count(path))
+            blocker = removal_blocker(current, stash_count(path))
             if blocker is not None:
                 return SyncResult(
                     name, "skipped", f"{blocker}; refusing to remove archived checkout", True
@@ -114,7 +96,7 @@ def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bo
                     f"{current.error or 'invalid origin'}; refusing to remove an unverified checkout",
                     True,
                 )
-            blocker = _removal_blocker(current, stash_count(path))
+            blocker = removal_blocker(current, stash_count(path))
             if blocker is not None:
                 return SyncResult(
                     name, "skipped", f"{blocker}; refusing to remove archived checkout", True
