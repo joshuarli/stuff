@@ -1,5 +1,5 @@
 # stuff worker deployment (Cloudflare).
-# Owner flow: cf deploy (builds via worker-build, provisions R2 with
+# Owner flow: cf deploy (builds wasm via npm run build:wasm, provisions R2 with
 # --provision on first deploy). Do not edit cloudflare.config.ts or
 # wrangler.config.ts by hand; change wrangler.toml and re-run cf migrate.
 # Bucket names below are the intended names. R2 object layout per
