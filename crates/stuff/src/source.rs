@@ -64,6 +64,10 @@ pub fn fetch_catalog(base_url: &str) -> Result<stuff_catalog::Catalog, String> {
 }
 
 pub fn fetch_bytes(url: &str) -> Result<(u16, Vec<u8>), String> {
+    fetch_bytes_capped(url, MAX_CATALOG_BYTES)
+}
+
+pub fn fetch_bytes_capped(url: &str, cap: u64) -> Result<(u16, Vec<u8>), String> {
     check_url_security(url)?;
     let client = Client::builder().connect_timeout(FETCH_TIMEOUT).build();
     let req = http::Request::builder()
@@ -86,7 +90,7 @@ pub fn fetch_bytes(url: &str) -> Result<(u16, Vec<u8>), String> {
                 break;
             }
             body.extend_from_slice(&buf[..n]);
-            if body.len() as u64 > MAX_CATALOG_BYTES {
+            if body.len() as u64 > cap {
                 return Err(format!("response exceeds size limit: {url}"));
             }
         }

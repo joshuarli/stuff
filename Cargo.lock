@@ -1289,9 +1289,11 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 name = "stuff"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "deser-json",
  "deser-value",
  "h12tiny-client-sync",
+ "sha2",
  "stuff-catalog",
  "tempfile",
  "url",

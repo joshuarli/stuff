@@ -44,6 +44,7 @@ pub struct Parsed {
     pub versions: bool,
     pub json: bool,
     pub remote: bool,
+    pub sample_artifacts: bool,
     pub cargo_base: Option<String>,
     pub npm_base: Option<String>,
     pub pypi_base: Option<String>,
@@ -82,6 +83,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed, String> {
         versions: false,
         json: false,
         remote: false,
+        sample_artifacts: false,
         cargo_base: None,
         npm_base: None,
         pypi_base: None,
@@ -98,6 +100,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed, String> {
             "--versions" => parsed.versions = true,
             "--json" => parsed.json = true,
             "--remote" => parsed.remote = true,
+            "--sample-artifacts" => parsed.sample_artifacts = true,
             "--registry" => {
                 let value = args.next().ok_or_else(|| usage_error("--registry requires a value"))?;
                 if seen_registry {
@@ -215,7 +218,7 @@ pub fn print_help() {
     println!("     [--cargo-dir DIR --npm-dir DIR --pypi-dir DIR]");
     println!("  search <query> [--registry cargo|npm|pypi] [--json] [sources...]");
     println!("  diff <before.json> <after.json> [--json]");
-    println!("  doctor [--remote|--cargo-dir DIR ...] [--expected-generation ID]");
+    println!("  doctor [--remote|--cargo-dir DIR ...] [--expected-generation ID] [--sample-artifacts]");
     println!("  render --output index.html [sources...]");
     println!();
     println!("Sources default to the live registries (no credentials needed).");

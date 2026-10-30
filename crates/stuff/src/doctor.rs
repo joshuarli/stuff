@@ -125,6 +125,7 @@ impl Check {
 pub fn run_doctor(parsed: &crate::cli::Parsed) -> Result<bool, String> {
     let sources = RegistrySources::from_parsed(parsed);
     let filter = parsed.registry_filter();
+    let sample = parsed.sample_artifacts;
     let mut checks: Vec<Check> = Vec::new();
     let catalogs = match load_catalogs(&sources, filter) {
         Ok(c) => c,
@@ -153,9 +154,9 @@ pub fn run_doctor(parsed: &crate::cli::Parsed) -> Result<bool, String> {
             _ => sources.pypi_dir.is_some(),
         };
         if is_local {
-            run_local_checks(&mut checks, name, catalog, &sources);
+            run_local_checks(&mut checks, name, catalog, &sources, sample);
         } else {
-            run_remote_checks(&mut checks, name, catalog, &sources);
+            run_remote_checks(&mut checks, name, catalog, &sources, sample);
         }
     }
     let ok = checks.iter().all(|c| c.ok);
@@ -185,6 +186,7 @@ fn run_local_checks(
     name: &str,
     catalog: &stuff_catalog::Catalog,
     sources: &RegistrySources,
+    sample: bool,
 ) {
     let site_dir = site_dir_for(name, sources);
     let gen_dir = match generation_dir_for(&site_dir, catalog) {
@@ -238,6 +240,9 @@ fn run_local_checks(
             }
         }
     }
+    if sample && !catalog.packages.is_empty() {
+        checks.push(sample_local(name, catalog, &site_dir, &gen_dir));
+    }
 }
 
 fn run_remote_checks(
@@ -245,6 +250,7 @@ fn run_remote_checks(
     name: &str,
     catalog: &stuff_catalog::Catalog,
     sources: &RegistrySources,
+    sample: bool,
 ) {
     let base = match name {
         "cargo" => sources.cargo_base.trim_end_matches('/').to_string(),
@@ -303,11 +309,473 @@ fn run_remote_checks(
             }
         }
     }
+    if sample && !catalog.packages.is_empty() {
+        checks.push(sample_remote(name, catalog, &base));
+    }
 }
 
 fn report(checks: &[Check]) {
     for check in checks {
         let status = if check.ok { "ok" } else { "FAIL" };
         println!("{status}: {} — {}", check.name, check.detail);
+    }
+}
+
+const SAMPLE_CAP: u64 = 300 * 1024 * 1024;
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    h.update(bytes);
+    format!("{:x}", h.finalize())
+}
+
+fn sha512_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha512::new();
+    h.update(bytes);
+    format!("{:x}", h.finalize())
+}
+
+fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
+    use sha2::Digest;
+    use std::io::Read;
+    let mut file = std::fs::File::open(path).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let mut h = sha2::Sha256::new();
+    let mut buf = [0u8; 65536];
+    loop {
+        let n = file.read(&mut buf).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(format!("{:x}", h.finalize()))
+}
+
+fn file_sha512_hex(path: &std::path::Path) -> Result<String, String> {
+    use sha2::Digest;
+    use std::io::Read;
+    let mut file = std::fs::File::open(path).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let mut h = sha2::Sha512::new();
+    let mut buf = [0u8; 65536];
+    loop {
+        let n = file.read(&mut buf).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(format!("{:x}", h.finalize()))
+}
+
+fn json_field<'a>(value: &'a deser_value::Value, key: &str) -> Option<&'a deser_value::Value> {
+    value.as_map()?.get(key)
+}
+
+fn json_str<'a>(value: &'a deser_value::Value, key: &str) -> Option<&'a str> {
+    json_field(value, key)?.as_str()
+}
+
+fn parse_json(text: &str, what: &str) -> Result<deser_value::Value, String> {
+    deser_json::from_str(text).map_err(|e| format!("{what} is not valid JSON: {e}"))
+}
+
+fn first_index_line(text: &str) -> Option<String> {
+    text.lines().map(str::trim).find(|l| !l.is_empty()).map(|l| l.to_string())
+}
+
+fn expand_dl(template: &str, name: &str, vers: &str, cksum: &str) -> String {
+    let lower = name.to_lowercase();
+    let shard = cargo_shard(&lower);
+    let prefix = shard.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+    template
+        .replace("{crate}", name)
+        .replace("{version}", vers)
+        .replace("{prefix}", prefix)
+        .replace("{lowerprefix}", &prefix.to_lowercase())
+        .replace("{sha256-checksum}", cksum)
+}
+
+fn sample_local(
+    name: &str,
+    catalog: &stuff_catalog::Catalog,
+    site_dir: &std::path::Path,
+    gen_dir: &std::path::Path,
+) -> Check {
+    let label = format!("{name} sample artifact");
+    let first = &catalog.packages[0];
+    match name {
+        "cargo" => {
+            let shard = cargo_shard(&first.name.to_lowercase());
+            let mut line = None;
+            for view in ["registry", "crates-io"] {
+                let path = gen_dir.join(view).join(&shard);
+                if let Ok(text) = std::fs::read_to_string(&path)
+                    && let Some(first_line) = first_index_line(&text) {
+                        line = Some(first_line);
+                        break;
+                    }
+            }
+            let Some(line) = line else {
+                return Check::fail(label, format!("no index entry for {}", first.name));
+            };
+            let entry = match parse_json(&line, "index entry") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let (Some(cksum), Some(vers)) = (json_str(&entry, "cksum"), json_str(&entry, "vers")) else {
+                return Check::fail(label, "index entry has no cksum/vers".to_string());
+            };
+            let blob = site_dir.join("blobs").join(format!("{cksum}.crate"));
+            match file_sha256_hex(&blob) {
+                Ok(actual) if actual == cksum => {
+                    Check::pass(label, format!("{} {vers} hash matches", first.name))
+                }
+                Ok(actual) => Check::fail(label, format!("{} {vers} hash mismatch: {actual}", first.name)),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+        "npm" => {
+            let text = match std::fs::read_to_string(gen_dir.join("manifest.json")) {
+                Ok(t) => t,
+                Err(e) => return Check::fail(label, format!("could not read manifest.json: {e}")),
+            };
+            let manifest = match parse_json(&text, "manifest.json") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let digest = manifest
+                .as_map()
+                .and_then(|m| m.get("artifacts"))
+                .and_then(|v| v.as_seq())
+                .and_then(|s| s.iter().next())
+                .and_then(|a| json_field(a, "artifact"))
+                .and_then(|a| json_str(a, "sha512"));
+            let Some(digest) = digest else {
+                return Check::fail(label, "manifest has no artifacts".to_string());
+            };
+            let tarball = site_dir.join("tarballs").join(format!("{digest}.tgz"));
+            match file_sha512_hex(&tarball) {
+                Ok(actual) if actual == digest => {
+                    Check::pass(label, format!("tarballs/{digest}.tgz hash matches"))
+                }
+                Ok(actual) => Check::fail(label, format!("tarballs/{digest}.tgz hash mismatch: {actual}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+        _ => {
+            let text = match std::fs::read_to_string(gen_dir.join("manifest.json")) {
+                Ok(t) => t,
+                Err(e) => return Check::fail(label, format!("could not read manifest.json: {e}")),
+            };
+            let manifest = match parse_json(&text, "manifest.json") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let row = manifest
+                .as_map()
+                .and_then(|m| m.get("artifacts"))
+                .and_then(|v| v.as_seq())
+                .and_then(|s| s.iter().next());
+            let (Some(filename), Some(sha)) = (
+                row.and_then(|r| json_str(r, "filename")),
+                row.and_then(|r| json_str(r, "sha256")),
+            ) else {
+                return Check::fail(label, "manifest has no artifacts".to_string());
+            };
+            let wheel = site_dir.join("wheels").join(filename);
+            match file_sha256_hex(&wheel) {
+                Ok(actual) if actual == sha => Check::pass(label, format!("wheels/{filename} hash matches")),
+                Ok(actual) => Check::fail(label, format!("wheels/{filename} hash mismatch: {actual}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+    }
+}
+
+fn sample_remote(name: &str, catalog: &stuff_catalog::Catalog, base: &str) -> Check {
+    let label = format!("{name} sample artifact");
+    let first = &catalog.packages[0];
+    match name {
+        "cargo" => {
+            let config_url = format!("{base}/current/registry/config.json");
+            let (status, body) = match crate::source::fetch_bytes(&config_url) {
+                Ok(r) => r,
+                Err(e) => return Check::fail(label, e),
+            };
+            if status != 200 {
+                return Check::fail(label, format!("config.json HTTP {status}"));
+            }
+            let text = match String::from_utf8(body) {
+                Ok(t) => t,
+                Err(_) => return Check::fail(label, "config.json is not UTF-8".to_string()),
+            };
+            let config = match parse_json(&text, "config.json") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let Some(dl) = json_str(&config, "dl") else {
+                return Check::fail(label, "config.json has no dl template".to_string());
+            };
+            let shard = cargo_shard(&first.name.to_lowercase());
+            let mut index_body = None;
+            for view in ["registry", "crates-io"] {
+                match crate::source::fetch_bytes(&format!("{base}/current/{view}/{shard}")) {
+                    Ok((200, body)) => {
+                        index_body = Some(body);
+                        break;
+                    }
+                    Ok(_) => continue,
+                    Err(e) => return Check::fail(label, e),
+                }
+            }
+            let Some(index_body) = index_body else {
+                return Check::fail(label, format!("no index file for {}", first.name));
+            };
+            let text = match String::from_utf8(index_body) {
+                Ok(t) => t,
+                Err(_) => return Check::fail(label, "index file is not UTF-8".to_string()),
+            };
+            let Some(line) = first_index_line(&text) else {
+                return Check::fail(label, "index file is empty".to_string());
+            };
+            let entry = match parse_json(&line, "index entry") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let (Some(entry_name), Some(vers), Some(cksum)) =
+                (json_str(&entry, "name"), json_str(&entry, "vers"), json_str(&entry, "cksum"))
+            else {
+                return Check::fail(label, "index entry has no name/vers/cksum".to_string());
+            };
+            let url = expand_dl(dl, entry_name, vers, cksum);
+            match crate::source::fetch_bytes_capped(&url, SAMPLE_CAP) {
+                Ok((200, bytes)) if sha256_hex(&bytes) == cksum => {
+                    Check::pass(label, format!("{entry_name} {vers} hash matches"))
+                }
+                Ok((200, _)) => Check::fail(label, format!("{entry_name} {vers} hash mismatch")),
+                Ok((status, _)) => Check::fail(label, format!("artifact HTTP {status}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+        "npm" => {
+            let route = first.name.replace('/', "%2f");
+            let url = format!("{base}/current/{route}");
+            let (status, body) = match crate::source::fetch_bytes(&url) {
+                Ok(r) => r,
+                Err(e) => return Check::fail(label, e),
+            };
+            if status != 200 {
+                return Check::fail(label, format!("packument HTTP {status}"));
+            }
+            let text = match String::from_utf8(body) {
+                Ok(t) => t,
+                Err(_) => return Check::fail(label, "packument is not UTF-8".to_string()),
+            };
+            let packument = match parse_json(&text, "packument") {
+                Ok(v) => v,
+                Err(e) => return Check::fail(label, e),
+            };
+            let version_doc = packument
+                .as_map()
+                .and_then(|m| m.get("versions"))
+                .and_then(|v| v.as_map())
+                .and_then(|m| m.get(&first.latest))
+                .cloned();
+            let Some(version_doc) = version_doc else {
+                return Check::fail(label, format!("packument has no {}", first.latest));
+            };
+            let (Some(tarball), Some(integrity)) = (
+                json_field(&version_doc, "dist").and_then(|d| json_str(d, "tarball")),
+                json_field(&version_doc, "dist").and_then(|d| json_str(d, "integrity")),
+            ) else {
+                return Check::fail(label, "version has no dist tarball/integrity".to_string());
+            };
+            let expected = integrity.strip_prefix("sha512-").unwrap_or(integrity);
+            match crate::source::fetch_bytes_capped(tarball, SAMPLE_CAP) {
+                Ok((200, bytes)) => {
+                    use base64::Engine;
+                    let actual = base64::engine::general_purpose::STANDARD.encode(
+                        hex_to_bytes(&sha512_hex(&bytes)).unwrap_or_default(),
+                    );
+                    if actual == expected {
+                        Check::pass(label, format!("{} {} hash matches", first.name, first.latest))
+                    } else {
+                        Check::fail(label, format!("{} {} hash mismatch", first.name, first.latest))
+                    }
+                }
+                Ok((status, _)) => Check::fail(label, format!("tarball HTTP {status}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+        _ => {
+            let project = first.name.to_lowercase();
+            let url = format!("{base}/current/simple/{project}/");
+            let (status, body) = match crate::source::fetch_bytes(&url) {
+                Ok(r) => r,
+                Err(e) => return Check::fail(label, e),
+            };
+            if status != 200 {
+                return Check::fail(label, format!("project page HTTP {status}"));
+            }
+            let text = match String::from_utf8(body) {
+                Ok(t) => t,
+                Err(_) => return Check::fail(label, "project page is not UTF-8".to_string()),
+            };
+            let Some((filename, hash)) = first_wheel_href(&text) else {
+                return Check::fail(label, "project page has no wheel links".to_string());
+            };
+            let wheel_url = format!("{base}/current/wheels/{filename}");
+            match crate::source::fetch_bytes_capped(&wheel_url, SAMPLE_CAP) {
+                Ok((200, bytes)) if sha256_hex(&bytes) == hash => {
+                    Check::pass(label, format!("wheels/{filename} hash matches"))
+                }
+                Ok((200, _)) => Check::fail(label, format!("wheels/{filename} hash mismatch")),
+                Ok((status, _)) => Check::fail(label, format!("wheel HTTP {status}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
+    }
+}
+
+fn hex_to_bytes(hex: &str) -> Option<Vec<u8>> {
+    if hex.len() % 2 != 0 {
+        return None;
+    }
+    let mut out = Vec::with_capacity(hex.len() / 2);
+    for i in (0..hex.len()).step_by(2) {
+        out.push(u8::from_str_radix(&hex[i..i + 2], 16).ok()?);
+    }
+    Some(out)
+}
+
+fn first_wheel_href(page: &str) -> Option<(String, String)> {
+    let marker = "../../wheels/";
+    let start = page.find(marker)? + marker.len();
+    let rest = &page[start..];
+    let end = rest.find('"')?;
+    let href = &rest[..end];
+    let (filename, hash) = href.split_once("#sha256=")?;
+    if filename.is_empty() || filename.contains('/') || hash.len() != 64 {
+        return None;
+    }
+    Some((filename.to_string(), hash.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expands_dl_templates() {
+        let url = expand_dl(
+            "https://dl.example/{crate}/{version}/{prefix}/{lowerprefix}/{sha256-checksum}",
+            "Foo-Bar",
+            "1.0.0",
+            "ab12",
+        );
+        assert!(url.contains("Foo-Bar/1.0.0/fo/o-/fo/o-/ab12"), "{url}");
+    }
+
+    #[test]
+    fn extracts_wheel_hrefs() {
+        let page = "<a href=\"../../wheels/pkg-1.0-py3-none-any.whl#sha256=abc123\">x</a>";
+        let _ = first_wheel_href(page);
+        let page = format!(
+            "<a href=\"../../wheels/pkg-1.0-py3-none-any.whl#sha256={}\">x</a>",
+            "0".repeat(64)
+        );
+        let (file, hash) = first_wheel_href(&page).unwrap();
+        assert_eq!(file, "pkg-1.0-py3-none-any.whl");
+        assert_eq!(hash, "0".repeat(64));
+    }
+
+    fn cargo_fixture(dir: &std::path::Path, blob_bytes: &[u8]) -> (stuff_catalog::Catalog, std::path::PathBuf, std::path::PathBuf) {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(blob_bytes);
+        let cksum = format!("{:x}", h.finalize());
+        let site = dir.to_path_buf();
+        let gen_dir = site.join("generations").join("gen1");
+        let shard = cargo_shard("foo");
+        let index_path = gen_dir.join("registry").join(&shard);
+        std::fs::create_dir_all(index_path.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(site.join("blobs")).unwrap();
+        let line = format!("{{\"name\":\"foo\",\"vers\":\"1.0.0\",\"cksum\":\"{cksum}\"}}\n");
+        std::fs::write(&index_path, line).unwrap();
+        std::fs::write(site.join("blobs").join(format!("{cksum}.crate")), blob_bytes).unwrap();
+        std::os::unix::fs::symlink("generations/gen1", site.join("current")).unwrap();
+        let catalog = stuff_catalog::cargo_catalog(
+            "gen1",
+            vec![stuff_catalog::CargoInput {
+                name: "foo".to_string(),
+                version: "1.0.0".to_string(),
+                yanked: false,
+                source: stuff_catalog::CargoSource::Native,
+            }],
+        )
+        .unwrap();
+        (catalog, site, gen_dir)
+    }
+
+    #[test]
+    fn local_cargo_sample_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        let (catalog, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
+        let check = sample_local("cargo", &catalog, &site, &gen_dir);
+        assert!(check.ok, "{}", check.detail);
+    }
+
+    #[test]
+    fn local_cargo_sample_fails_on_tampered_blob() {
+        let dir = tempfile::tempdir().unwrap();
+        let (catalog, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
+        let blob = std::fs::read_dir(site.join("blobs")).unwrap().next().unwrap().unwrap().path();
+        std::fs::write(&blob, b"tampered").unwrap();
+        let check = sample_local("cargo", &catalog, &site, &gen_dir);
+        assert!(!check.ok, "tampered blob must fail");
+    }
+
+    #[test]
+    fn local_npm_and_pypi_samples_match() {
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path().to_path_buf();
+        let gen_dir = site.join("generations").join("g1");
+        std::fs::create_dir_all(&gen_dir).unwrap();
+        std::fs::create_dir_all(site.join("tarballs")).unwrap();
+        std::fs::create_dir_all(site.join("wheels")).unwrap();
+        std::os::unix::fs::symlink("generations/g1", site.join("current")).unwrap();
+        let tgz = b"tarball-bytes";
+        let digest = sha512_hex(tgz);
+        std::fs::write(site.join("tarballs").join(format!("{digest}.tgz")), tgz).unwrap();
+        std::fs::write(
+            gen_dir.join("manifest.json"),
+            format!("{{\"artifacts\":[{{\"artifact\":{{\"sha512\":\"{digest}\"}}}}]}}"),
+        )
+        .unwrap();
+        let wheel = b"wheel-bytes";
+        let whash = sha256_hex(wheel);
+        std::fs::write(site.join("wheels").join("pkg-1.0-py3-none-any.whl"), wheel).unwrap();
+        let npm_catalog = stuff_catalog::npm_catalog(
+            "g1",
+            vec![stuff_catalog::NpmInput { name: "a".to_string(), version: "1.0.0".to_string() }],
+            &std::collections::BTreeMap::new(),
+        )
+        .unwrap();
+        let check = sample_local("npm", &npm_catalog, &site, &gen_dir);
+        assert!(check.ok, "{}", check.detail);
+        let pypi_catalog = stuff_catalog::pypi_catalog(
+            "g1",
+            vec![stuff_catalog::PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false }],
+        )
+        .unwrap();
+        std::fs::write(
+            gen_dir.join("manifest.json"),
+            format!("{{\"artifacts\":[{{\"filename\":\"pkg-1.0-py3-none-any.whl\",\"sha256\":\"{whash}\"}}]}}"),
+        )
+        .unwrap();
+        let check = sample_local("pypi", &pypi_catalog, &site, &gen_dir);
+        assert!(check.ok, "{}", check.detail);
     }
 }
