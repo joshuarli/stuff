@@ -87,14 +87,18 @@ uv run repomod fix --rule audit-upgrades
 
 The rule reports only outdated direct dependencies as fixable findings, so
 `lint` and `status` surface upgrade debt. A finding is manual, not fixable,
-when the upgrader cannot reach the latest version: a Python specifier that
-excludes it (`==`, `<`, `~=`, ...), a Cargo requirement that excludes it, or a
-Cargo release whose dependencies conflict with an exact `=` pin in the
-repository (for example `wasm-bindgen-test` needing `wasm-bindgen =0.2.130`
-while the repository pins `=0.2.129`). The finding message names the
-conflict. Crate release metadata comes from crates.io and is cached with the
-rest. Vulnerability, ban, and lockfile
-remaining findings stay manual because the upgraders cannot fix them
-deterministically. The rule is excluded from `status --offline` because its
-check refreshes the registry cache over the network. A repository can opt out
-with `ignore = ["audit-upgrades"]` in its catalog override.
+when the upgrader cannot reach the latest version, and its message says why:
+
+- a Python specifier excludes it (`==`, `<`, `~=`, ...);
+- a Cargo requirement excludes it;
+- a Cargo release depends on a crate the repository pins with an exact `=`
+  version that conflicts (for example `wasm-bindgen-test` needing
+  `wasm-bindgen =0.2.130` while the repository pins `=0.2.129`);
+- a Cargo release's `rust-version` exceeds the lowest `rust-version` declared
+  by the workspace members, so `cargo update` keeps the older release.
+
+Crate release metadata comes from crates.io and is cached with the rest.
+Vulnerability, ban, and lockfile findings stay manual because the upgraders
+cannot fix them deterministically. The rule is excluded from `status --offline`
+because its check refreshes the registry cache over the network. A repository
+can opt out with `ignore = ["audit-upgrades"]` in its catalog override.

@@ -1032,9 +1032,12 @@ def _crate_release(
         cache["crate_releases"] = entries
     key = f"{name.casefold()}:{version}"
     entry = entries.get(key)
-    if isinstance(entry, dict) and isinstance(entry.get("release"), dict):
-        if _cache_fresh(entry.get("fetched_at"), now):
-            return entry["release"]
+    if (
+        isinstance(entry, dict)
+        and isinstance(entry.get("release"), dict)
+        and _cache_fresh(entry.get("fetched_at"), now)
+    ):
+        return entry["release"]
     release = _fetch_crate_release(name, version)
     if release is not None:
         entries[key] = {"release": release, "fetched_at": now}

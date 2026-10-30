@@ -14,6 +14,7 @@ from typing import Any
 from repomod.audit import (
     UpgradeTask,
     _audit_cache_path,
+    _cargo_manifests,
     _cargo_req_satisfies,
     _collect_locked,
     _crate_release,
@@ -23,6 +24,7 @@ from repomod.audit import (
     _js_spec_is_filesystem,
     _normalize_python_name,
     _normalize_rust_name,
+    _parse_cargo_version,
     _pep508_is_filesystem,
     _pep508_name,
     _python_direct_specs,
@@ -33,6 +35,7 @@ from repomod.audit import (
     _version_key,
     _write_cache,
 )
+from repomod.io import read_toml
 from repomod.rules.python_standard import load_approved_python_tool_versions
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
@@ -164,10 +167,48 @@ def _specifier_admits(specifier: str, version: str) -> bool:
     return True
 
 
+def _lowest_rust_version(root: Path) -> str | None:
+    declared: list[str] = []
+    workspace_version: str | None = None
+    members: list[dict[str, Any]] = []
+    for manifest in _cargo_manifests(root):
+        document, _ = read_toml(manifest)
+        if not isinstance(document, dict):
+            continue
+        workspace = document.get("workspace")
+        shared = workspace.get("package") if isinstance(workspace, dict) else None
+        shared_version = shared.get("rust-version") if isinstance(shared, dict) else None
+        if isinstance(shared_version, str):
+            workspace_version = shared_version
+        package = document.get("package")
+        if isinstance(package, dict):
+            members.append(package)
+    for package in members:
+        version = package.get("rust-version")
+        if isinstance(version, str):
+            declared.append(version)
+        elif (
+            isinstance(version, dict)
+            and version.get("workspace") is True
+            and workspace_version is not None
+        ):
+            declared.append(workspace_version)
+    return min(declared, key=_parse_cargo_version, default=None)
+
+
 def _exact_version(requirement: str) -> str | None:
     text = requirement.strip()
     if text.startswith("=") and not text.startswith("=="):
         return text[1:].strip()
+    return None
+
+
+def _msrv_conflict(release: dict[str, Any], lowest: str | None) -> str | None:
+    required = release["rust_version"]
+    if lowest is None or required is None:
+        return None
+    if _parse_cargo_version(required) > _parse_cargo_version(lowest):
+        return f"it needs Rust {required} but the lowest workspace rust-version is {lowest}"
     return None
 
 
@@ -211,6 +252,7 @@ def _outdated_findings(
     )
     rust_reqs = _rust_version_reqs(root)
     python_specifiers = _python_specifiers(root)
+    lowest_rust_version = _lowest_rust_version(root)
     findings: list[Finding] = []
     unresolved: set[str] = set()
     for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
@@ -226,7 +268,11 @@ def _outdated_findings(
                     fixable = False
                 else:
                     release = _crate_release(item.name, newest, cache=cache, now=now)
-                    reason = None if release is None else _pin_conflict(release, rust_reqs)
+                    reason = None
+                    if release is not None:
+                        reason = _msrv_conflict(release, lowest_rust_version) or _pin_conflict(
+                            release, rust_reqs
+                        )
                     if reason is not None:
                         fixable = False
                         blocker = f"; manual because {reason}"

@@ -696,3 +696,44 @@ def test_loose_requirement_does_not_block_lockstep_crates(
         lambda _e, name: {"wasm-bindgen": "0.2.129", "wasm-bindgen-test": "0.3.80", "serde": "1.0.1"}[name],
     )
     assert [finding.fixable for finding in findings] == [True]
+
+
+def test_msrv_blocks_upgrades_beyond_lowest_workspace_rust_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[workspace]\nmembers = ["a", "b"]\n[workspace.package]\nrust-version = "1.85"\n'
+        '[workspace.dependencies]\nrcgen = "0.14"\nrand = "0.9"\n',
+        encoding="utf-8",
+    )
+    for member, version in (("a", '{ workspace = true }'), ("b", '"1.89"')):
+        (root / member).mkdir()
+        rust_version = "rust-version.workspace = true" if member == "a" else f"rust-version = {version}"
+        (root / member / "Cargo.toml").write_text(
+            f'[package]\nname = "{member}"\nversion = "0.1.0"\n{rust_version}\n'
+            "[dependencies]\nrcgen = { workspace = true }\nrand = { workspace = true }\n",
+            encoding="utf-8",
+        )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "a"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "b"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "rcgen"\nversion = "0.14.7"\n'
+        '[[package]]\nname = "rand"\nversion = "0.9.1"\n',
+        encoding="utf-8",
+    )
+    fake_crates(
+        monkeypatch,
+        {
+            "rcgen/0.14.10": crate_release("1.88"),
+            "rand/0.9.2": crate_release("1.63"),
+        },
+    )
+    latest = {"rcgen": "0.14.10", "rand": "0.9.2"}
+    findings = _outdated_findings(
+        root, repository("tool", "rust"), {}, NOW, lambda _e, name: latest[name]
+    )
+    by_name = {finding.message.split()[0]: finding for finding in findings}
+    assert by_name["crates:rcgen"].fixable is False
+    assert "needs Rust 1.88 but the lowest workspace rust-version is 1.85" in by_name["crates:rcgen"].message
+    assert by_name["crates:rand"].fixable is True
