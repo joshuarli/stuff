@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 9
 
-### STUF-3 · P2 · R2 alias skip-list and worker alias map are one contract in two languages
-
-- **Area:** Config
-- **Where:** `deploy/r2-sync.sh:23-28`, `deploy/r2-sync.sh:134-138`, `crates/stuff-worker/src/api.rs:114-140`
-- **Problem:** the set of generation-scoped aliases the sync skips (`tarballs/`, `-/tarballs/`, symlinked `wheels/`) and the set the worker resolves to the shared store (`alias_key_for`) is the same contract written in sh and in Rust, linked only by comments. Changing one side without the other serves 404s from R2 while local `doctor` stays green. Coupling proven by reading; drift unproven.
-- **Recommendation:** give the contract one home: e.g. a worker unit test asserting its alias list matches the sync skip patterns, or generate one side from the other.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### STUF-4 · P2 · error models diverge across the three publish binaries
 
 - **Area:** Errors
