@@ -1,0 +1,83 @@
+#![forbid(unsafe_code)]
+
+#[derive(Debug)]
+pub enum Kind {
+    InvalidInput,
+    Configuration,
+    MissingArtifact,
+    Integrity,
+    Incompatible,
+    Dependency,
+    Build,
+    Validation,
+    Conflict,
+    Io,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stage {
+    Configuration,
+    Planning,
+    Acquisition,
+    Build,
+    Repair,
+    Validation,
+    Publication,
+    Command,
+}
+
+impl Stage {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Stage::Configuration => "configuration",
+            Stage::Planning => "planning",
+            Stage::Acquisition => "acquisition",
+            Stage::Build => "build",
+            Stage::Repair => "repair",
+            Stage::Validation => "validation",
+            Stage::Publication => "publication",
+            Stage::Command => "command",
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Error {
+    pub kind: Kind,
+    pub detail: String,
+    pub stage: Stage,
+}
+
+impl Error {
+    pub fn new(kind: Kind, detail: impl Into<String>, stage: Stage) -> Self {
+        Self {
+            kind,
+            detail: detail.into(),
+            stage,
+        }
+    }
+
+    pub fn configuration(detail: impl Into<String>) -> Self {
+        Self::new(Kind::Configuration, detail, Stage::Configuration)
+    }
+
+    pub fn exit_code(&self) -> i32 {
+        1
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.stage.as_str(), self.detail)
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Self::new(Kind::Io, e.to_string(), Stage::Command)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;

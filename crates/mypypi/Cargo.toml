@@ -1,0 +1,25 @@
+[package]
+name = "mypypi"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "Python wheel index (Rust port of tools/mypypi)"
+repository = "https://github.com/joshuarli/stuff"
+autobins = false
+
+[lib]
+name = "mypypi"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mypypi"
+path = "src/main.rs"
+
+[dependencies]
+deser-toml = "0.10"
+deser-value = "0.10"
+pep440_rs = "0.7"
+
+[dev-dependencies]
+tempfile = "3.13"

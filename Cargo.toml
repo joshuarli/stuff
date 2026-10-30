@@ -6,6 +6,7 @@ members = [
   "crates/h12tiny-client-sync",
   "crates/mycrates",
   "crates/mynpm",
+  "crates/mypypi",
   "crates/stuff-store",
   "crates/stuff-http",
   "crates/stuff-server",
