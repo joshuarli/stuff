@@ -451,6 +451,7 @@ def test_commit_hooks_cannot_change_the_fix(
     hooks = Path(git("rev-parse", "--git-path", "hooks", cwd=path).stdout.strip())
     if not hooks.is_absolute():
         hooks = path / hooks
+    hooks.mkdir(exist_ok=True)
     hook = hooks / "pre-commit"
     hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
     hook.chmod(0o755)
