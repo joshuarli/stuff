@@ -129,3 +129,63 @@ def test_typescript_source_is_found_in_nested_package_directories(tmp_path: Path
 
     assert "typescript" in _language_sources(tmp_path)
     assert "javascript" not in _language_sources(tmp_path)
+
+
+def _write(path: Path, text: str = "") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_python_source_is_found_beside_nested_pyproject_manifests(tmp_path: Path) -> None:
+    _write(tmp_path / "services" / "api" / "pyproject.toml", "[project]\n")
+    _write(tmp_path / "services" / "api" / "src" / "api" / "app.py")
+
+    assert "python" in _language_sources(tmp_path)
+
+
+def test_python_source_without_a_manifest_in_unknown_directories_is_not_detected(
+    tmp_path: Path,
+) -> None:
+    _write(tmp_path / "services" / "api" / "src" / "api" / "app.py")
+
+    assert "python" not in _language_sources(tmp_path)
+
+
+def test_go_source_is_found_beside_nested_go_mod_only(tmp_path: Path) -> None:
+    _write(tmp_path / "services" / "edge" / "go.mod", "module edge\n")
+    _write(tmp_path / "services" / "edge" / "cmd" / "edge" / "main.go")
+    assert "go" in _language_sources(tmp_path)
+
+    other = tmp_path / "other"
+    _write(other / "cmd" / "tool" / "main.go")
+    assert "go" not in _language_sources(other)
+
+
+def test_rust_source_is_found_beside_nested_cargo_manifests(tmp_path: Path) -> None:
+    _write(tmp_path / "components" / "engine" / "Cargo.toml", '[package]\nname = "engine"\n')
+    _write(tmp_path / "components" / "engine" / "src" / "lib.rs")
+
+    assert "rust" in _language_sources(tmp_path)
+
+
+def test_manifests_in_vendored_and_fixture_trees_are_ignored(tmp_path: Path) -> None:
+    for ignored in ("vendor", "third_party", "tests", "fixtures", "node_modules"):
+        _write(tmp_path / ignored / "dep" / "pyproject.toml", "[project]\n")
+        _write(tmp_path / ignored / "dep" / "src" / "dep" / "mod.py")
+        _write(tmp_path / ignored / "dep" / "go.mod", "module dep\n")
+        _write(tmp_path / ignored / "dep" / "main.go")
+        _write(tmp_path / ignored / "dep" / "Cargo.toml", '[package]\nname = "dep"\n')
+        _write(tmp_path / ignored / "dep" / "src" / "lib.rs")
+
+    assert _language_sources(tmp_path) == set()
+
+
+def test_symlinked_directories_are_not_searched_for_manifests(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    _write(outside / "pyproject.toml", "[project]\n")
+    _write(outside / "src" / "pkg" / "mod.py")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "linked").symlink_to(outside, target_is_directory=True)
+
+    assert _language_sources(repo) == set()
