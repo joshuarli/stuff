@@ -1,0 +1,10 @@
+enforce = false
+
+[cargo]
+source = "sparse+https://crates.17166969.xyz/current/crates-io/"
+
+[npm]
+registry = "https://npm.17166969.xyz/current/"
+
+[python]
+index = "https://pypi.17166969.xyz/current/simple/"

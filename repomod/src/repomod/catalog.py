@@ -49,6 +49,15 @@ _DEPENDENCY_IGNORE = re.compile(
 )
 
 
+GIT_SOURCE_IGNORE_PREFIX = "registry-sources:git:"
+_GIT_SOURCE_IGNORE = re.compile(r"registry-sources:git:([A-Za-z0-9@_./+-]+)\Z")
+
+
+def parse_git_source_ignore(value: str) -> str | None:
+    match = _GIT_SOURCE_IGNORE.fullmatch(value)
+    return None if match is None else str(match.group(1))
+
+
 def parse_dependency_ignore(value: str) -> tuple[str, str] | None:
     match = _DEPENDENCY_IGNORE.fullmatch(value)
     if match is None:
@@ -193,6 +202,13 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                     raise CatalogError(
                         f"invalid dependency ignore {ignored_rule!r} for {repo_id}; "
                         "use audit-upgrades:ECOSYSTEM:NAME with pypi, npm, crates, or go"
+                    )
+                continue
+            if ignored_rule.startswith(GIT_SOURCE_IGNORE_PREFIX):
+                if parse_git_source_ignore(ignored_rule) is None:
+                    raise CatalogError(
+                        f"invalid git source ignore {ignored_rule!r} for {repo_id}; "
+                        "use registry-sources:git:NAME"
                     )
                 continue
             validate_identifier(ignored_rule.replace(":", "-", 1), "ignored rule code")

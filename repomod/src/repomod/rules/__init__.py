@@ -13,6 +13,7 @@ from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.mirrored_docs import mirrored_docs_rules
 from repomod.rules.python_standard import python_standard_rules
+from repomod.rules.registry_sources import registry_sources_rules
 from repomod.rules.release import release_rules
 from repomod.rules.rust_profiles import rust_release_profiles_rules
 from repomod.rules.rust_toolchain import rust_toolchain_rules
@@ -48,6 +49,7 @@ def rules() -> tuple[Rule, ...]:
         *typescript_standard_rules(),
         *workflow_redundancy_rules(),
         *workflow_settings_rules(),
+        *registry_sources_rules(),
         *release_rules(),
         *rust_toolchain_rules(),
         *rust_release_profiles_rules(),

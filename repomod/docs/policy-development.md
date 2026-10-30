@@ -14,7 +14,8 @@ string. Validate each code against the
 registered rule IDs. An entry of the form `mdtool:R005` ignores one `mdtool` finding code in that
 repository and keeps the rest of the documentation audit. An entry of the form
 `audit-upgrades:crates:NAME` (ecosystem `pypi`, `npm`, `crates`, or `go`) exempts one dependency
-from `audit-upgrades`. Document policy changes alongside the rule.
+from `audit-upgrades`. An entry of the form `registry-sources:git:NAME` allows one git-sourced package
+named `NAME` under `registry-sources`. Document policy changes alongside the rule.
 
 ## Fixers
 
@@ -186,3 +187,19 @@ per-project `pnpm update --latest`, `cargo update`, `go get -u ./...` plus `go m
 disposable copy and returns the changed lockfiles and manifests as its file plan. Upgrades that
 need manifest edits, such as Rust majors constrained by `Cargo.toml`, fail the fixer postcondition
 and stay manual.
+
+`registry-sources` requires every non-fork repository to resolve Cargo, npm/pnpm, and Python
+dependencies only from the private `stuff` registry. `registries.toml` owns the three approved URLs
+and the `enforce` switch; it ships `enforce = false`, so the rule is registered but reports nothing
+until the fleet is migrated. With `enforce = true` it checks, per project directory holding a
+lockfile (and the root `package.json` or `pyproject.toml`), that the configuration is present in that
+directory or an ancestor: `.cargo/config.toml` replacing `crates-io` with the approved sparse
+source, `.npmrc` with `registry=` set to the approved URL and no other registry key (and no
+`registry` or `registries` in `pnpm-workspace.yaml`), and a `default = true` uv index at the approved
+URL in `pyproject.toml` or `uv.toml`. It also scans lockfiles. `Cargo.lock` keeps crates.io source
+ids under replacement, so those are accepted; other registries are findings. pnpm and npm lock
+tarball URLs must start with the approved registry, and `uv.lock` registry sources must equal the
+approved index. Git sources are findings unless the repository's catalog override ignores
+`registry-sources:git:NAME` with an `ignore_reason`. Path, `link:`, `file:`, and workspace sources
+are allowed while they stay inside the repository. Unapproved registry sources are reported once
+per lockfile and source, listing the first packages. The rule has no fixer.

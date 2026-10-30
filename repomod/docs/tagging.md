@@ -72,6 +72,9 @@ downloaded Linux ELF binaries before packaging and publication. The smoke reject
 and shared-library dependencies and requires one binary for each Linux architecture in
 `release-policy.toml`. It skips tools tagged `macos` and `private-tool` repositories.
 
+`registry-sources` skips repositories tagged `fork`, whose upstream manifests and lockfiles stay
+outside local policy.
+
 ## Rule selection
 
 Rule predicates and repository filters are separate. `TagPredicate(all_of={"library", "rust"})`
