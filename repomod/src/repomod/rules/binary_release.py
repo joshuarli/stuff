@@ -16,6 +16,7 @@ _MACOS_TARGETS = frozenset(_BINARY_POLICY["macos_targets"])
 _LINUX_ARCHES = frozenset(_BINARY_POLICY["linux_arches"])
 _LINUX_MUSL_SUFFIX = _BINARY_POLICY["linux_musl_suffix"]
 _FORBIDDEN_TARGET_MARKERS = tuple(_BINARY_POLICY["forbidden_target_markers"])
+_NON_NATIVE_RELEASE_TAGS = frozenset({"extension", "build"})
 _BINARY_TOOL_EXTRA_TAGS = frozenset({"fork"}) | PLATFORM_TAGS | LANGUAGE_TAGS
 
 _PRERELEASE_COMMAND = re.compile(
@@ -339,6 +340,8 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
         if kind == "none" or kind == "package":
             continue
         if kind == "ambiguous":
+            if _NON_NATIVE_RELEASE_TAGS & set(repository.tags):
+                continue
             findings.append(
                 violation(
                     repository,

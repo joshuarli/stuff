@@ -58,7 +58,11 @@ language tags. A wheel prerelease is a package release, not a binary-tool releas
 `private-tool` repositories are exempt from the prerelease policy. `fork` repositories
 defer matrix and format standardization while their upstream workflows stay outside
 local policy. The `binary-release-tags` rule checks the artifact and release contract
-and curated tags. It reports ambiguous workflows for review. The
+and curated tags. It reports ambiguous workflows for review, except in repositories tagged
+`extension` or `build`, which publish plugin archives or build archives rather than native tools.
+A workflow in those repositories that does establish the binary contract still requires the
+`tool` role and allows only `fork`, platform, and language tags beside it, so `extension` or
+`build` on such a repository is reported. The
 `binary-release-standard` rule checks the target matrix and ish format for non-fork
 tools. The `rust-musl-image` rule checks the Alpine musl static builder image behind
 Rust tool releases against the ish Dockerfile.

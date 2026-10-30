@@ -606,3 +606,37 @@ def test_musl_image_skips_missing_dockerfile_and_non_rust(tmp_path: Path) -> Non
     (tmp_path / "Dockerfile").write_text("FROM alpine:3.24.1\n", encoding="utf-8")
 
     assert _rust_musl_image_findings(tmp_path, repository) == []
+
+
+@pytest.mark.parametrize("tag", ["extension", "build"])
+def test_extension_and_build_repositories_accept_ambiguous_prerelease(
+    tmp_path: Path, tag: str
+) -> None:
+    write_workflow(
+        tmp_path,
+        "name: release\non:\n  push:\njobs:\n  release:\n    steps:\n"
+        "      - run: gh release create v1 plugin.zip --prerelease\n",
+    )
+    repo = RepoId("acme", "demo")
+
+    assert _binary_release_findings(tmp_path, Repository(repo, (tag,))) == []
+    warnings = _binary_release_findings(tmp_path, Repository(repo, ("library",)))
+    assert [finding.severity for finding in warnings] == ["warning"]
+
+
+@pytest.mark.parametrize("tag", ["extension", "build"])
+def test_extension_and_build_repositories_keep_binary_contract_checks(
+    tmp_path: Path, tag: str
+) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(tmp_path, binary_workflow("cargo build --release"))
+    repo = RepoId("acme", "demo")
+
+    without_tool = _binary_release_findings(tmp_path, Repository(repo, (tag,)))
+    with_tool = _binary_release_findings(tmp_path, Repository(repo, ("tool", tag)))
+
+    assert [finding.message for finding in without_tool] == [
+        "standard binary prerelease repositories require the tool role"
+    ]
+    assert len(with_tool) == 1
+    assert f"remove {tag}" in with_tool[0].message
