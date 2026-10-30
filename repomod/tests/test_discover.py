@@ -6,8 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from repomod import cli, github
+import repomod.cli as cli_module
+from repomod import github
 from repomod.catalog import CatalogError, load_catalog
+from repomod.cmd.discover import _discover
 
 
 def catalog(path: Path, text: str) -> Path:
@@ -85,13 +87,13 @@ def test_discover_cli_reports_uncatalogued_and_missing(tmp_path: Path, monkeypat
         '[repos."acme"]\nkeep = ["tool"]\ngone = ["tool"]\n',
     )
     catalog_value = load_catalog(path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog_value)
+    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog_value)
     monkeypatch.setattr(
-        "repomod.cli.discover", lambda owners: ["acme/keep", "acme/new"]
+        "repomod.github.discover", lambda owners: ["acme/keep", "acme/new"]
     )
     args = argparse.Namespace(owner=[], json=False)
 
-    assert cli._discover(args) == 0
+    assert _discover(args) == 0
     out = capsys.readouterr().out.splitlines()
     assert out[0] == "uncatalogued (1):"
     assert out[1] == "  acme/new"
@@ -106,18 +108,18 @@ def test_discover_cli_matches_exactly_and_supports_json(tmp_path: Path, monkeypa
         '[repos."acme"]\nkeep = ["tool"]\n',
     )
     catalog_value = load_catalog(path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cli._catalog", lambda: catalog_value)
-    monkeypatch.setattr("repomod.cli.discover", lambda owners: ["ACME/keep"])
+    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog_value)
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["ACME/keep"])
     args = argparse.Namespace(owner=[], json=False)
 
-    assert cli._discover(args) == 0
+    assert _discover(args) == 0
     assert capsys.readouterr().out.splitlines() == [
         "uncatalogued (0): none",
         "catalog matches GitHub",
     ]
 
     args = argparse.Namespace(owner=["acme"], json=True)
-    assert cli._discover(args) == 0
+    assert _discover(args) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload == {"owners": ["acme"], "uncatalogued": [], "missing": []}
 
@@ -129,23 +131,23 @@ def test_discover_cli_validates_and_deduplicates_owners(tmp_path: Path, monkeypa
         '[repos."acme"]\nkeep = ["tool"]\n',
     )
     monkeypatch.setattr(
-        "repomod.cli._catalog", lambda: load_catalog(path, {"HOME": str(tmp_path)})
+        "repomod.cmd.common._catalog", lambda: load_catalog(path, {"HOME": str(tmp_path)})
     )
     seen: list[tuple[str, ...]] = []
     monkeypatch.setattr(
-        "repomod.cli.discover",
+        "repomod.github.discover",
         lambda owners: seen.append(owners) or [],
     )
 
-    assert cli._discover(argparse.Namespace(owner=["beta", "BETA", "acme"], json=True)) == 0
+    assert _discover(argparse.Namespace(owner=["beta", "BETA", "acme"], json=True)) == 0
     assert seen == [("acme", "beta")]
 
     with pytest.raises(CatalogError, match="invalid owner"):
-        cli._discover(argparse.Namespace(owner=["../bad"], json=False))
+        _discover(argparse.Namespace(owner=["../bad"], json=False))
 
 
 def test_discover_is_registered_in_cli_parser() -> None:
-    args = cli._parser().parse_args(["discover", "--owner", "acme", "--json"])
+    args = cli_module._parser().parse_args(["discover", "--owner", "acme", "--json"])
 
     assert args.command == "discover"
     assert args.owner == ["acme"]

@@ -8,9 +8,10 @@ from pathlib import Path
 
 import pytest
 
-import repomod.cli as cli_module
+import repomod.cmd.sync as sync_cmd
 import repomod.sync as sync_module
 from repomod.catalog import Catalog, load_catalog, repository_path
+from repomod.cmd import common as cmd_common
 from repomod.git import _porcelain_counts, expected_origin, head, status
 from repomod.sync import SyncResult, sync_one, untrack_archived_repositories
 from repomod.types import RemoteRepository, RepoId, Repository
@@ -586,17 +587,17 @@ def test_sync_command_untracks_archived_repo_from_catalog(
     assert repository_path(catalog, repository).is_dir()
     archived = RemoteRepository(str(repository.id), "main", "unused", True)
     monkeypatch.setattr(
-        cli_module,
+        cmd_common,
         "_catalog",
         lambda: load_catalog(
             catalog.path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
         ),
     )
     monkeypatch.setattr(
-        cli_module, "remote_metadata", lambda repositories, **kwargs: {str(repository.id): archived}
+        "repomod.github.remote_metadata", lambda repositories, **kwargs: {str(repository.id): archived}
     )
 
-    assert cli_module._sync(argparse.Namespace(dry_run=False, workers=4)) == 0
+    assert sync_cmd._sync(argparse.Namespace(dry_run=False, workers=4)) == 0
 
     out = capsys.readouterr().out
     assert f"{repository.id}: removed:" in out
@@ -616,17 +617,17 @@ def test_sync_command_dry_run_plans_untrack_without_mutating(
     sync_one(catalog, repository, RemoteRepository(str(repository.id), "main", "unused", False))
     archived = RemoteRepository(str(repository.id), "main", "unused", True)
     monkeypatch.setattr(
-        cli_module,
+        cmd_common,
         "_catalog",
         lambda: load_catalog(
             catalog.path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
         ),
     )
     monkeypatch.setattr(
-        cli_module, "remote_metadata", lambda repositories, **kwargs: {str(repository.id): archived}
+        "repomod.github.remote_metadata", lambda repositories, **kwargs: {str(repository.id): archived}
     )
 
-    assert cli_module._sync(argparse.Namespace(dry_run=True, workers=4)) == 0
+    assert sync_cmd._sync(argparse.Namespace(dry_run=True, workers=4)) == 0
 
     out = capsys.readouterr().out
     assert "would remove archived checkout" in out

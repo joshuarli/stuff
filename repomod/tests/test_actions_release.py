@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 
 from repomod import cli, github
+from repomod.cmd import common as cmd_common
 from repomod.github import AutoMergeSkipped, FixPullRequest
 from repomod.rules import actions, release
 from repomod.rules.workflows import workflow_files
@@ -366,7 +367,7 @@ def test_pinact_rule_uses_real_launcher_for_security_and_fixing(
         "personal",
         (lint_repository, fix_repository),
     )
-    monkeypatch.setattr(cli, "_catalog", lambda: catalog)
+    monkeypatch.setattr(cmd_common, "_catalog", lambda: catalog)
 
     lint_root = workspace / "acme" / "lint-demo"
     write_workflow(
@@ -421,7 +422,7 @@ def test_pinact_rule_uses_real_launcher_for_security_and_fixing(
         ["git", "rev-parse", "HEAD"], cwd=fix_root, check=True, capture_output=True, text=True
     ).stdout.strip()
     monkeypatch.setattr(
-        cli,
+        github,
         "remote_metadata",
         lambda repositories: {
             str(repo.id): RemoteRepository(str(repo.id), "main", head, False)
@@ -434,10 +435,9 @@ def test_pinact_rule_uses_real_launcher_for_security_and_fixing(
         pushed["branch"] = branch
         return "pushed", None
 
-    monkeypatch.setattr(cli, "push_fix_branch", push_fix)
+    monkeypatch.setattr("repomod.fix.push_fix_branch", push_fix)
     monkeypatch.setattr(
-        cli,
-        "ensure_fix_pull_request",
+        "repomod.github.ensure_fix_pull_request",
         lambda *_: FixPullRequest(
             "https://example.invalid/1", AutoMergeSkipped("integration test")
         ),

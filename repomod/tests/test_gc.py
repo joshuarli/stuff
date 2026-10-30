@@ -6,8 +6,10 @@ from pathlib import Path
 import pytest
 
 import repomod.cli as cli_module
+import repomod.cmd.gc as gc_cmd
 from repomod.catalog import load_catalog
 from repomod.clean import CleanResult, gc_one, gc_repositories, unreferenced_paths
+from repomod.cmd import common as cmd_common
 from repomod.types import Catalog
 
 
@@ -289,8 +291,8 @@ def test_gc_is_registered_in_cli_parser(
         catalog.root / "stale",
         origin="https://github.com/acme/stale.git",
     )
-    monkeypatch.setattr(cli_module, "_catalog", lambda: catalog)
-    assert cli_module._gc(args) == 0
+    monkeypatch.setattr(cmd_common, "_catalog", lambda: catalog)
+    assert gc_cmd._gc(args) == 0
     out = capsys.readouterr().out
     assert "stale: planned:" in out
     assert (catalog.root / "stale").is_dir()

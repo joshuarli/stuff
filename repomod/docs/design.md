@@ -16,8 +16,11 @@ rejects symlink path components. repomod checks that a checkout's origin matches
 repository. New clones are staged beside their destination and moved into place after validation.
 
 `git.py` owns Git subprocesses and repository locks. `github.py` owns GitHub reads, CI cache,
-topics, and approved Action tag resolution. `sync.py` coordinates clones, fetches, and safe
-fast-forwards. Policy rules live under `rules/`. See [policy development](policy-development.md).
+topics, and approved Action tag resolution. `sync.py` coordinates clones, fetches, safe
+fast-forwards, and archived-repository untracking. `clean.py` owns checkout removal guards and
+unreferenced-checkout collection. `catalog.py` owns catalog reads and edits. Command handlers live
+under `cmd/`, one module per subcommand; `cli.py` only parses arguments and dispatches.
+Policy rules live under `rules/`. See [policy development](policy-development.md).
 
 ## Synchronization and status
 
