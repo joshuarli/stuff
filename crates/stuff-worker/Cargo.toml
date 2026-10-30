@@ -9,9 +9,9 @@ license = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+deser = { version = "0.10", features = ["derive"] }
+deser-json = "0.10"
 stuff-http = { version = "0.1.0", path = "../stuff-http" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-worker = "0.8"
+wasm-bindgen = "=0.2.129"

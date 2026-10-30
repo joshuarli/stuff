@@ -1,0 +1,562 @@
+use crate::map::{MappedAsset, RegistryRoute, WorkerConfig, map_asset, object_key_for, parse_pointer};
+use stuff_http::{
+    RouteKind as HttpRouteKind, cache_policy_for, content_type_for, evaluate_preconditions,
+    parse_range, Precondition,
+};
+use std::collections::BTreeMap;
+
+#[derive(Debug, Clone, deser::Deserialize)]
+pub struct RouteEntry {
+    #[deser(default)]
+    pub url_prefix: String,
+    pub bucket_binding: String,
+    #[deser(default)]
+    pub key_prefix: String,
+}
+
+pub fn parse_routes(raw: &str) -> Result<WorkerConfig, String> {
+    let routes: Vec<RouteEntry> =
+        deser_json::from_str(raw).map_err(|e| format!("STUFF_ROUTES: {e}"))?;
+    Ok(WorkerConfig {
+        routes: routes
+            .into_iter()
+            .map(|r| RegistryRoute {
+                url_prefix: r.url_prefix,
+                bucket_binding: r.bucket_binding,
+                key_prefix: r.key_prefix,
+            })
+            .collect(),
+    })
+}
+
+fn to_json<T: deser::Serialize + ?Sized>(value: &T, fallback_kind: &str) -> String {
+    deser_json::to_string(value)
+        .unwrap_or_else(|_| format!(r#"{{"kind":"{fallback_kind}"}}"#))
+}
+
+#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+pub struct MappedJson {
+    pub kind: String,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub bucket_binding: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub pointer_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub rel_path: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub message: Option<String>,
+}
+
+pub fn map_asset_json(routes_json: &str, raw_path: &str) -> String {
+    let config = match parse_routes(routes_json) {
+        Ok(config) => config,
+        Err(message) => {
+            return to_json(
+                &MappedJson {
+                    kind: "error".to_string(),
+                    bucket_binding: None,
+                    key: None,
+                    pointer_key: None,
+                    rel_path: None,
+                    message: Some(message),
+                },
+                "error",
+            );
+        }
+    };
+    let mapped = match map_asset(&config, raw_path) {
+        MappedAsset::Direct(asset) => MappedJson {
+            kind: "direct".to_string(),
+            bucket_binding: Some(asset.bucket_binding),
+            key: Some(asset.key),
+            pointer_key: None,
+            rel_path: None,
+            message: None,
+        },
+        MappedAsset::ViaPointer {
+            bucket_binding,
+            pointer_key,
+            rel_path,
+        } => MappedJson {
+            kind: "via_pointer".to_string(),
+            bucket_binding: Some(bucket_binding),
+            key: None,
+            pointer_key: Some(pointer_key),
+            rel_path: Some(rel_path),
+            message: None,
+        },
+        MappedAsset::NotFound => MappedJson {
+            kind: "not_found".to_string(),
+            bucket_binding: None,
+            key: None,
+            pointer_key: None,
+            rel_path: None,
+            message: None,
+        },
+    };
+    to_json(&mapped, "not_found")
+}
+
+#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+pub struct PointerJson {
+    pub kind: String,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub key: Option<String>,
+}
+
+pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &str) -> String {
+    let resolved = match parse_pointer(pointer_text.as_bytes()) {
+        Some(generation_id) => {
+            let key_prefix = pointer_key.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            PointerJson {
+                kind: "key".to_string(),
+                key: Some(object_key_for(key_prefix, &generation_id, rel_path)),
+            }
+        }
+        None => PointerJson {
+            kind: "not_found".to_string(),
+            key: None,
+        },
+    };
+    to_json(&resolved, "not_found")
+}
+
+#[derive(Debug, Clone, Default, deser::Deserialize)]
+pub struct RequestHeadersJson {
+    #[deser(default)]
+    pub if_none_match: Option<String>,
+    #[deser(default)]
+    pub if_match: Option<String>,
+    #[deser(default)]
+    pub range: Option<String>,
+}
+
+#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+pub struct PlanJson {
+    pub kind: String,
+    #[deser(default)]
+    pub status: u16,
+    #[deser(default)]
+    pub headers: BTreeMap<String, String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub body: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub range_start: Option<u64>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub range_length: Option<u64>,
+    #[deser(default)]
+    pub head: bool,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub message: Option<String>,
+}
+
+fn plan_error(message: String) -> String {
+    to_json(
+        &PlanJson {
+            kind: "error".to_string(),
+            status: 0,
+            headers: BTreeMap::new(),
+            body: None,
+            range_start: None,
+            range_length: None,
+            head: false,
+            message: Some(message),
+        },
+        "error",
+    )
+}
+
+fn file_headers(
+    route_kind: HttpRouteKind,
+    file_name: &str,
+    etag: &str,
+    len: u64,
+) -> BTreeMap<String, String> {
+    let mut headers = BTreeMap::new();
+    headers.insert("content-type".to_string(), content_type_for(file_name).to_string());
+    headers.insert("content-length".to_string(), len.to_string());
+    headers.insert("accept-ranges".to_string(), "bytes".to_string());
+    headers.insert(
+        "cache-control".to_string(),
+        cache_policy_for(route_kind).header_value(),
+    );
+    headers.insert("etag".to_string(), etag.to_string());
+    headers
+}
+
+fn file_name_of(key: &str) -> &str {
+    key.rsplit('/').next().unwrap_or(key)
+}
+
+pub fn plan_object_response_json(
+    route: &str,
+    method: &str,
+    key: &str,
+    headers_json: &str,
+    size: u64,
+    etag: &str,
+) -> String {
+    let route_kind = match route {
+        "immutable" => HttpRouteKind::ImmutableFile,
+        "pointer" => HttpRouteKind::GenerationPointer,
+        _ => return plan_error(format!("unknown route: {route}")),
+    };
+    let head = match method {
+        "GET" => false,
+        "HEAD" => true,
+        _ => return plan_error(format!("unknown method: {method}")),
+    };
+    let request: RequestHeadersJson = match deser_json::from_str(headers_json) {
+        Ok(request) => request,
+        Err(e) => return plan_error(format!("headers: {e}")),
+    };
+    let plan = plan_object_response(
+        route_kind,
+        head,
+        file_name_of(key),
+        &request,
+        size,
+        etag,
+    );
+    to_json(&plan, "error")
+}
+
+fn plan_object_response(
+    route_kind: HttpRouteKind,
+    head: bool,
+    file_name: &str,
+    request: &RequestHeadersJson,
+    size: u64,
+    etag: &str,
+) -> PlanJson {
+    match evaluate_preconditions(
+        Some(etag),
+        request.if_none_match.as_deref(),
+        request.if_match.as_deref(),
+    ) {
+        Precondition::NotModified => {
+            let mut headers = BTreeMap::new();
+            headers.insert("etag".to_string(), etag.to_string());
+            return PlanJson {
+                kind: "plan".to_string(),
+                status: 304,
+                headers,
+                body: None,
+                range_start: None,
+                range_length: None,
+                head,
+                message: None,
+            };
+        }
+        Precondition::Failed => {
+            return PlanJson {
+                kind: "plan".to_string(),
+                status: 412,
+                headers: BTreeMap::new(),
+                body: Some("precondition failed".to_string()),
+                range_start: None,
+                range_length: None,
+                head,
+                message: None,
+            };
+        }
+        Precondition::None => {}
+    }
+
+    match request.range.as_deref() {
+        Some(spec) => match parse_range(spec, size) {
+            Ok(ranges) if ranges.len() == 1 => {
+                let r = ranges[0];
+                let mut headers = file_headers(route_kind, file_name, etag, r.len());
+                headers.insert(
+                    "content-range".to_string(),
+                    format!("bytes {}-{}/{}", r.start, r.end_inclusive, size),
+                );
+                PlanJson {
+                    kind: "plan".to_string(),
+                    status: 206,
+                    headers,
+                    body: None,
+                    range_start: Some(r.start),
+                    range_length: Some(r.len()),
+                    head,
+                    message: None,
+                }
+            }
+            Ok(_) => full_response(route_kind, head, file_name, etag, size),
+            Err(stuff_http::RangeError::Unsatisfiable) => {
+                let mut headers = BTreeMap::new();
+                headers.insert("content-range".to_string(), format!("bytes */{size}"));
+                headers.insert("etag".to_string(), etag.to_string());
+                PlanJson {
+                    kind: "plan".to_string(),
+                    status: 416,
+                    headers,
+                    body: None,
+                    range_start: None,
+                    range_length: None,
+                    head,
+                    message: None,
+                }
+            }
+            Err(stuff_http::RangeError::Invalid) => {
+                full_response(route_kind, head, file_name, etag, size)
+            }
+        },
+        None => full_response(route_kind, head, file_name, etag, size),
+    }
+}
+
+fn full_response(
+    route_kind: HttpRouteKind,
+    head: bool,
+    file_name: &str,
+    etag: &str,
+    size: u64,
+) -> PlanJson {
+    PlanJson {
+        kind: "plan".to_string(),
+        status: 200,
+        headers: file_headers(route_kind, file_name, etag, size),
+        body: None,
+        range_start: None,
+        range_length: None,
+        head,
+        message: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ROUTES: &str = r#"[{"url_prefix":"mycrates","bucket_binding":"MYCRATES","key_prefix":""},{"url_prefix":"mirror","bucket_binding":"MYNPM","key_prefix":""},{"url_prefix":"pypi","bucket_binding":"PYPI","key_prefix":""}]"#;
+
+    fn parse_mapped(s: &str) -> MappedJson {
+        deser_json::from_str(s).expect("mapped json parses")
+    }
+
+    fn parse_plan(s: &str) -> PlanJson {
+        deser_json::from_str(s).expect("plan json parses")
+    }
+
+    #[test]
+    fn routes_require_bucket_binding_but_default_the_rest() {
+        let config = parse_routes(r#"[{"bucket_binding":"B"}]"#).expect("parses");
+        assert_eq!(config.routes.len(), 1);
+        assert_eq!(config.routes[0].url_prefix, "");
+        assert_eq!(config.routes[0].bucket_binding, "B");
+        assert_eq!(config.routes[0].key_prefix, "");
+    }
+
+    #[test]
+    fn routes_reject_invalid_json() {
+        let err = parse_routes("not json").expect_err("rejects");
+        assert!(err.starts_with("STUFF_ROUTES: "), "{err}");
+    }
+
+    #[test]
+    fn routes_reject_missing_bucket_binding() {
+        assert!(parse_routes(r#"[{"url_prefix":"x"}]"#).is_err());
+    }
+
+    #[test]
+    fn map_json_shapes() {
+        let direct = parse_mapped(&map_asset_json(ROUTES, "/mycrates/generations/abc/tarballs/x.tgz"));
+        assert_eq!(direct.kind, "direct");
+        assert_eq!(direct.bucket_binding.as_deref(), Some("MYCRATES"));
+        assert_eq!(
+            direct.key.as_deref(),
+            Some("generations/abc/tarballs/x.tgz")
+        );
+
+        let via = parse_mapped(&map_asset_json(ROUTES, "/mirror/current/@flatrepo%2fdemo"));
+        assert_eq!(via.kind, "via_pointer");
+        assert_eq!(via.bucket_binding.as_deref(), Some("MYNPM"));
+        assert_eq!(via.pointer_key.as_deref(), Some("current"));
+        assert_eq!(via.rel_path.as_deref(), Some("@flatrepo/demo"));
+
+        let missing = parse_mapped(&map_asset_json(ROUTES, "/nope/current/x"));
+        assert_eq!(missing.kind, "not_found");
+
+        let error = parse_mapped(&map_asset_json("bogus", "/mycrates/x"));
+        assert_eq!(error.kind, "error");
+        assert!(error.message.unwrap().starts_with("STUFF_ROUTES: "));
+    }
+
+    #[test]
+    fn pointer_json_resolves_scoped_keys() {
+        let key = parse_plan_pointer(&resolve_pointer_json("current", "abc123", "flatdemo"));
+        assert_eq!(key, "generations/abc123/flatdemo");
+
+        let scoped = parse_plan_pointer(&resolve_pointer_json(
+            "indexes/main/current",
+            "gen9",
+            "simple/index.html",
+        ));
+        assert_eq!(scoped, "indexes/main/generations/gen9/simple/index.html");
+
+        let bad = deser_json::from_str::<PointerJson>(&resolve_pointer_json(
+            "current",
+            "generations/abc",
+            "x",
+        ))
+        .expect("parses");
+        assert_eq!(bad.kind, "not_found");
+        assert_eq!(bad.key, None);
+    }
+
+    fn parse_plan_pointer(s: &str) -> String {
+        let parsed: PointerJson = deser_json::from_str(s).expect("pointer json parses");
+        assert_eq!(parsed.kind, "key");
+        parsed.key.expect("key present")
+    }
+
+    #[test]
+    fn headers_json_accepts_nulls_and_missing_keys() {
+        let headers: RequestHeadersJson =
+            deser_json::from_str(r#"{"if_none_match":null}"#).expect("parses");
+        assert_eq!(headers.if_none_match, None);
+        assert_eq!(headers.if_match, None);
+        assert_eq!(headers.range, None);
+    }
+
+    #[test]
+    fn plan_full_and_head() {
+        let plan = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "tarballs/x.tgz",
+            "{}",
+            1000,
+            "abc",
+        ));
+        assert_eq!(plan.kind, "plan");
+        assert_eq!(plan.status, 200);
+        assert!(!plan.head);
+        assert_eq!(plan.headers.get("content-type").map(String::as_str), Some("application/octet-stream"));
+        assert_eq!(plan.headers.get("content-length").map(String::as_str), Some("1000"));
+        assert_eq!(plan.headers.get("accept-ranges").map(String::as_str), Some("bytes"));
+        assert_eq!(
+            plan.headers.get("cache-control").map(String::as_str),
+            Some("public, max-age=31536000, immutable")
+        );
+        assert_eq!(plan.headers.get("etag").map(String::as_str), Some("abc"));
+
+        let head = parse_plan(&plan_object_response_json(
+            "pointer",
+            "HEAD",
+            "simple/index.html",
+            "{}",
+            10,
+            "e",
+        ));
+        assert_eq!(head.status, 200);
+        assert!(head.head);
+        assert_eq!(
+            head.headers.get("cache-control").map(String::as_str),
+            Some("public, max-age=60")
+        );
+        assert_eq!(
+            head.headers.get("content-type").map(String::as_str),
+            Some("text/html; charset=utf-8")
+        );
+    }
+
+    #[test]
+    fn plan_conditionals() {
+        let fresh = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "config.json",
+            r#"{"if_none_match":"\"abc\""}"#,
+            100,
+            "\"abc\"",
+        ));
+        assert_eq!(fresh.status, 304);
+        assert_eq!(fresh.headers.get("etag").map(String::as_str), Some("\"abc\""));
+
+        let failed = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "config.json",
+            r#"{"if_match":"\"other\""}"#,
+            100,
+            "\"abc\"",
+        ));
+        assert_eq!(failed.status, 412);
+        assert_eq!(failed.body.as_deref(), Some("precondition failed"));
+    }
+
+    #[test]
+    fn plan_single_range() {
+        let plan = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "pkg.tgz",
+            r#"{"range":"bytes=0-99"}"#,
+            1000,
+            "e",
+        ));
+        assert_eq!(plan.status, 206);
+        assert_eq!(plan.range_start, Some(0));
+        assert_eq!(plan.range_length, Some(100));
+        assert_eq!(
+            plan.headers.get("content-range").map(String::as_str),
+            Some("bytes 0-99/1000")
+        );
+        assert_eq!(plan.headers.get("content-length").map(String::as_str), Some("100"));
+    }
+
+    #[test]
+    fn plan_range_fallbacks() {
+        let multi = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "pkg.tgz",
+            r#"{"range":"bytes=0-0,-1"}"#,
+            1000,
+            "e",
+        ));
+        assert_eq!(multi.status, 200);
+        assert_eq!(multi.range_start, None);
+
+        let invalid = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "pkg.tgz",
+            r#"{"range":"items=0-1"}"#,
+            1000,
+            "e",
+        ));
+        assert_eq!(invalid.status, 200);
+
+        let unsatisfiable = parse_plan(&plan_object_response_json(
+            "immutable",
+            "GET",
+            "pkg.tgz",
+            r#"{"range":"bytes=1000-"}"#,
+            1000,
+            "e",
+        ));
+        assert_eq!(unsatisfiable.status, 416);
+        assert_eq!(
+            unsatisfiable.headers.get("content-range").map(String::as_str),
+            Some("bytes */1000")
+        );
+    }
+
+    #[test]
+    fn plan_rejects_bad_input() {
+        for (route, method, headers) in [
+            ("bogus", "GET", "{}"),
+            ("immutable", "POST", "{}"),
+            ("immutable", "GET", "{bad"),
+        ] {
+            let plan = parse_plan(&plan_object_response_json(route, method, "x", headers, 1, "e"));
+            assert_eq!(plan.kind, "error", "{route} {method} {headers}");
+        }
+    }
+}
