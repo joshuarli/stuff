@@ -342,7 +342,7 @@ mod tests {
     use super::*;
 
     fn fixture() -> String {
-        std::fs::read_to_string("../../tools/mynpm/test/fixtures/mynpm.json").unwrap()
+        std::fs::read_to_string("../../tests/fixtures/mynpm/mynpm.json").unwrap()
     }
 
     #[test]

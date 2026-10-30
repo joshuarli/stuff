@@ -679,7 +679,7 @@ mod tests {
     }
 
     fn read_lock(name: &str) -> String {
-        std::fs::read_to_string(format!("../../tools/mynpm/test/fixtures/locks/{name}")).unwrap()
+        std::fs::read_to_string(format!("../../tests/fixtures/mynpm/locks/{name}")).unwrap()
     }
 
     #[test]

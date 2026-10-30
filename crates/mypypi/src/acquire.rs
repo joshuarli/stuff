@@ -1060,7 +1060,7 @@ mod tests {
     #[test]
     fn validates_fixture_wheel_metadata() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tools/mypypi/tests/fixtures/wheels/validation_fixture-1.0-py3-none-any.whl");
+            .join("../../tests/fixtures/mypypi/wheels/validation_fixture-1.0-py3-none-any.whl");
         if !path.exists() {
             return;
         }

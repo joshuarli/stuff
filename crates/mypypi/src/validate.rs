@@ -826,7 +826,7 @@ mod tests {
 
     fn fixture() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tools/mypypi/tests/fixtures/wheels/validation_fixture-1.0-py3-none-any.whl")
+            .join("../../tests/fixtures/mypypi/wheels/validation_fixture-1.0-py3-none-any.whl")
     }
 
     #[test]

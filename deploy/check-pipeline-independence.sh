@@ -1,8 +1,9 @@
 #!/bin/sh
 # Prove per-registry publication pipelines never touch each other's output.
-# Publishes mycrates and mypypi (both offline-capable) and asserts mutual
-# non-interference plus publish determinism. mynpm participates through
-# disjoint paths and separate CI jobs; its publish needs network.
+# Publishes mycrates (offline) and mypypi (one tiny wheel) through the Rust
+# binaries and asserts mutual non-interference plus publish determinism.
+# mynpm participates through disjoint state/site paths; its publish needs
+# the npm toolchain, so it is covered by deploy/ecosystem-smoke.sh instead.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${1:-"$ROOT/.work/pipecheck"}
@@ -11,6 +12,7 @@ mkdir -p "$WORK"
 
 CRATES_STATE="$WORK/crates-state"
 CRATES_SITE="$WORK/crates-site"
+PYPI_STATE="$WORK/pypi-state"
 PYPI_OUT="$WORK/pypi-site"
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -44,55 +46,35 @@ snapshot() {
 snapshot "$WORK/after-crates.txt" "crates-site"
 CRATES_GEN_1=$(readlink "$CRATES_SITE/current")
 
-cat > "$WORK/mkwheel.py" <<'EOF'
-import base64
-import hashlib
-import sys
-import zipfile
-from pathlib import Path
+UNAME_S=$(uname -s)
+UNAME_M=$(uname -m)
+case "$UNAME_S-$UNAME_M" in
+  Linux-x86_64) HOST_PLATFORM="linux-x86_64" ;;
+  Linux-aarch64|Linux-arm64) HOST_PLATFORM="linux-aarch64" ;;
+  Darwin-arm64) HOST_PLATFORM="macos-arm64" ;;
+  Darwin-x86_64) HOST_PLATFORM="macos-x86_64" ;;
+  *) echo "FAIL: unsupported host platform $UNAME_S-$UNAME_M"; exit 1 ;;
+esac
 
-sys.path.insert(0, "tools/mypypi/src")
-from packaging.version import Version
+cat > "$WORK/pyproject.toml" <<EOF
+[project]
+name = "pipecheck"
+version = "0.1.0"
+requires-python = ">=3.15,<3.16"
 
-from mypypi.models import Target, ValidatedArtifact, WheelIdentity
-from mypypi.store import publish
-
-out = Path(sys.argv[1])
-tmp = Path(sys.argv[2])
-name, version = "indep_fixture", "1.0"
-filename = f"{name}-{version}-py3-none-any.whl"
-identity = WheelIdentity.parse(filename)
-dist_info = f"{name}-{version}.dist-info"
-path = tmp / filename
-members = {
-    f"{dist_info}/METADATA": (
-        f"Metadata-Version: 2.4\nName: {name}\nVersion: {version}\n"
-        "Requires-Python: >=3.15\n\n"
-    ).encode(),
-    f"{dist_info}/WHEEL": b"Wheel-Version: 1.0\nTag: py3-none-any\n\n",
-    f"{name}.py": b"value = 1\n",
-}
-with zipfile.ZipFile(path, "w") as archive:
-    for entry, content in members.items():
-        archive.writestr(entry, content)
-record = []
-for entry in members:
-    with zipfile.ZipFile(path, "r") as archive:
-        content = archive.read(entry)
-    digest = base64.urlsafe_b64encode(hashlib.sha256(content).digest()).decode().rstrip("=")
-    record.append(f"{entry},sha256={digest},{len(content)}")
-record.append(f"{dist_info}/RECORD,,")
-with zipfile.ZipFile(path, "a") as archive:
-    archive.writestr(f"{dist_info}/RECORD", "\n".join(record) + "\n")
-artifact = ValidatedArtifact(
-    identity,
-    path,
-    hashlib.sha256(path.read_bytes()).hexdigest(),
-    frozenset({Target(Version("3.15"), "linux-x86_64")}),
-)
-publish((artifact,), out)
+[tool.mypypi.targets]
+platforms = ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-arm64"]
+linux_repair_policy = "manylinux_2_28"
 EOF
-(cd "$ROOT" && uv run --locked --python 3.15 --project tools/mypypi python "$WORK/mkwheel.py" "$PYPI_OUT" "$WORK" >/dev/null)
+cat > "$WORK/packages.toml" <<'EOF'
+[[packages]]
+name = "six"
+version = "1.16.0"
+EOF
+(cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$WORK/packages.toml" --config "$WORK/pyproject.toml" --state-dir "$PYPI_STATE" add "six==1.16.0" >/dev/null)
+(cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$WORK/packages.toml" --config "$WORK/pyproject.toml" --state-dir "$PYPI_STATE" --output "$PYPI_OUT" build >/dev/null)
+(cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$WORK/packages.toml" --config "$WORK/pyproject.toml" --state-dir "$PYPI_STATE" --output "$PYPI_OUT" --platform "$HOST_PLATFORM" validate >/dev/null)
+(cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$WORK/packages.toml" --config "$WORK/pyproject.toml" --state-dir "$PYPI_STATE" --output "$PYPI_OUT" --platform "$HOST_PLATFORM" publish >/dev/null)
 snapshot "$WORK/after-pypi.txt" "pypi-site"
 if cmp -s "$WORK/after-crates.txt" "$WORK/after-pypi-crates.txt" 2>/dev/null; then :; fi
 snapshot "$WORK/after-pypi-crates.txt" "crates-site"
@@ -110,5 +92,15 @@ if cmp -s "$WORK/after-crates.txt" "$WORK/after-crates-again.txt"; then
   echo "determinism: crates republish is a noop"
 else
   echo "FAIL: crates republish changed output"; exit 1
+fi
+PYPI_GEN_1=$(readlink "$PYPI_OUT/current")
+(cd "$ROOT" && cargo run -q -p mypypi -- --catalog "$WORK/packages.toml" --config "$WORK/pyproject.toml" --state-dir "$PYPI_STATE" --output "$PYPI_OUT" --platform "$HOST_PLATFORM" publish >/dev/null)
+PYPI_GEN_2=$(readlink "$PYPI_OUT/current")
+[ "$PYPI_GEN_1" = "$PYPI_GEN_2" ] || { echo "FAIL: pypi republish changed generation"; exit 1; }
+snapshot "$WORK/after-pypi-again.txt" "pypi-site"
+if cmp -s "$WORK/after-pypi.txt" "$WORK/after-pypi-again.txt"; then
+  echo "determinism: pypi republish is a noop"
+else
+  echo "FAIL: pypi republish changed output"; exit 1
 fi
 echo "OK: single-registry publishes leave other generations untouched"

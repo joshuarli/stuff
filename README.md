@@ -4,22 +4,25 @@ One repository, three registries, one serving platform.
 
 `stuff` consolidates the `mycrates` (Cargo), `mynpm` (npm), and `mypypi`
 (Python wheel) static registries onto shared Rust infrastructure for HTTP
-serving, storage, and generation management. Package semantics stay
-per-ecosystem; only the serving layer is shared.
+serving, storage, and generation management. All first-party registry
+logic is Rust; external ecosystems are orchestrated, not reimplemented
+(npm/pnpm resolve and install, uv/CPython build and install wheels).
+Package semantics stay per-ecosystem; only the serving layer is shared.
 
 ## Layout
 
 | Path | What |
 | --- | --- |
 | `crates/mycrates` | Cargo sparse registry + archive (Rust) |
-| `tools/mynpm` | npm archive (TypeScript, Node 26, pnpm 12.15.0) |
-| `tools/mypypi` | Wheel index (CPython 3.15, uv) |
+| `crates/mynpm` | npm archive (Rust; `mynpm` binary) |
+| `crates/mypypi` | Wheel index (Rust; `mypypi` binary) |
 | `crates/h12tiny-*` | TLS client crates mycrates builds on, imported with history |
 | `crates/stuff-store` | Generation activation, immutable blob sync, durable writes |
 | `crates/stuff-http` | Content types, cache policy, path resolution, conditionals, ranges |
 | `crates/stuff-server` | Native static file server over the shared semantics |
 | `crates/stuff-worker` | Cloudflare Worker adapter (same semantics over R2) |
-| `deploy/` | Pipeline checks; the worker project lives in `crates/stuff-worker` |
+| `deploy/` | Pipeline checks and ecosystem smoke; the worker project lives in `crates/stuff-worker` |
+| `tests/fixtures` | Shared registry fixtures (lockfiles, configs, tarballs, wheels) |
 
 Each registry publishes immutable generations activated through a `current`
 pointer (`current -> generations/<id>`). One registry's publication never
@@ -35,22 +38,13 @@ cargo test --workspace
 cargo clippy --locked --all-targets -- -D warnings
 ```
 
-npm archive:
+Ecosystem smoke (needs Node 26 + npm 12.2.1, uv + CPython 3.15, network):
 
 ```sh
-cd tools/mynpm
-pnpm install --frozen-lockfile --ignore-scripts
-pnpm check
+deploy/ecosystem-smoke.sh
 ```
 
-Wheel index:
-
-```sh
-cd tools/mypypi
-uv run --locked --python 3.15 pytest -q -m "not network" tests
-```
-
-Pipeline independence (offline; also runs in CI):
+Pipeline independence (also runs in CI):
 
 ```sh
 deploy/check-pipeline-independence.sh

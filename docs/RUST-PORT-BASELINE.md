@@ -1,4 +1,8 @@
-# Rust port baseline (Phase 0)
+# Rust port baseline (Phase 0) — COMPLETE
+
+All three registries are now Rust. `tools/mynpm` (TypeScript) and
+`tools/mypypi` (Python) were removed after parity was proven; their
+fixtures live on under `tests/fixtures/`.
 
 Date: 2026-10-30. Workspace green: `cargo test --workspace --locked` passes.
 Known pre-existing reds (from CAMPAIGN doc, unchanged): mynpm `test/validate.test.ts`
@@ -28,7 +32,29 @@ toolchain-mismatch (1 consistent failure); mypypi 2 pre-existing failures
    `tests/integration/` (`pip install`, `stuff-server` serve, `uv` resolution).
 
 Bytes compared where deterministic; env-specific fields (timestamps, absolute
-paths) normalized per-test. Generation format changes require migration notes.
+paths, Node patch versions) normalized per-test. Generation format changes
+require a compatibility note here.
 
-Deployment (Cloudflare/R2) is explicitly last per owner direction; no worker or
-`r2-sync.sh` changes in port slices.
+## Parity evidence (2026-10-30, this machine)
+
+- `cargo test --workspace --locked`: green; `cargo clippy --locked
+  --all-targets -- -D warnings`: clean.
+- mynpm E2E with real npm 12.2.1 / Node v26.12.1: `add is-odd@3.0.1`
+  (both targets) → `fetch` (2 artifacts, real registry.npmjs.org) →
+  `publish` (deterministic generation, byte-identical on republish) →
+  `verify` → `validate --client npm` (real `npm ci` from a loopback
+  static server, lock-graph and tarball audits green). `plan --json`,
+  `doctor`, pnpm `import-lock` likewise exercised.
+- mypypi E2E with uv / CPython 3.15.1: `add six==1.16.0` →
+  `plan`/`build` (4 targets) → `validate` (host platform; RECORD,
+  isolated venv install + import test) → `publish` → real
+  `uv pip install` from the published index + `import six` OK.
+  Cross-platform validation correctly refuses non-native targets.
+- `deploy/check-pipeline-independence.sh`: mycrates + mypypi publishes
+  leave each other untouched; both republishes are noops.
+- `deploy/ecosystem-smoke.sh`: both flows above, scripted for CI.
+- Known env notes: npm 12 defaults `allow-remote` to `none`; the
+  migrated loopback tarball URLs stay installable because the static
+  server keeps them under the configured registry origin (same-origin
+  exemption). pnpm 12.15.0 is CI-pinned; local runs without it skip
+  the pnpm leg.
