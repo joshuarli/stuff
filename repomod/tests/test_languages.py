@@ -189,3 +189,13 @@ def test_symlinked_directories_are_not_searched_for_manifests(tmp_path: Path) ->
     (repo / "linked").symlink_to(outside, target_is_directory=True)
 
     assert _language_sources(repo) == set()
+
+
+def test_nested_manifests_do_not_count_for_forks(tmp_path: Path) -> None:
+    module = tmp_path / "bindings"
+    module.mkdir()
+    (module / "go.mod").write_text("module bindings\n", encoding="utf-8")
+    (module / "api.go").write_text("package bindings\n", encoding="utf-8")
+
+    assert "go" in _language_sources(tmp_path)
+    assert "go" not in _language_sources(tmp_path, nested_manifests=False)
