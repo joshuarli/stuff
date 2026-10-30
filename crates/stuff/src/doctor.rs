@@ -97,13 +97,7 @@ pub fn load_catalogs(
 }
 
 fn cargo_shard(lower_name: &str) -> String {
-    let chars: Vec<char> = lower_name.chars().collect();
-    match chars.len() {
-        1 => format!("1/{}", lower_name),
-        2 => format!("2/{}", lower_name),
-        3 => format!("3/{}/{}", chars[0], lower_name),
-        _ => format!("{}/{}/{}", &lower_name[0..2], &lower_name[2..4], lower_name),
-    }
+    mycrates::index::shard_for_name(lower_name)
 }
 
 struct Check {

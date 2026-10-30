@@ -1293,6 +1293,7 @@ dependencies = [
  "deser-json",
  "deser-value",
  "h12tiny-client-sync",
+ "mycrates",
  "sha2",
  "stuff-catalog",
  "tempfile",

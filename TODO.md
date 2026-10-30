@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 9
 
-### STUF-6 · P3 · Cargo index sharding is implemented twice
-
-- **Area:** Config
-- **Where:** `crates/mycrates/src/index.rs:5-20`, `crates/stuff/src/doctor.rs:99-107`
-- **Problem:** `shard_for_name` and `cargo_shard` encode the same rule (including the `3/x/xxx` case) in two crates. They agree today for ASCII crate names, but a change in one silently breaks the other's index cross-checks. Duplication proven by reading; divergence unproven.
-- **Recommendation:** delete `cargo_shard` and reuse `mycrates::index::shard_for_name` from `doctor`.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### STUF-7 · P3 · catalog types admit states the domain forbids
 
 - **Area:** Types
