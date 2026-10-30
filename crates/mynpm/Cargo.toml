@@ -1,0 +1,29 @@
+[package]
+name = "mynpm"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "npm registry archive (Rust port of tools/mynpm)"
+repository = "https://github.com/joshuarli/stuff"
+autobins = false
+
+[lib]
+name = "mynpm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mynpm"
+path = "src/main.rs"
+
+[dependencies]
+base64 = "0.22"
+deser = { version = "0.10", features = ["derive"] }
+deser-json = "0.10"
+deser-value = "0.10"
+sha2 = "0.10"
+url = "2.5"
+stuff-store = { version = "0.1.0", path = "../stuff-store" }
+
+[dev-dependencies]
+tempfile = "3.13"

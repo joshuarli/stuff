@@ -5,6 +5,7 @@ members = [
   "crates/h12tiny-tls-system",
   "crates/h12tiny-client-sync",
   "crates/mycrates",
+  "crates/mynpm",
   "crates/stuff-store",
   "crates/stuff-http",
   "crates/stuff-server",
