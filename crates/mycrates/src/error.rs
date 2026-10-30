@@ -37,6 +37,30 @@ impl From<deser::Error> for Error {
     }
 }
 
+impl From<stuff_store::Error> for Error {
+    fn from(e: stuff_store::Error) -> Self {
+        match e {
+            stuff_store::Error::Input(s) => Error::Input(s),
+            stuff_store::Error::Integrity(s) => Error::Integrity(s),
+            stuff_store::Error::Conflict(s) => Error::Conflict(s),
+            stuff_store::Error::Operation(s) => Error::Operation(s),
+        }
+    }
+}
+
+impl From<Error> for stuff_store::Error {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::Input(s) => stuff_store::Error::Input(s),
+            Error::Integrity(s) => stuff_store::Error::Integrity(s),
+            Error::Conflict(s) => stuff_store::Error::Conflict(s),
+            Error::Limit(s) => stuff_store::Error::Operation(format!("limit: {s}")),
+            Error::Network(s) => stuff_store::Error::Operation(format!("network: {s}")),
+            Error::Operation(s) => stuff_store::Error::Operation(s),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {

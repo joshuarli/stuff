@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn sync_dir(dir: &Path) -> Result<()> {
     let f = File::open(dir)?;
@@ -28,7 +28,7 @@ pub fn write_file_durable(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn tmp_sibling(path: &Path) -> Result<std::path::PathBuf> {
+pub fn tmp_sibling(path: &Path) -> Result<PathBuf> {
     let parent = path.parent().ok_or_else(|| {
         Error::Operation(format!("path has no parent: {}", path.display()))
     })?;
@@ -48,6 +48,30 @@ pub fn tmp_sibling(path: &Path) -> Result<std::path::PathBuf> {
     Ok(parent.join(unique))
 }
 
+pub fn sync_tree(dir: &Path) -> Result<()> {
+    sync_dir(dir)?;
+    for entry in walk_files(dir)? {
+        if let Some(parent) = entry.parent() {
+            sync_dir(parent)?;
+        }
+    }
+    Ok(())
+}
+
+fn walk_files(dir: &Path) -> Result<Vec<PathBuf>> {
+    let mut out = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let p = entry.path();
+        if entry.file_type()?.is_dir() {
+            out.extend(walk_files(&p)?);
+        } else {
+            out.push(p);
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,5 +83,13 @@ mod tests {
         let p = dir.path().join("sub/file.txt");
         write_file_durable(&p, b"hello").unwrap();
         assert_eq!(fs::read(&p).unwrap(), b"hello");
+    }
+
+    #[test]
+    fn sync_tree_covers_nested_parents() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("a/b/file.txt");
+        write_file_durable(&p, b"x").unwrap();
+        sync_tree(dir.path()).unwrap();
     }
 }

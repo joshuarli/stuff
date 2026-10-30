@@ -1,6 +1,7 @@
 use mycrates::model::IndexEntry;
 use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
+use stuff_store::Site;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::Cursor;
@@ -222,7 +223,6 @@ fn damaged_generation_repaired_on_republish() {
 #[test]
 fn staging_recovery() {
     let dir = tempdir().unwrap();
-    let store = Store::new(dir.path().join("state"));
     let site = dir.path().join("site");
 
     fs::create_dir_all(&site).unwrap();
@@ -231,8 +231,7 @@ fn staging_recovery() {
     let stale_tmp = site.join(".current.tmp.interrupted.456");
     fs::write(&stale_tmp, b"temp").unwrap();
 
-    let publ = Publisher::new(&store, site.clone(), "http://localhost:8080".to_string());
-    publ.recover_staging().unwrap();
+    Site::new(site.clone()).recover_staging().unwrap();
 
     assert!(!stale_staging.exists());
     assert!(!stale_tmp.exists());
@@ -272,8 +271,7 @@ fn temp_symlink_pointing_to_dir_is_unlinked_not_traversed() {
     let tmp_link = site.join(".current.tmp.9.9.9");
     std::os::unix::fs::symlink("generations/keepme", &tmp_link).unwrap();
 
-    let publ = Publisher::new(&store, site.clone(), "http://localhost:8080".to_string());
-    publ.recover_staging().unwrap();
+    Site::new(site.clone()).recover_staging().unwrap();
     assert!(!tmp_link.is_symlink());
     assert!(gen_dir.exists(), "recover must unlink the symlink, not delete its target");
     assert!(gen_dir.join("config.json").exists());

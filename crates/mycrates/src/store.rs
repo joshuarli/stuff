@@ -1,5 +1,4 @@
 use crate::error::{Error, Result};
-use crate::fsync::{sync_dir, write_file_durable};
 use crate::model::{CrateName, IndexEntry, Version};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
@@ -7,6 +6,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+use stuff_store::{stream_file_hash, sync_dir, write_file_durable, HashAlg};
 
 static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -165,17 +165,7 @@ impl Store {
 
     pub fn ingest_staged_file(&self, path: &Path, expected_sha256: &str) -> Result<String> {
         self.ensure_dirs()?;
-        let mut f = File::open(path)?;
-        let mut hasher = Sha256::new();
-        let mut buf = [0u8; 65536];
-        loop {
-            let n = f.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-            hasher.update(&buf[..n]);
-        }
-        let actual = format!("{:x}", hasher.finalize_reset());
+        let actual = stream_file_hash(path, HashAlg::Sha256)?;
         if actual != expected_sha256 {
             return Err(Error::Integrity(format!(
                 "staged file checksum changed before ingest: expected {}, got {}",
@@ -468,17 +458,7 @@ impl Store {
                         continue;
                     }
                     let expected_sha = fname.trim_end_matches(".crate");
-                    let mut f = File::open(&path)?;
-                    let mut hasher = Sha256::new();
-                    let mut buf = [0u8; 8192];
-                    loop {
-                        let n = f.read(&mut buf)?;
-                        if n == 0 {
-                            break;
-                        }
-                        hasher.update(&buf[..n]);
-                    }
-                    let actual_sha = format!("{:x}", hasher.finalize_reset());
+                    let actual_sha = stream_file_hash(&path, HashAlg::Sha256)?;
                     if actual_sha != expected_sha {
                         return Err(Error::Integrity(format!(
                             "corrupted blob: {} (expected {}, got {})",

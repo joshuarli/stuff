@@ -28,6 +28,8 @@ tar = "0.4"
 httparse = "1.9"
 tempfile = "3.13"
 url = "2.5"
+stuff-store = { version = "0.1.0", path = "../stuff-store" }
 
 [dev-dependencies]
 tempfile = "3.13"
+stuff-store = { version = "0.1.0", path = "../stuff-store" }

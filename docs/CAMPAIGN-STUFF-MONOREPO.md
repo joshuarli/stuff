@@ -8,8 +8,10 @@ S0 done: mycrates green at HEAD `f96961d` (cargo test all ok, 0 failed).
 Accepted: S1, S2d, S2a, S2b, S2c (mypypi; ruff clean, pytest
 163 passed with the same 2 pre-existing reds as source HEAD).
 D1 done: histories reachable via merge parents, licenses present.
-Red: baseline known-reds only. Next: S3 shared Rust crates.
-Resume: read crates/mycrates publish/store, extract stuff-store.
+S3 done: stuff-store (site/blob/hash/fsync) + stuff-http (mime/cache/
+route/condition) extracted; mycrates publishes through them, 125 passed
+0 failed workspace-wide, clippy clean. Next: S4 native read server.
+Resume: design crates/stuff-server on Site + stuff-http.
 Owner answers (2026-10-30): import after mycrates lands; Apache-2.0
 everywhere; CF build-only, owner deploys via `cf`; old repos stay live.
 Prescribed in flight: S2d subdir import (registry 0.6.0 predates local TLS
