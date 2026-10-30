@@ -136,11 +136,11 @@ def _write(path: Path, text: str = "") -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def test_python_source_is_found_beside_nested_pyproject_manifests(tmp_path: Path) -> None:
+def test_python_source_under_nested_pyproject_manifests_is_not_detected(tmp_path: Path) -> None:
     _write(tmp_path / "services" / "api" / "pyproject.toml", "[project]\n")
     _write(tmp_path / "services" / "api" / "src" / "api" / "app.py")
 
-    assert "python" in _language_sources(tmp_path)
+    assert "python" not in _language_sources(tmp_path)
 
 
 def test_python_source_without_a_manifest_in_unknown_directories_is_not_detected(

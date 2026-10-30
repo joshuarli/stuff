@@ -344,8 +344,8 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _python_source_present(root: Path, *, nested_manifests: bool = True) -> bool:
-    bases = {"", *(_manifest_bases(root, "pyproject.toml") if nested_manifests else ())}
+def _python_source_present(root: Path) -> bool:
+    bases = {""}
     root_patterns = (
         "*.py",
         "build/*.py",
@@ -468,7 +468,7 @@ def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
             observed.add("typescript")
     if _rust_source_present(root):
         observed.add("rust")
-    if _python_source_present(root, nested_manifests=nested_manifests):
+    if _python_source_present(root):
         observed.add("python")
     go_bases = _manifest_bases(root, "go.mod") if nested_manifests else (
         ("",) if (root / "go.mod").is_file() and not (root / "go.mod").is_symlink() else ()
@@ -563,9 +563,7 @@ def _python_findings(root: Path, repository: Repository) -> list[Finding]:
     if path.is_symlink():
         return [_finding(repository, "python-project", path.name, "pyproject.toml is a symlink and is not followed")]
     if not path.is_file():
-        if "python" in repository.tags and not _python_source_present(
-            root, nested_manifests="fork" not in repository.tags
-        ):
+        if "python" in repository.tags and not _python_source_present(root):
             return [_finding(repository, "python-project", None, "python language tag has no pyproject.toml")]
         return []
     document, error = read_toml(path)
