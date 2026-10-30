@@ -55,12 +55,14 @@ impl CargoSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct VersionEntry {
     pub version: String,
     pub yanked: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Package {
     pub name: String,
     pub source: Option<String>,
@@ -69,6 +71,7 @@ pub struct Package {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Catalog {
     pub schema_version: u32,
     pub registry: Registry,
@@ -440,6 +443,9 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
     for (name, versions_map) in grouped {
         let mut entries: Vec<(String, bool)> = Vec::with_capacity(versions_map.len());
         for (version, flags) in versions_map {
+            // Version-level yank is conservative-by-construction: the index
+            // stays per-file, so a version reads yanked only when every file
+            // is. Partial yank information lives in the simple pages, not here.
             let yanked = !flags.is_empty() && flags.iter().all(|y| *y);
             entries.push((version, yanked));
         }
