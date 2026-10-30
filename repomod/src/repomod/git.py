@@ -170,6 +170,21 @@ def is_git_checkout(path: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
+def validated_checkout(path: Path, repo: RepoId) -> Path:
+    absolute = Path(os.path.abspath(path))
+    for component in (*reversed(absolute.parents), absolute):
+        if component.is_symlink():
+            raise GitError(f"checkout path contains a symlink: {component}")
+    if not absolute.is_dir():
+        raise GitError(f"checkout is not a directory: {absolute}")
+    if not is_git_checkout(absolute):
+        raise GitError(f"checkout is not a Git work tree: {absolute}")
+    remote = origin_url(absolute)
+    if remote is None or not expected_origin(repo, remote):
+        raise GitError(f"checkout origin does not match {repo}: {absolute}")
+    return absolute
+
+
 def _porcelain_counts(output: str) -> tuple[int, int, int]:
     staged = 0
     unstaged = 0

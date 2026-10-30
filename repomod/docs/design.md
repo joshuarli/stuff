@@ -54,6 +54,12 @@ expires after one hour. Offline status reads cached upstream comparisons. Online
 pull requests with their mergeable and merge-state status; `--failed` includes repositories
 with conflicting PRs and forks behind their upstream. Offline status omits pull requests.
 
+`lint` and `status` accept `--checkout PATH`, valid only with exactly one `--repo`. It replaces the
+canonical checkout for that repository in policy rules, local Git state, and the TODO count, so a
+worktree can be verified before it is fast-forwarded. The path must contain no symlink components,
+be a Git work tree, and have an `origin` matching the catalogue, the same check sync applies. GitHub
+data still follows catalog identity, and no other command accepts the option.
+
 ## Repair and writes
 
 Fix requires a clean checkout attached to the default branch. Fixers run serially in a dedicated

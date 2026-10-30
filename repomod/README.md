@@ -77,6 +77,15 @@ uv run repomod status --failed
 `repomod lint` reports policy findings. Use `--tag` or `--repo`
 to select repositories. See [tagging semantics](docs/tagging.md) for catalog tag meanings.
 
+`lint` and `status` accept `--checkout PATH` with exactly one `--repo` to evaluate a Git worktree
+(for example a fix branch) instead of the canonical checkout, so a fix can be verified before it is
+fast-forwarded. The path must be a real directory with no symlink components, a Git work tree
+whose `origin` matches the catalogued repository. It is only read.
+
+```sh
+uv run repomod lint --repo acme/tool --checkout .work/wt/fix
+```
+
 ## Fix
 
 `repomod fix` repairs policy violations and opens a pull request per repository.

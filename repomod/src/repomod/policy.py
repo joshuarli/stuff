@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from pathlib import Path
 
 from repomod.catalog import Catalog, repository_path
 from repomod.github import open_pull_requests, protection_many, topics_many
@@ -76,6 +77,7 @@ def lint_repositories(
     tags: Iterable[str] = (),
     rule_ids: Iterable[str] = (),
     local_only: bool = False,
+    checkouts: Mapping[str, Path] | None = None,
 ) -> list[Finding]:
     selected = filter_repositories(
         catalog.repositories if repositories is None else repositories,
@@ -129,7 +131,7 @@ def lint_repositories(
         }
     for repository in selected:
         try:
-            root = repository_path(catalog, repository)
+            root = (checkouts or {}).get(str(repository.id)) or repository_path(catalog, repository)
         except (OSError, ValueError) as error:
             findings.append(
                 operational(repository, "repo-integrity", None, f"cannot resolve canonical checkout: {error}")
