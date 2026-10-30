@@ -33,5 +33,5 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 
 ## Phase D: enforcement
 
-- [ ] repomod `registry-sources` rule and `registries.toml`; enabled after Phase C
+- [x] repomod `registry-sources` rule and `registries.toml` merged, disabled (`enforce = false`); enable after Phase C (41 findings in 23 repos today)
 - [ ] audit-upgrades and `fix` against a stuff-only world (upgrades need ingestion first)
