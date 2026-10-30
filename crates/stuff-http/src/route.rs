@@ -30,8 +30,8 @@ impl std::fmt::Display for PathError {
 
 impl std::error::Error for PathError {}
 
-fn decode_segment(segment: &str) -> Option<String> {
-    let mut out = String::with_capacity(segment.len());
+fn decode_segment(segment: &str) -> Option<Vec<u8>> {
+    let mut out = Vec::with_capacity(segment.len());
     let bytes = segment.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
@@ -42,15 +42,15 @@ fn decode_segment(segment: &str) -> Option<String> {
                 }
                 let hi = hex_val(bytes[i + 1])?;
                 let lo = hex_val(bytes[i + 2])?;
-                let c = (hi * 16 + lo) as char;
-                if c == '\0' {
+                let byte = hi * 16 + lo;
+                if byte == 0 {
                     return None;
                 }
-                out.push(c);
+                out.push(byte);
                 i += 3;
             }
             c => {
-                out.push(c as char);
+                out.push(c);
                 i += 1;
             }
         }
@@ -80,17 +80,20 @@ pub fn resolve_path(raw_target: &str) -> Result<ResolvedPath, PathError> {
         }
         // Percent-decoding happens per raw segment so `%2f` can address a
         // nested on-disk path (npm `@scope%2fpkg` lives at `@scope/pkg`).
-        // The decoded text is re-split and any `..` rejects the request,
-        // so decoding never escapes the site root.
+        // Decoding produces bytes first: multi-byte UTF-8 sequences stay
+        // intact, and invalid UTF-8 rejects the request. The decoded text
+        // is re-split and any `..` rejects the request, so decoding never
+        // escapes the site root.
         let decoded = decode_segment(raw).ok_or(PathError::NotFound)?;
-        for part in decoded.split('/') {
-            if part.is_empty() || part == "." {
+        for part in decoded.split(|b| *b == b'/') {
+            if part.is_empty() || part == b"." {
                 continue;
             }
-            if part == ".." {
+            if part == b".." {
                 return Err(PathError::NotFound);
             }
-            segments.push(part.to_string());
+            let text = std::str::from_utf8(part).map_err(|_| PathError::NotFound)?;
+            segments.push(text.to_string());
         }
     }
     if segments.is_empty() {
@@ -132,6 +135,15 @@ mod tests {
         assert_eq!(resolve_path("/").unwrap_err(), PathError::Empty);
         let r = resolve_path("/current/-/%2f").unwrap();
         assert_eq!(r.segments, ["current", "-"]);
+    }
+
+    #[test]
+    fn decodes_utf8_bytes_together() {
+        let r = resolve_path("/current/%E2%82%AC").unwrap();
+        assert_eq!(r.segments, ["current", "\u{20AC}"]);
+        assert_eq!(resolve_path("/current/%FF").unwrap_err(), PathError::NotFound);
+        assert_eq!(resolve_path("/current/%C3").unwrap_err(), PathError::NotFound);
+        assert_eq!(resolve_path("/current/%C3%28").unwrap_err(), PathError::NotFound);
     }
 
     #[test]

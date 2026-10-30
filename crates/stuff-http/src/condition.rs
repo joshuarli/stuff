@@ -10,30 +10,55 @@ pub fn evaluate_preconditions(
     if_none_match: Option<&str>,
     if_match: Option<&str>,
 ) -> Precondition {
-    if let Some(rule) = if_match
-        && !rule_matches(rule, etag)
-    {
-        return Precondition::Failed;
+    if let Some(rule) = if_match {
+        let matched = rule.split(',').any(|tag| strong_match(tag, etag));
+        if !matched {
+            return Precondition::Failed;
+        }
     }
-    if let Some(rule) = if_none_match
-        && rule_matches(rule, etag)
-    {
-        return Precondition::NotModified;
+    if let Some(rule) = if_none_match {
+        let matched = rule.split(',').any(|tag| weak_match(tag, etag));
+        if matched {
+            return Precondition::NotModified;
+        }
     }
     Precondition::None
 }
 
-fn rule_matches(rule: &str, current: Option<&str>) -> bool {
-    rule.split(',').any(|tag| {
-        let tag = tag.trim();
-        if tag == "*" {
-            return current.is_some();
+fn split_etag(tag: &str) -> (bool, &str) {
+    let tag = tag.trim();
+    match tag.strip_prefix("W/") {
+        Some(rest) => (true, rest.trim()),
+        None => (false, tag),
+    }
+}
+
+fn strong_match(rule: &str, current: Option<&str>) -> bool {
+    if rule.trim() == "*" {
+        return current.is_some();
+    }
+    match current {
+        Some(c) => {
+            let (rule_weak, rule_opaque) = split_etag(rule);
+            let (current_weak, current_opaque) = split_etag(c);
+            !rule_weak && !current_weak && !rule_opaque.is_empty() && rule_opaque == current_opaque
         }
-        match current {
-            Some(c) if !c.is_empty() => tag.trim_matches('"') == c.trim_matches('"'),
-            _ => false,
+        None => false,
+    }
+}
+
+fn weak_match(rule: &str, current: Option<&str>) -> bool {
+    if rule.trim() == "*" {
+        return current.is_some();
+    }
+    match current {
+        Some(c) => {
+            let (_, rule_opaque) = split_etag(rule);
+            let (_, current_opaque) = split_etag(c);
+            !rule_opaque.is_empty() && rule_opaque == current_opaque
         }
-    })
+        None => false,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -136,6 +161,39 @@ mod tests {
             Precondition::Failed
         );
         assert_eq!(evaluate_preconditions(None, None, None), Precondition::None);
+    }
+
+    #[test]
+    fn weak_etag_comparison() {
+        let etag = Some("\"abc123\"");
+        assert_eq!(
+            evaluate_preconditions(etag, Some("W/\"abc123\""), None),
+            Precondition::NotModified
+        );
+        assert_eq!(
+            evaluate_preconditions(etag, Some("\"abc123\", \"other\""), None),
+            Precondition::NotModified
+        );
+        assert_eq!(
+            evaluate_preconditions(Some("W/\"abc123\""), Some("\"abc123\""), None),
+            Precondition::NotModified
+        );
+        assert_eq!(
+            evaluate_preconditions(etag, None, Some("W/\"abc123\"")),
+            Precondition::Failed
+        );
+        assert_eq!(
+            evaluate_preconditions(etag, None, Some("abc123")),
+            Precondition::Failed
+        );
+        assert_eq!(
+            evaluate_preconditions(etag, None, Some("*")),
+            Precondition::None
+        );
+        assert_eq!(
+            evaluate_preconditions(etag, Some("*"), Some("\"nope\"")),
+            Precondition::Failed
+        );
     }
 
     #[test]

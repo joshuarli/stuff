@@ -104,6 +104,34 @@ pub struct PointerJson {
     pub kind: String,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub alias_key: Option<String>,
+}
+
+/// Shared-store alias for generation-scoped paths that r2-sync does not
+/// upload as separate objects:
+/// - `wheels/...` (mypypi publishes `generations/<id>/wheels` as a symlink
+///   to the shared immutable wheel store),
+/// - `tarballs/...` and `-/tarballs/...` (mynpm publishes hardlink aliases
+///   of the shared immutable tarball store).
+/// Wheel filenames and content-hash tarball names are immutable, so serving
+/// the shared object is byte-identical to serving a generation copy.
+fn alias_key_for(key_prefix: &str, rel_path: &str) -> Option<String> {
+    let target = if rel_path == "wheels" || rel_path.starts_with("wheels/") {
+        rel_path
+    } else if rel_path.starts_with("tarballs/") {
+        rel_path
+    } else if rel_path.starts_with("-/tarballs/") {
+        &rel_path["-/".len()..]
+    } else {
+        return None;
+    };
+    let mut parts = Vec::new();
+    if !key_prefix.is_empty() {
+        parts.push(key_prefix);
+    }
+    parts.push(target);
+    Some(parts.join("/"))
 }
 
 pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &str) -> String {
@@ -113,11 +141,13 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
             PointerJson {
                 kind: "key".to_string(),
                 key: Some(object_key_for(key_prefix, &generation_id, rel_path)),
+                alias_key: alias_key_for(key_prefix, rel_path),
             }
         }
         None => PointerJson {
             kind: "not_found".to_string(),
             key: None,
+            alias_key: None,
         },
     };
     to_json(&resolved, "not_found")
@@ -406,6 +436,44 @@ mod tests {
         .expect("parses");
         assert_eq!(bad.kind, "not_found");
         assert_eq!(bad.key, None);
+    }
+
+    #[test]
+    fn pointer_alias_covers_shared_stores() {
+        let wheels: PointerJson = deser_json::from_str(&resolve_pointer_json(
+            "current",
+            "abc123",
+            "wheels/pkg-1.0-py3-none-any.whl",
+        ))
+        .expect("parses");
+        assert_eq!(wheels.kind, "key");
+        assert_eq!(
+            wheels.key.as_deref(),
+            Some("generations/abc123/wheels/pkg-1.0-py3-none-any.whl")
+        );
+        assert_eq!(
+            wheels.alias_key.as_deref(),
+            Some("wheels/pkg-1.0-py3-none-any.whl")
+        );
+
+        let nested: PointerJson = deser_json::from_str(&resolve_pointer_json(
+            "indexes/main/current",
+            "gen9",
+            "-/tarballs/abc.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(
+            nested.alias_key.as_deref(),
+            Some("indexes/main/tarballs/abc.tgz")
+        );
+
+        let plain: PointerJson = deser_json::from_str(&resolve_pointer_json(
+            "current",
+            "abc123",
+            "flatdemo",
+        ))
+        .expect("parses");
+        assert_eq!(plain.alias_key, None);
     }
 
     fn parse_plan_pointer(s: &str) -> String {

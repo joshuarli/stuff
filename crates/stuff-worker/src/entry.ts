@@ -35,6 +35,7 @@ interface Mapped {
 interface PointerResolution {
   kind: "key" | "not_found";
   key?: string;
+  alias_key?: string;
 }
 
 interface ResponsePlan {
@@ -96,7 +97,17 @@ export default {
       route = "pointer";
     }
     const store = bucket(env, mapped.bucket_binding);
-    const object = await store.get(key);
+    let object = await store.get(key);
+    // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
+    // and -/tarballs/) are not uploaded as separate R2 objects; the shared
+    // store copy is byte-identical by the immutability invariant.
+    if (object === null && resolved.alias_key) {
+      const aliased = await store.get(resolved.alias_key);
+      if (aliased !== null) {
+        key = resolved.alias_key;
+        object = aliased;
+      }
+    }
     if (object === null) {
       return new Response("not found", { status: 404 });
     }

@@ -24,13 +24,6 @@ MYNPM_WORK="$WORK/mynpm"
 mkdir -p "$MYNPM_WORK/state" "$MYNPM_WORK/site"
 UNAME_S=$(uname -s)
 UNAME_M=$(uname -m)
-case "$UNAME_S-$UNAME_M" in
-  Linux-x86_64) TARGET="linux-x64-gnu" ;;
-  Linux-aarch64|Linux-arm64) TARGET="linux-x64-gnu" ;;
-  Darwin-arm64) TARGET="mac-arm64" ;;
-  Darwin-x86_64) TARGET="mac-arm64" ;;
-  *) fail "unsupported host $UNAME_S-$UNAME_M" ;;
-esac
 NODE_DOTLESS=$(node -e 'console.log(process.version.slice(1))')
 sed "s/26\.12\.0/$NODE_DOTLESS/" "$ROOT/tests/fixtures/mynpm/mynpm.json" > "$MYNPM_WORK/mynpm.json"
 
