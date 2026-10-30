@@ -112,11 +112,17 @@ pub fn target_platform_tags(target: &Target, linux_repair_policy: &str) -> Resul
         }
         Family::Macos => {
             let arch = arch_of(target.platform.as_str());
-            let (major, minor) = MACOS_DEPLOYMENT_TARGET;
+            let (floor_major, _) = MACOS_DEPLOYMENT_TARGET;
             let mut out = Vec::new();
-            for minor_v in (minor..=26).rev() {
-                out.push(format!("macosx_{major}_{minor_v}_{arch}"));
-                out.push(format!("macosx_{major}_{minor_v}_universal2"));
+            for major in (11..=floor_major).rev() {
+                out.push(format!("macosx_{major}_0_{arch}"));
+                out.push(format!("macosx_{major}_0_universal2"));
+            }
+            for minor in (4..=16).rev() {
+                if arch == "x86_64" {
+                    out.push(format!("macosx_10_{minor}_x86_64"));
+                }
+                out.push(format!("macosx_10_{minor}_universal2"));
             }
             Ok(out)
         }
@@ -574,11 +580,17 @@ mod tests {
     }
 
     #[test]
-    fn macos_tags_use_deployment_floor() {
+    fn macos_tags_accept_wheels_built_for_older_releases() {
         let t = target("macos-arm64");
         let tags = target_platform_tags(&t, "manylinux_2_28").unwrap();
-        assert!(tags.iter().any(|p| p == "macosx_15_0_arm64"));
-        assert!(!tags.iter().any(|p| p == "macosx_14_0_arm64"));
+        assert_eq!(tags[0], "macosx_15_0_arm64");
+        assert!(tags.iter().any(|p| p == "macosx_11_0_arm64"));
+        assert!(tags.iter().any(|p| p == "macosx_10_9_universal2"));
+        assert!(!tags.iter().any(|p| p == "macosx_16_0_arm64"));
+        assert!(!tags.iter().any(|p| p.contains("x86_64")));
+        let intel = target_platform_tags(&target("macos-x86_64"), "manylinux_2_28").unwrap();
+        assert!(intel.iter().any(|p| p == "macosx_10_9_x86_64"));
+        assert!(!intel.iter().any(|p| p == "macosx_11_0_arm64"));
     }
 
     #[test]
