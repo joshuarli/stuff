@@ -16,7 +16,7 @@ and fast-forwarded into the clean canonical default branch. Nothing is pushed.
 Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 - [x] joshuarli/shadowdriver (103 -> 0, 5 local commits)
-- [ ] laputa-systems/python-build (106 -> 1): cachix pin awaiting approval
+- [x] laputa-systems/python-build (106 -> 0; Nix prototype deleted)
 - [x] joshuarli/discover (51 -> 0, 2 local commits)
 - [x] laputa-systems/node-build (32 -> 0; binary-release-tags ignored via override)
 - [x] joshuarli/obsidian-ferrisearch (22 -> 0; binary-release-tags ignored via override)
@@ -46,7 +46,6 @@ Baseline lint counts from the first run. Mark `[x]` when the repo shows 0 lints.
 
 ## Open decisions
 
-- python-build: approve `cachix/install-nix-action` (SHA 448cde739abec1eaf0646249e3d25bb8d9bc7702) in `actions.toml`, or drop the nix-prototype workflow.
 - zzz release asset names changed to `zzz-<target>-static`; chromium-build concurrency group is now per-run.
 - toolbox: `lint.yml` duplicates the `make lint` step in `ci.yml`.
 - `tests/test_fix.py::test_commit_hooks_cannot_change_the_fix` fails on a clean tree (missing `.git/hooks` in the test repo).
