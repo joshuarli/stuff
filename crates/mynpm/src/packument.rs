@@ -297,7 +297,7 @@ mod tests {
     fn rejects_bad_base_and_duplicates() {
         let zeros = "0".repeat(128);
         let flat = serde_json_like("flatdemo", "1.2.3", &zeros);
-        assert!(render_packument_files(&[flat.clone()], "http://example.test/mirror/", None).is_err());
+        assert!(render_packument_files(std::slice::from_ref(&flat), "http://example.test/mirror/", None).is_err());
         assert!(render_packument_files(&[flat.clone(), flat], "https://example.test/mirror/", None).is_err());
         assert!(render_packument_files(&[], "https://example.test/mirror/", Some(9)).is_err());
     }

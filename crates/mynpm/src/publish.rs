@@ -749,7 +749,7 @@ mod tests {
             None,
         )
         .unwrap();
-        let first = generation_id_for("https://example.test/mirror/", &[record.clone()], &files).unwrap();
+        let first = generation_id_for("https://example.test/mirror/", std::slice::from_ref(&record), &files).unwrap();
         let second = generation_id_for("https://example.test/mirror/", &[record], &files).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.len(), 64);
