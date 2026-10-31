@@ -151,6 +151,8 @@ aggregate host also serves the combined inventory at `/llms.txt`.
 
 ## Deploy
 
+See [docs/PUBLISHING.md](docs/PUBLISHING.md) for prerequisites, R2 credentials, the publish helpers, and verification.
+
 The Cloudflare Worker in `crates/stuff-worker` serves the same layouts from
 R2. URL routing and response planning live in the crate's Rust code
 (`src/map.rs`, `src/api.rs`, shared `stuff-http` semantics, `deser` for
