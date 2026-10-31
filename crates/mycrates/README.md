@@ -65,7 +65,7 @@ Configuration lives in `config.json` inside the state directory:
 }
 ```
 
-`auth_required` controls reads. When true, `current/registry/config.json` advertises `"auth-required":true` and `serve-publish` requires the token for GET and HEAD. Writes always require the token when `serve-publish` has one. Keep it false for the public Worker, which does not enforce read auth.
+`auth_required` controls reads. When true, `current/registry/config.json` advertises `"auth-required":true` and `serve-publish` requires the token for GET and HEAD. Writes always require the token when `serve-publish` has one. Keep it false for the public Worker and static servers, which do not enforce read auth.
 
 ## Quickstart
 

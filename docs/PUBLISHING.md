@@ -12,7 +12,7 @@
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
-| R2 S3 token (optional) | Conditional promotion and multipart uploads over 300 MB | `R2_S3_*` is set |
+| R2 S3 token (optional) | Conditional promotion and multipart uploads over 300 MB | `R2_S3_*` is set for `--promote=s3` |
 
 If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
@@ -76,7 +76,7 @@ For the manual adopt sequence, see [Adopt a live publication](../README.md#adopt
 
 `mycrates` writes require the publish token, whether the helper generates it or you set `MYCRATES_TOKEN`. Reads follow `auth_required` in `config.json`, and the generated `current/registry/config.json` advertises the same value as `auth-required`.
 
-Keep `auth_required` false for the public Worker, which does not enforce read auth. The publish server serves `blobs/` for Cargo verification, so a dependent native crate publishes without `--no-verify`.
+Keep `auth_required` false for the public Worker and static servers, which do not enforce read auth. The publish server serves `blobs/` for Cargo verification, so a dependent native crate publishes without `--no-verify`.
 
 ## Sync a site you already built
 
