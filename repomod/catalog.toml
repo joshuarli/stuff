@@ -119,3 +119,7 @@ ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency break
 [overrides."joshuarli/toolbox"]
 ignore = ["registry-sources:git:shadowdriver"]
 ignore_reason = "shadowdriver stays private and is never published to stuff, so toolbox keeps its git dependency on it."
+
+[overrides."joshuarli/tansu"]
+ignore = ["registry-sources:git:laputa-h2-futures-lite", "registry-sources:git:laputa-hyper-futures-lite"]
+ignore_reason = "tansu depends on two patched git forks (h2-futures-lite, hyper-futures-lite) that are not published to the native stuff registry yet."
