@@ -218,7 +218,8 @@ acceptance check; it is not run by CI.
 
 ## Adopt a live publication
 
-`deploy/publish` runs this automatically when the local state is missing. The manual sequence is below.
+`deploy/publish` runs this automatically until the mycrates state carries an
+`.adopt-complete` marker. The manual sequence is below.
 
 When `$STUFF_STATE_HOME` is missing (new machine, lost disk) the next publish
 would replace the live registry with the caller's subset. Rebuild the state
@@ -245,6 +246,10 @@ pulled site is their state; `mynpm adopt` verifies it and republishes it
 under the current renderer, and `mypypi` needs nothing beyond the pull. Delete
 `$H/pull-mycrates` once adopted. The next publish then carries every live
 package forward.
+
+A manual mycrates adoption leaves `.adopt-complete` absent, so the next
+`deploy/publish mycrates` repeats the idempotent adopt in place and writes the
+marker once it verifies. That is safe: existing local records are kept.
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo
 LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's

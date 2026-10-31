@@ -5,16 +5,18 @@
 #   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
 #   mypypi:   PACKAGES="name==version" publish mypypi
 #
-# The wrapper checks cf auth, adopts the live publication when the local state
-# is missing, and then runs the matching publish helper. Promotion defaults to
-# cf, which is safe for a single publisher and needs no R2 S3 credentials.
+# The wrapper checks cf auth, adopts the live publication until the local
+# state carries a completion marker, and then runs the matching publish
+# helper. Promotion defaults to cf, which is safe for a single publisher and
+# needs no R2 S3 credentials.
 # --promote=s3 keeps the conditional 412 guard for concurrent publishers.
 set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
 export STUFF_DIR
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
-ADOPT_TMP=""
+ADOPT_PULL=""
+ADOPT_STATE_STAGE=""
 
 usage() {
   cat >&2 <<'EOF'
@@ -31,9 +33,16 @@ fail() {
 }
 
 cleanup() {
-  [ -z "$ADOPT_TMP" ] || rm -rf "$ADOPT_TMP"
+  status=$?
+  trap - EXIT
+  [ -z "$ADOPT_PULL" ] || rm -rf "$ADOPT_PULL"
+  [ -z "$ADOPT_STATE_STAGE" ] || rm -rf "$ADOPT_STATE_STAGE"
+  exit "$status"
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 REGISTRY=${1:-}
 case $REGISTRY in
@@ -80,17 +89,37 @@ case $PROMOTE in
     ;;
 esac
 
+adopt_marker() {
+  printf 'adopted %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$1/.adopt-complete"
+}
+
 adopt_mycrates() {
-  echo "publish: no mycrates state at $STATE_DIR; adopting the live publication" >&2
+  echo "publish: adopting the live mycrates publication into $STATE_DIR" >&2
   cargo build -q -p mycrates --manifest-path "$STUFF_DIR/Cargo.toml"
-  mkdir -p "$H"
-  ADOPT_TMP=$(mktemp -d "$H/mycrates-adopt.XXXXXX")
-  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mycrates "$ADOPT_TMP"
-  "$STUFF_DIR/target/debug/mycrates" init --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
-  "$STUFF_DIR/target/debug/mycrates" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
-  "$STUFF_DIR/target/debug/mycrates" adopt --from-site "$ADOPT_TMP" --state-dir "$STATE_DIR"
-  rm -rf "$ADOPT_TMP"
-  ADOPT_TMP=""
+  BIN=$STUFF_DIR/target/debug/mycrates
+  mkdir -p "$H" "$(dirname "$STATE_DIR")"
+  ADOPT_PULL=$(mktemp -d "$H/mycrates-adopt.XXXXXX")
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mycrates "$ADOPT_PULL"
+  if [ -d "$STATE_DIR" ] && [ -n "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; then
+    echo "publish: $STATE_DIR has no adoption marker; extending it in place" >&2
+    "$BIN" init --state-dir "$STATE_DIR" --site-dir "$ADOPT_PULL/site"
+    "$BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
+    "$BIN" adopt --from-site "$ADOPT_PULL" --state-dir "$STATE_DIR"
+    "$BIN" verify --state-dir "$STATE_DIR"
+    adopt_marker "$STATE_DIR"
+  else
+    ADOPT_STATE_STAGE=$(mktemp -d "$(dirname "$STATE_DIR")/.state-adopt.XXXXXX")
+    "$BIN" init --state-dir "$ADOPT_STATE_STAGE" --site-dir "$ADOPT_PULL/site"
+    "$BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$ADOPT_STATE_STAGE"
+    "$BIN" adopt --from-site "$ADOPT_PULL" --state-dir "$ADOPT_STATE_STAGE"
+    "$BIN" verify --state-dir "$ADOPT_STATE_STAGE"
+    adopt_marker "$ADOPT_STATE_STAGE"
+    [ ! -d "$STATE_DIR" ] || rmdir "$STATE_DIR"
+    mv "$ADOPT_STATE_STAGE" "$STATE_DIR"
+    ADOPT_STATE_STAGE=""
+  fi
+  rm -rf "$ADOPT_PULL"
+  ADOPT_PULL=""
 }
 
 adopt_mynpm() {
@@ -113,7 +142,7 @@ case $REGISTRY in
     STATE_DIR=${STATE_DIR:-$H/mycrates/state}
     SITE_DIR=${SITE_DIR:-$H/mycrates/site}
     PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
-    if [ -z "$(find "$STATE_DIR/native" "$STATE_DIR/upstream" -type f -print -quit 2>/dev/null)" ]; then
+    if [ ! -f "$STATE_DIR/.adopt-complete" ]; then
       adopt_mycrates
     fi
     export STATE_DIR SITE_DIR PUBLIC_URL

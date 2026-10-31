@@ -35,7 +35,7 @@ If `stuff` is at `../stuff`, use `../stuff/deploy/publish` instead. The wrapper 
 The wrapper does three things before it publishes:
 
 - It verifies `cf auth whoami`.
-- It adopts the live bucket when the registry has no local state.
+- It adopts the live bucket until the local state is marked complete.
 - It selects `cf` promotion unless you pass `--promote=s3`.
 
 The helper then holds the per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write.
@@ -66,9 +66,26 @@ S3 promotion verifies the uploaded generation and moves `current` with `If-Match
 
 ## Publish from a new machine
 
-The wrapper adopts automatically when the local state is missing or has no records. It pulls the current generation and the shared stores, then rebuilds the local publication state before running the helper.
+The wrapper adopts automatically until the mycrates state carries an
+`.adopt-complete` marker. It pulls the current generation and the shared
+stores, then rebuilds the local publication state before running the helper.
 
-If the wrapper refuses because a site directory exists without `current`, do not delete it. Inspect it, or restore the state backup, before publishing. A publish against an empty or partial state would replace the live registry with only the local packages.
+For an absent or empty state, adoption runs `mycrates init`, `mycrates adopt`,
+and `mycrates verify` in a sibling staging directory next to the state. It
+writes the marker there and renames the whole state into place, so a failed or
+interrupted run leaves no live state behind; the next publish retries because
+the marker is still absent.
+
+An existing state without the marker is never replaced. That includes state
+left by an interrupted older adopt and state this wrapper has not adopted
+before. The wrapper runs the idempotent adopt into it, verifies it, and only
+then writes the marker. Local records that are not on the live site stay in
+place, and an interrupted upgrade is retried next time.
+
+If the wrapper refuses because a site directory exists without `current`, do
+not delete it. Inspect it, or restore the state backup, before publishing. A
+publish against an empty or partial state would replace the live registry with
+only the local packages.
 
 For the manual adopt sequence, see [Adopt a live publication](../README.md#adopt-a-live-publication).
 

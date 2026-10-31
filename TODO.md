@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 27
 
-### STUF-10 · P1 · An interrupted mycrates adopt makes the next publish treat partial state as complete
-
-- **Area:** Data
-- **Where:** `deploy/publish:86-93` (init before adopt), `deploy/publish:116` (adoption test); `crates/mycrates/src/adopt.rs:22-70` (per-record writes, one final verify); `deploy/publish-mycrates.sh:92-96` (restore, rebuild, sync).
-- **Problem:** `adopt_mycrates` runs `mycrates init`, which creates `state/native`, `state/upstream`, and `state/blobs`, before `adopt` writes records one at a time. Any failure after the first record leaves a non-empty state, and the next `deploy/publish mycrates` tests only whether any record file exists, skips adoption, and publishes only that subset plus the caller's `CRATES`. `publish-mycrates.sh` then syncs and promotes it. `docs/PUBLISHING.md:71` calls exactly this outcome unacceptable. The mynpm and mypypi branches guard against a non-empty site; mycrates has no equivalent guard.
-- **Recommendation:** Adopt into a sibling staging directory, run `adopt` and `verify` there, then rename into place and write a completion marker. Gate adoption on the marker, not on file existence.
-- **Fix with:** `durable-state`
-- **Effort:** M
-
 ### STUF-11 · P1 · Native servers buffer unbounded request and response bodies
 
 - **Area:** Security
