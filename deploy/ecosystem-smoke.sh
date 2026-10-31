@@ -88,5 +88,6 @@ M="--catalog $PYPI_WORK/packages.toml --config $PYPI_WORK/pyproject.toml --state
 uv venv -q --python 3.15 "$PYPI_WORK/.venv" || fail "uv venv"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv pip install -q --python 3.15 --index-url "file://$PYPI_WORK/out/current/simple/" --only-binary :all: "six==1.16.0" || fail "uv pip install from published index"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv run -q --python 3.15 --no-sync --project "$PYPI_WORK" python -c "import six, sys; assert six.__version__ == '1.16.0', six.__version__; print('six', six.__version__)" || fail "import six"
+(cd "$ROOT" && cargo test -q -p mypypi --lib rust_sdist_build_finds_the_host_toolchain -- --ignored) || fail "mypypi Rust sdist build"
 echo "smoke: mypypi uv flow green"
 echo "OK: ecosystem smoke green"

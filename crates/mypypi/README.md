@@ -3,6 +3,13 @@
 Python wheel index: resolves and builds wheels, validates them on the host,
 and publishes immutable generations under a `current` pointer.
 
+## Build environment
+
+Build subprocesses keep the sanitized environment and run with a scratch
+`HOME`, `CARGO_HOME`, and `RUSTUP_HOME`. The scratch homes link to the
+installed Cargo bin and rustup toolchains, so Rust-backed sdists find the host
+toolchain without inheriting the publisher's Cargo cache or credentials.
+
 ## Configuration
 
 Project settings live in the configured `pyproject.toml`. In addition to the

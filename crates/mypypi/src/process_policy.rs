@@ -3,7 +3,7 @@
 use crate::error::{Error, Kind, Result, Stage};
 use std::collections::BTreeMap;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -69,6 +69,77 @@ pub fn scratch_environment(
         env.insert(name.to_string(), scratch.clone());
     }
     env
+}
+
+fn source_path(source: &BTreeMap<String, String>, name: &str) -> Option<PathBuf> {
+    source
+        .get(name)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+}
+
+fn absolute_path(path: PathBuf) -> PathBuf {
+    std::path::absolute(&path).unwrap_or(path)
+}
+
+fn source_home(source: &BTreeMap<String, String>) -> Option<PathBuf> {
+    source_path(source, "HOME")
+        .or_else(|| std::env::var_os("HOME").map(PathBuf::from))
+        .map(absolute_path)
+}
+
+fn source_toolchain_home(
+    source: &BTreeMap<String, String>,
+    name: &str,
+    fallback: &str,
+) -> Option<PathBuf> {
+    source_path(source, name)
+        .or_else(|| source_home(source).map(|home| home.join(fallback)))
+        .map(absolute_path)
+}
+
+fn link_toolchain_dir(target: &Path, link: &Path) -> std::io::Result<()> {
+    match std::os::unix::fs::symlink(target, link) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn seed_rustup_home(origin: &Path, scratch: &Path) -> std::io::Result<()> {
+    let toolchains = origin.join("toolchains");
+    if toolchains.is_dir() {
+        let destination = scratch.join("toolchains");
+        std::fs::create_dir_all(&destination)?;
+        for entry in std::fs::read_dir(&toolchains)? {
+            let entry = entry?;
+            link_toolchain_dir(&entry.path(), &destination.join(entry.file_name()))?;
+        }
+    }
+    let settings = origin.join("settings.toml");
+    if settings.is_file() {
+        std::fs::create_dir_all(scratch)?;
+        std::fs::copy(settings, scratch.join("settings.toml"))?;
+    }
+    Ok(())
+}
+
+pub(crate) fn seed_toolchain_home(
+    source: &BTreeMap<String, String>,
+    scratch_home: &Path,
+) -> std::io::Result<()> {
+    if let Some(cargo_home) = source_toolchain_home(source, "CARGO_HOME", ".cargo") {
+        let bin = cargo_home.join("bin");
+        if bin.is_dir() {
+            let scratch_bin = scratch_home.join(".cargo/bin");
+            std::fs::create_dir_all(scratch_home.join(".cargo"))?;
+            link_toolchain_dir(&bin, &scratch_bin)?;
+        }
+    }
+    if let Some(rustup_home) = source_toolchain_home(source, "RUSTUP_HOME", ".rustup") {
+        seed_rustup_home(&rustup_home, &scratch_home.join(".rustup"))?;
+    }
+    Ok(())
 }
 
 pub fn redacted_diagnostic(value: &str, limit: usize) -> String {

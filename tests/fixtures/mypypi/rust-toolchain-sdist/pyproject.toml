@@ -1,0 +1,8 @@
+[build-system]
+requires = []
+build-backend = "backend"
+backend-path = ["."]
+
+[project]
+name = "rust-toolchain-smoke"
+version = "0.1.0"

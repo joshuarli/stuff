@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 29
 
-### STUF-27 · P2 · mypypi sdist builds cannot find a Rust toolchain
-
-- **Area:** Operability
-- **Where:** `crates/mypypi/src/process_policy.rs:15-46` (allowlist), `:62-72` (`scratch_environment` rewrites `HOME`), `crates/mypypi/src/build.rs:397-410` (`build_environment`).
-- **Problem:** Build and validate subprocesses run with a cleared environment containing only `ALLOWED_VARIABLES`, and `HOME` is redirected to a fresh `stage/home`. `CARGO_HOME` and `RUSTUP_HOME` never pass through, so cargo and rustup fall back to the nonexistent `$HOME/.cargo` and `$HOME/.rustup`. Any sdist with a Rust backend (maturin, setuptools-rust) fails to resolve a toolchain that the host has installed, which the ecosystem smoke misses because it only builds `six` (pure Python).
-- **Recommendation:** Pass `CARGO_HOME` and `RUSTUP_HOME` through when set, or seed the scratch home from the invoking user's toolchain directories so cargo and rustup find the existing installation. Cover it in `deploy/ecosystem-smoke.sh` with a Rust-backed sdist.
-- **Fix with:** `os-boundaries`
-- **Effort:** M
-
 ### STUF-28 · P3 · worker unified llms.txt ignores configured origins
 
 - **Area:** Operability

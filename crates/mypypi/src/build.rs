@@ -7,7 +7,7 @@ use crate::acquire::{
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::{MACOS_DEPLOYMENT_TARGET, native_architectures_from_bytes, target_python_version};
-use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
+use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment, seed_toolchain_home};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -400,7 +400,22 @@ fn build_environment(
 ) -> std::io::Result<BTreeMap<String, String>> {
     let home = stage.join("home");
     std::fs::create_dir(&home)?;
+    seed_toolchain_home(base, &home)?;
     let mut env = scratch_environment(Some(base), &home);
+    let cargo_home = home.join(".cargo");
+    let rustup_home = home.join(".rustup");
+    env.insert("CARGO_HOME".to_string(), cargo_home.display().to_string());
+    env.insert("RUSTUP_HOME".to_string(), rustup_home.display().to_string());
+    let cargo_bin = cargo_home.join("bin").display().to_string();
+    let old_path = env.get("PATH").cloned().unwrap_or_default();
+    env.insert(
+        "PATH".to_string(),
+        if old_path.is_empty() {
+            cargo_bin
+        } else {
+            format!("{cargo_bin}:{old_path}")
+        },
+    );
     let temp = stage.join("tmp").display().to_string();
     env.insert("ARCHFLAGS".to_string(), String::new());
     env.insert("TMPDIR".to_string(), temp.clone());
@@ -908,6 +923,148 @@ mod tests {
                 || k.starts_with("PIP_")),
             "{env:?}"
         );
+    }
+
+    #[test]
+    fn build_environment_seeds_the_installed_toolchain() {
+        let dir = tempfile::tempdir().unwrap();
+        let origin = dir.path().join("origin");
+        let stage = dir.path().join("stage");
+        std::fs::create_dir_all(origin.join(".cargo/bin")).unwrap();
+        std::fs::write(origin.join(".cargo/bin/cargo"), b"cargo").unwrap();
+        std::fs::write(origin.join(".cargo/credentials.toml"), b"secret").unwrap();
+        std::fs::create_dir_all(origin.join(".rustup/toolchains/nightly/bin")).unwrap();
+        std::fs::write(origin.join(".rustup/toolchains/nightly/bin/rustc"), b"rustc").unwrap();
+        std::fs::write(
+            origin.join(".rustup/settings.toml"),
+            b"default_toolchain = \"nightly\"\n",
+        )
+        .unwrap();
+        std::fs::create_dir(&stage).unwrap();
+        let base = BTreeMap::from([
+            ("PATH".to_string(), "/usr/bin".to_string()),
+            ("HOME".to_string(), origin.display().to_string()),
+        ]);
+
+        let env = build_environment(&base, &stage).unwrap();
+        let home = stage.join("home");
+        let cargo_home = home.join(".cargo");
+        let rustup_home = home.join(".rustup");
+        assert_eq!(env.get("HOME").map(String::as_str), Some(home.to_str().unwrap()));
+        assert_eq!(
+            env.get("CARGO_HOME").map(String::as_str),
+            Some(cargo_home.to_str().unwrap())
+        );
+        assert_eq!(
+            env.get("RUSTUP_HOME").map(String::as_str),
+            Some(rustup_home.to_str().unwrap())
+        );
+        assert_eq!(
+            env.get("PATH").map(String::as_str),
+            Some(format!("{}:/usr/bin", cargo_home.join("bin").display()).as_str())
+        );
+        assert_eq!(
+            std::fs::read_link(cargo_home.join("bin")).unwrap(),
+            origin.join(".cargo/bin")
+        );
+        assert_eq!(
+            std::fs::read_link(rustup_home.join("toolchains/nightly")).unwrap(),
+            origin.join(".rustup/toolchains/nightly")
+        );
+        assert_eq!(
+            std::fs::read_to_string(rustup_home.join("settings.toml")).unwrap(),
+            "default_toolchain = \"nightly\"\n"
+        );
+        assert!(!cargo_home.join("credentials.toml").exists());
+        assert!(!env.values().any(|value| value.contains(&origin.display().to_string())));
+    }
+
+    #[test]
+    fn build_environment_honors_explicit_toolchain_homes() {
+        let dir = tempfile::tempdir().unwrap();
+        let origin = dir.path().join("origin");
+        let cargo_home = origin.join("custom-cargo");
+        let rustup_home = origin.join("custom-rustup");
+        let stage = dir.path().join("stage");
+        std::fs::create_dir_all(cargo_home.join("bin")).unwrap();
+        std::fs::write(cargo_home.join("bin/cargo"), b"cargo").unwrap();
+        std::fs::create_dir_all(rustup_home.join("toolchains/stable/bin")).unwrap();
+        std::fs::write(rustup_home.join("toolchains/stable/bin/rustc"), b"rustc").unwrap();
+        std::fs::create_dir(&stage).unwrap();
+        let base = BTreeMap::from([
+            ("PATH".to_string(), "/usr/bin".to_string()),
+            ("HOME".to_string(), origin.display().to_string()),
+            ("CARGO_HOME".to_string(), cargo_home.display().to_string()),
+            ("RUSTUP_HOME".to_string(), rustup_home.display().to_string()),
+        ]);
+
+        let env = build_environment(&base, &stage).unwrap();
+        let home = stage.join("home");
+        assert_eq!(
+            std::fs::read_link(home.join(".cargo/bin")).unwrap(),
+            cargo_home.join("bin")
+        );
+        assert_eq!(
+            std::fs::read_link(home.join(".rustup/toolchains/stable")).unwrap(),
+            rustup_home.join("toolchains/stable")
+        );
+        assert_eq!(
+            env.get("CARGO_HOME").map(String::as_str),
+            Some(home.join(".cargo").to_str().unwrap())
+        );
+        assert_eq!(
+            env.get("RUSTUP_HOME").map(String::as_str),
+            Some(home.join(".rustup").to_str().unwrap())
+        );
+    }
+
+    #[test]
+    #[ignore = "requires uv and the host Rust toolchain; run by deploy/ecosystem-smoke.sh"]
+    fn rust_sdist_build_finds_the_host_toolchain() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("rust-toolchain-smoke-0.1.0.tar.gz");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/mypypi/rust-toolchain-sdist");
+        let pyproject = std::fs::read(fixture.join("pyproject.toml")).unwrap();
+        let backend = std::fs::read(fixture.join("backend.py")).unwrap();
+        let pkg_info: &[u8] = b"Metadata-Version: 2.1\nName: rust-toolchain-smoke\nVersion: 0.1.0\n";
+        write_sdist(
+            &sdist,
+            &[
+                ("rust-toolchain-smoke-0.1.0/pyproject.toml", pyproject.as_slice()),
+                ("rust-toolchain-smoke-0.1.0/PKG-INFO", pkg_info),
+                ("rust-toolchain-smoke-0.1.0/backend.py", backend.as_slice()),
+            ],
+        );
+        let stage = dir.path().join("stage");
+        std::fs::create_dir(&stage).unwrap();
+        std::fs::create_dir(stage.join("tmp")).unwrap();
+        let base: BTreeMap<String, String> = std::env::vars().collect();
+        let mut env = build_environment(&base, &stage).unwrap();
+        env.insert(
+            "RUSTUP_DIST_SERVER".to_string(),
+            "http://127.0.0.1:1".to_string(),
+        );
+        let out_dir = stage.join("wheels");
+        std::fs::create_dir(&out_dir).unwrap();
+        let python = std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
+        let command = vec![
+            "uv".to_string(),
+            "build".to_string(),
+            "--wheel".to_string(),
+            "--quiet".to_string(),
+            format!("--python={python}"),
+            format!("--out-dir={}", out_dir.display()),
+            sdist.display().to_string(),
+        ];
+        let out = run_capture(&command, Some(&stage), &env, None, 300).unwrap();
+        assert!(out.success(), "uv build failed: {}", out.stderr);
+        let wheels: Vec<_> = std::fs::read_dir(&out_dir)
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.path().extension().and_then(|value| value.to_str()) == Some("whl"))
+            .collect();
+        assert_eq!(wheels.len(), 1);
     }
 
     #[test]
