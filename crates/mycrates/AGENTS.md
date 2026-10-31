@@ -8,7 +8,7 @@ Guidance and reference for coding agents working on `mycrates`.
 
 - `src/lib.rs` / `src/main.rs`: Crate entry points. Unsafe code is strictly forbidden (`#![forbid(unsafe_code)]`).
 - `src/model.rs`: Core types: `CrateName`, `Version`, `IndexEntry`, `IndexDep`, `PublishBody`.
-- `src/index.rs`: Sparse registry index formatting, sharding (`1/x`, `2/xx`, `3/x/xxx`, `xx/xx/xxxx`), and `config.json`.
+- `src/index.rs`: Sparse registry index formatting and `config.json`; sharding (`1/x`, `2/xx`, `3/x/xxx`, `xx/xx/xxxx`) comes from `stuff-cargo-shard`.
 - `src/crate_file.rs`: Streaming structural archive scan (`scan_crate`) verifying gzip/tar integrity, prefixes, path traversal, `Cargo.toml` name/version parity, and size limits without extracting to disk.
 - `src/lockfile.rs`: Parsing of Cargo.lock (v3/v4) and source classification (crates.io, alternate registry, git, path, workspace).
 - `src/pins.rs`: Exact registry pin storage in `pins/<project>.toml`.

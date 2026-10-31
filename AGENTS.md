@@ -18,6 +18,8 @@ for repair.
 - `crates/stuff-store`: generation activation, immutable blob sync, durable writes.
 - `crates/stuff-http`: content types, cache policy, path resolution, conditionals, ranges.
 - `crates/stuff-catalog`: normalized catalog rendering, HTML, and `llms.txt`.
+- `crates/stuff-cargo-shard`: Cargo sparse-index shard paths shared by
+  `mycrates` and the `stuff` CLI.
 - `crates/stuff-server`: native static file server (blocking httparse +
   std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
 - `crates/stuff-worker`: Cloudflare Worker adapter; the wrangler/cf
