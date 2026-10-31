@@ -12,6 +12,9 @@ from `stuff` (~/d/stuff), and repomod enforces it.
   members inside a repository stay allowed.
 - The repomod rule lands last, after the fleet is migrated, so `status` stays at 0.
 - Nothing is published to R2 or deployed without an explicit go from the owner.
+- shadowdriver stays private and is never published to stuff. toolbox, the only tracked repo that
+  depends on it, keeps its git dependency through a catalog exception; its other dependencies
+  still move to stuff.
 
 ## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
 
