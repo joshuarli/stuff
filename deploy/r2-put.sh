@@ -1,7 +1,7 @@
 #!/bin/sh
 # Upload one site file as one R2 object. Called by r2-sync.sh (xargs -P).
 # Usage: r2-put.sh KEY | r2-put.sh --type KEY (print the content type only)
-# Env: SITE_DIR, BUCKET, CF_LOCAL_STATE (optional local simulation dir).
+# Env: SITE_DIR, BUCKET, CF_LOCAL_STATE (optional local simulation dir), R2_PUT_ATTEMPTS (default 5).
 set -eu
 if [ "$1" = "--type" ]; then
   KEY=$2
@@ -24,11 +24,19 @@ if [ -n "$SHOW_TYPE" ]; then
   printf '%s' "$TYPE"
   exit 0
 fi
-if [ -n "${CF_LOCAL_STATE:-}" ]; then
-  cf r2 objects put "$KEY" --bucket-name "$BUCKET" --file "$SITE_DIR/$KEY" \
-    --content-type "$TYPE" --local --persist-to "$CF_LOCAL_STATE" >/dev/null
-else
-  cf r2 objects put "$KEY" --bucket-name "$BUCKET" --file "$SITE_DIR/$KEY" \
-    --content-type "$TYPE" >/dev/null
-fi
+put_once() {
+  if [ -n "${CF_LOCAL_STATE:-}" ]; then
+    cf r2 objects put "$KEY" --bucket-name "$BUCKET" --file "$SITE_DIR/$KEY" \
+      --content-type "$TYPE" --local --persist-to "$CF_LOCAL_STATE" >/dev/null
+  else
+    cf r2 objects put "$KEY" --bucket-name "$BUCKET" --file "$SITE_DIR/$KEY" \
+      --content-type "$TYPE" >/dev/null
+  fi
+}
+attempt=1
+until put_once; do
+  [ "$attempt" -lt "${R2_PUT_ATTEMPTS:-5}" ] || { echo "FAIL: put $KEY failed after $attempt attempts" >&2; exit 1; }
+  sleep $((attempt * 2))
+  attempt=$((attempt + 1))
+done
 echo "put $KEY"
