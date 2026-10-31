@@ -103,8 +103,9 @@ jobs:
         run: |
           mkdir -p dist
           cp "target/$TARGET/release/stuff" "dist/stuff-$TARGET"
+          cp LICENSE NOTICE dist/
           chmod +x "dist/stuff-$TARGET"
-          (cd dist && zip -9 "stuff-$TARGET.zip" "stuff-$TARGET")
+          (cd dist && zip -9 "stuff-$TARGET.zip" "stuff-$TARGET" LICENSE NOTICE)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: stuff-${{ matrix.target }}

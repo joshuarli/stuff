@@ -83,16 +83,6 @@ Next: 27
 - **Fix with:** `single-source-of-truth`
 - **Effort:** S
 
-### STUF-19 · P2 · Release binaries ship without the Apache-2.0 or MIT license texts
-
-- **Area:** Build
-- **Where:** `.github/workflows/release.yml:107` (zip contains only the binary), `:193` (release assets are zips and `SHA256SUMS`); repo root (no `LICENSE`); `crates/mycrates/LICENSE:189` (Sentry copyright); crate manifests declare Apache-2.0 and the imported h12tiny crates declare MIT.
-- **Problem:** Apache-2.0 section 4 and the MIT notice require redistributors to include a copy of the license and the copyright notice. The release attaches only the zipped binary and checksums, and the repository has one LICENSE file for mycrates whose appendix names Sentry, not this project. The h12tiny code linked into `stuff` is MIT and its notice is shipped nowhere.
-- **Recommendation:** Add a root Apache-2.0 `LICENSE` with `Copyright 2026 Joshua Li` and a root `NOTICE` with the h12tiny MIT text, `Copyright (c) 2026 joshuarli`. Copy both into `dist/` before zipping so every release zip carries them, and correct the `crates/mycrates/LICENSE` copyright stanza. The RFC records the accepted texts.
-- **Fix with:** `none`
-- **Effort:** S
-- **Design:** [docs/rfc/STUF-19-licensing.md](docs/rfc/STUF-19-licensing.md)
-
 ### STUF-20 · P3 · llms.txt ignores the configured registry origin
 
 - **Area:** Config
