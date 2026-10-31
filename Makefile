@@ -1,4 +1,4 @@
-.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy sync serve
+.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy sync serve test-sync fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -46,3 +46,11 @@ SERVE_PORT ?= 8000
 
 serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
 	cargo run -q -p stuff-server -- --bind 127.0.0.1:$(SERVE_PORT) --route /=$(SITE_DIR)
+
+test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulation ([SYNC_OBJECTS=1100])
+	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
+
+FLEET_OUT ?= .work/fleet
+
+fleet-ingest: ## Ingest fleet lists into local per-registry sites, no R2 (FLEET_OUT= CARGO_LIST= NPM_LIST= PYPI_LIST=)
+	deploy/fleet-ingest.sh $(FLEET_OUT) $(if $(CARGO_LIST),--cargo $(CARGO_LIST)) $(if $(NPM_LIST),--npm $(NPM_LIST)) $(if $(PYPI_LIST),--pypi $(PYPI_LIST))
