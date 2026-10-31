@@ -39,20 +39,15 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 ## Phase C: migrate repositories
 
 - [x] `registry-sources` fixer (`repomod fix --rule registry-sources`, run with `enforce` flipped locally and uncommitted) writes the cargo source replacement, `.npmrc`, uv index plus darwin/linux `environments`, and relocks `uv.lock`
-- [x] PRs opened for 23 repositories (diff-pretty, pytest-parallel, e, fastermod, fdu, hi-lite, rustybench, srv merged)
-- [x] merged: every migration PR except tansu #9, fz #10, ish #9 and h12tiny #8; discover, shadowdriver and toolbox were verified locally because CI cannot start on private repos (account billing)
-- [x] tansu #9 merged: its `check` job was already red on master (flaky UI tests); the stuff-specific steps pass
-- [x] fz #10 merged after correcting the required checks to the matrix job names
-- [ ] ish #9: blocked by a Linux musl capture test that is red on its default branch
-- [ ] h12tiny #8: blocked by check-smolith-pin; h12tiny #9 bumps SMOLITH_REV to the 0.3.0 head; tests/adversarial_h1.rs is intermittent ("Hyper accepted unsafe case bare_lf") on 0.3.0 smolith revisions
-- [ ] toolbox and tm canonical checkouts still need to return to their default branch before `enforce` can be flipped
-- [ ] then flip `enforce = true` in registries.toml and run `status`
-- [ ] default branches already red before this change: ish, h12tiny (also stale `repomod/fix` branch), discover, shadowdriver, toolbox
-- [ ] tm has a dirty checkout; its PR came from a worktree
+- [x] all 23 migration PRs merged; the private repos (discover, shadowdriver, toolbox) were verified locally because CI cannot start there (account billing)
+- [x] default-branch CI repaired where it blocked the PRs: h12tiny (smolith pin, bare-LF test race), ish (musl pipe test, stale macOS `l` test), vault (prompt expectations after 1efe588), fz (required check names)
+- [x] stuff gaps found by CI and filled: tool crates (wasm-bindgen-cli, rustybench), laputa-ptytest 0.3.0, the h12tiny fork locks (env_logger 0.9, pretty_env_logger)
+- [ ] tm #11 (approved Action pins and a docs link) is open; tm CI is red on main (`missing tmux 3.8 reference`), which is the owner's in-flight work
 - [ ] tansu keeps two git forks (catalog exception); publish h2-futures-lite and hyper-futures-lite to the native registry to remove it
 - [ ] fz's Cargo.lock has a sourceless `laputa-ptytest` entry; regenerate it
+- [ ] unlocked nested manifests (gitignored or absent lockfiles) resolve at CI time against whatever stuff holds; add their locks to the ingest when CI reports a missing crate
 
 ## Phase D: enforcement
 
-- [x] repomod `registry-sources` rule and `registries.toml` merged, disabled (`enforce = false`); enable after Phase C (41 findings in 23 repos today)
+- [x] repomod `registry-sources` rule enforced (`enforce = true`); 0 findings fleet-wide
 - [ ] audit-upgrades and `fix` against a stuff-only world (upgrades need ingestion first)
