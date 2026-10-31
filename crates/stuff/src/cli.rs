@@ -30,7 +30,7 @@ impl RegistryFilter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Command {
     Ls,
     Search,
@@ -39,13 +39,72 @@ pub enum Command {
     Render,
 }
 
+impl Command {
+    fn name(self) -> &'static str {
+        match self {
+            Command::Ls => "ls",
+            Command::Search => "search",
+            Command::Diff => "diff",
+            Command::Doctor => "doctor",
+            Command::Render => "render",
+        }
+    }
+
+    fn allowed_flags(self) -> AllowedFlags {
+        match self {
+            Command::Ls => AllowedFlags {
+                registry: true,
+                versions: true,
+                json: true,
+                base_urls: true,
+                local_dirs: true,
+                ..AllowedFlags::default()
+            },
+            Command::Search => AllowedFlags {
+                registry: true,
+                json: true,
+                base_urls: true,
+                local_dirs: true,
+                ..AllowedFlags::default()
+            },
+            Command::Diff => AllowedFlags { json: true, ..AllowedFlags::default() },
+            Command::Doctor => AllowedFlags {
+                registry: true,
+                sample_artifacts: true,
+                base_urls: true,
+                local_dirs: true,
+                expected_generation: true,
+                ..AllowedFlags::default()
+            },
+            Command::Render => AllowedFlags {
+                registry: true,
+                base_urls: true,
+                local_dirs: true,
+                output: true,
+                ..AllowedFlags::default()
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+struct AllowedFlags {
+    registry: bool,
+    versions: bool,
+    json: bool,
+    sample_artifacts: bool,
+    base_urls: bool,
+    local_dirs: bool,
+    output: bool,
+    expected_generation: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parsed {
     pub command: Command,
     pub registry: Option<RegistryFilter>,
     pub versions: bool,
     pub json: bool,
-    pub remote: bool,
     pub sample_artifacts: bool,
     pub cargo_base: Option<String>,
     pub npm_base: Option<String>,
@@ -68,6 +127,13 @@ fn usage_error(detail: impl Into<String>) -> Error {
     Error::usage(detail)
 }
 
+fn ensure_allowed(command: Command, flag: &str, present: bool, allowed: bool) -> Result<()> {
+    if present && !allowed {
+        return Err(usage_error(format!("{} does not take {flag}", command.name())));
+    }
+    Ok(())
+}
+
 pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut args = argv.iter().peekable();
     let command = match args.next().map(|s| s.as_str()) {
@@ -84,7 +150,6 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         registry: None,
         versions: false,
         json: false,
-        remote: false,
         sample_artifacts: false,
         cargo_base: None,
         npm_base: None,
@@ -101,7 +166,6 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         match arg.as_str() {
             "--versions" => parsed.versions = true,
             "--json" => parsed.json = true,
-            "--remote" => parsed.remote = true,
             "--sample-artifacts" => parsed.sample_artifacts = true,
             "--registry" => {
                 let value = args.next().ok_or_else(|| usage_error("--registry requires a value"))?;
@@ -135,98 +199,83 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             other => parsed.positionals.push(other.to_string()),
         }
     }
+    let allowed = parsed.command.allowed_flags();
+    for (flag, present, allowed) in [
+        ("--registry", parsed.registry.is_some(), allowed.registry),
+        ("--versions", parsed.versions, allowed.versions),
+        ("--json", parsed.json, allowed.json),
+        ("--sample-artifacts", parsed.sample_artifacts, allowed.sample_artifacts),
+        ("--cargo-base", parsed.cargo_base.is_some(), allowed.base_urls),
+        ("--npm-base", parsed.npm_base.is_some(), allowed.base_urls),
+        ("--pypi-base", parsed.pypi_base.is_some(), allowed.base_urls),
+        ("--cargo-dir", parsed.cargo_dir.is_some(), allowed.local_dirs),
+        ("--npm-dir", parsed.npm_dir.is_some(), allowed.local_dirs),
+        ("--pypi-dir", parsed.pypi_dir.is_some(), allowed.local_dirs),
+        ("--output", parsed.output.is_some(), allowed.output),
+        (
+            "--expected-generation",
+            parsed.expected_generation.is_some(),
+            allowed.expected_generation,
+        ),
+    ] {
+        ensure_allowed(parsed.command, flag, present, allowed)?;
+    }
     match parsed.command {
-        Command::Ls => {
+        Command::Ls | Command::Doctor | Command::Render => {
             if !parsed.positionals.is_empty() {
-                return Err(usage_error("ls does not take positional arguments"));
-            }
-            if parsed.output.is_some() {
-                return Err(usage_error("--output is only valid with render"));
-            }
-            if parsed.expected_generation.is_some() {
-                return Err(usage_error("--expected-generation is only valid with doctor"));
+                return Err(usage_error(format!(
+                    "{} does not take positional arguments",
+                    parsed.command.name()
+                )));
             }
         }
         Command::Search => {
             if parsed.positionals.len() != 1 {
                 return Err(usage_error("search requires exactly one query"));
             }
-            if parsed.versions {
-                return Err(usage_error("--versions is only valid with ls"));
-            }
-            if parsed.output.is_some() {
-                return Err(usage_error("--output is only valid with render"));
-            }
-            if parsed.expected_generation.is_some() {
-                return Err(usage_error("--expected-generation is only valid with doctor"));
-            }
         }
         Command::Diff => {
             if parsed.positionals.len() != 2 {
                 return Err(usage_error("diff requires two catalog paths"));
             }
-            if parsed.registry.is_some() || parsed.versions {
-                return Err(usage_error("diff does not take --registry or --versions"));
-            }
-            if parsed.output.is_some() {
-                return Err(usage_error("--output is only valid with render"));
-            }
-            if parsed.expected_generation.is_some() {
-                return Err(usage_error("--expected-generation is only valid with doctor"));
-            }
-            if parsed.cargo_dir.is_some() || parsed.npm_dir.is_some() || parsed.pypi_dir.is_some() {
-                return Err(usage_error("diff reads catalog files directly; --*-dir is not valid here"));
-            }
         }
-        Command::Doctor => {
-            if !parsed.positionals.is_empty() {
-                return Err(usage_error("doctor does not take positional arguments"));
-            }
-            if parsed.versions || parsed.json {
-                return Err(usage_error("doctor does not take --versions or --json"));
-            }
-            if parsed.output.is_some() {
-                return Err(usage_error("--output is only valid with render"));
-            }
-        }
-        Command::Render => {
-            if !parsed.positionals.is_empty() {
-                return Err(usage_error("render does not take positional arguments"));
-            }
-            if parsed.versions {
-                return Err(usage_error("--versions is only valid with ls"));
-            }
-            if parsed.expected_generation.is_some() {
-                return Err(usage_error("--expected-generation is only valid with doctor"));
-            }
-        }
-    }
-    if parsed.remote
-        && (parsed.cargo_dir.is_some() || parsed.npm_dir.is_some() || parsed.pypi_dir.is_some())
-    {
-        return Err(usage_error("--remote cannot be combined with --*-dir"));
     }
     Ok(parsed)
 }
 
+pub fn help_text() -> String {
+    "\
+stuff
+
+Usage: stuff <COMMAND> [OPTIONS]
+
+Commands:
+  ls [--registry cargo|npm|pypi] [--versions] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+  search <query> [--registry cargo|npm|pypi] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+  diff <before.json> <after.json> [--json]
+  doctor [--registry cargo|npm|pypi] [--expected-generation ID] [--sample-artifacts]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+  render --output FILE [--registry cargo|npm|pypi]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+
+Sources default to the live registries (no credentials needed).
+Pass --cargo-dir/--npm-dir/--pypi-dir (site, generation, or catalog.json)
+to inspect local published output offline. Registries without a local dir
+are skipped by doctor, which then refuses --expected-generation.
+--output FILE ending in .txt or .md writes the aggregate llms.txt; any
+other name writes HTML.
+"
+    .to_string()
+}
+
 pub fn print_help() {
-    println!("stuff");
-    println!();
-    println!("Usage: stuff <COMMAND> [OPTIONS]");
-    println!();
-    println!("Commands:");
-    println!("  ls [--registry cargo|npm|pypi] [--versions] [--json]");
-    println!("     [--remote [--cargo-base URL --npm-base URL --pypi-base URL]]");
-    println!("     [--cargo-dir DIR --npm-dir DIR --pypi-dir DIR]");
-    println!("  search <query> [--registry cargo|npm|pypi] [--json] [sources...]");
-    println!("  diff <before.json> <after.json> [--json]");
-    println!("  doctor [--remote|--cargo-dir DIR ...] [--expected-generation ID] [--sample-artifacts]");
-    println!("  render --output index.html [--registry cargo|npm|pypi] [sources...]
-  render --output llms.txt [--registry cargo|npm|pypi] [sources...]");
-    println!();
-    println!("Sources default to the live registries (no credentials needed).");
-    println!("Pass --cargo-dir/--npm-dir/--pypi-dir (site, generation, or catalog.json)");
-    println!("to inspect local published output offline.");
+    print!("{}", help_text());
 }
 
 pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) -> String {
@@ -275,8 +324,111 @@ pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) ->
 mod tests {
     use super::*;
 
+    const COMMANDS: &[(&str, &[&str])] = &[
+        (
+            "ls",
+            &[
+                "--registry",
+                "--versions",
+                "--json",
+                "--cargo-base",
+                "--npm-base",
+                "--pypi-base",
+                "--cargo-dir",
+                "--npm-dir",
+                "--pypi-dir",
+            ],
+        ),
+        (
+            "search",
+            &[
+                "--registry",
+                "--json",
+                "--cargo-base",
+                "--npm-base",
+                "--pypi-base",
+                "--cargo-dir",
+                "--npm-dir",
+                "--pypi-dir",
+            ],
+        ),
+        ("diff", &["--json"]),
+        (
+            "doctor",
+            &[
+                "--registry",
+                "--expected-generation",
+                "--sample-artifacts",
+                "--cargo-base",
+                "--npm-base",
+                "--pypi-base",
+                "--cargo-dir",
+                "--npm-dir",
+                "--pypi-dir",
+            ],
+        ),
+        (
+            "render",
+            &[
+                "--output",
+                "--registry",
+                "--cargo-base",
+                "--npm-base",
+                "--pypi-base",
+                "--cargo-dir",
+                "--npm-dir",
+                "--pypi-dir",
+            ],
+        ),
+    ];
+
+    const ALL_FLAGS: &[&str] = &[
+        "--registry",
+        "--versions",
+        "--json",
+        "--sample-artifacts",
+        "--cargo-base",
+        "--npm-base",
+        "--pypi-base",
+        "--cargo-dir",
+        "--npm-dir",
+        "--pypi-dir",
+        "--output",
+        "--expected-generation",
+        "--remote",
+    ];
+
     fn args(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn base_args(command: &str) -> Vec<&'static str> {
+        match command {
+            "ls" => vec!["ls"],
+            "search" => vec!["search", "query"],
+            "diff" => vec!["diff", "before.json", "after.json"],
+            "doctor" => vec!["doctor"],
+            "render" => vec!["render"],
+            _ => unreachable!(),
+        }
+    }
+
+    fn flag_value(flag: &str) -> Option<&'static str> {
+        match flag {
+            "--registry" => Some("npm"),
+            "--cargo-base" | "--npm-base" | "--pypi-base" => Some("https://example.com"),
+            "--cargo-dir" | "--npm-dir" | "--pypi-dir" => Some("."),
+            "--output" => Some("out.html"),
+            "--expected-generation" => Some("gen1"),
+            _ => None,
+        }
+    }
+
+    fn supports(command: &str, flag: &str) -> bool {
+        COMMANDS
+            .iter()
+            .find(|(name, _)| *name == command)
+            .is_some_and(|(_, flags)| flags.contains(&flag))
     }
 
     #[test]
@@ -296,14 +448,95 @@ mod tests {
         assert!(parse_args(&args(&["search"])).is_err());
         assert!(parse_args(&args(&["diff", "a.json", "b.json"])).unwrap().positionals.len() == 2);
         assert!(parse_args(&args(&["diff", "a.json"])).is_err());
-        assert!(parse_args(&args(&["doctor", "--remote"])).unwrap().remote);
+        assert!(parse_args(&args(&["doctor", "--sample-artifacts"])).unwrap().sample_artifacts);
         assert!(parse_args(&args(&["render", "--output", "index.html"])).unwrap().output.as_deref() == Some("index.html"));
         assert!(parse_args(&args(&["bogus"])).is_err());
     }
 
     #[test]
-    fn rejects_mixed_sources() {
-        assert!(parse_args(&args(&["ls", "--remote", "--cargo-dir", "x"])).is_err());
+    fn every_command_rejects_each_unsupported_flag() {
+        for (command, _) in COMMANDS {
+            for flag in ALL_FLAGS.iter().copied() {
+                let mut argv = base_args(command);
+                argv.push(flag);
+                if let Some(value) = flag_value(flag) {
+                    argv.push(value);
+                }
+                let result = parse_args(&args(&argv));
+                if supports(command, flag) {
+                    assert!(result.is_ok(), "{command} rejected supported {flag}: {:?}", result.err());
+                } else {
+                    let err = result.expect_err(&format!("{command} accepted unsupported {flag}"));
+                    assert!(matches!(err, Error::Usage(_)), "{command} {flag}: {err}");
+                    assert_eq!(err.exit_code(), 2);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_flags_no_command_reads() {
+        assert!(parse_args(&args(&["doctor", "--remote"])).is_err());
+        assert!(parse_args(&args(&["render", "--output", "x.html", "--json"])).is_err());
+        assert!(parse_args(&args(&["diff", "--cargo-base", "https://example.com", "a", "b"])).is_err());
+        assert!(parse_args(&args(&["ls", "--sample-artifacts"])).is_err());
+    }
+
+    #[test]
+    fn help_advertises_only_accepted_flags_and_positionals() {
+        let help = help_text();
+        assert!(!help.contains("[sources...]"), "{help}");
+        assert!(!help.contains("--remote"), "{help}");
+        let mut command: Option<&str> = None;
+        let mut advertised: Vec<String> = Vec::new();
+        let mut checked = 0;
+        for line in help.lines() {
+            let trimmed = line.trim();
+            let first = trimmed.split_whitespace().next().unwrap_or("");
+            if let Some((name, _)) = COMMANDS.iter().find(|(name, _)| *name == first) {
+                if let Some(previous) = command {
+                    check_advertised(previous, &advertised);
+                    checked += 1;
+                }
+                command = Some(name);
+                advertised.clear();
+            }
+            if command.is_some() && trimmed.is_empty() {
+                break;
+            }
+            if command.is_some() {
+                for token in trimmed.split_whitespace() {
+                    let token = token.trim_matches(|c| c == '[' || c == ']');
+                    if let Some(flag) = token.strip_prefix("--") {
+                        advertised.push(format!("--{flag}"));
+                    }
+                }
+            }
+        }
+        if let Some(previous) = command {
+            check_advertised(previous, &advertised);
+            checked += 1;
+        }
+        assert_eq!(checked, COMMANDS.len());
+    }
+
+    fn check_advertised(command: &str, advertised: &[String]) {
+        for flag in advertised {
+            assert!(supports(command, flag), "{command} help advertises unsupported {flag}");
+            let mut argv = base_args(command);
+            argv.push(flag);
+            if let Some(value) = flag_value(flag) {
+                argv.push(value);
+            }
+            assert!(parse_args(&args(&argv)).is_ok(), "{command} help advertises rejected {flag}");
+        }
+        let (_, supported) = COMMANDS.iter().find(|(name, _)| *name == command).unwrap();
+        for flag in supported.iter() {
+            assert!(
+                advertised.iter().any(|advertised| advertised == flag),
+                "{command} help does not advertise {flag}"
+            );
+        }
     }
 
     #[test]

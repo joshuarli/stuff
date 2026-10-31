@@ -17,8 +17,8 @@ PYPI_INDEX_URL=${PYPI_INDEX_URL:-${STUFF_PYPI_BASE:-https://pypi.17166969.xyz}/c
 
 fail() { echo "FAIL: $1"; exit 1; }
 
-echo "--- stuff doctor --remote --sample-artifacts"
-"$ROOT/target/debug/stuff" doctor --remote --sample-artifacts || fail "remote doctor checks failed"
+echo "--- stuff doctor --sample-artifacts"
+"$ROOT/target/debug/stuff" doctor --sample-artifacts || fail "remote doctor checks failed"
 
 first_pkg() {
   json=$("$ROOT/target/debug/stuff" ls --registry "$1" --json) || fail "stuff ls --registry $1 failed"

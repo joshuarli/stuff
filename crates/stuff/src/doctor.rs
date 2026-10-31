@@ -725,7 +725,6 @@ mod tests {
             registry: None,
             versions: false,
             json: false,
-            remote: false,
             sample_artifacts: false,
             cargo_base: None,
             npm_base: None,
@@ -881,17 +880,6 @@ mod tests {
         std::fs::write(&blob, b"tampered").unwrap();
         let check = sample_local("cargo", &catalog, &site, &gen_dir);
         assert_ne!(check.state, CheckState::Pass, "tampered blob must fail");
-    }
-
-    fn sources_for(site: &std::path::Path, cargo_base: &str) -> RegistrySources {
-        RegistrySources {
-            cargo_base: cargo_base.to_string(),
-            npm_base: DEFAULT_NPM_BASE.to_string(),
-            pypi_base: DEFAULT_PYPI_BASE.to_string(),
-            cargo_local: Some(LocalSite::resolve(site).unwrap()),
-            npm_local: None,
-            pypi_local: None,
-        }
     }
 
     #[test]

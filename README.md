@@ -113,17 +113,19 @@ cargo run -p stuff -- ls
 cargo run -p stuff -- ls --registry npm --versions
 cargo run -p stuff -- search h12tiny
 cargo run -p stuff -- diff before/catalog.json after/catalog.json
-cargo run -p stuff -- doctor --remote --sample-artifacts
+cargo run -p stuff -- doctor --sample-artifacts
 ```
 
 `ls` works against the live registries by default (no credentials), and
 against local output with `--cargo-dir/--npm-dir/--pypi-dir` (site,
-generation, or `catalog.json`). `--json` emits machine-readable inventory,
-`--versions` lists every published version, and `render --output index.html`
-aggregates the three catalogs into one page (`render --output llms.txt`
-renders the aggregate `llms.txt` instead). Health checks cover the
-active generations, pinned catalog objects, essential endpoints (including
-`current/llms.txt`), and one
+generation, or `catalog.json`). Supplying any local dir limits `doctor` to
+the supplied registries: it prints a skip check for each omitted registry
+and refuses `--expected-generation` unless every selected registry is
+checked. `--json` emits machine-readable inventory, `--versions` lists every
+published version, and `render --output index.html` aggregates the three
+catalogs into one page (`render --output llms.txt` renders the aggregate
+`llms.txt` instead). Health checks cover the active generations, pinned
+catalog objects, essential endpoints (including `current/llms.txt`), and one
 fully hash-verified sample artifact per registry.
 
 `stuff.17166969.xyz` serves that aggregate page from the Worker, rendered
@@ -271,7 +273,7 @@ After deploying, run the read-only live check (no credentials):
 deploy/deployed-smoke.sh
 ```
 
-It runs `stuff doctor --remote --sample-artifacts` plus `npm view` and
+It runs `stuff doctor --sample-artifacts` plus `npm view` and
 `uv pip install --dry-run` probes against the deployed origins.
 
 ## License
