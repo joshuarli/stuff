@@ -1,0 +1,193 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_RELEASE_DEBUG: 0
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+jobs:
+  preflight:
+    name: Validate release ref
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      default_branch: ${{ steps.ref.outputs.default_branch }}
+    steps:
+      - name: Require the default branch
+        id: ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          default_branch=$(gh api "repos/$REPOSITORY" --jq '.default_branch')
+          if [[ "$EVENT_NAME" != workflow_dispatch || "$REF" != "refs/heads/$default_branch" ]]; then
+            echo "Release dispatch rejected: expected workflow_dispatch on refs/heads/$default_branch, got $EVENT_NAME on $REF" >&2
+            exit 1
+          fi
+          echo "default_branch=$default_branch" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-26
+            target: aarch64-apple-darwin
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain
+      - name: Install musl tools
+        if: contains(matrix.target, 'linux-musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add "${{ matrix.target }}"
+      - name: Test
+        run: cargo test --locked -p stuff
+      - name: Build release
+        env:
+          TARGET: ${{ matrix.target }}
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
+          AR_x86_64_unknown_linux_musl: ar
+          AR_aarch64_unknown_linux_musl: ar
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+        run: |
+          if [[ "$TARGET" == *linux-musl ]]; then
+            export RUSTFLAGS="-C target-feature=+crt-static"
+          fi
+          cargo build --locked --release -p stuff --target "$TARGET"
+      - name: Verify release binary
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          binary="target/$TARGET/release/stuff"
+          "$binary" --help >/dev/null
+          if [[ "$TARGET" == *linux-musl ]]; then
+            file "$binary" | grep -Eq 'statically linked|static-pie linked'
+            ! readelf -lW "$binary" | grep -q INTERP
+          fi
+      - name: Package release binary
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          mkdir -p dist
+          cp "target/$TARGET/release/stuff" "dist/stuff-$TARGET"
+          chmod +x "dist/stuff-$TARGET"
+          (cd dist && zip -9 "stuff-$TARGET.zip" "stuff-$TARGET")
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stuff-${{ matrix.target }}
+          path: dist/stuff-${{ matrix.target }}.zip
+
+  release:
+    name: Create pre-release
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Recheck release ref and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ needs.preflight.outputs.default_branch }}
+          RELEASE_TAG: release-${{ github.sha }}
+        run: |
+          default_branch=$(gh api "repos/$REPOSITORY" --jq '.default_branch')
+          if [[ "$EVENT_NAME" != workflow_dispatch || "$REF" != "refs/heads/$default_branch" || "$DEFAULT_BRANCH" != "$default_branch" ]]; then
+            echo "Release publication rejected: expected workflow_dispatch on refs/heads/$default_branch, got $EVENT_NAME on $REF" >&2
+            exit 1
+          fi
+          if response=$(gh api "repos/$REPOSITORY/git/ref/tags/$RELEASE_TAG" 2>&1); then
+            echo "Release publication rejected: tag $RELEASE_TAG already exists; inspect it before proceeding" >&2
+            exit 1
+          else
+            if [[ "$response" != *"HTTP 404"* ]]; then
+              printf 'Could not verify that tag %s is absent: %s\n' "$RELEASE_TAG" "$response" >&2
+              exit 1
+            fi
+          fi
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: stuff-*
+          path: dist
+      - name: Validate and package release artifacts
+        run: |
+          expected=$'stuff-aarch64-apple-darwin.zip\nstuff-aarch64-unknown-linux-musl.zip\nstuff-x86_64-unknown-linux-musl.zip'
+          mkdir release
+          find dist -name 'stuff-*.zip' -exec cp {} release/ \;
+          actual=$(find release -maxdepth 1 -name 'stuff-*.zip' -printf '%f\n' | LC_ALL=C sort)
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Unexpected release artifacts:" >&2
+            printf '%s\n' "$actual" >&2
+            exit 1
+          fi
+          (cd release && sha256sum *.zip | LC_ALL=C sort -k2 > SHA256SUMS)
+          (cd release && sha256sum -c SHA256SUMS)
+      - name: Create release tag at triggering SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: release-${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ needs.preflight.outputs.default_branch }}
+        run: |
+          default_branch=$(gh api "repos/$REPOSITORY" --jq '.default_branch')
+          if [[ "$EVENT_NAME" != workflow_dispatch || "$REF" != "refs/heads/$default_branch" || "$DEFAULT_BRANCH" != "$default_branch" ]]; then
+            echo "Release publication rejected: expected workflow_dispatch on refs/heads/$default_branch, got $EVENT_NAME on $REF" >&2
+            exit 1
+          fi
+          if response=$(gh api "repos/$REPOSITORY/git/ref/tags/$RELEASE_TAG" 2>&1); then
+            echo "Release publication rejected: tag $RELEASE_TAG already exists; inspect it before proceeding" >&2
+            exit 1
+          elif [[ "$response" != *"HTTP 404"* ]]; then
+            printf 'Could not verify that tag %s is absent: %s\n' "$RELEASE_TAG" "$response" >&2
+            exit 1
+          fi
+          if response=$(gh api "repos/$REPOSITORY/git/refs" -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA" 2>&1); then
+            echo "Created $RELEASE_TAG at $GITHUB_SHA"
+          else
+            printf 'Could not create release tag %s at %s: %s\n' "$RELEASE_TAG" "$GITHUB_SHA" "$response" >&2
+            exit 1
+          fi
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: release-${{ github.sha }}
+        run: gh release create "$RELEASE_TAG" release/*.zip release/SHA256SUMS --repo "$GITHUB_REPOSITORY" --prerelease --verify-tag --title "$RELEASE_TAG"
