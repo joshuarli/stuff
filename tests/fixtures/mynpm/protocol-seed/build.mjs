@@ -77,6 +77,10 @@ try {
     manifest.push({ name: pkg.name, version: pkg.version, integrity, tarball: version.dist.tarball });
   }
   writeFileSync(join(generation, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(
+    join(generation, 'catalog.json'),
+    JSON.stringify({ schema_version: 1, registry: 'npm', generation: 'demo-v1', packages: [] }, null, 2) + '\n',
+  );
   const current = join(registryRoot, 'current');
   const next = join(registryRoot, '.current-next');
   rmSync(next, { force: true });

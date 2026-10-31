@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { execFileSync, spawn } from "node:child_process";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { Miniflare } from "miniflare";
 
 const ROUTES = JSON.stringify([
@@ -124,4 +133,131 @@ test("a pinned project page's relative wheel link resolves", async (t) => {
   const wheel = await mf.dispatchFetch(new URL(href, pageUrl));
   assert.equal(wheel.status, 200);
   assert.equal(await wheel.text(), "wheel-bytes");
+});
+
+const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+const DIGEST = "ab".repeat(64);
+const TARBALL = "tarball-bytes";
+const WHEEL = "wheel-bytes";
+
+function paritySite() {
+  const work = join(REPO_ROOT, ".work", "tmp");
+  mkdirSync(work, { recursive: true });
+  const site = mkdtempSync(join(work, "parity-site-"));
+  const generation = join(site, "generations", "g1");
+  mkdirSync(join(generation, "registry"), { recursive: true });
+  mkdirSync(join(generation, "simple", "proj"), { recursive: true });
+  mkdirSync(join(generation, "-", "tarballs"), { recursive: true });
+  mkdirSync(join(site, "tarballs"), { recursive: true });
+  mkdirSync(join(site, "wheels"), { recursive: true });
+  writeFileSync(join(generation, "catalog.json"), '{"schema_version":1,"registry":"cargo","generation":"g1","packages":[]}\n');
+  writeFileSync(join(generation, "index.html"), "<html>root</html>");
+  writeFileSync(join(generation, "llms.txt"), "# Cargo registry\n");
+  writeFileSync(join(generation, "registry", "config.json"), "{}");
+  writeFileSync(join(generation, "simple", "index.html"), "<html>simple</html>");
+  writeFileSync(join(generation, "simple", "proj", "index.html"), "<html>project</html>");
+  writeFileSync(
+    join(generation, "flat"),
+    JSON.stringify({
+      name: "flat",
+      versions: {
+        "1.2.3": { dist: { tarball: `/current/-/tarballs/${DIGEST}.tgz` } },
+      },
+    }),
+  );
+  writeFileSync(join(site, "tarballs", `${DIGEST}.tgz`), TARBALL);
+  copyFileSync(join(site, "tarballs", `${DIGEST}.tgz`), join(generation, "-", "tarballs", `${DIGEST}.tgz`));
+  writeFileSync(join(site, "wheels", "pkg-1.0-py3-none-any.whl"), WHEEL);
+  symlinkSync("../../wheels", join(generation, "wheels"));
+  symlinkSync("generations/g1", join(site, "current"));
+  return site;
+}
+
+async function seedParity(mf) {
+  const bucket = await mf.getR2Bucket("MYCRATES");
+  await bucket.put("current", "g1");
+  await bucket.put(
+    "generations/g1/catalog.json",
+    '{"schema_version":1,"registry":"cargo","generation":"g1","packages":[]}',
+  );
+  await bucket.put("generations/g1/index.html", "<html>root</html>");
+  await bucket.put("generations/g1/llms.txt", "# Cargo registry\n");
+  await bucket.put("generations/g1/registry/config.json", "{}");
+  await bucket.put("generations/g1/simple/index.html", "<html>simple</html>");
+  await bucket.put("generations/g1/simple/proj/index.html", "<html>project</html>");
+  await bucket.put(
+    "generations/g1/flat",
+    JSON.stringify({
+      name: "flat",
+      versions: {
+        "1.2.3": { dist: { tarball: `/current/-/tarballs/${DIGEST}.tgz` } },
+      },
+    }),
+  );
+  await bucket.put(`tarballs/${DIGEST}.tgz`, TARBALL);
+  await bucket.put("wheels/pkg-1.0-py3-none-any.whl", WHEEL);
+}
+
+function startServer(site) {
+  const bin = process.env.STUFF_SERVER_BIN ?? join(REPO_ROOT, "target", "debug", "stuff-server");
+  execFileSync("cargo", ["build", "-q", "-p", "stuff-server"], { cwd: REPO_ROOT });
+  const child = spawn(bin, ["--bind", "127.0.0.1:0", "--route", `/=${site}`], {
+    stdio: ["ignore", "pipe", "inherit"],
+  });
+  return new Promise((resolve, reject) => {
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+      const match = output.match(/listening on ([^\n]+)/);
+      if (match) {
+        resolve({ child, base: `http://${match[1].trim()}` });
+      }
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => reject(new Error(`stuff-server exited with ${code}`)));
+  });
+}
+
+test("native server and worker agree on routes and cache kinds", async (t) => {
+  const site = paritySite();
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seedParity(mf);
+  const server = await startServer(site);
+  t.after(() => {
+    server.child.kill();
+  });
+
+  const paths = [
+    "/",
+    "/index.html",
+    "/catalog.json",
+    "/llms.txt",
+    "/simple",
+    "/simple/",
+    "/simple/proj",
+    "/simple/proj/",
+    "/current/simple/proj",
+    "/current/simple/proj/",
+    `/current/-/tarballs/${DIGEST}.tgz`,
+    `/generations/g1/-/tarballs/${DIGEST}.tgz`,
+    "/current/flat/-/flat-1.2.3.tgz",
+    "/current/wheels/pkg-1.0-py3-none-any.whl",
+    "/generations/g1/wheels/pkg-1.0-py3-none-any.whl",
+    "/generations/missing/wheels/pkg-1.0-py3-none-any.whl",
+    `/tarballs/${DIGEST}.tgz`,
+    "/current/registry/config.json",
+    "/generations/g1/registry/config.json",
+    "/missing",
+  ];
+  for (const path of paths) {
+    const native = await fetch(`${server.base}${path}`);
+    const edge = await mf.dispatchFetch(`https://crates.test${path}`);
+    assert.equal(native.status, edge.status, `status for ${path}`);
+    assert.equal(
+      (native.headers.get("cache-control") ?? "").replace(/\s+/g, " "),
+      (edge.headers.get("cache-control") ?? "").replace(/\s+/g, " "),
+      `cache-control for ${path}`,
+    );
+  }
 });

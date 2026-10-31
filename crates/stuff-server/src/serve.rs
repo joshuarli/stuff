@@ -18,72 +18,100 @@ pub enum Mapped {
 }
 
 pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
-    let resolved = match stuff_http::resolve_path(raw_target) {
-        Ok(r) => r,
-        Err(stuff_http::PathError::Empty) => return map_root(route),
+    let plan = match stuff_http::plan_route(raw_target) {
+        Ok(plan) => plan,
         Err(_) => return Mapped::NotFound,
     };
-    let Some((first, rest)) = resolved.segments.split_first() else {
-        return map_root(route);
-    };
-    if first == "llms.txt" && rest.is_empty() {
-        return map_generation_file(route, "llms.txt");
+    match &plan.scope {
+        stuff_http::RouteScope::Current => {
+            let Some(generation_dir) = current_generation_dir(route) else {
+                return Mapped::NotFound;
+            };
+            map_generation_target(route, &generation_dir, &plan, true)
+        }
+        stuff_http::RouteScope::Generation(generation) => {
+            let generation_dir = route.site_dir.join("generations").join(generation);
+            map_generation_target(route, &generation_dir, &plan, false)
+        }
+        stuff_http::RouteScope::Site => Mapped::File(MappedFile {
+            path: candidate_path(
+                &route.site_dir,
+                &plan.rel_path,
+                plan.index_fallback.as_deref(),
+            ),
+            kind: plan.kind(),
+        }),
     }
-    if first == "current" {
-        let link = route.site_dir.join("current");
-        let Ok(target) = std::fs::read_link(&link) else {
+}
+
+fn current_generation_dir(route: &Route) -> Option<PathBuf> {
+    let link = route.site_dir.join("current");
+    let target = std::fs::read_link(&link).ok()?;
+    let mut components = target.components();
+    let generations = components.next()?;
+    let generation = components.next()?;
+    if generations.as_os_str() != "generations" || components.next().is_some() {
+        return None;
+    }
+    Some(route.site_dir.join(generations).join(generation))
+}
+
+fn candidate_path(base: &Path, rel_path: &str, index_fallback: Option<&str>) -> PathBuf {
+    let path = base.join(rel_path);
+    let is_directory = std::fs::metadata(&path)
+        .map(|meta| meta.is_dir())
+        .unwrap_or(false);
+    match (is_directory, index_fallback) {
+        (true, Some(fallback)) => base.join(fallback),
+        _ => path,
+    }
+}
+
+fn is_generation_file(path: &Path) -> bool {
+    std::fs::symlink_metadata(path)
+        .map(|meta| meta.file_type().is_file())
+        .unwrap_or(false)
+}
+
+fn map_generation_target(
+    route: &Route,
+    generation_dir: &Path,
+    plan: &stuff_http::RoutePlan,
+    allow_npm_tarball: bool,
+) -> Mapped {
+    if let Some(shared) = &plan.shared_store_path {
+        if !generation_dir.join(stuff_http::GENERATION_CATALOG).is_file() {
             return Mapped::NotFound;
-        };
-        if target.components().count() != 2
-            || target.components().next().is_none_or(|c| c.as_os_str() != "generations")
-        {
-            return Mapped::NotFound;
         }
-        let generation_dir = route.site_dir.join(&target);
-        if let Some(aliased) = map_wheel_store(route, rest) {
-            return Mapped::File(aliased);
-        }
-        if let Some(aliased) = map_npm_tarball(route, &generation_dir, rest) {
-            return Mapped::File(aliased);
-        }
-        let mut path = generation_dir;
-        for seg in rest {
-            path.push(seg);
-        }
+        let generation_path = generation_dir.join(&plan.rel_path);
         return Mapped::File(MappedFile {
-            path,
-            kind: RouteKind::GenerationPointer,
+            path: if is_generation_file(&generation_path)
+                && !has_symlink_component(route, &generation_path)
+            {
+                generation_path
+            } else {
+                route.site_dir.join(shared)
+            },
+            kind: plan.kind(),
         });
     }
-    if let [generations, _, rest @ ..] = resolved.segments.as_slice()
-        && generations == "generations"
-        && let Some(aliased) = map_wheel_store(route, rest)
+    if allow_npm_tarball
+        && let Some(aliased) = map_npm_tarball(route, generation_dir, &segments_of(&plan.rel_path))
     {
         return Mapped::File(aliased);
     }
-    let mut path = route.site_dir.clone();
-    for seg in &resolved.segments {
-        path.push(seg);
-    }
     Mapped::File(MappedFile {
-        path,
-        kind: RouteKind::ImmutableFile,
+        path: candidate_path(generation_dir, &plan.rel_path, plan.index_fallback.as_deref()),
+        kind: plan.kind(),
     })
 }
 
-fn map_wheel_store(route: &Route, rest: &[String]) -> Option<MappedFile> {
-    let (first, files) = rest.split_first()?;
-    if first != "wheels" || files.is_empty() {
-        return None;
-    }
-    let mut path = route.site_dir.join("wheels");
-    for seg in files {
-        path.push(seg);
-    }
-    Some(MappedFile {
-        path,
-        kind: RouteKind::ImmutableFile,
-    })
+fn segments_of(rel_path: &str) -> Vec<String> {
+    rel_path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 fn map_npm_tarball(route: &Route, generation_dir: &Path, rest: &[String]) -> Option<MappedFile> {
@@ -100,27 +128,6 @@ fn map_npm_tarball(route: &Route, generation_dir: &Path, rest: &[String]) -> Opt
     Some(MappedFile {
         path: generation_dir.join("-/tarballs").join(format!("{digest}.tgz")),
         kind: RouteKind::ImmutableFile,
-    })
-}
-
-fn map_root(route: &Route) -> Mapped {
-    map_generation_file(route, "index.html")
-}
-
-fn map_generation_file(route: &Route, file: &str) -> Mapped {
-    let link = route.site_dir.join("current");
-    let Ok(target) = std::fs::read_link(&link) else {
-        return Mapped::NotFound;
-    };
-    if target.components().count() != 2
-        || target.components().next().is_none_or(|c| c.as_os_str() != "generations")
-    {
-        return Mapped::NotFound;
-    }
-    let path = route.site_dir.join(&target).join(file);
-    Mapped::File(MappedFile {
-        path,
-        kind: RouteKind::GenerationPointer,
     })
 }
 
@@ -212,21 +219,11 @@ pub fn respond(
     if has_symlink_component(route, &mapped.path) {
         return FileResponse::text(404, "Not Found", "not found");
     }
-    let Ok(mut canon) = std::fs::canonicalize(&mapped.path) else {
+    let Ok(canon) = std::fs::canonicalize(&mapped.path) else {
         return FileResponse::text(404, "Not Found", "not found");
     };
     if !canon.starts_with(&route.canonical_site_dir) {
         return FileResponse::text(404, "Not Found", "not found");
-    }
-    if canon.is_dir() {
-        canon.push("index.html");
-        let Ok(index) = std::fs::canonicalize(&canon) else {
-            return FileResponse::text(404, "Not Found", "not found");
-        };
-        if !index.starts_with(&route.canonical_site_dir) {
-            return FileResponse::text(404, "Not Found", "not found");
-        }
-        canon = index;
     }
     let meta = match std::fs::metadata(&canon) {
         Ok(m) if m.is_file() => m,
@@ -341,6 +338,7 @@ mod tests {
             b"{}",
         )
         .unwrap();
+        stuff_store::write_file_durable(&staged_path.join("catalog.json"), b"{}").unwrap();
         site.activate(staged_path, "gen1", &|_: &Path| Ok(true)).unwrap();
         let route = Route {
             prefix: String::new(),
@@ -530,6 +528,8 @@ mod tests {
         let digest_path = format!("/current/-/tarballs/{DIGEST}.tgz");
         let digest = respond(&route, &digest_path, "GET", &no_headers);
         assert_eq!(digest.status, 200);
+        let digest_cache = digest.headers.iter().find(|(k, _)| k == "cache-control").unwrap();
+        assert_eq!(digest_cache.1, "public, max-age=31536000, immutable");
 
         for path in ["/current/flat/-/flat-1.2.3.tgz", "/current/@scope%2fpkg/-/pkg-1.2.3.tgz", "/current/@scope/pkg/-/pkg-1.2.3.tgz"] {
             let r = respond(&route, path, "GET", &no_headers);
@@ -604,6 +604,51 @@ mod tests {
     }
 
     #[test]
+    fn root_aliases_and_slashless_directories_resolve_through_current() {
+        let (_tmp, route) = test_route();
+        let generation = route.site_dir.join("generations/gen1");
+        fs::write(generation.join("index.html"), b"<html>root</html>").unwrap();
+        fs::create_dir_all(generation.join("simple/proj")).unwrap();
+        fs::write(generation.join("simple/proj/index.html"), b"<html>proj</html>").unwrap();
+        let no_headers: Vec<(String, String)> = Vec::new();
+        for (path, body) in [
+            ("/", "<html>root</html>"),
+            ("/index.html", "<html>root</html>"),
+            ("/catalog.json", "{}"),
+            ("/simple/proj", "<html>proj</html>"),
+            ("/simple/proj/", "<html>proj</html>"),
+            ("/current/simple/proj", "<html>proj</html>"),
+            ("/current/simple/proj/", "<html>proj</html>"),
+        ] {
+            let r = respond(&route, path, "GET", &no_headers);
+            assert_eq!(r.status, 200, "{path}");
+            let cache = r.headers.iter().find(|(k, _)| k == "cache-control").unwrap();
+            assert_eq!(cache.1, "public, max-age=60", "{path}");
+            if body == "{}" {
+                assert!(matches!(&r.body, ResponseBody::File { path, .. } if path.ends_with("catalog.json")));
+            } else {
+                assert!(matches!(&r.body, ResponseBody::File { path, .. } if path.ends_with("index.html")), "{path}");
+            }
+        }
+        assert_eq!(respond(&route, "/simple", "GET", &no_headers).status, 404);
+    }
+
+    #[test]
+    fn missing_generations_do_not_expose_shared_store_files() {
+        let (_tmp, route) = test_route();
+        fs::create_dir_all(route.site_dir.join("wheels")).unwrap();
+        fs::write(route.site_dir.join("wheels/pkg-1.0-py3-none-any.whl"), b"wheel").unwrap();
+        std::os::unix::fs::symlink("../../wheels", route.site_dir.join("generations/gen1/wheels")).unwrap();
+        let no_headers: Vec<(String, String)> = Vec::new();
+        let ok = respond(&route, "/generations/gen1/wheels/pkg-1.0-py3-none-any.whl", "GET", &no_headers);
+        assert_eq!(ok.status, 200);
+        let missing = respond(&route, "/generations/gen2/wheels/pkg-1.0-py3-none-any.whl", "GET", &no_headers);
+        assert_eq!(missing.status, 404);
+        let missing_current = respond(&route, "/current/-/tarballs/missing.tgz", "GET", &no_headers);
+        assert_eq!(missing_current.status, 404);
+    }
+
+    #[test]
     fn directory_serves_index_html() {
         let (tmp, route) = test_route();
         let no_headers: Vec<(String, String)> = Vec::new();
@@ -612,6 +657,10 @@ mod tests {
         fs::write(dir.join("index.html"), b"<html></html>").unwrap();
 
         let r = respond(&route, "/generations/gen1/simple/proj/", "GET", &no_headers);
+        assert_eq!((r.status, r.reason), (200, "OK"));
+        assert!(matches!(r.body, ResponseBody::File { len: 13, .. }));
+
+        let r = respond(&route, "/generations/gen1/simple/proj", "GET", &no_headers);
         assert_eq!((r.status, r.reason), (200, "OK"));
         assert!(matches!(r.body, ResponseBody::File { len: 13, .. }));
 

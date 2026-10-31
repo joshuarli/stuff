@@ -10,4 +10,7 @@ pub use cache::{cache_policy_for, CachePolicy, RouteKind};
 pub use condition::{evaluate_preconditions, parse_range, Precondition, RangeError, RangeRequest};
 pub use mime::content_type_for;
 pub use npm::{packument_tarball_digest, parse_npm_tarball_path, NpmTarballPath};
-pub use route::{resolve_path, PathError, ResolvedPath};
+pub use route::{
+    is_immutable_asset, plan_route, resolve_path, shared_store_path, PathError, ResolvedPath,
+    RoutePlan, RouteScope, GENERATION_CATALOG,
+};

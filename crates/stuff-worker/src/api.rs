@@ -51,6 +51,12 @@ pub struct MappedJson {
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub rel_path: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
+    pub fallback_rel_path: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub fallback_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub cache: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
     pub message: Option<String>,
 }
 
@@ -66,6 +72,9 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
                     key_prefix: None,
                     pointer_key: None,
                     rel_path: None,
+                    fallback_rel_path: None,
+                    fallback_key: None,
+                    cache: None,
                     message: Some(message),
                 },
                 "error",
@@ -80,12 +89,17 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             key_prefix: Some(asset.key_prefix),
             pointer_key: None,
             rel_path: None,
+            fallback_rel_path: None,
+            fallback_key: asset.fallback_key,
+            cache: Some("immutable".to_string()),
             message: None,
         },
         MappedAsset::ViaPointer {
             bucket_binding,
             pointer_key,
             rel_path,
+            fallback_rel_path,
+            cache_kind,
         } => MappedJson {
             kind: "via_pointer".to_string(),
             bucket_binding: Some(bucket_binding),
@@ -93,6 +107,15 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             key_prefix: None,
             pointer_key: Some(pointer_key),
             rel_path: Some(rel_path),
+            fallback_rel_path,
+            fallback_key: None,
+            cache: Some(
+                match cache_kind {
+                    HttpRouteKind::ImmutableFile => "immutable",
+                    HttpRouteKind::GenerationPointer => "pointer",
+                }
+                .to_string(),
+            ),
             message: None,
         },
         MappedAsset::NotFound => MappedJson {
@@ -102,6 +125,9 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             key_prefix: None,
             pointer_key: None,
             rel_path: None,
+            fallback_rel_path: None,
+            fallback_key: None,
+            cache: None,
             message: None,
         },
     };
@@ -145,21 +171,12 @@ pub struct DirectAliasJson {
 /// Wheel filenames and content-hash tarball names are immutable, so serving
 /// the shared object is byte-identical to serving a generation copy.
 fn alias_key_for(key_prefix: &str, rel_path: &str) -> Option<String> {
-    let target = if rel_path == "wheels"
-        || rel_path.starts_with("wheels/")
-        || rel_path.starts_with("tarballs/")
-    {
-        rel_path
-    } else if rel_path.starts_with("-/tarballs/") {
-        &rel_path["-/".len()..]
-    } else {
-        return None;
-    };
+    let target = stuff_http::shared_store_path(rel_path)?;
     let mut parts = Vec::new();
     if !key_prefix.is_empty() {
         parts.push(key_prefix);
     }
-    parts.push(target);
+    parts.push(&target);
     Some(parts.join("/"))
 }
 
@@ -173,7 +190,7 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
                 kind: "key".to_string(),
                 key: Some(object_key_for(key_prefix, &generation_id, rel_path)),
                 alias_key: alias_key_for(key_prefix, rel_path),
-                generation_catalog_key: Some(object_key_for(key_prefix, &generation_id, "catalog.json")),
+                generation_catalog_key: Some(object_key_for(key_prefix, &generation_id, stuff_http::GENERATION_CATALOG)),
                 npm_packument_key: npm
                     .as_ref()
                     .map(|n| object_key_for(key_prefix, &generation_id, &n.package)),
@@ -216,7 +233,7 @@ pub fn resolve_direct_alias_json(key_prefix: &str, key: &str) -> String {
         Some((generation, alias_key)) => DirectAliasJson {
             kind: "key".to_string(),
             alias_key: Some(alias_key),
-            generation_catalog_key: Some(object_key_for(key_prefix, generation, "catalog.json")),
+            generation_catalog_key: Some(object_key_for(key_prefix, generation, stuff_http::GENERATION_CATALOG)),
         },
         None => DirectAliasJson {
             kind: "not_found".to_string(),

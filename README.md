@@ -44,8 +44,15 @@ The server resolves `current/` through the generation symlink, serves
 `generations/` paths as immutable, supports conditional and range requests,
 and serves `index.html` inside directories (PEP 503 simple pages).
 `/` serves the generation's catalog landing page (`current/index.html`).
+`/index.html`, `/catalog.json`, `/llms.txt`, and `/simple/...` also alias
+through `current` at the registry root, like the Worker.
 `/llms.txt` serves the generation's LLM-readable inventory
 (`current/llms.txt`, also pinned under `generations/<id>/llms.txt`).
+Both adapters share `stuff-http`'s route plan, so slash-less directory
+requests, shared wheel/tarball aliases that require an existing generation,
+and cache kinds agree. Content-addressed tarballs and wheels, including
+`-/tarballs/` and `tarballs/`, are immutable; other `current/` paths keep
+the 60-second generation pointer.
 
 ## Ingest Python pins from lockfiles
 

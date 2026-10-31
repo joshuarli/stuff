@@ -39,6 +39,9 @@ interface Mapped {
   key_prefix?: string;
   pointer_key?: string;
   rel_path?: string;
+  fallback_rel_path?: string;
+  fallback_key?: string;
+  cache?: "immutable" | "pointer";
   message?: string;
 }
 
@@ -171,12 +174,13 @@ export default {
     let generationCatalogKey: string | undefined;
     let npmPackumentKey: string | undefined;
     let npmVersion: string | undefined;
+    let pointerText: string | undefined;
     if (mapped.kind === "direct") {
       if (!mapped.key) {
         throw new Error("mapping");
       }
       key = mapped.key;
-      route = "immutable";
+      route = mapped.cache ?? "immutable";
       const direct = JSON.parse(
         resolve_direct_alias_json(mapped.key_prefix ?? "", key),
       ) as DirectAlias;
@@ -192,14 +196,15 @@ export default {
       if (pointer === null) {
         return new Response("not found", { status: 404 });
       }
+      pointerText = await pointer.text();
       const resolved = JSON.parse(
-        resolve_pointer_json(mapped.pointer_key, await pointer.text(), mapped.rel_path),
+        resolve_pointer_json(mapped.pointer_key, pointerText, mapped.rel_path),
       ) as PointerResolution;
       if (resolved.kind !== "key" || !resolved.key) {
         return new Response("not found", { status: 404 });
       }
       key = resolved.key;
-      route = "pointer";
+      route = mapped.cache ?? "pointer";
       aliasKey = resolved.alias_key;
       generationCatalogKey = resolved.generation_catalog_key;
       npmPackumentKey = resolved.npm_packument_key;
@@ -238,6 +243,30 @@ export default {
             object = aliased;
             route = "immutable";
           }
+        }
+      }
+    }
+    if (object === null && mapped.kind === "direct" && mapped.fallback_key) {
+      object = await store.get(mapped.fallback_key);
+      if (object !== null) {
+        key = mapped.fallback_key;
+      }
+    }
+    if (
+      object === null &&
+      mapped.kind === "via_pointer" &&
+      mapped.pointer_key &&
+      pointerText !== undefined &&
+      mapped.fallback_rel_path !== undefined
+    ) {
+      const fallback = JSON.parse(
+        resolve_pointer_json(mapped.pointer_key, pointerText, mapped.fallback_rel_path),
+      ) as PointerResolution;
+      if (fallback.kind === "key" && fallback.key) {
+        const indexed = await store.get(fallback.key);
+        if (indexed !== null) {
+          key = fallback.key;
+          object = indexed;
         }
       }
     }

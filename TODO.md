@@ -10,16 +10,6 @@ Next: 27
 - **Fix with:** `none`
 - **Effort:** S
 
-### STUF-22 · P3 · The native server and the worker have drifted route and cache semantics
-
-- **Area:** Architecture
-- **Where:** `crates/stuff-server/src/serve.rs:29-56,74-87`; `crates/stuff-worker/src/map.rs:121,132-145`; `crates/stuff-worker/src/entry.ts:214-227`; `crates/stuff-http/src/cache.rs:23-32`.
-- **Problem:** The worker maps `/index.html`, `/catalog.json`, `/llms.txt`, and `/simple/...` through the current pointer; the native server only aliases `/llms.txt`, so the same root URL is 200 on one and 404 on the other. The server also serves a slash-less directory (`/current/simple/proj`) as `index.html` while the worker returns 404, serves `/generations/<nonexistent>/wheels/<file>` with a one-year immutable 200 while the worker checks the generation catalog and returns 404, and labels the npm digest path `/-/tarballs/<digest>.tgz` as a 60-second pointer while the worker serves it as immutable. `README.md` says the digest object is served with immutable caching.
-- **Recommendation:** Put the alias set, trailing-slash rule, generation-existence gate, and route-kind classification in one `stuff-http` function used by both adapters. Classify `-/tarballs/` and `tarballs/` as immutable.
-- **Fix with:** `single-source-of-truth`
-- **Effort:** M
-
-
 ### STUF-25 · P3 · stuff accepts flags no command reads and advertises positionals it rejects
 
 - **Area:** Types

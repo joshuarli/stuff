@@ -23,6 +23,7 @@ pub struct AssetKey {
     pub key: String,
     pub key_prefix: String,
     pub kind: RouteKind,
+    pub fallback_key: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +33,8 @@ pub enum MappedAsset {
         bucket_binding: String,
         pointer_key: String,
         rel_path: String,
+        fallback_rel_path: Option<String>,
+        cache_kind: stuff_http::RouteKind,
     },
     NotFound,
 }
@@ -105,70 +108,41 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
     let Some((route, rest)) = best else {
         return MappedAsset::NotFound;
     };
-
-    let resolved = match stuff_http::resolve_path(&rest) {
-        Ok(r) => r,
-        Err(stuff_http::PathError::Empty) => {
-            return MappedAsset::ViaPointer {
-                bucket_binding: route.bucket_binding.clone(),
-                pointer_key: pointer_key(&route.key_prefix),
-                rel_path: "index.html".to_string(),
-            };
-        }
+    let plan = match stuff_http::plan_route(&rest) {
+        Ok(plan) => plan,
         Err(_) => return MappedAsset::NotFound,
     };
-    if resolved.segments.len() == 1
-        && matches!(resolved.segments[0].as_str(), "llms.txt" | "catalog.json" | "index.html")
-    {
-        return MappedAsset::ViaPointer {
+    let cache_kind = plan.kind();
+    match plan.scope {
+        stuff_http::RouteScope::Current => MappedAsset::ViaPointer {
             bucket_binding: route.bucket_binding.clone(),
             pointer_key: pointer_key(&route.key_prefix),
-            rel_path: resolved.segments[0].clone(),
-        };
-    }
-    let Some((first, remaining)) = resolved.segments.split_first() else {
-        return MappedAsset::NotFound;
-    };
-    if first == "simple" {
-        let mut rel = resolved.segments.join("/");
-        if raw_path.ends_with('/') || rel == "simple" {
-            rel.push_str("/index.html");
-        }
-        return MappedAsset::ViaPointer {
+            rel_path: plan.rel_path,
+            fallback_rel_path: plan.index_fallback,
+            cache_kind,
+        },
+        stuff_http::RouteScope::Generation(generation) => MappedAsset::Direct(AssetKey {
             bucket_binding: route.bucket_binding.clone(),
-            pointer_key: pointer_key(&route.key_prefix),
-            rel_path: rel,
-        };
-    }
-    if first == "current" {
-        let mut rel = remaining.join("/");
-        if raw_path.ends_with('/') && !rel.is_empty() {
-            rel.push_str("/index.html");
+            key: object_key_for(&route.key_prefix, &generation, &plan.rel_path),
+            key_prefix: route.key_prefix.clone(),
+            kind: RouteKind::ImmutableObject,
+            fallback_key: plan
+                .index_fallback
+                .map(|fallback| object_key_for(&route.key_prefix, &generation, &fallback)),
+        }),
+        stuff_http::RouteScope::Site => {
+            let parts: Vec<&str> = plan.rel_path.split('/').collect();
+            MappedAsset::Direct(AssetKey {
+                bucket_binding: route.bucket_binding.clone(),
+                key: join_key(&route.key_prefix, &parts),
+                key_prefix: route.key_prefix.clone(),
+                kind: RouteKind::ImmutableObject,
+                fallback_key: plan
+                    .index_fallback
+                    .map(|fallback| join_key(&route.key_prefix, &fallback.split('/').collect::<Vec<_>>())),
+            })
         }
-        if rel.is_empty() {
-            rel = "index.html".to_string();
-        }
-        return MappedAsset::ViaPointer {
-            bucket_binding: route.bucket_binding.clone(),
-            pointer_key: pointer_key(&route.key_prefix),
-            rel_path: rel,
-        };
     }
-    let mut parts: Vec<&str> = vec![route.key_prefix.as_str(), first];
-    parts.extend(remaining.iter().map(|s| s.as_str()));
-    let mut key = join_key("", &parts);
-    if raw_path.ends_with('/') {
-        if !key.is_empty() {
-            key.push('/');
-        }
-        key.push_str("index.html");
-    }
-    MappedAsset::Direct(AssetKey {
-        bucket_binding: route.bucket_binding.clone(),
-        key,
-        key_prefix: route.key_prefix.clone(),
-        kind: RouteKind::ImmutableObject,
-    })
 }
 
 #[cfg(test)]
@@ -219,7 +193,7 @@ mod tests {
             ],
         };
         match map_asset(&c, "crates.17166969.xyz", "/current/registry/config.json") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
                 assert_eq!(bucket_binding, "MYCRATES");
                 assert_eq!(pointer_key, "current");
                 assert_eq!(rel_path, "registry/config.json");
@@ -249,7 +223,7 @@ mod tests {
     fn longest_prefix_selects_bucket() {
         let c = config();
         match map_asset(&c, "", "/mirror/current/flatdemo") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
                 assert_eq!(bucket_binding, "MYNPM");
                 assert_eq!(pointer_key, "current");
                 assert_eq!(rel_path, "flatdemo");
@@ -282,11 +256,59 @@ mod tests {
             ("/catalog.json", "catalog.json"),
             ("/index.html", "index.html"),
             ("/llms.txt", "llms.txt"),
+            ("/simple", "simple"),
             ("/simple/index.html", "simple/index.html"),
             ("/simple/proj/", "simple/proj/index.html"),
         ] {
             match map_asset(&c, "", path) {
                 MappedAsset::ViaPointer { rel_path, .. } => assert_eq!(rel_path, rel, "{path}"),
+                other => panic!("{path}: unexpected {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn slashless_directories_carry_an_index_fallback() {
+        let c = config();
+        match map_asset(&c, "", "/current/simple/proj") {
+            MappedAsset::ViaPointer { rel_path, fallback_rel_path, .. } => {
+                assert_eq!(rel_path, "simple/proj");
+                assert_eq!(fallback_rel_path.as_deref(), Some("simple/proj/index.html"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match map_asset(&c, "", "/generations/g/simple/proj") {
+            MappedAsset::Direct(a) => {
+                assert_eq!(a.key, "generations/g/simple/proj");
+                assert_eq!(
+                    a.fallback_key.as_deref(),
+                    Some("generations/g/simple/proj/index.html")
+                );
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cache_kind_marks_shared_digest_paths_immutable() {
+        let c = config();
+        for path in [
+            "/catalog.json",
+            "/current/registry/config.json",
+            "/current/simple/proj/",
+        ] {
+            match map_asset(&c, "", path) {
+                MappedAsset::ViaPointer { cache_kind, .. } => {
+                    assert_eq!(cache_kind, stuff_http::RouteKind::GenerationPointer, "{path}");
+                }
+                other => panic!("{path}: unexpected {other:?}"),
+            }
+        }
+        for path in ["/current/-/tarballs/x.tgz", "/current/tarballs/x.tgz"] {
+            match map_asset(&c, "", path) {
+                MappedAsset::ViaPointer { cache_kind, .. } => {
+                    assert_eq!(cache_kind, stuff_http::RouteKind::ImmutableFile, "{path}");
+                }
                 other => panic!("{path}: unexpected {other:?}"),
             }
         }
@@ -328,7 +350,7 @@ mod tests {
     fn root_and_bare_current_serve_catalog_page() {
         let c = config();
         match map_asset(&c, "", "/") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
                 assert_eq!(bucket_binding, "MYCRATES");
                 assert_eq!(pointer_key, "current");
                 assert_eq!(rel_path, "index.html");
@@ -347,7 +369,7 @@ mod tests {
     fn root_llms_txt_maps_through_pointer() {
         let c = config();
         match map_asset(&c, "", "/llms.txt") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
                 assert_eq!(bucket_binding, "MYCRATES");
                 assert_eq!(pointer_key, "current");
                 assert_eq!(rel_path, "llms.txt");
@@ -385,7 +407,7 @@ mod tests {
             }],
         };
         match map_asset(&config, "", "/pypi/current/simple/") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path } => {
+            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
                 assert_eq!(bucket_binding, "PYPI");
                 assert_eq!(pointer_key, "indexes/main/current");
                 assert_eq!(rel_path, "simple/index.html");

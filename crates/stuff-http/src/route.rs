@@ -67,6 +67,119 @@ fn hex_val(b: u8) -> Option<u8> {
     }
 }
 
+pub const GENERATION_CATALOG: &str = "catalog.json";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RouteScope {
+    Current,
+    Generation(String),
+    Site,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RoutePlan {
+    pub scope: RouteScope,
+    pub rel_path: String,
+    pub index_fallback: Option<String>,
+    pub shared_store_path: Option<String>,
+}
+
+impl RoutePlan {
+    pub fn kind(&self) -> crate::cache::RouteKind {
+        match self.scope {
+            RouteScope::Current => {
+                if is_immutable_asset(&self.rel_path) {
+                    crate::cache::RouteKind::ImmutableFile
+                } else {
+                    crate::cache::RouteKind::GenerationPointer
+                }
+            }
+            RouteScope::Generation(_) | RouteScope::Site => crate::cache::RouteKind::ImmutableFile,
+        }
+    }
+}
+
+fn segments_of(rel_path: &str) -> Vec<String> {
+    rel_path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+pub fn is_immutable_asset(rel_path: &str) -> bool {
+    let segments = segments_of(rel_path);
+    match segments.as_slice() {
+        [first, ..] if first == "wheels" || first == "tarballs" => true,
+        [dash, tarballs, ..] if dash == "-" && tarballs == "tarballs" => true,
+        _ => crate::npm::parse_npm_tarball_path(&segments).is_some(),
+    }
+}
+
+pub fn shared_store_path(rel_path: &str) -> Option<String> {
+    if rel_path == "wheels" || rel_path.starts_with("wheels/") {
+        return Some(rel_path.to_string());
+    }
+    if rel_path.starts_with("tarballs/") {
+        return Some(rel_path.to_string());
+    }
+    rel_path
+        .strip_prefix("-/tarballs/")
+        .map(|rest| format!("tarballs/{rest}"))
+}
+
+pub fn plan_route(raw_target: &str) -> Result<RoutePlan, PathError> {
+    let resolved = match resolve_path(raw_target) {
+        Ok(resolved) => resolved,
+        Err(PathError::Empty) => {
+            return Ok(RoutePlan {
+                scope: RouteScope::Current,
+                rel_path: "index.html".to_string(),
+                index_fallback: None,
+                shared_store_path: None,
+            });
+        }
+        Err(error) => return Err(error),
+    };
+    let path = raw_target.split('?').next().unwrap_or("");
+    let trailing_slash = path.ends_with('/');
+    let segments = resolved.segments;
+
+    if let [name] = segments.as_slice()
+        && matches!(name.as_str(), "index.html" | "catalog.json" | "llms.txt")
+    {
+        return Ok(RoutePlan {
+            scope: RouteScope::Current,
+            rel_path: name.clone(),
+            index_fallback: None,
+            shared_store_path: None,
+        });
+    }
+
+    let (scope, rel) = match segments.as_slice() {
+        [current, rest @ ..] if current == "current" => (RouteScope::Current, rest.join("/")),
+        [simple, rest @ ..] if simple == "simple" => (RouteScope::Current, segments.join("/")),
+        [generations, generation, rest @ ..] if generations == "generations" => {
+            (RouteScope::Generation(generation.clone()), rest.join("/"))
+        }
+        _ => (RouteScope::Site, segments.join("/")),
+    };
+    let shared_store_path = shared_store_path(&rel);
+    let (rel_path, index_fallback) = if rel.is_empty() {
+        ("index.html".to_string(), None)
+    } else if trailing_slash {
+        (format!("{rel}/index.html"), None)
+    } else {
+        (rel.clone(), Some(format!("{rel}/index.html")))
+    };
+    Ok(RoutePlan {
+        scope,
+        rel_path,
+        index_fallback,
+        shared_store_path,
+    })
+}
+
 pub fn resolve_path(raw_target: &str) -> Result<ResolvedPath, PathError> {
     let path = raw_target.split('?').next().unwrap_or("");
     let path = path.strip_prefix('/').unwrap_or(path);
@@ -150,5 +263,81 @@ mod tests {
     fn strips_query_and_collapses_slashes() {
         let r = resolve_path("//current//registry//dl?x=1").unwrap();
         assert_eq!(r.segments, ["current", "registry", "dl"]);
+    }
+
+    #[test]
+    fn plans_current_aliases_and_directories() {
+        for (path, rel) in [
+            ("/", "index.html"),
+            ("/index.html", "index.html"),
+            ("/catalog.json", "catalog.json"),
+            ("/llms.txt", "llms.txt"),
+            ("/simple", "simple"),
+            ("/simple/", "simple/index.html"),
+            ("/simple/proj", "simple/proj"),
+            ("/simple/proj/", "simple/proj/index.html"),
+        ] {
+            let plan = plan_route(path).unwrap();
+            assert_eq!(plan.scope, RouteScope::Current, "{path}");
+            assert_eq!(plan.rel_path, rel, "{path}");
+            assert_eq!(plan.kind(), crate::cache::RouteKind::GenerationPointer, "{path}");
+        }
+        assert_eq!(
+            plan_route("/simple/proj").unwrap().index_fallback.as_deref(),
+            Some("simple/proj/index.html")
+        );
+        assert_eq!(
+            plan_route("/current/simple/proj/").unwrap().rel_path,
+            "simple/proj/index.html"
+        );
+        assert_eq!(
+            plan_route("/current/registry/config.json").unwrap().index_fallback.as_deref(),
+            Some("registry/config.json/index.html")
+        );
+    }
+
+    #[test]
+    fn plans_generation_and_site_paths_as_immutable() {
+        let plan = plan_route("/generations/gen1/simple/proj").unwrap();
+        assert_eq!(plan.scope, RouteScope::Generation("gen1".to_string()));
+        assert_eq!(plan.rel_path, "simple/proj");
+        assert_eq!(
+            plan.index_fallback.as_deref(),
+            Some("simple/proj/index.html")
+        );
+        assert_eq!(plan.kind(), crate::cache::RouteKind::ImmutableFile);
+
+        let plan = plan_route("/tarballs/x.tgz").unwrap();
+        assert_eq!(plan.scope, RouteScope::Site);
+        assert_eq!(plan.kind(), crate::cache::RouteKind::ImmutableFile);
+    }
+
+    #[test]
+    fn classifies_shared_digest_paths_as_immutable() {
+        for path in [
+            "/current/tarballs/x.tgz",
+            "/current/-/tarballs/x.tgz",
+            "/current/wheels/x.whl",
+        ] {
+            let plan = plan_route(path).unwrap();
+            assert_eq!(plan.kind(), crate::cache::RouteKind::ImmutableFile, "{path}");
+        }
+        assert_eq!(
+            shared_store_path("tarballs/x.tgz").as_deref(),
+            Some("tarballs/x.tgz")
+        );
+        assert_eq!(
+            shared_store_path("-/tarballs/x.tgz").as_deref(),
+            Some("tarballs/x.tgz")
+        );
+        assert_eq!(
+            shared_store_path("wheels/x.whl").as_deref(),
+            Some("wheels/x.whl")
+        );
+        assert_eq!(
+            plan_route("/current/-/tarballs/x.tgz").unwrap().shared_store_path.as_deref(),
+            Some("tarballs/x.tgz")
+        );
+        assert_eq!(shared_store_path("catalog.json"), None);
     }
 }
