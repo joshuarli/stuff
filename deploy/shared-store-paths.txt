@@ -1,0 +1,3 @@
+generations/*/wheels/*
+generations/*/tarballs/*
+generations/*/-/tarballs/*

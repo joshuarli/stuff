@@ -1039,4 +1039,56 @@ mod tests {
             assert_eq!(plan.kind, "error", "{route} {method} {headers}");
         }
     }
+
+    fn glob_matches(pattern: &str, value: &str) -> bool {
+        let parts: Vec<&str> = pattern.split('*').collect();
+        if parts.len() == 1 {
+            return pattern == value;
+        }
+        if !value.starts_with(parts[0]) {
+            return false;
+        }
+        let mut rest = &value[parts[0].len()..];
+        for (i, part) in parts[1..].iter().enumerate() {
+            let is_last = i + 2 == parts.len();
+            if part.is_empty() {
+                return is_last || rest.is_empty();
+            }
+            if is_last {
+                return rest.ends_with(part);
+            }
+            match rest.find(part) {
+                Some(at) => rest = &rest[at + part.len()..],
+                None => return false,
+            }
+        }
+        rest.is_empty()
+    }
+
+    #[test]
+    fn shared_store_alias_list_matches_r2_sync_patterns() {
+        let patterns: Vec<&str> = include_str!("../../../deploy/shared-store-paths.txt")
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+            .collect();
+        assert!(!patterns.is_empty());
+
+        for rel in ["wheels/pkg-1.0-py3-none-any.whl", "tarballs/abc.tgz", "-/tarballs/abc.tgz"] {
+            let generation_key = format!("generations/g1/{rel}");
+            assert!(alias_key_for("", rel).is_some(), "{rel} must resolve to the shared store");
+            assert!(
+                patterns.iter().any(|p| glob_matches(p, &generation_key)),
+                "{generation_key} must be skipped by deploy/r2-sync.sh"
+            );
+        }
+        for rel in ["catalog.json", "registry/flatdemo", "simple/index.html", "-/other"] {
+            let generation_key = format!("generations/g1/{rel}");
+            assert!(alias_key_for("", rel).is_none(), "{rel} must not alias");
+            assert!(
+                !patterns.iter().any(|p| glob_matches(p, &generation_key)),
+                "{generation_key} must be uploaded by deploy/r2-sync.sh"
+            );
+        }
+    }
 }

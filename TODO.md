@@ -64,11 +64,3 @@ Next: 27
 - **Fix with:** `api-surface-and-module-boundaries`
 - **Effort:** M
 
-### STUF-26 · P3 · The shared-store alias skip list is duplicated between r2-sync and the worker
-
-- **Area:** Architecture
-- **Where:** `crates/stuff-worker/src/api.rs:135-157` (alias map and the "keep the two lists in agreement" comment); `deploy/r2-sync.sh:132-137` (`generations/*/tarballs/*` skip list); `crates/stuff-worker/test/runtime.test.mjs:100-112` (worker side only).
-- **Problem:** The worker resolves generation-scoped `wheels/`, `tarballs/`, and `-/tarballs/` paths to the shared store because `r2-sync.sh` does not upload those objects. The two policy lists live in different languages and no test compares them. A change to the sync skip list or the alias map silently produces either duplicate uploads or a 404 for an artifact that exists. The source comment is the only signal that the lists must agree.
-- **Recommendation:** Put the generation-scoped shared-store paths in one data source used by both the sync plan and the worker alias test, or add a drift test that feeds the same fixture through `r2-plan.py` and `alias_key_for`.
-- **Fix with:** `single-source-of-truth`
-- **Effort:** S

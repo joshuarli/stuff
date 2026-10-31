@@ -12,8 +12,10 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/r2-sync-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 SITE=$WORK/site
 export CF_LOCAL_STATE="$WORK/state"
-mkdir -p "$SITE/generations/g1" "$SITE/tarballs"
+mkdir -p "$SITE/generations/g1" "$SITE/tarballs" "$SITE/generations/g1/tarballs" "$SITE/generations/g1/-/tarballs"
 echo '{}' > "$SITE/generations/g1/catalog.json"
+printf 'alias\n' > "$SITE/generations/g1/tarballs/alias.tgz"
+printf 'alias\n' > "$SITE/generations/g1/-/tarballs/alias.tgz"
 ln -s generations/g1 "$SITE/current"
 i=0
 while [ "$i" -lt "$COUNT" ]; do
@@ -38,11 +40,13 @@ fi
 grep -q 'R2_S3_ENDPOINT is not set' "$WORK/rollback-s3-missing.log" || { echo "FAIL: rollback did not report missing S3 credentials"; exit 1; }
 
 START=$(date +%s)
-"$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log"
+"$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log" 2>&1
 MID=$(date +%s)
 TOTAL=$((COUNT + 2))
 check "$(grep -c '^put ' "$WORK/first.log")" "$TOTAL" "first sync puts"
 tail -n 2 "$WORK/first.log" | grep -q 'verified current is g1' || { echo "FAIL: marker not verified last"; exit 1; }
+grep -q '^skip alias generations/g1/tarballs/alias.tgz$' "$WORK/first.log" || { echo "FAIL: generation tarball alias was not skipped"; exit 1; }
+grep -q '^skip alias generations/g1/-/tarballs/alias.tgz$' "$WORK/first.log" || { echo "FAIL: generation -/tarballs alias was not skipped"; exit 1; }
 
 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/second.log"
 END=$(date +%s)

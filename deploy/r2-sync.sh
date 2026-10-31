@@ -122,6 +122,18 @@ find "$SITE_DIR" -type l ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; d
   echo "note: skipping symlink ${f#"$SITE_DIR"/}"
 done
 
+is_shared_store_path() {
+  while IFS= read -r pattern; do
+    case "$pattern" in
+      "" | "#"*) continue ;;
+    esac
+    case "$1" in
+      $pattern) return 0 ;;
+    esac
+  done < "$SCRIPT_DIR/shared-store-paths.txt"
+  return 1
+}
+
 LIST=$(mktemp)
 MANIFEST_KEYS=$(mktemp)
 PLAN=$(mktemp)
@@ -129,12 +141,15 @@ PUTS=$(mktemp)
 trap 'rm -f "$LIST" "$MANIFEST_KEYS" "$PLAN" "$PUTS"' EXIT
 find "$SITE_DIR" -type f ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do
   key=${f#"$SITE_DIR"/}
-  case $key in
-    generations/*/tarballs/*) echo "skip alias $key" >&2 ;;
-    generations/*/stuff-manifest.json) ;;
-    manifests/*.json) ;;
-    *) printf '%s\n' "$key" ;;
-  esac
+  if is_shared_store_path "$key"; then
+    echo "skip alias $key" >&2
+  else
+    case $key in
+      generations/*/stuff-manifest.json) ;;
+      manifests/*.json) ;;
+      *) printf '%s\n' "$key" ;;
+    esac
+  fi
 done > "$LIST"
 
 mkdir -p "$SITE_DIR/manifests"
