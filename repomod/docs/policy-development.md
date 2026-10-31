@@ -190,8 +190,7 @@ and stay manual.
 
 `registry-sources` requires every non-fork repository to resolve Cargo, npm/pnpm, and Python
 dependencies only from the private `stuff` registry. `registries.toml` owns the three approved URLs
-and the `enforce` switch; it ships `enforce = false`, so the rule is registered but reports nothing
-until the fleet is migrated. With `enforce = true` it checks, per project directory holding a
+and the `enforce` switch; the fleet is migrated, so `enforce = true` and the rule checks, per project directory holding a
 lockfile (and the root `package.json` or `pyproject.toml`), that the configuration is present in that
 directory or an ancestor: `.cargo/config.toml` replacing `crates-io` with the approved sparse
 source, `.npmrc` with `registry=` set to the approved URL and no other registry key (and no

@@ -245,10 +245,10 @@ def test_registered_rule_is_selectable() -> None:
     assert [rule.id for rule in selected_rules(rule_ids=["registry-sources"])] == ["registry-sources"]
 
 
-def test_shipped_policy_is_valid_and_disabled() -> None:
+def test_shipped_policy_is_valid_and_enforced() -> None:
     policy = load_registry_policy()
     assert policy.cargo_source.startswith("sparse+https://crates.")
-    assert policy.enforce is False
+    assert policy.enforce is True
 
 
 @pytest.mark.parametrize(

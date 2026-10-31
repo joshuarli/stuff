@@ -1,4 +1,4 @@
-enforce = false
+enforce = true
 
 [cargo]
 source = "sparse+https://crates.17166969.xyz/current/crates-io/"
