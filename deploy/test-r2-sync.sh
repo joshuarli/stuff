@@ -64,6 +64,13 @@ grep -q 'verified current is g2' "$WORK/second-gen.log" || { echo "FAIL: second 
 "$HERE/r2-rollback.sh" t g1 > "$WORK/rollback-ok.log"
 grep -q 'verified current is g1' "$WORK/rollback-ok.log" || { echo "FAIL: verified rollback did not restore g1"; exit 1; }
 
+# A later generation that grows the shared store must not trip over the manifests of earlier ones.
+printf 'later\n' > "$SITE/tarballs/pkg-later.tgz"
+cp -a "$SITE/generations/g2" "$SITE/generations/g4"
+ln -sfn generations/g4 "$SITE/current"
+R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t --expected g1 > "$WORK/later-gen.log"
+grep -q 'verified current is g4' "$WORK/later-gen.log" || { echo "FAIL: later generation was not promoted"; exit 1; }
+
 # A generation with no remote manifest must not move current.
 ln -sfn generations/g3 "$SITE/current"
 mkdir -p "$SITE/generations/g3"

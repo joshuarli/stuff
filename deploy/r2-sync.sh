@@ -9,7 +9,10 @@
 # remote size and content hash match the local file, so re-syncing an
 # unchanged generation uploads nothing. Large files are compared by their
 # multipart ETag. An existing immutable object with different bytes is a
-# conflict; --repair is the explicit, separate way to overwrite it.
+# conflict; --repair is the explicit, separate way to overwrite it. The one
+# exception is the manifest of a generation other than the one being promoted:
+# it lists the shared store as it was when that generation was published, so
+# the remote copy is kept.
 #
 # Every sync writes manifests/<id>.json for each local generation, then
 # promotes with deploy/r2-promote.py: the manifest's objects are verified
@@ -130,6 +133,9 @@ done
 if [ -s "$LIST" ]; then
   python3 "$SCRIPT_DIR/r2-plan.py" "$SITE_DIR" "$BUCKET" "$LIST" > "$PLAN"
 fi
+awk -v active="conflict manifests/$GEN_ID.json" \
+  '/^conflict manifests\// && $0 != active { sub(/^conflict /, "skip ") } { print }' "$PLAN" > "$PLAN.kept"
+mv "$PLAN.kept" "$PLAN"
 CONFLICTS=$(grep -c '^conflict ' "$PLAN" || true)
 CONFLICTS=${CONFLICTS:-0}
 if [ "$CONFLICTS" -gt 0 ]; then
