@@ -10,15 +10,6 @@ Next: 27
 - **Fix with:** `lifecycle-concurrency`
 - **Effort:** M
 
-### STUF-13 · P2 · Untrusted Python build backends inherit the publisher's environment and HOME
-
-- **Area:** Security
-- **Where:** `crates/mypypi/src/build.rs:458-462` (`std::env::vars()` when no env is supplied), `crates/mypypi/src/process_policy.rs:10-36,61` (denylist only), `crates/mypypi/src/add.rs:197`, `crates/mypypi/src/validate.rs:670`; `crates/mypypi/src/build.rs:172-178` (bare `tar` extraction).
-- **Problem:** `uv build` and `uv pip compile` run an sdist's build backend with every variable not on a 27-name `UV_*`/`PIP_*`/`PYTHON*` denylist, including `R2_S3_*`, `AWS_*`, `*_TOKEN`, and the operator's `HOME`. A compromised or typo-squatted sdist can read publisher secrets and cost the registry its R2 credentials when `--promote=s3` or multipart is in use. The same boundary is bypassed by the bare `tar -xzf` used to inspect sdists: no sanitized environment, no timeout, and no expanded-size cap, so a decompression bomb can exhaust disk before the post-hoc member checks run. Host tar rejected `..` and symlink escapes in a probe.
-- **Recommendation:** Build a closed allowlist environment (`PATH`, scratch `HOME`/`TMPDIR`, locale, TLS material, target flags), run `tar` through the same sanitized, bounded process policy, and list/reject members and cap expanded bytes before extraction.
-- **Fix with:** `security`
-- **Effort:** M
-
 ### STUF-14 · P2 · The documented registry exit-code contract is not implemented consistently
 
 - **Area:** Errors

@@ -7,14 +7,16 @@ use crate::acquire::{
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::{MACOS_DEPLOYMENT_TARGET, native_architectures_from_bytes, target_python_version};
-use crate::process_policy::{redacted_diagnostic, run_capture, uv_environment};
-use std::collections::BTreeMap;
+use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 const BINARY_EXTENSIONS: &[&str] = &[".c", ".cc", ".cpp", ".cxx", ".pxd", ".pxi", ".pyx", ".go", ".rs"];
 const BINARY_SUFFIXES: &[&str] = &[".so", ".dylib", ".pyd", ".dll", ".exe"];
+const SDIST_EXPANDED_LIMIT: u64 = 1024 * 1024 * 1024;
+const HEAD_BYTES: usize = 1024 * 1024;
 
 pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
     let parsed: url::Url = url.parse().map_err(|_| {
@@ -165,63 +167,64 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
             }
         }
     } else {
-        // tarball: extract to temp dir with `tar` and walk
-        let dir_path = crate::process_policy::make_temp_dir(".mypypi-sdist-").map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?;
-        let _dir_guard = TempDirGuard { path: dir_path.clone() };
-        let dir: std::path::PathBuf = dir_path;
-        let status = std::process::Command::new("tar")
-            .args(["-xzf"])
-            .arg(sdist)
-            .arg("-C")
-            .arg(&dir)
-            .status()
-            .map_err(|e| Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build))?;
-        if !status.success() {
-            return Err(Error::build(
-                format!("cannot inspect source archive {sdist}: tar extraction failed", sdist = sdist.display()),
-                Stage::Build,
-            ));
-        }
-        let mut files = Vec::new();
-        collect_files(&dir, &dir, &mut files).map_err(|e| {
-            Error::build(format!("cannot inspect source archive: {e}"), Stage::Build)
+        let file = std::fs::File::open(sdist).map_err(|e| {
+            Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
         })?;
-        files.sort();
-        let res = {
-            let mut seen = std::collections::BTreeSet::new();
-            files.iter().any(|n| !seen.insert(n.clone()))
-        }; if res {
-            return Err(Error::build("cannot inspect source archive: source archive contains duplicate paths", Stage::Build));
-        }
-        for rel in &files {
-            if !safe_member(rel) {
-                return Err(Error::build(format!("cannot inspect source archive: unsafe sdist member: {rel}"), Stage::Build));
+        let decoder = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(decoder);
+        let entries = archive.entries().map_err(|e| {
+            Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
+        })?;
+        let mut seen: BTreeSet<String> = BTreeSet::new();
+        let mut expanded: u64 = 0;
+        for entry in entries {
+            let entry = entry.map_err(|e| {
+                Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
+            })?;
+            let name = std::str::from_utf8(&entry.path_bytes())
+                .map_err(|_| Error::build("cannot inspect source archive: sdist member is not valid UTF-8", Stage::Build))?
+                .to_string();
+            if !safe_member(&name) {
+                return Err(Error::build(format!("cannot inspect source archive: unsafe sdist member: {name}"), Stage::Build));
             }
-        }
-        for rel in &files {
-            if rel.contains("/test/") || rel.contains("/tests/") || ignored.contains(rel.as_str()) {
-                continue;
+            let member = name.strip_suffix('/').unwrap_or(&name).to_string();
+            if !seen.insert(member.clone()) {
+                return Err(Error::build("cannot inspect source archive: source archive contains duplicate paths", Stage::Build));
             }
-            let full = dir.join(rel);
-            if full.is_dir() {
-                continue;
+            expanded = expanded.checked_add(entry.size()).ok_or_else(|| {
+                Error::build(format!("cannot inspect source archive: expanded size exceeds {SDIST_EXPANDED_LIMIT} bytes"), Stage::Build)
+            })?;
+            if expanded > SDIST_EXPANDED_LIMIT {
+                return Err(Error::build(format!("cannot inspect source archive: expanded size exceeds {SDIST_EXPANDED_LIMIT} bytes"), Stage::Build));
             }
-            if rel.ends_with("/setup.py")
-                && let Ok(bytes) = std::fs::read(&full) {
-                    setup_py.extend_from_slice(&bytes);
+            match entry.header().entry_type() {
+                tar::EntryType::Regular => {}
+                tar::EntryType::Directory => continue,
+                _ => {
+                    return Err(Error::build(format!("cannot inspect source archive: unsupported source archive member: {name}"), Stage::Build));
                 }
-            if let Some(ext) = Path::new(rel).extension().and_then(|e| e.to_str()) {
+            }
+            if member.contains("/test/") || member.contains("/tests/") || ignored.contains(member.as_str()) {
+                continue;
+            }
+            let mut content = Vec::new();
+            entry.take(HEAD_BYTES as u64).read_to_end(&mut content).map_err(|e| {
+                Error::build(format!("cannot inspect source archive: {e}"), Stage::Build)
+            })?;
+            if member.ends_with("/setup.py") {
+                setup_py.extend_from_slice(&content);
+            }
+            if let Some(ext) = Path::new(&member).extension().and_then(|e| e.to_str()) {
                 let dot = format!(".{}", ext.to_lowercase());
                 if BINARY_EXTENSIONS.contains(&dot.as_str()) {
                     extensions.insert(dot, true);
                 }
             }
-            let content = read_head(&full, 1024 * 1024);
             if !native_architectures_from_bytes(&content).map_err(|e| {
-                Error::integrity(format!("malformed native header in {rel}: {e}"), Stage::Build)
+                Error::integrity(format!("malformed native header in {member}: {e}"), Stage::Build)
             })?.is_empty()
             {
-                native_payloads.insert(rel.clone(), true);
+                native_payloads.insert(member.clone(), true);
             }
         }
     }
@@ -241,55 +244,12 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
     Ok(None)
 }
 
-struct TempDirGuard {
-    path: std::path::PathBuf,
-}
-
-impl Drop for TempDirGuard {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
-}
-
 fn void_is_zip_check(_sdist: &Path, _is_zip: bool) -> Result<()> {
     Ok(())
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.windows(needle.len()).any(|w| w == needle)
-}
-
-fn collect_files(root: &Path, dir: &Path, out: &mut Vec<String>) -> std::io::Result<()> {
-    for entry in std::fs::read_dir(dir)? {
-        let entry = entry?;
-        let rel = entry.path().strip_prefix(root).unwrap_or(&entry.path()).to_string_lossy().replace('\\', "/");
-        // guard: extracted paths must stay inside root
-        let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
-        let canonical = entry.path().canonicalize().unwrap_or_else(|_| entry.path());
-        if !canonical.starts_with(&canonical_root) {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "tar escaped root"));
-        }
-        let ft = entry.file_type()?;
-        if ft.is_symlink() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("unsupported source archive member: {rel}")));
-        }
-        if ft.is_dir() {
-            collect_files(root, &entry.path(), out)?;
-        } else if ft.is_file() {
-            out.push(rel);
-        } else {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("unsupported source archive member: {rel}")));
-        }
-    }
-    Ok(())
-}
-
-fn read_head(path: &Path, limit: usize) -> Vec<u8> {
-    let mut buf = Vec::new();
-    if let Ok(f) = std::fs::File::open(path) {
-        let _ = f.take(limit as u64).read_to_end(&mut buf);
-    }
-    buf
 }
 
 pub fn produced_binary(wheel: &Path) -> Result<bool> {
@@ -434,6 +394,21 @@ fn rand_hex() -> u64 {
     (nanos as u64) ^ ((std::process::id() as u64).wrapping_mul(0x9E3779B97F4A7C15))
 }
 
+fn build_environment(
+    base: &BTreeMap<String, String>,
+    stage: &Path,
+) -> std::io::Result<BTreeMap<String, String>> {
+    let home = stage.join("home");
+    std::fs::create_dir(&home)?;
+    let mut env = scratch_environment(Some(base), &home);
+    let temp = stage.join("tmp").display().to_string();
+    env.insert("ARCHFLAGS".to_string(), String::new());
+    env.insert("TMPDIR".to_string(), temp.clone());
+    env.insert("TEMP".to_string(), temp.clone());
+    env.insert("TMP".to_string(), temp);
+    Ok(env)
+}
+
 fn build_inner(
     package: &PackageVersion,
     target: &Target,
@@ -459,11 +434,9 @@ fn build_inner(
         Some(m) => m.clone(),
         None => std::env::vars().collect(),
     };
-    let mut build_env = uv_environment(Some(&base_env));
-    build_env.insert("ARCHFLAGS".to_string(), String::new());
-    build_env.insert("TMPDIR".to_string(), build_temp.display().to_string());
-    build_env.insert("TEMP".to_string(), build_temp.display().to_string());
-    build_env.insert("TMP".to_string(), build_temp.display().to_string());
+    let mut build_env = build_environment(&base_env, stage).map_err(|e| {
+        ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build))
+    })?;
     build_env.remove("MACOSX_DEPLOYMENT_TARGET");
     if target.platform.starts_with("macos-") {
         build_env.insert(
@@ -825,6 +798,58 @@ pub fn acquire_or_build(
 mod tests {
     use super::*;
 
+    fn tar_header_raw(name: &str, size: u64) -> Vec<u8> {
+        let mut header = vec![0u8; 512];
+        header[..name.len()].copy_from_slice(name.as_bytes());
+        header[100..108].copy_from_slice(b"0000644\0");
+        header[108..116].copy_from_slice(b"0000000\0");
+        header[116..124].copy_from_slice(b"0000000\0");
+        header[124..136].copy_from_slice(format!("{size:011o}\0").as_bytes());
+        header[136..148].copy_from_slice(b"00000000000\0");
+        header[148..156].copy_from_slice(b"        ");
+        header[156] = b'0';
+        header[257..262].copy_from_slice(b"ustar");
+        header[263..265].copy_from_slice(b"00");
+        let sum: u32 = header.iter().map(|&b| b as u32).sum();
+        header[148..156].copy_from_slice(format!("{sum:06o}\0 ").as_bytes());
+        header
+    }
+
+    fn raw_sdist(entries: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for (name, contents) in entries {
+            out.extend_from_slice(&tar_header_raw(name, contents.len() as u64));
+            out.extend_from_slice(contents);
+            while !out.len().is_multiple_of(512) {
+                out.push(0);
+            }
+        }
+        out.extend_from_slice(&[0u8; 1024]);
+        out
+    }
+
+    fn write_gz(path: &Path, bytes: &[u8]) {
+        use std::io::Write as _;
+        let file = std::fs::File::create(path).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        encoder.write_all(bytes).unwrap();
+        encoder.finish().unwrap();
+    }
+
+    fn write_sdist(path: &Path, entries: &[(&str, &[u8])]) {
+        let file = std::fs::File::create(path).unwrap();
+        let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut builder = tar::Builder::new(encoder);
+        for (name, contents) in entries {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(contents.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            builder.append_data(&mut header, name, *contents).unwrap();
+        }
+        builder.into_inner().unwrap().finish().unwrap();
+    }
+
     #[test]
     fn validates_build_index_forms() {
         assert!(validate_build_index("https://pypi.org/simple", false).is_ok());
@@ -844,5 +869,90 @@ mod tests {
         let other = if current.starts_with("linux") { "macos-arm64" } else { "linux-x86_64" };
         let bad = Target::new("3.15", other).unwrap();
         assert!(require_native_target(&bad).is_err());
+    }
+
+    #[test]
+    fn build_environment_excludes_publisher_secrets_and_operator_home() {
+        let dir = tempfile::tempdir().unwrap();
+        let stage = dir.path();
+        let mut base = BTreeMap::new();
+        base.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
+        base.insert("SSL_CERT_FILE".to_string(), "/etc/certs/ca.pem".to_string());
+        base.insert("HOME".to_string(), "/Users/publisher".to_string());
+        for name in [
+            "R2_S3_ACCESS_KEY_ID",
+            "R2_S3_SECRET_ACCESS_KEY",
+            "R2_S3_SESSION_TOKEN",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "GITHUB_TOKEN",
+            "PYPI_TOKEN",
+            "UV_INDEX",
+            "PIP_INDEX_URL",
+        ] {
+            base.insert(name.to_string(), "publisher-secret".to_string());
+        }
+        let env = build_environment(&base, stage).unwrap();
+        let expected_home = stage.join("home").display().to_string();
+        let expected_temp = stage.join("tmp").display().to_string();
+        assert_eq!(env.get("HOME"), Some(&expected_home));
+        assert_eq!(env.get("TMPDIR"), Some(&expected_temp));
+        assert_eq!(env.get("SSL_CERT_FILE").map(String::as_str), Some("/etc/certs/ca.pem"));
+        assert!(!env.values().any(|v| v == "/Users/publisher"));
+        assert!(
+            !env.keys().any(|k| k.starts_with("R2_S3_")
+                || k.starts_with("AWS_")
+                || k.ends_with("_TOKEN")
+                || k.starts_with("UV_")
+                || k.starts_with("PIP_")),
+            "{env:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_sdist_member_traversal() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0.tar.gz");
+        write_gz(&path, &raw_sdist(&[("../escape.txt", b"owned")]));
+        let err = likely_binary(&path, &[]).unwrap_err();
+        assert!(format!("{err}").contains("unsafe sdist member"), "{err}");
+    }
+
+    #[test]
+    fn rejects_sdist_expanded_size_over_cap() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0.tar.gz");
+        let mut raw = tar_header_raw("pkg-1.0/big", SDIST_EXPANDED_LIMIT + 1);
+        raw.extend_from_slice(&[0u8; 1024]);
+        write_gz(&path, &raw);
+        let err = likely_binary(&path, &[]).unwrap_err();
+        assert!(format!("{err}").contains("expanded size exceeds"), "{err}");
+    }
+
+    #[test]
+    fn rejects_duplicate_sdist_members() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0.tar.gz");
+        write_sdist(
+            &path,
+            &[("pkg-1.0/module.py", b"x"), ("pkg-1.0/module.py", b"y")],
+        );
+        let err = likely_binary(&path, &[]).unwrap_err();
+        assert!(format!("{err}").contains("duplicate paths"), "{err}");
+    }
+
+    #[test]
+    fn inspects_valid_tar_sdist() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0.tar.gz");
+        write_sdist(
+            &path,
+            &[("pkg-1.0/setup.py", b"from cffi import FFI\ncffi_modules=['build.py:ffi']\n")],
+        );
+        assert_eq!(
+            likely_binary(&path, &[]).unwrap().as_deref(),
+            Some("source archive setup.py declares cffi_modules")
+        );
     }
 }

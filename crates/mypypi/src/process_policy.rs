@@ -12,62 +12,63 @@ const CAPTURE_LIMIT: usize = 1024 * 1024;
 const READ_CHUNK: usize = 16 * 1024;
 const WAIT_POLL: Duration = Duration::from_millis(10);
 
-const POLICY_VARIABLES: &[&str] = &[
-    "UV_DEFAULT_INDEX",
-    "UV_FIND_LINKS",
-    "UV_INDEX",
-    "UV_INDEX_STRATEGY",
-    "UV_NO_BUILD_ISOLATION",
-    "UV_NO_BUILD_ISOLATION_PACKAGE",
-    "UV_NO_CONFIG",
-    "UV_NO_VERIFY_HASHES",
-    "UV_OVERRIDE",
-    "UV_BUILD_CONSTRAINT",
-    "UV_BUILD_CONSTRAINTS",
-    "UV_CONSTRAINT",
-    "UV_CONFIG_FILE",
-    "UV_INSECURE_HOST",
-    "PIP_BUILD_CONSTRAINT",
-    "PIP_CONFIG_FILE",
-    "PIP_CONSTRAINT",
-    "PIP_EXTRA_INDEX_URL",
-    "PIP_FIND_LINKS",
-    "PIP_INDEX_URL",
-    "PIP_TRUSTED_HOST",
-    "PYTHONHOME",
-    "PYTHONPATH",
-    "PYTHONSTARTUP",
-    "PYTHONUSERBASE",
+const ALLOWED_VARIABLES: &[&str] = &[
+    "PATH",
+    "LANG",
+    "LANGUAGE",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LC_MESSAGES",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "REQUESTS_CA_BUNDLE",
+    "CURL_CA_BUNDLE",
+    "ARCHFLAGS",
+    "CC",
+    "CXX",
+    "AR",
+    "RANLIB",
+    "LD",
+    "STRIP",
+    "CFLAGS",
+    "CPPFLAGS",
+    "CXXFLAGS",
+    "LDFLAGS",
+    "C_INCLUDE_PATH",
+    "CPLUS_INCLUDE_PATH",
+    "LIBRARY_PATH",
+    "MACOSX_DEPLOYMENT_TARGET",
+    "SDKROOT",
+    "DEVELOPER_DIR",
+    "PKG_CONFIG_PATH",
+    "PKG_CONFIG_LIBDIR",
+    "SOURCE_DATE_EPOCH",
 ];
 
-fn is_policy_variable(name: &str) -> bool {
-    if POLICY_VARIABLES.contains(&name) {
-        return true;
-    }
-    name.starts_with("UV_INDEX_")
-        || name.starts_with("UV_EXTRA_INDEX")
-        || name.starts_with("PIP_INDEX_")
-        || name.starts_with("PIP_EXTRA_INDEX")
+fn allowlisted(base: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    base.iter()
+        .filter(|(k, _)| ALLOWED_VARIABLES.contains(&k.as_str()))
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect()
 }
 
 pub fn uv_environment(source: Option<&BTreeMap<String, String>>) -> BTreeMap<String, String> {
-    let owned;
-    let base: &BTreeMap<String, String> = match source {
-        Some(m) => m,
-        None => {
-            owned = std::env::vars().collect::<BTreeMap<_, _>>();
-            // borrow of a temporary avoided by scoping below
-            return strip_map(&owned);
-        }
-    };
-    strip_map(base)
+    match source {
+        Some(map) => allowlisted(map),
+        None => allowlisted(&std::env::vars().collect()),
+    }
 }
 
-fn strip_map(base: &BTreeMap<String, String>) -> BTreeMap<String, String> {
-    base.iter()
-        .filter(|(k, _)| !is_policy_variable(k))
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect()
+pub fn scratch_environment(
+    source: Option<&BTreeMap<String, String>>,
+    scratch: &Path,
+) -> BTreeMap<String, String> {
+    let mut env = uv_environment(source);
+    let scratch = scratch.display().to_string();
+    for name in ["HOME", "TMPDIR", "TEMP", "TMP"] {
+        env.insert(name.to_string(), scratch.clone());
+    }
+    env
 }
 
 pub fn redacted_diagnostic(value: &str, limit: usize) -> String {
@@ -361,18 +362,62 @@ mod tests {
     }
 
     #[test]
-    fn strips_policy_variables() {
+    fn environment_allowlist_excludes_publisher_secrets() {
         let mut env = BTreeMap::new();
-        env.insert("UV_INDEX".to_string(), "x".to_string());
-        env.insert("UV_EXTRA_INDEX_URL".to_string(), "x".to_string());
-        env.insert("PIP_INDEX_URL".to_string(), "x".to_string());
-        env.insert("PATH".to_string(), "/bin".to_string());
-        env.insert("CARGO_HOME".to_string(), "/tmp".to_string());
-        let stripped = uv_environment(Some(&env));
-        assert!(!stripped.contains_key("UV_INDEX"));
-        assert!(!stripped.contains_key("UV_EXTRA_INDEX_URL"));
-        assert!(!stripped.contains_key("PIP_INDEX_URL"));
-        assert_eq!(stripped.get("PATH").map(|s| s.as_str()), Some("/bin"));
+        for name in ["PATH", "SSL_CERT_FILE", "LANG", "CFLAGS"] {
+            env.insert(name.to_string(), format!("{name}-value"));
+        }
+        for name in [
+            "UV_INDEX",
+            "PIP_INDEX_URL",
+            "PYTHONPATH",
+            "R2_S3_ACCESS_KEY_ID",
+            "R2_S3_SECRET_ACCESS_KEY",
+            "R2_S3_SESSION_TOKEN",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "GITHUB_TOKEN",
+            "PYPI_TOKEN",
+            "HOME",
+            "TMPDIR",
+        ] {
+            env.insert(name.to_string(), "publisher-secret".to_string());
+        }
+        let filtered = uv_environment(Some(&env));
+        assert_eq!(filtered.get("PATH").map(|s| s.as_str()), Some("PATH-value"));
+        assert_eq!(filtered.get("SSL_CERT_FILE").map(|s| s.as_str()), Some("SSL_CERT_FILE-value"));
+        for name in [
+            "UV_INDEX",
+            "PIP_INDEX_URL",
+            "PYTHONPATH",
+            "R2_S3_ACCESS_KEY_ID",
+            "R2_S3_SECRET_ACCESS_KEY",
+            "R2_S3_SESSION_TOKEN",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "GITHUB_TOKEN",
+            "PYPI_TOKEN",
+            "HOME",
+            "TMPDIR",
+        ] {
+            assert!(!filtered.contains_key(name), "{name} leaked into the subprocess environment");
+        }
+    }
+
+    #[test]
+    fn scratch_environment_redirects_home_and_temp() {
+        let mut env = BTreeMap::new();
+        env.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
+        env.insert("HOME".to_string(), "/home/publisher".to_string());
+        env.insert("TMPDIR".to_string(), "/home/publisher/tmp".to_string());
+        let scratch = Path::new("/scratch/build");
+        let isolated = scratch_environment(Some(&env), scratch);
+        for name in ["HOME", "TMPDIR", "TEMP", "TMP"] {
+            assert_eq!(isolated.get(name).map(|s| s.as_str()), Some("/scratch/build"), "{name}");
+        }
+        assert_eq!(isolated.get("PATH").map(|s| s.as_str()), Some("/usr/bin:/bin"));
     }
 
     #[test]

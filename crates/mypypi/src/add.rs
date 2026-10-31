@@ -4,7 +4,7 @@ use crate::catalog::{Catalog, parse_catalog};
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::target_python_version;
-use crate::process_policy::{redacted_diagnostic, run_capture, uv_environment};
+use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt as _;
@@ -194,9 +194,13 @@ pub fn compile_for_target(
         "--default-index=https://pypi.org/simple".to_string(),
         "-".to_string(),
     ];
-    let env = uv_environment(None);
+    let scratch = crate::process_policy::make_temp_dir("mypypi-compile-")
+        .map_err(|e| dependency_error(format!("uv dependency resolution failed for {}: {e}", target.platform)))?;
+    let env = scratch_environment(None, &scratch);
     let input = requirements.join("\n");
-    match run_capture(&command, None, &env, Some(input.as_bytes()), 300) {
+    let result = run_capture(&command, Some(&scratch), &env, Some(input.as_bytes()), 300);
+    let _ = std::fs::remove_dir_all(&scratch);
+    match result {
         Ok(out) if out.success() => parse_compiled(&out.stdout),
         Ok(out) => Err(dependency_error(format!(
             "uv dependency resolution failed for {}: {}",

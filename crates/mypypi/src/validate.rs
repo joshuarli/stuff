@@ -3,7 +3,7 @@
 use crate::error::{Error, Result, Stage};
 use crate::models::{PackageVersion, Target, WheelIdentity, canonicalize_name};
 use crate::platforms::{current_platform, native_architectures_from_bytes, target_platform_tags};
-use crate::process_policy::{redacted_diagnostic, run_capture, uv_environment};
+use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use sha2::{Digest, Sha384, Sha512, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
@@ -618,10 +618,6 @@ pub fn install_command(python: &Path, wheel: &Path, wheel_set: &Path, policy: &V
     cmd
 }
 
-pub fn uv_environment_map() -> BTreeMap<String, String> {
-    uv_environment(None)
-}
-
 fn run_validation(
     metadata: &WheelMetadata,
     wheel: &Path,
@@ -667,11 +663,11 @@ fn run_validation(
             ),
         ));
     }
-    let env = uv_environment_map();
     let python_exe = crate::platforms::python_binary();
     let scratch_path = crate::process_policy::make_temp_dir("mypypi-validate-").map_err(|e| failure(Some(&metadata.identity.package), target, format!("validation process failed: {e}")))?;
     let scratch = TempDirGuard { path: scratch_path };
     let neutral = scratch.path.canonicalize().unwrap_or_else(|_| scratch.path.clone());
+    let env = scratch_environment(None, &neutral);
     let run = |command: Vec<String>, stage: &str| -> Result<()> {
         match run_capture(&command, Some(&neutral), &env, None, 300) {
             Ok(out) if out.success() => Ok(()),
