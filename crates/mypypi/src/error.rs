@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Kind {
     InvalidInput,
     Configuration,
@@ -11,6 +11,8 @@ pub enum Kind {
     Build,
     Validation,
     Conflict,
+    Limit,
+    Network,
     Io,
 }
 
@@ -120,6 +122,14 @@ impl Error {
         Self::new(Kind::Conflict, detail, stage)
     }
 
+    pub fn limit(detail: impl Into<String>, stage: Stage) -> Self {
+        Self::new(Kind::Limit, detail, stage)
+    }
+
+    pub fn network(detail: impl Into<String>, stage: Stage) -> Self {
+        Self::new(Kind::Network, detail, stage)
+    }
+
     pub fn io(detail: impl Into<String>, stage: Stage) -> Self {
         Self::new(Kind::Io, detail, stage)
     }
@@ -129,10 +139,13 @@ impl Error {
             return 2;
         }
         match self.kind {
-            Kind::InvalidInput | Kind::Configuration | Kind::MissingArtifact => 2,
+            Kind::InvalidInput | Kind::Configuration => 2,
             Kind::Integrity => 3,
             Kind::Conflict => 4,
-            Kind::Incompatible
+            Kind::Limit => 5,
+            Kind::Network => 6,
+            Kind::MissingArtifact
+            | Kind::Incompatible
             | Kind::Dependency
             | Kind::Build
             | Kind::Validation
@@ -166,9 +179,14 @@ mod tests {
         let kind_code = |kind: Kind| Error::new(kind, "x", Stage::Command).exit_code();
         assert_eq!(kind_code(Kind::InvalidInput), 2);
         assert_eq!(kind_code(Kind::Configuration), 2);
-        assert_eq!(kind_code(Kind::MissingArtifact), 2);
+        assert_eq!(kind_code(Kind::MissingArtifact), 1);
         assert_eq!(kind_code(Kind::Integrity), 3);
         assert_eq!(kind_code(Kind::Conflict), 4);
+        assert_eq!(kind_code(Kind::Limit), 5);
+        assert_eq!(kind_code(Kind::Network), 6);
+        assert_eq!(kind_code(Kind::Incompatible), 1);
+        assert_eq!(kind_code(Kind::Dependency), 1);
+        assert_eq!(kind_code(Kind::Validation), 1);
         assert_eq!(kind_code(Kind::Io), 1);
         assert_eq!(kind_code(Kind::Build), 1);
         assert_eq!(Error::usage("x").exit_code(), 2);

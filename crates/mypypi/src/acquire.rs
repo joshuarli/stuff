@@ -218,7 +218,7 @@ fn resolve_url(base: &str, location: &str) -> Result<String> {
     }
     let base_url: url::Url = base
         .parse()
-        .map_err(|_| Error::missing_artifact(format!("invalid redirect base: {base}"), Stage::Acquisition))?;
+        .map_err(|_| Error::network(format!("invalid redirect base: {base}"), Stage::Acquisition))?;
     base_url.join(location).map(|u| u.to_string()).map_err(|_| {
         Error::integrity(
             format!("invalid redirect target: {location} (from {base})"),
@@ -243,10 +243,10 @@ fn http_get(url: &str, accept: &str, max_bytes: u64, timeout: Duration) -> Resul
             .header("user-agent", "mypypi/0.1.0")
             .header("accept", accept)
             .body(Vec::new())
-            .map_err(|e| Error::missing_artifact(format!("could not read PyPI metadata: {e}"), Stage::Acquisition))?;
+            .map_err(|e| Error::network(format!("could not read PyPI metadata: {e}"), Stage::Acquisition))?;
         let mut resp = client
             .request_with_timeout(req, Some(timeout))
-            .map_err(|e| Error::missing_artifact(format!("could not download: {e}"), Stage::Acquisition))?;
+            .map_err(|e| Error::network(format!("could not download: {e}"), Stage::Acquisition))?;
         let status = resp.status();
         if status.is_redirection() {
             let loc = resp
@@ -263,7 +263,7 @@ fn http_get(url: &str, accept: &str, max_bytes: u64, timeout: Duration) -> Resul
             return Err(Error::missing_artifact(format!("not found: {current}"), Stage::Acquisition));
         }
         if !status.is_success() {
-            return Err(Error::missing_artifact(
+            return Err(Error::network(
                 format!("failed to fetch {current}: HTTP {}", status.as_u16()),
                 Stage::Acquisition,
             ));
@@ -275,21 +275,21 @@ fn http_get(url: &str, accept: &str, max_bytes: u64, timeout: Duration) -> Resul
             let mut buf = [0u8; 65536];
             loop {
                 let n = reader.read(&mut buf).map_err(|e| {
-                    Error::missing_artifact(format!("stream read error: {e}"), Stage::Acquisition)
+                    Error::network(format!("stream read error: {e}"), Stage::Acquisition)
                 })?;
                 if n == 0 {
                     break;
                 }
                 body.extend_from_slice(&buf[..n]);
                 if body.len() as u64 > max_bytes {
-                    return Err(Error::integrity("response exceeds size limit", Stage::Acquisition));
+                    return Err(Error::limit("response exceeds size limit", Stage::Acquisition));
                 }
             }
         }
         check_url_security(&current)?;
         return Ok(Fetched { final_url: current, body });
     }
-    Err(Error::missing_artifact(format!("too many redirects fetching {url}"), Stage::Acquisition))
+    Err(Error::network(format!("too many redirects fetching {url}"), Stage::Acquisition))
 }
 
 pub fn is_not_found(e: &Error) -> bool {
@@ -333,12 +333,11 @@ pub fn fetch_release_with_timeout(
                 std::thread::sleep(Duration::from_secs_f64(wait));
                 delay = (delay * 2.0).min(60.0);
             }
-            Err(_) => {
-                return Err(Error::missing_artifact(
-                    format!("could not read PyPI metadata for {package}"),
-                    Stage::Acquisition,
-                )
-                .with_package(package.clone()));
+            Err(mut e) => {
+                if e.package.is_none() {
+                    e.package = Some(package.to_string());
+                }
+                return Err(e);
             }
         }
     }
@@ -736,7 +735,7 @@ pub fn download_artifact(artifact: &ReleaseFile, destination: &Path) -> Result<P
         return Ok(existing);
     }
     let fetched = http_get(&artifact.url, "*/*", MAX_DOWNLOAD_BYTES, Duration::from_secs(60)).map_err(|e| {
-        if matches!(e.kind, Kind::Integrity) {
+        if matches!(e.kind, Kind::Integrity | Kind::Limit | Kind::Network) {
             e
         } else {
             Error::missing_artifact(format!("could not download {}", artifact.filename), Stage::Acquisition)

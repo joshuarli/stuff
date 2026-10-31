@@ -833,6 +833,8 @@ pub fn publish(
             Kind::Build => Kind::Build,
             Kind::Validation => Kind::Validation,
             Kind::Conflict => Kind::Conflict,
+            Kind::Limit => Kind::Limit,
+            Kind::Network => Kind::Network,
             Kind::Io => Kind::Io,
         };
         let mut out = Error::new(kind, e.detail.clone(), Stage::Publication);

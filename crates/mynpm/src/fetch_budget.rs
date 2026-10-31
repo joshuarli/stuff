@@ -13,7 +13,7 @@ impl FetchByteBudget {
 
     pub fn take(&mut self, bytes: u64) -> Result<()> {
         self.remaining = self.remaining.checked_sub(bytes).ok_or_else(|| {
-            Error::Operation(format!(
+            Error::Limit(format!(
                 "fetch byte budget exceeded (limit {})",
                 crate::limits::format_bytes(crate::limits::FETCH_BYTES)
             ))
@@ -46,6 +46,6 @@ mod tests {
         assert_eq!(budget.remaining(), crate::limits::FETCH_BYTES);
         budget.take(10).unwrap();
         assert_eq!(budget.remaining(), crate::limits::FETCH_BYTES - 10);
-        assert!(budget.take(u64::MAX).is_err());
+        assert!(matches!(budget.take(u64::MAX), Err(Error::Limit(_))));
     }
 }

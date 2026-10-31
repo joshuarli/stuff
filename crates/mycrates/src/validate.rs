@@ -238,7 +238,7 @@ pub fn validate_project(
     let out = cmd.output().map_err(|e| Error::Operation(format!("failed to run cargo metadata: {e}")))?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
-        return Err(Error::Operation(format!("cargo metadata --locked failed: {stderr}")));
+        return Err(Error::Network(format!("cargo metadata --locked failed: {stderr}")));
     }
 
     let mut cmd_fetch = Command::new("cargo");
@@ -254,7 +254,7 @@ pub fn validate_project(
         .map_err(|e| Error::Operation(format!("failed to run cargo fetch: {e}")))?;
     if !out_fetch.status.success() {
         let stderr = String::from_utf8_lossy(&out_fetch.stderr);
-        return Err(Error::Operation(format!("cargo fetch --locked failed: {stderr}")));
+        return Err(Error::Network(format!("cargo fetch --locked failed: {stderr}")));
     }
 
     let lock_after = fs::read_to_string(test_proj.join("Cargo.lock"))?;

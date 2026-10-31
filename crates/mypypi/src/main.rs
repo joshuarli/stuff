@@ -28,7 +28,7 @@ fn main() {
         Ok(p) => p,
         Err(e) => {
             eprintln!("mypypi: {e}");
-            std::process::exit(2);
+            std::process::exit(e.exit_code());
         }
     };
     match cli::run(&parsed) {

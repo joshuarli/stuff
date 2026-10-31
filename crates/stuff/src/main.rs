@@ -2,6 +2,7 @@
 
 use stuff::cli::{parse_args, print_help, render_table, Command};
 use stuff::doctor::{load_catalogs, run_doctor, RegistrySources};
+use stuff::error::{Error, Result};
 
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
@@ -14,35 +15,32 @@ fn main() {
         Err(e) => {
             eprintln!("stuff: {e}");
             eprintln!("usage: stuff <ls|search|diff|doctor|render> [options]");
-            std::process::exit(2);
+            std::process::exit(e.exit_code());
         }
     };
-    let code = match parsed.command {
-        Command::Ls => run_ls(&parsed),
-        Command::Search => run_search(&parsed),
-        Command::Diff => run_diff(&parsed),
-        Command::Doctor => match run_doctor(&parsed) {
-            Ok(true) => 0,
-            Ok(false) => 1,
-            Err(e) => {
-                eprintln!("stuff doctor: {e}");
-                2
-            }
-        },
-        Command::Render => run_render(&parsed),
+    let code = match run(&parsed) {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("stuff: {e}");
+            e.exit_code()
+        }
     };
     std::process::exit(code);
 }
 
-fn run_ls(parsed: &stuff::cli::Parsed) -> i32 {
+fn run(parsed: &stuff::cli::Parsed) -> Result<i32> {
+    match parsed.command {
+        Command::Ls => run_ls(parsed).map(|()| 0),
+        Command::Search => run_search(parsed).map(|()| 0),
+        Command::Diff => run_diff(parsed).map(|()| 0),
+        Command::Doctor => Ok(if run_doctor(parsed)? { 0 } else { 1 }),
+        Command::Render => run_render(parsed).map(|()| 0),
+    }
+}
+
+fn run_ls(parsed: &stuff::cli::Parsed) -> Result<()> {
     let sources = RegistrySources::from_parsed(parsed);
-    let catalogs = match load_catalogs(&sources, parsed.registry_filter()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("stuff ls: {e}");
-            return 2;
-        }
-    };
+    let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     if parsed.json {
         print!("{{\"catalogs\":[");
         for (i, catalog) in catalogs.iter().enumerate() {
@@ -55,18 +53,12 @@ fn run_ls(parsed: &stuff::cli::Parsed) -> i32 {
     } else {
         print!("{}", render_table(&catalogs, parsed.versions));
     }
-    0
+    Ok(())
 }
 
-fn run_search(parsed: &stuff::cli::Parsed) -> i32 {
+fn run_search(parsed: &stuff::cli::Parsed) -> Result<()> {
     let sources = RegistrySources::from_parsed(parsed);
-    let mut catalogs = match load_catalogs(&sources, parsed.registry_filter()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("stuff search: {e}");
-            return 2;
-        }
-    };
+    let mut catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let query = parsed.positionals[0].to_lowercase();
     for catalog in &mut catalogs {
         catalog.packages.retain(|p| p.name.to_lowercase().contains(&query));
@@ -86,31 +78,13 @@ fn run_search(parsed: &stuff::cli::Parsed) -> i32 {
     } else {
         print!("{}", render_table(&catalogs, false));
     }
-    0
+    Ok(())
 }
 
-fn run_diff(parsed: &stuff::cli::Parsed) -> i32 {
-    let before = match stuff::source::load_local_catalog(&parsed.positionals[0]) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("stuff diff: {e}");
-            return 2;
-        }
-    };
-    let after = match stuff::source::load_local_catalog(&parsed.positionals[1]) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("stuff diff: {e}");
-            return 2;
-        }
-    };
-    let diff = match stuff_catalog::diff_catalogs(&before, &after) {
-        Ok(d) => d,
-        Err(e) => {
-            eprintln!("stuff diff: {e}");
-            return 2;
-        }
-    };
+fn run_diff(parsed: &stuff::cli::Parsed) -> Result<()> {
+    let before = stuff::source::load_local_catalog(&parsed.positionals[0])?;
+    let after = stuff::source::load_local_catalog(&parsed.positionals[1])?;
+    let diff = stuff_catalog::diff_catalogs(&before, &after).map_err(Error::usage)?;
     if parsed.json {
         print_diff_json(&diff);
     } else if diff.is_empty() {
@@ -141,7 +115,7 @@ fn run_diff(parsed: &stuff::cli::Parsed) -> i32 {
             }
         }
     }
-    0
+    Ok(())
 }
 
 fn escape_json(s: &str) -> String {
@@ -254,35 +228,20 @@ fn print_diff_json(diff: &stuff_catalog::CatalogDiff) {
     print!("{out}");
 }
 
-fn run_render(parsed: &stuff::cli::Parsed) -> i32 {
-    let output = match parsed.output.as_deref() {
-        Some(o) => o,
-        None => {
-            eprintln!("stuff render: --output is required");
-            return 2;
-        }
-    };
+fn run_render(parsed: &stuff::cli::Parsed) -> Result<()> {
+    let output = parsed
+        .output
+        .as_deref()
+        .ok_or_else(|| Error::usage("--output is required"))?;
     let sources = RegistrySources::from_parsed(parsed);
-    let catalogs = match load_catalogs(&sources, parsed.registry_filter()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("stuff render: {e}");
-            return 2;
-        }
-    };
+    let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let body = if output.ends_with(".txt") || output.ends_with(".md") {
         stuff_catalog::render_unified_llms_txt(&catalogs)
     } else {
         stuff_catalog::render_unified(&catalogs)
     };
-    match std::fs::write(output, body.as_bytes()) {
-        Ok(()) => {
-            println!("rendered {} catalogs to {output}", catalogs.len());
-            0
-        }
-        Err(e) => {
-            eprintln!("stuff render: could not write {output}: {e}");
-            2
-        }
-    }
+    std::fs::write(output, body.as_bytes())
+        .map_err(|e| Error::Operation(format!("could not write {output}: {e}")))?;
+    println!("rendered {} catalogs to {output}", catalogs.len());
+    Ok(())
 }

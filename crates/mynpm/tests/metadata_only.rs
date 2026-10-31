@@ -122,6 +122,10 @@ fn config() -> Config {
 }
 
 fn seed(state: &Path, tarball: &[u8], stub_integrity: &str) {
+    seed_with_flatdemo_integrity(state, &integrity_of(tarball), stub_integrity);
+}
+
+fn seed_with_flatdemo_integrity(state: &Path, flatdemo_integrity: &str, stub_integrity: &str) {
     let project = ProjectRecord {
         id: "demo".to_string(),
         manager: Manager::Pnpm,
@@ -132,7 +136,7 @@ fn seed(state: &Path, tarball: &[u8], stub_integrity: &str) {
         importers: vec![".".to_string()],
         roots: vec![],
         packages: vec![
-            package("flatdemo", "1.2.3", &integrity_of(tarball), no_platform()),
+            package("flatdemo", "1.2.3", flatdemo_integrity, no_platform()),
             package("@scope/native", "1.0.0", stub_integrity, win32_x64()),
             package("@scope/native", "1.1.0", stub_integrity, win32_x64()),
         ],
@@ -235,6 +239,33 @@ fn rejects_upstream_integrity_that_disagrees_with_the_lockfile() {
     let err = fetch_inventory(&state, &config(), &upstream).unwrap_err();
     assert!(matches!(err, Error::Conflict(_)), "{err}");
     assert_eq!(std::fs::read(state.join("inventory.json")).unwrap(), before);
+}
+
+#[test]
+fn worker_errors_keep_their_conflict_category() {
+    let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("state");
+    let tarball = fixture_tarball();
+    let stub_integrity = integrity_of(b"native-win32-tarball");
+    let upstream = upstream(tarball, &stub_integrity);
+    seed_with_flatdemo_integrity(&state, &integrity_of(b"different tarball"), &stub_integrity);
+    let err = fetch_inventory(&state, &config(), &upstream).unwrap_err();
+    assert!(matches!(err, Error::Conflict(_)), "{err}");
+}
+
+#[test]
+fn worker_errors_keep_their_corrupt_category() {
+    let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("state");
+    let tarball = fixture_tarball();
+    let stub_integrity = integrity_of(b"native-win32-tarball");
+    let upstream = upstream(tarball.clone(), &stub_integrity);
+    seed(&state, &tarball, &stub_integrity);
+    let objects = state.join("objects").join("sha512");
+    std::fs::create_dir_all(&objects).unwrap();
+    std::fs::write(objects.join(format!("{:x}.tgz", Sha512::digest(&tarball))), b"corrupt").unwrap();
+    let err = fetch_inventory(&state, &config(), &upstream).unwrap_err();
+    assert!(matches!(err, Error::Corrupt(_)), "{err}");
 }
 
 #[test]

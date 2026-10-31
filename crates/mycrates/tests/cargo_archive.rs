@@ -342,6 +342,47 @@ fn incomplete_archive_fails_naming_missing_package() {
 }
 
 #[test]
+fn locked_fetch_failure_maps_to_network() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let store = Store::new(state_dir.clone());
+    store.ensure_dirs().unwrap();
+
+    let cksum = seed_upstream(&store, "some-dep", "1.0.0", "", deser_value::value!([]));
+    let lock_content = format!(
+        "version = 3\n\n[[package]]\nname = \"some-dep\"\nversion = \"1.0.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"{}\"\n\n[[package]]\nname = \"root-pkg\"\nversion = \"1.2.3\"\ndependencies = [\n \"some-dep\",\n]\n",
+        cksum
+    );
+    let pins = Pins {
+        project: Some("network-probe".to_string()),
+        lock_path: Some("Cargo.lock".to_string()),
+        lock_content: Some(lock_content.clone()),
+        registry: vec![PinEntry {
+            name: "some-dep".to_string(),
+            version: "1.0.0".to_string(),
+            checksum: cksum,
+            source: "registry+https://github.com/rust-lang/crates.io-index".to_string(),
+        }],
+        unsupported: vec![],
+    };
+    let pins_path = store.pins_dir().join("network-probe.toml");
+    write_pins(&pins_path, &pins).unwrap();
+
+    let proj_dir = dir.path().join("root-pkg");
+    fs::create_dir_all(proj_dir.join("src")).unwrap();
+    fs::write(
+        proj_dir.join("Cargo.toml"),
+        "[package]\nname = \"root-pkg\"\nversion = \"1.2.3\"\nedition = \"2021\"\n\n[dependencies]\nsome-dep = \"1.0.0\"\n",
+    )
+    .unwrap();
+    fs::write(proj_dir.join("Cargo.lock"), &lock_content).unwrap();
+    fs::write(proj_dir.join("src/lib.rs"), "pub fn probe() {}\n").unwrap();
+
+    let err = validate_project(&state_dir, &pins_path, "http://127.0.0.1:1/mirror/", Some(&proj_dir)).unwrap_err();
+    assert!(matches!(err, Error::Network(_)), "{err}");
+}
+
+#[test]
 fn unsupported_sources_reported_as_partial() {
     let lock_text = r#"version = 3
 

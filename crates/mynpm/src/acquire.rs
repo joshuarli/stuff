@@ -79,12 +79,15 @@ pub fn is_restricted_address(ip: IpAddr) -> bool {
 pub fn resolve_public_host(hostname: &str) -> Result<Vec<IpAddr>> {
     let mut addrs: Vec<IpAddr> = (hostname, 443)
         .to_socket_addrs()
-        .map_err(|_| Error::Operation(format!("could not resolve upstream host {hostname}")))?
+        .map_err(|e| Error::Network(format!("could not resolve upstream host {hostname}: {e}")))?
         .map(|s| s.ip())
         .collect();
     addrs.sort();
     addrs.dedup();
-    if addrs.is_empty() || addrs.iter().any(|ip| is_restricted_address(*ip)) {
+    if addrs.is_empty() {
+        return Err(Error::Network(format!("could not resolve upstream host {hostname}")));
+    }
+    if addrs.iter().any(|ip| is_restricted_address(*ip)) {
         return Err(Error::Operation(format!(
             "upstream host {hostname} resolved to a non-public address"
         )));
@@ -157,7 +160,7 @@ impl Exchange for HttpsExchange {
         let mut resp = self
             .client
             .request_with_timeout(req, Some(timeout))
-            .map_err(|e| Error::Operation(format!("upstream request failed for {url}: {e}")))?;
+            .map_err(|e| Error::Network(format!("upstream request failed for {url}: {e}")))?;
         let status = resp.status().as_u16();
         if REDIRECT_STATUSES.contains(&status) {
             let location = resp
@@ -182,13 +185,13 @@ impl Exchange for HttpsExchange {
             loop {
                 let n = reader
                     .read(&mut buf)
-                    .map_err(|e| Error::Operation(format!("upstream response failed for {url}: {e}")))?;
+                    .map_err(|e| Error::Network(format!("upstream response failed for {url}: {e}")))?;
                 if n == 0 {
                     break;
                 }
                 body.extend_from_slice(&buf[..n]);
                 if body.len() as u64 > limits::TARBALL_BYTES + 64 * 1024 * 1024 {
-                    return Err(Error::Operation(format!(
+                    return Err(Error::Limit(format!(
                         "upstream response exceeds the {} limit",
                         limits::format_bytes(limits::TARBALL_BYTES)
                     )));
@@ -235,16 +238,15 @@ pub fn transfer(
             )));
         }
         if response.body.len() as u64 > max_bytes {
-            return Err(Error::Operation(format!(
+            return Err(Error::Limit(format!(
                 "upstream response exceeds the {} limit",
                 limits::format_bytes(max_bytes)
             )));
         }
         budget
             .lock()
-            .map_err(|_| Error::Operation("fetch byte limit exceeded".to_string()))?
-            .take(response.body.len() as u64)
-            .map_err(|_| Error::Operation("fetch byte limit exceeded".to_string()))?;
+            .map_err(|_| Error::Operation("fetch byte limit state was poisoned".to_string()))?
+            .take(response.body.len() as u64)?;
         return Ok((response.body, current));
     }
     Err(Error::Operation(format!(
@@ -813,14 +815,19 @@ pub struct PackageResult {
     pub reused: bool,
 }
 
+fn check_deadline(deadline: Instant) -> Result<()> {
+    if Instant::now() >= deadline {
+        return Err(Error::Cancelled("fetch was cancelled".to_string()));
+    }
+    Ok(())
+}
+
 fn fetch_metadata(
     task: &PackageTask,
     ctx: &AcquisitionContext,
     deadline: Instant,
 ) -> Result<(deser_value::Value, deser_value::Value, String)> {
-    if Instant::now() >= deadline {
-        return Err(Error::Operation("fetch was cancelled".to_string()));
-    }
+    check_deadline(deadline)?;
     let base = task.upstream_registry.trim_end_matches('/');
     let url = format!("{}/{}", base, package_route(&task.name));
     let (body, _) = transfer(&url, limits::METADATA_BYTES, &ctx.expected_host, ctx.exchange, ctx.budget)?;
@@ -853,9 +860,7 @@ fn fetch_metadata_only(
     let base = upstream_registry.trim_end_matches('/');
     let mut records = Vec::with_capacity(pending.len());
     for (name, tasks) in by_name {
-        if Instant::now() >= deadline {
-            return Err(Error::Operation("fetch was cancelled".to_string()));
-        }
+        check_deadline(deadline)?;
         let url = format!("{}/{}", base, package_route(name));
         let (body, _) = transfer(&url, limits::METADATA_BYTES, expected_host, exchange, budget)?;
         let invalid = || Error::Operation(format!("upstream metadata is invalid for {name}"));
@@ -928,9 +933,7 @@ fn download_stage(
     ctx: &AcquisitionContext,
     deadline: Instant,
 ) -> Result<(String, BTreeMap<String, String>, u64)> {
-    if Instant::now() >= deadline {
-        return Err(Error::Operation("fetch was cancelled".to_string()));
-    }
+    check_deadline(deadline)?;
     let (body, _) = transfer(tarball_url, limits::TARBALL_BYTES, &ctx.expected_host, ctx.exchange, ctx.budget)?;
     if body.is_empty() {
         return Err(Error::Operation(format!(
@@ -1068,18 +1071,14 @@ fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instan
     validate_platform_claims(&task.records, &metadata).map_err(|e| {
         Error::Conflict(format!("upstream package metadata conflicts for {}@{}: {e}", task.name, task.version))
     })?;
-    let (claims, legacy) = merge_claims(&task.records, &metadata)
-        .map_err(|e| Error::Operation(format!("upstream integrity is invalid for {}@{}: {e}", task.name, task.version)))?;
+    let (claims, legacy) = merge_claims(&task.records, &metadata)?;
     if legacy && !ctx.allow_legacy_sha1_only {
         return Err(Error::Operation(format!(
             "refusing SHA-1-only integrity for {}@{}; enable policy.allowLegacySha1Only only after audit",
             task.name, task.version
         )));
     }
-    let lock_sha512 = lock_claims(&task.records)
-        .map_err(|e| Error::Operation(format!("lockfile integrity is invalid for {}@{}: {e}", task.name, task.version)))?
-        .get("sha512")
-        .cloned();
+    let lock_sha512 = lock_claims(&task.records)?.get("sha512").cloned();
     let metadata_sha512 = claims.get("sha512").cloned();
     let expected_sha512 = metadata_sha512.or(lock_sha512);
     let mut expected_claims = claims;
@@ -1308,7 +1307,7 @@ pub fn fetch_inventory(
     let result: Result<Vec<PackageResult>> = std::thread::scope(|scope| {
         let queue = std::sync::Arc::new(Mutex::new(tasks.into_iter().collect::<VecDeque<_>>()));
         let results: std::sync::Arc<Mutex<Vec<PackageResult>>> = std::sync::Arc::new(Mutex::new(Vec::new()));
-        let first_error: std::sync::Arc<Mutex<Option<String>>> = std::sync::Arc::new(Mutex::new(None));
+        let first_error: std::sync::Arc<Mutex<Option<Error>>> = std::sync::Arc::new(Mutex::new(None));
         let ctx = std::sync::Arc::new(AcquisitionContext {
             state_directory: state_dir.to_path_buf(),
             upstream_registry: config.upstream_registry.clone(),
@@ -1336,7 +1335,7 @@ pub fn fetch_inventory(
                         Err(e) => {
                             first_error.lock().map(|mut g| {
                                 if g.is_none() {
-                                    *g = Some(e.to_string());
+                                    *g = Some(e);
                                 }
                             }).ok();
                             break;
@@ -1348,8 +1347,8 @@ pub fn fetch_inventory(
         for handle in handles {
             handle.join().map_err(|_| Error::Operation("fetch worker failed".to_string()))?;
         }
-        if let Some(msg) = first_error.lock().map(|g| g.clone()).unwrap_or(None) {
-            return Err(Error::Operation(msg));
+        if let Some(error) = first_error.lock().map(|mut g| g.take()).unwrap_or(None) {
+            return Err(error);
         }
         Ok(results.lock().map(|mut r| std::mem::take(&mut *r)).unwrap_or_default())
     });
@@ -1488,6 +1487,13 @@ mod tests {
     }
 
     #[test]
+    fn expired_deadline_cancels_the_fetch() {
+        let err = check_deadline(Instant::now()).unwrap_err();
+        assert!(matches!(err, Error::Cancelled(_)), "{err}");
+        assert_eq!(err.exit_code(), 130);
+    }
+
+    #[test]
     fn rejects_redirect_outside_registry() {
         struct Loop;
         impl Exchange for Loop {
@@ -1509,6 +1515,82 @@ mod tests {
         )
         .unwrap_err();
         assert!(format!("{err}").contains("allowlisted"), "{err}");
+    }
+
+    struct Reply {
+        status: u16,
+        body: Vec<u8>,
+    }
+
+    impl Exchange for Reply {
+        fn fetch(&self, _url: &url::Url) -> Result<FetchedResponse> {
+            Ok(FetchedResponse { status: self.status, location: None, body: self.body.clone() })
+        }
+    }
+
+    #[test]
+    fn transport_errors_keep_the_network_category() {
+        struct Unreachable;
+        impl Exchange for Unreachable {
+            fn fetch(&self, _url: &url::Url) -> Result<FetchedResponse> {
+                Err(Error::Network("connection refused".to_string()))
+            }
+        }
+        let budget = Mutex::new(FetchByteBudget::new());
+        let err = transfer(
+            "https://registry.npmjs.org/flatdemo",
+            limits::METADATA_BYTES,
+            "registry.npmjs.org",
+            &Unreachable,
+            &budget,
+        )
+        .unwrap_err();
+        assert!(matches!(err, Error::Network(_)), "{err}");
+        assert_eq!(err.exit_code(), 6);
+    }
+
+    #[test]
+    fn oversized_responses_are_limit_errors() {
+        let exchange = Reply { status: 200, body: vec![0u8; 33] };
+        let budget = Mutex::new(FetchByteBudget::new());
+        let err = transfer("https://registry.npmjs.org/flatdemo", 32, "registry.npmjs.org", &exchange, &budget)
+            .unwrap_err();
+        assert!(matches!(err, Error::Limit(_)), "{err}");
+        assert_eq!(err.exit_code(), 5);
+    }
+
+    #[test]
+    fn exhausted_fetch_budget_is_a_limit_error() {
+        let exchange = Reply { status: 200, body: vec![0u8; 8] };
+        let budget = Mutex::new(FetchByteBudget::new());
+        budget.lock().unwrap().take(limits::FETCH_BYTES - 4).unwrap();
+        let err = transfer(
+            "https://registry.npmjs.org/flatdemo",
+            limits::METADATA_BYTES,
+            "registry.npmjs.org",
+            &exchange,
+            &budget,
+        )
+        .unwrap_err();
+        assert!(matches!(err, Error::Limit(_)), "{err}");
+        assert_eq!(err.exit_code(), 5);
+    }
+
+    #[test]
+    fn http_status_failures_stay_operation_errors() {
+        let exchange = Reply { status: 503, body: Vec::new() };
+        let budget = Mutex::new(FetchByteBudget::new());
+        let err = transfer("https://registry.npmjs.org/flatdemo", limits::METADATA_BYTES, "registry.npmjs.org", &exchange, &budget)
+            .unwrap_err();
+        assert!(matches!(err, Error::Operation(_)), "{err}");
+        assert_eq!(err.exit_code(), 1);
+    }
+
+    #[test]
+    fn non_public_hosts_are_policy_errors() {
+        let err = resolve_public_host("localhost").unwrap_err();
+        assert!(matches!(err, Error::Operation(_)), "{err}");
+        assert_eq!(err.exit_code(), 1);
     }
 
     fn fixture_config(targets: Vec<Target>) -> Config {

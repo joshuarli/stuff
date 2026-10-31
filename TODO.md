@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 27
 
-### STUF-14 · P2 · The documented registry exit-code contract is not implemented consistently
-
-- **Area:** Errors
-- **Where:** `README.md:22-25`; `crates/mynpm/src/acquire.rs:1336-1353` (worker errors flattened to strings and re-wrapped as `Operation`); `crates/mynpm/src/error.rs:14,84` (`Cancelled` never constructed); `crates/mypypi/src/error.rs:9-29,131-140` (no `Limit` or `Network`, `MissingArtifact` maps to 2); `crates/mycrates/src/validate.rs:241,257` (cargo failures map to 1); `crates/stuff/src/doctor.rs:124-133` and `crates/stuff/src/main.rs` (all `stuff` errors exit 2; doctor's documented 2 is unreachable).
-- **Problem:** The shared contract is 2 usage/input, 3 integrity, 4 conflict, 5 limit, 6 network, 1 other, plus 130 for a cancelled `mynpm` run. `mynpm fetch` turns integrity and conflict failures into 1, and its cancellation paths never construct `Cancelled`. `mypypi` cannot emit 5 or 6, and network fetch failures exit 2. `mycrates validate` maps a locked-fetch failure to 1. `stuff` maps every failure to 2 while `doctor` can only exit 1. The same corrupt state therefore produces different codes depending on the command, and a retry wrapper cannot distinguish a bad flag from a network outage.
-- **Recommendation:** Give each CLI one error category set and one mapping boundary: usage/input 2, integrity/corrupt 3, conflict 4, limit 5, network 6, other 1, and `mynpm` 130 for cancellation. Preserve the original error through worker joins, add `Limit`/`Network` where missing, and construct `Cancelled` on the cancellation paths. For `stuff`, map usage to 2, corrupt or integrity to 3, fetch or network to 6, and other to 1. `doctor` exits 1 when any check fails and 2 for a usage error. Test the mapping per category.
-- **Fix with:** `error-model`
-- **Effort:** M
-
 ### STUF-20 · P3 · llms.txt ignores the configured registry origin
 
 - **Area:** Config

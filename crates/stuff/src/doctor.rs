@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use crate::error::Error;
 use crate::source::{fetch_bytes, load_local_catalog, DEFAULT_CARGO_BASE, DEFAULT_NPM_BASE, DEFAULT_PYPI_BASE};
 use std::path::PathBuf;
 
@@ -48,7 +49,7 @@ impl RegistrySources {
 pub fn load_catalogs(
     sources: &RegistrySources,
     filter: Option<&str>,
-) -> Result<Vec<stuff_catalog::Catalog>, String> {
+) -> crate::error::Result<Vec<stuff_catalog::Catalog>> {
     let any_local =
         sources.cargo_dir.is_some() || sources.npm_dir.is_some() || sources.pypi_dir.is_some();
     let mut out = Vec::new();
@@ -86,7 +87,10 @@ pub fn load_catalogs(
             _ => stuff_catalog::Registry::Pypi,
         };
         if catalog.registry != expected {
-            return Err(format!("{name} catalog has unexpected registry {}", catalog.registry.as_str()));
+            return Err(Error::Conflict(format!(
+                "{name} catalog has unexpected registry {}",
+                catalog.registry.as_str()
+            )));
         }
         out.push(catalog);
     }
@@ -111,12 +115,12 @@ impl Check {
         Self { name: name.into(), ok: true, detail: detail.into() }
     }
 
-    fn fail(name: impl Into<String>, detail: impl Into<String>) -> Self {
-        Self { name: name.into(), ok: false, detail: detail.into() }
+    fn fail(name: impl Into<String>, detail: impl std::fmt::Display) -> Self {
+        Self { name: name.into(), ok: false, detail: detail.to_string() }
     }
 }
 
-pub fn run_doctor(parsed: &crate::cli::Parsed) -> Result<bool, String> {
+pub fn run_doctor(parsed: &crate::cli::Parsed) -> crate::error::Result<bool> {
     let sources = RegistrySources::from_parsed(parsed);
     let filter = parsed.registry_filter();
     let sample = parsed.sample_artifacts;
@@ -124,13 +128,16 @@ pub fn run_doctor(parsed: &crate::cli::Parsed) -> Result<bool, String> {
     let catalogs = match load_catalogs(&sources, filter) {
         Ok(c) => c,
         Err(e) => {
+            if matches!(&e, Error::Usage(_)) {
+                return Err(e);
+            }
             checks.push(Check::fail("catalog load", e));
             report(&checks);
             return Ok(false);
         }
     };
     if catalogs.is_empty() {
-        return Err("no registries selected".to_string());
+        return Err(Error::usage("no registries selected"));
     }
     for catalog in &catalogs {
         let name = catalog.registry.as_str();
@@ -679,6 +686,45 @@ fn first_wheel_href(page: &str) -> Option<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::{Command, Parsed};
+
+    fn doctor_parsed() -> Parsed {
+        Parsed {
+            command: Command::Doctor,
+            registry: None,
+            versions: false,
+            json: false,
+            remote: false,
+            sample_artifacts: false,
+            cargo_base: None,
+            npm_base: None,
+            pypi_base: None,
+            cargo_dir: None,
+            npm_dir: None,
+            pypi_dir: None,
+            output: None,
+            expected_generation: None,
+            positionals: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn usage_errors_exit_two() {
+        let mut parsed = doctor_parsed();
+        parsed.cargo_base = Some("http://example.com".to_string());
+        let err = run_doctor(&parsed).unwrap_err();
+        assert!(matches!(err, Error::Usage(_)), "{err}");
+        assert_eq!(err.exit_code(), 2);
+    }
+
+    #[test]
+    fn failed_checks_exit_one() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("catalog.json"), "{").unwrap();
+        let mut parsed = doctor_parsed();
+        parsed.cargo_dir = Some(dir.path().to_string_lossy().to_string());
+        assert!(!run_doctor(&parsed).unwrap());
+    }
 
     #[test]
     fn expands_dl_templates() {

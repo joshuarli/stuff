@@ -519,6 +519,8 @@ pub fn create_plan(
                     Kind::Build => Kind::Build,
                     Kind::Validation => Kind::Validation,
                     Kind::Conflict => Kind::Conflict,
+                    Kind::Limit => Kind::Limit,
+                    Kind::Network => Kind::Network,
                     Kind::Io => Kind::Io,
                 };
                 let mut err = Error::new(kind, e.detail.clone(), Stage::Planning);

@@ -2,6 +2,8 @@
 
 use std::fmt::Write as _;
 
+use crate::error::{Error, Result};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegistryFilter {
     Cargo,
@@ -62,11 +64,11 @@ impl Parsed {
     }
 }
 
-fn usage_error(detail: impl Into<String>) -> String {
-    detail.into()
+fn usage_error(detail: impl Into<String>) -> Error {
+    Error::usage(detail)
 }
 
-pub fn parse_args(argv: &[String]) -> Result<Parsed, String> {
+pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut args = argv.iter().peekable();
     let command = match args.next().map(|s| s.as_str()) {
         Some("ls") => Command::Ls,
@@ -302,5 +304,12 @@ mod tests {
     #[test]
     fn rejects_mixed_sources() {
         assert!(parse_args(&args(&["ls", "--remote", "--cargo-dir", "x"])).is_err());
+    }
+
+    #[test]
+    fn usage_errors_exit_two() {
+        let err = parse_args(&args(&["bogus"])).unwrap_err();
+        assert!(matches!(err, Error::Usage(_)));
+        assert_eq!(err.exit_code(), 2);
     }
 }
