@@ -19,16 +19,18 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 ## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
 
 - [x] mycrates: 926 crates ingested and published locally; 20 of 26 lockfiles pass `cargo fetch --locked` unchanged (merged to stuff main, unpushed)
-- [~] mynpm: 370 of 477 hosted (107 are other-platform packages mynpm skips); existing pnpm locks need
-  the standard tarball path served (lane npm-tarball-path) and a decision on pnpm lockfile verification
-  (`trustLockfile` / `minimumReleaseAge: 0`) or hosting stubs for the unhosted platform packages
-- [~] mypypi: 47 of 48 published for macOS arm64 only; Linux wheels, build backends, and the
-  ansicon/Windows problem in lane pypi-linux (`[tool.uv] environments` instead of a check exception)
-- [x] deploy: R2 sync past 1000 objects, fleet-ingest.sh, docs (merged to stuff main, unpushed)
+- [x] mynpm: 370 hosted versions plus 107 metadata-only stubs; standard tarball path served; six pnpm projects install with default settings and an unchanged lock
+- [x] mypypi: 52 versions, 152 wheels for macOS arm64 and Linux arm64/x86_64; nine uv projects lock and sync (`[tool.uv] environments` snippet required)
+- [x] deploy: R2 sync past 1000 objects, fleet-ingest.sh, conditional promotion, dry-run mode, docs (merged to stuff main, unpushed)
+- [x] adopt-live: `mycrates adopt`, `mynpm adopt`, `deploy/r2-pull.py` rebuilt state from the live buckets
+- [x] rehearsal: fleet ingested on top of the adopted state; every live package byte-identical; real cargo, pnpm, and uv clients pass (20 of 26 Cargo locks, the rest are repo defects)
 
 ## Phase B: publish (owner-run or owner-approved)
 
-- [ ] R2 credentials and first publish of the ingested generations
+- [x] canonical state in `~/.local/state/stuff` (rehearsal result, intermediate generations pruned)
+- [x] read-only plan against the real buckets: 0 conflicts, 0 multipart; put 1607 / 667 / 194 objects (cargo / npm / pypi)
+- [ ] R2 S3 credentials (`cf` is 403 on token management; needs an R2 API token with object read+write on the three buckets) and promotion with `--expected` 127688d2a3bd447af4b9f830 (cargo), c7c458b0e78a9841c1c7de8808d6af5d61957df5ffedbb77760674e93e9bbdb8 (npm), 345ff46c78fe3e1ef597d206d797f0c8389eb1e7a147d8973da43156db11ee2c (pypi)
+- [ ] known gap: `mypypi add` appends unrestricted duplicate rows for hand-restricted `pyobjc-*` entries; do not re-run `add` against the catalog until fixed
 
 ## Phase C: migrate repositories
 
