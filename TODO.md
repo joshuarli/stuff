@@ -10,15 +10,6 @@ Next: 27
 - **Fix with:** `error-model`
 - **Effort:** M
 
-### STUF-16 · P2 · Publish concurrency guards can delete another writer's spool and double-admit writers
-
-- **Area:** Concurrency
-- **Where:** `crates/mycrates/src/store.rs:101-112,545-560` (`.upload.*` reclamation by PID); `crates/mycrates/src/store.rs:448-449` (`verify` calls recovery without the lock), `crates/mycrates/src/publish.rs:82` (publish calls it before any lock it later takes); `crates/mycrates/src/serve.rs:274` (the HTTP publish path takes the lock after writing the spool); `deploy/publish-lock.sh:9-26` (`mkdir` lock with `rm -rf` reclaim).
-- **Problem:** `recover_staging` treats every `.upload.*` file owned by another PID as stale. `Store::verify` calls it without the store lock, and `Publisher::publish` calls it as its first step, so a concurrent verify or publish can unlink an in-flight upload spool and turn `cargo publish` into a 400. Separately, two waiters that see an empty or stale lock directory can both `rm -rf` it before either re-creates it, so both can acquire the "lock" and run publish helpers against one state directory; a stale PID that is later reused blocks every publish forever.
-- **Recommendation:** Keep upload spools in a directory the GC never scans, or reclaim only by age under the lock. Replace the directory lock with an advisory file lock or an atomic rename-steal, and test concurrent publish/verify and two lock waiters.
-- **Fix with:** `lifecycle-concurrency`
-- **Effort:** M
-
 ### STUF-20 · P3 · llms.txt ignores the configured registry origin
 
 - **Area:** Config

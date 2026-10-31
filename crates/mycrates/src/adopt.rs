@@ -67,7 +67,7 @@ pub fn adopt_site(store: &Store, site_dir: &Path) -> Result<AdoptSummary> {
             }
         }
     }
-    store.verify()?;
+    store.verify_locked()?;
     Ok(summary)
 }
 

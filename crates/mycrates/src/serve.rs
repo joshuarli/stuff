@@ -260,7 +260,7 @@ pub fn handle_publish_request<R: Read>(
             return Ok(());
         }
 
-        let staging_dir = store.blobs_dir();
+        let staging_dir = store.uploads_dir();
         let decoded = match decode_publish_payload(
             reader,
             content_len,

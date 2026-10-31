@@ -1,9 +1,12 @@
 use mycrates::error::Error;
 use mycrates::model::{IndexEntry, Version};
+use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
 use std::collections::BTreeMap;
-use std::fs;
-use std::io::Cursor;
+use std::fs::{self, OpenOptions};
+use std::io::{Cursor, Write};
+use std::thread;
+use std::time::{Duration, SystemTime};
 use tempfile::tempdir;
 
 fn sample_entry(name: &str, vers: &str, cksum: &str) -> IndexEntry {
@@ -192,6 +195,12 @@ fn store_exclusive_locking() {
     drop(guard3);
 }
 
+fn age_file(path: &std::path::Path) {
+    let file = OpenOptions::new().write(true).open(path).unwrap();
+    file.set_modified(SystemTime::now() - Duration::from_secs(7200))
+        .unwrap();
+}
+
 #[test]
 fn stale_temp_cleanup() {
     let dir = tempdir().unwrap();
@@ -202,12 +211,74 @@ fn stale_temp_cleanup() {
     fs::write(&tmp_file, b"stale data").unwrap();
     let upload_file = store.blobs_dir().join(".upload.123.456.789");
     fs::write(&upload_file, b"partial upload").unwrap();
-    assert!(tmp_file.exists());
-    assert!(upload_file.exists());
+    age_file(&upload_file);
+    let fresh_upload = store.blobs_dir().join(".upload.999999.123.456");
+    fs::write(&fresh_upload, b"in-flight upload").unwrap();
 
     store.recover_staging().unwrap();
     assert!(!tmp_file.exists());
     assert!(!upload_file.exists());
+    assert!(fresh_upload.exists());
+}
+
+#[test]
+fn stale_uploads_are_reclaimed_only_by_age() {
+    let dir = tempdir().unwrap();
+    let store = Store::new(dir.path().to_path_buf());
+    store.ensure_dirs().unwrap();
+
+    let fresh = store.uploads_dir().join(".upload.123.1.1");
+    fs::write(&fresh, b"in-flight").unwrap();
+    let stale = store.uploads_dir().join(".upload.456.1.2");
+    fs::write(&stale, b"abandoned").unwrap();
+    age_file(&stale);
+
+    store.recover_uploads().unwrap();
+    assert!(fresh.exists());
+    assert!(!stale.exists());
+}
+
+#[test]
+fn concurrent_verify_and_publish_leave_in_flight_uploads_alone() {
+    let dir = tempdir().unwrap();
+    let state = dir.path().join("state");
+    let site = dir.path().join("site");
+    let store = Store::new(state);
+    store.ensure_dirs().unwrap();
+
+    let upload = store.uploads_dir().join(".upload.424242.1.1");
+    let mut writer = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&upload)
+        .unwrap();
+    writer.write_all(b"in-flight").unwrap();
+    writer.flush().unwrap();
+
+    let legacy = store.blobs_dir().join(".upload.424242.1.2");
+    fs::write(&legacy, b"legacy-in-flight").unwrap();
+
+    let verify_store = store.clone();
+    let verify = thread::spawn(move || verify_store.verify());
+    let publish_store = store.clone();
+    let publish_site = site.clone();
+    let publish = thread::spawn(move || {
+        Publisher::new(
+            &publish_store,
+            publish_site,
+            "http://localhost:8080".to_string(),
+        )
+        .publish()
+    });
+
+    verify.join().unwrap().unwrap();
+    publish.join().unwrap().unwrap();
+
+    writer.write_all(b"-more").unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+    assert_eq!(fs::read(&upload).unwrap(), b"in-flight-more");
+    assert_eq!(fs::read(&legacy).unwrap(), b"legacy-in-flight");
 }
 
 #[test]

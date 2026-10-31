@@ -3,8 +3,9 @@ use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
 use stuff_store::Site;
 use std::collections::BTreeMap;
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::io::Cursor;
+use std::time::{Duration, SystemTime};
 use tempfile::tempdir;
 
 fn sample_entry(name: &str, vers: &str, cksum: &str) -> IndexEntry {
@@ -371,9 +372,14 @@ fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::dec
     let blobs_store = Store::new(dir.path().join("state3"));
     blobs_store.ensure_dirs().unwrap();
     let bdir = blobs_store.blobs_dir();
-    fs::write(bdir.join(".upload.orphan.999"), b"partial").unwrap();
+    let orphan = bdir.join(".upload.orphan.999");
+    fs::write(&orphan, b"partial").unwrap();
+    let file = OpenOptions::new().write(true).open(&orphan).unwrap();
+    file.set_modified(SystemTime::now() - Duration::from_secs(7200))
+        .unwrap();
+    drop(file);
     blobs_store.recover_staging().unwrap();
-    assert!(!bdir.join(".upload.orphan.999").exists());
+    assert!(!orphan.exists());
 }
 
 #[test]

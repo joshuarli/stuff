@@ -270,7 +270,7 @@ deps.example.net {
 ## Backup, Restore, and Recovery
 
 - **Backup**:
-  - `state/`: Contains records (`native/`, `upstream/`, `pins/`, `config.json`).
+  - `state/`: Contains records (`native/`, `upstream/`, `pins/`, `config.json`), content-addressed `blobs/`, and `uploads/` for in-flight publish spools (reclaimed after an hour under the store lock).
   - `site/blobs/`: Content-addressed `.crate` archives.
 - **Restore**:
   1. Restore `state/` and `site/blobs/`.

@@ -5,10 +5,12 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use stuff_store::{stream_file_hash, sync_dir, write_file_durable, HashAlg};
 
 static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+const STALE_UPLOAD_AGE: Duration = Duration::from_secs(3600);
 
 pub struct StoreLockGuard(File);
 
@@ -62,6 +64,10 @@ impl Store {
         self.state_dir.join("pins")
     }
 
+    pub fn uploads_dir(&self) -> PathBuf {
+        self.state_dir.join("uploads")
+    }
+
     pub fn lock_path(&self) -> PathBuf {
         self.state_dir.join("lock")
     }
@@ -71,6 +77,7 @@ impl Store {
         fs::create_dir_all(self.native_dir())?;
         fs::create_dir_all(self.upstream_dir())?;
         fs::create_dir_all(self.pins_dir())?;
+        fs::create_dir_all(self.uploads_dir())?;
         Ok(())
     }
 
@@ -83,7 +90,10 @@ impl Store {
             .truncate(false)
             .open(self.lock_path())?;
         f.lock().map_err(|e| Error::Operation(format!("store lock failed: {e}")))?;
-        Ok(StoreLockGuard(f))
+        let guard = StoreLockGuard(f);
+        self.recover_staging()?;
+        self.recover_uploads()?;
+        Ok(guard)
     }
 
     pub fn try_lock_exclusive(&self) -> Result<StoreLockGuard> {
@@ -95,7 +105,10 @@ impl Store {
             .truncate(false)
             .open(self.lock_path())?;
         f.try_lock().map_err(|e| Error::Operation(format!("store try_lock failed: {e}")))?;
-        Ok(StoreLockGuard(f))
+        let guard = StoreLockGuard(f);
+        self.recover_staging()?;
+        self.recover_uploads()?;
+        Ok(guard)
     }
 
     pub fn recover_staging(&self) -> Result<()> {
@@ -107,8 +120,23 @@ impl Store {
                 let name = file_name.to_string_lossy();
                 let stale_tmp = name.starts_with(".tmp");
                 let stale_upload =
-                    name.starts_with(".upload.") && is_stale_upload(&entry.path(), &name);
+                    name.starts_with(".upload.") && is_older_than(&entry.path(), STALE_UPLOAD_AGE);
                 if stale_tmp || stale_upload {
+                    let _ = fs::remove_file(entry.path());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn recover_uploads(&self) -> Result<()> {
+        let uploads = self.uploads_dir();
+        if uploads.exists() {
+            for entry in fs::read_dir(&uploads)? {
+                let entry = entry?;
+                if entry.file_type()?.is_file()
+                    && is_older_than(&entry.path(), STALE_UPLOAD_AGE)
+                {
                     let _ = fs::remove_file(entry.path());
                 }
             }
@@ -446,7 +474,11 @@ impl Store {
     }
 
     pub fn verify(&self) -> Result<()> {
-        self.recover_staging()?;
+        let _guard = self.lock_exclusive()?;
+        self.verify_locked()
+    }
+
+    pub(crate) fn verify_locked(&self) -> Result<()> {
         let blobs = self.blobs_dir();
         if blobs.exists() {
             for entry in fs::read_dir(&blobs)? {
@@ -542,20 +574,10 @@ fn canonical_fallback(crate_dir: &Path) -> Option<String> {
         .map(|n| n.to_string_lossy().to_string())
 }
 
-fn is_stale_upload(path: &Path, name: &str) -> bool {
-    let this_pid = std::process::id().to_string();
-    let parts: Vec<&str> = name.split('.').collect();
-    if parts.len() >= 5 && parts[1] == "upload" {
-        if parts[2] != this_pid {
-            return true;
-        }
-        if let Ok(meta) = fs::metadata(path)
-            && let Ok(mtime) = meta.modified()
-            && let Ok(elapsed) = std::time::SystemTime::now().duration_since(mtime)
-        {
-            return elapsed.as_secs() >= 300;
-        }
-        return false;
-    }
-    true
+fn is_older_than(path: &Path, age: Duration) -> bool {
+    fs::metadata(path)
+        .and_then(|meta| meta.modified())
+        .ok()
+        .and_then(|mtime| SystemTime::now().duration_since(mtime).ok())
+        .is_some_and(|elapsed| elapsed >= age)
 }

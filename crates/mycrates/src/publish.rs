@@ -79,7 +79,6 @@ impl<'a> Publisher<'a> {
     }
 
     pub fn publish(&self) -> Result<PublishResult> {
-        self.store.recover_staging()?;
         let site = Site::new(self.site_dir.clone());
         site.recover_staging()?;
         site.check_no_symlinks_in_path()?;
