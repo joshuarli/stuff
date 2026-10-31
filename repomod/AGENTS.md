@@ -3,6 +3,10 @@
 repomod manages canonical local repositories from `catalog.toml`. Read the relevant guide before
 changing [design](docs/design.md), [tagging](docs/tagging.md), or [policy development](docs/policy-development.md).
 
+## Before work
+
+Run `uv run repomod sync` before any work starts, so canonical checkouts reflect their remotes.
+
 ## Build and verify
 
 ```sh
