@@ -759,6 +759,7 @@ dependencies = [
  "h12tiny-client-sync",
  "httparse",
  "sha2",
+ "stuff-cargo-shard",
  "stuff-catalog",
  "stuff-store",
  "tar",
@@ -1296,12 +1297,16 @@ dependencies = [
  "deser-json",
  "deser-value",
  "h12tiny-client-sync",
- "mycrates",
  "sha2",
+ "stuff-cargo-shard",
  "stuff-catalog",
  "tempfile",
  "url",
 ]
+
+[[package]]
+name = "stuff-cargo-shard"
+version = "0.1.0"
 
 [[package]]
 name = "stuff-catalog"

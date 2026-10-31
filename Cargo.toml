@@ -9,6 +9,7 @@ members = [
   "crates/mynpm",
   "crates/mypypi",
   "crates/stuff-store",
+  "crates/stuff-cargo-shard",
   "crates/stuff-http",
   "crates/stuff-server",
   "crates/stuff-worker",

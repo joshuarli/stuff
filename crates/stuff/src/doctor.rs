@@ -104,7 +104,7 @@ pub fn load_catalogs(
 }
 
 fn cargo_shard(lower_name: &str) -> String {
-    mycrates::index::shard_for_name(lower_name)
+    stuff_cargo_shard::shard_for_name(lower_name)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -2,22 +2,7 @@ use crate::error::{Error, Result};
 use crate::model::{CrateName, IndexDep, IndexEntry, PublishBody, Version};
 use std::collections::BTreeMap;
 
-pub fn shard_for_name(name_lower: &str) -> String {
-    let bytes = name_lower.as_bytes();
-    if bytes.is_empty() {
-        return "1".to_string();
-    }
-    if name_lower.len() == 1 {
-        return format!("1/{}", name_lower);
-    }
-    if name_lower.len() == 2 {
-        return format!("2/{}", name_lower);
-    }
-    if name_lower.len() == 3 {
-        return format!("3/{}/{}", &name_lower[0..1], name_lower);
-    }
-    format!("{}/{}/{}", &name_lower[0..2], &name_lower[2..4], name_lower)
-}
+pub use stuff_cargo_shard::shard_for_name;
 
 pub fn native_config_json(public_base_url: &str, auth_required: bool) -> String {
     let dl = format!("{}/blobs/{{sha256-checksum}}.crate", public_base_url.trim_end_matches('/'));

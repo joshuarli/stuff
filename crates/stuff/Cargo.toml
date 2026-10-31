@@ -21,8 +21,8 @@ deser-json = "0.10"
 deser-value = "0.10"
 base64 = "0.22"
 h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", features = ["tls"] }
-mycrates = { version = "0.1.0", path = "../mycrates" }
 sha2 = "0.10"
+stuff-cargo-shard = { version = "0.1.0", path = "../stuff-cargo-shard" }
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 url = "2.5"
 
