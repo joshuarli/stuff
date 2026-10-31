@@ -271,6 +271,14 @@ deps.example.net {
   1. Restore `state/` and `site/blobs/`.
   2. Run `mycrates publish` to regenerate the static generation index from state and link blobs.
   3. Run `mycrates verify` to recheck all blob SHA-256 hashes against stored records.
+- **Adopt a published site** (no `state/` left, only a pulled or served `site/`): run
+  `mycrates init`, `mycrates config set-public-base-url URL`, then
+  `mycrates adopt --from-site SITE --state-dir STATE`. It reads the index lines of the site's
+  `current` generation (`registry/` becomes native records, `crates-io/` upstream records), ingests
+  each referenced blob from `SITE/blobs/` and rejects any blob whose SHA-256 differs from its index
+  checksum, so a following `mycrates publish` renders the identical generation. Blobs the current
+  generation no longer references are not adopted. Upstream records get `acquired_at` 0 because
+  the published index does not carry it.
 - **Crash Recovery**: If a publish process was interrupted, running `mycrates publish` automatically cleans up staging leftovers (`.staging.*`) and recovers cleanly.
 
 ## Security and Limitations

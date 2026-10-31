@@ -16,6 +16,7 @@ use std::io::Write;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub struct PublishSummary {
     pub generation_id: String,
     pub package_count: usize,
@@ -33,6 +34,7 @@ fn generation_payload(
     artifacts: &[ArtifactRecord],
     packuments: &[PackumentFile],
     renderer: u32,
+    sealed_catalog: bool,
 ) -> Result<deser_value::Value> {
     let mut artifact_entries = Vec::new();
     for record in artifacts {
@@ -76,17 +78,19 @@ fn generation_payload(
         "publicationLayout".to_string(),
         deser_value::Value::from("current-dash-tarballs-v1".to_string()),
     );
-    let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
-        .map_err(Error::Operation)?;
-    payload.insert(
-        "catalogFingerprint".to_string(),
-        deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog)),
-    );
+    if sealed_catalog {
+        let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
+            .map_err(Error::Operation)?;
+        payload.insert(
+            "catalogFingerprint".to_string(),
+            deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog)),
+        );
+    }
     Ok(deser_value::Value::from(payload))
 }
 
 pub fn generation_id_for(public_base_url: &str, artifacts: &[ArtifactRecord], packuments: &[PackumentFile]) -> Result<String> {
-    generation_id_for_renderer(public_base_url, artifacts, packuments, RENDERER_VERSION)
+    generation_id_for_renderer(public_base_url, artifacts, packuments, RENDERER_VERSION, true)
 }
 
 fn generation_id_for_renderer(
@@ -94,8 +98,9 @@ fn generation_id_for_renderer(
     artifacts: &[ArtifactRecord],
     packuments: &[PackumentFile],
     renderer: u32,
+    sealed_catalog: bool,
 ) -> Result<String> {
-    let payload = generation_payload(public_base_url, artifacts, packuments, renderer)?;
+    let payload = generation_payload(public_base_url, artifacts, packuments, renderer, sealed_catalog)?;
     let text = canonical_json(&payload)?;
     let mut hasher = Sha256::new();
     hasher.update(text.as_bytes());
@@ -301,7 +306,18 @@ fn hash_file(path: &Path, expected: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> Result<Option<GenerationManifest>> {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Seal {
+    Current,
+    Adopted,
+}
+
+fn validate_generation(
+    generations_dir: &Path,
+    id: &str,
+    mirror_root: &Path,
+    seal: Seal,
+) -> Result<Option<GenerationManifest>> {
     let generation_dir = generations_dir.join(id);
     match std::fs::symlink_metadata(&generation_dir) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -336,9 +352,13 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
         Some(manifest.renderer_version),
     )
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
-    let computed = generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version)
+    let computed = generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version, true)
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
-    if computed != id || manifest.generation_id != id {
+    let sealed_before_catalog = seal == Seal::Adopted
+        && generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version, false)
+            .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?
+            == id;
+    if !(computed == id || sealed_before_catalog) || manifest.generation_id != id {
         return Err(Error::Corrupt(format!("generation identity does not match its contents: {id}")));
     }
     let mut digests: Vec<String> = manifest.artifacts.iter().map(|r| r.artifact.sha512.clone()).collect();
@@ -382,7 +402,7 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
             )));
         }
     }
-    if manifest.renderer_version >= 4 {
+    if manifest.renderer_version >= 4 && seal == Seal::Current {
         let catalog = catalog_for(id, &manifest.artifacts, &files)
             .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
         let expected_json = stuff_catalog::render_catalog_json(&catalog);
@@ -396,7 +416,7 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
             return Err(Error::Corrupt(format!("generation catalog page does not match its manifest: {id}")));
         }
     }
-    if manifest.renderer_version >= 5 {
+    if manifest.renderer_version >= 5 && seal == Seal::Current {
         let catalog = catalog_for(id, &manifest.artifacts, &files)
             .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
         let expected_llms = stuff_catalog::render_llms_txt(&catalog);
@@ -423,13 +443,10 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
     Ok(Some(manifest))
 }
 
-fn read_current(
-    mirror_root: &Path,
-    generations_dir: &Path,
-) -> Result<(Option<String>, Vec<ArtifactRecord>, Vec<MetadataOnlyRecord>)> {
+fn current_generation_id(mirror_root: &Path) -> Result<Option<String>> {
     let current_path = mirror_root.join("current");
     match std::fs::symlink_metadata(&current_path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((None, Vec::new(), Vec::new())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => {
             return Err(Error::Operation(format!(
                 "could not inspect current publication at {}: {e}",
@@ -455,7 +472,17 @@ fn read_current(
     let id = target_str.strip_prefix("generations/").filter(|id| is_hex64(id)).ok_or_else(|| {
         Error::Corrupt(format!("current publication has an unsafe generation target: {target_str}"))
     })?;
-    let manifest = validate_generation(generations_dir, id, mirror_root)?.ok_or_else(|| {
+    Ok(Some(id.to_string()))
+}
+
+fn read_current(
+    mirror_root: &Path,
+    generations_dir: &Path,
+) -> Result<(Option<String>, Vec<ArtifactRecord>, Vec<MetadataOnlyRecord>)> {
+    let Some(id) = current_generation_id(mirror_root)? else {
+        return Ok((None, Vec::new(), Vec::new()));
+    };
+    let manifest = validate_generation(generations_dir, &id, mirror_root, Seal::Current)?.ok_or_else(|| {
         Error::Corrupt(format!("current publication points to a missing generation: {id}"))
     })?;
     Ok((Some(format!("generations/{id}")), manifest.artifacts, manifest.metadata_only))
@@ -734,9 +761,11 @@ fn write_tarball_aliases(directory: &Path, artifacts: &[ArtifactRecord], mirror_
         })?;
         for digest in &digests {
             let alias = directory_path.join(format!("{digest}.tgz"));
-            std::fs::hard_link(mirror_root.join("tarballs").join(format!("{digest}.tgz")), &alias).map_err(|_| {
-                Error::Operation(format!("could not expose published artifact {digest}"))
-            })?;
+            if std::fs::symlink_metadata(&alias).is_err() {
+                std::fs::hard_link(mirror_root.join("tarballs").join(format!("{digest}.tgz")), &alias).map_err(|_| {
+                    Error::Operation(format!("could not expose published artifact {digest}"))
+                })?;
+            }
             hash_file(&alias, digest)?;
         }
     }
@@ -750,7 +779,7 @@ fn ensure_generation(
     files: &[PackumentFile],
     mirror_root: &Path,
 ) -> Result<()> {
-    if validate_generation(generations_dir, id, mirror_root)?.is_some() {
+    if validate_generation(generations_dir, id, mirror_root, Seal::Current)?.is_some() {
         return Ok(());
     }
     let tmp = generations_dir.join(format!(".mynpm-generation-{id}-{}", unique_name()));
@@ -788,7 +817,7 @@ fn ensure_generation(
         match std::fs::rename(&tmp, generations_dir.join(id)) {
             Ok(()) => Ok(true),
             Err(_) => {
-                if validate_generation(generations_dir, id, mirror_root)?.is_some() {
+                if validate_generation(generations_dir, id, mirror_root, Seal::Current)?.is_some() {
                     Ok(false)
                 } else {
                     Err(Error::Operation(format!("could not finalize generation {id}")))
@@ -868,60 +897,118 @@ pub struct PublishOptions<'a> {
     pub render_base_url: Option<String>,
 }
 
-pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
-    let site_root = ensure_dir_tree(options.site_directory)?;
-    let mirror_root = site_root.join("mirror");
-    ensure_real_dir(&mirror_root)?;
-    let generations_dir = mirror_root.join("generations");
-    let tarballs_dir = mirror_root.join("tarballs");
-    ensure_real_dir(&generations_dir)?;
-    ensure_real_dir(&tarballs_dir)?;
-    let site = stuff_store::Site::new(mirror_root.clone());
+struct Mirror {
+    root: PathBuf,
+    generations: PathBuf,
+    tarballs: PathBuf,
+    _lock: crate::inventory_store::FileLock,
+}
+
+fn open_mirror(site_directory: &Path) -> Result<Mirror> {
+    let site_root = ensure_dir_tree(site_directory)?;
+    let root = site_root.join("mirror");
+    ensure_real_dir(&root)?;
+    let generations = root.join("generations");
+    let tarballs = root.join("tarballs");
+    ensure_real_dir(&generations)?;
+    ensure_real_dir(&tarballs)?;
+    let site = stuff_store::Site::new(root.clone());
     site.recover_staging()?;
     site.check_no_symlinks_in_path()
         .map_err(|e| Error::Corrupt(e.to_string()))?;
-    let _lock = acquire_file_lock(&mirror_root, ".publish.lock", "publication")?;
+    let lock = acquire_file_lock(&root, ".publish.lock", "publication")?;
+    Ok(Mirror { root, generations, tarballs, _lock: lock })
+}
+
+fn activate(
+    mirror: &Mirror,
+    current_target: Option<String>,
+    artifacts: &[ArtifactRecord],
+    metadata_only: &[MetadataOnlyRecord],
+    public_base_url: &str,
+    state_directory: Option<&Path>,
+) -> Result<PublishSummary> {
+    let artifact_values: Vec<deser_value::Value> = artifacts
+        .iter()
+        .map(crate::inventory::artifact_to_value)
+        .collect::<Result<Vec<_>>>()?;
+    let files = render_packument_files(&artifact_values, metadata_only, public_base_url, None)
+        .map_err(|e| Error::Operation(format!("could not render publication packuments: {e}")))?;
+    let id = generation_id_for(public_base_url, artifacts, &files)
+        .map_err(|e| Error::Operation(format!("could not identify publication generation: {e}")))?;
+    let manifest_text = canonical_json(&manifest_value(public_base_url, &id, artifacts, metadata_only)?)?;
+    let manifest = parse_manifest(&manifest_text, Path::new("candidate manifest"))?;
+    for record in artifacts {
+        match state_directory {
+            Some(state) => copy_artifact(record, state, &mirror.tarballs)?,
+            None => hash_file(
+                &mirror.tarballs.join(format!("{}.tgz", record.artifact.sha512)),
+                &record.artifact.sha512,
+            )?,
+        }
+    }
+    ensure_generation(&mirror.generations, &id, &manifest, &files, &mirror.root)?;
+    let target = format!("generations/{id}");
+    let no_op = current_target.as_deref() == Some(target.as_str());
+    if !no_op {
+        switch_current(&mirror.root, &target, current_target.as_deref())?;
+    }
+    Ok(PublishSummary {
+        generation_id: id,
+        package_count: files.len(),
+        version_count: artifacts.len(),
+        metadata_only_count: metadata_only.len(),
+        no_op,
+    })
+}
+
+pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
+    let mirror = open_mirror(options.site_directory)?;
     let inventory = load_inventory(options.state_directory)?;
     verify_inventory_snapshot(options.state_directory, options.config, &inventory)?;
-    let (current_target, retained, retained_metadata_only) = read_current(&mirror_root, &generations_dir)?;
+    let (current_target, retained, retained_metadata_only) = read_current(&mirror.root, &mirror.generations)?;
     let artifacts = merge_publish_targets(&retained, &inventory.artifacts)?;
     let metadata_only = merge_metadata_only(&retained_metadata_only, &inventory.metadata_only, &artifacts)?;
     let public_base_url = options
         .render_base_url
         .clone()
         .unwrap_or_else(|| options.config.public_base_url.clone());
-    let artifact_values: Vec<deser_value::Value> = artifacts
-        .iter()
-        .map(crate::inventory::artifact_to_value)
-        .collect::<Result<Vec<_>>>()?;
-    let files = render_packument_files(&artifact_values, &metadata_only, &public_base_url, None)
-        .map_err(|e| Error::Operation(format!("could not render publication packuments: {e}")))?;
-    let id = generation_id_for(&public_base_url, &artifacts, &files)
-        .map_err(|e| Error::Operation(format!("could not identify publication generation: {e}")))?;
-    let manifest_text = canonical_json(&manifest_value(&public_base_url, &id, &artifacts, &metadata_only)?)?;
-    let manifest = parse_manifest(&manifest_text, Path::new("candidate manifest"))?;
-    for record in &artifacts {
-        copy_artifact(record, options.state_directory, &tarballs_dir)?;
+    activate(
+        &mirror,
+        current_target,
+        &artifacts,
+        &metadata_only,
+        &public_base_url,
+        Some(options.state_directory),
+    )
+}
+
+pub fn adopt_site(site_directory: &Path) -> Result<PublishSummary> {
+    let mirror = open_mirror(site_directory)?;
+    let id = current_generation_id(&mirror.root)?
+        .ok_or_else(|| Error::Input(format!("no current publication under {}", mirror.root.display())))?;
+    let generation_dir = mirror.generations.join(&id);
+    let manifest_path = generation_dir.join("manifest.json");
+    let manifest_text = String::from_utf8(read_regular_file(&manifest_path)?)
+        .map_err(|_| Error::Corrupt(format!("generation manifest is not valid JSON: {}", manifest_path.display())))?;
+    let listed = parse_manifest(&manifest_text, &manifest_path)?;
+    if listed.renderer_version < 3 {
+        return Err(Error::Input(format!(
+            "adopt supports renderer 3 and later, generation {id} uses renderer {}",
+            listed.renderer_version
+        )));
     }
-    ensure_generation(&generations_dir, &id, &manifest, &files, &mirror_root)?;
-    let target = format!("generations/{id}");
-    if current_target.as_deref() == Some(target.as_str()) {
-        return Ok(PublishSummary {
-            generation_id: id,
-            package_count: files.len(),
-            version_count: artifacts.len(),
-            metadata_only_count: metadata_only.len(),
-            no_op: true,
-        });
-    }
-    switch_current(&mirror_root, &target, current_target.as_deref())?;
-    Ok(PublishSummary {
-        generation_id: id,
-        package_count: files.len(),
-        version_count: artifacts.len(),
-        metadata_only_count: metadata_only.len(),
-        no_op: false,
-    })
+    write_tarball_aliases(&generation_dir, &listed.artifacts, &mirror.root)?;
+    let adopted = validate_generation(&mirror.generations, &id, &mirror.root, Seal::Adopted)?
+        .ok_or_else(|| Error::Corrupt(format!("current publication points to a missing generation: {id}")))?;
+    activate(
+        &mirror,
+        Some(format!("generations/{id}")),
+        &adopted.artifacts,
+        &adopted.metadata_only,
+        &adopted.public_base_url,
+        None,
+    )
 }
 
 #[cfg(test)]
@@ -996,7 +1083,97 @@ mod tests {
         let llms = std::fs::read_to_string(gen_dir.join("llms.txt")).unwrap();
         assert!(llms.starts_with("# npm registry\n"));
         assert!(llms.contains("flatdemo"));
-        assert!(validate_generation(&mirror_root.join("generations"), &id, &mirror_root).unwrap().is_some());
+        assert!(validate_generation(&mirror_root.join("generations"), &id, &mirror_root, Seal::Current).unwrap().is_some());
+    }
+
+    fn fixture_record(tgz: &[u8]) -> (ArtifactRecord, String) {
+        use base64::Engine;
+        let mut h = Sha512::new();
+        h.update(tgz);
+        let digest = format!("{:x}", h.finalize());
+        let raw: Vec<u8> = (0..digest.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&digest[i..i + 2], 16).unwrap())
+            .collect();
+        let integrity = format!("sha512-{}", base64::engine::general_purpose::STANDARD.encode(&raw));
+        let tarball = "https://registry.npmjs.org/flatdemo/-/flatdemo-1.2.3.tgz";
+        let text = format!(
+            "{{\"name\":\"flatdemo\",\"version\":\"1.2.3\",\"packument\":{{\"name\":\"flatdemo\",\"dist-tags\":{{\"latest\":\"1.2.3\"}}}},\"metadata\":{{\"name\":\"flatdemo\",\"version\":\"1.2.3\",\"dist\":{{\"tarball\":\"{tarball}\"}}}},\"artifact\":{{\"sha512\":\"{digest}\",\"integrity\":\"{integrity}\",\"shasum\":null,\"sourceUrl\":\"{tarball}\",\"legacySha1Only\":false}}}}"
+        );
+        let value: deser_value::Value = deser_json::from_str(&text).unwrap();
+        (validate_artifact_record(&value).unwrap(), digest)
+    }
+
+    fn write_legacy_generation(mirror_root: &Path, record: &ArtifactRecord, base: &str) -> String {
+        let files = render_packument_files(
+            &[crate::inventory::artifact_to_value(record).unwrap()],
+            &[],
+            base,
+            Some(5),
+        )
+        .unwrap();
+        let id = generation_id_for_renderer(base, std::slice::from_ref(record), &files, 5, false).unwrap();
+        let dir = mirror_root.join("generations").join(&id);
+        for file in &files {
+            let path = dir.join(&file.path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, &file.bytes).unwrap();
+        }
+        for name in ["catalog.json", "index.html", "llms.txt"] {
+            std::fs::write(dir.join(name), "rendered by an older catalog renderer").unwrap();
+        }
+        let mut manifest = manifest_value(base, &id, std::slice::from_ref(record), &[]).unwrap();
+        let map = manifest.as_map_mut().unwrap();
+        map.insert("rendererVersion".to_string(), deser_value::Value::from(5u64));
+        map.remove("metadataOnly");
+        std::fs::write(dir.join("manifest.json"), canonical_json(&manifest).unwrap()).unwrap();
+        std::os::unix::fs::symlink(format!("generations/{id}"), mirror_root.join("current")).unwrap();
+        id
+    }
+
+    fn legacy_site(tgz: &[u8]) -> (tempfile::TempDir, String, ArtifactRecord) {
+        let (record, digest) = fixture_record(tgz);
+        let dir = tempfile::tempdir().unwrap();
+        let mirror_root = dir.path().join("mirror");
+        std::fs::create_dir_all(mirror_root.join("tarballs")).unwrap();
+        std::fs::create_dir_all(mirror_root.join("generations")).unwrap();
+        std::fs::write(mirror_root.join("tarballs").join(format!("{digest}.tgz")), tgz).unwrap();
+        let id = write_legacy_generation(&mirror_root, &record, "https://npm.example.test/");
+        (dir, id, record)
+    }
+
+    #[test]
+    fn adopt_reseals_a_generation_published_before_catalog_fingerprints() {
+        let (dir, legacy_id, record) = legacy_site(b"fake-npm-tarball");
+        let mirror_root = dir.path().join("mirror");
+        let generations = mirror_root.join("generations");
+        assert!(read_current(&mirror_root, &generations).is_err());
+
+        let summary = adopt_site(dir.path()).unwrap();
+        assert!(!summary.no_op);
+        assert_ne!(summary.generation_id, legacy_id);
+        assert_eq!(summary.version_count, 1);
+        let (target, retained, _) = read_current(&mirror_root, &generations).unwrap();
+        assert_eq!(target.unwrap(), format!("generations/{}", summary.generation_id));
+        assert_eq!(retained, vec![record]);
+        assert_eq!(
+            std::fs::read(generations.join(&legacy_id).join("flatdemo")).unwrap(),
+            std::fs::read(generations.join(&summary.generation_id).join("flatdemo")).unwrap()
+        );
+        assert!(adopt_site(dir.path()).unwrap().no_op);
+    }
+
+    #[test]
+    fn adopt_rejects_a_tampered_tarball_or_packument() {
+        let (dir, legacy_id, record) = legacy_site(b"fake-npm-tarball");
+        let tarball = dir.path().join("mirror/tarballs").join(format!("{}.tgz", record.artifact.sha512));
+        std::fs::write(&tarball, b"tampered").unwrap();
+        assert!(matches!(adopt_site(dir.path()).unwrap_err(), Error::Corrupt(_)));
+
+        let (dir, legacy_id_2, _) = legacy_site(b"fake-npm-tarball");
+        assert_eq!(legacy_id, legacy_id_2);
+        std::fs::write(dir.path().join("mirror/generations").join(&legacy_id).join("flatdemo"), b"{}").unwrap();
+        assert!(matches!(adopt_site(dir.path()).unwrap_err(), Error::Corrupt(_)));
     }
 
     #[test]
