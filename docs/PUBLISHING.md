@@ -1,6 +1,6 @@
 # Publish
 
-`deploy/publish` is the normal entry point. It checks `cf` auth, adopts the live publication when local state is missing, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
+`deploy/publish` is the normal entry point. It checks `cf` auth, adopts the live publication until local state is marked complete, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
 
 ## Check prerequisites
 
@@ -38,7 +38,7 @@ The wrapper does three things before it publishes:
 - It adopts the live bucket until the local state is marked complete.
 - It selects `cf` promotion unless you pass `--promote=s3`.
 
-The helper then holds the per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write.
+The helper then holds the per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
 For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish. See the root README for those options.
 
@@ -82,10 +82,18 @@ before. The wrapper runs the idempotent adopt into it, verifies it, and only
 then writes the marker. Local records that are not on the live site stay in
 place, and an interrupted upgrade is retried next time.
 
+For `mynpm` and `mypypi`, adoption pulls and verifies into a sibling staging
+directory and renames it into the live site only after that step succeeds. A
+failed pull leaves no live site behind; the wrapper prints the staging path and
+the `rm -rf` command that removes it. After inspecting it, run the publish
+again to start a fresh adoption.
+
 If the wrapper refuses because a site directory exists without `current`, do
 not delete it. Inspect it, or restore the state backup, before publishing. A
 publish against an empty or partial state would replace the live registry with
-only the local packages.
+only the local packages. This refusal covers genuinely ambiguous live
+directories; the staging paths above are only for this wrapper's own failed
+adoptions.
 
 For the manual adopt sequence, see [Adopt a live publication](../README.md#adopt-a-live-publication).
 
@@ -157,3 +165,4 @@ The rollback verifies every object in the target generation's manifest before mo
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
 | `publish: waiting for active writer` | Another publish holds the lock | Wait for it to finish |
+| `publish: adoption failed; staging is at ...` | A `mynpm` or `mypypi` adopt failed and left its staging directory | Inspect it, then run the printed `rm -rf` command and publish again |

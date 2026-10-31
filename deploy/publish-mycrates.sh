@@ -3,6 +3,8 @@
 # Called from the source repos' Makefiles (smolith, h12tiny), which own their
 # crate lists. Runs the whole flow in one shell under `set -eu` with server
 # cleanup on exit, so a failed `cargo publish` aborts before any R2 write.
+# The exit trap restores PUBLIC_URL and rebuilds the site, so an aborted run
+# never leaves a localhost base URL for a later manual r2-sync to promote.
 #
 # Required env: CRATES="name-a name-b ..." (space-separated package names).
 # Optional env (defaults shown):
@@ -43,18 +45,48 @@ mkdir -p "$STUFF_STATE_HOME/mycrates"
 acquire_publish_lock "$LOCK_DIR"
 SRV_PID=""
 STATIC_PID=""
-cleanup() {
-  [ -z "$SRV_PID" ] || kill "$SRV_PID" 2>/dev/null || true
-  [ -z "$STATIC_PID" ] || kill "$STATIC_PID" 2>/dev/null || true
-  release_publish_lock
-}
-trap cleanup EXIT INT TERM HUP
-
+SITE_RESTORED=""
 MYCRATES_BIN=$STUFF_DIR/target/debug/mycrates
 SERVER_BIN=$STUFF_DIR/target/debug/stuff-server
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 LOCAL_API=http://127.0.0.1:$PUBLISH_PORT
 LOCAL_SITE=http://127.0.0.1:$STATIC_PORT
+
+restore_public_site() {
+  "$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
+  rm -rf "$SITE_DIR"
+  mkdir -p "$SITE_DIR"
+  "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
+}
+
+cleanup() {
+  status=$?
+  trap - EXIT
+  if [ -n "$SRV_PID" ]; then
+    kill "$SRV_PID" 2>/dev/null || true
+    wait "$SRV_PID" 2>/dev/null || true
+  fi
+  if [ -n "$STATIC_PID" ]; then
+    kill "$STATIC_PID" 2>/dev/null || true
+    wait "$STATIC_PID" 2>/dev/null || true
+  fi
+  SRV_PID=""
+  STATIC_PID=""
+  if [ -z "$SITE_RESTORED" ] && [ -x "$MYCRATES_BIN" ] && [ -d "$STATE_DIR" ]; then
+    if restore_public_site; then
+      echo "publish-mycrates: restored $PUBLIC_URL and rebuilt $SITE_DIR after failure" >&2
+    else
+      echo "publish-mycrates: WARNING: could not restore $PUBLIC_URL in $STATE_DIR" >&2
+      echo "publish-mycrates: WARNING: do not sync $SITE_DIR until the public base URL is restored" >&2
+    fi
+  fi
+  release_publish_lock || true
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 [ -n "${CRATES:-}" ] || { echo "publish-mycrates: CRATES is empty" >&2; exit 1; }
 
@@ -89,8 +121,6 @@ done
 kill $SRV_PID $STATIC_PID 2>/dev/null
 SRV_PID=""
 STATIC_PID=""
-"$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
-rm -rf "$SITE_DIR"
-mkdir -p "$SITE_DIR"
-"$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
+restore_public_site
+SITE_RESTORED=1
 "$R2_SYNC" "$SITE_DIR" "$BUCKET"

@@ -162,8 +162,8 @@ generation pointer:
 `https://crates.17166969.xyz/current/registry/` (cargo sparse),
 `https://npm.17166969.xyz/current/` (npm), and
 `https://pypi.17166969.xyz/current/simple/` (pip). Publish through
-`deploy/publish REGISTRY`, which checks `cf` auth, adopts missing state, and
-runs the matching helper. The helpers keep
+`deploy/publish REGISTRY`, which checks `cf` auth, adopts state that is not
+marked complete, and runs the matching helper. The helpers keep
 state in `$STUFF_STATE_HOME/<registry>` (default
 `${XDG_STATE_HOME:-$HOME/.local/state}/stuff`), not in the calling checkout;
 that directory is the publication source of truth and should be backed up.

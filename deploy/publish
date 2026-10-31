@@ -17,6 +17,7 @@ export STUFF_DIR
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
 ADOPT_PULL=""
 ADOPT_STATE_STAGE=""
+ADOPT_STAGE=""
 
 usage() {
   cat >&2 <<'EOF'
@@ -35,8 +36,16 @@ fail() {
 cleanup() {
   status=$?
   trap - EXIT
-  [ -z "$ADOPT_PULL" ] || rm -rf "$ADOPT_PULL"
-  [ -z "$ADOPT_STATE_STAGE" ] || rm -rf "$ADOPT_STATE_STAGE"
+  [ -z "$ADOPT_PULL" ] || rm -rf "$ADOPT_PULL" || true
+  [ -z "$ADOPT_STATE_STAGE" ] || rm -rf "$ADOPT_STATE_STAGE" || true
+  if [ -n "$ADOPT_STAGE" ]; then
+    if [ "$status" -eq 0 ]; then
+      rm -rf "$ADOPT_STAGE" || true
+    else
+      echo "publish: adoption failed; staging is at $ADOPT_STAGE" >&2
+      echo "publish: inspect it, then remove it with: rm -rf '$ADOPT_STAGE'" >&2
+    fi
+  fi
   exit "$status"
 }
 trap cleanup EXIT
@@ -125,15 +134,25 @@ adopt_mycrates() {
 adopt_mynpm() {
   echo "publish: no mynpm publication at $SITE_DIR; adopting the live publication" >&2
   cargo build -q -p mynpm --manifest-path "$STUFF_DIR/Cargo.toml"
+  mkdir -p "$(dirname "$SITE_DIR")"
+  ADOPT_STAGE=$(mktemp -d "$(dirname "$SITE_DIR")/mynpm-site-adopt.XXXXXX")
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mynpm "$ADOPT_STAGE/mirror"
+  "$STUFF_DIR/target/debug/mynpm" adopt --site-dir "$ADOPT_STAGE"
   mkdir -p "$SITE_DIR"
-  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mynpm "$SITE_DIR/mirror"
-  "$STUFF_DIR/target/debug/mynpm" adopt --site-dir "$SITE_DIR"
+  [ ! -d "$SITE_DIR/mirror" ] || rmdir "$SITE_DIR/mirror"
+  mv "$ADOPT_STAGE/mirror" "$SITE_DIR/mirror"
+  rmdir "$ADOPT_STAGE"
+  ADOPT_STAGE=""
 }
 
 adopt_mypypi() {
   echo "publish: no mypypi publication at $SITE_DIR; adopting the live publication" >&2
-  mkdir -p "$H"
-  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mypypi "$SITE_DIR"
+  mkdir -p "$(dirname "$SITE_DIR")"
+  ADOPT_STAGE=$(mktemp -d "$(dirname "$SITE_DIR")/mypypi-site-adopt.XXXXXX")
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mypypi "$ADOPT_STAGE"
+  [ ! -d "$SITE_DIR" ] || rmdir "$SITE_DIR"
+  mv "$ADOPT_STAGE" "$SITE_DIR"
+  ADOPT_STAGE=""
 }
 
 case $REGISTRY in

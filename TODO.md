@@ -46,15 +46,6 @@ Next: 27
 - **Fix with:** `lifecycle-concurrency`
 - **Effort:** M
 
-### STUF-17 · P2 · Failed deploy steps leave a localhost base URL or an unusable live site
-
-- **Area:** Operability
-- **Where:** `deploy/publish-mycrates.sh:64,92` (local URL set, restored only on the success path); `deploy/publish:100-107,126-141` (adopt writes into the live site); `deploy/r2-pull.py:121-122` (refuses a non-empty destination); `docs/PUBLISHING.md:71`.
-- **Problem:** A failed `cargo publish` exits without restoring `public_base_url`, leaving state and the current site pointing every crate download at `http://127.0.0.1:8080`. A later manual `r2-sync.sh` promotes that generation and takes the registry down. The mynpm and mypypi adopt paths pull straight into `$SITE_DIR`; a failed pull leaves a non-empty directory without `current`, the next publish refuses to touch it, and the docs tell the operator not to delete it without providing a repair path.
-- **Recommendation:** Restore the public URL in the cleanup trap and rebuild the site on every exit. Pull and adopt into a sibling staging directory, rename on success, and print the failure path and safe removal instruction.
-- **Fix with:** `durable-state`
-- **Effort:** S
-
 ### STUF-20 · P3 · llms.txt ignores the configured registry origin
 
 - **Area:** Config
