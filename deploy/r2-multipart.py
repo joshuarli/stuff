@@ -157,4 +157,5 @@ def main():
     print(f"multipart {key} ({size} bytes, {len(etags)} parts)")
 
 
-main()
+if __name__ == "__main__":
+    main()

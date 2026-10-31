@@ -21,7 +21,8 @@ for repair.
   project lives next to the crate (`cf deploy --dry-run` validates).
 - `deploy/`: pipeline checks (`check-pipeline-independence.sh`),
   ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;
-  verify with `CF_LOCAL_STATE`).
+  verify with `CF_LOCAL_STATE` via `test-r2-sync.sh`), and local fleet
+  ingestion (`fleet-ingest.sh`).
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels) kept after the TypeScript/Python removal.
 

@@ -143,15 +143,29 @@ generation pointer:
 `deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN_ID]`, which translates
 the `current` symlink to a marker object holding the generation id
 (verified against the local R2 simulation). Sync is incremental and
-content-aware: remote objects whose size and MD5 match are skipped, so
-re-syncing an unchanged generation uploads nothing. `--expected` guards
+content-aware: remote objects whose size and content hash match are
+skipped, so re-syncing an unchanged generation uploads nothing. Remote
+objects are found by prefix listing (`deploy/r2-plan.py`), which works for
+any object count without pagination cursors; uploads run `R2_PUT_JOBS`
+at a time (default 8; 1 against the local simulation, which deadlocked at
+8 concurrent writers). `--expected` guards
 promotion against competing publishers, and the marker is read back after
 activation. Roll back with `deploy/r2-rollback.sh SITE_DIR BUCKET GEN_ID`.
 Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
 the worker resolves them to the shared store instead. Files over the 300 MB
 single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
-`R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`).
+`R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`) and are
+skipped when the remote multipart ETag already matches.
+`deploy/test-r2-sync.sh [COUNT]` (`make test-sync`) checks pagination and
+idempotency against the local simulation only.
+
+To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo
+LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's
+import, fetch, verify or validate, and publish into
+`OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths,
+pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2;
+sync each site afterwards (`make sync LOCAL=1` to rehearse).
 
 After deploying, run the read-only live check (no credentials):
 
