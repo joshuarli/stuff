@@ -39,7 +39,7 @@ fn run(parsed: &stuff::cli::Parsed) -> Result<i32> {
 }
 
 fn run_ls(parsed: &stuff::cli::Parsed) -> Result<()> {
-    let sources = RegistrySources::from_parsed(parsed);
+    let sources = RegistrySources::from_parsed(parsed)?;
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     if parsed.json {
         print!("{{\"catalogs\":[");
@@ -57,7 +57,7 @@ fn run_ls(parsed: &stuff::cli::Parsed) -> Result<()> {
 }
 
 fn run_search(parsed: &stuff::cli::Parsed) -> Result<()> {
-    let sources = RegistrySources::from_parsed(parsed);
+    let sources = RegistrySources::from_parsed(parsed)?;
     let mut catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let query = parsed.positionals[0].to_lowercase();
     for catalog in &mut catalogs {
@@ -233,7 +233,7 @@ fn run_render(parsed: &stuff::cli::Parsed) -> Result<()> {
         .output
         .as_deref()
         .ok_or_else(|| Error::usage("--output is required"))?;
-    let sources = RegistrySources::from_parsed(parsed);
+    let sources = RegistrySources::from_parsed(parsed)?;
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let body = if output.ends_with(".txt") || output.ends_with(".md") {
         let origins = stuff_catalog::CatalogOrigins::new(

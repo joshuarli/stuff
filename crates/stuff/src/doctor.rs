@@ -1,21 +1,20 @@
 #![forbid(unsafe_code)]
 
 use crate::error::Error;
-use crate::source::{fetch_bytes, load_local_catalog, DEFAULT_CARGO_BASE, DEFAULT_NPM_BASE, DEFAULT_PYPI_BASE};
-use std::path::PathBuf;
+use crate::source::{fetch_bytes, LocalSite, DEFAULT_CARGO_BASE, DEFAULT_NPM_BASE, DEFAULT_PYPI_BASE};
 
 pub struct RegistrySources {
     pub cargo_base: String,
     pub npm_base: String,
     pub pypi_base: String,
-    pub cargo_dir: Option<String>,
-    pub npm_dir: Option<String>,
-    pub pypi_dir: Option<String>,
+    pub cargo_local: Option<LocalSite>,
+    pub npm_local: Option<LocalSite>,
+    pub pypi_local: Option<LocalSite>,
 }
 
 impl RegistrySources {
-    pub fn from_parsed(parsed: &crate::cli::Parsed) -> Self {
-        Self {
+    pub fn from_parsed(parsed: &crate::cli::Parsed) -> crate::error::Result<Self> {
+        Ok(Self {
             cargo_base: parsed
                 .cargo_base
                 .clone()
@@ -31,54 +30,58 @@ impl RegistrySources {
                 .clone()
                 .or_else(|| std::env::var("STUFF_PYPI_BASE").ok())
                 .unwrap_or_else(|| DEFAULT_PYPI_BASE.to_string()),
-            cargo_dir: parsed.cargo_dir.clone(),
-            npm_dir: parsed.npm_dir.clone(),
-            pypi_dir: parsed.pypi_dir.clone(),
-        }
+            cargo_local: resolve_local(parsed.cargo_dir.as_deref())?,
+            npm_local: resolve_local(parsed.npm_dir.as_deref())?,
+            pypi_local: resolve_local(parsed.pypi_dir.as_deref())?,
+        })
     }
 
     pub fn selected(&self, filter: Option<&str>) -> Vec<(&'static str, bool)> {
-        let all = [("cargo", self.cargo_dir.is_some()), ("npm", self.npm_dir.is_some()), ("pypi", self.pypi_dir.is_some())];
+        let all = [
+            ("cargo", self.cargo_local.is_some()),
+            ("npm", self.npm_local.is_some()),
+            ("pypi", self.pypi_local.is_some()),
+        ];
         match filter {
             Some(f) => all.into_iter().filter(|(name, _)| *name == f).collect(),
             None => all.to_vec(),
         }
     }
+
+    fn any_local(&self) -> bool {
+        self.cargo_local.is_some() || self.npm_local.is_some() || self.pypi_local.is_some()
+    }
+
+    fn local(&self, name: &str) -> Option<&LocalSite> {
+        match name {
+            "cargo" => self.cargo_local.as_ref(),
+            "npm" => self.npm_local.as_ref(),
+            _ => self.pypi_local.as_ref(),
+        }
+    }
+}
+
+fn resolve_local(input: Option<&str>) -> crate::error::Result<Option<LocalSite>> {
+    input.map(|p| LocalSite::resolve(std::path::Path::new(p))).transpose()
 }
 
 pub fn load_catalogs(
     sources: &RegistrySources,
     filter: Option<&str>,
 ) -> crate::error::Result<Vec<stuff_catalog::Catalog>> {
-    let any_local =
-        sources.cargo_dir.is_some() || sources.npm_dir.is_some() || sources.pypi_dir.is_some();
+    let any_local = sources.any_local();
     let mut out = Vec::new();
     for (name, is_local) in sources.selected(filter) {
         if filter.is_none() && any_local && !is_local {
             continue;
         }
-        let catalog = match name {
-            "cargo" => {
-                if is_local {
-                    load_local_catalog(sources.cargo_dir.as_deref().unwrap_or(""))?
-                } else {
-                    crate::source::fetch_catalog(&sources.cargo_base)?
-                }
-            }
-            "npm" => {
-                if is_local {
-                    load_local_catalog(sources.npm_dir.as_deref().unwrap_or(""))?
-                } else {
-                    crate::source::fetch_catalog(&sources.npm_base)?
-                }
-            }
-            "pypi" => {
-                if is_local {
-                    load_local_catalog(sources.pypi_dir.as_deref().unwrap_or(""))?
-                } else {
-                    crate::source::fetch_catalog(&sources.pypi_base)?
-                }
-            }
+        let catalog = match (name, sources.local(name)) {
+            ("cargo", Some(local)) => local.load_catalog()?,
+            ("npm", Some(local)) => local.load_catalog()?,
+            ("pypi", Some(local)) => local.load_catalog()?,
+            ("cargo", None) => crate::source::fetch_catalog(&sources.cargo_base)?,
+            ("npm", None) => crate::source::fetch_catalog(&sources.npm_base)?,
+            (_, None) => crate::source::fetch_catalog(&sources.pypi_base)?,
             _ => unreachable!(),
         };
         let expected = match name {
@@ -104,27 +107,71 @@ fn cargo_shard(lower_name: &str) -> String {
     mycrates::index::shard_for_name(lower_name)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CheckState {
+    Pass,
+    Fail,
+    Skip,
+}
+
 struct Check {
     name: String,
-    ok: bool,
+    state: CheckState,
     detail: String,
 }
 
 impl Check {
     fn pass(name: impl Into<String>, detail: impl Into<String>) -> Self {
-        Self { name: name.into(), ok: true, detail: detail.into() }
+        Self { name: name.into(), state: CheckState::Pass, detail: detail.into() }
     }
 
     fn fail(name: impl Into<String>, detail: impl std::fmt::Display) -> Self {
-        Self { name: name.into(), ok: false, detail: detail.to_string() }
+        Self { name: name.into(), state: CheckState::Fail, detail: detail.to_string() }
+    }
+
+    fn skip(name: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self { name: name.into(), state: CheckState::Skip, detail: detail.into() }
     }
 }
 
 pub fn run_doctor(parsed: &crate::cli::Parsed) -> crate::error::Result<bool> {
-    let sources = RegistrySources::from_parsed(parsed);
+    let checks = doctor_checks(parsed)?;
+    report(&checks);
+    Ok(checks.iter().all(|c| c.state != CheckState::Fail))
+}
+
+fn doctor_checks(parsed: &crate::cli::Parsed) -> crate::error::Result<Vec<Check>> {
+    let sources = RegistrySources::from_parsed(parsed)?;
     let filter = parsed.registry_filter();
     let sample = parsed.sample_artifacts;
     let mut checks: Vec<Check> = Vec::new();
+    let skipped: Vec<&str> = if filter.is_none() && sources.any_local() {
+        sources
+            .selected(filter)
+            .into_iter()
+            .filter(|(_, is_local)| !is_local)
+            .map(|(name, _)| name)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    if parsed.expected_generation.is_some() && !skipped.is_empty() {
+        return Err(Error::usage(format!(
+            "--expected-generation requires every registry; {} skipped without {}",
+            skipped.join(", "),
+            skipped
+                .iter()
+                .map(|name| format!("--{name}-dir"))
+                .collect::<Vec<_>>()
+                .join("/")
+        )));
+    }
+    for name in &skipped {
+        checks.push(Check::skip(
+            format!("{name} registry"),
+            format!("skipped: pass --{name}-dir to include it"),
+        ));
+    }
     let catalogs = match load_catalogs(&sources, filter) {
         Ok(c) => c,
         Err(e) => {
@@ -132,8 +179,7 @@ pub fn run_doctor(parsed: &crate::cli::Parsed) -> crate::error::Result<bool> {
                 return Err(e);
             }
             checks.push(Check::fail("catalog load", e));
-            report(&checks);
-            return Ok(false);
+            return Ok(checks);
         }
     };
     if catalogs.is_empty() {
@@ -149,29 +195,14 @@ pub fn run_doctor(parsed: &crate::cli::Parsed) -> crate::error::Result<bool> {
                     format!("active {} does not match expected {expected}", catalog.generation),
                 ));
             }
-        let is_local = match name {
-            "cargo" => sources.cargo_dir.is_some(),
-            "npm" => sources.npm_dir.is_some(),
-            _ => sources.pypi_dir.is_some(),
-        };
-        if is_local {
-            run_local_checks(&mut checks, name, catalog, &sources, sample);
+        if let Some(local) = sources.local(name) {
+            let origin = origin_for(name, &sources);
+            run_local_checks(&mut checks, name, catalog, local, &origin, sample);
         } else {
             run_remote_checks(&mut checks, name, catalog, &sources, sample);
         }
     }
-    let ok = checks.iter().all(|c| c.ok);
-    report(&checks);
-    Ok(ok)
-}
-
-fn site_dir_for(name: &str, sources: &RegistrySources) -> PathBuf {
-    let raw = match name {
-        "cargo" => sources.cargo_dir.as_deref().unwrap_or(""),
-        "npm" => sources.npm_dir.as_deref().unwrap_or(""),
-        _ => sources.pypi_dir.as_deref().unwrap_or(""),
-    };
-    PathBuf::from(raw)
+    Ok(checks)
 }
 
 fn origin_for(name: &str, sources: &RegistrySources) -> String {
@@ -183,34 +214,21 @@ fn origin_for(name: &str, sources: &RegistrySources) -> String {
     base.trim_end_matches('/').to_string()
 }
 
-fn generation_dir_for(site_dir: &std::path::Path, catalog: &stuff_catalog::Catalog) -> Option<PathBuf> {
-    let direct = site_dir.join("catalog.json");
-    if site_dir.join("current").symlink_metadata().is_err() && direct.is_file() {
-        return site_dir.parent().map(|p| p.to_path_buf()).or(Some(site_dir.to_path_buf()));
-    }
-    Some(site_dir.join("generations").join(&catalog.generation))
-}
-
 fn run_local_checks(
     checks: &mut Vec<Check>,
     name: &str,
     catalog: &stuff_catalog::Catalog,
-    sources: &RegistrySources,
+    local: &LocalSite,
+    origin: &str,
     sample: bool,
 ) {
-    let site_dir = site_dir_for(name, sources);
-    let gen_dir = match generation_dir_for(&site_dir, catalog) {
-        Some(d) => d,
-        None => {
-            checks.push(Check::fail(format!("{name} generation dir"), "could not resolve generation directory"));
-            return;
-        }
-    };
+    let site_dir = &local.site_root;
+    let gen_dir = &local.generation_dir;
     if catalog.packages.is_empty() {
         checks.push(Check::pass(format!("{name} endpoints"), "empty catalog: nothing further to check"));
         return;
     }
-    let expected_llms = stuff_catalog::render_llms_txt(catalog, &origin_for(name, sources));
+    let expected_llms = stuff_catalog::render_llms_txt(catalog, origin);
     match std::fs::read_to_string(gen_dir.join("llms.txt")) {
         Ok(actual) if actual == expected_llms => {
             checks.push(Check::pass(format!("{name} llms.txt"), "llms.txt matches catalog".to_string()));
@@ -259,7 +277,7 @@ fn run_local_checks(
         }
     }
     if sample && !catalog.packages.is_empty() {
-        checks.push(sample_local(name, catalog, &site_dir, &gen_dir));
+        checks.push(sample_local(name, catalog, site_dir, gen_dir));
     }
 }
 
@@ -345,7 +363,11 @@ fn run_remote_checks(
 
 fn report(checks: &[Check]) {
     for check in checks {
-        let status = if check.ok { "ok" } else { "FAIL" };
+        let status = match check.state {
+            CheckState::Pass => "ok",
+            CheckState::Fail => "FAIL",
+            CheckState::Skip => "skip",
+        };
         println!("{status}: {} — {}", check.name, check.detail);
     }
 }
@@ -784,7 +806,63 @@ mod tests {
             }],
         )
         .unwrap();
+        std::fs::write(gen_dir.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog)).unwrap();
+        std::fs::write(
+            gen_dir.join("llms.txt"),
+            stuff_catalog::render_llms_txt(&catalog, DEFAULT_CARGO_BASE),
+        )
+        .unwrap();
         (catalog, site, gen_dir)
+    }
+
+    #[test]
+    fn resolves_site_generation_and_catalog_to_one_pair() {
+        let dir = tempfile::tempdir().unwrap();
+        let (_, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
+        let catalog_file = gen_dir.join("catalog.json");
+        let from_site = LocalSite::resolve(&site).unwrap();
+        let from_generation = LocalSite::resolve(&gen_dir).unwrap();
+        let from_catalog = LocalSite::resolve(&catalog_file).unwrap();
+        assert_eq!(from_site, from_generation);
+        assert_eq!(from_site, from_catalog);
+        assert_eq!(from_site.site_root, site);
+        assert_eq!(from_site.generation_dir, gen_dir);
+    }
+
+    #[test]
+    fn doctor_accepts_site_generation_and_catalog_inputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let (_, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
+        let catalog_file = gen_dir.join("catalog.json");
+        for input in [&site, &gen_dir, &catalog_file] {
+            let mut parsed = doctor_parsed();
+            parsed.cargo_dir = Some(input.to_string_lossy().to_string());
+            parsed.sample_artifacts = true;
+            assert!(run_doctor(&parsed).unwrap(), "doctor failed for {}", input.display());
+        }
+    }
+
+    #[test]
+    fn local_input_skips_omitted_registries_and_refuses_expected_generation() {
+        let dir = tempfile::tempdir().unwrap();
+        let (_, site, _) = cargo_fixture(dir.path(), b"crate-bytes");
+        let mut parsed = doctor_parsed();
+        parsed.cargo_dir = Some(site.to_string_lossy().to_string());
+        let checks = doctor_checks(&parsed).unwrap();
+        let skipped: Vec<&str> = checks
+            .iter()
+            .filter(|check| check.state == CheckState::Skip)
+            .map(|check| check.name.as_str())
+            .collect();
+        assert_eq!(skipped, vec!["npm registry", "pypi registry"]);
+        assert!(checks.iter().all(|check| check.state != CheckState::Fail));
+
+        parsed.expected_generation = Some("gen1".to_string());
+        let err = run_doctor(&parsed).unwrap_err();
+        assert!(matches!(err, Error::Usage(_)), "{err}");
+
+        parsed.registry = Some(crate::cli::RegistryFilter::Cargo);
+        assert!(run_doctor(&parsed).unwrap());
     }
 
     #[test]
@@ -792,7 +870,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let (catalog, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
         let check = sample_local("cargo", &catalog, &site, &gen_dir);
-        assert!(check.ok, "{}", check.detail);
+        assert_eq!(check.state, CheckState::Pass, "{}", check.detail);
     }
 
     #[test]
@@ -802,7 +880,7 @@ mod tests {
         let blob = std::fs::read_dir(site.join("blobs")).unwrap().next().unwrap().unwrap().path();
         std::fs::write(&blob, b"tampered").unwrap();
         let check = sample_local("cargo", &catalog, &site, &gen_dir);
-        assert!(!check.ok, "tampered blob must fail");
+        assert_ne!(check.state, CheckState::Pass, "tampered blob must fail");
     }
 
     fn sources_for(site: &std::path::Path, cargo_base: &str) -> RegistrySources {
@@ -810,9 +888,9 @@ mod tests {
             cargo_base: cargo_base.to_string(),
             npm_base: DEFAULT_NPM_BASE.to_string(),
             pypi_base: DEFAULT_PYPI_BASE.to_string(),
-            cargo_dir: Some(site.display().to_string()),
-            npm_dir: None,
-            pypi_dir: None,
+            cargo_local: Some(LocalSite::resolve(site).unwrap()),
+            npm_local: None,
+            pypi_local: None,
         }
     }
 
@@ -826,22 +904,24 @@ mod tests {
             stuff_catalog::render_llms_txt(&catalog, origin),
         )
         .unwrap();
+        let local = LocalSite::resolve(&site).unwrap();
 
         let mut matching = Vec::new();
-        run_local_checks(&mut matching, "cargo", &catalog, &sources_for(&site, origin), false);
+        run_local_checks(&mut matching, "cargo", &catalog, &local, origin, false);
         let llms = matching.iter().find(|c| c.name == "cargo llms.txt").unwrap();
-        assert!(llms.ok, "{}", llms.detail);
+        assert_eq!(llms.state, CheckState::Pass, "{}", llms.detail);
 
         let mut mismatched = Vec::new();
         run_local_checks(
             &mut mismatched,
             "cargo",
             &catalog,
-            &sources_for(&site, "https://other.example.test"),
+            &local,
+            "https://other.example.test",
             false,
         );
         let llms = mismatched.iter().find(|c| c.name == "cargo llms.txt").unwrap();
-        assert!(!llms.ok, "doctor must detect an origin mismatch");
+        assert_eq!(llms.state, CheckState::Fail, "doctor must detect an origin mismatch");
         assert!(llms.detail.contains("does not match catalog"), "{}", llms.detail);
     }
 
@@ -872,7 +952,7 @@ mod tests {
         )
         .unwrap();
         let check = sample_local("npm", &npm_catalog, &site, &gen_dir);
-        assert!(check.ok, "{}", check.detail);
+        assert_eq!(check.state, CheckState::Pass, "{}", check.detail);
         let pypi_catalog = stuff_catalog::pypi_catalog(
             "g1",
             vec![stuff_catalog::PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false }],
@@ -884,6 +964,6 @@ mod tests {
         )
         .unwrap();
         let check = sample_local("pypi", &pypi_catalog, &site, &gen_dir);
-        assert!(check.ok, "{}", check.detail);
+        assert_eq!(check.state, CheckState::Pass, "{}", check.detail);
     }
 }

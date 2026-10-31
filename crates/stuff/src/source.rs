@@ -107,63 +107,99 @@ pub fn fetch_bytes_capped(url: &str, cap: u64) -> Result<(u16, Vec<u8>)> {
     Ok((status, body))
 }
 
-pub fn load_local_catalog(dir_or_file: &str) -> Result<stuff_catalog::Catalog> {
-    let path = PathBuf::from(dir_or_file);
-    let file = resolve_catalog_file(&path)?;
-    let text = std::fs::read_to_string(&file)
-        .map_err(|e| Error::Operation(format!("could not read catalog {}: {e}", file.display())))?;
-    stuff_catalog::parse_catalog_json(&text).map_err(|e| Error::Corrupt(format!("{}: {e}", file.display())))
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalSite {
+    pub site_root: PathBuf,
+    pub generation_dir: PathBuf,
+    catalog_file: PathBuf,
 }
 
-fn resolve_catalog_file(path: &Path) -> Result<PathBuf> {
-    let meta = std::fs::symlink_metadata(path)
-        .map_err(|_| Error::usage(format!("catalog path does not exist: {}", path.display())))?;
-    if meta.file_type().is_file() {
-        return Ok(path.to_path_buf());
-    }
-    if !meta.file_type().is_dir() || meta.file_type().is_symlink() {
-        return Err(Error::usage(format!(
-            "catalog path must be a file or a real directory: {}",
-            path.display()
-        )));
-    }
-    let direct = path.join("catalog.json");
-    if let Ok(md) = std::fs::symlink_metadata(&direct)
-        && md.file_type().is_file() {
-            let current = path.join("current");
-            if std::fs::symlink_metadata(&current).is_err() {
-                return Ok(direct);
-            }
+impl LocalSite {
+    pub fn resolve(input: &Path) -> Result<Self> {
+        let meta = std::fs::symlink_metadata(input)
+            .map_err(|_| Error::usage(format!("catalog path does not exist: {}", input.display())))?;
+        if meta.file_type().is_file() {
+            let generation_dir = input.parent().unwrap_or_else(|| Path::new("."));
+            let generation_dir = canonical_if_symlink(generation_dir);
+            let site_root = site_root_for(&generation_dir);
+            return Ok(Self { site_root, generation_dir, catalog_file: input.to_path_buf() });
         }
-    let current = path.join("current");
-    match std::fs::symlink_metadata(&current) {
-        Ok(md) if md.file_type().is_symlink() => {
-            let target = std::fs::read_link(&current)
-                .map_err(|e| Error::usage(format!("could not read current link {}: {e}", current.display())))?;
-            let target_str = target.to_string_lossy().to_string();
-            let id = target_str.strip_prefix("generations/").ok_or_else(|| {
-                Error::usage(format!("current link points outside generations: {target_str}"))
-            })?;
-            if id.is_empty() || id.contains('/') || id.contains('\0') {
-                return Err(Error::usage(format!("current link has an unsafe generation target: {target_str}")));
-            }
-            let file = path.join("generations").join(id).join("catalog.json");
-            if std::fs::symlink_metadata(&file).is_ok_and(|m| m.file_type().is_file()) {
-                return Ok(file);
-            }
-            Err(Error::usage(format!("current generation has no catalog.json: {}", file.display())))
+        if !meta.file_type().is_dir() || meta.file_type().is_symlink() {
+            return Err(Error::usage(format!(
+                "catalog path must be a file or a real directory: {}",
+                input.display()
+            )));
         }
-        _ => {
-            if std::fs::symlink_metadata(&direct).is_ok_and(|m| m.file_type().is_file()) {
-                Ok(direct)
-            } else {
-                Err(Error::usage(format!(
-                    "directory has neither a current link nor a catalog.json: {}",
-                    path.display()
-                )))
-            }
+        let current = input.join("current");
+        if std::fs::symlink_metadata(&current).is_ok_and(|m| m.file_type().is_symlink()) {
+            let generation_dir = input.join("generations").join(current_generation_id(input)?);
+            let catalog_file = generation_dir.join("catalog.json");
+            return Ok(Self { site_root: input.to_path_buf(), generation_dir, catalog_file });
         }
+        let catalog_file = input.join("catalog.json");
+        if std::fs::symlink_metadata(&catalog_file).is_ok_and(|m| m.file_type().is_file()) {
+            return Ok(Self {
+                site_root: site_root_for(input),
+                generation_dir: input.to_path_buf(),
+                catalog_file,
+            });
+        }
+        Err(Error::usage(format!(
+            "directory has neither a current link nor a catalog.json: {}",
+            input.display()
+        )))
     }
+
+    pub fn load_catalog(&self) -> Result<stuff_catalog::Catalog> {
+        load_catalog_file(&self.catalog_file)
+    }
+}
+
+fn canonical_if_symlink(path: &Path) -> PathBuf {
+    if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) {
+        path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+    } else {
+        path.to_path_buf()
+    }
+}
+
+fn site_root_for(generation_dir: &Path) -> PathBuf {
+    let parent = generation_dir.parent();
+    let parent_is_generations = parent
+        .and_then(Path::file_name)
+        .is_some_and(|name| name == "generations");
+    if parent_is_generations {
+        parent
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| generation_dir.to_path_buf())
+    } else {
+        generation_dir.to_path_buf()
+    }
+}
+
+fn current_generation_id(site: &Path) -> Result<String> {
+    let current = site.join("current");
+    let target = std::fs::read_link(&current)
+        .map_err(|e| Error::usage(format!("could not read current link {}: {e}", current.display())))?;
+    let target_str = target.to_string_lossy().to_string();
+    let id = target_str
+        .strip_prefix("generations/")
+        .ok_or_else(|| Error::usage(format!("current link points outside generations: {target_str}")))?;
+    if id.is_empty() || id.contains('/') || id.contains('\0') {
+        return Err(Error::usage(format!("current link has an unsafe generation target: {target_str}")));
+    }
+    Ok(id.to_string())
+}
+
+pub fn load_local_catalog(dir_or_file: &str) -> Result<stuff_catalog::Catalog> {
+    LocalSite::resolve(Path::new(dir_or_file))?.load_catalog()
+}
+
+fn load_catalog_file(file: &Path) -> Result<stuff_catalog::Catalog> {
+    let text = std::fs::read_to_string(file)
+        .map_err(|e| Error::Operation(format!("could not read catalog {}: {e}", file.display())))?;
+    stuff_catalog::parse_catalog_json(&text).map_err(|e| Error::Corrupt(format!("{}: {e}", file.display())))
 }
 
 #[cfg(test)]
