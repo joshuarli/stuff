@@ -5,7 +5,8 @@ use crate::config::{Config, Target};
 use crate::error::{Error, Result};
 use crate::fetch_budget::FetchByteBudget;
 use crate::inventory::{
-    record_verified_artifacts, validate_artifact_record, ArtifactRecord, Inventory, PackageRecord,
+    record_metadata_only, record_verified_artifacts, validate_artifact_record, ArtifactRecord, Inventory,
+    MetadataOnlyRecord, PackageRecord, PlatformConstraints,
 };
 use crate::inventory_store::{load_inventory, update_inventory};
 use crate::limits;
@@ -499,7 +500,39 @@ pub struct PackageTask {
     pub artifact_record: Option<ArtifactRecord>,
 }
 
-pub fn group_packages(inventory: &Inventory, config: &Config) -> Result<Vec<PackageTask>> {
+pub struct MetadataOnlyTask {
+    pub name: String,
+    pub version: String,
+    pub integrity: String,
+    pub platform: PlatformConstraints,
+}
+
+pub struct InventoryPlan {
+    pub tasks: Vec<PackageTask>,
+    pub metadata_only: Vec<MetadataOnlyTask>,
+}
+
+fn metadata_only_task(key: &(String, String), records: &[PackageRecord]) -> Result<MetadataOnlyTask> {
+    let (name, version) = key;
+    let sha512 = lock_claims(records)?.get("sha512").cloned().ok_or_else(|| {
+        Error::Input(format!(
+            "{name}@{version} is excluded from every target and its lockfile has no sha512 integrity to record"
+        ))
+    })?;
+    let platform = records[0].platform.clone();
+    if records.iter().any(|r| r.platform != platform) {
+        return Err(Error::Conflict(format!("lockfiles disagree about the platform of {name}@{version}")));
+    }
+    Ok(MetadataOnlyTask {
+        name: name.clone(),
+        version: version.clone(),
+        integrity: format!("sha512-{}", base64_engine_encode(&hex_decode(&sha512))),
+        platform,
+    })
+}
+
+pub fn plan_inventory(inventory: &Inventory, config: &Config) -> Result<InventoryPlan> {
+    let mut excluded: BTreeMap<(String, String), Vec<PackageRecord>> = BTreeMap::new();
     let mut packages: BTreeMap<(String, String), PackageTask> = BTreeMap::new();
     let mut artifacts: BTreeMap<(String, String), ArtifactRecord> = BTreeMap::new();
     for artifact in &inventory.artifacts {
@@ -532,10 +565,11 @@ pub fn group_packages(inventory: &Inventory, config: &Config) -> Result<Vec<Pack
                     targets.push(target.clone());
                 }
             }
+            let key = (record.name.clone(), version.clone());
             if targets.is_empty() {
+                excluded.entry(key).or_default().push(record.clone());
                 continue;
             }
-            let key = (record.name.clone(), version.clone());
             let entry = packages.entry(key.clone()).or_insert_with(|| PackageTask {
                 name: record.name.clone(),
                 version: version.clone(),
@@ -552,9 +586,15 @@ pub fn group_packages(inventory: &Inventory, config: &Config) -> Result<Vec<Pack
             }
         }
     }
-    let mut out: Vec<PackageTask> = packages.into_values().collect();
-    out.sort_by_key(|a| (a.name.clone(), a.version.clone()));
-    Ok(out)
+    let mut metadata_only = Vec::new();
+    for (key, records) in &excluded {
+        if !packages.contains_key(key) {
+            metadata_only.push(metadata_only_task(key, records)?);
+        }
+    }
+    let mut tasks: Vec<PackageTask> = packages.into_values().collect();
+    tasks.sort_by_key(|a| (a.name.clone(), a.version.clone()));
+    Ok(InventoryPlan { tasks, metadata_only })
 }
 
 fn validate_metadata_response(value: &deser_value::Value, task: &PackageTask, expected_host: &str) -> Result<(deser_value::Value, deser_value::Value, String)> {
@@ -796,6 +836,68 @@ fn fetch_metadata(
     }
     validate_metadata_response(&parsed, task, &ctx.expected_host)
         .map_err(|_| Error::Operation(format!("upstream metadata is invalid for {}", task.name)))
+}
+
+fn fetch_metadata_only(
+    pending: &[&MetadataOnlyTask],
+    upstream_registry: &str,
+    expected_host: &str,
+    exchange: &dyn Exchange,
+    budget: &Mutex<FetchByteBudget>,
+    deadline: Instant,
+) -> Result<Vec<MetadataOnlyRecord>> {
+    let mut by_name: BTreeMap<&str, Vec<&MetadataOnlyTask>> = BTreeMap::new();
+    for task in pending {
+        by_name.entry(task.name.as_str()).or_default().push(task);
+    }
+    let base = upstream_registry.trim_end_matches('/');
+    let mut records = Vec::with_capacity(pending.len());
+    for (name, tasks) in by_name {
+        if Instant::now() >= deadline {
+            return Err(Error::Operation("fetch was cancelled".to_string()));
+        }
+        let url = format!("{}/{}", base, package_route(name));
+        let (body, _) = transfer(&url, limits::METADATA_BYTES, expected_host, exchange, budget)?;
+        let invalid = || Error::Operation(format!("upstream metadata is invalid for {name}"));
+        let text = String::from_utf8(body).map_err(|_| invalid())?;
+        let parsed: deser_value::Value = deser_json::from_str(&text).map_err(|_| invalid())?;
+        let root = parsed.as_map().ok_or_else(invalid)?;
+        if root.get("name").and_then(|v| v.as_str()) != Some(name) {
+            return Err(invalid());
+        }
+        let versions = root.get("versions").and_then(|v| v.as_map()).ok_or_else(invalid)?;
+        let times = root.get("time").and_then(|v| v.as_map()).ok_or_else(invalid)?;
+        for task in tasks {
+            let version = task.version.as_str();
+            let meta = versions.get(version).and_then(|v| v.as_map()).ok_or_else(|| {
+                Error::Operation(format!("upstream metadata is missing exact version {name}@{version}"))
+            })?;
+            if meta.get("name").and_then(|v| v.as_str()) != Some(name)
+                || meta.get("version").and_then(|v| v.as_str()) != Some(version)
+            {
+                return Err(Error::Operation(format!("upstream metadata is missing exact version {name}@{version}")));
+            }
+            let upstream = meta.get("dist").and_then(|v| v.as_map()).and_then(|d| d.get("integrity")).and_then(|v| v.as_str());
+            let locked = parse_integrity_claims(Some(&task.integrity), "recorded integrity")?;
+            let upstream = parse_integrity_claims(upstream, "upstream metadata integrity")?;
+            if let Some(sha512) = upstream.get("sha512")
+                && Some(sha512) != locked.get("sha512")
+            {
+                return Err(Error::Conflict(format!("upstream integrity conflicts with the lockfile for {name}@{version}")));
+            }
+            let published_at = times.get(version).and_then(|v| v.as_str()).ok_or_else(|| {
+                Error::Operation(format!("upstream metadata has no publish time for {name}@{version}"))
+            })?;
+            records.push(MetadataOnlyRecord {
+                name: task.name.clone(),
+                version: task.version.clone(),
+                integrity: task.integrity.clone(),
+                published_at: published_at.to_string(),
+                platform: task.platform.clone(),
+            });
+        }
+    }
+    Ok(records)
 }
 
 fn is_json_value(v: &deser_value::Value) -> bool {
@@ -1144,10 +1246,13 @@ fn clean_interrupted_staging(staging_root: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct FetchSummary {
     pub downloaded_bytes: u64,
     pub verified_count: usize,
     pub reused_count: usize,
+    pub metadata_only_count: usize,
+    pub metadata_only_recorded: usize,
 }
 
 pub fn fetch_inventory(
@@ -1156,10 +1261,23 @@ pub fn fetch_inventory(
     exchange: &dyn Exchange,
 ) -> Result<FetchSummary> {
     let inventory = load_inventory(state_dir)?;
-    let tasks = group_packages(&inventory, config)
+    let plan = plan_inventory(&inventory, config)
         .map_err(|e| Error::Input(format!("inventory contains an invalid package: {e}")))?;
-    if tasks.is_empty() {
-        return Ok(FetchSummary { downloaded_bytes: 0, verified_count: 0, reused_count: 0 });
+    let tasks = plan.tasks;
+    let pending: Vec<&MetadataOnlyTask> = plan
+        .metadata_only
+        .iter()
+        .filter(|t| !inventory.metadata_only.iter().any(|r| r.name == t.name && r.version == t.version))
+        .collect();
+    let metadata_only_count = plan.metadata_only.len();
+    if tasks.is_empty() && pending.is_empty() {
+        return Ok(FetchSummary {
+            downloaded_bytes: 0,
+            verified_count: 0,
+            reused_count: 0,
+            metadata_only_count,
+            metadata_only_recorded: 0,
+        });
     }
     let expected_host = url::Url::parse(&config.upstream_registry)
         .map_err(|_| Error::Input("configured upstream registry is invalid".to_string()))?
@@ -1167,6 +1285,19 @@ pub fn fetch_inventory(
         .unwrap_or("")
         .to_string();
     let budget = Mutex::new(FetchByteBudget::new());
+    let deadline = Instant::now() + Duration::from_millis(limits::FETCH_MILLISECONDS);
+    let stubs = fetch_metadata_only(&pending, &config.upstream_registry, &expected_host, exchange, &budget, deadline)?;
+    if tasks.is_empty() {
+        update_inventory(state_dir, |current| record_metadata_only(current, &stubs))?;
+        let downloaded = budget.lock().map(|b| limits::FETCH_BYTES - b.remaining()).unwrap_or(0);
+        return Ok(FetchSummary {
+            downloaded_bytes: downloaded,
+            verified_count: 0,
+            reused_count: 0,
+            metadata_only_count,
+            metadata_only_recorded: stubs.len(),
+        });
+    }
     let staging_root = state_dir.join("tmp");
     ensure_managed_dir(&staging_root)?;
     clean_interrupted_staging(&staging_root)?;
@@ -1174,7 +1305,6 @@ pub fn fetch_inventory(
     std::fs::create_dir_all(&staging_dir).map_err(|e| {
         Error::Operation(format!("could not create private staging directory under {}: {e}", staging_root.display()))
     })?;
-    let deadline = Instant::now() + Duration::from_millis(limits::FETCH_MILLISECONDS);
     let result: Result<Vec<PackageResult>> = std::thread::scope(|scope| {
         let queue = std::sync::Arc::new(Mutex::new(tasks.into_iter().collect::<VecDeque<_>>()));
         let results: std::sync::Arc<Mutex<Vec<PackageResult>>> = std::sync::Arc::new(Mutex::new(Vec::new()));
@@ -1251,9 +1381,16 @@ pub fn fetch_inventory(
     let state_path = state_dir.to_path_buf();
     update_inventory(&state_path, |current| {
         let values = results.iter().map(artifact_value).collect::<Result<Vec<_>>>()?;
-        record_verified_artifacts(current, &values)
+        let recorded = record_verified_artifacts(current, &values)?;
+        record_metadata_only(&recorded, &stubs)
     })?;
-    Ok(FetchSummary { downloaded_bytes: downloaded, verified_count: verified, reused_count: reused })
+    Ok(FetchSummary {
+        downloaded_bytes: downloaded,
+        verified_count: verified,
+        reused_count: reused,
+        metadata_only_count,
+        metadata_only_recorded: stubs.len(),
+    })
 }
 
 fn artifact_value(result: &PackageResult) -> Result<deser_value::Value> {
@@ -1274,13 +1411,31 @@ fn artifact_value(result: &PackageResult) -> Result<deser_value::Value> {
     crate::inventory::artifact_to_value(&artifact)
 }
 
+#[derive(Debug)]
+pub struct VerifySummary {
+    pub artifact_count: usize,
+    pub metadata_only_count: usize,
+}
+
 pub fn verify_inventory_snapshot(
     state_dir: &Path,
     config: &Config,
     inventory: &Inventory,
-) -> Result<usize> {
-    let tasks = group_packages(inventory, config)
+) -> Result<VerifySummary> {
+    let plan = plan_inventory(inventory, config)
         .map_err(|e| Error::Corrupt(format!("inventory contains an invalid package: {e}")))?;
+    let tasks = plan.tasks;
+    for stub in &plan.metadata_only {
+        let identity = format!("{}@{}", stub.name, stub.version);
+        let record = inventory
+            .metadata_only
+            .iter()
+            .find(|r| r.name == stub.name && r.version == stub.version)
+            .ok_or_else(|| Error::Corrupt(format!("no metadata-only record is recorded for {identity}")))?;
+        if record.integrity != stub.integrity || record.platform != stub.platform {
+            return Err(Error::Corrupt(format!("metadata-only record conflicts with the lockfile for {identity}")));
+        }
+    }
     assert_safe_object_dirs(state_dir, true)?;
     for task in &tasks {
         let Some(record) = task.artifact_record.clone() else {
@@ -1300,10 +1455,10 @@ pub fn verify_inventory_snapshot(
             Error::Corrupt(format!("inventory metadata is invalid for {}@{}: {e}", task.name, task.version))
         })?;
     }
-    Ok(tasks.len())
+    Ok(VerifySummary { artifact_count: tasks.len(), metadata_only_count: plan.metadata_only.len() })
 }
 
-pub fn verify_inventory(state_dir: &Path, config: &Config) -> Result<usize> {
+pub fn verify_inventory(state_dir: &Path, config: &Config) -> Result<VerifySummary> {
     let inventory = load_inventory(state_dir)?;
     verify_inventory_snapshot(state_dir, config, &inventory)
 }
@@ -1395,7 +1550,7 @@ mod tests {
             }],
             snapshot: None,
         };
-        Inventory { projects: vec![project], artifacts: vec![] }
+        Inventory { projects: vec![project], artifacts: vec![], metadata_only: vec![] }
     }
 
     #[test]
@@ -1403,7 +1558,7 @@ mod tests {
         let mut inv = fixture_inventory("a", "1.0.0", None);
         inv.projects[0].packages[0].source_kind = crate::inventory::SourceKind::Git;
         let config = fixture_config(vec![]);
-        assert!(group_packages(&inv, &config).is_err());
+        assert!(plan_inventory(&inv, &config).is_err());
     }
 
     struct FakeRegistry {
@@ -1491,7 +1646,8 @@ mod tests {
         assert_eq!(summary.reused_count, 0);
         assert!(summary.downloaded_bytes > 0);
         let verified = verify_inventory(&state, &config).unwrap();
-        assert_eq!(verified, 1);
+        assert_eq!(verified.artifact_count, 1);
+        assert_eq!(verified.metadata_only_count, 0);
         let summary2 = fetch_inventory(&state, &config, &exchange).unwrap();
         assert_eq!(summary2.reused_count, 1);
     }

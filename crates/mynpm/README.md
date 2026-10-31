@@ -19,6 +19,29 @@ the inventory byte-identical, while a changed one is recorded as an additional
 import under the same project id and already hosted versions stay. `fetch`
 reuses verified artifacts.
 
+## Metadata-only versions
+
 Packages whose `os`/`cpu`/`libc` exclude every configured target (win32,
-android, freebsd, ppc64, ...) are recorded in the inventory but not fetched or
-hosted.
+android, freebsd, ppc64, ...) are never fetched or hosted. `fetch` records each
+such name@version as a metadata-only inventory record: the lockfile's sha512
+integrity, the lockfile's `os`/`cpu`/`libc`, and the upstream `time[version]`
+(one packument request per package, same host, size, and byte limits as other
+fetches; an upstream `dist.integrity` that disagrees with the lockfile is a
+conflict). `publish` renders them into the packument as
+`versions[v].dist.{integrity,tarball}`, `os`/`cpu`/`libc`, and `time[v]`. The
+tarball URL is the standard `current/<name>/-/<basename>-<version>.tgz` path,
+which is 404 because no object exists. `deprecated` and `engines` are not
+copied: frozen installs never read them for a version that is not installed.
+`os`/`cpu`/`libc` are copied so non-frozen resolves skip the unhostable build.
+
+Metadata-only versions are not artifacts. They are absent from `catalog.json`,
+`index.html`, `llms.txt`, and `stuff ls`/`stuff doctor`, and `fetch`, `verify`,
+and `publish` report their counts separately. Hosting such a version later (a
+target that supports it) replaces its record if the integrity matches.
+
+Contract: inventory `schemaVersion` is 2 until a metadata-only record exists
+and 3 afterwards (`metadataOnly` array), so existing state loads unchanged and
+stays byte-identical until `fetch` records one; older binaries cannot read a
+version 3 inventory. Publication renderer 6 adds `metadataOnly` to
+`manifest.json` and stub-only packuments; generations of renderer 1 to 5 stay
+valid.

@@ -6,6 +6,7 @@ use base64::Engine;
 use std::collections::BTreeMap;
 
 pub const SCHEMA_VERSION: u64 = 2;
+pub const METADATA_ONLY_SCHEMA_VERSION: u64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Category {
@@ -181,9 +182,19 @@ pub struct ArtifactRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetadataOnlyRecord {
+    pub name: String,
+    pub version: String,
+    pub integrity: String,
+    pub published_at: String,
+    pub platform: PlatformConstraints,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Inventory {
     pub projects: Vec<ProjectRecord>,
     pub artifacts: Vec<ArtifactRecord>,
+    pub metadata_only: Vec<MetadataOnlyRecord>,
 }
 
 fn valid_name_char(b: u8) -> bool {
@@ -913,6 +924,81 @@ pub fn validate_artifact_record(v: &deser_value::Value) -> Result<ArtifactRecord
     Ok(record)
 }
 
+fn valid_timestamp(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.len() >= 20
+        && b.ends_with(b"Z")
+        && b[..19].iter().enumerate().all(|(i, c)| match i {
+            4 | 7 => *c == b'-',
+            10 => *c == b'T',
+            13 | 16 => *c == b':',
+            _ => c.is_ascii_digit(),
+        })
+}
+
+pub fn normalize_metadata_only_record(v: &deser_value::Value, label: &str, category: Category) -> Result<MetadataOnlyRecord> {
+    let record = require_record(v, label, category)?;
+    exact_keys(record, &["name", "version", "integrity", "publishedAt", "platform"], label, category)?;
+    let null = deser_value::Value::from(deser_value::Kind::Null);
+    let name = require_text(record.get("name").unwrap_or(&null), &format!("{label}.name"), category)?;
+    let version = require_text(record.get("version").unwrap_or(&null), &format!("{label}.version"), category)?;
+    if !valid_package_name(&name) || !valid_version(&version) {
+        return Err(err(category, format!("{label} has an invalid package identity")));
+    }
+    let integrity = require_text(record.get("integrity").unwrap_or(&null), &format!("{label}.integrity"), category)?;
+    validate_integrity(Some(&integrity), &format!("{label}.integrity"), category)?;
+    let claims = digest_claims(Some(&integrity), &format!("{label}.integrity"), category)?;
+    if claims.len() != 1 || !claims.contains_key("sha512") || integrity.split_whitespace().count() != 1 {
+        return Err(err(category, format!("{label}.integrity must be a single sha512 claim")));
+    }
+    let published_at = require_text(record.get("publishedAt").unwrap_or(&null), &format!("{label}.publishedAt"), category)?;
+    if !valid_timestamp(&published_at) {
+        return Err(err(category, format!("{label}.publishedAt is not an RFC 3339 UTC timestamp")));
+    }
+    let platform = normalize_platform(record.get("platform").unwrap_or(&null), &format!("{label}.platform"), category)?;
+    Ok(MetadataOnlyRecord { name, version, integrity, published_at, platform })
+}
+
+fn validate_metadata_only(
+    projects: &[ProjectRecord],
+    artifacts: &[ArtifactRecord],
+    records: &[MetadataOnlyRecord],
+    category: Category,
+) -> Result<()> {
+    let mut seen = std::collections::BTreeSet::new();
+    for record in records {
+        let identity = format!("{}@{}", record.name, record.version);
+        if !seen.insert(identity.clone()) {
+            return Err(err(category, format!("inventory contains duplicate metadata-only identities: {identity}")));
+        }
+        if artifacts.iter().any(|a| a.name == record.name && a.version == record.version) {
+            return Err(err(category, format!("{identity} is both hosted and metadata-only")));
+        }
+        let mut sources = Vec::new();
+        for project in projects {
+            for pkg in &project.packages {
+                if pkg.name == record.name && pkg.version.as_deref() == Some(record.version.as_str()) {
+                    sources.push(pkg);
+                }
+            }
+        }
+        if sources.is_empty() || sources.iter().any(|p| p.source_kind != SourceKind::Registry) {
+            return Err(err(category, format!("metadata-only {identity} has no registry package record")));
+        }
+        let wanted = digest_claims(Some(&record.integrity), &identity, category)?;
+        for pkg in sources {
+            let locked = digest_claims(pkg.integrity.as_deref(), &identity, category)?;
+            if locked.get("sha512") != wanted.get("sha512") {
+                return Err(err(category, format!("metadata-only integrity conflicts with the lockfile for {identity}")));
+            }
+            if pkg.platform != record.platform {
+                return Err(err(category, format!("metadata-only platform conflicts with the lockfile for {identity}")));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn normalize_package(v: &deser_value::Value, label: &str, category: Category) -> Result<PackageRecord> {
     let record = require_record(v, label, category)?;
     exact_keys(record, &["key", "name", "version", "integrity", "resolved", "sourceKind", "aliases", "flags", "platform", "targets"], label, category)?;
@@ -1109,7 +1195,7 @@ fn validate_digest_conflicts(projects: &[ProjectRecord], artifacts: &[ArtifactRe
 }
 
 pub fn create_empty_inventory() -> Inventory {
-    Inventory { projects: Vec::new(), artifacts: Vec::new() }
+    Inventory { projects: Vec::new(), artifacts: Vec::new(), metadata_only: Vec::new() }
 }
 
 fn project_sort_key(p: &ProjectRecord) -> (String, String, String, String, String) {
@@ -1130,10 +1216,16 @@ pub fn parse_inventory(text: &str) -> Result<Inventory> {
     let value: deser_value::Value = deser_json::from_str(text)
         .map_err(|_| Error::Corrupt("inventory is not valid JSON".to_string()))?;
     let record = require_record(&value, "inventory", Category::Corrupt)?;
-    exact_keys(record, &["schemaVersion", "projects", "artifacts"], "inventory", Category::Corrupt)?;
     let version = record.get("schemaVersion").and_then(|v| v.as_u64()).unwrap_or(0);
-    if version != SCHEMA_VERSION {
-        return Err(err(Category::Corrupt, format!("unsupported inventory schemaVersion: {version}")));
+    match version {
+        SCHEMA_VERSION => exact_keys(record, &["schemaVersion", "projects", "artifacts"], "inventory", Category::Corrupt)?,
+        METADATA_ONLY_SCHEMA_VERSION => exact_keys(
+            record,
+            &["schemaVersion", "projects", "artifacts", "metadataOnly"],
+            "inventory",
+            Category::Corrupt,
+        )?,
+        _ => return Err(err(Category::Corrupt, format!("unsupported inventory schemaVersion: {version}"))),
     }
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let projects_val = record.get("projects").unwrap_or(&null);
@@ -1159,6 +1251,16 @@ pub fn parse_inventory(text: &str) -> Result<Inventory> {
         return Err(err(Category::Corrupt, "inventory contains duplicate verified artifact identities".to_string()));
     }
     validate_digest_conflicts(&projects, &artifacts, Category::Corrupt)?;
+    let mut metadata_only = Vec::new();
+    if let Some(seq) = record.get("metadataOnly").and_then(|v| v.as_seq()) {
+        for (i, r) in seq.iter().enumerate() {
+            metadata_only.push(normalize_metadata_only_record(r, &format!("inventory.metadataOnly[{i}]"), Category::Corrupt)?);
+        }
+    } else if version == METADATA_ONLY_SCHEMA_VERSION {
+        return Err(err(Category::Corrupt, "inventory metadataOnly must be an array".to_string()));
+    }
+    metadata_only.sort_by_key(|r| (r.name.clone(), r.version.clone()));
+    validate_metadata_only(&projects, &artifacts, &metadata_only, Category::Corrupt)?;
     let stable: Vec<String> = projects.iter().map(project_stable_string).collect::<Result<Vec<_>>>()?;
     let mut dedup2 = stable.clone();
     dedup2.sort();
@@ -1166,7 +1268,7 @@ pub fn parse_inventory(text: &str) -> Result<Inventory> {
     if dedup2.len() != stable.len() {
         return Err(err(Category::Corrupt, "inventory contains duplicate project imports".to_string()));
     }
-    Ok(Inventory { projects, artifacts })
+    Ok(Inventory { projects, artifacts, metadata_only })
 }
 
 fn project_stable_string(p: &ProjectRecord) -> Result<String> {
@@ -1195,7 +1297,8 @@ fn project_stable_string(p: &ProjectRecord) -> Result<String> {
 
 fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {
     let mut root = deser_value::Map::new();
-    root.insert("schemaVersion".to_string(), deser_value::Value::from(SCHEMA_VERSION));
+    let version = if inv.metadata_only.is_empty() { SCHEMA_VERSION } else { METADATA_ONLY_SCHEMA_VERSION };
+    root.insert("schemaVersion".to_string(), deser_value::Value::from(version));
     let mut projects = deser_value::Seq::new();
     for p in &inv.projects {
         projects.push(project_to_value(p)?);
@@ -1206,6 +1309,13 @@ fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {
         artifacts.push(artifact_to_value(a)?);
     }
     root.insert("artifacts".to_string(), deser_value::Value::from(artifacts));
+    if !inv.metadata_only.is_empty() {
+        let mut stubs = deser_value::Seq::new();
+        for r in &inv.metadata_only {
+            stubs.push(metadata_only_to_value(r));
+        }
+        root.insert("metadataOnly".to_string(), deser_value::Value::from(stubs));
+    }
     let mut out = deser_value::Value::from(root);
     sort_canonical_value(&mut out);
     Ok(out)
@@ -1283,25 +1393,8 @@ pub fn project_to_value(p: &ProjectRecord) -> Result<deser_value::Value> {
         flags.insert("peerOptional".to_string(), deser_value::Value::from(pkg.flags.peer_optional));
         flags.insert("link".to_string(), deser_value::Value::from(pkg.flags.link));
         pm.insert("flags".to_string(), deser_value::Value::from(flags));
-        let mut platform = deser_value::Map::new();
-        let put = |map: &mut deser_value::Map, key: &str, v: &Option<Vec<String>>| {
-            match v {
-                Some(list) => {
-                    let mut seq = deser_value::Seq::new();
-                    for s in list {
-                        seq.push(deser_value::Value::from(s.clone()));
-                    }
-                    map.insert(key.to_string(), deser_value::Value::from(seq));
-                }
-                None => {
-                    map.insert(key.to_string(), deser_value::Value::from(deser_value::Kind::Null));
-                }
-            }
-        };
-        put(&mut platform, "os", &pkg.platform.os);
-        put(&mut platform, "cpu", &pkg.platform.cpu);
-        put(&mut platform, "libc", &pkg.platform.libc);
-        pm.insert("platform".to_string(), deser_value::Value::from(platform));
+        let platform = platform_to_value(&pkg.platform);
+        pm.insert("platform".to_string(), platform);
         let mut targets = deser_value::Seq::new();
         for t in &pkg.targets {
             targets.push(deser_value::Value::from(t.clone()));
@@ -1312,6 +1405,24 @@ pub fn project_to_value(p: &ProjectRecord) -> Result<deser_value::Value> {
     m.insert("packages".to_string(), deser_value::Value::from(packages));
     m.insert("snapshot".to_string(), snapshot_to_value(&p.snapshot)?);
     Ok(deser_value::Value::from(m))
+}
+
+fn platform_to_value(platform: &PlatformConstraints) -> deser_value::Value {
+    let mut map = deser_value::Map::new();
+    for (key, list) in [("os", &platform.os), ("cpu", &platform.cpu), ("libc", &platform.libc)] {
+        let value = match list {
+            Some(list) => {
+                let mut seq = deser_value::Seq::new();
+                for s in list {
+                    seq.push(deser_value::Value::from(s.clone()));
+                }
+                deser_value::Value::from(seq)
+            }
+            None => deser_value::Value::from(deser_value::Kind::Null),
+        };
+        map.insert(key.to_string(), value);
+    }
+    deser_value::Value::from(map)
 }
 
 fn snapshot_to_value(s: &Option<ProjectSnapshot>) -> Result<deser_value::Value> {
@@ -1364,6 +1475,16 @@ pub fn artifact_to_value(a: &ArtifactRecord) -> Result<deser_value::Value> {
     am.insert("legacySha1Only".to_string(), deser_value::Value::from(a.artifact.legacy_sha1_only));
     m.insert("artifact".to_string(), deser_value::Value::from(am));
     Ok(deser_value::Value::from(m))
+}
+
+pub fn metadata_only_to_value(r: &MetadataOnlyRecord) -> deser_value::Value {
+    let mut m = deser_value::Map::new();
+    m.insert("name".to_string(), deser_value::Value::from(r.name.clone()));
+    m.insert("version".to_string(), deser_value::Value::from(r.version.clone()));
+    m.insert("integrity".to_string(), deser_value::Value::from(r.integrity.clone()));
+    m.insert("publishedAt".to_string(), deser_value::Value::from(r.published_at.clone()));
+    m.insert("platform".to_string(), platform_to_value(&r.platform));
+    deser_value::Value::from(m)
 }
 
 pub fn serialize_inventory(inv: &Inventory) -> Result<String> {
@@ -1450,7 +1571,12 @@ pub fn merge_project(inv: &Inventory, project: ProjectRecord) -> Result<Inventor
     let mut projects = reparsed.projects.clone();
     projects.push(checked);
     validate_digest_conflicts(&projects, &reparsed.artifacts, Category::Conflict)?;
-    parse_inventory(&inventory_roundtrip(&Inventory { projects, artifacts: reparsed.artifacts })?)
+    validate_metadata_only(&projects, &reparsed.artifacts, &reparsed.metadata_only, Category::Conflict)?;
+    parse_inventory(&inventory_roundtrip(&Inventory {
+        projects,
+        artifacts: reparsed.artifacts,
+        metadata_only: reparsed.metadata_only,
+    })?)
 }
 
 pub fn record_verified_artifacts(inv: &Inventory, values: &[deser_value::Value]) -> Result<Inventory> {
@@ -1476,7 +1602,43 @@ pub fn record_verified_artifacts(inv: &Inventory, values: &[deser_value::Value])
         }
     }
     validate_digest_conflicts(&reparsed.projects, &artifacts, Category::Conflict)?;
-    parse_inventory(&inventory_roundtrip(&Inventory { projects: reparsed.projects, artifacts })?)
+    let mut metadata_only = reparsed.metadata_only;
+    for artifact in &artifacts {
+        if let Some(i) = metadata_only.iter().position(|r| r.name == artifact.name && r.version == artifact.version) {
+            if metadata_only[i].integrity != artifact.artifact.integrity {
+                return Err(Error::Conflict(format!(
+                    "hosted artifact conflicts with metadata-only record for {}@{}",
+                    artifact.name, artifact.version
+                )));
+            }
+            metadata_only.remove(i);
+        }
+    }
+    parse_inventory(&inventory_roundtrip(&Inventory { projects: reparsed.projects, artifacts, metadata_only })?)
+}
+
+pub fn record_metadata_only(inv: &Inventory, records: &[MetadataOnlyRecord]) -> Result<Inventory> {
+    let reparsed = parse_inventory(&inventory_roundtrip(inv)?)?;
+    let mut metadata_only = reparsed.metadata_only;
+    for record in records {
+        let checked = normalize_metadata_only_record(&metadata_only_to_value(record), "metadata-only record", Category::Input)?;
+        match metadata_only.iter().find(|r| r.name == checked.name && r.version == checked.version) {
+            Some(existing) if *existing != checked => {
+                return Err(Error::Conflict(format!(
+                    "metadata-only record conflicts for {}@{}",
+                    checked.name, checked.version
+                )));
+            }
+            Some(_) => {}
+            None => metadata_only.push(checked),
+        }
+    }
+    validate_metadata_only(&reparsed.projects, &reparsed.artifacts, &metadata_only, Category::Conflict)?;
+    parse_inventory(&inventory_roundtrip(&Inventory {
+        projects: reparsed.projects,
+        artifacts: reparsed.artifacts,
+        metadata_only,
+    })?)
 }
 
 fn inventory_roundtrip(inv: &Inventory) -> Result<String> {

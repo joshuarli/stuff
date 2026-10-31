@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Result};
-use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord};
+use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord, MetadataOnlyRecord};
 
-pub const RENDERER_VERSION: u32 = 5;
+pub const RENDERER_VERSION: u32 = 6;
 
 #[derive(Debug, Clone)]
 pub struct PackumentFile {
@@ -180,20 +180,53 @@ fn version_document(record: &ArtifactRecord, public_base_url: &str, renderer: u3
     Ok(deser_value::Value::from(out))
 }
 
+fn metadata_only_document(record: &MetadataOnlyRecord, public_base_url: &str) -> deser_value::Value {
+    let base = public_base_url.trim_end_matches('/');
+    let basename = record.name.rsplit('/').next().unwrap_or(&record.name);
+    let mut dist = deser_value::Map::new();
+    dist.insert("integrity".to_string(), deser_value::Value::from(record.integrity.clone()));
+    dist.insert(
+        "tarball".to_string(),
+        deser_value::Value::from(format!(
+            "{base}/current/{}/-/{basename}-{}.tgz",
+            record.name, record.version
+        )),
+    );
+    let mut out = deser_value::Map::new();
+    out.insert("name".to_string(), deser_value::Value::from(record.name.clone()));
+    out.insert("version".to_string(), deser_value::Value::from(record.version.clone()));
+    out.insert("dist".to_string(), deser_value::Value::from(dist));
+    for (key, list) in [("os", &record.platform.os), ("cpu", &record.platform.cpu), ("libc", &record.platform.libc)] {
+        if let Some(list) = list {
+            let mut seq = deser_value::Seq::new();
+            for item in list {
+                seq.push(deser_value::Value::from(item.clone()));
+            }
+            out.insert(key.to_string(), deser_value::Value::from(seq));
+        }
+    }
+    deser_value::Value::from(out)
+}
+
 fn render_package(
     name: &str,
     records: &[ArtifactRecord],
+    metadata_only: &[&MetadataOnlyRecord],
     public_base_url: &str,
     renderer: u32,
-) -> Result<deser_value::Value> {    let mut versions = deser_value::Map::new();
+) -> Result<deser_value::Value> {
+    let mut versions = deser_value::Map::new();
     let mut selected = std::collections::BTreeSet::new();
     for record in records {
         selected.insert(record.version.clone());
         versions.insert(record.version.clone(), version_document(record, public_base_url, renderer)?);
     }
-    let snapshot = latest_snapshot(records)?;
+    for record in metadata_only {
+        versions.insert(record.version.clone(), metadata_only_document(record, public_base_url));
+    }
     let mut out = deser_value::Map::new();
-    if let Some(snap) = snapshot.packument.as_map() {
+    let snapshot = if records.is_empty() { None } else { Some(latest_snapshot(records)?) };
+    if let Some(snap) = snapshot.and_then(|s| s.packument.as_map()) {
         for i in 0..snap.len() {
             if let Some((k, v)) = snap.get_index(i) {
                 out.insert(k.clone(), v.clone());
@@ -203,8 +236,7 @@ fn render_package(
     out.insert("name".to_string(), deser_value::Value::from(name.to_string()));
     let mut dist_tags = deser_value::Map::new();
     if let Some(tags) = snapshot
-        .packument
-        .as_map()
+        .and_then(|s| s.packument.as_map())
         .and_then(|m| m.get("dist-tags"))
         .and_then(|v| v.as_map())
     {
@@ -219,9 +251,18 @@ fn render_package(
     }
     out.insert("dist-tags".to_string(), deser_value::Value::from(dist_tags));
     out.insert("versions".to_string(), deser_value::Value::from(versions));
-    match package_time(records, &selected)? {
+    let mut time = package_time(records, &selected)?;
+    if !metadata_only.is_empty() {
+        let tmap = time.get_or_insert_with(|| deser_value::Value::from(deser_value::Map::new()));
+        if let Some(tmap) = tmap.as_map_mut() {
+            for record in metadata_only {
+                tmap.insert(record.version.clone(), deser_value::Value::from(record.published_at.clone()));
+            }
+        }
+    }
+    match time {
         Some(mut time) => {
-            if let (Some(tmap), Some(snap)) = (time.as_map_mut(), snapshot.packument.as_map())
+            if let (Some(tmap), Some(snap)) = (time.as_map_mut(), snapshot.and_then(|s| s.packument.as_map()))
                 && let Some(snap_time) = snap.get("time").and_then(|v| v.as_map()) {
                     for field in ["created", "modified"] {
                         if let Some(fv) = snap_time.get(field) {
@@ -240,12 +281,16 @@ fn render_package(
 
 pub fn render_packument_files(
     artifacts: &[deser_value::Value],
+    metadata_only: &[MetadataOnlyRecord],
     public_base_url: &str,
     renderer: Option<u32>,
 ) -> Result<Vec<PackumentFile>> {
     let renderer = renderer.unwrap_or(RENDERER_VERSION);
-    if renderer != 1 && renderer != 2 && renderer != 3 && renderer != 4 && renderer != 5 {
+    if !(1..=6).contains(&renderer) {
         return Err(Error::Input(format!("unsupported renderer version: {renderer}")));
+    }
+    if renderer < 6 && !metadata_only.is_empty() {
+        return Err(Error::Input(format!("renderer {renderer} cannot publish metadata-only versions")));
     }
     let base = validate_base_url(public_base_url)?;
     let mut records = Vec::with_capacity(artifacts.len());
@@ -260,13 +305,27 @@ pub fn render_packument_files(
     if dedup.len() != identities.len() {
         return Err(Error::Conflict("verified artifacts contain duplicate package identities".to_string()));
     }
-    let mut grouped: std::collections::BTreeMap<String, Vec<ArtifactRecord>> = Default::default();
+    let mut grouped: std::collections::BTreeMap<String, (Vec<ArtifactRecord>, Vec<&MetadataOnlyRecord>)> =
+        Default::default();
     for record in records {
-        grouped.entry(record.name.clone()).or_default().push(record);
+        grouped.entry(record.name.clone()).or_default().0.push(record);
+    }
+    for record in metadata_only {
+        if identities.contains(&format!("{}\0{}", record.name, record.version)) {
+            return Err(Error::Conflict(format!(
+                "{}@{} is both hosted and metadata-only",
+                record.name, record.version
+            )));
+        }
+        let versions = &mut grouped.entry(record.name.clone()).or_default().1;
+        if versions.iter().any(|r| r.version == record.version) {
+            return Err(Error::Conflict("metadata-only versions contain duplicate package identities".to_string()));
+        }
+        versions.push(record);
     }
     let mut files = Vec::new();
-    for (name, package_records) in grouped {
-        let rendered = render_package(&name, &package_records, &base, renderer)?;
+    for (name, (package_records, stubs)) in grouped {
+        let rendered = render_package(&name, &package_records, &stubs, &base, renderer)?;
         let mut sorted = rendered;
         crate::inventory::sort_canonical_value(&mut sorted);
         let pretty = format!("{}\n", crate::inventory::render_pretty(&sorted));
@@ -309,7 +368,7 @@ mod tests {
         let zeros = "0".repeat(128);
         let scoped = serde_json_like("@scope/pkg", "1.0.0", &zeros);
         let flat = serde_json_like("flatdemo", "1.2.3", &zeros);
-        let files = render_packument_files(&[flat, scoped], "https://example.test/mirror/", None).unwrap();
+        let files = render_packument_files(&[flat, scoped], &[], "https://example.test/mirror/", None).unwrap();
         assert_eq!(files.len(), 2);
         let scoped_file = files.iter().find(|f| f.name == "@scope/pkg").unwrap();
         assert_eq!(scoped_file.route, "@scope%2fpkg");
@@ -323,8 +382,8 @@ mod tests {
     fn rejects_bad_base_and_duplicates() {
         let zeros = "0".repeat(128);
         let flat = serde_json_like("flatdemo", "1.2.3", &zeros);
-        assert!(render_packument_files(std::slice::from_ref(&flat), "http://example.test/mirror/", None).is_err());
-        assert!(render_packument_files(&[flat.clone(), flat], "https://example.test/mirror/", None).is_err());
-        assert!(render_packument_files(&[], "https://example.test/mirror/", Some(9)).is_err());
+        assert!(render_packument_files(std::slice::from_ref(&flat), &[], "http://example.test/mirror/", None).is_err());
+        assert!(render_packument_files(&[flat.clone(), flat], &[], "https://example.test/mirror/", None).is_err());
+        assert!(render_packument_files(&[], &[], "https://example.test/mirror/", Some(9)).is_err());
     }
 }

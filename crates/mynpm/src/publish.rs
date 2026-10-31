@@ -3,7 +3,10 @@
 use crate::acquire::verify_inventory_snapshot;
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord};
+use crate::inventory::{
+    canonical_json, metadata_only_to_value, normalize_metadata_only_record, validate_artifact_record, ArtifactRecord,
+    Category, MetadataOnlyRecord,
+};
 use crate::inventory_store::{acquire_file_lock, load_inventory};
 use crate::packument::{render_packument_files, PackumentFile, RENDERER_VERSION};
 use sha2::{Digest, Sha256, Sha512};
@@ -17,6 +20,7 @@ pub struct PublishSummary {
     pub generation_id: String,
     pub package_count: usize,
     pub version_count: usize,
+    pub metadata_only_count: usize,
     pub no_op: bool,
 }
 
@@ -121,6 +125,7 @@ fn manifest_value(
     public_base_url: &str,
     generation_id: &str,
     artifacts: &[ArtifactRecord],
+    metadata_only: &[MetadataOnlyRecord],
 ) -> Result<deser_value::Value> {
     let mut manifest = deser_value::Map::new();
     manifest.insert("schemaVersion".to_string(), deser_value::Value::from(1u64));
@@ -132,6 +137,11 @@ fn manifest_value(
         seq.push(crate::inventory::artifact_to_value(record)?);
     }
     manifest.insert("artifacts".to_string(), deser_value::Value::from(seq));
+    let mut stubs = deser_value::Seq::new();
+    for record in metadata_only {
+        stubs.push(metadata_only_to_value(record));
+    }
+    manifest.insert("metadataOnly".to_string(), deser_value::Value::from(stubs));
     Ok(deser_value::Value::from(manifest))
 }
 
@@ -149,6 +159,7 @@ pub struct GenerationManifest {
     pub public_base_url: String,
     pub generation_id: String,
     pub artifacts: Vec<ArtifactRecord>,
+    pub metadata_only: Vec<MetadataOnlyRecord>,
 }
 
 fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
@@ -157,7 +168,12 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
     let record = parsed.as_map().ok_or_else(|| {
         Error::Corrupt(format!("generation manifest must be an object: {}", path.display()))
     })?;
-    let keys = ["schemaVersion", "rendererVersion", "publicBaseUrl", "generationId", "artifacts"];
+    let null = deser_value::Value::from(deser_value::Kind::Null);
+    let renderer = record.get("rendererVersion").unwrap_or(&null).as_u64().unwrap_or(0);
+    let mut keys = vec!["schemaVersion", "rendererVersion", "publicBaseUrl", "generationId", "artifacts"];
+    if renderer >= 6 {
+        keys.push("metadataOnly");
+    }
     for i in 0..record.len() {
         if let Some((k, _)) = record.get_index(i) {
             let name = k.as_str().unwrap_or("");
@@ -177,10 +193,8 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
             )));
         }
     }
-    let null = deser_value::Value::from(deser_value::Kind::Null);
     let schema_ok = record.get("schemaVersion").unwrap_or(&null).as_u64() == Some(1);
-    let renderer = record.get("rendererVersion").unwrap_or(&null).as_u64().unwrap_or(0);
-    let renderer_ok = renderer == 1 || renderer == 2 || renderer == 3 || renderer == 4 || renderer == 5;
+    let renderer_ok = (1..=6).contains(&renderer);
     let base_ok = record.get("publicBaseUrl").unwrap_or(&null).as_str().is_some();
     let gen_id = record.get("generationId").unwrap_or(&null).as_str().unwrap_or("").to_string();
     let artifacts_ok = record.get("artifacts").unwrap_or(&null).as_seq().is_some();
@@ -196,6 +210,16 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
         raw.push(item.clone());
     }
     let artifacts = sorted_artifacts(&raw)?;
+    let mut metadata_only = Vec::new();
+    if renderer >= 6 {
+        let stubs = record.get("metadataOnly").and_then(|v| v.as_seq()).ok_or_else(|| {
+            Error::Corrupt(format!("generation manifest has invalid fields: {}", path.display()))
+        })?;
+        for item in stubs.iter() {
+            metadata_only.push(normalize_metadata_only_record(item, "generation metadataOnly", Category::Corrupt)?);
+        }
+        metadata_only.sort_by_key(|r| (r.name.clone(), r.version.clone()));
+    }
     let identities: Vec<String> = artifacts.iter().map(|r| format!("{}\0{}", r.name, r.version)).collect();
     let mut dedup = identities.clone();
     dedup.sort();
@@ -211,6 +235,7 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
         public_base_url: record.get("publicBaseUrl").expect("base").as_str().unwrap_or("").to_string(),
         generation_id: gen_id,
         artifacts,
+        metadata_only,
     })
 }
 
@@ -298,7 +323,12 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
         .iter()
         .map(crate::inventory::artifact_to_value)
         .collect::<Result<Vec<_>>>()?;
-    let files = render_packument_files(&artifact_values, &manifest.public_base_url, Some(manifest.renderer_version))
+    let files = render_packument_files(
+        &artifact_values,
+        &manifest.metadata_only,
+        &manifest.public_base_url,
+        Some(manifest.renderer_version),
+    )
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
     let computed = generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version)
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
@@ -387,10 +417,13 @@ fn validate_generation(generations_dir: &Path, id: &str, mirror_root: &Path) -> 
     Ok(Some(manifest))
 }
 
-fn read_current(mirror_root: &Path, generations_dir: &Path) -> Result<(Option<String>, Vec<ArtifactRecord>)> {
+fn read_current(
+    mirror_root: &Path,
+    generations_dir: &Path,
+) -> Result<(Option<String>, Vec<ArtifactRecord>, Vec<MetadataOnlyRecord>)> {
     let current_path = mirror_root.join("current");
     match std::fs::symlink_metadata(&current_path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((None, Vec::new())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((None, Vec::new(), Vec::new())),
         Err(e) => {
             return Err(Error::Operation(format!(
                 "could not inspect current publication at {}: {e}",
@@ -419,7 +452,7 @@ fn read_current(mirror_root: &Path, generations_dir: &Path) -> Result<(Option<St
     let manifest = validate_generation(generations_dir, id, mirror_root)?.ok_or_else(|| {
         Error::Corrupt(format!("current publication points to a missing generation: {id}"))
     })?;
-    Ok((Some(format!("generations/{id}")), manifest.artifacts))
+    Ok((Some(format!("generations/{id}")), manifest.artifacts, manifest.metadata_only))
 }
 
 fn merge_artifacts(retained: &[ArtifactRecord], incoming: &[ArtifactRecord]) -> Result<Vec<ArtifactRecord>> {
@@ -439,6 +472,41 @@ fn merge_artifacts(retained: &[ArtifactRecord], incoming: &[ArtifactRecord]) -> 
         merged.insert(key, record.clone());
     }
     let mut out: Vec<ArtifactRecord> = merged.into_values().collect();
+    out.sort_by_key(|r| (r.name.clone(), r.version.clone()));
+    Ok(out)
+}
+
+fn merge_metadata_only(
+    retained: &[MetadataOnlyRecord],
+    incoming: &[MetadataOnlyRecord],
+    artifacts: &[ArtifactRecord],
+) -> Result<Vec<MetadataOnlyRecord>> {
+    let mut merged: BTreeMap<String, MetadataOnlyRecord> = BTreeMap::new();
+    for record in retained.iter().chain(incoming) {
+        let key = format!("{}\0{}", record.name, record.version);
+        if let Some(existing) = merged.get(&key)
+            && existing != record
+        {
+            return Err(Error::Conflict(format!(
+                "published metadata-only record conflicts for {}@{}",
+                record.name, record.version
+            )));
+        }
+        merged.insert(key, record.clone());
+    }
+    let mut out = Vec::with_capacity(merged.len());
+    for record in merged.into_values() {
+        match artifacts.iter().find(|a| a.name == record.name && a.version == record.version) {
+            Some(artifact) if artifact.artifact.integrity != record.integrity => {
+                return Err(Error::Conflict(format!(
+                    "hosted artifact conflicts with metadata-only record for {}@{}",
+                    record.name, record.version
+                )));
+            }
+            Some(_) => {}
+            None => out.push(record),
+        }
+    }
     out.sort_by_key(|r| (r.name.clone(), r.version.clone()));
     Ok(out)
 }
@@ -660,7 +728,12 @@ fn ensure_generation(
                 write_durable_file(&tmp.join("llms.txt"), stuff_catalog::render_llms_txt(&catalog).as_bytes())?;
             }
         }
-        let manifest_text = canonical_json(&manifest_value(&manifest.public_base_url, &manifest.generation_id, &manifest.artifacts)?)?;
+        let manifest_text = canonical_json(&manifest_value(
+            &manifest.public_base_url,
+            &manifest.generation_id,
+            &manifest.artifacts,
+            &manifest.metadata_only,
+        )?)?;
         write_durable_file(&tmp.join("manifest.json"), manifest_text.as_bytes())?;
         sync_generation_tree(&tmp)?;
         match std::fs::rename(&tmp, generations_dir.join(id)) {
@@ -761,8 +834,9 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
     let _lock = acquire_file_lock(&mirror_root, ".publish.lock", "publication")?;
     let inventory = load_inventory(options.state_directory)?;
     verify_inventory_snapshot(options.state_directory, options.config, &inventory)?;
-    let (current_target, retained) = read_current(&mirror_root, &generations_dir)?;
+    let (current_target, retained, retained_metadata_only) = read_current(&mirror_root, &generations_dir)?;
     let artifacts = merge_publish_targets(&retained, &inventory.artifacts)?;
+    let metadata_only = merge_metadata_only(&retained_metadata_only, &inventory.metadata_only, &artifacts)?;
     let public_base_url = options
         .render_base_url
         .clone()
@@ -771,11 +845,11 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
         .iter()
         .map(crate::inventory::artifact_to_value)
         .collect::<Result<Vec<_>>>()?;
-    let files = render_packument_files(&artifact_values, &public_base_url, None)
+    let files = render_packument_files(&artifact_values, &metadata_only, &public_base_url, None)
         .map_err(|e| Error::Operation(format!("could not render publication packuments: {e}")))?;
     let id = generation_id_for(&public_base_url, &artifacts, &files)
         .map_err(|e| Error::Operation(format!("could not identify publication generation: {e}")))?;
-    let manifest_text = canonical_json(&manifest_value(&public_base_url, &id, &artifacts)?)?;
+    let manifest_text = canonical_json(&manifest_value(&public_base_url, &id, &artifacts, &metadata_only)?)?;
     let manifest = parse_manifest(&manifest_text, Path::new("candidate manifest"))?;
     for record in &artifacts {
         copy_artifact(record, options.state_directory, &tarballs_dir)?;
@@ -787,6 +861,7 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
             generation_id: id,
             package_count: files.len(),
             version_count: artifacts.len(),
+            metadata_only_count: metadata_only.len(),
             no_op: true,
         });
     }
@@ -795,6 +870,7 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
         generation_id: id,
         package_count: files.len(),
         version_count: artifacts.len(),
+        metadata_only_count: metadata_only.len(),
         no_op: false,
     })
 }
@@ -825,6 +901,7 @@ mod tests {
         let base = "http://127.0.0.1:8080/mirror/";
         let files = render_packument_files(
             &[crate::inventory::artifact_to_value(&record).unwrap()],
+            &[],
             base,
             None,
         )
@@ -843,7 +920,7 @@ mod tests {
         std::fs::create_dir_all(mirror_root.join("tarballs")).unwrap();
         std::fs::create_dir_all(mirror_root.join("generations")).unwrap();
         std::fs::write(mirror_root.join("tarballs").join(format!("{digest}.tgz")), tgz).unwrap();
-        let manifest_text = canonical_json(&manifest_value(base, &id, std::slice::from_ref(&record)).unwrap()).unwrap();
+        let manifest_text = canonical_json(&manifest_value(base, &id, std::slice::from_ref(&record), &[]).unwrap()).unwrap();
         let manifest = parse_manifest(&manifest_text, Path::new("candidate manifest")).unwrap();
         ensure_generation(&mirror_root.join("generations"), &id, &manifest, &files, &mirror_root).unwrap();
         let gen_dir = mirror_root.join("generations").join(&id);
@@ -876,6 +953,7 @@ mod tests {
         let record = validate_artifact_record(&value).unwrap();
         let files = render_packument_files(
             &[crate::inventory::artifact_to_value(&record).unwrap()],
+            &[],
             "https://example.test/mirror/",
             None,
         )

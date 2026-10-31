@@ -649,14 +649,21 @@ pub fn run(argv: &[String]) -> Result<()> {
         Command::Fetch => {
             let summary = fetch_inventory(&state_dir, &config, &HttpsExchange::new())?;
             println!(
-                "Verified {} package artifacts; downloaded {} bytes, reused {}.",
-                summary.verified_count, summary.downloaded_bytes, summary.reused_count
+                "Verified {} package artifacts; downloaded {} bytes, reused {}; {} metadata-only versions ({} newly recorded).",
+                summary.verified_count,
+                summary.downloaded_bytes,
+                summary.reused_count,
+                summary.metadata_only_count,
+                summary.metadata_only_recorded
             );
             Ok(())
         }
         Command::Verify => {
             let verified = crate::acquire::verify_inventory(&state_dir, &config)?;
-            println!("Verified {verified} package artifacts.");
+            println!(
+                "Verified {} package artifacts and {} metadata-only versions.",
+                verified.artifact_count, verified.metadata_only_count
+            );
             Ok(())
         }
         Command::Publish => {
@@ -668,11 +675,12 @@ pub fn run(argv: &[String]) -> Result<()> {
                 render_base_url: None,
             })?;
             println!(
-                "{} generation {} ({} packages, {} versions).",
+                "{} generation {} ({} packages, {} versions, {} metadata-only versions).",
                 if summary.no_op { "Already published" } else { "Published" },
                 summary.generation_id,
                 summary.package_count,
-                summary.version_count
+                summary.version_count,
+                summary.metadata_only_count
             );
             Ok(())
         }
