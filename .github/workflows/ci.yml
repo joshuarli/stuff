@@ -45,7 +45,7 @@ jobs:
           package-manager-cache: false
       - name: pin npm
         run: npm install -g npm@12.2.1
-      - uses: pnpm/action-setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
           version: 12.15.0
           run_install: false
@@ -53,6 +53,8 @@ jobs:
         with:
           version: 0.13.5
       - run: uv python install 3.15
+      - name: select the pinned interpreter
+        run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
       - name: registry flows with real package managers
         run: deploy/ecosystem-smoke.sh
 
@@ -69,5 +71,36 @@ jobs:
         with:
           version: 0.13.5
       - run: uv python install 3.15
+      - name: select the pinned interpreter
+        run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
       - name: single-registry publishes leave other generations untouched
         run: deploy/check-pipeline-independence.sh
+
+  worker-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: setup rust
+        run: rustup show
+      - run: rustup target add wasm32-unknown-unknown
+      - name: install wasm-bindgen
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.12.1
+          cache: npm
+          cache-dependency-path: crates/stuff-worker/package-lock.json
+      - name: install worker dependencies
+        run: npm ci
+        working-directory: crates/stuff-worker
+      - name: build the actual worker bundle
+        run: npm run build:worker
+        working-directory: crates/stuff-worker
+      - name: exercise the worker runtime
+        run: npm run test:runtime
+        working-directory: crates/stuff-worker
+      - name: check deploy protocol helpers
+        run: make test-r2
