@@ -9,7 +9,7 @@ use crate::inventory_store::{load_inventory, update_inventory};
 use crate::lock_npm::{parse_npm_lock, NpmOptions};
 use crate::lock_pnpm::{parse_pnpm_lock, PnpmOptions};
 use crate::project_snapshot::{capture_project_snapshot, CaptureOptions};
-use crate::publish::{publish_site, PublishOptions};
+use crate::publish::{adopt_site, publish_site, PublishOptions};
 use crate::resolve::{add_packages, AddOptions};
 use crate::validate::{validate_inventory, ValidateOptions};
 use std::collections::BTreeSet;
@@ -23,6 +23,7 @@ pub enum Command {
     Fetch,
     Verify,
     Publish,
+    Adopt,
     Validate,
     Doctor,
     InitConfig,
@@ -56,6 +57,7 @@ fn is_command(s: &str) -> Option<Command> {
         "fetch" => Some(Command::Fetch),
         "verify" => Some(Command::Verify),
         "publish" => Some(Command::Publish),
+        "adopt" => Some(Command::Adopt),
         "validate" => Some(Command::Validate),
         "doctor" => Some(Command::Doctor),
         "init-config" => Some(Command::InitConfig),
@@ -187,8 +189,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     if all_targets && command != Command::InitConfig {
         return Err(Error::Usage("--all-targets is only valid with init-config".to_string()));
     }
-    if site_dir.is_some() && command != Command::Publish {
-        return Err(Error::Usage("--site-dir is only valid with publish".to_string()));
+    if site_dir.is_some() && command != Command::Publish && command != Command::Adopt {
+        return Err(Error::Usage("--site-dir is only valid with publish or adopt".to_string()));
     }
     if node_version.is_some() && command != Command::InitConfig {
         return Err(Error::Usage("--node-version is only valid with init-config".to_string()));
@@ -202,11 +204,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     if output.is_some() && command != Command::InitConfig {
         return Err(Error::Usage("--output is only valid with init-config".to_string()));
     }
-    if config.is_some() && command == Command::InitConfig {
-        return Err(Error::Usage("--config is not valid with init-config".to_string()));
+    if config.is_some() && (command == Command::InitConfig || command == Command::Adopt) {
+        return Err(Error::Usage("--config is not valid with init-config or adopt".to_string()));
     }
-    if state_dir.is_some() && command == Command::InitConfig {
-        return Err(Error::Usage("--state-dir is not valid with init-config".to_string()));
+    if state_dir.is_some() && (command == Command::InitConfig || command == Command::Adopt) {
+        return Err(Error::Usage("--state-dir is not valid with init-config or adopt".to_string()));
     }
     if !targets.is_empty() && command != Command::ImportLock && command != Command::Add {
         return Err(Error::Usage(
@@ -258,6 +260,14 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 return Err(Error::Usage("doctor requires one project path".to_string()));
             }
         }
+        Command::Adopt => {
+            if !positionals.is_empty() {
+                return Err(Error::Usage("adopt does not take positional arguments".to_string()));
+            }
+            if site_dir.is_none() {
+                return Err(Error::Usage("adopt requires --site-dir".to_string()));
+            }
+        }
         Command::InitConfig => {
             if !positionals.is_empty() {
                 return Err(Error::Usage("init-config does not take positional arguments".to_string()));
@@ -300,6 +310,7 @@ pub fn print_help() {
     println!("  fetch");
     println!("  verify");
     println!("  publish [--site-dir DIR]");
+    println!("  adopt --site-dir DIR");
     println!("  validate --client npm|pnpm [--smoke-executables]");
     println!("  doctor <projectDir>");
 }
@@ -607,10 +618,26 @@ fn run_plan(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
     Ok(())
 }
 
+fn print_publish_summary(summary: &crate::publish::PublishSummary) {
+    println!(
+        "{} generation {} ({} packages, {} versions, {} metadata-only versions).",
+        if summary.no_op { "Already published" } else { "Published" },
+        summary.generation_id,
+        summary.package_count,
+        summary.version_count,
+        summary.metadata_only_count
+    );
+}
+
 pub fn run(argv: &[String]) -> Result<()> {
     let parsed = parse_args(argv)?;
     if parsed.command == Command::InitConfig {
         return run_init_config(&parsed);
+    }
+    if parsed.command == Command::Adopt {
+        let summary = adopt_site(Path::new(parsed.site_dir.as_deref().unwrap_or_default()))?;
+        print_publish_summary(&summary);
+        return Ok(());
     }
     let cwd = std::env::current_dir().map_err(|e| Error::Operation(format!("could not resolve working directory: {e}")))?;
     let config_path = cwd.join(parsed.config.clone().unwrap_or_else(|| "mynpm.json".to_string()));
@@ -666,6 +693,7 @@ pub fn run(argv: &[String]) -> Result<()> {
             );
             Ok(())
         }
+        Command::Adopt => unreachable!("adopt returns before the configuration is read"),
         Command::Publish => {
             let site_dir = cwd.join(parsed.site_dir.clone().unwrap_or_else(|| ".work/site".to_string()));
             let summary = publish_site(&PublishOptions {
@@ -674,14 +702,7 @@ pub fn run(argv: &[String]) -> Result<()> {
                 config: &config,
                 render_base_url: None,
             })?;
-            println!(
-                "{} generation {} ({} packages, {} versions, {} metadata-only versions).",
-                if summary.no_op { "Already published" } else { "Published" },
-                summary.generation_id,
-                summary.package_count,
-                summary.version_count,
-                summary.metadata_only_count
-            );
+            print_publish_summary(&summary);
             Ok(())
         }
         Command::Validate => {

@@ -45,3 +45,23 @@ stays byte-identical until `fetch` records one; older binaries cannot read a
 version 3 inventory. Publication renderer 6 adds `metadataOnly` to
 `manifest.json` and stub-only packuments; generations of renderer 1 to 5 stay
 valid.
+
+## Adopting a pulled publication
+
+`mynpm publish` extends the `mirror/current` generation of its site directory, so a
+site without it would drop everything live. `deploy/r2-pull.py BUCKET SITE/mirror`
+fetches the live generation and tarball store, and `mynpm adopt --site-dir SITE` makes
+it publishable:
+
+- It re-creates the `tarballs/` and `-/tarballs/` hardlink aliases that `r2-sync.sh`
+  does not upload.
+- It verifies the generation: manifest shape, packuments re-rendered from the manifest
+  records, every tarball's SHA-512, and the generation id. A generation published before
+  catalog fingerprints joined the id (the id of a renderer 3 to 5 generation without
+  `catalogFingerprint`) is accepted; its catalog, landing page, and `llms.txt` are not
+  compared because the catalog renderer has changed since.
+- It republishes the same records under the current renderer and identity, switching
+  `current` to the new generation. The pulled generation stays in place. Renderer 1 and 2
+  generations are refused.
+
+Run it again on an unchanged site and it reports `Already published`.
