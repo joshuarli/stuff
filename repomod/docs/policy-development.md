@@ -202,4 +202,12 @@ tarball URLs must start with the approved registry, and `uv.lock` registry sourc
 approved index. Git sources are findings unless the repository's catalog override ignores
 `registry-sources:git:NAME` with an `ignore_reason`. Path, `link:`, `file:`, and workspace sources
 are allowed while they stay inside the repository. Unapproved registry sources are reported once
-per lockfile and source, listing the first packages. The rule has no fixer.
+per lockfile and source, listing the first packages.
+
+The fixer adds the missing configuration and leaves every other finding manual. It writes
+`.cargo/config.toml` at the repository root (Cargo merges parent configuration), `registry=` into
+each npm project's `.npmrc` (npm and pnpm read only the project's own file), and, per uv project, the
+default `[[tool.uv.index]]` plus `[tool.uv] environments` for darwin and linux, then runs `uv lock` in
+a disposable copy so `uv.lock` records the stuff index. Windows-only packages leave the lock because
+`environments` excludes Windows, and stuff publishes macOS and Linux wheels only. A file that already
+sets a different cargo source, npm registry, or uv index fails the fixer and needs a manual edit.
