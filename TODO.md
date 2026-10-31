@@ -46,16 +46,6 @@ Next: 27
 - **Fix with:** `error-model`
 - **Effort:** M
 
-### STUF-15 · P2 · A changed npm lockfile is silently discarded when only dropped fields differ
-
-- **Area:** Data
-- **Where:** `crates/mynpm/src/inventory.rs:1274-1296` (`project_stable_string`), `:1564-1570` (`merge_project`); consumers at `crates/mynpm/src/acquire.rs:564` and `crates/mynpm/src/validate.rs:1132-1139`; contract at `crates/mynpm/README.md:16-19`.
-- **Problem:** The project identity includes each package's key, name, version, integrity, resolved URL, and source kind, but omits `platform` (`os`/`cpu`/`libc`), `flags`, `aliases`, and the project snapshot. `merge_project` returns the old record when the stable string matches, so a lockfile regenerated with new platform constraints or optional flags is treated as unchanged even though the README says a changed lockfile is recorded as a new import. `plan` then uses the stale platform to decide hosted versus metadata-only, and `validate` uses the stale flags to require or skip packages.
-- **Recommendation:** Include the omitted fields and a snapshot digest in the project identity. Use the RFC's accepted append-only migration: a first import after the change appends a duplicate record for every project, so verify duplicate handling before release.
-- **Fix with:** `durable-state`
-- **Effort:** S
-- **Design:** [docs/rfc/STUF-15-import-identity.md](docs/rfc/STUF-15-import-identity.md)
-
 ### STUF-16 · P2 · Publish concurrency guards can delete another writer's spool and double-admit writers
 
 - **Area:** Concurrency

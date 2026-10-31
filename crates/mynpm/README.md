@@ -14,10 +14,11 @@ then runs `fetch` and `publish`. It never writes to R2; sync the site with
 `deploy/r2-sync.sh`.
 
 Re-running is safe. A project import is identified by its content (id,
-lockfile path, targets, roots, packages, pin), so an unchanged lockfile leaves
-the inventory byte-identical, while a changed one is recorded as an additional
-import under the same project id and already hosted versions stay. `fetch`
-reuses verified artifacts.
+lockfile path, targets, roots, packages including platform and optional flags,
+aliases, pin, and a digest of the project snapshot), so an unchanged lockfile
+leaves the inventory byte-identical, while a changed one is recorded as an
+additional import under the same project id and already hosted versions stay.
+`fetch` reuses verified artifacts.
 
 ## Metadata-only versions
 

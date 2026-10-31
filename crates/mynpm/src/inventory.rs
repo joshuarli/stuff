@@ -3,6 +3,7 @@
 use crate::error::{Error, Result};
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 pub const SCHEMA_VERSION: u64 = 2;
@@ -1289,10 +1290,42 @@ fn project_stable_string(p: &ProjectRecord) -> Result<String> {
     );
     map.insert(
         "packages".to_string(),
-        p.packages.iter().map(|pkg| format!("{}|{}|{}|{}|{}|{}", pkg.key, pkg.name, pkg.version.clone().unwrap_or_default(), pkg.integrity.clone().unwrap_or_default(), pkg.resolved.clone().unwrap_or_default(), pkg.source_kind.as_str())).collect::<Vec<_>>().join(";"),
+        p.packages
+            .iter()
+            .map(|pkg| {
+                Ok(format!(
+                    "{}|{}|{}|{}|{}|{}|{}|{}|{}",
+                    pkg.key,
+                    pkg.name,
+                    pkg.version.clone().unwrap_or_default(),
+                    pkg.integrity.clone().unwrap_or_default(),
+                    pkg.resolved.clone().unwrap_or_default(),
+                    pkg.source_kind.as_str(),
+                    canonical_string(&platform_to_value(&pkg.platform))?,
+                    package_flags_stable(&pkg.flags),
+                    pkg.aliases.join("\u{1f}"),
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?
+            .join(";"),
     );
+    map.insert("snapshot".to_string(), snapshot_digest(p)?);
     map.insert("pin".to_string(), p.package_manager_pin.clone().unwrap_or_default());
     Ok(format!("{map:?}"))
+}
+
+fn package_flags_stable(flags: &PackageFlags) -> String {
+    format!(
+        "{},{},{},{},{}",
+        flags.dev, flags.optional, flags.peer, flags.peer_optional, flags.link
+    )
+}
+
+fn snapshot_digest(p: &ProjectRecord) -> Result<String> {
+    let canonical = canonical_string(&snapshot_to_value(&p.snapshot)?)?;
+    let mut digest = Sha256::new();
+    digest.update(canonical.as_bytes());
+    Ok(format!("{:x}", digest.finalize()))
 }
 
 fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {
