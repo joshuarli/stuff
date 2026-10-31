@@ -230,6 +230,11 @@ def main():
     if len(sys.argv) < 3 or len(sys.argv) > 5:
         fail("usage: r2-promote.py BUCKET GENERATION_ID [--expected GENERATION_ID]")
     bucket, generation = sys.argv[1:3]
+    if not generation or len(generation) > 128 or any(
+        char not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+        for char in generation
+    ):
+        fail(f"bad generation id: {generation}")
     expected = None
     if len(sys.argv) > 3:
         if len(sys.argv) != 5 or sys.argv[3] != "--expected":
