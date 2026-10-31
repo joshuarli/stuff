@@ -16,11 +16,12 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 ## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
 
 - [x] mycrates: 926 crates ingested and published locally; 20 of 26 lockfiles pass `cargo fetch --locked` unchanged (merged to stuff main, unpushed)
-- [ ] mynpm: ingest every pnpm-lock.yaml (477 versions); verified with
-  `pnpm install --frozen-lockfile` per repo; decide whether pnpm locks stay valid
-- [ ] mypypi: ingest from uv.lock; fleet wheels (48 versions); sdist-only and musllinux gaps;
-  uv.lock behaviour under `[[tool.uv.index]]`
-- [ ] deploy: R2 sync past 1000 objects; fleet ingest orchestration; docs
+- [~] mynpm: 370 of 477 hosted (107 are other-platform packages mynpm skips); existing pnpm locks need
+  the standard tarball path served (lane npm-tarball-path) and a decision on pnpm lockfile verification
+  (`trustLockfile` / `minimumReleaseAge: 0`) or hosting stubs for the unhosted platform packages
+- [~] mypypi: 47 of 48 published for macOS arm64 only; Linux wheels, build backends, and the
+  ansicon/Windows problem in lane pypi-linux (`[tool.uv] environments` instead of a check exception)
+- [x] deploy: R2 sync past 1000 objects, fleet-ingest.sh, docs (merged to stuff main, unpushed)
 
 ## Phase B: publish (owner-run or owner-approved)
 
