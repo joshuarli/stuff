@@ -40,7 +40,12 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 
 - [x] `registry-sources` fixer (`repomod fix --rule registry-sources`, run with `enforce` flipped locally and uncommitted) writes the cargo source replacement, `.npmrc`, uv index plus darwin/linux `environments`, and relocks `uv.lock`
 - [x] PRs opened for 23 repositories (diff-pretty, pytest-parallel, e, fastermod, fdu, hi-lite, rustybench, srv merged)
-- [ ] remaining PRs: wait for CI after the delta publish; discover, shadowdriver and toolbox are private and CI cannot start (account billing), so verify them locally before merging
+- [x] merged: every migration PR except tansu #9, fz #10, ish #9 and h12tiny #8; discover, shadowdriver and toolbox were verified locally because CI cannot start on private repos (account billing)
+- [ ] tansu #9: install and wasm-bindgen build pass from stuff, but the UI tests fail one different test per run (async timing); left open, not merged red
+- [ ] fz #10: green, blocked because branch protection requires a check named `CI` that no job produces
+- [ ] ish #9 and h12tiny #8: red the same way on their default branches (ish Linux musl capture test, h12tiny check-smolith-pin)
+- [ ] toolbox and tm canonical checkouts still need to return to their default branch before `enforce` can be flipped
+- [ ] then flip `enforce = true` in registries.toml and run `status`
 - [ ] default branches already red before this change: ish, h12tiny (also stale `repomod/fix` branch), discover, shadowdriver, toolbox
 - [ ] tm has a dirty checkout; its PR came from a worktree
 - [ ] tansu keeps two git forks (catalog exception); publish h2-futures-lite and hyper-futures-lite to the native registry to remove it
