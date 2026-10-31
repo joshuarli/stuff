@@ -200,7 +200,7 @@ use std::path::{Path, PathBuf};
 const DEFAULT_BUILD_INDEX: &str = "https://pypi.org/simple";
 
 pub fn runtime_description(settings: &ProjectSettings) -> Result<String> {
-    let probed = std::process::Command::new("python3")
+    let probed = std::process::Command::new(crate::platforms::python_binary())
         .args(["-c", "import sys,sysconfig; print(sys.implementation.name); print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}'); print(sys.implementation.cache_tag); print(sysconfig.get_platform())"])
         .output()
         .map_err(|e| {
@@ -238,11 +238,11 @@ pub fn runtime_description(settings: &ProjectSettings) -> Result<String> {
             settings.python_version
         )));
     }
-    let exe = std::process::Command::new("python3")
+    let exe = std::process::Command::new(crate::platforms::python_binary())
         .args(["-c", "import sys; print(sys.executable)"])
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|_| "python3".to_string());
+        .unwrap_or_else(|_| crate::platforms::python_binary());
     Ok(format!("using CPython {actual} ABI {abi} on {platform_tag}; executable {exe}"))
 }
 

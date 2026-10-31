@@ -70,7 +70,11 @@ pub fn redacted_diagnostic(value: &str, limit: usize) -> String {
     if redacted.len() <= limit {
         return redacted;
     }
-    redacted[redacted.len() - limit..].to_string()
+    let start = redacted.len() - limit;
+    let start = (start..=redacted.len())
+        .find(|i| redacted.is_char_boundary(*i))
+        .unwrap_or(redacted.len());
+    redacted[start..].to_string()
 }
 
 fn redact_credentials(value: &str) -> String {
@@ -88,8 +92,9 @@ fn redact_credentials_clean(value: &str) -> String {
         } else if rest.starts_with("http://") {
             7usize
         } else {
-            out.push(b[i] as char);
-            i += 1;
+            let ch = rest.chars().next().expect("non-empty remainder");
+            out.push(ch);
+            i += ch.len_utf8();
             continue;
         };
         out.push_str(&rest[..scheme_len]);
@@ -311,6 +316,14 @@ mod tests {
     fn redaction_respects_limit_tail() {
         let v = redacted_diagnostic("abcdef", 3);
         assert_eq!(v, "def");
+    }
+
+    #[test]
+    fn redaction_handles_multibyte_text() {
+        assert_eq!(redacted_diagnostic("échec", 4096), "échec");
+        assert_eq!(redacted_diagnostic("échec", 3), "hec");
+        let long = "é".repeat(10);
+        assert_eq!(redacted_diagnostic(&long, 5), "éé");
     }
 
     #[test]

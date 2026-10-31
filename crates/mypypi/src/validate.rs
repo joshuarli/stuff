@@ -668,7 +668,7 @@ fn run_validation(
         ));
     }
     let env = uv_environment_map();
-    let python_exe = std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let python_exe = crate::platforms::python_binary();
     let scratch_path = crate::process_policy::make_temp_dir("mypypi-validate-").map_err(|e| failure(Some(&metadata.identity.package), target, format!("validation process failed: {e}")))?;
     let scratch = TempDirGuard { path: scratch_path };
     let neutral = scratch.path.canonicalize().unwrap_or_else(|_| scratch.path.clone());
@@ -726,7 +726,7 @@ fn run_validation(
 }
 
 fn probe_running_python() -> Option<(String, u64, u64)> {
-    let python = std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let python = crate::platforms::python_binary();
     let out = std::process::Command::new(python)
         .args(["-c", "import sys; print(sys.implementation.name, sys.version_info.major, sys.version_info.minor)"])
         .output()

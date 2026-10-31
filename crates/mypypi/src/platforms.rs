@@ -48,7 +48,7 @@ pub fn current_platform() -> Option<String> {
 fn probed_micro(major: u64, minor: u64) -> Option<u64> {
     static CACHE: OnceLock<Option<(u64, u64, u64)>> = OnceLock::new();
     let cached = CACHE.get_or_init(|| {
-        let out = std::process::Command::new("python3")
+        let out = std::process::Command::new(python_binary())
             .args(["-c", "import sys; print(sys.version_info.major, sys.version_info.minor, sys.version_info.micro)"])
             .output();
         match out {
@@ -83,6 +83,23 @@ pub fn target_python_version(target: &Target) -> pep440_rs::Version {
     pep440_rs::Version::new([major, minor, 0])
 }
 
+fn mac_binary_formats(version: (u64, u64), arch: &str) -> Vec<String> {
+    let mut formats = vec![arch.to_string()];
+    if arch == "x86_64" {
+        if version < (10, 4) {
+            return Vec::new();
+        }
+        formats.extend(["intel".to_string(), "fat64".to_string(), "fat32".to_string()]);
+    }
+    if arch == "arm64" || arch == "x86_64" {
+        formats.push("universal2".to_string());
+    }
+    if arch == "x86_64" {
+        formats.push("universal".to_string());
+    }
+    formats
+}
+
 pub fn target_platform_tags(target: &Target, linux_repair_policy: &str) -> Result<Vec<String>> {
     match family_of(target.platform.as_str())? {
         Family::Linux => {
@@ -115,14 +132,19 @@ pub fn target_platform_tags(target: &Target, linux_repair_policy: &str) -> Resul
             let (floor_major, _) = MACOS_DEPLOYMENT_TARGET;
             let mut out = Vec::new();
             for major in (11..=floor_major).rev() {
-                out.push(format!("macosx_{major}_0_{arch}"));
-                out.push(format!("macosx_{major}_0_universal2"));
+                out.extend(mac_binary_formats((major, 0), arch)
+                    .into_iter()
+                    .map(|format| format!("macosx_{major}_0_{format}")));
             }
             for minor in (4..=16).rev() {
-                if arch == "x86_64" {
-                    out.push(format!("macosx_10_{minor}_x86_64"));
-                }
-                out.push(format!("macosx_10_{minor}_universal2"));
+                let formats = if arch == "x86_64" {
+                    mac_binary_formats((10, minor), arch)
+                } else {
+                    vec!["universal2".to_string()]
+                };
+                out.extend(formats
+                    .into_iter()
+                    .map(|format| format!("macosx_10_{minor}_{format}")));
             }
             Ok(out)
         }
@@ -153,8 +175,6 @@ pub fn ordered_target_tags(target: &Target, linux_repair_policy: &str) -> Result
     let (major, minor) = (release[0], release[1]);
     let platforms = target_platform_tags(target, linux_repair_policy)?;
     let py_xy = format!("cp{major}{minor}");
-    let py_x = format!("cp{major}");
-    let py_generic = format!("py{major}{minor}");
     let mut out: Vec<TagTriple> = Vec::new();
     let mut push = |interpreter: &str, abi: &str, platform: &str| {
         let t = TagTriple {
@@ -166,26 +186,39 @@ pub fn ordered_target_tags(target: &Target, linux_repair_policy: &str) -> Result
             out.push(t);
         }
     };
-    let mut platform_list = platforms.clone();
-    platform_list.push("any".to_string());
-    for plat in &platform_list {
-        let p = plat.as_str();
-        push(&py_xy, &py_xy, p);
-        push(&py_xy, "abi3", p);
-        push(&py_xy, "none", p);
-        push(&py_x, "none", p);
-        push(&py_generic, "none", p);
-        push(&format!("py{major}"), "none", p);
+    for plat in &platforms {
+        push(&py_xy, &py_xy, plat);
     }
-    for m in (0..=minor).rev() {
-        for plat in &platform_list {
-            push(&format!("py{major}{m}"), "none", plat);
+    for plat in &platforms {
+        push(&py_xy, "abi3", plat);
+    }
+    for plat in &platforms {
+        push(&py_xy, "none", plat);
+    }
+    for older in (2..minor).rev() {
+        let interpreter = format!("cp{major}{older}");
+        for plat in &platforms {
+            push(&interpreter, "abi3", plat);
         }
     }
-    for plat in &platform_list {
-        push("py2.py3", "none", plat);
+    for version in py_interpreter_range(major, minor) {
+        for plat in &platforms {
+            push(&version, "none", plat);
+        }
+    }
+    push(&py_xy, "none", "any");
+    for version in py_interpreter_range(major, minor) {
+        push(&version, "none", "any");
     }
     Ok(out)
+}
+
+fn py_interpreter_range(major: u64, minor: u64) -> Vec<String> {
+    let mut out = vec![format!("py{major}{minor}"), format!("py{major}")];
+    for older in (0..minor).rev() {
+        out.push(format!("py{major}{older}"));
+    }
+    out
 }
 
 pub fn ordered_tag_strings(target: &Target, linux_repair_policy: &str) -> Result<Vec<String>> {
