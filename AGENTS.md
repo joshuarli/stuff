@@ -22,7 +22,8 @@ for repair.
 - `deploy/`: pipeline checks (`check-pipeline-independence.sh`), npm fleet
   ingest (`ingest-npm-fleet.sh`),
   ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;
-  verify with `CF_LOCAL_STATE` via `test-r2-sync.sh`), and local fleet
+  verify with `CF_LOCAL_STATE` via `test-r2-sync.sh`), R2 pull
+  (`r2-pull.py`, verified by `test-r2-pull.sh`), and local fleet
   ingestion (`fleet-ingest.sh`).
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels) kept after the TypeScript/Python removal.

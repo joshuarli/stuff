@@ -211,6 +211,34 @@ root-link, and pinned artifact-alias coverage. `make test-r2-live`
 (`R2_ACCEPTANCE_BUCKET=...` plus `R2_S3_*`) is the opt-in real-R2 multipart
 acceptance check; it is not run by CI.
 
+## Adopt a live publication
+
+When `$STUFF_STATE_HOME` is missing (new machine, lost disk) the next publish
+would replace the live registry with the caller's subset. Rebuild the state
+from the buckets first. Pulling only reads the bucket (`cf` authenticated);
+each object is checked against the listing ETag and only the current
+generation plus the shared stores are fetched:
+
+```sh
+H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+mkdir -p "$H/mycrates" "$H/mynpm" "$H/mypypi"
+deploy/r2-pull.py stuff-mycrates "$H/pull-mycrates"
+mycrates init --state-dir "$H/mycrates/state" --site-dir "$H/mycrates/site"
+mycrates config set-public-base-url https://crates.17166969.xyz --state-dir "$H/mycrates/state"
+mycrates adopt --from-site "$H/pull-mycrates" --state-dir "$H/mycrates/state"
+deploy/r2-pull.py stuff-mynpm "$H/mynpm/site/mirror"
+mynpm adopt --site-dir "$H/mynpm/site"
+deploy/r2-pull.py stuff-mypypi "$H/mypypi/site"
+```
+
+`mycrates` publishes from `state/` alone, so `adopt` rebuilds its records from
+the pulled index lines and blobs (blob SHA-256 must equal the index checksum).
+`mynpm` and `mypypi` extend the `current` generation of their site, so the
+pulled site is their state; `mynpm adopt` verifies it and republishes it
+under the current renderer, and `mypypi` needs nothing beyond the pull. Delete
+`$H/pull-mycrates` once adopted. The next publish then carries every live
+package forward.
+
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo
 LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's
 import, fetch, verify or validate, and publish into
