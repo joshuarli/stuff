@@ -409,6 +409,57 @@ def _copy_tree(root: Path, destination: Path) -> None:
     )
 
 
+def _sibling_sources(root: Path) -> set[Path]:
+    sources: set[Path] = set()
+    direct, _ = _rust_direct_dependencies(root)
+    for dependency in direct:
+        if dependency.has_path and dependency.path_value is not None:
+            parent = (root / dependency.manifest).parent
+            sources.add(Path(os.path.normpath(parent / dependency.path_value)))
+    _, document, _ = _python_direct_specs(root)
+    if isinstance(document, dict):
+        tool = document.get("tool")
+        uv_section = tool.get("uv") if isinstance(tool, dict) else None
+        uv_sources = uv_section.get("sources") if isinstance(uv_section, dict) else None
+        if isinstance(uv_sources, dict):
+            for source in uv_sources.values():
+                if isinstance(source, dict) and isinstance(source.get("path"), str):
+                    sources.add(Path(os.path.normpath(root / source["path"])))
+    for project in _js_project_roots(root):
+        for spec in _js_direct_dependencies(project).values():
+            target: str | None = None
+            if spec.startswith(("link:", "file:")):
+                target = spec.split(":", 1)[1]
+            elif spec.startswith("."):
+                target = spec
+            if target is not None:
+                sources.add(Path(os.path.normpath(project / target)))
+    return sources
+
+
+def _copy_siblings(root: Path, work: Path) -> None:
+    sandbox = work.parent
+    temporary_root = sandbox.parent
+    for source in sorted(_sibling_sources(root)):
+        try:
+            if not source.exists() or source == root or source.is_relative_to(root):
+                continue
+            destination = sandbox / os.path.relpath(source, root.parent)
+            if not destination.resolve(strict=False).is_relative_to(
+                temporary_root.resolve(strict=False)
+            ):
+                continue
+            if destination.exists():
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if source.is_dir():
+                _copy_tree(source.resolve(), destination)
+            else:
+                shutil.copy2(source.resolve(), destination)
+        except OSError:
+            continue
+
+
 def _run_upgrade_task(task: UpgradeTask, cache_dir: Path) -> None:
     environment = os.environ.copy()
     if task.tool == "uv":
@@ -478,8 +529,10 @@ def _fix(root: Path, repository: Repository) -> dict[str, str]:
             "required to upgrade dependencies and was not found"
         )
     with tempfile.TemporaryDirectory(prefix="repomod-audit-upgrades-") as temporary:
-        work = Path(temporary) / "project"
+        work = Path(temporary) / "sandbox" / root.name
+        work.parent.mkdir(parents=True)
         _copy_tree(root, work)
+        _copy_siblings(root, work)
         cache_dir = Path(temporary) / "cache"
         cache_dir.mkdir()
         for task in tasks:

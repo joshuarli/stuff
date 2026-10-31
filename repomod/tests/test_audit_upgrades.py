@@ -20,6 +20,7 @@ from repomod.policy import selected_rules
 from repomod.rules import rules
 from repomod.rules.audit_upgrades import (
     _configured_sources,
+    _copy_siblings,
     _fix,
     _outdated_findings,
     audit_upgrade_rules,
@@ -972,3 +973,37 @@ def test_configured_sources_are_absent_without_repository_mirror_config(tmp_path
         encoding="utf-8",
     )
     assert _configured_sources(root) is None
+
+
+def test_copy_siblings_preserves_relative_dependency_paths(tmp_path: Path) -> None:
+    fleet = tmp_path / "fleet"
+    root = fleet / "demo"
+    root.mkdir(parents=True)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nfoo = { path = "../foo" }\n',
+        encoding="utf-8",
+    )
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "1.0.0"\ndependencies = ["shadowdriver"]\n'
+        '[tool.uv.sources]\nshadowdriver = { path = "../shadowdriver/py" }\n',
+        encoding="utf-8",
+    )
+    (root / "package.json").write_text(
+        '{"name": "demo", "dependencies": {"dep": "link:../dep"}}',
+        encoding="utf-8",
+    )
+    for relative, manifest in (
+        ("foo/Cargo.toml", '[package]\nname = "foo"\nversion = "0.1.0"\n'),
+        ("shadowdriver/py/pyproject.toml", '[project]\nname = "shadowdriver"\nversion = "1.0.0"\n'),
+        ("dep/package.json", '{"name": "dep"}'),
+    ):
+        path = fleet / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(manifest, encoding="utf-8")
+    work = tmp_path / "sandbox" / "demo"
+    work.parent.mkdir(parents=True)
+    _copy_siblings(root, work)
+    assert (tmp_path / "sandbox" / "foo" / "Cargo.toml").is_file()
+    assert (tmp_path / "sandbox" / "shadowdriver" / "py" / "pyproject.toml").is_file()
+    assert (tmp_path / "sandbox" / "dep" / "package.json").is_file()
