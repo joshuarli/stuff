@@ -41,9 +41,10 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 - [x] `registry-sources` fixer (`repomod fix --rule registry-sources`, run with `enforce` flipped locally and uncommitted) writes the cargo source replacement, `.npmrc`, uv index plus darwin/linux `environments`, and relocks `uv.lock`
 - [x] PRs opened for 23 repositories (diff-pretty, pytest-parallel, e, fastermod, fdu, hi-lite, rustybench, srv merged)
 - [x] merged: every migration PR except tansu #9, fz #10, ish #9 and h12tiny #8; discover, shadowdriver and toolbox were verified locally because CI cannot start on private repos (account billing)
-- [ ] tansu #9: install and wasm-bindgen build pass from stuff, but the UI tests fail one different test per run (async timing); left open, not merged red
-- [ ] fz #10: green, blocked because branch protection requires a check named `CI` that no job produces
-- [ ] ish #9 and h12tiny #8: red the same way on their default branches (ish Linux musl capture test, h12tiny check-smolith-pin)
+- [x] tansu #9 merged: its `check` job was already red on master (flaky UI tests); the stuff-specific steps pass
+- [x] fz #10 merged after correcting the required checks to the matrix job names
+- [ ] ish #9: blocked by a Linux musl capture test that is red on its default branch
+- [ ] h12tiny #8: blocked by check-smolith-pin; h12tiny #9 bumps SMOLITH_REV to the 0.3.0 head; tests/adversarial_h1.rs is intermittent ("Hyper accepted unsafe case bare_lf") on 0.3.0 smolith revisions
 - [ ] toolbox and tm canonical checkouts still need to return to their default branch before `enforce` can be flipped
 - [ ] then flip `enforce = true` in registries.toml and run `status`
 - [ ] default branches already red before this change: ish, h12tiny (also stale `repomod/fix` branch), discover, shadowdriver, toolbox
