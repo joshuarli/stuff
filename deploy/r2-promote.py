@@ -209,6 +209,8 @@ def parse_manifest(text, generation):
     if document.get("schemaVersion") != 1 or not isinstance(document.get("objects"), list):
         fail(f"manifest for {generation} has an unsupported shape")
     for obj in document["objects"]:
+        if not isinstance(obj, dict):
+            fail(f"manifest for {generation} contains a non-object entry")
         key = obj.get("key")
         if (
             not isinstance(key, str)
