@@ -14,6 +14,10 @@ _MERGE_WORKERS_LIMIT = 16
 type MergeOutcome = tuple[RepomodPullRequest, str, str | None]
 
 
+def _plural(count: int, singular: str, plural: str) -> str:
+    return f"{count} {singular if count == 1 else plural}"
+
+
 def _merge_repository(
     repository: Repository,
     requests: list[RepomodPullRequest],
@@ -44,8 +48,22 @@ def _merge(args: argparse.Namespace) -> int:
         raise ValueError("--workers must be at least one")
     catalog = common._catalog()
     repositories = common._select(catalog, args.repo, args.tag)
-    listed = github.repomod_pull_requests(repositories, jobs=args.workers)
+    print(
+        f"Listing repomod pull requests in "
+        f"{_plural(len(repositories), 'repository', 'repositories')}...",
+        file=sys.stderr,
+        flush=True,
+    )
+    listed = github.repomod_pull_requests(
+        repositories,
+        jobs=args.workers,
+        on_complete=lambda completed, total: common._progress(
+            "Listing repomod pull requests", completed, total
+        ),
+    )
     failed = False
+    listing_failures = 0
+    total_requests = 0
     pending: list[tuple[Repository, list[RepomodPullRequest]]] = []
     for repository in repositories:
         name = str(repository.id)
@@ -53,8 +71,17 @@ def _merge(args: argparse.Namespace) -> int:
         if error is not None:
             print(f"{name}: failed: {error}", file=sys.stderr)
             failed = True
+            listing_failures += 1
         elif requests:
             pending.append((repository, requests))
+            total_requests += len(requests)
+    print(
+        f"Found {_plural(total_requests, 'repomod pull request', 'repomod pull requests')} "
+        f"across {_plural(len(repositories), 'repository', 'repositories')}.",
+        file=sys.stderr,
+        flush=True,
+    )
+    counts = {"merged": 0, "would-merge": 0, "skipped": 0, "failed": 0}
     results: list[tuple[Repository, list[MergeOutcome]]] = []
     if pending:
         with ThreadPoolExecutor(
@@ -74,6 +101,7 @@ def _merge(args: argparse.Namespace) -> int:
                 except Exception as error:
                     print(f"{repository.id}: failed: {error}", file=sys.stderr)
                     failed = True
+                    counts["failed"] += 1
                     continue
                 results.append((repository, outcomes))
     for repository, outcomes in sorted(
@@ -81,6 +109,7 @@ def _merge(args: argparse.Namespace) -> int:
     ):
         name = str(repository.id)
         for request, state, detail in outcomes:
+            counts[state] += 1
             if state == "merged":
                 assert detail is not None
                 print(f"{name}: #{request.number} merged {detail[:12]} {request.url}")
@@ -92,4 +121,21 @@ def _merge(args: argparse.Namespace) -> int:
                     file=sys.stderr,
                 )
                 failed |= state == "failed"
+    scanned = len(repositories) - listing_failures
+    if total_requests == 0:
+        summary = (
+            f"summary: no repomod pull requests in "
+            f"{_plural(scanned, 'repository', 'repositories')}"
+        )
+    else:
+        action = "would merge" if args.dry_run else "merged"
+        completed = counts["would-merge"] if args.dry_run else counts["merged"]
+        states = f"{action} {completed}; skipped {counts['skipped']}; failed {counts['failed']}"
+        summary = (
+            f"summary: {_plural(total_requests, 'repomod pull request', 'repomod pull requests')} "
+            f"in {_plural(len(pending), 'repository', 'repositories')}; {states}"
+        )
+    if listing_failures:
+        summary += f"; {_plural(listing_failures, 'listing failed', 'listings failed')}"
+    print(summary)
     return 1 if failed else 0

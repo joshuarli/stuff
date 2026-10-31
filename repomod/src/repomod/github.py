@@ -1758,7 +1758,10 @@ def _repomod_pull_requests_one(
 
 
 def repomod_pull_requests(
-    repositories: tuple[Repository, ...], jobs: int = 4
+    repositories: tuple[Repository, ...],
+    jobs: int = 4,
+    *,
+    on_complete: Callable[[int, int], None] | None = None,
 ) -> dict[str, tuple[list[RepomodPullRequest], str | None]]:
     if jobs < 1:
         raise ValueError("jobs must be at least one")
@@ -1773,9 +1776,11 @@ def repomod_pull_requests(
             pool.submit(_repomod_pull_requests_one, repository): repository
             for repository in repositories
         }
-        for future in as_completed(futures):
+        for completed, future in enumerate(as_completed(futures), start=1):
             repository = futures[future]
             found[str(repository.id)] = future.result()
+            if on_complete is not None:
+                on_complete(completed, len(repositories))
     return found
 
 

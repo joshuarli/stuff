@@ -73,6 +73,18 @@ def _finding_color(finding: Finding) -> str:
     return "36"
 
 
+def _progress(stage: str, completed: int, total: int, detail: str = "") -> None:
+    message = f"{stage}: {completed}/{total} complete"
+    if detail:
+        message += f" ({detail})"
+    if sys.stderr.isatty():
+        print(f"\r{message}\033[K", end="", file=sys.stderr, flush=True)
+        if completed == total:
+            print(file=sys.stderr)
+    else:
+        print(message, file=sys.stderr, flush=True)
+
+
 def _print_repository_block(
     name: str, stdout_lines: Sequence[str], stderr_lines: Sequence[str]
 ) -> None:

@@ -19,7 +19,7 @@ def _sync(args: argparse.Namespace) -> int:
     )
     remotes = github.remote_metadata(
         repositories,
-        on_batch_complete=lambda completed, total: _sync_progress(
+        on_batch_complete=lambda completed, total: common._progress(
             "GitHub metadata batches", completed, total
         ),
     )
@@ -33,7 +33,7 @@ def _sync(args: argparse.Namespace) -> int:
         remotes,
         dry_run=args.dry_run,
         jobs=args.workers,
-        on_complete=lambda completed, total, result: _sync_progress(
+        on_complete=lambda completed, total, result: common._progress(
             "Repository progress", completed, total, f"{result.repository}: {result.action}"
         ),
     )
@@ -45,15 +45,3 @@ def _sync(args: argparse.Namespace) -> int:
         print(f"{result.repository}: {result.action}: {result.message}")
         failed |= result.failed
     return 1 if failed else 0
-
-
-def _sync_progress(stage: str, completed: int, total: int, detail: str = "") -> None:
-    message = f"{stage}: {completed}/{total} complete"
-    if detail:
-        message += f" ({detail})"
-    if sys.stderr.isatty():
-        print(f"\r{message}\033[K", end="", file=sys.stderr, flush=True)
-        if completed == total:
-            print(file=sys.stderr)
-    else:
-        print(message, file=sys.stderr, flush=True)

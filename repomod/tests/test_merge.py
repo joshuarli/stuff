@@ -26,6 +26,16 @@ def catalog(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("repomod.cmd.common._catalog", lambda: loaded)
 
 
+def use_listing(monkeypatch: pytest.MonkeyPatch, requests) -> None:
+    def listing(repositories, jobs, *, on_complete=None):
+        assert jobs >= 1
+        if on_complete is not None:
+            on_complete(len(repositories), len(repositories))
+        return requests
+
+    monkeypatch.setattr(github, "repomod_pull_requests", listing)
+
+
 def pull_request(number: int, branch: str, sha: str, *, draft: bool = False) -> RepomodPullRequest:
     return RepomodPullRequest(
         number,
@@ -93,6 +103,19 @@ def test_repomod_pull_requests_selects_fix_branches_from_the_same_repository(mon
     assert calls == [
         ["--paginate", "--slurp", "repos/acme/demo/pulls?state=open&per_page=100"]
     ]
+
+
+def test_repomod_pull_requests_reports_listing_progress(monkeypatch) -> None:
+    monkeypatch.setattr(github, "_gh_json", lambda _: [[]])
+    progress: list[tuple[int, int]] = []
+
+    github.repomod_pull_requests(
+        (repo("demo"), repo("other")),
+        jobs=1,
+        on_complete=lambda completed, total: progress.append((completed, total)),
+    )
+
+    assert sorted(progress) == [(1, 2), (2, 2)]
 
 
 def test_repomod_pull_requests_reports_listing_errors(monkeypatch) -> None:
@@ -166,7 +189,7 @@ def test_merge_command_merges_fix_branches_and_reports_failures(
             raise github.GitHubError("pull request is not mergeable")
         return "d" * 40
 
-    monkeypatch.setattr(github, "repomod_pull_requests", lambda _repositories, jobs: requests)
+    use_listing(monkeypatch, requests)
     monkeypatch.setattr(github, "merge_repomod_pull_request", merge_pull_request)
     args = argparse.Namespace(repo=[], tag=[], dry_run=False, workers=2)
 
@@ -179,6 +202,12 @@ def test_merge_command_merges_fix_branches_and_reports_failures(
     assert "acme/demo: #3 merged dddddddddddd" in output.out
     assert "acme/demo: #4 skipped: pull request is a draft" in output.err
     assert "acme/other: #5 failed: pull request is not mergeable" in output.err
+    assert "Listing repomod pull requests: 2/2 complete" in output.err
+    assert "Found 3 repomod pull requests across 2 repositories." in output.err
+    assert (
+        "summary: 3 repomod pull requests in 2 repositories; merged 1; skipped 1; failed 1"
+        in output.out
+    )
 
 
 def test_merge_command_dry_run_does_not_merge(tmp_path, monkeypatch, capsys) -> None:
@@ -188,7 +217,7 @@ def test_merge_command_dry_run_does_not_merge(tmp_path, monkeypatch, capsys) -> 
         "acme/demo": ([pull_request(3, branch, "c" * 40)], None),
         "acme/other": ([], None),
     }
-    monkeypatch.setattr(github, "repomod_pull_requests", lambda _repositories, jobs: requests)
+    use_listing(monkeypatch, requests)
 
     def fail(*_arguments) -> str:
         raise AssertionError("dry run must not merge")
@@ -199,17 +228,37 @@ def test_merge_command_dry_run_does_not_merge(tmp_path, monkeypatch, capsys) -> 
     assert _merge(args) == 0
     output = capsys.readouterr()
     assert f"acme/demo: #3 would merge {branch}" in output.out
-    assert output.err == ""
+    assert "Listing repomod pull requests: 2/2 complete" in output.err
+    assert "Found 1 repomod pull request across 2 repositories." in output.err
+    assert (
+        "summary: 1 repomod pull request in 1 repository; would merge 1; skipped 0; failed 0"
+        in output.out
+    )
+
+
+def test_merge_command_reports_when_nothing_is_found(tmp_path, monkeypatch, capsys) -> None:
+    catalog(tmp_path, monkeypatch)
+    use_listing(monkeypatch, {"acme/demo": ([], None), "acme/other": ([], None)})
+    args = argparse.Namespace(repo=[], tag=[], dry_run=False, workers=1)
+
+    assert _merge(args) == 0
+    output = capsys.readouterr()
+    assert "Found 0 repomod pull requests across 2 repositories." in output.err
+    assert "summary: no repomod pull requests in 2 repositories" in output.out
 
 
 def test_merge_command_fails_when_a_repository_listing_fails(tmp_path, monkeypatch, capsys) -> None:
     catalog(tmp_path, monkeypatch)
     requests = {"acme/demo": ([], "boom"), "acme/other": ([], None)}
-    monkeypatch.setattr(github, "repomod_pull_requests", lambda _repositories, jobs: requests)
+    use_listing(monkeypatch, requests)
     args = argparse.Namespace(repo=[], tag=[], dry_run=False, workers=1)
 
     assert _merge(args) == 1
-    assert "acme/demo: failed: boom" in capsys.readouterr().err
+    output = capsys.readouterr()
+    assert "acme/demo: failed: boom" in output.err
+    assert (
+        "summary: no repomod pull requests in 1 repository; 1 listing failed" in output.out
+    )
 
 
 def test_merge_is_registered_in_cli_parser() -> None:

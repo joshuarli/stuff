@@ -120,7 +120,8 @@ uv run repomod push
 how `fix` identifies its pull requests. It pins each merge to the head commit listed before the
 merge, so a branch that moves is rejected instead of merging unreviewed commits. Drafts are
 skipped and merge failures are reported; both leave the pull request open. `--dry-run` lists what
-would merge. Use `--repo`/`--tag` to select repositories.
+would merge. The command reports listing progress and a final summary, including when no pull
+requests are found. Use `--repo`/`--tag` to select repositories.
 
 ```sh
 uv run repomod merge --dry-run
