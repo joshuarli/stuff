@@ -499,3 +499,50 @@ fn fetch_runs_many_pins_with_bounded_workers() {
     assert!(plan(&state_dir).unwrap().is_empty());
     verify(&state_dir).unwrap();
 }
+
+#[test]
+fn add_resolves_the_pin_checksum_from_the_configured_index() {
+    let checksum = "a".repeat(64);
+    let index_checksum = checksum.clone();
+    let upstream = MockUpstream::start(move |_method, path, _host| {
+        if path.ends_with("/add-pkg") {
+            let line = deser_json::to_string(&deser_value::value!({
+                "name": "add-pkg",
+                "vers": "2.0.0",
+                "deps": [],
+                "cksum": index_checksum.clone(),
+                "features": {},
+                "yanked": false
+            }))
+            .unwrap();
+            (200, format!("{line}\n").into_bytes(), "text/plain")
+        } else {
+            (404, b"not found".to_vec(), "text/plain")
+        }
+    });
+
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    fs::create_dir_all(&state_dir).unwrap();
+    let cfg = Config {
+        upstream: UpstreamConfig {
+            index_url: format!("http://127.0.0.1:{}", upstream.port),
+        },
+        ..Default::default()
+    };
+    cfg.save(&state_dir.join("config.json")).unwrap();
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_mycrates"))
+        .args([
+            "add",
+            "add-pkg@2.0.0",
+            "--state-dir",
+            state_dir.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+
+    let pins = fs::read_to_string(state_dir.join("pins/default.toml")).unwrap();
+    assert!(pins.contains(&checksum), "{pins}");
+}

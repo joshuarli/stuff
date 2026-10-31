@@ -64,15 +64,6 @@ Next: 27
 - **Fix with:** `test-audit`
 - **Effort:** S
 
-### STUF-24 · P3 · mycrates add writes pins that fetch can never accept
-
-- **Area:** Errors
-- **Where:** `crates/mycrates/src/cli/add.rs:60-66`; `crates/mycrates/src/acquire.rs:135-140`; `crates/mycrates/src/cli.rs:135` (advertises `add`).
-- **Problem:** `mycrates add` writes a pin with `checksum: ""`. `fetch` compares the pin checksum against the upstream index and returns an integrity error on the first mismatch, so every pin produced by the command is unusable and one such pin aborts the whole fetch. There is no `--checksum` flag and nothing resolves the checksum before writing.
-- **Recommendation:** Resolve the checksum from the configured upstream index before writing the pin, or remove `add` from the parser and help so it cannot produce dead state.
-- **Fix with:** `none`
-- **Effort:** M
-
 ### STUF-25 · P3 · stuff accepts flags no command reads and advertises positionals it rejects
 
 - **Area:** Types

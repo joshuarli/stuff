@@ -132,7 +132,7 @@ pub fn print_help() {
     println!("  config set-public-base-url <URL> [--state-dir DIR]");
     println!("  plan [--state-dir DIR]");
     println!("  import-lock <Cargo.lock> [--project NAME] [--state-dir DIR]");
-    println!("  add <name>@<version> [--state-dir DIR]");
+    println!("  add <name>@<version> [--state-dir DIR] [--config PATH]");
     println!("  adopt --from-site DIR [--state-dir DIR]");
     println!("  fetch [--state-dir DIR] [--config PATH]");
     println!("  publish [--state-dir DIR] [--site-dir DIR] [--config PATH]");
