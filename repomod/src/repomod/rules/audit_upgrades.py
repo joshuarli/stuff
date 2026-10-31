@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.audit import (
+    RegistrySources,
     UpgradeTask,
     _audit_cache_path,
     _cargo_manifests,
@@ -22,6 +23,7 @@ from repomod.audit import (
     _js_direct_dependencies,
     _js_project_roots,
     _js_spec_is_filesystem,
+    _local_rust_package_names,
     _normalize_python_name,
     _normalize_rust_name,
     _parse_cargo_version,
@@ -94,11 +96,78 @@ def _non_registry_names(root: Path) -> set[tuple[str, str]]:
     for dependency in direct:
         if dependency.has_git or (dependency.has_path and not dependency.has_version):
             skipped.add(("crates", _normalize_rust_name(dependency.name)))
+    skipped.update(("crates", name) for name in _local_rust_package_names(root))
     for project in _js_project_roots(root):
         for name, spec in _js_direct_dependencies(project).items():
             if _js_spec_is_filesystem(spec):
                 skipped.add(("npm", name.casefold()))
     return skipped
+
+
+def _configured_cargo_source(root: Path) -> str | None:
+    path = root / ".cargo" / "config.toml"
+    if not path.is_file():
+        return None
+    document, _ = read_toml(path)
+    if not isinstance(document, dict):
+        return None
+    sources = document.get("source")
+    if not isinstance(sources, dict):
+        return None
+    crates_io = sources.get("crates-io")
+    replacement = crates_io.get("replace-with") if isinstance(crates_io, dict) else None
+    target = sources.get(replacement) if isinstance(replacement, str) else None
+    registry = target.get("registry") if isinstance(target, dict) else None
+    return registry if isinstance(registry, str) else None
+
+
+def _configured_npm_registry(root: Path) -> str | None:
+    path = root / ".npmrc"
+    if not path.is_file():
+        return None
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return None
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped[0] in "#;" or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        if key.strip() == "registry" and value.strip():
+            return value.strip()
+    return None
+
+
+def _configured_python_index(root: Path) -> str | None:
+    for path, nested in ((root / "uv.toml", False), (root / "pyproject.toml", True)):
+        if not path.is_file():
+            continue
+        document, _ = read_toml(path)
+        if not isinstance(document, dict):
+            continue
+        section: Any = document
+        if nested:
+            tool = document.get("tool")
+            section = tool.get("uv") if isinstance(tool, dict) else None
+        indexes = section.get("index") if isinstance(section, dict) else None
+        if not isinstance(indexes, list):
+            continue
+        for index in indexes:
+            if isinstance(index, dict) and index.get("default") is True:
+                url = index.get("url")
+                if isinstance(url, str):
+                    return url
+    return None
+
+
+def _configured_sources(root: Path) -> RegistrySources | None:
+    cargo = _configured_cargo_source(root)
+    npm = _configured_npm_registry(root)
+    python = _configured_python_index(root)
+    if cargo is None and npm is None and python is None:
+        return None
+    return RegistrySources(cargo, npm, python)
 
 
 def _rust_version_reqs(root: Path) -> dict[str, str | None]:
@@ -236,6 +305,7 @@ def _outdated_findings(
     cache: dict[str, Any],
     now: float,
     fetcher: Callable[[str, str], str | None] | None,
+    sources: RegistrySources | None = None,
 ) -> list[Finding]:
     locked, _ = _collect_locked(root, repository)
     skipped = _non_registry_names(root)
@@ -256,7 +326,13 @@ def _outdated_findings(
     if not direct:
         return []
     latest = _resolve_latest(
-        direct, offline=False, refresh=False, cache=cache, now=now, fetcher=fetcher
+        direct,
+        offline=False,
+        refresh=False,
+        cache=cache,
+        now=now,
+        fetcher=fetcher,
+        sources=sources,
     )
     rust_reqs = _rust_version_reqs(root)
     python_specifiers = _python_specifiers(root)
@@ -275,7 +351,13 @@ def _outdated_findings(
                 if req is not None and not _cargo_req_satisfies(req, newest):
                     fixable = False
                 else:
-                    release = _crate_release(item.name, newest, cache=cache, now=now)
+                    release = _crate_release(
+                        item.name,
+                        newest,
+                        cache=cache,
+                        now=now,
+                        cargo_source=sources.cargo if sources is not None else None,
+                    )
                     reason = None
                     if release is not None:
                         reason = _msrv_conflict(release, lowest_rust_version) or _pin_conflict(
@@ -311,7 +393,8 @@ def _check(root: Path, repository: Repository) -> list[Finding]:
         cache["latest"] = {}
     if not isinstance(cache.get("osv"), dict):
         cache["osv"] = {}
-    findings = _outdated_findings(root, repository, cache, time.time(), None)
+    sources = _configured_sources(root)
+    findings = _outdated_findings(root, repository, cache, time.time(), None, sources)
     with contextlib.suppress(OSError):
         _write_cache(_audit_cache_path(), cache)
     return findings

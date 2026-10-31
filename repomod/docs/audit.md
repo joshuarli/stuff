@@ -20,8 +20,15 @@ uv run repomod fix --rule audit-upgrades
 - Go: requirements from `go.mod`.
 - Swift is out of scope and is not audited.
 
-Latest stable versions come from PyPI, the npm registry, crates.io, and the Go
-proxy. Vulnerabilities come from the free OSV API with no authentication.
+Latest stable versions come from the registries each repository configures: the
+Cargo sparse source in `.cargo/config.toml`, `registry=` in `.npmrc`, and the
+default `[[tool.uv.index]]` in `pyproject.toml` or `[[index]]` in `uv.toml`.
+Repositories without an override use public crates.io, npm, and PyPI. Go uses
+`proxy.golang.org`. A release that the configured registry does not carry is not
+reported until it is available there, so upgrade findings match what the
+repository can install. Crate release metadata for MSRV and exact-pin checks
+comes from the same Cargo source. Vulnerabilities come from the free OSV API
+with no authentication.
 For npm, "latest" is the newest stable release the repository's pnpm can
 install: versions younger than `minimumReleaseAge` (minutes, from
 `pnpm-workspace.yaml`, then `.npmrc` `minimum-release-age`, default 1440 as in
@@ -98,7 +105,8 @@ when the upgrader cannot reach the latest version:
   by the workspace members, so `cargo update` keeps the older release; the
   message names the Rust versions.
 
-Crate release metadata comes from crates.io and is cached with the rest.
+Crate release metadata comes from the configured Cargo source and is cached
+with the rest.
 Vulnerability, ban, and lockfile findings stay manual because the upgraders
 cannot fix them deterministically. The rule is excluded from `status --offline`
 because its check refreshes the registry cache over the network. A repository

@@ -181,7 +181,10 @@ on open pull requests; drafts are skipped and overlong subjects warn. It is lint
 fixer: rename the PR explicitly. It needs the network, so it is excluded from offline checks.
 
 `audit-upgrades` reports locked direct dependencies that lag their registry's latest stable
-release as fixable findings. Its check refreshes the shared audit cache over the network, so it
+release as fixable findings. It resolves against the repository's configured Cargo source, npm
+registry, and default Python index, so a version the mirror does not carry is not reported;
+repositories without an override use the public registries. Its check refreshes the shared audit
+cache over the network, so it
 is excluded from `status --offline`. Its fixer runs the native upgraders (`uv lock --upgrade`,
 per-project `pnpm update --latest`, `cargo update`, `go get -u ./...` plus `go mod tidy`) in a
 disposable copy and returns the changed lockfiles and manifests as its file plan. Upgrades that

@@ -63,6 +63,14 @@ _IGNORED_DIRS = frozenset(
     }
 )
 
+
+@dataclass(frozen=True, slots=True)
+class RegistrySources:
+    cargo: str | None
+    npm: str | None
+    python: str | None
+
+
 _JS_FILESYSTEM_PREFIXES = (
     "file:",
     "link:",
@@ -136,6 +144,19 @@ def _is_outdated(locked: str, latest: str) -> bool:
     if left == right:
         return False
     return _version_key(locked) < _version_key(latest)
+
+
+def _is_prerelease(version: str) -> bool:
+    if "-" in version:
+        return True
+    return (
+        re.search(
+            r"(?:[._]|\d)(?:a|alpha|b|beta|c|rc|pre|preview|dev)\d*$",
+            version,
+            re.IGNORECASE,
+        )
+        is not None
+    )
 
 
 def _pep508_name(spec: str) -> str | None:
@@ -951,6 +972,17 @@ def _http_json(url: str, headers: dict[str, str] | None = None) -> Any | None:
         return None
 
 
+def _http_text(url: str, headers: dict[str, str] | None = None) -> str | None:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "repomod", **(headers or {})}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            return str(response.read().decode("utf-8"))
+    except (OSError, UnicodeError):
+        return None
+
+
 def _non_empty_str(value: object) -> str | None:
     return value if isinstance(value, str) and value else None
 
@@ -960,26 +992,118 @@ def _registry_document(url: str, headers: dict[str, str] | None = None) -> dict[
     return data if isinstance(data, dict) else None
 
 
-def _latest_pypi(name: str) -> str | None:
-    encoded = urllib.parse.quote(name, safe="")
-    document = _registry_document(f"https://pypi.org/pypi/{encoded}/json")
-    if document is None:
+def _latest_pypi(name: str, index: str | None = None) -> str | None:
+    if index is None:
+        encoded = urllib.parse.quote(name, safe="")
+        document = _registry_document(f"https://pypi.org/pypi/{encoded}/json")
+        if document is None:
+            return None
+        info = document.get("info")
+        if not isinstance(info, dict):
+            return None
+        return _non_empty_str(info.get("version"))
+    normalized = _normalize_python_name(name)
+    text = _http_text(f"{index.rstrip('/')}/{normalized}/")
+    if text is None:
         return None
-    info = document.get("info")
-    if not isinstance(info, dict):
+    versions = _pypi_simple_versions(text, normalized)
+    if not versions:
         return None
-    return _non_empty_str(info.get("version"))
+    stable = [version for version in versions if not _is_prerelease(version)]
+    return max(stable or versions, key=_version_key)
 
 
-def _latest_npm(name: str) -> str | None:
+def _pypi_simple_versions(text: str, normalized: str) -> set[str]:
+    versions: set[str] = set()
+    for filename in re.findall(r"<a\s[^>]*>([^<]+)</a>", text, re.IGNORECASE):
+        stem = filename.strip()
+        for suffix in (".tar.gz", ".tar.bz2", ".tar.xz", ".zip", ".whl", ".tgz"):
+            if stem.lower().endswith(suffix):
+                stem = stem[: -len(suffix)]
+                break
+        match = re.match(r"^(.+?)-(\d[^-]*)", stem)
+        if match is None or _normalize_python_name(match.group(1)) != normalized:
+            continue
+        versions.add(match.group(2))
+    return versions
+
+
+def _npm_latest(document: dict[str, Any]) -> str | None:
+    tags = document.get("dist-tags")
+    latest = _non_empty_str(tags.get("latest")) if isinstance(tags, dict) else None
+    if latest is not None:
+        return latest
+    versions = document.get("versions")
+    if not isinstance(versions, dict) or not versions:
+        return None
+    names = [name for name in versions if isinstance(name, str)]
+    stable = [name for name in names if not _is_prerelease(name)]
+    return max(stable or names, key=_version_key)
+
+
+def _latest_npm(name: str, registry: str | None = None) -> str | None:
     encoded = urllib.parse.quote(name, safe="@")
-    document = _registry_document(f"https://registry.npmjs.org/{encoded}/latest")
+    if registry is None:
+        document = _registry_document(f"https://registry.npmjs.org/{encoded}/latest")
+        if document is None:
+            return None
+        return _non_empty_str(document.get("version"))
+    document = _registry_document(f"{registry.rstrip('/')}/{encoded}")
     if document is None:
         return None
-    return _non_empty_str(document.get("version"))
+    return _npm_latest(document)
 
 
-def _latest_crates(name: str) -> str | None:
+def _cargo_index_path(name: str) -> str:
+    normalized = name.casefold()
+    if len(normalized) == 1:
+        return f"1/{normalized}"
+    if len(normalized) == 2:
+        return f"2/{normalized}"
+    if len(normalized) == 3:
+        return f"3/{normalized[0]}/{normalized}"
+    return f"{normalized[:2]}/{normalized[2:4]}/{normalized}"
+
+
+def _cargo_index_records(name: str, index: str) -> list[dict[str, Any]] | None:
+    base = index.removeprefix("sparse+")
+    text = _http_text(f"{base.rstrip('/')}/{_cargo_index_path(name)}")
+    if text is None:
+        return None
+    records: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(record, dict) and isinstance(record.get("vers"), str):
+            records.append(record)
+    return records or None
+
+
+def _latest_crates(name: str, index: str | None = None) -> str | None:
+    if index is not None:
+        records = _cargo_index_records(name, index)
+        if records is None:
+            return None
+        normalized = _normalize_rust_name(name)
+        records = [
+            record
+            for record in records
+            if _normalize_rust_name(str(record.get("name", ""))) == normalized
+        ]
+        if not records:
+            return None
+        available = [record for record in records if not record.get("yanked")]
+        stable = [record for record in available if not _is_prerelease(record["vers"])]
+        candidates = stable or available
+        if not candidates:
+            return None
+        newest = max(candidates, key=lambda record: _version_key(str(record.get("vers"))))
+        version = newest.get("vers")
+        return version if isinstance(version, str) else None
     encoded = urllib.parse.quote(name, safe="")
     document = _registry_document(
         f"https://crates.io/api/v1/crates/{encoded}",
@@ -997,7 +1121,37 @@ def _latest_crates(name: str) -> str | None:
     return None
 
 
-def _fetch_crate_release(name: str, version: str) -> dict[str, Any] | None:
+def _fetch_crate_release(
+    name: str, version: str, index: str | None = None
+) -> dict[str, Any] | None:
+    if index is not None:
+        records = _cargo_index_records(name, index)
+        if records is None:
+            return None
+        normalized = _normalize_rust_name(name)
+        for record in records:
+            if (
+                _normalize_rust_name(str(record.get("name", ""))) != normalized
+                or record.get("vers") != version
+            ):
+                continue
+            entries = record.get("deps")
+            if not isinstance(entries, list):
+                return None
+            requirements = [
+                [entry.get("package") or entry["name"], entry["req"]]
+                for entry in entries
+                if isinstance(entry, dict)
+                and entry.get("kind") in {"normal", "build"}
+                and not entry.get("optional")
+                and isinstance(entry.get("name"), str)
+                and isinstance(entry.get("req"), str)
+            ]
+            return {
+                "rust_version": _non_empty_str(record.get("rust_version")),
+                "requirements": requirements,
+            }
+        return None
     base = (
         f"https://crates.io/api/v1/crates/{urllib.parse.quote(name, safe='')}"
         f"/{urllib.parse.quote(version, safe='')}"
@@ -1024,13 +1178,19 @@ def _fetch_crate_release(name: str, version: str) -> dict[str, Any] | None:
 
 
 def _crate_release(
-    name: str, version: str, *, cache: dict[str, Any], now: float
+    name: str,
+    version: str,
+    *,
+    cache: dict[str, Any],
+    now: float,
+    cargo_source: str | None = None,
 ) -> dict[str, Any] | None:
     entries = cache.get("crate_releases")
     if not isinstance(entries, dict):
         entries = {}
         cache["crate_releases"] = entries
-    key = f"{name.casefold()}:{version}"
+    source = cargo_source or "public"
+    key = f"{source}:{name.casefold()}:{version}"
     entry = entries.get(key)
     if (
         isinstance(entry, dict)
@@ -1038,7 +1198,7 @@ def _crate_release(
         and _cache_fresh(entry.get("fetched_at"), now)
     ):
         return entry["release"]
-    release = _fetch_crate_release(name, version)
+    release = _fetch_crate_release(name, version, cargo_source)
     if release is not None:
         entries[key] = {"release": release, "fetched_at": now}
     return release
@@ -1066,6 +1226,38 @@ _LATEST_FETCHERS: dict[str, Callable[[str], str | None]] = {
     "crates": _latest_crates,
     "go": _latest_go,
 }
+
+
+def _latest_source(ecosystem: str, sources: RegistrySources | None) -> str:
+    if sources is None:
+        return "public"
+    value = {
+        "crates": sources.cargo,
+        "npm": sources.npm,
+        "pypi": sources.python,
+        "go": "https://proxy.golang.org",
+    }.get(ecosystem)
+    return value or "public"
+
+
+def _latest_cache_key(ecosystem: str, source: str, name: str, locked: str) -> str:
+    if source == "public":
+        return f"{ecosystem}:{name.casefold()}:{locked}"
+    return f"{ecosystem}:{source}:{name.casefold()}:{locked}"
+
+
+def _mirror_fetcher(
+    ecosystem: str, sources: RegistrySources
+) -> Callable[[str], str | None] | None:
+    if ecosystem == "crates":
+        return lambda name: _latest_crates(name, sources.cargo)
+    if ecosystem == "npm":
+        return lambda name: _latest_npm(name, sources.npm)
+    if ecosystem == "pypi":
+        return lambda name: _latest_pypi(name, sources.python)
+    if ecosystem == "go":
+        return _latest_go
+    return None
 
 _OSV_ECOSYSTEMS = {
     "pypi": "PyPI",
@@ -1461,21 +1653,21 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _fetch_npm_releases(name: str) -> dict[str, Any] | None:
+def _fetch_npm_releases(name: str, registry: str | None = None) -> dict[str, Any] | None:
     encoded = urllib.parse.quote(name, safe="@")
-    document = _registry_document(f"https://registry.npmjs.org/{encoded}")
+    base = registry.rstrip("/") if registry is not None else "https://registry.npmjs.org"
+    document = _registry_document(f"{base}/{encoded}")
     if document is None:
         return None
-    tags = document.get("dist-tags")
     times = document.get("time")
-    latest = _non_empty_str(tags.get("latest")) if isinstance(tags, dict) else None
+    latest = _npm_latest(document)
     if latest is None or not isinstance(times, dict):
         return None
     published: dict[str, float] = {}
     for version, stamp in times.items():
         if version in {"created", "modified"} or not isinstance(stamp, str):
             continue
-        if "-" in version and "-" not in latest:
+        if _is_prerelease(version) and not _is_prerelease(latest):
             continue
         try:
             published[version] = datetime.fromisoformat(stamp).timestamp()
@@ -1508,15 +1700,18 @@ def _resolve_npm_installable(
     refresh: bool,
     cache: dict[str, Any],
     now: float,
+    registry: str | None = None,
 ) -> dict[tuple[str, str], str | None]:
     entries = cache.get("npm_releases")
     if not isinstance(entries, dict):
         entries = {}
         cache["npm_releases"] = entries
+    source = registry or "public"
     releases: dict[str, dict[str, Any] | None] = {}
     missing: list[str] = []
     for name in sorted({item.name for item in items}):
-        entry = entries.get(name.casefold())
+        key = f"{source}:{name.casefold()}"
+        entry = entries.get(key)
         usable = isinstance(entry, dict) and isinstance(entry.get("releases"), dict)
         if usable and (offline or (not refresh and _cache_fresh(entry.get("fetched_at"), now))):
             releases[name] = entry["releases"]
@@ -1528,10 +1723,21 @@ def _resolve_npm_installable(
         with ThreadPoolExecutor(
             max_workers=min(8, len(missing)), thread_name_prefix="repomod-audit"
         ) as pool:
-            for name, fetched in zip(missing, pool.map(_fetch_npm_releases, missing), strict=True):
+            futures = {
+                pool.submit(_fetch_npm_releases, name, registry): name for name in missing
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    fetched = future.result()
+                except Exception:
+                    fetched = None
                 releases[name] = fetched
                 if fetched is not None:
-                    entries[name.casefold()] = {"releases": fetched, "fetched_at": now}
+                    entries[f"{source}:{name.casefold()}"] = {
+                        "releases": fetched,
+                        "fetched_at": now,
+                    }
     resolved: dict[tuple[str, str], str | None] = {}
     for item in items:
         found = releases[item.name]
@@ -1550,6 +1756,7 @@ def _resolve_latest(
     cache: dict[str, Any],
     now: float,
     fetcher: Callable[[str, str], str | None] | None = None,
+    sources: RegistrySources | None = None,
 ) -> dict[tuple[str, str], str | None]:
     latest_entries = cache.get("latest")
     if not isinstance(latest_entries, dict):
@@ -1561,7 +1768,12 @@ def _resolve_latest(
         if item.release_policy is not None and item.release_policy.minimum_age_minutes > 0
     ]
     resolved = _resolve_npm_installable(
-        aged, offline=offline, refresh=refresh, cache=cache, now=now
+        aged,
+        offline=offline,
+        refresh=refresh,
+        cache=cache,
+        now=now,
+        registry=sources.npm if sources is not None else None,
     ) if aged else {}
     missing: list[LockedDependency] = []
     for item in locked:
@@ -1570,7 +1782,8 @@ def _resolve_latest(
         if fetcher is not None:
             resolved[(item.ecosystem, item.name)] = fetcher(item.ecosystem, item.name)
             continue
-        key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
+        source = _latest_source(item.ecosystem, sources)
+        key = _latest_cache_key(item.ecosystem, source, item.name, item.locked)
         entry = latest_entries.get(key)
         is_hit = (
             isinstance(entry, dict)
@@ -1598,7 +1811,11 @@ def _resolve_latest(
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="repomod-audit") as pool:
             futures = {}
             for ecosystem, items in grouped.items():
-                impl = _LATEST_FETCHERS.get(ecosystem)
+                impl = (
+                    _LATEST_FETCHERS.get(ecosystem)
+                    if sources is None
+                    else _mirror_fetcher(ecosystem, sources)
+                )
                 if impl is None:
                     for item in items:
                         resolved[(item.ecosystem, item.name)] = None
@@ -1612,7 +1829,8 @@ def _resolve_latest(
                 except Exception:
                     version = None
                 resolved[(item.ecosystem, item.name)] = version
-                key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
+                source = _latest_source(item.ecosystem, sources)
+                key = _latest_cache_key(item.ecosystem, source, item.name, item.locked)
                 latest_entries[key] = {"version": version, "fetched_at": now}
     return resolved
 

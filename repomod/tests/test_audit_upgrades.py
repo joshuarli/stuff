@@ -1,15 +1,29 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from repomod.audit import _cargo_req_satisfies, _policy_findings, _upgrade_tasks
+from repomod.audit import (
+    RegistrySources,
+    _cargo_req_satisfies,
+    _fetch_npm_releases,
+    _latest_npm,
+    _latest_pypi,
+    _policy_findings,
+    _upgrade_tasks,
+)
 from repomod.policy import selected_rules
 from repomod.rules import rules
-from repomod.rules.audit_upgrades import _fix, _outdated_findings, audit_upgrade_rules
+from repomod.rules.audit_upgrades import (
+    _configured_sources,
+    _fix,
+    _outdated_findings,
+    audit_upgrade_rules,
+)
 from repomod.types import RepoId, Repository
 
 
@@ -26,6 +40,7 @@ def repo_root(tmp_path: Path) -> Path:
 @pytest.fixture(autouse=True)
 def offline_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("repomod.audit._http_json", lambda url, headers=None: None)
+    monkeypatch.setattr("repomod.audit._http_text", lambda url, headers=None: None)
 
 
 @pytest.fixture
@@ -792,3 +807,168 @@ def test_npm_package_published_only_as_prereleases_is_still_resolved(
         },
     )
     assert effect_messages(root) == []
+
+
+def test_cargo_latest_uses_configured_sparse_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nfoo = "1.0"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "foo"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    index = "https://crates.example/current/crates-io/"
+    records = [
+        {"name": "foo", "vers": "1.0.0", "deps": [], "yanked": False},
+        {"name": "foo", "vers": "1.1.0", "deps": [], "yanked": False},
+        {"name": "foo", "vers": "1.1.1", "deps": [], "yanked": True},
+        {"name": "foo", "vers": "2.0.0-rc.1", "deps": [], "yanked": False},
+    ]
+
+    def text(url: str, headers: dict[str, str] | None = None) -> str:
+        assert url == f"{index}3/f/foo"
+        return "\n".join(json.dumps(record) for record in records)
+
+    monkeypatch.setattr("repomod.audit._http_text", text)
+    sources = RegistrySources(index, "https://npm.example/current/", "https://pypi.example/simple/")
+    findings = _outdated_findings(root, repository("tool", "rust"), {}, NOW, None, sources)
+    assert [finding.message for finding in findings] == [
+        "crates:foo 1.0.0 is outdated; latest is 1.1.0"
+    ]
+
+
+def test_cargo_release_metadata_comes_from_configured_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nfoo = "1.0"\nbar = "=1.0.0"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "foo"\nversion = "1.0.0"\n'
+        '[[package]]\nname = "bar"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    index = "https://crates.example/current/crates-io/"
+    records = [
+        {"name": "foo", "vers": "1.0.0", "deps": [], "yanked": False},
+        {
+            "name": "foo",
+            "vers": "1.1.0",
+            "deps": [
+                {"name": "bar", "req": "^2", "kind": "normal", "optional": False},
+            ],
+            "yanked": False,
+        },
+    ]
+
+    monkeypatch.setattr(
+        "repomod.audit._http_text",
+        lambda url, headers=None: (
+            "\n".join(json.dumps(record) for record in records)
+            if url.endswith("/3/f/foo")
+            else json.dumps({"name": "bar", "vers": "1.0.0", "deps": [], "yanked": False})
+        ),
+    )
+    sources = RegistrySources(index, "https://npm.example/current/", "https://pypi.example/simple/")
+    findings = _outdated_findings(root, repository("tool", "rust"), {}, NOW, None, sources)
+    assert len(findings) == 1
+    assert not findings[0].fixable
+    assert "it requires bar ^2 but the repository pins bar =1.0.0" in findings[0].message
+
+
+def test_pypi_latest_uses_configured_simple_index(monkeypatch: pytest.MonkeyPatch) -> None:
+    index = "https://pypi.example/current/simple/"
+    page = """
+    <a href="../../wheels/requests-2.0.0-py3-none-any.whl">requests-2.0.0-py3-none-any.whl</a>
+    <a href="../../wheels/requests-2.1.0.tar.gz">requests-2.1.0.tar.gz</a>
+    <a href="../../wheels/requests-3.0.0rc1-py3-none-any.whl">requests-3.0.0rc1-py3-none-any.whl</a>
+    """
+
+    def text(url: str, headers: dict[str, str] | None = None) -> str:
+        assert url == f"{index}requests/"
+        return page
+
+    monkeypatch.setattr("repomod.audit._http_text", text)
+    assert _latest_pypi("requests", index) == "2.1.0"
+
+
+def test_pypi_outdated_uses_mirror_versions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    write_python(root, version="2.0.0")
+    index = "https://pypi.example/current/simple/"
+    page = ["<a href=\"../../wheels/requests-2.0.0-py3-none-any.whl\">requests-2.0.0-py3-none-any.whl</a>"]
+    monkeypatch.setattr(
+        "repomod.audit._http_text",
+        lambda url, headers=None: "\n".join(page),
+    )
+    sources = RegistrySources("https://crates.example/current/crates-io/", "https://npm.example/current/", index)
+    assert _outdated_findings(root, repository("tool", "python"), {}, NOW, None, sources) == []
+    page.append("<a href=\"../../wheels/requests-2.1.0-py3-none-any.whl\">requests-2.1.0-py3-none-any.whl</a>")
+    findings = _outdated_findings(root, repository("tool", "python"), {}, NOW, None, sources)
+    assert [finding.message for finding in findings] == [
+        "pypi:requests 2.0.0 is outdated; latest is 2.1.0"
+    ]
+
+
+def test_npm_latest_uses_packument_without_dist_tags(monkeypatch: pytest.MonkeyPatch) -> None:
+    registry = "https://npm.example/current/"
+    packument = {
+        "dist-tags": {},
+        "versions": {"1.0.0": {}, "1.1.0": {}, "1.2.0-beta.1": {}},
+        "time": {
+            "1.0.0": iso(100 * HOUR),
+            "1.1.0": iso(2 * HOUR),
+            "1.2.0-beta.1": iso(HOUR),
+        },
+    }
+
+    def http_json(url: str, headers: dict[str, str] | None = None) -> object:
+        assert url == f"{registry}effect"
+        return packument
+
+    monkeypatch.setattr("repomod.audit._http_json", http_json)
+    assert _latest_npm("effect", registry) == "1.1.0"
+    releases = _fetch_npm_releases("effect", registry)
+    assert releases is not None
+    assert releases["latest"] == "1.1.0"
+    assert "1.2.0-beta.1" not in releases["published"]
+
+
+def test_configured_sources_come_from_repository_files(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / ".cargo").mkdir()
+    (root / ".cargo" / "config.toml").write_text(
+        '[source.crates-io]\nreplace-with = "stuff"\n'
+        '[source.stuff]\nregistry = "sparse+https://crates.example/current/crates-io/"\n',
+        encoding="utf-8",
+    )
+    (root / ".npmrc").write_text("registry=https://npm.example/current/\n", encoding="utf-8")
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "1.0.0"\n'
+        '[[tool.uv.index]]\nurl = "https://pypi.example/current/simple/"\ndefault = true\n',
+        encoding="utf-8",
+    )
+    assert _configured_sources(root) == RegistrySources(
+        "sparse+https://crates.example/current/crates-io/",
+        "https://npm.example/current/",
+        "https://pypi.example/current/simple/",
+    )
+
+
+def test_configured_sources_are_absent_without_repository_mirror_config(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n',
+        encoding="utf-8",
+    )
+    assert _configured_sources(root) is None
