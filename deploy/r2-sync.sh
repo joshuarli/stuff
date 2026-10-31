@@ -1,7 +1,7 @@
 #!/bin/sh
 # Sync one published site directory to an R2 bucket, incrementally, then
 # promote the generation atomically.
-# Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair]
+# Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #
 # Incremental and content-aware: lists remote objects by prefix (deploy/
@@ -16,6 +16,11 @@
 # remotely first, and `current` is replaced with If-Match (If-None-Match:*
 # on first publish). A competing publisher gets 412 instead of overwriting
 # the winner. Roll back with deploy/r2-rollback.sh.
+#
+# --dry-run lists the bucket (read-only), prints how many objects and bytes
+# would be uploaded, how many are skipped, and any conflicts, then exits
+# without uploading or promoting. It still writes manifests/ into SITE_DIR and
+# needs no R2_S3_* variables.
 #
 # Files over the 300 MB single-PUT cap (R2_SINGLE_PUT_MAX overrides) are uploaded via S3 multipart
 # (deploy/r2-multipart.py, stdlib-only python3) using R2_S3_ENDPOINT,
@@ -34,6 +39,7 @@ BUCKET=$2
 shift 2
 EXPECTED=""
 REPAIR=""
+DRY_RUN=""
 while [ $# -gt 0 ]; do
   case $1 in
     --expected)
@@ -45,15 +51,19 @@ while [ $# -gt 0 ]; do
       REPAIR=1
       shift
       ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
     *)
-      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair]"
+      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]"
       exit 1
       ;;
   esac
 done
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
-else
+elif [ -z "$DRY_RUN" ]; then
   for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
     eval "value=\${$var:-}"
     [ -n "$value" ] || { echo "FAIL: $var is not set; conditional promotion needs the R2 S3 API"; exit 1; }
@@ -126,6 +136,23 @@ SKIPPED=${SKIPPED:-0}
 grep '^skip ' "$PLAN" | sed 's/^skip /skip unchanged /' || true
 sed -n 's/^put //p' "$PLAN" > "$PUTS"
 UPLOADED=$(wc -l < "$PUTS" | tr -d ' ')
+if [ -n "$DRY_RUN" ]; then
+  PUT_BYTES=0
+  while IFS= read -r key; do
+    [ -n "$key" ] || continue
+    PUT_BYTES=$((PUT_BYTES + $(wc -c < "$SITE_DIR/$key")))
+  done < "$PUTS"
+  MULTIPART=$(grep -c '^multipart ' "$PLAN" || true)
+  MULTIPART_BYTES=0
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    MULTIPART_BYTES=$((MULTIPART_BYTES + ${line##* }))
+  done <<MULTI_SIZES
+$(grep '^multipart ' "$PLAN" || true)
+MULTI_SIZES
+  echo "dry-run $GEN_ID: put $UPLOADED ($PUT_BYTES bytes), multipart ${MULTIPART:-0} ($MULTIPART_BYTES bytes), skip $SKIPPED, conflict 0"
+  exit 0
+fi
 export SITE_DIR BUCKET CF_LOCAL_STATE
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   PUT_JOBS=${R2_PUT_JOBS:-1}

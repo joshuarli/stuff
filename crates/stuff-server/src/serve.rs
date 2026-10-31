@@ -40,6 +40,9 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
             return Mapped::NotFound;
         }
         let generation_dir = route.site_dir.join(&target);
+        if let Some(aliased) = map_wheel_store(route, rest) {
+            return Mapped::File(aliased);
+        }
         if let Some(aliased) = map_npm_tarball(route, &generation_dir, rest) {
             return Mapped::File(aliased);
         }
@@ -52,11 +55,32 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
             kind: RouteKind::GenerationPointer,
         });
     }
+    if let [generations, _, rest @ ..] = resolved.segments.as_slice()
+        && generations == "generations"
+        && let Some(aliased) = map_wheel_store(route, rest)
+    {
+        return Mapped::File(aliased);
+    }
     let mut path = route.site_dir.clone();
     for seg in &resolved.segments {
         path.push(seg);
     }
     Mapped::File(MappedFile {
+        path,
+        kind: RouteKind::ImmutableFile,
+    })
+}
+
+fn map_wheel_store(route: &Route, rest: &[String]) -> Option<MappedFile> {
+    let (first, files) = rest.split_first()?;
+    if first != "wheels" || files.is_empty() {
+        return None;
+    }
+    let mut path = route.site_dir.join("wheels");
+    for seg in files {
+        path.push(seg);
+    }
+    Some(MappedFile {
         path,
         kind: RouteKind::ImmutableFile,
     })
@@ -554,6 +578,27 @@ mod tests {
             "/current/@scope/pkg/-/pkg-9.9.9.tgz",
             "/current/@scope/pkg/-/flat-1.2.3.tgz",
         ] {
+            assert_eq!(respond(&route, path, "GET", &[]).status, 404, "{path}");
+        }
+    }
+
+    #[test]
+    fn wheels_resolve_to_the_shared_store_through_current_and_generations() {
+        let (_tmp, route) = test_route();
+        fs::create_dir_all(route.site_dir.join("wheels")).unwrap();
+        fs::write(route.site_dir.join("wheels/pkg-1.0-py3-none-any.whl"), b"wheel").unwrap();
+        std::os::unix::fs::symlink("../../wheels", route.site_dir.join("generations/gen1/wheels")).unwrap();
+        for path in [
+            "/current/wheels/pkg-1.0-py3-none-any.whl",
+            "/generations/gen1/wheels/pkg-1.0-py3-none-any.whl",
+            "/wheels/pkg-1.0-py3-none-any.whl",
+        ] {
+            let r = respond(&route, path, "GET", &[]);
+            assert_eq!(r.status, 200, "{path}");
+            let cache = r.headers.iter().find(|(k, _)| k == "cache-control").unwrap();
+            assert_eq!(cache.1, "public, max-age=31536000, immutable", "{path}");
+        }
+        for path in ["/current/wheels/missing.whl", "/current/wheels/../x", "/current/wheels/"] {
             assert_eq!(respond(&route, path, "GET", &[]).status, 404, "{path}");
         }
     }
