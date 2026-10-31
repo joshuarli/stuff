@@ -30,6 +30,7 @@ UNAME_S=$(uname -s)
 UNAME_M=$(uname -m)
 NODE_DOTLESS=$(node -e 'console.log(process.version.slice(1))')
 sed "s/26\.12\.0/$NODE_DOTLESS/" "$ROOT/tests/fixtures/mynpm/mynpm.json" > "$MYNPM_WORK/mynpm.json"
+NPM_BASE=$(node -e 'console.log(require(process.argv[1]).publicBaseUrl)' "$MYNPM_WORK/mynpm.json")
 
 (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" add --manager npm "is-odd@3.0.1") || fail "mynpm add"
 (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" fetch) || fail "mynpm fetch"
@@ -40,7 +41,7 @@ OUT2=$(cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" 
 echo "$OUT2" | grep -q "Already published generation $GEN_1" || fail "mynpm republish not noop: $OUT2"
 (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" validate --client npm) || fail "mynpm validate npm"
 (cd "$ROOT" && cargo run -q -p stuff -- ls --npm-dir "$MYNPM_WORK/site/mirror" | grep -q "is-odd") || fail "published is-odd not visible in stuff ls"
-(cd "$ROOT" && cargo run -q -p stuff -- doctor --npm-dir "$MYNPM_WORK/site/mirror") || fail "stuff doctor failed on published npm site"
+(cd "$ROOT" && cargo run -q -p stuff -- doctor --npm-dir "$MYNPM_WORK/site/mirror" --npm-base "$NPM_BASE") || fail "stuff doctor failed on published npm site"
 echo "smoke: mynpm npm flow green (generation $GEN_1)"
 
 if [ "$(pnpm --version 2>/dev/null || echo none)" = "12.15.0" ]; then
