@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:wasm": "cargo build --target wasm32-unknown-unknown --release -p stuff-worker && wasm-bindgen --target web --out-dir build/wasm ../../target/wasm32-unknown-unknown/release/stuff_worker.wasm"
+    "build:wasm": "cargo build --target wasm32-unknown-unknown --release -p stuff-worker && wasm-bindgen --target web --out-dir build/wasm ../../target/wasm32-unknown-unknown/release/stuff_worker.wasm",
+    "build:worker": "wrangler deploy --dry-run --outdir build/worker",
+    "test:runtime": "node --test test/runtime.test.mjs"
   },
   "devDependencies": {
     "cf": "^1.0.0-beta.26",
+    "miniflare": "3.20250718.3",
     "wrangler": "^4.156.0"
   }
 }

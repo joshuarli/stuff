@@ -21,6 +21,7 @@ pub enum RouteKind {
 pub struct AssetKey {
     pub bucket_binding: String,
     pub key: String,
+    pub key_prefix: String,
     pub kind: RouteKind,
 }
 
@@ -116,16 +117,29 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
         }
         Err(_) => return MappedAsset::NotFound,
     };
-    if resolved.segments.len() == 1 && resolved.segments[0] == "llms.txt" {
+    if resolved.segments.len() == 1
+        && matches!(resolved.segments[0].as_str(), "llms.txt" | "catalog.json" | "index.html")
+    {
         return MappedAsset::ViaPointer {
             bucket_binding: route.bucket_binding.clone(),
             pointer_key: pointer_key(&route.key_prefix),
-            rel_path: "llms.txt".to_string(),
+            rel_path: resolved.segments[0].clone(),
         };
     }
     let Some((first, remaining)) = resolved.segments.split_first() else {
         return MappedAsset::NotFound;
     };
+    if first == "simple" {
+        let mut rel = resolved.segments.join("/");
+        if raw_path.ends_with('/') || rel == "simple" {
+            rel.push_str("/index.html");
+        }
+        return MappedAsset::ViaPointer {
+            bucket_binding: route.bucket_binding.clone(),
+            pointer_key: pointer_key(&route.key_prefix),
+            rel_path: rel,
+        };
+    }
     if first == "current" {
         let mut rel = remaining.join("/");
         if raw_path.ends_with('/') && !rel.is_empty() {
@@ -152,6 +166,7 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
     MappedAsset::Direct(AssetKey {
         bucket_binding: route.bucket_binding.clone(),
         key,
+        key_prefix: route.key_prefix.clone(),
         kind: RouteKind::ImmutableObject,
     })
 }
@@ -261,11 +276,29 @@ mod tests {
     }
 
     #[test]
+    fn root_aliases_serve_generation_pages() {
+        let c = config();
+        for (path, rel) in [
+            ("/catalog.json", "catalog.json"),
+            ("/index.html", "index.html"),
+            ("/llms.txt", "llms.txt"),
+            ("/simple/index.html", "simple/index.html"),
+            ("/simple/proj/", "simple/proj/index.html"),
+        ] {
+            match map_asset(&c, "", path) {
+                MappedAsset::ViaPointer { rel_path, .. } => assert_eq!(rel_path, rel, "{path}"),
+                other => panic!("{path}: unexpected {other:?}"),
+            }
+        }
+    }
+
+    #[test]
     fn generation_and_direct_keys() {
         let c = config();
         match map_asset(&c, "", "/mirror/generations/abc/tarballs/x.tgz") {
             MappedAsset::Direct(a) => {
                 assert_eq!(a.key, "generations/abc/tarballs/x.tgz");
+                assert_eq!(a.key_prefix, "");
                 assert_eq!(a.bucket_binding, "MYNPM");
             }
             other => panic!("unexpected {other:?}"),

@@ -45,6 +45,8 @@ pub struct MappedJson {
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub key: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
+    pub key_prefix: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
     pub pointer_key: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub rel_path: Option<String>,
@@ -61,6 +63,7 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
                     kind: "error".to_string(),
                     bucket_binding: None,
                     key: None,
+                    key_prefix: None,
                     pointer_key: None,
                     rel_path: None,
                     message: Some(message),
@@ -74,6 +77,7 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             kind: "direct".to_string(),
             bucket_binding: Some(asset.bucket_binding),
             key: Some(asset.key),
+            key_prefix: Some(asset.key_prefix),
             pointer_key: None,
             rel_path: None,
             message: None,
@@ -86,6 +90,7 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             kind: "via_pointer".to_string(),
             bucket_binding: Some(bucket_binding),
             key: None,
+            key_prefix: None,
             pointer_key: Some(pointer_key),
             rel_path: Some(rel_path),
             message: None,
@@ -94,6 +99,7 @@ pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
             kind: "not_found".to_string(),
             bucket_binding: None,
             key: None,
+            key_prefix: None,
             pointer_key: None,
             rel_path: None,
             message: None,
@@ -110,9 +116,20 @@ pub struct PointerJson {
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub alias_key: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
+    pub generation_catalog_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
     pub npm_packument_key: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub npm_version: Option<String>,
+}
+
+#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+pub struct DirectAliasJson {
+    pub kind: String,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub alias_key: Option<String>,
+    #[deser(default, skip_serializing_if = Option::is_none)]
+    pub generation_catalog_key: Option<String>,
 }
 
 /// Shared-store alias for generation-scoped paths that r2-sync does not
@@ -156,6 +173,7 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
                 kind: "key".to_string(),
                 key: Some(object_key_for(key_prefix, &generation_id, rel_path)),
                 alias_key: alias_key_for(key_prefix, rel_path),
+                generation_catalog_key: Some(object_key_for(key_prefix, &generation_id, "catalog.json")),
                 npm_packument_key: npm
                     .as_ref()
                     .map(|n| object_key_for(key_prefix, &generation_id, &n.package)),
@@ -166,11 +184,47 @@ pub fn resolve_pointer_json(pointer_key: &str, pointer_text: &str, rel_path: &st
             kind: "not_found".to_string(),
             key: None,
             alias_key: None,
+            generation_catalog_key: None,
             npm_packument_key: None,
             npm_version: None,
         },
     };
     to_json(&resolved, "not_found")
+}
+
+pub fn resolve_direct_alias_json(key_prefix: &str, key: &str) -> String {
+    let base = if key_prefix.is_empty() {
+        String::new()
+    } else {
+        format!("{key_prefix}/")
+    };
+    let resolved = key
+        .strip_prefix(&base)
+        .and_then(|rest| rest.strip_prefix("generations/"))
+        .and_then(|rest| rest.split_once('/'))
+        .filter(|(generation, _)| {
+            !generation.is_empty()
+                && generation.len() <= 128
+                && generation
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+        })
+        .and_then(|(generation, rel_path)| {
+            alias_key_for(key_prefix, rel_path).map(|alias_key| (generation, alias_key))
+        });
+    let json = match resolved {
+        Some((generation, alias_key)) => DirectAliasJson {
+            kind: "key".to_string(),
+            alias_key: Some(alias_key),
+            generation_catalog_key: Some(object_key_for(key_prefix, generation, "catalog.json")),
+        },
+        None => DirectAliasJson {
+            kind: "not_found".to_string(),
+            alias_key: None,
+            generation_catalog_key: None,
+        },
+    };
+    to_json(&json, "not_found")
 }
 
 pub fn resolve_npm_tarball_json(pointer_key: &str, packument_text: &str, version: &str) -> String {
@@ -181,6 +235,7 @@ pub fn resolve_npm_tarball_json(pointer_key: &str, packument_text: &str, version
                 kind: "key".to_string(),
                 key: None,
                 alias_key: alias_key_for(key_prefix, &format!("tarballs/{digest}.tgz")),
+                generation_catalog_key: None,
                 npm_packument_key: None,
                 npm_version: None,
             }
@@ -189,6 +244,7 @@ pub fn resolve_npm_tarball_json(pointer_key: &str, packument_text: &str, version
             kind: "not_found".to_string(),
             key: None,
             alias_key: None,
+            generation_catalog_key: None,
             npm_packument_key: None,
             npm_version: None,
         },
@@ -697,6 +753,45 @@ mod tests {
         let head = parse_plan(&plan_object_response_json("immutable", "HEAD", key, "{}", 1000, "\"e\""));
         assert!(head.head);
         assert_eq!(head.status, 200);
+    }
+
+    #[test]
+    fn direct_generation_artifacts_resolve_shared_alias() {
+        let wheel: DirectAliasJson = deser_json::from_str(&resolve_direct_alias_json(
+            "",
+            "generations/abc123/wheels/pkg-1.0-py3-none-any.whl",
+        ))
+        .expect("parses");
+        assert_eq!(wheel.kind, "key");
+        assert_eq!(
+            wheel.alias_key.as_deref(),
+            Some("wheels/pkg-1.0-py3-none-any.whl")
+        );
+        assert_eq!(
+            wheel.generation_catalog_key.as_deref(),
+            Some("generations/abc123/catalog.json")
+        );
+
+        let tarball: DirectAliasJson = deser_json::from_str(&resolve_direct_alias_json(
+            "indexes/main",
+            "indexes/main/generations/gen9/-/tarballs/abc.tgz",
+        ))
+        .expect("parses");
+        assert_eq!(
+            tarball.alias_key.as_deref(),
+            Some("indexes/main/tarballs/abc.tgz")
+        );
+        assert_eq!(
+            tarball.generation_catalog_key.as_deref(),
+            Some("indexes/main/generations/gen9/catalog.json")
+        );
+
+        let page: DirectAliasJson = deser_json::from_str(&resolve_direct_alias_json(
+            "",
+            "generations/abc123/catalog.json",
+        ))
+        .expect("parses");
+        assert_eq!(page.kind, "not_found");
     }
 
     #[test]

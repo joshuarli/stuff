@@ -4,12 +4,13 @@ import {
   plan_object_response_json,
   render_unified_index_json,
   render_unified_llms_txt_json,
+  resolve_direct_alias_json,
   resolve_npm_tarball_json,
   resolve_pointer_json,
 } from "../build/wasm/stuff_worker.js";
 import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
 
-initSync(wasmModule);
+initSync({ module: wasmModule });
 
 interface R2ObjectLike {
   readonly size: number;
@@ -35,6 +36,7 @@ interface Mapped {
   kind: "direct" | "via_pointer" | "not_found" | "error";
   bucket_binding?: string;
   key?: string;
+  key_prefix?: string;
   pointer_key?: string;
   rel_path?: string;
   message?: string;
@@ -44,8 +46,15 @@ interface PointerResolution {
   kind: "key" | "not_found";
   key?: string;
   alias_key?: string;
+  generation_catalog_key?: string;
   npm_packument_key?: string;
   npm_version?: string;
+}
+
+interface DirectAlias {
+  kind: "key" | "not_found";
+  alias_key?: string;
+  generation_catalog_key?: string;
 }
 
 interface ResponsePlan {
@@ -92,9 +101,12 @@ async function catalogText(env: WorkerEnv, binding: string): Promise<string | nu
 
 async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
   const cache = caches.default;
-  const cached = await cache.match(req);
+  const cacheKey = new Request(req.url, { method: "GET" });
+  const cached = await cache.match(cacheKey);
   if (cached) {
-    return cached;
+    return req.method === "HEAD"
+      ? new Response(null, { status: cached.status, headers: cached.headers })
+      : cached;
   }
   const parts: string[] = [];
   for (const binding of ["MYCRATES", "MYNPM", "PYPI"]) {
@@ -121,9 +133,12 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
   });
   const response = new Response(rendered.body, { status: 200, headers });
   // Cache only the successful aggregate; per-generation catalogs stay
-  // immutable, so a short edge cache keeps the landing page fresh.
-  await cache.put(req, response.clone());
-  return response;
+  // immutable, so a short edge cache keeps the landing page fresh. HEAD uses
+  // the same GET cache key because the Cache API rejects non-GET puts.
+  await cache.put(cacheKey, response.clone());
+  return req.method === "HEAD"
+    ? new Response(null, { status: 200, headers })
+    : response;
 }
 
 export default {
@@ -139,10 +154,6 @@ export default {
       url.hostname === unifiedHost &&
       (url.pathname === "/" || url.pathname === "" || url.pathname === "/llms.txt")
     ) {
-      if (req.method === "HEAD") {
-        const res = await unifiedIndex(req, env);
-        return new Response(null, { status: res.status, headers: res.headers });
-      }
       return unifiedIndex(req, env);
     }
     const mapped = JSON.parse(
@@ -157,6 +168,7 @@ export default {
     let key: string;
     let route: "immutable" | "pointer";
     let aliasKey: string | undefined;
+    let generationCatalogKey: string | undefined;
     let npmPackumentKey: string | undefined;
     let npmVersion: string | undefined;
     if (mapped.kind === "direct") {
@@ -165,6 +177,13 @@ export default {
       }
       key = mapped.key;
       route = "immutable";
+      const direct = JSON.parse(
+        resolve_direct_alias_json(mapped.key_prefix ?? "", key),
+      ) as DirectAlias;
+      if (direct.kind === "key") {
+        aliasKey = direct.alias_key;
+        generationCatalogKey = direct.generation_catalog_key;
+      }
     } else {
       if (!mapped.pointer_key || mapped.rel_path === undefined) {
         throw new Error("mapping");
@@ -182,6 +201,7 @@ export default {
       key = resolved.key;
       route = "pointer";
       aliasKey = resolved.alias_key;
+      generationCatalogKey = resolved.generation_catalog_key;
       npmPackumentKey = resolved.npm_packument_key;
       npmVersion = resolved.npm_version;
     }
@@ -189,12 +209,20 @@ export default {
     let object = await store.get(key);
     // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
     // and -/tarballs/) are not uploaded as separate R2 objects; the shared
-    // store copy is byte-identical by the immutability invariant.
+    // store copy is byte-identical by the immutability invariant. Validate
+    // the generation exists before serving its shared artifact.
     if (object === null && aliasKey) {
+      if (generationCatalogKey !== undefined) {
+        const generation = await store.get(generationCatalogKey);
+        if (generation === null) {
+          return new Response("not found", { status: 404 });
+        }
+      }
       const aliased = await store.get(aliasKey);
       if (aliased !== null) {
         key = aliasKey;
         object = aliased;
+        route = "immutable";
       }
     }
     if (object === null && npmPackumentKey && npmVersion !== undefined && mapped.pointer_key) {

@@ -16,6 +16,11 @@ pub fn resolve_npm_tarball_json(pointer_key: &str, packument_text: &str, version
 }
 
 #[wasm_bindgen]
+pub fn resolve_direct_alias_json(key_prefix: &str, key: &str) -> String {
+    crate::api::resolve_direct_alias_json(key_prefix, key)
+}
+
+#[wasm_bindgen]
 pub fn plan_object_response_json(
     route: &str,
     method: &str,
