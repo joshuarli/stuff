@@ -117,8 +117,8 @@ ignore = ["audit-upgrades:crates:getrandom"]
 ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build."
 
 [overrides."joshuarli/toolbox"]
-ignore = ["registry-sources:git:shadowdriver"]
-ignore_reason = "shadowdriver stays private and is never published to stuff, so toolbox keeps its git dependency on it."
+ignore = ["registry-sources:git:shadowdriver", "registry-sources:path:shadowdriver"]
+ignore_reason = "shadowdriver stays private and is never published to stuff, so toolbox keeps its git or sibling-path dependency on it."
 
 [overrides."joshuarli/tansu"]
 ignore = ["registry-sources:git:laputa-h2-futures-lite", "registry-sources:git:laputa-hyper-futures-lite"]

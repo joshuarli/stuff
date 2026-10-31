@@ -3,7 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from repomod.catalog import Catalog, parse_dependency_ignore, parse_git_source_ignore, repository_path
+from repomod.catalog import (
+    Catalog,
+    parse_dependency_ignore,
+    parse_git_source_ignore,
+    parse_local_source_ignore,
+    repository_path,
+)
 from repomod.github import open_pull_requests, protection_many, topics_many
 from repomod.rules import rules
 from repomod.rules.conventional_commits import titles_findings
@@ -49,6 +55,7 @@ def validate_ignored_rules(repositories: Iterable[Repository]) -> None:
             if not is_mdtool_code_ignore(value)
             and parse_dependency_ignore(value) is None
             and parse_git_source_ignore(value) is None
+            and parse_local_source_ignore(value) is None
         }
         if unknown:
             raise PolicyError(

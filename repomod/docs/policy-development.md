@@ -200,7 +200,8 @@ URL in `pyproject.toml` or `uv.toml`. It also scans lockfiles. `Cargo.lock` keep
 ids under replacement, so those are accepted; other registries are findings. pnpm and npm lock
 tarball URLs must start with the approved registry, and `uv.lock` registry sources must equal the
 approved index. Git sources are findings unless the repository's catalog override ignores
-`registry-sources:git:NAME` with an `ignore_reason`. Path, `link:`, `file:`, and workspace sources
+`registry-sources:git:NAME` with an `ignore_reason`; a `path` or `link` source outside the
+repository is ignored the same way with `registry-sources:path:NAME`. Path, `link:`, `file:`, and workspace sources
 are allowed while they stay inside the repository. Unapproved registry sources are reported once
 per lockfile and source, listing the first packages.
 

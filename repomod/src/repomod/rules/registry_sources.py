@@ -12,7 +12,7 @@ from functools import cache
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from repomod.catalog import GIT_SOURCE_IGNORE_PREFIX
+from repomod.catalog import GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX
 from repomod.io import read_toml
 from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
 from repomod.types import Finding, Repository, Rule, TagPredicate, violation
@@ -146,6 +146,15 @@ class _Report:
             path,
             f"{ecosystem} package {name} resolves from git source {source}; publish it to stuff "
             f"or add {GIT_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason",
+        )
+
+    def outside_repository(self, path: Path, name: str, message: str) -> None:
+        if f"{LOCAL_SOURCE_IGNORE_PREFIX}{name}" in self.repository.ignored_rules:
+            return
+        self.add(
+            path,
+            f"{message}; depend on a published stuff package instead or add "
+            f"{LOCAL_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason",
         )
 
     def unapproved(
@@ -342,10 +351,8 @@ def _package_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
         resolved = entry.get("resolved")
         if entry.get("link") is True:
             if isinstance(resolved, str) and _outside_repository(report.root, lock.parent, resolved):
-                report.add(
-                    lock,
-                    f"{name} links {resolved} outside the repository; depend on a published stuff "
-                    "package instead",
+                report.outside_repository(
+                    lock, str(name), f"{name} links {resolved} outside the repository"
                 )
             continue
         if not isinstance(resolved, str) or resolved.startswith((policy.npm_registry, "file:")):
@@ -415,10 +422,10 @@ def _uv_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
             kind = next(kind for kind in ("editable", "virtual", "directory", "path") if kind in source)
             target = str(source[kind])
             if _outside_repository(report.root, lock.parent, target):
-                report.add(
+                report.outside_repository(
                     lock,
-                    f"python package {name} resolves from {target} outside the repository; "
-                    "depend on a published stuff package instead",
+                    name,
+                    f"python package {name} resolves from {target} outside the repository",
                 )
         else:
             other.setdefault(", ".join(sorted(map(str, source))), []).append(name)

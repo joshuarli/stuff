@@ -332,3 +332,21 @@ def test_plan_refuses_to_overwrite_a_different_registry_or_cargo_source(tmp_path
     write(other, ".npmrc", "registry=https://registry.npmjs.org/\n")
     with pytest.raises(RuntimeError, match="replace it"):
         registry_sources.registry_source_plan(other, repository(), POLICY, relock=False)
+
+
+def test_path_source_outside_the_repository_is_ignored_by_name(tmp_path: Path) -> None:
+    write(
+        tmp_path,
+        "uv.lock",
+        'version = 1\n\n[[package]]\nname = "private"\nversion = "1"\n'
+        'source = { directory = "../private" }\n',
+    )
+    write(tmp_path, "pyproject.toml", f'[[tool.uv.index]]\nurl = "{PYPI}"\ndefault = true\n')
+
+    assert any("outside the repository" in m and "registry-sources:path:private" in m for _, m in messages(tmp_path))
+    assert messages(tmp_path, repository(ignored=("registry-sources:path:private",))) == []
+
+
+def test_path_source_ignore_is_accepted_by_catalog_and_policy(tmp_path: Path) -> None:
+    catalog = load_catalog(catalog_with(tmp_path, "registry-sources:path:shadowdriver"), {"HOME": str(tmp_path)})
+    validate_ignored_rules(catalog.repositories)
