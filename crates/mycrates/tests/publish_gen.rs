@@ -23,6 +23,41 @@ fn sample_entry(name: &str, vers: &str, cksum: &str) -> IndexEntry {
 }
 
 #[test]
+fn shared_state_keeps_both_publishers_packages() {
+    let dir = tempdir().unwrap();
+    let state = dir.path().join("state");
+    let site = dir.path().join("site");
+
+    for (name, bytes) in [("from-a", b"a-bytes".as_slice()), ("from-b", b"b-bytes".as_slice())] {
+        let store = Store::new(state.clone());
+        let sha = store.ingest_blob(Cursor::new(bytes)).unwrap();
+        store
+            .put_native_record(&NativeRecord {
+                name: name.to_string(),
+                vers: "1.0.0".to_string(),
+                checksum: sha.clone(),
+                yanked: false,
+                entry: sample_entry(name, "1.0.0", &sha),
+            })
+            .unwrap();
+        Publisher::new(&store, site.clone(), "http://localhost:8080".to_string())
+            .publish()
+            .unwrap();
+    }
+
+    let current = site.join("current/catalog.json");
+    let catalog = stuff_catalog::parse_catalog_json(&std::fs::read_to_string(current).unwrap()).unwrap();
+    assert!(catalog.find("from-a", Some(stuff_catalog::CargoSource::Native)).is_some());
+    assert!(catalog.find("from-b", Some(stuff_catalog::CargoSource::Native)).is_some());
+    for name in ["from-a", "from-b"] {
+        let shard = mycrates::index::shard_for_name(name);
+        assert!(site.join("current/registry").join(shard).is_file(), "missing index for {name}");
+    }
+    let blobs = site.join("blobs");
+    assert_eq!(std::fs::read_dir(blobs).unwrap().count(), 2);
+}
+
+#[test]
 fn generation_determinism_and_noop() {
     let dir1 = tempdir().unwrap();
     let store1 = Store::new(dir1.path().join("state"));
@@ -167,7 +202,7 @@ fn tampered_blob_rejected_before_switch() {
 }
 
 #[test]
-fn damaged_generation_repaired_on_republish() {
+fn damaged_generation_requires_explicit_repair() {
     let dir = tempdir().unwrap();
     let store = Store::new(dir.path().join("state"));
     let site = dir.path().join("site");
@@ -192,10 +227,15 @@ fn damaged_generation_repaired_on_republish() {
     let index_file = gen_dir.join("registry").join(&shard);
     assert!(index_file.exists());
 
-    // 1. Delete the index file: republish must repair, not report no-op.
+    // 1. Delete the index file: republish must not rewrite an immutable
+    // generation; explicit removal is the repair path.
     fs::remove_file(&index_file).unwrap();
+    let err = publ.publish().unwrap_err();
+    assert!(format!("{err}").contains("refusing to replace an immutable generation"));
+    assert!(!index_file.exists(), "damaged generation must be left for explicit repair");
+    fs::remove_dir_all(&gen_dir).unwrap();
     let res2 = publ.publish().unwrap();
-    assert!(!res2.is_noop, "deleted index must force regeneration");
+    assert!(!res2.is_noop, "removed generation must be regenerated");
     assert!(index_file.exists());
 
     // 2. Replace a served blob: republish must fail, not serve the bad copy.
@@ -362,7 +402,7 @@ fn catalog_tracks_publish_and_rollback() {
     let catalog_text = fs::read_to_string(gen1.join("catalog.json")).unwrap();
     let catalog = stuff_catalog::parse_catalog_json(&catalog_text).unwrap();
     assert_eq!(catalog.generation, first.generation_id);
-    let pkg = catalog.find("widget").expect("widget in catalog");
+    let pkg = catalog.find("widget", Some(stuff_catalog::CargoSource::Native)).expect("widget in catalog");
     assert_eq!(pkg.latest, "1.0.0");
     assert!(!pkg.versions[0].yanked);
     let landing = fs::read_to_string(gen1.join("index.html")).unwrap();
@@ -378,7 +418,7 @@ fn catalog_tracks_publish_and_rollback() {
         &fs::read_to_string(gen2.join("catalog.json")).unwrap(),
     )
     .unwrap();
-    assert!(yanked.find("widget").unwrap().versions[0].yanked);
+    assert!(yanked.find("widget", Some(stuff_catalog::CargoSource::Native)).unwrap().versions[0].yanked);
     assert_eq!(
         fs::read(gen1.join("catalog.json")).unwrap(),
         catalog_text.as_bytes(),
@@ -404,5 +444,5 @@ fn catalog_tracks_publish_and_rollback() {
         &fs::read_to_string(site.join("current").join("catalog.json")).unwrap(),
     )
     .unwrap();
-    assert!(!restored.find("widget").unwrap().versions[0].yanked);
+    assert!(!restored.find("widget", Some(stuff_catalog::CargoSource::Native)).unwrap().versions[0].yanked);
 }

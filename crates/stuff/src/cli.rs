@@ -229,7 +229,7 @@ pub fn print_help() {
 
 pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) -> String {
     let mut out = String::new();
-    let _ = writeln!(out, "{:<8} {:<24} {:<8} LATEST", "REGISTRY", "PACKAGE", "VERSIONS");
+    let _ = writeln!(out, "{:<8} {:<24} {:<9} {:<8} LATEST", "REGISTRY", "PACKAGE", "SOURCE", "VERSIONS");
     let mut total_packages = 0usize;
     let mut total_versions = 0usize;
     for catalog in catalogs {
@@ -238,9 +238,10 @@ pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) ->
             total_versions += package.versions.len();
             let _ = writeln!(
                 out,
-                "{:<8} {:<24} {:<8} {}",
+                "{:<8} {:<24} {:<9} {:<8} {}",
                 catalog.registry.as_str(),
                 package.name,
+                package.source.as_deref().unwrap_or("-"),
                 package.versions.len(),
                 package.latest
             );
@@ -253,7 +254,7 @@ pub fn render_table(catalogs: &[stuff_catalog::Catalog], show_versions: bool) ->
                     } else {
                         ""
                     };
-                    let _ = writeln!(out, "{:<8} {:<24} {:<8} {}{}", "", "", "", v.version, mark);
+                    let _ = writeln!(out, "{:<8} {:<24} {:<9} {:<8} {}{}", "", "", "", "", v.version, mark);
                 }
             }
         }

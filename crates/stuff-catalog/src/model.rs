@@ -31,7 +31,7 @@ impl Registry {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CargoSource {
     Native,
     Upstream,
@@ -88,8 +88,10 @@ impl Catalog {
         self.packages.iter().map(|p| p.versions.len()).sum()
     }
 
-    pub fn find(&self, name: &str) -> Option<&Package> {
-        self.packages.iter().find(|p| p.name == name)
+    pub fn find(&self, name: &str, source: Option<CargoSource>) -> Option<&Package> {
+        self.packages
+            .iter()
+            .find(|p| p.name == name && p.source.as_deref() == source.map(|s| s.as_str()))
     }
 }
 
@@ -273,15 +275,18 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     for item in seq.iter() {
         packages.push(parse_package(item, registry)?);
     }
-    let mut names: Vec<&str> = packages.iter().map(|p| p.name.as_str()).collect();
+    let mut names: Vec<(&str, Option<&str>)> = packages
+        .iter()
+        .map(|p| (p.name.as_str(), p.source.as_deref()))
+        .collect();
     names.sort();
     let mut dedup = names.clone();
     dedup.dedup();
     if dedup.len() != names.len() {
-        return Err("catalog contains a duplicate package name".to_string());
+        return Err("catalog contains a duplicate package identity".to_string());
     }
     let mut sorted = packages;
-    sorted.sort_by(|a, b| a.name.cmp(&b.name));
+    sorted.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry, generation: generation.to_string(), packages: sorted })
 }
 
@@ -316,8 +321,7 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<String, Vec<VersionEntry>> = BTreeMap::new();
-    let mut sources: BTreeMap<String, CargoSource> = BTreeMap::new();
+    let mut grouped: BTreeMap<(String, CargoSource), Vec<VersionEntry>> = BTreeMap::new();
     for input in inputs {
         if input.name.is_empty() || input.version.is_empty() {
             return Err("cargo package name and version must not be empty".to_string());
@@ -325,31 +329,28 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
         if crate::version::Semver::parse(&input.version).is_none() {
             return Err(format!("invalid cargo version {} for {}", input.version, input.name));
         }
-        match sources.get(&input.name) {
-            None => {
-                sources.insert(input.name.clone(), input.source);
-            }
-            Some(existing) if *existing != input.source && input.source == CargoSource::Native => {
-                sources.insert(input.name.clone(), CargoSource::Native);
-            }
-            _ => {}
-        }
-        grouped.entry(input.name).or_default().push(VersionEntry { version: input.version, yanked: input.yanked });
+        grouped
+            .entry((input.name, input.source))
+            .or_default()
+            .push(VersionEntry { version: input.version, yanked: input.yanked });
     }
     let mut packages = Vec::with_capacity(grouped.len());
-    for (name, mut versions) in grouped {
+    for ((name, source), mut versions) in grouped {
         let mut seen = std::collections::BTreeSet::new();
         for v in &versions {
             if !seen.insert(v.version.clone()) {
-                return Err(format!("cargo package {name} has a duplicate version {}", v.version));
+                return Err(format!(
+                    "cargo package {name} ({}) has a duplicate version {}",
+                    source.as_str(),
+                    v.version
+                ));
             }
         }
         sort_semver_versions(&mut versions);
         let latest = latest_semver(&versions);
-        let source = sources.get(&name).copied().unwrap_or(CargoSource::Native);
         packages.push(Package { name, source: Some(source.as_str().to_string()), latest, versions });
     }
-    packages.sort_by(|a, b| a.name.cmp(&b.name));
+    packages.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Cargo, generation: generation.to_string(), packages })
 }
 
@@ -503,6 +504,38 @@ mod tests {
         let text = render_catalog_json(&catalog);
         let parsed = parse_catalog_json(&text).unwrap();
         assert_eq!(parsed, catalog);
+    }
+
+    #[test]
+    fn cargo_keeps_native_and_upstream_identities_separate() {
+        let catalog = cargo_catalog(
+            "g",
+            vec![
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream },
+            ],
+        )
+        .unwrap();
+        assert_eq!(catalog.packages.len(), 2);
+        let native = catalog.find("foo", Some(CargoSource::Native)).unwrap();
+        assert_eq!(native.latest, "1.0.0");
+        let upstream = catalog.find("foo", Some(CargoSource::Upstream)).unwrap();
+        assert_eq!(upstream.latest, "2.0.0");
+        let parsed = parse_catalog_json(&render_catalog_json(&catalog)).unwrap();
+        assert_eq!(parsed, catalog);
+    }
+
+    #[test]
+    fn cargo_rejects_duplicate_versions_within_one_source() {
+        let error = cargo_catalog(
+            "g",
+            vec![
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native },
+            ],
+        )
+        .unwrap_err();
+        assert!(error.contains("duplicate version"));
     }
 
     #[test]

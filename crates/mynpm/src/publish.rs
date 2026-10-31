@@ -76,6 +76,12 @@ fn generation_payload(
         "publicationLayout".to_string(),
         deser_value::Value::from("current-dash-tarballs-v1".to_string()),
     );
+    let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
+        .map_err(Error::Operation)?;
+    payload.insert(
+        "catalogFingerprint".to_string(),
+        deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog)),
+    );
     Ok(deser_value::Value::from(payload))
 }
 
@@ -541,12 +547,55 @@ fn ensure_dir_tree(target: &Path) -> Result<PathBuf> {
             absolute.display()
         )));
     }
-    let mut current = PathBuf::from("/");
-    for part in absolute.components().skip(1) {
-        current.push(part.as_os_str());
+    let mut existing = absolute.clone();
+    let mut missing = Vec::new();
+    loop {
+        match std::fs::symlink_metadata(&existing) {
+            Ok(meta) => {
+                if existing == absolute && meta.file_type().is_symlink() {
+                    return Err(Error::Operation(format!(
+                        "managed path is not a real directory: {}",
+                        existing.display()
+                    )));
+                }
+                if !meta.is_dir() && !meta.file_type().is_symlink() {
+                    return Err(Error::Operation(format!(
+                        "managed path is not a real directory: {}",
+                        existing.display()
+                    )));
+                }
+                break;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                let Some(name) = existing.file_name() else {
+                    return Err(Error::Operation(format!(
+                        "could not resolve site directory: {}",
+                        absolute.display()
+                    )));
+                };
+                missing.push(name.to_os_string());
+                if !existing.pop() {
+                    return Err(Error::Operation(format!(
+                        "could not resolve site directory: {}",
+                        absolute.display()
+                    )));
+                }
+            }
+            Err(e) => {
+                return Err(Error::Operation(format!(
+                    "could not inspect directory {}: {e}",
+                    existing.display()
+                )));
+            }
+        }
+    }
+    let mut current = std::fs::canonicalize(&existing)
+        .map_err(|e| Error::Operation(format!("could not resolve {}: {e}", existing.display())))?;
+    for name in missing.iter().rev() {
+        current.push(name);
         ensure_real_dir(&current)?;
     }
-    Ok(absolute)
+    Ok(current)
 }
 
 fn write_durable_file(path: &Path, bytes: &[u8]) -> Result<()> {
@@ -878,6 +927,19 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn directory_tree_accepts_a_symlinked_parent() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real");
+        std::fs::create_dir(&real).unwrap();
+        let link = dir.path().join("link");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        let target = link.join("site");
+        let resolved = ensure_dir_tree(&target).unwrap();
+        assert!(resolved.is_dir());
+        assert!(std::fs::symlink_metadata(&target).unwrap().is_dir());
+    }
 
     #[test]
     fn generation_writes_catalog_and_landing_page() {

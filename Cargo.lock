@@ -791,6 +791,7 @@ dependencies = [
 name = "mypypi"
 version = "0.1.0"
 dependencies = [
+ "deser-json",
  "deser-toml",
  "deser-value",
  "h12tiny-client-sync",
@@ -1307,6 +1308,7 @@ dependencies = [
  "deser-json",
  "deser-value",
  "pep440_rs",
+ "sha2",
  "tempfile",
 ]
 

@@ -53,7 +53,7 @@ pub fn render_html(catalog: &Catalog) -> String {
         catalog.package_count(),
         catalog.version_count()
     ));
-    out.push_str("<table>\n<thead><tr><th>Package</th><th>Latest</th><th>Versions</th></tr></thead>\n<tbody>\n");
+    out.push_str("<table>\n<thead><tr><th>Package</th><th>Source</th><th>Latest</th><th>Versions</th></tr></thead>\n<tbody>\n");
     for package in &catalog.packages {
         let versions: Vec<String> = package
             .versions
@@ -66,21 +66,18 @@ pub fn render_html(catalog: &Catalog) -> String {
                 }
             })
             .collect();
-        let source = match &package.source {
-            Some(s) => format!(" <span class=\"yanked\">{}</span>", escape_html(s)),
-            None => String::new(),
-        };
         out.push_str(&format!(
-            "<tr><td><code>{}</code>{}</td><td><code>{}</code></td><td>{}</td></tr>\n",
+            "<tr><td><code>{}</code></td><td>{}</td><td><code>{}</code></td><td>{}</td></tr>\n",
             escape_html(&package.name),
-            source,
+            escape_html(package.source.as_deref().unwrap_or("-")),
             escape_html(&package.latest),
             escape_html(&versions.join(", "))
         ));
     }
     out.push_str("</tbody>\n</table>\n");
     out.push_str(&format!(
-        "<footer><p>Machine-readable inventory: <a href=\"catalog.json\"><code>catalog.json</code></a> &middot; schema version 1 &middot; generation <code>{}</code></p></footer>\n",
+        "<footer><p>Machine-readable inventory: <a href=\"/generations/{}/catalog.json\"><code>catalog.json</code></a> &middot; schema version 1 &middot; generation <code>{}</code></p></footer>\n",
+        escape_html(&catalog.generation),
         escape_html(&catalog.generation)
     ));
     out.push_str("</body>\n</html>\n");
@@ -105,13 +102,14 @@ pub fn render_unified(catalogs: &[Catalog]) -> String {
     }
     out.push_str("</div>\n");
     out.push_str(&format!("<p>{total_packages} packages &middot; {total_versions} versions</p>\n"));
-    out.push_str("<table>\n<thead><tr><th>Registry</th><th>Package</th><th>Latest</th></tr></thead>\n<tbody>\n");
+    out.push_str("<table>\n<thead><tr><th>Registry</th><th>Package</th><th>Source</th><th>Latest</th></tr></thead>\n<tbody>\n");
     for catalog in catalogs {
         for package in &catalog.packages {
             out.push_str(&format!(
-                "<tr><td>{}</td><td><code>{}</code></td><td><code>{}</code></td></tr>\n",
+                "<tr><td>{}</td><td><code>{}</code></td><td>{}</td><td><code>{}</code></td></tr>\n",
                 escape_html(registry_label(catalog)),
                 escape_html(&package.name),
+                escape_html(package.source.as_deref().unwrap_or("-")),
                 escape_html(&package.latest)
             ));
         }
@@ -141,6 +139,18 @@ mod tests {
         assert!(html.contains("h12tiny"));
         assert!(html.contains("catalog.json"));
         assert!(html.contains("gen1"));
+        let hrefs: Vec<&str> = html
+            .split("href=\"")
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .collect();
+        assert!(!hrefs.is_empty());
+        for href in hrefs {
+            assert!(
+                href.starts_with("/generations/gen1/"),
+                "public page link is not generation-pinned: {href}"
+            );
+        }
     }
 
     #[test]

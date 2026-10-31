@@ -370,6 +370,8 @@ pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: 
     for item in items {
         h.update(&item.metadata);
     }
+    let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, items);
+    h.update(stuff_catalog::catalog_fingerprint(&catalog).as_bytes());
     format!("{:x}", h.finalize())
 }
 

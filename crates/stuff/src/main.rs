@@ -117,26 +117,27 @@ fn run_diff(parsed: &stuff::cli::Parsed) -> i32 {
         println!("no changes ({} -> {})", before.generation, after.generation);
     } else {
         for name in &diff.added_packages {
-            println!("added package {name}");
+            println!("added package {}", package_ref_label(name));
         }
         for name in &diff.removed_packages {
-            println!("removed package {name}");
+            println!("removed package {}", package_ref_label(name));
         }
         for pkg in &diff.changed_packages {
+            let label = package_label(&pkg.name, pkg.source.as_deref());
             for v in &pkg.added_versions {
-                println!("added {} {}", pkg.name, v);
+                println!("added {} {}", label, v);
             }
             for v in &pkg.removed_versions {
-                println!("removed {} {}", pkg.name, v);
+                println!("removed {} {}", label, v);
             }
             for v in &pkg.yanked_now {
-                println!("yanked {} {}", pkg.name, v);
+                println!("yanked {} {}", label, v);
             }
             for v in &pkg.unyanked_now {
-                println!("unyanked {} {}", pkg.name, v);
+                println!("unyanked {} {}", label, v);
             }
             if let (Some(a), Some(b)) = (&pkg.latest_before, &pkg.latest_after) {
-                println!("latest {}: {a} -> {b}", pkg.name);
+                println!("latest {}: {a} -> {b}", label);
             }
         }
     }
@@ -159,27 +160,57 @@ fn escape_json(s: &str) -> String {
     out
 }
 
+fn package_label(name: &str, source: Option<&str>) -> String {
+    match source {
+        Some(source) => format!("{name} ({source})"),
+        None => name.to_string(),
+    }
+}
+
+fn package_ref_label(package: &stuff_catalog::PackageRef) -> String {
+    package_label(&package.name, package.source.as_deref())
+}
+
+fn escape_json_option(value: Option<&str>) -> String {
+    match value {
+        Some(value) => escape_json(value),
+        None => "null".to_string(),
+    }
+}
+
 fn print_diff_json(diff: &stuff_catalog::CatalogDiff) {
     let mut out = String::from("{\"added_packages\":[");
-    for (i, name) in diff.added_packages.iter().enumerate() {
+    for (i, package) in diff.added_packages.iter().enumerate() {
         if i > 0 {
             out.push(',');
         }
-        out.push_str(&escape_json(name));
+        out.push_str(&format!(
+            "{{\"name\":{},\"source\":{}}}",
+            escape_json(&package.name),
+            escape_json_option(package.source.as_deref())
+        ));
     }
     out.push_str("],\"removed_packages\":[");
-    for (i, name) in diff.removed_packages.iter().enumerate() {
+    for (i, package) in diff.removed_packages.iter().enumerate() {
         if i > 0 {
             out.push(',');
         }
-        out.push_str(&escape_json(name));
+        out.push_str(&format!(
+            "{{\"name\":{},\"source\":{}}}",
+            escape_json(&package.name),
+            escape_json_option(package.source.as_deref())
+        ));
     }
     out.push_str("],\"changed\":[");
     for (i, pkg) in diff.changed_packages.iter().enumerate() {
         if i > 0 {
             out.push(',');
         }
-        out.push_str(&format!("{{\"name\":{},\"added_versions\":[", escape_json(&pkg.name)));
+        out.push_str(&format!(
+            "{{\"name\":{},\"source\":{},\"added_versions\":[",
+            escape_json(&pkg.name),
+            escape_json_option(pkg.source.as_deref())
+        ));
         for (j, v) in pkg.added_versions.iter().enumerate() {
             if j > 0 {
                 out.push(',');

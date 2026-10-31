@@ -185,7 +185,12 @@ impl<'a> Publisher<'a> {
             manifest.insert(("crates-io".to_string(), shard), format!("{:x}", h.finalize_reset()));
         }
 
-        let mut canonical_text = format!("v:{RENDERER_VERSION}\n");
+        let catalog_inputs = catalog_inputs(&native_records, &upstream_records);
+        let mut catalog = stuff_catalog::cargo_catalog(stuff_catalog::FINGERPRINT_GENERATION, catalog_inputs)
+            .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
+        let catalog_fingerprint = stuff_catalog::catalog_fingerprint(&catalog);
+
+        let mut canonical_text = format!("v:{RENDERER_VERSION}\ncatalog:{catalog_fingerprint}\n");
         for ((view, path), sha) in &manifest {
             canonical_text.push_str(&format!("{view}|{path}|{sha}\n"));
         }
@@ -194,9 +199,7 @@ impl<'a> Publisher<'a> {
         let full_sha = format!("{:x}", h.finalize_reset());
         let gen_id = full_sha[..24].to_string();
 
-        let catalog_inputs = catalog_inputs(&native_records, &upstream_records);
-        let catalog = stuff_catalog::cargo_catalog(&gen_id, catalog_inputs)
-            .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
+        catalog.generation = gen_id.clone();
         let catalog_json = stuff_catalog::render_catalog_json(&catalog);
         let catalog_html = stuff_catalog::render_html(&catalog);
         let catalog_llms = stuff_catalog::render_llms_txt(&catalog);
@@ -230,11 +233,8 @@ fn catalog_inputs(
     native: &[crate::store::NativeRecord],
     upstream: &[crate::store::UpstreamRecord],
 ) -> Vec<stuff_catalog::CargoInput> {
-    use std::collections::BTreeSet;
-    let mut seen: BTreeSet<(&str, &str)> = BTreeSet::new();
     let mut out = Vec::with_capacity(native.len() + upstream.len());
     for rec in native {
-        seen.insert((rec.name.as_str(), rec.vers.as_str()));
         out.push(stuff_catalog::CargoInput {
             name: rec.name.clone(),
             version: rec.vers.clone(),
@@ -243,9 +243,6 @@ fn catalog_inputs(
         });
     }
     for rec in upstream {
-        if !seen.insert((rec.name.as_str(), rec.vers.as_str())) {
-            continue;
-        }
         let yanked = crate::json::from_str::<crate::model::IndexEntry>(&rec.raw_index_line)
             .map(|e| e.yanked)
             .unwrap_or(false);

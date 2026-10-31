@@ -197,20 +197,10 @@ impl Site {
         } else if verify(&target_gen_dir)? {
             let _ = fs::remove_dir_all(&staging);
         } else {
-            if !verify(&staging)? {
-                let _ = fs::remove_dir_all(&staging);
-                return Err(Error::Integrity(format!(
-                    "staged generation {generation_id} failed verification"
-                )));
-            }
-            let _ = fs::remove_dir_all(&target_gen_dir);
-            fs::rename(&staging, &target_gen_dir)?;
-            sync_dir(&self.generations_dir())?;
-            if !verify(&target_gen_dir)? {
-                return Err(Error::Integrity(format!(
-                    "reinstalled generation {generation_id} failed verification"
-                )));
-            }
+            let _ = fs::remove_dir_all(&staging);
+            return Err(Error::Integrity(format!(
+                "generation {generation_id} already exists with different content; refusing to replace an immutable generation"
+            )));
         }
         sync_dir(&self.site_dir)?;
 
@@ -313,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn reinstalls_corrupt_generation() {
+    fn refuses_to_replace_corrupt_generation() {
         let (_tmp, site) = test_site();
         let files: HashMap<String, Vec<u8>> =
             [("index".to_string(), b"v1".to_vec())].into();
@@ -325,11 +315,11 @@ mod tests {
         let staged = site.stage().unwrap();
         installer(files.clone())(staged.path()).unwrap();
         let staged_path = staged.into_path();
-        let act = site.activate(staged_path, "gen-b", &verifier(files)).unwrap();
-        assert!(!act.is_noop);
+        let err = site.activate(staged_path, "gen-b", &verifier(files)).unwrap_err();
+        assert!(matches!(err, Error::Integrity(_)));
         assert_eq!(
             fs::read(site.generations_dir().join("gen-b/index")).unwrap(),
-            b"v1"
+            b"tampered"
         );
     }
 

@@ -18,44 +18,49 @@ fn registry_origin(registry: Registry) -> &'static str {
     }
 }
 
-fn use_section(registry: Registry) -> &'static str {
+fn use_section(registry: Registry, generation: &str) -> String {
+    let catalog = format!("/generations/{generation}/catalog.json");
+    let index = format!("/generations/{generation}/index.html");
     match registry {
-        Registry::Cargo => concat!(
-            "Configure Cargo against the sparse index under `current/registry/`:\n",
-            "\n",
-            "```toml\n",
-            "[source.crates-io]\n",
-            "replace-with = \"stuff\"\n",
-            "[source.stuff]\n",
-            "registry = \"sparse+https://crates.17166969.xyz/current/registry/\"\n",
-            "```\n",
-            "\n",
-            "Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). ",
-            "Config: [config.json](registry/config.json). ",
-            "Blobs: `blobs/<sha256>.crate` via the `dl` template. ",
-            "Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+        Registry::Cargo => format!(
+            "Configure Cargo against the sparse index under `current/registry/`:\n\
+            \n\
+            ```toml\n\
+            [source.crates-io]\n\
+            replace-with = \"stuff\"\n\
+            [source.stuff]\n\
+            registry = \"sparse+https://crates.17166969.xyz/current/registry/\"\n\
+            ```\n\
+            \n\
+            Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). \
+            Config: [config.json](/generations/{generation}/registry/config.json). \
+            Blobs: `blobs/<sha256>.crate` via the `dl` template. \
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
+            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
         ),
-        Registry::Npm => concat!(
-            "Point npm at the registry root under `current/`:\n",
-            "\n",
-            "```\n",
-            "registry=https://npm.17166969.xyz/current/\n",
-            "```\n",
-            "\n",
-            "Packuments live at `current/<name>` (scoped names URL-encode `/` as `%2f`, e.g. `current/@scope%2fpkg`). ",
-            "Tarballs live at `current/tarballs/<sha512>.tgz` (also `current/-/tarballs/<sha512>.tgz`). ",
-            "Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+        Registry::Npm => format!(
+            "Point npm at the registry root under `current/`:\n\
+            \n\
+            ```\n\
+            registry=https://npm.17166969.xyz/current/\n\
+            ```\n\
+            \n\
+            Packuments live at `current/<name>` (scoped names URL-encode `/` as `%2f`, e.g. `current/@scope%2fpkg`). \
+            Tarballs live at `current/tarballs/<sha512>.tgz` (also `current/-/tarballs/<sha512>.tgz`). \
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
+            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
         ),
-        Registry::Pypi => concat!(
-            "Point pip at the PEP 503 simple index under `current/simple/`:\n",
-            "\n",
-            "```\n",
-            "pip install --index-url https://pypi.17166969.xyz/current/simple/ <package>\n",
-            "```\n",
-            "\n",
-            "Indexes: [simple](simple/index.html) with per-project pages at `current/simple/<project>/`. ",
-            "Wheels live at `current/wheels/<filename>` (content-addressed by sha256). ",
-            "Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+        Registry::Pypi => format!(
+            "Point pip at the PEP 503 simple index under `current/simple/`:\n\
+            \n\
+            ```\n\
+            pip install --index-url https://pypi.17166969.xyz/current/simple/ <package>\n\
+            ```\n\
+            \n\
+            Indexes: [simple](/generations/{generation}/simple/index.html) with per-project pages at `current/simple/<project>/`. \
+            Wheels live at `current/wheels/<filename>` (content-addressed by sha256). \
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
+            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
         ),
     }
 }
@@ -105,15 +110,23 @@ pub fn render_llms_txt(catalog: &Catalog) -> String {
     out.push_str(if catalog.package_count() == 1 { " package, " } else { " packages, " });
     out.push_str(&catalog.version_count().to_string());
     out.push_str(if catalog.version_count() == 1 { " version. " } else { " versions. " });
-    out.push_str("Machine-readable inventory: [catalog.json](catalog.json). Human browser: [index.html](index.html).\n");
+    out.push_str("Machine-readable inventory: [catalog.json](/generations/");
+    out.push_str(&catalog.generation);
+    out.push_str("/catalog.json). Human browser: [index.html](/generations/");
+    out.push_str(&catalog.generation);
+    out.push_str("/index.html).\n");
     out.push_str("\n## Registry\n\n");
     out.push_str("- Origin: ");
     out.push_str(origin);
     out.push_str("\n- Pinned generation: `generations/");
     out.push_str(&catalog.generation);
-    out.push_str("/`\n- Inventory: [catalog.json](catalog.json)\n- Browser: [index.html](index.html)\n");
+    out.push_str("/`\n- Inventory: [catalog.json](/generations/");
+    out.push_str(&catalog.generation);
+    out.push_str("/catalog.json)\n- Browser: [index.html](/generations/");
+    out.push_str(&catalog.generation);
+    out.push_str("/index.html)\n");
     out.push_str("\n## Use\n\n");
-    out.push_str(use_section(catalog.registry));
+    out.push_str(&use_section(catalog.registry, &catalog.generation));
     out.push_str("\n\n## Packages\n\n");
     if catalog.packages.is_empty() {
         out.push_str("No packages published in this generation.\n");
@@ -200,12 +213,24 @@ mod tests {
         let text = render_llms_txt(&cargo_fixture());
         assert!(text.starts_with("# Cargo registry\n"));
         assert!(text.contains("> Static snapshot for LLMs. Generation `gen1`"));
-        assert!(text.contains("[catalog.json](catalog.json)"));
+        assert!(text.contains("[catalog.json](/generations/gen1/catalog.json)"));
         assert!(text.contains("## Use"));
         assert!(text.contains("## Packages"));
         assert!(text.contains("`h12tiny` — latest `0.6.0`"));
         assert!(text.contains("`0.5.0` (yanked)"));
         assert!(text.contains("sparse+https://crates.17166969.xyz/current/registry/"));
+        let links: Vec<&str> = text
+            .split("](")
+            .skip(1)
+            .filter_map(|rest| rest.split(')').next())
+            .collect();
+        assert!(!links.is_empty());
+        for link in links {
+            assert!(
+                link.starts_with("/generations/gen1/"),
+                "llms.txt link is not generation-pinned: {link}"
+            );
+        }
         assert!(text.ends_with('\n'));
     }
 

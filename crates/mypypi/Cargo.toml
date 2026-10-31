@@ -28,4 +28,5 @@ url = "2.5"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
+deser-json = "0.10"
 tempfile = "3.13"
