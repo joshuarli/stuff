@@ -207,7 +207,10 @@ conflicts; `--repair` is the separate, explicit overwrite path. `--dry-run` list
 bucket read-only and prints the object and byte counts it would upload, then stops
 before any upload or promotion (it needs no `R2_S3_*` variables). Conditional
 promotion needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
-`R2_S3_SECRET_ACCESS_KEY`. Roll back with
+`R2_S3_SECRET_ACCESS_KEY`. Without S3 credentials,
+`R2_PROMOTE_UNCONDITIONAL=1` verifies the generation remotely and then moves
+`current` with a plain `cf` put, which does not detect a competing publisher.
+Roll back with
 `deploy/r2-rollback.sh BUCKET GEN_ID`, which verifies the target generation's
 manifest remotely before moving `current`. Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;

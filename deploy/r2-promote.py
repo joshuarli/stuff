@@ -6,6 +6,9 @@ Env: R2_S3_ENDPOINT, R2_S3_ACCESS_KEY_ID, R2_S3_SECRET_ACCESS_KEY,
      R2_S3_REGION, optional R2_S3_SESSION_TOKEN.
      CF_LOCAL_STATE switches to the local `cf` simulation (no conditional
      writes; for tests only).
+     R2_PROMOTE_UNCONDITIONAL=1 promotes through the authenticated `cf` CLI
+     against the real bucket instead: the same verification, but the marker
+     write is a plain put, so a competing publisher is not detected.
 
 The remote generation must carry manifests/<id>.json. Every object it lists
 is verified by size and ETag before `current` is touched. The marker write is
@@ -49,9 +52,11 @@ def header(headers, name):
 
 def local_args():
     state = os.environ.get("CF_LOCAL_STATE")
-    if not state:
-        return None
-    return ["--local", "--persist-to", state]
+    if state:
+        return ["--local", "--persist-to", state]
+    if os.environ.get("R2_PROMOTE_UNCONDITIONAL"):
+        return []
+    return None
 
 
 def cf(args, text=False):
@@ -244,7 +249,7 @@ def main():
             fail("--expected requires a generation id")
 
     local = local_args()
-    if local:
+    if local is not None:
         current = local_current(bucket)
         if expected is not None and current != expected:
             fail(

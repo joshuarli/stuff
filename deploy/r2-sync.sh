@@ -25,7 +25,11 @@
 # Files over the 300 MB single-PUT cap (R2_SINGLE_PUT_MAX overrides) are uploaded via S3 multipart
 # (deploy/r2-multipart.py, stdlib-only python3) using R2_S3_ENDPOINT,
 # R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. Conditional promotion
-# needs those variables even when no file is large.
+# needs those variables even when no file is large. R2_PROMOTE_UNCONDITIONAL=1
+# instead promotes through the authenticated `cf` CLI with a plain put of
+# `current` (after the same remote verification): no S3 credentials are needed,
+# but a competing publisher is not detected. Files over the single-PUT cap
+# still need the S3 variables.
 #
 # Generation-scoped immutable aliases are NOT uploaded: the worker resolves
 # them to the shared store (see stuff-worker alias_key).
@@ -63,6 +67,8 @@ while [ $# -gt 0 ]; do
 done
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
+elif [ -n "${R2_PROMOTE_UNCONDITIONAL:-}" ]; then
+  echo "note: promoting through cf without a conditional write; a competing publisher would not be detected"
 elif [ -z "$DRY_RUN" ]; then
   for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
     eval "value=\${$var:-}"
