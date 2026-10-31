@@ -964,8 +964,8 @@ mod tests {
             Some(format!("{}:/usr/bin", cargo_home.join("bin").display()).as_str())
         );
         assert_eq!(
-            std::fs::read_link(cargo_home.join("bin")).unwrap(),
-            origin.join(".cargo/bin")
+            std::fs::read_link(cargo_home.join("bin/cargo")).unwrap(),
+            origin.join(".cargo/bin/cargo")
         );
         assert_eq!(
             std::fs::read_link(rustup_home.join("toolchains/nightly")).unwrap(),
@@ -1001,8 +1001,8 @@ mod tests {
         let env = build_environment(&base, &stage).unwrap();
         let home = stage.join("home");
         assert_eq!(
-            std::fs::read_link(home.join(".cargo/bin")).unwrap(),
-            cargo_home.join("bin")
+            std::fs::read_link(home.join(".cargo/bin/cargo")).unwrap(),
+            cargo_home.join("bin/cargo")
         );
         assert_eq!(
             std::fs::read_link(home.join(".rustup/toolchains/stable")).unwrap(),

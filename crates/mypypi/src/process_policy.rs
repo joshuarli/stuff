@@ -132,8 +132,11 @@ pub(crate) fn seed_toolchain_home(
         let bin = cargo_home.join("bin");
         if bin.is_dir() {
             let scratch_bin = scratch_home.join(".cargo/bin");
-            std::fs::create_dir_all(scratch_home.join(".cargo"))?;
-            link_toolchain_dir(&bin, &scratch_bin)?;
+            std::fs::create_dir_all(&scratch_bin)?;
+            for entry in std::fs::read_dir(&bin)? {
+                let entry = entry?;
+                link_toolchain_dir(&entry.path(), &scratch_bin.join(entry.file_name()))?;
+            }
         }
     }
     if let Some(rustup_home) = source_toolchain_home(source, "RUSTUP_HOME", ".rustup") {
