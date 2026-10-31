@@ -30,9 +30,7 @@ for repair.
   ingestion (`fleet-ingest.sh`).
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels).
-- Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md). Open
-  design decisions: [STUF-15 import identity](docs/rfc/STUF-15-import-identity.md),
-  [STUF-19 licensing](docs/rfc/STUF-19-licensing.md).
+- Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## Commands
 
