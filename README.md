@@ -98,6 +98,26 @@ platform. Packages that exist only for other operating systems (for example
 wheels that fail validation by design need `exclude_platforms` or
 `validate_skip_imports` entries with a reason.
 
+One generation serves every platform: run build, validate, and publish once
+per platform against the same catalog, state directory, and site. Each
+`publish` adds that platform's wheels to the current generation and keeps the
+rest. Linux platforms run in a container of the matching architecture, which
+is a native runner for mypypi's check (the binary is compiled inside the
+container, so `current_platform()` reports the container's architecture):
+
+```sh
+deploy/mypypi-container.sh arm64 linux-aarch64 build
+deploy/mypypi-container.sh arm64 linux-aarch64 validate
+deploy/mypypi-container.sh arm64 linux-aarch64 publish
+deploy/mypypi-container.sh amd64 linux-x86_64 validate   # Rosetta/QEMU on an arm64 host
+```
+
+`linux-x86_64` on an arm64 host runs under emulation; the check accepts it
+because the userspace and binary are x86_64, not because the code runs on x86
+silicon. Publish the Linux wheels from a real x86_64 runner when that matters.
+`add` takes no `--platform` and rewrites the shared catalog; run it before the
+per-platform commands.
+
 ## Catalog
 
 Every publish renders a normalized package catalog from the registry's
