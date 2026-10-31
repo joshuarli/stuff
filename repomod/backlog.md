@@ -44,7 +44,7 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 - [x] stuff gaps found by CI and filled: tool crates (wasm-bindgen-cli, rustybench), laputa-ptytest 0.3.0, the h12tiny fork locks (env_logger 0.9, pretty_env_logger)
 - [ ] tm #11 (approved Action pins and a docs link) is open; tm CI is red on main (`missing tmux 3.8 reference`), which is the owner's in-flight work
 - [ ] tansu keeps two git forks (catalog exception); publish h2-futures-lite and hyper-futures-lite to the native registry to remove it
-- [ ] fz's Cargo.lock has a sourceless `laputa-ptytest` entry; regenerate it
+- [x] fz's Cargo.lock has a sourceless `laputa-ptytest` entry; regenerate it
 - [ ] unlocked nested manifests (gitignored or absent lockfiles) resolve at CI time against whatever stuff holds; add their locks to the ingest when CI reports a missing crate
 
 ## Phase D: enforcement

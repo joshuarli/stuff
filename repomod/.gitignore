@@ -15,3 +15,5 @@ status.yaml
 patches-*/
 generations/
 .live
+
+.cloudflare
