@@ -215,6 +215,15 @@ class OpenPullRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class RepomodPullRequest:
+    number: int
+    url: str
+    branch: str
+    head_sha: str
+    draft: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class CiResult:
     repository: str
     default_branch: str | None

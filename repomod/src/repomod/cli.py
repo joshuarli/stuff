@@ -10,6 +10,7 @@ from repomod.cmd.discover import _discover
 from repomod.cmd.fix import _fix
 from repomod.cmd.gc import _gc
 from repomod.cmd.lint import _lint
+from repomod.cmd.merge import _merge
 from repomod.cmd.push import _push
 from repomod.cmd.status import _status
 from repomod.cmd.sync import _sync
@@ -57,6 +58,13 @@ def _parser() -> argparse.ArgumentParser:
     _filters(push)
     push.add_argument("--workers", type=int, default=4)
 
+    merge = commands.add_parser(
+        "merge", help="merge open pull requests from repomod fix branches"
+    )
+    _filters(merge)
+    merge.add_argument("--dry-run", action="store_true")
+    merge.add_argument("--workers", type=int, default=4)
+
     gc = commands.add_parser(
         "gc", help="remove checkouts the catalog no longer references"
     )
@@ -102,6 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "fix": _fix,
             "sync": _sync,
             "push": _push,
+            "merge": _merge,
             "gc": _gc,
             "discover": _discover,
             "topics": _topics,

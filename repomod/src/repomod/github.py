@@ -21,6 +21,7 @@ from repomod.types import (
     OpenPullRequest,
     RemoteRepository,
     RepoId,
+    RepomodPullRequest,
     Repository,
     WorkflowStatus,
 )
@@ -1702,6 +1703,105 @@ def open_pull_requests(
         for future in as_completed(futures):
             found.update(future.result())
     return found
+
+
+def _repomod_pull_requests_one(
+    repository: Repository,
+) -> tuple[list[RepomodPullRequest], str | None]:
+    name = str(repository.id)
+    endpoint = f"repos/{repository.id.owner}/{repository.id.name}/pulls?state=open&per_page=100"
+    try:
+        pages = _gh_json(["--paginate", "--slurp", endpoint])
+    except GitHubError as error:
+        return [], str(error)
+    if not isinstance(pages, list):
+        return [], "GitHub returned an invalid pull request list"
+    requests: list[RepomodPullRequest] = []
+    for page in pages:
+        if not isinstance(page, list):
+            return [], "GitHub returned an invalid pull request page"
+        for item in page:
+            if not isinstance(item, dict):
+                return [], "GitHub returned an invalid pull request record"
+            head = item.get("head")
+            reference = head.get("ref") if isinstance(head, dict) else None
+            if not isinstance(reference, str) or _FIX_BRANCH.fullmatch(reference) is None:
+                continue
+            head_repository = head.get("repo") if isinstance(head, dict) else None
+            full_name = (
+                head_repository.get("full_name") if isinstance(head_repository, dict) else None
+            )
+            if not isinstance(full_name, str) or full_name.casefold() != name.casefold():
+                continue
+            number = item.get("number")
+            url = item.get("html_url")
+            sha = head.get("sha") if isinstance(head, dict) else None
+            if (
+                not isinstance(number, int)
+                or isinstance(number, bool)
+                or number < 1
+                or not isinstance(url, str)
+                or not isinstance(sha, str)
+                or _COMMIT_SHA.fullmatch(sha) is None
+            ):
+                return [], "GitHub returned an invalid repomod pull request"
+            requests.append(
+                RepomodPullRequest(
+                    number,
+                    url,
+                    reference,
+                    sha.lower(),
+                    item.get("draft") is True,
+                )
+            )
+    return sorted(requests, key=lambda request: request.number), None
+
+
+def repomod_pull_requests(
+    repositories: tuple[Repository, ...], jobs: int = 4
+) -> dict[str, tuple[list[RepomodPullRequest], str | None]]:
+    if jobs < 1:
+        raise ValueError("jobs must be at least one")
+    found: dict[str, tuple[list[RepomodPullRequest], str | None]] = {}
+    if not repositories:
+        return found
+    with ThreadPoolExecutor(
+        max_workers=min(jobs, MAX_API_WORKERS, len(repositories)),
+        thread_name_prefix="repomod-merge-list",
+    ) as pool:
+        futures = {
+            pool.submit(_repomod_pull_requests_one, repository): repository
+            for repository in repositories
+        }
+        for future in as_completed(futures):
+            repository = futures[future]
+            found[str(repository.id)] = future.result()
+    return found
+
+
+def merge_repomod_pull_request(repository: RepoId, number: int, head_sha: str) -> str:
+    if number < 1:
+        raise GitHubError("pull request number is invalid")
+    if _COMMIT_SHA.fullmatch(head_sha) is None:
+        raise GitHubError("pull request head SHA is invalid")
+    response = _gh_json(
+        [
+            f"repos/{repository.owner}/{repository.name}/pulls/{number}/merge",
+            "--method",
+            "PUT",
+            "-f",
+            "merge_method=rebase",
+            "-f",
+            f"sha={head_sha}",
+        ]
+    )
+    merged = response.get("merged") if isinstance(response, dict) else None
+    if merged is not True:
+        raise GitHubError("GitHub did not confirm the merge")
+    sha = response.get("sha") if isinstance(response, dict) else None
+    if not isinstance(sha, str) or _COMMIT_SHA.fullmatch(sha) is None:
+        raise GitHubError("GitHub merged the pull request without a commit SHA")
+    return sha
 
 
 def _graphql_batch_data(response: dict[str, Any], aliases: dict[str, str]) -> dict[str, Any]:

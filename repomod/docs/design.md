@@ -82,6 +82,12 @@ auto-merge only when the repository allows it and the default branch requires st
 next fix run resumes its unmerged branch from the current default branch. Failed or interrupted
 work remains on its branch or in its worktree.
 
+Fix pull requests are identified by their `repomod/fix/<id>` head branch. `merge` lists open pull
+requests in selected repositories whose head branch matches that pattern and merges each with a
+rebase commit pinned to the listed head SHA, so a branch that moved after listing is rejected
+rather than merged unreviewed. Drafts are skipped and merge failures are reported per pull
+request. `merge --dry-run` lists the matches without writing.
+
 Push uses a normal fast-forward Git push and keeps local commits on failure. `push` pushes
 each selected checkout's current branch when it is ahead of its origin upstream and skips
 anything else with a reason. `topics apply`

@@ -114,6 +114,19 @@ has moved. Use `--repo`/`--tag` to select repositories.
 uv run repomod push
 ```
 
+## Merge
+
+`repomod merge` merges open pull requests whose head branch is a `repomod/fix/*` branch, which is
+how `fix` identifies its pull requests. It pins each merge to the head commit listed before the
+merge, so a branch that moves is rejected instead of merging unreviewed commits. Drafts are
+skipped and merge failures are reported; both leave the pull request open. `--dry-run` lists what
+would merge. Use `--repo`/`--tag` to select repositories.
+
+```sh
+uv run repomod merge --dry-run
+uv run repomod merge
+```
+
 ## Dependency upgrades
 
 The `audit-upgrades` rule reports locked direct dependencies that lag their registry.
