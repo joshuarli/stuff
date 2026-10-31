@@ -177,7 +177,14 @@ promotion against competing publishers, and the marker is read back after
 activation. Roll back with `deploy/r2-rollback.sh SITE_DIR BUCKET GEN_ID`.
 Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
-the worker resolves them to the shared store instead. Files over the 300 MB
+the worker resolves them to the shared store instead. Both `stuff-server`
+and the worker also serve the standard npm tarball path
+`current/<name>/-/<basename>-<version>.tgz` (pnpm requests it from
+integrity-only lockfiles): the version's `dist.tarball` in the current
+packument names the digest object, served with immutable caching; unknown
+versions are 404. pnpm 12 also fetches metadata for every lockfile entry,
+including platform packages mynpm does not host, so installs from a lockfile
+that lists them need `--trust-lockfile` or `minimumReleaseAge: 0`. Files over the 300 MB
 single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
 `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`) and are
 skipped when the remote multipart ETag already matches.

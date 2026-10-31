@@ -1,8 +1,8 @@
 use crate::config::Route;
 use std::path::{Path, PathBuf};
 use stuff_http::{
-    cache_policy_for, content_type_for, evaluate_preconditions, parse_range, Precondition,
-    RangeError, RouteKind,
+    cache_policy_for, content_type_for, evaluate_preconditions, packument_tarball_digest,
+    parse_npm_tarball_path, parse_range, Precondition, RangeError, RouteKind,
 };
 
 #[derive(Debug, Clone)]
@@ -39,7 +39,11 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
         {
             return Mapped::NotFound;
         }
-        let mut path = route.site_dir.join(&target);
+        let generation_dir = route.site_dir.join(&target);
+        if let Some(aliased) = map_npm_tarball(route, &generation_dir, rest) {
+            return Mapped::File(aliased);
+        }
+        let mut path = generation_dir;
         for seg in rest {
             path.push(seg);
         }
@@ -54,6 +58,23 @@ pub fn map_request(route: &Route, raw_target: &str) -> Mapped {
     }
     Mapped::File(MappedFile {
         path,
+        kind: RouteKind::ImmutableFile,
+    })
+}
+
+fn map_npm_tarball(route: &Route, generation_dir: &Path, rest: &[String]) -> Option<MappedFile> {
+    let request = parse_npm_tarball_path(rest)?;
+    let mut packument_path = generation_dir.to_path_buf();
+    for seg in request.packument_segments() {
+        packument_path.push(seg);
+    }
+    if has_symlink_component(route, &packument_path) {
+        return None;
+    }
+    let packument = std::fs::read_to_string(&packument_path).ok()?;
+    let digest = packument_tarball_digest(&packument, &request.version)?;
+    Some(MappedFile {
+        path: generation_dir.join("-/tarballs").join(format!("{digest}.tgz")),
         kind: RouteKind::ImmutableFile,
     })
 }
@@ -456,6 +477,85 @@ mod tests {
         assert_eq!(r.status, 404);
         let r = respond(&route, "/current/%2e%2e/x", "GET", &no_headers);
         assert_eq!(r.status, 404);
+    }
+
+    const DIGEST: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const TARBALL: &[u8] = b"0123456789tarball";
+
+    fn seed_npm_generation(route: &Route) {
+        let generation = route.site_dir.join("generations/gen1");
+        let packument = format!(
+            r#"{{"name":"NAME","versions":{{"1.2.3":{{"dist":{{"tarball":"http://h/current/-/tarballs/{DIGEST}.tgz"}}}}}}}}"#
+        );
+        fs::create_dir_all(generation.join("@scope")).unwrap();
+        fs::write(generation.join("flat"), packument.replace("NAME", "flat")).unwrap();
+        fs::write(
+            generation.join("@scope/pkg"),
+            packument.replace("NAME", "@scope/pkg"),
+        )
+        .unwrap();
+        fs::create_dir_all(generation.join("-/tarballs")).unwrap();
+        fs::write(generation.join(format!("-/tarballs/{DIGEST}.tgz")), TARBALL).unwrap();
+    }
+
+    #[test]
+    fn npm_standard_tarball_path_serves_digest_object() {
+        let (_tmp, route) = test_route();
+        seed_npm_generation(&route);
+        let no_headers: Vec<(String, String)> = Vec::new();
+        let digest_path = format!("/current/-/tarballs/{DIGEST}.tgz");
+        let digest = respond(&route, &digest_path, "GET", &no_headers);
+        assert_eq!(digest.status, 200);
+
+        for path in ["/current/flat/-/flat-1.2.3.tgz", "/current/@scope%2fpkg/-/pkg-1.2.3.tgz", "/current/@scope/pkg/-/pkg-1.2.3.tgz"] {
+            let r = respond(&route, path, "GET", &no_headers);
+            assert_eq!(r.status, 200, "{path}");
+            assert!(matches!(&r.body, ResponseBody::File { len, .. } if *len == TARBALL.len() as u64));
+            let cache = r.headers.iter().find(|(k, _)| k == "cache-control").unwrap();
+            assert_eq!(cache.1, "public, max-age=31536000, immutable");
+            assert_eq!(r.headers.iter().find(|(k, _)| k == "content-type"), digest.headers.iter().find(|(k, _)| k == "content-type"));
+            let head = respond(&route, path, "HEAD", &no_headers);
+            assert_eq!(head.status, 200);
+            assert!(matches!(head.body, ResponseBody::Empty));
+        }
+    }
+
+    #[test]
+    fn npm_standard_tarball_path_honors_ranges_and_conditionals() {
+        let (_tmp, route) = test_route();
+        seed_npm_generation(&route);
+        let path = "/current/@scope%2fpkg/-/pkg-1.2.3.tgz";
+        let ok = respond(&route, path, "GET", &[]);
+        let etag = ok.headers.iter().find(|(k, _)| k == "etag").unwrap().1.clone();
+
+        let r = respond(&route, path, "GET", &[("Range".to_string(), "bytes=2-5".to_string())]);
+        assert_eq!((r.status, r.reason), (206, "Partial Content"));
+        assert!(matches!(r.body, ResponseBody::File { offset: 2, len: 4, .. }));
+        assert!(r.headers.iter().any(|(k, v)| k == "content-range" && v == &format!("bytes 2-5/{}", TARBALL.len())));
+
+        let r = respond(&route, path, "GET", &[("Range".to_string(), "bytes=99-".to_string())]);
+        assert_eq!(r.status, 416);
+
+        let r = respond(&route, path, "GET", &[("If-None-Match".to_string(), etag)]);
+        assert_eq!(r.status, 304);
+
+        let r = respond(&route, path, "GET", &[("If-Match".to_string(), "\"nope\"".to_string())]);
+        assert_eq!(r.status, 412);
+    }
+
+    #[test]
+    fn npm_standard_tarball_path_is_not_found_for_unknown_versions_and_packages() {
+        let (_tmp, route) = test_route();
+        seed_npm_generation(&route);
+        for path in [
+            "/current/flat/-/flat-9.9.9.tgz",
+            "/current/flat/-/other-1.2.3.tgz",
+            "/current/missing/-/missing-1.2.3.tgz",
+            "/current/@scope/pkg/-/pkg-9.9.9.tgz",
+            "/current/@scope/pkg/-/flat-1.2.3.tgz",
+        ] {
+            assert_eq!(respond(&route, path, "GET", &[]).status, 404, "{path}");
+        }
     }
 
     #[test]

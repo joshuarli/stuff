@@ -4,6 +4,7 @@ import {
   plan_object_response_json,
   render_unified_index_json,
   render_unified_llms_txt_json,
+  resolve_npm_tarball_json,
   resolve_pointer_json,
 } from "../build/wasm/stuff_worker.js";
 import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
@@ -43,6 +44,8 @@ interface PointerResolution {
   kind: "key" | "not_found";
   key?: string;
   alias_key?: string;
+  npm_packument_key?: string;
+  npm_version?: string;
 }
 
 interface ResponsePlan {
@@ -154,6 +157,8 @@ export default {
     let key: string;
     let route: "immutable" | "pointer";
     let aliasKey: string | undefined;
+    let npmPackumentKey: string | undefined;
+    let npmVersion: string | undefined;
     if (mapped.kind === "direct") {
       if (!mapped.key) {
         throw new Error("mapping");
@@ -177,6 +182,8 @@ export default {
       key = resolved.key;
       route = "pointer";
       aliasKey = resolved.alias_key;
+      npmPackumentKey = resolved.npm_packument_key;
+      npmVersion = resolved.npm_version;
     }
     const store = bucket(env, mapped.bucket_binding);
     let object = await store.get(key);
@@ -188,6 +195,22 @@ export default {
       if (aliased !== null) {
         key = aliasKey;
         object = aliased;
+      }
+    }
+    if (object === null && npmPackumentKey && npmVersion !== undefined && mapped.pointer_key) {
+      const packument = await store.get(npmPackumentKey);
+      if (packument !== null) {
+        const tarball = JSON.parse(
+          resolve_npm_tarball_json(mapped.pointer_key, await packument.text(), npmVersion),
+        ) as PointerResolution;
+        if (tarball.alias_key) {
+          const aliased = await store.get(tarball.alias_key);
+          if (aliased !== null) {
+            key = tarball.alias_key;
+            object = aliased;
+            route = "immutable";
+          }
+        }
       }
     }
     if (object === null) {

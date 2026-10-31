@@ -5,7 +5,7 @@ use crate::config::{Config, Target};
 use crate::error::{Error, Result};
 use crate::fetch_budget::FetchByteBudget;
 use crate::inventory::{
-    record_verified_artifact, validate_artifact_record, ArtifactRecord, Inventory, PackageRecord,
+    record_verified_artifacts, validate_artifact_record, ArtifactRecord, Inventory, PackageRecord,
 };
 use crate::inventory_store::{load_inventory, update_inventory};
 use crate::limits;
@@ -1250,12 +1250,8 @@ pub fn fetch_inventory(
     let verified = results.len();
     let state_path = state_dir.to_path_buf();
     update_inventory(&state_path, |current| {
-        let mut acc = current.clone();
-        for result in &results {
-            let value = artifact_value(result)?;
-            acc = record_verified_artifact(&acc, &value)?;
-        }
-        Ok(acc)
+        let values = results.iter().map(artifact_value).collect::<Result<Vec<_>>>()?;
+        record_verified_artifacts(current, &values)
     })?;
     Ok(FetchSummary { downloaded_bytes: downloaded, verified_count: verified, reused_count: reused })
 }
