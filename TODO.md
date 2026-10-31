@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 27
 
-### STUF-9 · P1 · Anonymous clients can yank and unyank crates when read auth is off
-
-- **Area:** Security
-- **Where:** `crates/mycrates/src/serve.rs:155` (read gate), `:179-190` (publish recheck), `:324-341` (yank branch); `crates/mycrates/src/config.rs:67` (default `auth_required: false`); `crates/mycrates/src/cli/serve_publish.rs` passes the configured value.
-- **Problem:** The only token check before the yank/unyank branch runs when `auth_required` is true. The publish endpoint independently requires a token whenever `cfg.token.is_some()`, but yank does not, so a server started with a token and the default `auth_required: false` accepts anonymous `DELETE /api/v1/crates/<name>/<version>/yank` and `PUT .../unyank` and runs a full publish per request. The crate's own end-to-end test uses exactly this configuration and never asserts a 401. Probe against the real handler: `auth_required: false` returned 404 (route reached the store for a missing crate) while `auth_required: true` returned 401.
-- **Recommendation:** Require the token for every non-`GET`/`HEAD` request before routing (one helper), and gate reads separately. Add a yank test without an Authorization header.
-- **Fix with:** `security`
-- **Effort:** S
-
 ### STUF-10 · P1 · An interrupted mycrates adopt makes the next publish treat partial state as complete
 
 - **Area:** Data

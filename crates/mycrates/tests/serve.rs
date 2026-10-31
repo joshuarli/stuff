@@ -188,6 +188,76 @@ fn serve_framing_and_auth() {
 }
 
 #[test]
+fn yank_requires_token_when_read_auth_is_off() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let site_dir = dir.path().join("site");
+    let token = "yank-token";
+
+    let server = fixture::TestServer::start(
+        state_dir.clone(),
+        site_dir.clone(),
+        "",
+        Some(token.to_string()),
+        false,
+    );
+
+    let crate_bytes = make_test_crate("yank-pkg", "1.0.0");
+    let json = deser_json::to_string(&deser_value::value!({
+        "name": "yank-pkg",
+        "vers": "1.0.0",
+        "deps": [],
+        "features": {},
+        "authors": [],
+        "description": "test crate",
+        "documentation": null,
+        "homepage": null,
+        "readme": null,
+        "keywords": [],
+        "categories": [],
+        "license": "MIT",
+        "license_file": null,
+        "repository": null,
+        "badges": {},
+        "links": null
+    }))
+    .unwrap();
+    let payload = build_wire_payload(&json, &crate_bytes);
+
+    let publish = format!(
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        payload.len()
+    );
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream.write_all(publish.as_bytes()).unwrap();
+    stream.write_all(&payload).unwrap();
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(resp.starts_with("HTTP/1.1 200"), "publish failed: {resp}");
+
+    for req in [
+        "DELETE /api/v1/crates/yank-pkg/1.0.0/yank HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n".to_string(),
+        "PUT /api/v1/crates/yank-pkg/1.0.0/unyank HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n".to_string(),
+        "DELETE /api/v1/crates/yank-pkg/1.0.0/yank HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer wrong-token\r\nConnection: close\r\n\r\n".to_string(),
+    ] {
+        let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+        stream.write_all(req.as_bytes()).unwrap();
+        let mut resp = String::new();
+        stream.read_to_string(&mut resp).unwrap();
+        assert!(resp.starts_with("HTTP/1.1 401"), "expected 401, got: {resp}");
+    }
+
+    let authorized = format!(
+        "DELETE /api/v1/crates/yank-pkg/1.0.0/yank HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nConnection: close\r\n\r\n"
+    );
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream.write_all(authorized.as_bytes()).unwrap();
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(resp.starts_with("HTTP/1.1 200"), "yank failed: {resp}");
+}
+
+#[test]
 fn static_file_etag_caching() {
     let dir = tempdir().unwrap();
     let state_dir = dir.path().join("state");

@@ -36,6 +36,21 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     diff == 0
 }
 
+fn request_authorized(cfg: &ServeConfig, method: &str, headers: &[(String, String)]) -> bool {
+    let requires_token = cfg.auth_required || !matches!(method, "GET" | "HEAD");
+    if !requires_token {
+        return true;
+    }
+    let Some(expected_token) = cfg.token.as_deref() else {
+        return false;
+    };
+    let auth_hdr = headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("authorization"))
+        .map(|(_, v)| v.as_str());
+    verify_token(auth_hdr, expected_token)
+}
+
 fn verify_token(provided_header: Option<&str>, expected_token: &str) -> bool {
     let header = match provided_header {
         Some(h) => h.trim(),
@@ -152,20 +167,9 @@ pub fn handle_publish_request<R: Read>(
     reader: &mut R,
     cfg: &ServeConfig,
 ) -> Result<()> {
-    if cfg.auth_required {
-        if let Some(ref exp_token) = cfg.token {
-            let auth_hdr = headers
-                .iter()
-                .find(|(k, _)| k.eq_ignore_ascii_case("authorization"))
-                .map(|(_, v)| v.as_str());
-            if !verify_token(auth_hdr, exp_token) {
-                send_error(stream, 401, "unauthorized");
-                return Ok(());
-            }
-        } else {
-            send_error(stream, 401, "unauthorized");
-            return Ok(());
-        }
+    if !request_authorized(cfg, method, headers) {
+        send_error(stream, 401, "unauthorized");
+        return Ok(());
     }
 
     if (method == "GET" || method == "HEAD") && path.starts_with("/blobs/") {
@@ -177,21 +181,6 @@ pub fn handle_publish_request<R: Read>(
         .with_auth_required(cfg.auth_required);
 
     if method == "PUT" && path == "/api/v1/crates/new" {
-        if cfg.auth_required || cfg.token.is_some() {
-            if let Some(ref exp_token) = cfg.token {
-                let auth_hdr = headers
-                    .iter()
-                    .find(|(k, _)| k.eq_ignore_ascii_case("authorization"))
-                    .map(|(_, v)| v.as_str());
-                if !verify_token(auth_hdr, exp_token) {
-                    send_error(stream, 401, "unauthorized");
-                    return Ok(());
-                }
-            } else {
-                send_error(stream, 401, "unauthorized");
-                return Ok(());
-            }
-        }
         let is_chunked = headers.iter().any(|(k, v)| {
             k.eq_ignore_ascii_case("transfer-encoding") && v.eq_ignore_ascii_case("chunked")
         });

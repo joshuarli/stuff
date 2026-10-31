@@ -61,7 +61,14 @@ fn corrupted_stored_blob_after_publish() {
     let state_dir = dir.path().join("state");
     let site_dir = dir.path().join("site");
 
-    let server = TestServer::start(state_dir.clone(), site_dir.clone(), "", None, false);
+    let token = "hardening-token";
+    let server = TestServer::start(
+        state_dir.clone(),
+        site_dir.clone(),
+        "",
+        Some(token.to_string()),
+        false,
+    );
     let crate_bytes = make_test_crate("victim-pkg", "1.0.0");
     let json = deser_json::to_string(&deser_value::value!({
         "name": "victim-pkg",
@@ -86,7 +93,7 @@ fn corrupted_stored_blob_after_publish() {
     let payload = build_wire_payload(&json, &crate_bytes);
     let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
     let req = format!(
-        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         payload.len()
     );
     stream.write_all(req.as_bytes()).unwrap();
@@ -226,8 +233,14 @@ fn malformed_upload_corpus() {
     let state_dir = dir.path().join("state");
     let site_dir = dir.path().join("site");
 
-    let server = TestServer::start(state_dir.clone(), site_dir.clone(), "", None, false);
-
+    let token = "malformed-token";
+    let server = TestServer::start(
+        state_dir.clone(),
+        site_dir.clone(),
+        "",
+        Some(token.to_string()),
+        false,
+    );
     // 1. JSON length 0 -> 400
     {
         let mut wire = Vec::new();
@@ -237,7 +250,7 @@ fn malformed_upload_corpus() {
 
         let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
         let req = format!(
-            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             wire.len()
         );
         stream.write_all(req.as_bytes()).unwrap();
@@ -264,7 +277,7 @@ fn malformed_upload_corpus() {
 
         let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
         let req = format!(
-            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             wire.len()
         );
         stream.write_all(req.as_bytes()).unwrap();
@@ -290,7 +303,7 @@ fn malformed_upload_corpus() {
 
         let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
         let req = format!(
-            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             wire.len()
         );
         stream.write_all(req.as_bytes()).unwrap();
