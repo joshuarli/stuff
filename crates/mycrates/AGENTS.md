@@ -12,7 +12,7 @@ Guidance and reference for coding agents working on `mycrates`.
 - `src/crate_file.rs`: Streaming structural archive scan (`scan_crate`) verifying gzip/tar integrity, prefixes, path traversal, `Cargo.toml` name/version parity, and size limits without extracting to disk.
 - `src/lockfile.rs`: Parsing of Cargo.lock (v3/v4) and source classification (crates.io, alternate registry, git, path, workspace).
 - `src/pins.rs`: Exact registry pin storage in `pins/<project>.toml`.
-- `src/store.rs`: Content-addressed blob store (`blobs/<sha256>.crate`), atomic ingest, records (`native/`, `upstream/`), exclusing locking using std `File::lock`, and SHA-256 verification.
+- `src/store.rs`: Content-addressed blob store (`blobs/<sha256>.crate`), atomic ingest, records (`native/`, `upstream/`), exclusive locking using std `File::lock`, and SHA-256 verification.
 - `src/adopt.rs`: Rebuild state records and blobs from a published site (`mycrates adopt`).
 - `src/publish.rs`: Static generation renderer (`SiteGen`), manifest-derived canonical generation ID calculation, staging, atomic symlink switching (`current`), and crash recovery.
 - `src/wire.rs`: Framing decoding for `PUT /api/v1/crates/new` (length-prefixed JSON + length-prefixed tarball).
@@ -20,7 +20,7 @@ Guidance and reference for coding agents working on `mycrates`.
 - `src/upstream.rs`: Upstream crates.io client, `dl` template expansion, bounded download streaming, and trust chain verification.
 - `src/acquire.rs`: `plan`, `fetch`, and `verify` implementation.
 - `src/validate.rs`: Offline verification of locked projects using Cargo proxy denial and source replacement.
-- `src/cli/`: Subcommand handlers: `init`, `add`, `adopt`, `import-lock`, `plan`, `fetch`, `publish`, `serve-publish`, `verify`, `doctor`, `validate`.
+- `src/cli/`: Subcommand handlers: `init`, `add`, `adopt`, `config`, `import-lock`, `plan`, `fetch`, `publish`, `serve-publish`, `verify`, `doctor`, `validate`.
 
 ## Development Commands
 

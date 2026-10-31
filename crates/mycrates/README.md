@@ -32,7 +32,8 @@ site/
 
 ## Installation
 
-Build and install `mycrates` from source using Rust stable:
+Build and install `mycrates` from source with the pinned toolchain
+(`rust-toolchain.toml`, nightly-2026-09-15):
 
 ```sh
 cargo build --release

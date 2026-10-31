@@ -9,49 +9,15 @@ logic is Rust; external ecosystems are orchestrated, not reimplemented
 (npm/pnpm resolve and install, uv/CPython build and install wheels).
 Package semantics stay per-ecosystem; only the serving layer is shared.
 
-## Layout
-
-| Path | What |
-| --- | --- |
-| `crates/mycrates` | Cargo sparse registry + archive (Rust) |
-| `crates/mynpm` | npm archive (Rust; `mynpm` binary) |
-| `crates/mypypi` | Wheel index (Rust; `mypypi` binary) |
-| `crates/h12tiny-*` | TLS client crates mycrates builds on, imported with history |
-| `crates/stuff-store` | Generation activation, immutable blob sync, durable writes |
-| `crates/stuff-http` | Content types, cache policy, path resolution, conditionals, ranges |
-| `crates/stuff-server` | Native static file server over the shared semantics |
-| `crates/stuff-worker` | Cloudflare Worker adapter (same semantics over R2) |
-| `deploy/` | Pipeline checks and ecosystem smoke; the worker project lives in `crates/stuff-worker` |
-| `tests/fixtures` | Shared registry fixtures (lockfiles, configs, tarballs, wheels) |
+## Registries
 
 Each registry publishes immutable generations activated through a `current`
 pointer (`current -> generations/<id>`). One registry's publication never
 rebuilds or republishes another's output.
 
-## Develop
+Build and test commands are in [AGENTS.md](AGENTS.md).
 
-High-level admin tasks are wrapped in the top-level `Makefile` (`make help`
-lists them: build, test, smoke, worker deploy, R2 sync, local serve).
-
-Rust (nightly-2026-09-15, see `rust-toolchain.toml`):
-
-```sh
-cargo build --workspace
-cargo test --workspace
-cargo clippy --locked --all-targets -- -D warnings
-```
-
-Ecosystem smoke (needs Node 26 + npm 12.2.1, uv + CPython 3.15, network):
-
-```sh
-deploy/ecosystem-smoke.sh
-```
-
-Pipeline independence (also runs in CI):
-
-```sh
-deploy/check-pipeline-independence.sh
-```
+## Exit codes
 
 All three publish CLIs share one exit-code contract: `2` usage/input,
 `3` integrity, `4` conflict, `5` limit, `6` network, `1` other

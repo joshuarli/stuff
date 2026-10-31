@@ -8,11 +8,7 @@
 #
 # Checks the active generations, catalog objects, essential endpoints and
 # sample artifact hashes (no Cloudflare credentials needed), then probes
-# each non-empty registry with its real package manager in read-only mode:
-# npm view for mynpm, uv pip download --no-deps for mypypi. Cargo's sparse
-# index and artifact URLs are covered by the doctor hash check; resolving
-# through cargo itself would require a scratch project and networked
-# toolchain, which deploy/ecosystem-smoke.sh already exercises pre-deploy.
+# each non-empty registry with its real package manager in read-only mode.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 

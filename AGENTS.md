@@ -15,6 +15,9 @@ for repair.
 - `crates/mypypi`: wheel index (Rust binary `mypypi`).
 - `crates/h12tiny-*`: TLS client deps of mycrates, imported history, manifests
   inlined (no workspace root). Keep `src/` byte-identical to upstream.
+- `crates/stuff-store`: generation activation, immutable blob sync, durable writes.
+- `crates/stuff-http`: content types, cache policy, path resolution, conditionals, ranges.
+- `crates/stuff-catalog`: normalized catalog rendering, HTML, and `llms.txt`.
 - `crates/stuff-server`: native static file server (blocking httparse +
   std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
 - `crates/stuff-worker`: Cloudflare Worker adapter; the wrangler/cf
@@ -26,7 +29,10 @@ for repair.
   (`r2-pull.py`, verified by `test-r2-pull.sh`), and local fleet
   ingestion (`fleet-ingest.sh`).
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
-  tarballs, wheels) kept after the TypeScript/Python removal.
+  tarballs, wheels).
+- Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md). Open
+  design decisions: [STUF-15 import identity](docs/rfc/STUF-15-import-identity.md),
+  [STUF-19 licensing](docs/rfc/STUF-19-licensing.md).
 
 ## Commands
 
@@ -34,8 +40,6 @@ for repair.
   `cargo clippy --locked --all-targets -- -D warnings`.
 - Ecosystem smoke (Node 26 + pinned npm, uv + CPython 3.15, network):
   `deploy/ecosystem-smoke.sh`. `TMPDIR="$PWD/.work/tmp"` for campaign commands.
-- Python: `uv run --locked --python 3.15 pytest -q -m "not network" tests`
-  (retired with `tools/mypypi`; kept here only for historical reference).
 
 ## Invariants
 
@@ -50,3 +54,7 @@ for repair.
   per-ecosystem; only serving/storage/generation code is shared.
 - `tests/fixtures` are the parity corpus for lockfiles, packuments,
   indexes and archives. Do not delete fixtures while Rust tests use them.
+- Published generation formats stay loadable: mycrates renderer 3, mynpm
+  renderer 6 with inventory schemas 2 and 3, mypypi `mypypi-simple-html-v4`.
+  A format change updates the owning crate README and keeps older
+  generations readable.
