@@ -31,6 +31,7 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 - [x] read-only plan against the real buckets: 0 conflicts, 0 multipart; put 1607 / 667 / 194 objects (cargo / npm / pypi)
 - [x] published to R2 through `cf` with `R2_PROMOTE_UNCONDITIONAL=1` (an API token could not be minted: the `cf` login has no token-management scope), so the `current` marker moves with a plain put; cargo f5a1048969baf6ddb0c38a77, npm 76ebe653859c751fe9070c03fd784ac2710de8db2b89b36e4e50b29d91397daa, pypi 469766803c6329cbbf473425a2938a0e0aa7549e116a866eb4f97504f380c64d; `deploy/deployed-smoke.sh` passes
 - [x] delta ingest after repo locks moved (cargo +32 crates, npm +81 versions, laputa-ptytest 0.3.0 for fz)
+- [x] npm delta ingest for tansu: fake-indexeddb 6.2.7; published npm generation 6ff4e614b6a80e53cc8d36f0e2fb5d88480b0e155fd15db2bccd8b53e223384f through `cf` and verified live
 - [ ] `make test-r2-live` multipart acceptance (needs R2 S3 credentials and a scratch bucket; no file is over 100 MB so nothing published needs multipart)
 - [ ] known gap: `mypypi add` appends unrestricted duplicate rows for hand-restricted `pyobjc-*` entries; do not re-run `add` against the catalog until fixed
 - [ ] known gap: `mycrates add` pins an empty checksum that `fetch` rejects; ingest through a lock instead
