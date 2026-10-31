@@ -89,6 +89,8 @@ fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str, a
         site_dir,
         public_base_url: base_url,
         limits: LimitsConfig::default(),
+        header_timeout: Duration::from_secs(30),
+        body_timeout: Duration::from_secs(3600),
     };
     let handle = thread::spawn(move || {
         let _ = listener.set_nonblocking(true);

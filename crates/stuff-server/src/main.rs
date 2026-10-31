@@ -5,15 +5,52 @@ use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use stuff_server::admission::try_admit;
 use stuff_server::{etag_for, respond, Config, ResponseBody, Route};
 
 const DEFAULT_MAX_CONNECTIONS: usize = 64;
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_HEADER_LINE: usize = 8192;
+const MAX_HEADER_BYTES: usize = 65536;
 
 const NOT_FOUND: &[u8] = b"not found";
 const HEADER_LINE_TOO_LONG: &[u8] = b"header line too long";
 const HEADERS_TOO_LARGE: &[u8] = b"headers too large";
+const REQUEST_TIMED_OUT: &[u8] = b"request timed out";
 const TOO_MANY_REQUESTS: &[u8] = b"too many concurrent requests";
+
+struct DeadlineReader {
+    stream: TcpStream,
+    deadline: Instant,
+}
+
+impl DeadlineReader {
+    fn new(stream: TcpStream, deadline: Instant) -> Self {
+        Self { stream, deadline }
+    }
+}
+
+impl Read for DeadlineReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let remaining = self.deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "request deadline exceeded",
+            ));
+        }
+        self.stream.set_read_timeout(Some(remaining))?;
+        self.stream.read(buf)
+    }
+}
+
+fn timed_out(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+    )
+}
 
 fn send_text(stream: &mut TcpStream, status: u16, reason: &str, body: &'static [u8]) {
     let _ = stream.write_all(
@@ -86,24 +123,33 @@ fn send_opened(stream: &mut TcpStream, mut file: std::fs::File, len: u64) {
 }
 
 fn handle_connection(mut stream: TcpStream, config: &Config) {
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
+    let _ = stream.set_write_timeout(Some(REQUEST_TIMEOUT));
+    let deadline = Instant::now() + REQUEST_TIMEOUT;
 
     let mut reader = match stream.try_clone() {
-        Ok(s) => std::io::BufReader::new(s),
+        Ok(s) => std::io::BufReader::new(DeadlineReader::new(s, deadline)),
         Err(_) => return,
     };
     let mut header_bytes = Vec::new();
     loop {
         let mut line = Vec::new();
-        let n = match std::io::BufRead::read_until(&mut reader, b'\n', &mut line) {
+        let limit = (MAX_HEADER_LINE + 3) as u64;
+        let n = match std::io::BufRead::read_until(
+            &mut reader.by_ref().take(limit),
+            b'\n',
+            &mut line,
+        ) {
             Ok(n) => n,
+            Err(ref e) if timed_out(e) => {
+                send_text(&mut stream, 408, "Request Timeout", REQUEST_TIMED_OUT);
+                return;
+            }
             Err(_) => return,
         };
         if n == 0 {
             return;
         }
-        if line.len() > 8192 + 2 {
+        if line.len() > MAX_HEADER_LINE + 2 {
             let mut resp = stuff_server::FileResponse {
                 status: 400,
                 reason: "Bad Request",
@@ -114,8 +160,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
             send_response(&mut stream, &resp, Some(HEADER_LINE_TOO_LONG));
             return;
         }
-        header_bytes.extend_from_slice(&line);
-        if header_bytes.len() > 65536 + 4096 || header_bytes.len() > 65536 {
+        if header_bytes.len() + line.len() > MAX_HEADER_BYTES {
             let mut resp = stuff_server::FileResponse {
                 status: 400,
                 reason: "Bad Request",
@@ -126,6 +171,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
             send_response(&mut stream, &resp, Some(HEADERS_TOO_LARGE));
             return;
         }
+        header_bytes.extend_from_slice(&line);
         if header_bytes.ends_with(b"\r\n\r\n") || header_bytes.ends_with(b"\n\n") {
             break;
         }
@@ -218,14 +264,6 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
     }
 }
 
-struct ActiveGuard(Arc<AtomicUsize>);
-
-impl Drop for ActiveGuard {
-    fn drop(&mut self) {
-        self.0.fetch_sub(1, Ordering::SeqCst);
-    }
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut bind: Option<std::net::SocketAddr> = None;
     let mut routes: Vec<(String, PathBuf)> = Vec::new();
@@ -279,12 +317,10 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 if stream.set_nonblocking(false).is_err() {
                     continue;
                 }
-                if active.load(Ordering::SeqCst) >= max_connections {
+                let Some(guard) = try_admit(&active, max_connections) else {
                     send_text(&mut stream, 503, "Service Unavailable", TOO_MANY_REQUESTS);
                     continue;
-                }
-                active.fetch_add(1, Ordering::SeqCst);
-                let guard = ActiveGuard(active.clone());
+                };
                 let config = config.clone();
                 std::thread::spawn(move || {
                     let _guard = guard;

@@ -12,7 +12,47 @@ use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_HEADER_LINE: usize = 8192;
+const MAX_HEADER_BYTES: usize = 65536;
+
+struct DeadlineReader {
+    stream: TcpStream,
+    deadline: Instant,
+}
+
+impl DeadlineReader {
+    fn new(stream: TcpStream, deadline: Instant) -> Self {
+        Self { stream, deadline }
+    }
+
+    fn reset(&mut self, deadline: Instant) {
+        self.deadline = deadline;
+    }
+}
+
+impl Read for DeadlineReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let remaining = self.deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "request deadline exceeded",
+            ));
+        }
+        self.stream.set_read_timeout(Some(remaining))?;
+        self.stream.read(buf)
+    }
+}
+
+fn timed_out(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+    )
+}
 
 #[derive(Clone)]
 pub struct ServeConfig {
@@ -23,6 +63,8 @@ pub struct ServeConfig {
     pub site_dir: PathBuf,
     pub public_base_url: String,
     pub limits: LimitsConfig,
+    pub header_timeout: Duration,
+    pub body_timeout: Duration,
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -110,6 +152,7 @@ fn send_error(stream: &TcpStream, status: u16, detail: &str) {
         404 => "Not Found",
         409 => "Conflict",
         411 => "Length Required",
+        408 => "Request Timeout",
         413 => "Payload Too Large",
         503 => "Service Unavailable",
         _ => "Internal Server Error",
@@ -135,9 +178,20 @@ fn serve_blob(mut stream: &TcpStream, method: &str, path: &str, site_dir: &Path)
         send_error(stream, 404, "not found");
         return Ok(());
     }
-    let body = match fs::read(site_dir.join("blobs").join(rest)) {
-        Ok(body) => body,
+    let mut file = match fs::File::open(site_dir.join("blobs").join(rest)) {
+        Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            send_error(stream, 404, "not found");
+            return Ok(());
+        }
+        Err(e) => {
+            send_error(stream, 500, &e.to_string());
+            return Ok(());
+        }
+    };
+    let len = match file.metadata() {
+        Ok(meta) if meta.is_file() => meta.len(),
+        Ok(_) => {
             send_error(stream, 404, "not found");
             return Ok(());
         }
@@ -148,12 +202,11 @@ fn serve_blob(mut stream: &TcpStream, method: &str, path: &str, site_dir: &Path)
     };
     let header = format!(
         "HTTP/1.1 200 OK\r\nContent-Type: application/x-tar\r\nContent-Length: {}\r\nETag: \"{}\"\r\nCache-Control: public, max-age=31536000, immutable\r\nConnection: close\r\n\r\n",
-        body.len(),
-        checksum
+        len, checksum
     );
     stream.write_all(header.as_bytes())?;
     if method == "GET" {
-        stream.write_all(&body)?;
+        std::io::copy(&mut file, &mut stream)?;
     }
     stream.flush()?;
     Ok(())
@@ -349,35 +402,43 @@ pub fn handle_publish_request<R: Read>(
 
 pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
     let _ = stream.set_nonblocking(false);
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
+    let _ = stream.set_write_timeout(Some(WRITE_TIMEOUT));
+    let deadline = Instant::now() + cfg.header_timeout;
 
-    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut reader = BufReader::new(DeadlineReader::new(stream.try_clone()?, deadline));
     let mut header_bytes = Vec::new();
 
     loop {
         let mut line = Vec::new();
-        let n = reader.read_until(b'\n', &mut line)?;
+        let limit = (MAX_HEADER_LINE + 3) as u64;
+        let n = match reader.by_ref().take(limit).read_until(b'\n', &mut line) {
+            Ok(n) => n,
+            Err(ref e) if timed_out(e) => {
+                send_error(&stream, 408, "request timed out");
+                return Ok(());
+            }
+            Err(e) => return Err(e.into()),
+        };
         if n == 0 {
             return Ok(());
         }
-        if line.len() > 8192 + 2 {
+        if line.len() > MAX_HEADER_LINE + 2 {
             send_error(&stream, 400, "header line too long");
             return Ok(());
         }
-        header_bytes.extend_from_slice(&line);
-        if header_bytes.len() > 65536 + 4096 {
+        if header_bytes.len() + line.len() > MAX_HEADER_BYTES {
             send_error(&stream, 400, "headers too large");
             return Ok(());
         }
+        header_bytes.extend_from_slice(&line);
         if header_bytes.ends_with(b"\r\n\r\n") || header_bytes.ends_with(b"\n\n") {
             break;
         }
-        if header_bytes.len() > 65536 {
-            send_error(&stream, 400, "headers too large");
-            return Ok(());
-        }
     }
+
+    reader
+        .get_mut()
+        .reset(Instant::now() + cfg.body_timeout);
 
     let mut headers_buf = [httparse::EMPTY_HEADER; 64];
     let mut req = httparse::Request::new(&mut headers_buf);
@@ -402,11 +463,29 @@ pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
     handle_publish_request(&stream, &method, &path, &headers, &mut reader, cfg)
 }
 
-struct ActiveGuard(Arc<AtomicUsize>);
+pub struct ActiveGuard(Arc<AtomicUsize>);
 
 impl Drop for ActiveGuard {
     fn drop(&mut self) {
         self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+pub fn try_admit(active: &Arc<AtomicUsize>, limit: usize) -> Option<ActiveGuard> {
+    let mut current = active.load(Ordering::SeqCst);
+    loop {
+        if current >= limit {
+            return None;
+        }
+        match active.compare_exchange_weak(
+            current,
+            current + 1,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        ) {
+            Ok(_) => return Some(ActiveGuard(Arc::clone(active))),
+            Err(actual) => current = actual,
+        }
     }
 }
 
@@ -418,12 +497,10 @@ pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
             Ok((stream, _)) => {
-                if active.load(Ordering::SeqCst) >= cfg.limits.concurrent_requests {
+                let Some(guard) = try_admit(&active, cfg.limits.concurrent_requests) else {
                     send_error(&stream, 503, "too many concurrent requests");
                     continue;
-                }
-                active.fetch_add(1, Ordering::SeqCst);
-                let guard = ActiveGuard(active.clone());
+                };
                 let cfg_clone = cfg.clone();
                 std::thread::spawn(move || {
                     let _guard = guard;

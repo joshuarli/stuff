@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 27
 
-### STUF-11 · P1 · Native servers buffer unbounded request and response bodies
-
-- **Area:** Security
-- **Where:** `crates/stuff-server/src/main.rs:99` (`read_until`), `:106` (cap checked after the read), `:282-287` (non-atomic admission); `crates/mycrates/src/serve.rs:369-378` (same read loop), `:123` (`fs::read` of a full blob), `:432-436` (same admission check).
-- **Problem:** `read_until` grows the line until a newline or EOF, so the 8 KiB check never runs while a client streams a line without `\n`; the 30 s timeout is per read, not per request. A local probe against `stuff-server` grew RSS from 2.4 MB to 70 MB with one 64 MiB line and to 135 MB while a second connection was open; 64 connections can OOM the process. `serve-publish` also reads a whole blob (up to 1 GiB by default) into memory per request and admits connections with a load-then-add race. The binary accepts any `--bind` value, so off-loopback exposure is supported; the default loopback bind lowers but does not remove the risk.
-- **Recommendation:** Read headers through a hard-bounded adapter (`take`/`fill_buf` with a cap), add a total request deadline, stream blob files with `io::copy`, and use `compare_exchange` for admission.
-- **Fix with:** `lifecycle-concurrency`
-- **Effort:** M
-
 ### STUF-14 · P2 · The documented registry exit-code contract is not implemented consistently
 
 - **Area:** Errors

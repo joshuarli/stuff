@@ -4,6 +4,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::time::Duration;
 use stuff_store::{write_file_durable, Site};
 use tempfile::TempDir;
 
@@ -197,6 +198,31 @@ fn static_read_semantics() {
     .unwrap();
     let r = get(&server, &format!("/generations/{gen_id}/sneaky"), &[]);
     assert_eq!(r.status, 404);
+}
+
+#[test]
+fn overlong_header_line_without_newline_is_rejected_early() {
+    let (tmp, site_dir, _) = fixture_site();
+    let server = TestServer::boot(&site_dir, tmp);
+    let addr = server.base_url.trim_start_matches("http://");
+    let mut stream = TcpStream::connect(addr).expect("connect");
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut raw = b"GET / HTTP/1.1\r\nHost: x\r\nX-Probe: ".to_vec();
+    raw.extend(std::iter::repeat_n(b'a', 8195 - b"X-Probe: ".len()));
+    stream.write_all(&raw).unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut status_line = String::new();
+    reader.read_line(&mut status_line).unwrap();
+    assert!(
+        status_line.starts_with("HTTP/1.1 400"),
+        "expected an early 400, got {status_line:?}"
+    );
 }
 
 #[test]

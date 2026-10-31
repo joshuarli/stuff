@@ -4,14 +4,19 @@ mod fixture;
 use fixture::TestServer;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use mycrates::config::LimitsConfig;
 use mycrates::error::Error;
 use mycrates::publish::Publisher;
+use mycrates::serve::{handle_connection, try_admit, ServeConfig};
 use mycrates::store::Store;
 use std::fs;
 use std::io::{Read, Write};
-use std::net::TcpStream;
-use std::sync::Arc;
+use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Barrier};
 use std::thread;
+use std::time::Duration;
 use tar::Builder;
 use tempfile::tempdir;
 
@@ -53,6 +58,321 @@ fn build_wire_payload(body_json: &str, crate_bytes: &[u8]) -> Vec<u8> {
     payload.extend_from_slice(&crate_len.to_le_bytes());
     payload.extend_from_slice(crate_bytes);
     payload
+}
+
+struct RawServer {
+    port: u16,
+    stop: Arc<AtomicBool>,
+    handle: Option<thread::JoinHandle<()>>,
+}
+
+impl Drop for RawServer {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        let _ = TcpStream::connect(format!("127.0.0.1:{}", self.port));
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+fn start_raw_server(
+    state_dir: PathBuf,
+    site_dir: PathBuf,
+    token: Option<String>,
+    auth_required: bool,
+) -> RawServer {
+    start_raw_server_with_timeouts(
+        state_dir,
+        site_dir,
+        token,
+        auth_required,
+        Duration::from_secs(30),
+        Duration::from_secs(3600),
+    )
+}
+
+fn start_raw_server_with_timeouts(
+    state_dir: PathBuf,
+    site_dir: PathBuf,
+    token: Option<String>,
+    auth_required: bool,
+    header_timeout: Duration,
+    body_timeout: Duration,
+) -> RawServer {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop_clone = Arc::clone(&stop);
+    let cfg = ServeConfig {
+        bind: format!("127.0.0.1:{port}"),
+        token,
+        auth_required,
+        state_dir,
+        site_dir,
+        public_base_url: format!("http://127.0.0.1:{port}"),
+        limits: LimitsConfig::default(),
+        header_timeout,
+        body_timeout,
+    };
+    let handle = thread::spawn(move || {
+        let _ = listener.set_nonblocking(true);
+        while !stop_clone.load(Ordering::Relaxed) {
+            match listener.accept() {
+                Ok((stream, _)) => {
+                    let cfg = cfg.clone();
+                    thread::spawn(move || {
+                        let _ = handle_connection(stream, &cfg);
+                    });
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(5));
+                }
+                Err(_) => break,
+            }
+        }
+    });
+    RawServer {
+        port,
+        stop,
+        handle: Some(handle),
+    }
+}
+
+#[test]
+fn overlong_header_line_without_newline_is_rejected_early() {
+    let dir = tempdir().unwrap();
+    let server = start_raw_server(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        None,
+        false,
+    );
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut raw = b"GET / HTTP/1.1\r\nHost: x\r\nX-Probe: ".to_vec();
+    raw.extend(std::iter::repeat_n(b'a', 8195 - b"X-Probe: ".len()));
+    stream.write_all(&raw).unwrap();
+
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(
+        resp.starts_with("HTTP/1.1 400"),
+        "expected an early 400, got {resp:?}"
+    );
+}
+
+#[test]
+fn header_trickle_exceeds_the_header_deadline() {
+    let dir = tempdir().unwrap();
+    let server = start_raw_server_with_timeouts(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        None,
+        false,
+        Duration::from_millis(200),
+        Duration::from_secs(5),
+    );
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .write_all(b"GET / HTTP/1.1\r\nHost: x\r\nX-Trickle: ")
+        .unwrap();
+    for _ in 0..3 {
+        thread::sleep(Duration::from_millis(50));
+        stream.write_all(b"a").unwrap();
+    }
+    thread::sleep(Duration::from_millis(300));
+
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(
+        resp.starts_with("HTTP/1.1 408"),
+        "expected a 408 after the header deadline, got {resp:?}"
+    );
+}
+
+#[test]
+fn body_delivered_after_the_header_deadline_is_accepted() {
+    let dir = tempdir().unwrap();
+    let token = "slow-body-token";
+    let server = start_raw_server_with_timeouts(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        Some(token.to_string()),
+        true,
+        Duration::from_millis(200),
+        Duration::from_secs(2),
+    );
+    let crate_bytes = make_test_crate("slow-body", "1.0.0");
+    let json = deser_json::to_string(&deser_value::value!({
+        "name": "slow-body",
+        "vers": "1.0.0",
+        "deps": [],
+        "features": {},
+        "authors": [],
+        "description": "test",
+        "documentation": null,
+        "homepage": null,
+        "readme": null,
+        "keywords": [],
+        "categories": [],
+        "license": "MIT",
+        "license_file": null,
+        "repository": null,
+        "badges": {},
+        "links": null
+    }))
+    .unwrap();
+    let payload = build_wire_payload(&json, &crate_bytes);
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let request = format!(
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        payload.len()
+    );
+    stream.write_all(request.as_bytes()).unwrap();
+    thread::sleep(Duration::from_millis(500));
+    stream.write_all(&payload).unwrap();
+
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(
+        resp.starts_with("HTTP/1.1 200"),
+        "delayed body should use the body deadline, got {resp:?}"
+    );
+}
+
+#[test]
+fn body_trickle_exceeds_the_body_deadline() {
+    let dir = tempdir().unwrap();
+    let token = "slow-body-timeout-token";
+    let server = start_raw_server_with_timeouts(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        Some(token.to_string()),
+        true,
+        Duration::from_secs(1),
+        Duration::from_millis(300),
+    );
+    let crate_bytes = make_test_crate("slow-body-timeout", "1.0.0");
+    let json = deser_json::to_string(&deser_value::value!({
+        "name": "slow-body-timeout",
+        "vers": "1.0.0",
+        "deps": [],
+        "features": {},
+        "authors": [],
+        "description": "test",
+        "documentation": null,
+        "homepage": null,
+        "readme": null,
+        "keywords": [],
+        "categories": [],
+        "license": "MIT",
+        "license_file": null,
+        "repository": null,
+        "badges": {},
+        "links": null
+    }))
+    .unwrap();
+    let payload = build_wire_payload(&json, &crate_bytes);
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let request = format!(
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        payload.len()
+    );
+    stream.write_all(request.as_bytes()).unwrap();
+    stream.write_all(&payload[..8]).unwrap();
+
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+    assert!(
+        !resp.starts_with("HTTP/1.1 200"),
+        "trickled body should hit the body deadline, got {resp:?}"
+    );
+}
+
+#[test]
+fn blob_get_streams_exact_bytes() {
+    let dir = tempdir().unwrap();
+    let site_dir = dir.path().join("site");
+    let checksum = "a".repeat(64);
+    let blob: Vec<u8> = (0..200_000u32).map(|i| (i % 251) as u8).collect();
+    fs::create_dir_all(site_dir.join("blobs")).unwrap();
+    fs::write(
+        site_dir.join("blobs").join(format!("{checksum}.crate")),
+        &blob,
+    )
+    .unwrap();
+    let server = start_raw_server(dir.path().join("state"), site_dir, None, false);
+
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let request = format!("GET /blobs/{checksum}.crate HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).unwrap();
+    let mut raw = Vec::new();
+    stream.read_to_end(&mut raw).unwrap();
+    let split = raw
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .expect("response headers")
+        + 4;
+    let head = String::from_utf8_lossy(&raw[..split]);
+    assert!(head.starts_with("HTTP/1.1 200 OK"), "{head}");
+    assert!(head.contains(&format!("Content-Length: {}", blob.len())), "{head}");
+    assert_eq!(&raw[split..], blob.as_slice());
+}
+
+#[test]
+fn concurrent_admission_never_exceeds_cap() {
+    const LIMIT: usize = 4;
+    const WORKERS: usize = 16;
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let barrier = Arc::new(Barrier::new(WORKERS));
+    let mut handles = Vec::new();
+    for _ in 0..WORKERS {
+        let active = Arc::clone(&active);
+        let peak = Arc::clone(&peak);
+        let barrier = Arc::clone(&barrier);
+        handles.push(thread::spawn(move || {
+            barrier.wait();
+            for _ in 0..2000 {
+                if let Some(guard) = try_admit(&active, LIMIT) {
+                    peak.fetch_max(active.load(Ordering::SeqCst), Ordering::SeqCst);
+                    drop(guard);
+                }
+            }
+        }));
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    assert!(peak.load(Ordering::SeqCst) <= LIMIT);
+    assert_eq!(active.load(Ordering::SeqCst), 0);
 }
 
 #[test]

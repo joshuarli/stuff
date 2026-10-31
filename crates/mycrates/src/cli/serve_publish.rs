@@ -70,6 +70,7 @@ pub fn run(args: &[String]) -> Result<()> {
         env::var("MYCRATES_TOKEN").ok()
     };
 
+    let body_timeout = std::time::Duration::from_secs(config.limits.fetch_timeout_secs.max(30));
     let serve_cfg = ServeConfig {
         bind: bind.clone(),
         token,
@@ -78,6 +79,8 @@ pub fn run(args: &[String]) -> Result<()> {
         site_dir,
         public_base_url: config.public_base_url,
         limits: config.limits,
+        header_timeout: std::time::Duration::from_secs(30),
+        body_timeout,
     };
 
     if serve_cfg.token.as_ref().is_none_or(|t| t.is_empty()) {

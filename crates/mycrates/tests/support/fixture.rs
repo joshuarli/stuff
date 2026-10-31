@@ -58,6 +58,8 @@ impl TestServer {
             site_dir: site_dir.clone(),
             public_base_url: base_url.clone(),
             limits: LimitsConfig::default(),
+            header_timeout: Duration::from_secs(30),
+            body_timeout: Duration::from_secs(3600),
         };
 
         // Render initial generation so config.json is available
