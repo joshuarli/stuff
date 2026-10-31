@@ -10,15 +10,6 @@ Next: 27
 - **Fix with:** `lifecycle-concurrency`
 - **Effort:** M
 
-### STUF-12 · P2 · mypypi subprocess capture deadlocks on output larger than the pipe buffer
-
-- **Area:** Concurrency
-- **Where:** `crates/mypypi/src/process_policy.rs:207-233` (pipes, `try_wait` loop, reads only after exit); callers at `crates/mypypi/src/build.rs:619`, `crates/mypypi/src/validate.rs:676`, `crates/mypypi/src/add.rs:199`.
-- **Problem:** `run_capture` polls `try_wait` without draining stdout or stderr. A child that writes more than the pipe capacity blocks in `write(2)` and never exits, so the parent spins to the 300/600/1800 s deadline and reports a timeout instead of the real build or resolver error. A probe with a child writing 200 KB timed out at 2 s; the implementation never drained the pipe while the child ran. Output is also uncapped and non-UTF-8 bytes are silently discarded.
-- **Recommendation:** Drain both pipes on reader threads (as `mynpm/src/process.rs` already does) or use `wait_with_output` behind the deadline; cap captured bytes per stream and decode with `from_utf8_lossy`.
-- **Fix with:** `lifecycle-concurrency`
-- **Effort:** M
-
 ### STUF-13 · P2 · Untrusted Python build backends inherit the publisher's environment and HOME
 
 - **Area:** Security

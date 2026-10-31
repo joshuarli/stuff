@@ -5,7 +5,12 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
+
+const CAPTURE_LIMIT: usize = 1024 * 1024;
+const READ_CHUNK: usize = 16 * 1024;
+const WAIT_POLL: Duration = Duration::from_millis(10);
 
 const POLICY_VARIABLES: &[&str] = &[
     "UV_DEFAULT_INDEX",
@@ -180,6 +185,67 @@ fn stop_process_group(child: &mut std::process::Child) {
     let _ = child.kill();
 }
 
+fn spawn_reader<R: Read + Send + 'static>(
+    pipe: Option<R>,
+    sender: mpsc::Sender<Vec<u8>>,
+) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let Some(mut pipe) = pipe else {
+            return;
+        };
+        let mut buf = vec![0u8; READ_CHUNK];
+        loop {
+            match pipe.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    if sender.send(buf[..n].to_vec()).is_err() {
+                        break;
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(_) => break,
+            }
+        }
+    })
+}
+
+fn append_capped(captured: &mut Vec<u8>, chunk: &[u8]) {
+    if chunk.len() >= CAPTURE_LIMIT {
+        captured.clear();
+        captured.extend_from_slice(&chunk[chunk.len() - CAPTURE_LIMIT..]);
+        return;
+    }
+    let excess = (captured.len() + chunk.len()).saturating_sub(CAPTURE_LIMIT);
+    if excess > 0 {
+        captured.drain(..excess);
+    }
+    captured.extend_from_slice(chunk);
+}
+
+fn drain_available(receiver: &mpsc::Receiver<Vec<u8>>, captured: &mut Vec<u8>) {
+    while let Ok(chunk) = receiver.try_recv() {
+        append_capped(captured, &chunk);
+    }
+}
+
+fn finish_readers(
+    out_handle: std::thread::JoinHandle<()>,
+    err_handle: std::thread::JoinHandle<()>,
+    rx_out: &mpsc::Receiver<Vec<u8>>,
+    rx_err: &mpsc::Receiver<Vec<u8>>,
+    stdout: &mut Vec<u8>,
+    stderr: &mut Vec<u8>,
+) {
+    let _ = out_handle.join();
+    let _ = err_handle.join();
+    drain_available(rx_out, stdout);
+    drain_available(rx_err, stderr);
+}
+
+fn decode(captured: &[u8]) -> String {
+    String::from_utf8_lossy(captured).into_owned()
+}
+
 pub fn run_capture(
     command: &[String],
     cwd: Option<&Path>,
@@ -210,43 +276,43 @@ pub fn run_capture(
     if let Some(data) = input {
         use std::io::Write as _;
         if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(data);
+            let data = data.to_vec();
+            std::thread::spawn(move || {
+                let _ = stdin.write_all(&data);
+            });
         }
     }
+    let (tx_out, rx_out) = mpsc::channel();
+    let (tx_err, rx_err) = mpsc::channel();
+    let out_handle = spawn_reader(child.stdout.take(), tx_out);
+    let err_handle = spawn_reader(child.stderr.take(), tx_err);
     let deadline = Instant::now() + Duration::from_secs(timeout_secs.max(1));
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
     loop {
+        drain_available(&rx_out, &mut stdout);
+        drain_available(&rx_err, &mut stderr);
         match child.try_wait().map_err(|e| RunError::Spawn(e.to_string()))? {
             Some(status) => {
-                let mut stdout = String::new();
-                let mut stderr = String::new();
-                if let Some(mut o) = child.stdout.take() {
-                    let _ = o.read_to_string(&mut stdout);
-                }
-                if let Some(mut e) = child.stderr.take() {
-                    let _ = e.read_to_string(&mut stderr);
-                }
+                finish_readers(out_handle, err_handle, &rx_out, &rx_err, &mut stdout, &mut stderr);
                 return Ok(Captured {
                     status_code: status.code().unwrap_or(-1),
-                    stdout,
-                    stderr,
+                    stdout: decode(&stdout),
+                    stderr: decode(&stderr),
                 });
             }
             None => {
                 if Instant::now() >= deadline {
                     stop_process_group(&mut child);
-                    let mut stdout = String::new();
-                    let mut stderr = String::new();
-                    if let Some(mut o) = child.stdout.take() {
-                        let _ = o.read_to_string(&mut stdout);
-                    }
-                    if let Some(mut e) = child.stderr.take() {
-                        let _ = e.read_to_string(&mut stderr);
-                    }
+                    finish_readers(out_handle, err_handle, &rx_out, &rx_err, &mut stdout, &mut stderr);
                     // Reap fully.
                     let _ = child.wait();
-                    return Err(RunError::Timeout { stdout, stderr });
+                    return Err(RunError::Timeout {
+                        stdout: decode(&stdout),
+                        stderr: decode(&stderr),
+                    });
                 }
-                std::thread::sleep(Duration::from_millis(20));
+                std::thread::sleep(WAIT_POLL);
             }
         }
     }
@@ -290,6 +356,10 @@ pub fn make_temp_dir(prefix: &str) -> std::io::Result<std::path::PathBuf> {
 mod tests {
     use super::*;
 
+    fn test_env() -> BTreeMap<String, String> {
+        BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())])
+    }
+
     #[test]
     fn strips_policy_variables() {
         let mut env = BTreeMap::new();
@@ -327,20 +397,88 @@ mod tests {
     }
 
     #[test]
-    fn runs_echo_and_times_out_sleep() {
-        let env: BTreeMap<String, String> = std::env::vars().collect();
+    fn runs_echo() {
         let out = run_capture(
             &["/bin/echo".to_string(), "hi".to_string()],
             None,
-            &env,
+            &test_env(),
             None,
             10,
         )
         .unwrap();
         assert!(out.success());
         assert_eq!(out.stdout.trim(), "hi");
-        let err = run_capture(&["/bin/sleep".to_string(), "30".to_string()], None, &env, None, 1)
-            .unwrap_err();
-        assert!(matches!(err, RunError::Timeout { .. }));
+    }
+
+    #[test]
+    fn drains_output_larger_than_the_pipe_buffer() {
+        let script = "yes out | head -c 204800; yes err | head -c 204800 1>&2".to_string();
+        let out = run_capture(
+            &["/bin/sh".to_string(), "-c".to_string(), script],
+            None,
+            &test_env(),
+            None,
+            10,
+        )
+        .unwrap();
+        assert!(out.success());
+        assert_eq!(out.stdout.len(), 204800);
+        assert_eq!(out.stderr.len(), 204800);
+    }
+
+    #[test]
+    fn caps_each_captured_stream() {
+        let bytes = CAPTURE_LIMIT + 4096;
+        let script = format!("yes out | head -c {bytes}; yes err | head -c {bytes} 1>&2");
+        let out = run_capture(
+            &["/bin/sh".to_string(), "-c".to_string(), script],
+            None,
+            &test_env(),
+            None,
+            10,
+        )
+        .unwrap();
+        assert_eq!(out.stdout.len(), CAPTURE_LIMIT);
+        assert_eq!(out.stderr.len(), CAPTURE_LIMIT);
+    }
+
+    #[test]
+    fn retains_non_utf8_output_lossily() {
+        let out = run_capture(
+            &[
+                "/bin/sh".to_string(),
+                "-c".to_string(),
+                "printf '\\377\\376'; printf '\\377' 1>&2".to_string(),
+            ],
+            None,
+            &test_env(),
+            None,
+            10,
+        )
+        .unwrap();
+        assert_eq!(out.stdout, "\u{FFFD}\u{FFFD}");
+        assert_eq!(out.stderr, "\u{FFFD}");
+    }
+
+    #[test]
+    fn times_out_and_kills_sleeping_child() {
+        let started = Instant::now();
+        let err = run_capture(
+            &[
+                "/bin/sh".to_string(),
+                "-c".to_string(),
+                "echo before-timeout; sleep 30".to_string(),
+            ],
+            None,
+            &test_env(),
+            None,
+            1,
+        )
+        .unwrap_err();
+        match err {
+            RunError::Timeout { stdout, .. } => assert!(stdout.contains("before-timeout")),
+            other => panic!("expected timeout, got {other:?}"),
+        }
+        assert!(started.elapsed() < Duration::from_secs(10));
     }
 }
