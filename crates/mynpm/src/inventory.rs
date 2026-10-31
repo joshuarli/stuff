@@ -1453,18 +1453,27 @@ pub fn merge_project(inv: &Inventory, project: ProjectRecord) -> Result<Inventor
     parse_inventory(&inventory_roundtrip(&Inventory { projects, artifacts: reparsed.artifacts })?)
 }
 
-pub fn record_verified_artifact(inv: &Inventory, value: &deser_value::Value) -> Result<Inventory> {
+pub fn record_verified_artifacts(inv: &Inventory, values: &[deser_value::Value]) -> Result<Inventory> {
     let reparsed = parse_inventory(&inventory_roundtrip(inv)?)?;
-    let checked = normalize_artifact_record(value, "verified artifact", Category::Input)?;
-    let identity = format!("{}\0{}", checked.name, checked.version);
-    let existing = reparsed.artifacts.iter().find(|a| format!("{}\0{}", a.name, a.version) == identity).cloned();
-    if let Some(prev) = existing
-        && canonical_string(&artifact_to_value(&prev)?)? != canonical_string(&artifact_to_value(&checked)?)? {
-            return Err(Error::Conflict(format!("verified artifact conflicts for {}@{}", checked.name, checked.version)));
+    let mut artifacts = reparsed.artifacts;
+    let mut canonical_by_identity: std::collections::HashMap<String, String> = std::collections::HashMap::with_capacity(artifacts.len() + values.len());
+    for artifact in &artifacts {
+        canonical_by_identity.insert(format!("{}\0{}", artifact.name, artifact.version), canonical_string(&artifact_to_value(artifact)?)?);
+    }
+    for value in values {
+        let checked = normalize_artifact_record(value, "verified artifact", Category::Input)?;
+        let identity = format!("{}\0{}", checked.name, checked.version);
+        let canonical = canonical_string(&artifact_to_value(&checked)?)?;
+        match canonical_by_identity.get(&identity) {
+            Some(prev) if *prev != canonical => {
+                return Err(Error::Conflict(format!("verified artifact conflicts for {}@{}", checked.name, checked.version)));
+            }
+            Some(_) => {}
+            None => {
+                canonical_by_identity.insert(identity, canonical);
+                artifacts.push(checked);
+            }
         }
-    let mut artifacts = reparsed.artifacts.clone();
-    if !artifacts.iter().any(|a| format!("{}\0{}", a.name, a.version) == identity) {
-        artifacts.push(checked);
     }
     validate_digest_conflicts(&reparsed.projects, &artifacts, Category::Conflict)?;
     parse_inventory(&inventory_roundtrip(&Inventory { projects: reparsed.projects, artifacts })?)
