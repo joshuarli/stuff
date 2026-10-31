@@ -163,21 +163,34 @@ Real deploys are manual: `cf deploy` (use `--provision` once to create the
 generation pointer:
 `https://crates.17166969.xyz/current/registry/` (cargo sparse),
 `https://npm.17166969.xyz/current/` (npm), and
-`https://pypi.17166969.xyz/current/simple/` (pip). Sync a published site to its bucket per registry with
-`deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN_ID]`, which translates
-the `current` symlink to a marker object holding the generation id
-(verified against the local R2 simulation). Sync is incremental and
-content-aware: remote objects whose size and content hash match are
+`https://pypi.17166969.xyz/current/simple/` (pip). The publish helpers keep
+state in `$STUFF_STATE_HOME/<registry>` (default
+`${XDG_STATE_HOME:-$HOME/.local/state}/stuff`), not in the calling checkout;
+that directory is the publication source of truth and should be backed up.
+A directory lock serializes the whole transaction across source repositories.
+Sync a published site to its bucket per registry with
+`deploy/r2-sync.sh SITE_DIR BUCKET [--expected ACTIVE_GEN] [--repair]`,
+which translates the `current` symlink to a marker object holding the
+generation id (verified against the local R2 simulation). Sync is incremental
+and content-aware: remote objects whose size and content hash match are
 skipped, so re-syncing an unchanged generation uploads nothing. Remote
 objects are found by prefix listing (`deploy/r2-plan.py`), which works for
 any object count without pagination cursors; uploads run `R2_PUT_JOBS`
 at a time (default 8; 1 against the local simulation, which deadlocked at
-8 concurrent writers). `--expected` guards
-promotion against competing publishers, and the marker is read back after
-activation. Roll back with `deploy/r2-rollback.sh SITE_DIR BUCKET GEN_ID`.
-Generation-scoped
+8 concurrent writers). Every sync writes a
+`manifests/<id>.json` for each local generation, verifies every listed object
+remotely, then replaces `current` with an `If-Match` write (or
+`If-None-Match: *` on first publish); a competing publisher gets 412 instead
+of silently winning. `--expected` additionally pins the generation that must
+already be active. Existing immutable objects with different bytes are
+conflicts; `--repair` is the separate, explicit overwrite path. Conditional
+promotion needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
+`R2_S3_SECRET_ACCESS_KEY`. Roll back with
+`deploy/r2-rollback.sh BUCKET GEN_ID`, which verifies the target generation's
+manifest remotely before moving `current`. Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
-the worker resolves them to the shared store instead. Both `stuff-server`
+the worker resolves them to the shared store instead, including direct
+`generations/<id>/...` requests. Both `stuff-server`
 and the worker also serve the standard npm tarball path
 `current/<name>/-/<basename>-<version>.tgz` (pnpm requests it from
 integrity-only lockfiles): the version's `dist.tarball` in the current
@@ -190,7 +203,13 @@ single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
 `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`) and are
 skipped when the remote multipart ETag already matches.
 `deploy/test-r2-sync.sh [COUNT]` (`make test-sync`) checks pagination and
-idempotency against the local simulation only.
+idempotency against the local simulation only. `make test-r2` checks the
+multipart SigV4 canonicalization, listing past one page, and conditional
+promotion against local fakes, and `make worker-test` builds the actual
+Worker bundle and runs it under workerd (Miniflare) for cold-HEAD cache,
+root-link, and pinned artifact-alias coverage. `make test-r2-live`
+(`R2_ACCEPTANCE_BUCKET=...` plus `R2_S3_*`) is the opt-in real-R2 multipart
+acceptance check; it is not run by CI.
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo
 LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's

@@ -114,6 +114,11 @@ ingest_pypi() {
   site=$OUT_DIR/mypypi/site
   catalog=$OUT_DIR/mypypi/packages.toml
   config=$OUT_DIR/mypypi/pyproject.toml
+  if [ -z "${PYTHON:-}" ]; then
+    command -v uv >/dev/null 2>&1 || { echo "fleet-ingest: uv is not installed" >&2; return 1; }
+    PYTHON=$(uv python find "$PYTHON_REQ") || return 1
+    export PYTHON
+  fi
   platform=${PYPI_PLATFORM:-}
   if [ -z "$platform" ]; then
     case "$(uname -s)-$(uname -m)" in

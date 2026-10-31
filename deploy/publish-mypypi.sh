@@ -7,24 +7,50 @@
 # Required env: PACKAGES="name==version ..." (space-separated requirements).
 # Optional env (defaults shown):
 #   STUFF_DIR=../stuff
-#   BUCKET=stuff-mypypi STATE_DIR=.work/registry-pub/state SITE_DIR=.work/registry-pub/site
-#   CATALOG_FILE=.work/registry-pub/packages.toml CONFIG_FILE=.work/registry-pub/pyproject.toml
+#   BUCKET=stuff-mypypi
+#   STUFF_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/stuff
+#   STATE_DIR=$STUFF_STATE_HOME/mypypi/state SITE_DIR=$STUFF_STATE_HOME/mypypi/site
+#   CATALOG_FILE=$STUFF_STATE_HOME/mypypi/packages.toml
+#   CONFIG_FILE=$STUFF_STATE_HOME/mypypi/pyproject.toml
+#   LOCK_DIR=$STUFF_STATE_HOME/mypypi/publish.lock
 #   PLATFORM=<host platform> PYTHON_REQ=">=3.15,<3.16" (exactly one minor;
 #   tracks the pinned CPython — mypypi builds one interpreter's wheels)
+#   PYTHON=<interpreter> (defaults to `uv python find "$PYTHON_REQ"`)
+#
+# State lives outside the calling checkout and the whole transaction is
+# serialized, so publishing from another source repository extends one index.
 set -eu
 STUFF_DIR=${STUFF_DIR:-../stuff}
 BUCKET=${BUCKET:-stuff-mypypi}
-STATE_DIR=${STATE_DIR:-.work/registry-pub/state}
-SITE_DIR=${SITE_DIR:-.work/registry-pub/site}
-CATALOG_FILE=${CATALOG_FILE:-.work/registry-pub/packages.toml}
-CONFIG_FILE=${CONFIG_FILE:-.work/registry-pub/pyproject.toml}
+STUFF_STATE_HOME=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+STATE_DIR=${STATE_DIR:-$STUFF_STATE_HOME/mypypi/state}
+SITE_DIR=${SITE_DIR:-$STUFF_STATE_HOME/mypypi/site}
+CATALOG_FILE=${CATALOG_FILE:-$STUFF_STATE_HOME/mypypi/packages.toml}
+CONFIG_FILE=${CONFIG_FILE:-$STUFF_STATE_HOME/mypypi/pyproject.toml}
+LOCK_DIR=${LOCK_DIR:-$STUFF_STATE_HOME/mypypi/publish.lock}
 PYTHON_REQ=${PYTHON_REQ:-">=3.15,<3.16"}
+
+. "$STUFF_DIR/deploy/publish-lock.sh"
+LEGACY_STATE_DIR=${LEGACY_STATE_DIR:-$PWD/.work/registry-pub/state}
+if { [ ! -d "$STATE_DIR" ] || [ -z "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; } && [ -d "$LEGACY_STATE_DIR" ] && [ "$STATE_DIR" != "$LEGACY_STATE_DIR" ]; then
+  echo "publish-mypypi: legacy per-checkout state exists at $LEGACY_STATE_DIR" >&2
+  echo "publish-mypypi: move it to the canonical $STATE_DIR (or set STATE_DIR explicitly) so another repository cannot hide its packages" >&2
+  exit 1
+fi
+mkdir -p "$STUFF_STATE_HOME/mypypi"
+acquire_publish_lock "$LOCK_DIR"
+trap 'release_publish_lock' EXIT INT TERM HUP
 
 MYPYPI_BIN=$STUFF_DIR/target/debug/mypypi
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 
 [ -n "${PACKAGES:-}" ] || { echo "publish-mypypi: PACKAGES is empty" >&2; exit 1; }
 command -v uv >/dev/null 2>&1 || { echo "publish-mypypi: uv is not installed" >&2; exit 1; }
+if [ -z "${PYTHON:-}" ]; then
+  PYTHON=$(uv python find "$PYTHON_REQ")
+fi
+export PYTHON
+"$PYTHON" -c 'import sys; print("publish-mypypi: CPython", ".".join(map(str, sys.version_info[:3])))' >&2
 
 if [ -z "${PLATFORM:-}" ]; then
   UNAME_S=$(uname -s)

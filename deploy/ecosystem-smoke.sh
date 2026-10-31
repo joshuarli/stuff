@@ -18,6 +18,10 @@ fail() { echo "FAIL: $1"; exit 1; }
 NODE_VERSION=$(node --version 2>/dev/null || echo "none")
 NPM_VERSION=$(npm --version 2>/dev/null || echo "none")
 echo "node $NODE_VERSION npm $NPM_VERSION uv $(uv --version 2>/dev/null || echo none)"
+if [ -z "${PYTHON:-}" ]; then
+  PYTHON=$(uv python find 3.15)
+fi
+export PYTHON
 
 # --- mynpm: add/fetch/publish/validate with real npm ---
 MYNPM_WORK="$WORK/mynpm"

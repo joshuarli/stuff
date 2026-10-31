@@ -8,19 +8,47 @@
 # Optional env (defaults shown):
 #   STUFF_DIR=../stuff REGISTRY=mycrates REG_ENV=MYCRATES
 #   PUBLIC_URL=https://crates.17166969.xyz BUCKET=stuff-mycrates
-#   WORK_DIR=.work/registry-pub PUBLISH_PORT=8080 STATIC_PORT=8081
+#   STUFF_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/stuff
+#   STATE_DIR=$STUFF_STATE_HOME/mycrates/state
+#   SITE_DIR=$STUFF_STATE_HOME/mycrates/site
+#   TOKEN_FILE=$STUFF_STATE_HOME/mycrates/token
+#   LOCK_DIR=$STUFF_STATE_HOME/mycrates/publish.lock
+#   PUBLISH_PORT=8080 STATIC_PORT=8081
+#
+# State lives outside the calling checkout and the whole transaction is
+# serialized, so publishing from two source repositories extends one index
+# instead of replacing it with the caller's local subset.
 set -eu
 STUFF_DIR=${STUFF_DIR:-../stuff}
 REGISTRY=${REGISTRY:-mycrates}
 REG_ENV=${REG_ENV:-MYCRATES}
 PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
 BUCKET=${BUCKET:-stuff-mycrates}
-WORK_DIR=${WORK_DIR:-.work/registry-pub}
-STATE_DIR=${STATE_DIR:-$WORK_DIR/state}
-SITE_DIR=${SITE_DIR:-$WORK_DIR/site}
-TOKEN_FILE=${TOKEN_FILE:-$WORK_DIR/token}
+STUFF_STATE_HOME=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+STATE_DIR=${STATE_DIR:-$STUFF_STATE_HOME/mycrates/state}
+SITE_DIR=${SITE_DIR:-$STUFF_STATE_HOME/mycrates/site}
+TOKEN_FILE=${TOKEN_FILE:-$STUFF_STATE_HOME/mycrates/token}
+LOCK_DIR=${LOCK_DIR:-$STUFF_STATE_HOME/mycrates/publish.lock}
 PUBLISH_PORT=${PUBLISH_PORT:-8080}
 STATIC_PORT=${STATIC_PORT:-8081}
+
+. "$STUFF_DIR/deploy/publish-lock.sh"
+LEGACY_STATE_DIR=${LEGACY_STATE_DIR:-$PWD/.work/registry-pub/state}
+if { [ ! -d "$STATE_DIR" ] || [ -z "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; } && [ -d "$LEGACY_STATE_DIR" ] && [ "$STATE_DIR" != "$LEGACY_STATE_DIR" ]; then
+  echo "publish-mycrates: legacy per-checkout state exists at $LEGACY_STATE_DIR" >&2
+  echo "publish-mycrates: move it to the canonical $STATE_DIR (or set STATE_DIR explicitly) so another repository cannot hide its packages" >&2
+  exit 1
+fi
+mkdir -p "$STUFF_STATE_HOME/mycrates"
+acquire_publish_lock "$LOCK_DIR"
+SRV_PID=""
+STATIC_PID=""
+cleanup() {
+  [ -z "$SRV_PID" ] || kill "$SRV_PID" 2>/dev/null || true
+  [ -z "$STATIC_PID" ] || kill "$STATIC_PID" 2>/dev/null || true
+  release_publish_lock
+}
+trap cleanup EXIT INT TERM HUP
 
 MYCRATES_BIN=$STUFF_DIR/target/debug/mycrates
 SERVER_BIN=$STUFF_DIR/target/debug/stuff-server
@@ -46,7 +74,6 @@ chmod 600 "$TOKEN_FILE"
 SRV_PID=$!
 "$SERVER_BIN" --bind "127.0.0.1:$STATIC_PORT" --route "/=$SITE_DIR" >/dev/null 2>&1 &
 STATIC_PID=$!
-trap 'kill $SRV_PID $STATIC_PID 2>/dev/null' EXIT
 i=0
 while ! curl -sf "$LOCAL_SITE/current/registry/config.json" >/dev/null; do
   i=$((i + 1))
@@ -60,7 +87,8 @@ for c in $CRATES; do
   "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
 done
 kill $SRV_PID $STATIC_PID 2>/dev/null
-trap - EXIT
+SRV_PID=""
+STATIC_PID=""
 "$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
 rm -rf "$SITE_DIR"
 mkdir -p "$SITE_DIR"

@@ -1,26 +1,26 @@
 #!/bin/sh
-# Sync one published site directory to an R2 bucket, incrementally.
-# Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected GEN_ID]
+# Sync one published site directory to an R2 bucket, incrementally, then
+# promote the generation atomically.
+# Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #
 # Incremental and content-aware: lists remote objects by prefix (deploy/
 # r2-plan.py, no pagination cursors, any object count) and skips uploads whose
 # remote size and content hash match the local file, so re-syncing an
 # unchanged generation uploads nothing. Large files are compared by their
-# multipart ETag. Generation-scoped immutable aliases are not
-# uploaded (the worker resolves them to the shared store); content addressing
-# still holds because skipped objects are verified by size and hash, not by
-# key existence alone.
+# multipart ETag. An existing immutable object with different bytes is a
+# conflict; --repair is the explicit, separate way to overwrite it.
 #
-# Promotion is guarded: --expected aborts unless the remote `current` marker
-# already holds that generation id, so competing publishers cannot silently
-# overwrite each other. After uploading, the new marker is read back and
-# verified. Roll back with deploy/r2-rollback.sh.
+# Every sync writes manifests/<id>.json for each local generation, then
+# promotes with deploy/r2-promote.py: the manifest's objects are verified
+# remotely first, and `current` is replaced with If-Match (If-None-Match:*
+# on first publish). A competing publisher gets 412 instead of overwriting
+# the winner. Roll back with deploy/r2-rollback.sh.
 #
 # Files over the 300 MB single-PUT cap (R2_SINGLE_PUT_MAX overrides) are uploaded via S3 multipart
 # (deploy/r2-multipart.py, stdlib-only python3) using R2_S3_ENDPOINT,
-# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY; without those, such files
-# fail loudly instead of being skipped.
+# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. Conditional promotion
+# needs those variables even when no file is large.
 #
 # Generation-scoped immutable aliases are NOT uploaded: the worker resolves
 # them to the shared store (see stuff-worker alias_key).
@@ -31,42 +31,39 @@
 set -eu
 SITE_DIR=$1
 BUCKET=$2
+shift 2
 EXPECTED=""
-if [ "${3:-}" = "--expected" ]; then
-  EXPECTED=${4:-}
-  [ -n "$EXPECTED" ] || { echo "FAIL: --expected requires a generation id"; exit 1; }
-elif [ -n "${3:-}" ]; then
-  echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected GEN_ID]"
-  exit 1
-fi
-LOCAL_ARGS=""
+REPAIR=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    --expected)
+      [ $# -ge 2 ] && [ -n "$2" ] || { echo "FAIL: --expected requires a generation id"; exit 1; }
+      EXPECTED=$2
+      shift 2
+      ;;
+    --repair)
+      REPAIR=1
+      shift
+      ;;
+    *)
+      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair]"
+      exit 1
+      ;;
+  esac
+done
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
-  LOCAL_ARGS="--local --persist-to $CF_LOCAL_STATE"
+else
+  for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+    eval "value=\${$var:-}"
+    [ -n "$value" ] || { echo "FAIL: $var is not set; conditional promotion needs the R2 S3 API"; exit 1; }
+  done
+fi
+if [ -n "$REPAIR" ]; then
+  export R2_REPAIR=1
+  echo "repair: existing immutable objects may be overwritten"
 fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-
-# shellcheck disable=SC2086
-put_marker() {
-  cf r2 objects put current --bucket-name "$BUCKET" --file "$1" \
-    --content-type "text/plain" $LOCAL_ARGS >/dev/null
-}
-
-# shellcheck disable=SC2086
-remote_current() {
-  tmp=$(mktemp)
-  if cf r2 objects get current --bucket-name "$BUCKET" --text $LOCAL_ARGS >"$tmp" 2>/dev/null; then
-    id=$(tr -d '[:space:]' <"$tmp")
-    rm -f "$tmp"
-    case $id in
-      *[!A-Za-z0-9_-]* | "") return 1 ;;
-      *) printf '%s' "$id"; return 0 ;;
-    esac
-  else
-    rm -f "$tmp"
-    return 1
-  fi
-}
 
 [ -L "$SITE_DIR/current" ] || { echo "FAIL: $SITE_DIR/current is not a symlink"; exit 1; }
 GEN_TARGET=$(readlink "$SITE_DIR/current")
@@ -75,36 +72,54 @@ case $GEN_ID in
   *[!A-Za-z0-9_-]* | "") echo "FAIL: bad generation id: $GEN_ID"; exit 1 ;;
 esac
 
-if [ -n "$EXPECTED" ]; then
-  REMOTE=$(remote_current || true)
-  [ "$REMOTE" = "$EXPECTED" ] || { echo "FAIL: remote current is '${REMOTE:-<missing>}', expected '$EXPECTED'; refusing to overwrite a competing publication"; exit 1; }
-  echo "guard: remote current is $EXPECTED as expected"
-else
-  REMOTE=$(remote_current || true)
-  if [ -n "$REMOTE" ] && [ "$REMOTE" != "$GEN_ID" ]; then
-    echo "note: remote current is $REMOTE; activating $GEN_ID"
-  fi
-fi
-
 echo "note: generation alias paths resolve server-side (see worker alias_key); skipping their upload"
 find "$SITE_DIR" -type l ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do
-  echo "note: skipping symlink ${f#$SITE_DIR/}"
+  echo "note: skipping symlink ${f#"$SITE_DIR"/}"
 done
 
-MARKER=$(mktemp)
 LIST=$(mktemp)
+MANIFEST_KEYS=$(mktemp)
 PLAN=$(mktemp)
 PUTS=$(mktemp)
-trap 'rm -f "$MARKER" "$LIST" "$PLAN" "$PUTS"' EXIT
+trap 'rm -f "$LIST" "$MANIFEST_KEYS" "$PLAN" "$PUTS"' EXIT
 find "$SITE_DIR" -type f ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do
-  key=${f#$SITE_DIR/}
+  key=${f#"$SITE_DIR"/}
   case $key in
     generations/*/tarballs/*) echo "skip alias $key" >&2 ;;
+    generations/*/stuff-manifest.json) ;;
+    manifests/*.json) ;;
     *) printf '%s\n' "$key" ;;
   esac
 done > "$LIST"
+
+mkdir -p "$SITE_DIR/manifests"
+for gen_dir in "$SITE_DIR"/generations/*; do
+  [ -d "$gen_dir" ] || continue
+  gen=${gen_dir##*/}
+  case $gen in
+    "" | *[!A-Za-z0-9_-]*) continue ;;
+  esac
+  while IFS= read -r key; do
+    case $key in
+      generations/"$gen"/*) printf '%s\n' "$key" ;;
+      generations/*) ;;
+      manifests/*) ;;
+      *) printf '%s\n' "$key" ;;
+    esac
+  done < "$LIST" > "$MANIFEST_KEYS"
+  python3 "$SCRIPT_DIR/r2-manifest.py" "$SITE_DIR" "$SITE_DIR/manifests/$gen.json" "$MANIFEST_KEYS"
+  printf 'manifests/%s.json\n' "$gen" >> "$LIST"
+done
+
 if [ -s "$LIST" ]; then
   python3 "$SCRIPT_DIR/r2-plan.py" "$SITE_DIR" "$BUCKET" "$LIST" > "$PLAN"
+fi
+CONFLICTS=$(grep -c '^conflict ' "$PLAN" || true)
+CONFLICTS=${CONFLICTS:-0}
+if [ "$CONFLICTS" -gt 0 ]; then
+  grep '^conflict ' "$PLAN" | sed 's/^conflict /FAIL: immutable object differs: /' >&2
+  echo "FAIL: refusing to replace immutable content; run with --repair only after verifying the local generation" >&2
+  exit 1
 fi
 SKIPPED=$(grep -c '^skip ' "$PLAN" || true)
 SKIPPED=${SKIPPED:-0}
@@ -134,10 +149,9 @@ done <<MULTI
 $(grep '^multipart ' "$PLAN" || true)
 MULTI
 
-printf '%s' "$GEN_ID" > "$MARKER"
-put_marker "$MARKER"
 echo "activate $GEN_ID (uploaded $UPLOADED, skipped $SKIPPED)"
-
-VERIFY=$(remote_current || true)
-[ "$VERIFY" = "$GEN_ID" ] || { echo "FAIL: remote current is '${VERIFY:-<missing>}' after activation, expected '$GEN_ID'"; exit 1; }
-echo "verified current is $GEN_ID"
+if [ -n "$EXPECTED" ]; then
+  python3 "$SCRIPT_DIR/r2-promote.py" "$BUCKET" "$GEN_ID" --expected "$EXPECTED"
+else
+  python3 "$SCRIPT_DIR/r2-promote.py" "$BUCKET" "$GEN_ID"
+fi

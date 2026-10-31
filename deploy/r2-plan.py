@@ -7,10 +7,12 @@ Env: CF_LOCAL_STATE (local simulation dir), R2_LIST_PAGE (objects per
      (bytes, default 300 MiB).
 
 KEYS_FILE holds one object key per line, relative to SITE_DIR. Prints one
-line per key: "skip KEY", "put KEY" or "multipart KEY SIZE". A key is
-skipped when the remote object has the same size and content hash: MD5 for
-single-PUT objects, the multipart ETag (MD5 of the part MD5s, suffixed with
-the part count) for files above the single-PUT cap.
+line per key: "skip KEY", "put KEY", "multipart KEY SIZE" or "conflict KEY".
+A key is skipped when the remote object has the same size and content hash:
+MD5 for single-PUT objects, the multipart ETag (MD5 of the part MD5s,
+suffixed with the part count) for files above the single-PUT cap. An existing
+object with different bytes is a conflict unless R2_REPAIR=1 requests an
+explicit overwrite.
 
 Remote objects are discovered by prefix listing, which does not depend on
 cursors: a listing shorter than the page size is complete for its prefix;
@@ -114,11 +116,20 @@ def main():
         large = size > SINGLE_PUT_MAX
         remote = index.get(key)
         unchanged = False
+        conflict = False
         if remote is not None and remote[0] == size:
             local = multipart_etag(path, part) if large else md5_hex(path)
             unchanged = remote[1] == local
+            conflict = not unchanged
+        elif remote is not None:
+            conflict = True
         if unchanged:
             out.append(f"skip {key}")
+        elif conflict:
+            if os.environ.get("R2_REPAIR") == "1":
+                out.append(f"multipart {key} {size}" if large else f"put {key}")
+            else:
+                out.append(f"conflict {key}")
         elif large:
             out.append(f"multipart {key} {size}")
         else:

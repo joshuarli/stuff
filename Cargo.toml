@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = [".work"]
 members = [
   "crates/h12tiny-client-normalize",
   "crates/h12tiny-tls-system",

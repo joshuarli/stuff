@@ -1,16 +1,17 @@
 #!/bin/sh
 # Exercise r2-sync.sh against the local R2 simulation (never real R2).
 # Usage: test-r2-sync.sh [OBJECT_COUNT]   (default 1100, above the 1000 page)
-# Checks: listing past one page, unchanged re-sync uploads nothing, one
-# changed file uploads exactly one, the marker is last and verified, and a
-# large file whose multipart ETag matches is skipped.
+# Checks: listing past one page, unchanged re-sync uploads nothing, changed
+# immutable content is a conflict unless --repair is explicit, the marker is
+# last and verified, a large file whose multipart ETag matches is skipped, and
+# rollback refuses a generation that was never uploaded.
 set -eu
 COUNT=${1:-1100}
 HERE=$(cd "$(dirname "$0")" && pwd)
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/r2-sync-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 SITE=$WORK/site
-export CF_LOCAL_STATE=$WORK/state
+export CF_LOCAL_STATE="$WORK/state"
 mkdir -p "$SITE/generations/g1" "$SITE/tarballs"
 echo '{}' > "$SITE/generations/g1/catalog.json"
 ln -s generations/g1 "$SITE/current"
@@ -25,7 +26,7 @@ check() { [ "$1" = "$2" ] || { echo "FAIL: $3: got '$1', want '$2'"; exit 1; }; 
 START=$(date +%s)
 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log"
 MID=$(date +%s)
-TOTAL=$((COUNT + 1))
+TOTAL=$((COUNT + 2))
 check "$(grep -c '^put ' "$WORK/first.log")" "$TOTAL" "first sync puts"
 tail -n 2 "$WORK/first.log" | grep -q 'verified current is g1' || { echo "FAIL: marker not verified last"; exit 1; }
 
@@ -35,9 +36,35 @@ check "$(grep -c '^put ' "$WORK/second.log" || true)" "0" "unchanged re-sync put
 grep -q "uploaded 0, skipped $TOTAL" "$WORK/second.log" || { echo "FAIL: unchanged re-sync summary"; exit 1; }
 
 printf 'changed\n' > "$SITE/tarballs/pkg-7.tgz"
-R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/third.log"
-check "$(grep -c '^put ' "$WORK/third.log")" "1" "changed file puts"
-grep -q '^put tarballs/pkg-7.tgz$' "$WORK/third.log" || { echo "FAIL: wrong file re-uploaded"; exit 1; }
+if R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/third.log" 2>&1; then
+  echo "FAIL: changed immutable object was overwritten without --repair"
+  exit 1
+fi
+grep -q 'tarballs/pkg-7.tgz' "$WORK/third.log" || { echo "FAIL: conflict did not name the object"; exit 1; }
+check "$(sed -n 's/^current$//p' "$SITE/current" 2>/dev/null || true)" "" "current is still a link"
+
+R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t --repair > "$WORK/repair.log"
+check "$(grep -c '^put ' "$WORK/repair.log")" "2" "repair puts changed object and manifest"
+grep -q '^put tarballs/pkg-7.tgz$' "$WORK/repair.log" || { echo "FAIL: wrong file re-uploaded"; exit 1; }
+
+# A second complete generation can be promoted and rolled back.
+cp -a "$SITE/generations/g1" "$SITE/generations/g2"
+ln -sfn generations/g2 "$SITE/current"
+R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/second-gen.log"
+grep -q 'verified current is g2' "$WORK/second-gen.log" || { echo "FAIL: second generation was not promoted"; exit 1; }
+"$HERE/r2-rollback.sh" t g1 > "$WORK/rollback-ok.log"
+grep -q 'verified current is g1' "$WORK/rollback-ok.log" || { echo "FAIL: verified rollback did not restore g1"; exit 1; }
+
+# A generation with no remote manifest must not move current.
+ln -sfn generations/g3 "$SITE/current"
+mkdir -p "$SITE/generations/g3"
+echo '{}' > "$SITE/generations/g3/catalog.json"
+if "$HERE/r2-rollback.sh" t g3 > "$WORK/rollback.log" 2>&1; then
+  echo "FAIL: rollback promoted an unuploaded generation"
+  exit 1
+fi
+grep -q 'no manifests/g3.json' "$WORK/rollback.log" || { echo "FAIL: rollback failure was not explicit"; exit 1; }
+check "$(grep -o 'verified current is [A-Za-z0-9_-]*' "$WORK/rollback-ok.log" | tail -n 1)" "verified current is g1" "rollback left current untouched"
 
 BIG=$WORK/big
 mkdir -p "$BIG"

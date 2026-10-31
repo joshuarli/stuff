@@ -1,4 +1,4 @@
-.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy sync serve test-sync fleet-ingest
+.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -30,6 +30,9 @@ worker-build: ## Compile the worker wasm glue into crates/stuff-worker/build
 worker-check: ## Validate the worker build and deploy plan without credentials
 	cd $(WORKER_DIR) && cf deploy --dry-run
 
+worker-test: ## Build the worker bundle and exercise it under the workerd runtime
+	cd $(WORKER_DIR) && npm run build:worker && npm run test:runtime
+
 worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
 	cd $(WORKER_DIR) && cf deploy
 
@@ -49,6 +52,14 @@ serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
 
 test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulation ([SYNC_OBJECTS=1100])
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
+
+test-r2: ## Check multipart SigV4, pagination, and conditional promotion without network access
+	python3 deploy/test-r2-multipart.py
+	python3 deploy/test-r2-plan.py
+	python3 deploy/test-r2-promote.py
+
+test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... and R2_S3_*)
+	python3 deploy/test-r2-multipart-live.py
 
 FLEET_OUT ?= .work/fleet
 

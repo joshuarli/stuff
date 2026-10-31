@@ -4,22 +4,24 @@
 Usage: r2-multipart.py FILE BUCKET KEY CONTENT_TYPE
 Env: R2_S3_ENDPOINT (e.g. https://<account>.r2.cloudflarestorage.com),
      R2_S3_ACCESS_KEY_ID, R2_S3_SECRET_ACCESS_KEY, optional R2_S3_REGION
-     (default "auto"). Short-lived credentials work:
-     cf r2 temporary-credentials create.
+     (default "auto"), optional R2_S3_SESSION_TOKEN for temporary credentials.
 
 Parts are 64 MiB. Any failure aborts the multipart upload so no partial
 state is left behind.
 """
 
+import datetime
 import hashlib
 import hmac
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
 PART_SIZE = 64 * 1024 * 1024
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 
 
 def fail(msg):
@@ -31,24 +33,74 @@ def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
 
-def signature_headers(method, url, payload_hash, content_type=""):
-    endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
+def quote(value):
+    return urllib.parse.quote(value, safe="-_.~")
+
+
+def canonical_query(query):
+    pairs = urllib.parse.parse_qsl(query, keep_blank_values=True)
+    encoded = sorted((quote(key), quote(value)) for key, value in pairs)
+    return "&".join(f"{key}={value}" for key, value in encoded)
+
+
+def normalize_header(value):
+    return " ".join(value.split())
+
+
+def canonical_request(
+    method, url, payload_hash, content_type="", amzdate=None, extra_headers=None
+):
+    parsed = urllib.parse.urlsplit(url)
+    headers = {
+        "host": parsed.netloc,
+        "x-amz-content-sha256": payload_hash,
+    }
+    if amzdate is not None:
+        headers["x-amz-date"] = amzdate
+    if content_type:
+        headers["content-type"] = content_type
+    token = os.environ.get("R2_S3_SESSION_TOKEN")
+    if token:
+        headers["x-amz-security-token"] = token
+    if extra_headers:
+        for key, value in extra_headers.items():
+            headers[key.lower()] = value
+    names = sorted(headers)
+    canonical_headers = "".join(
+        f"{name}:{normalize_header(headers[name])}\n" for name in names
+    )
+    signed_headers = ";".join(names)
+    canonical = "\n".join(
+        [
+            method,
+            parsed.path or "/",
+            canonical_query(parsed.query),
+            canonical_headers,
+            signed_headers,
+            payload_hash,
+        ]
+    )
+    return canonical, signed_headers
+
+
+def signature_headers(
+    method,
+    url,
+    payload_hash,
+    content_type="",
+    extra_headers=None,
+    now=None,
+):
     access = os.environ["R2_S3_ACCESS_KEY_ID"]
     secret = os.environ["R2_S3_SECRET_ACCESS_KEY"]
     region = os.environ.get("R2_S3_REGION", "auto")
-    parsed = urllib.parse.urlsplit(url)
-    host = parsed.hostname or ""
-    now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    if now is None:
+        now = datetime.datetime.now(datetime.timezone.utc)
     amzdate = now.strftime("%Y%m%dT%H%M%SZ")
     datestamp = now.strftime("%Y%m%d")
-    query = parsed.query
-    canonical_headers = f"host:{host}\nx-amz-content-sha256:{payload_hash}\nx-amz-date:{amzdate}\n"
-    signed_headers = "host;x-amz-content-sha256;x-amz-date"
-    if content_type:
-        canonical_headers += f"content-type:{content_type}\n"
-        signed_headers += ";content-type"
-    canonical = "\n".join(
-        [method, parsed.path or "/", query, canonical_headers, signed_headers, payload_hash]
+    headers = dict(extra_headers or {})
+    canonical, signed_headers = canonical_request(
+        method, url, payload_hash, content_type, amzdate, headers
     )
     scope = f"{datestamp}/{region}/s3/aws4_request"
     string_to_sign = "\n".join(
@@ -59,7 +111,7 @@ def signature_headers(method, url, payload_hash, content_type=""):
     k_service = hmac.new(k_region, b"s3", hashlib.sha256).digest()
     k_signing = hmac.new(k_service, b"aws4_request", hashlib.sha256).digest()
     signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
-    return {
+    result = {
         "x-amz-date": amzdate,
         "x-amz-content-sha256": payload_hash,
         "Authorization": (
@@ -67,19 +119,33 @@ def signature_headers(method, url, payload_hash, content_type=""):
             f"SignedHeaders={signed_headers}, Signature={signature}"
         ),
     }
+    token = os.environ.get("R2_S3_SESSION_TOKEN")
+    if token:
+        result["x-amz-security-token"] = token
+    for key, value in headers.items():
+        result.setdefault(key, value)
+    return result
 
 
-def request(method, url, body=b"", content_type=""):
+def request(method, url, body=b"", content_type="", extra_headers=None):
     payload_hash = hashlib.sha256(body).hexdigest()
-    headers = signature_headers(method, url, payload_hash, content_type)
+    headers = signature_headers(
+        method, url, payload_hash, content_type, extra_headers=extra_headers
+    )
     if content_type:
         headers["Content-Type"] = content_type
-    req = urllib.request.Request(url, data=body if method != "GET" else None, headers=headers, method=method)
+    req = urllib.request.Request(
+        url, data=body if method != "GET" else None, headers=headers, method=method
+    )
     try:
         with urllib.request.urlopen(req) as resp:
             return resp.status, resp.read(), dict(resp.headers)
     except urllib.error.HTTPError as e:
-        return e.code, e.read(), dict(e.headers)
+        status = e.code
+        data = e.read()
+        headers = dict(e.headers)
+        e.close()
+        return status, data, headers
 
 
 def find_text(root, local):
@@ -87,6 +153,16 @@ def find_text(root, local):
         if elem.tag == local or elem.tag.endswith("}" + local):
             return (elem.text or "").strip()
     return ""
+
+
+def completion_error(body):
+    if not body.strip():
+        return ""
+    try:
+        root = ET.fromstring(body)
+    except ET.ParseError:
+        return ""
+    return find_text(root, "Code") or find_text(root, "Message")
 
 
 def main():
@@ -97,7 +173,7 @@ def main():
         if not os.environ.get(var):
             fail(f"{var} is not set")
     endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
-    quoted = "/".join(urllib.parse.quote(p, safe="") for p in key.split("/"))
+    quoted = "/".join(quote(part) for part in key.split("/"))
     base = f"{endpoint}/{bucket}/{quoted}"
     size = os.path.getsize(path)
 
@@ -109,7 +185,7 @@ def main():
         fail("initiate multipart upload returned no UploadId")
 
     def abort():
-        request("DELETE", base + f"?uploadId={urllib.parse.quote(upload_id, safe='')}")
+        request("DELETE", base + f"?uploadId={quote(upload_id)}")
 
     etags = []
     try:
@@ -121,7 +197,7 @@ def main():
                     break
                 status, _, headers = request(
                     "PUT",
-                    base + f"?partNumber={part}&uploadId={urllib.parse.quote(upload_id, safe='')}",
+                    base + f"?partNumber={part}&uploadId={quote(upload_id)}",
                     chunk,
                     "application/octet-stream",
                 )
@@ -144,13 +220,15 @@ def main():
         ).encode()
         status, body, _ = request(
             "POST",
-            base + f"?uploadId={urllib.parse.quote(upload_id, safe='')}",
+            base + f"?uploadId={quote(upload_id)}",
             complete,
             content_type,
         )
-        if status != 200:
+        error = completion_error(body)
+        if status != 200 or error:
             abort()
-            fail(f"complete multipart upload failed: HTTP {status}")
+            detail = f": {error}" if error else ""
+            fail(f"complete multipart upload failed: HTTP {status}{detail}")
     except OSError as e:
         abort()
         fail(f"could not read {path}: {e}")

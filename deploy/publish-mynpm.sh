@@ -8,19 +8,38 @@
 # Optional env (defaults shown):
 #   STUFF_DIR=../stuff
 #   PUBLIC_URL=https://npm.17166969.xyz UPSTREAM_REGISTRY=https://registry.npmjs.org/
-#   BUCKET=stuff-mynpm STATE_DIR=.work/registry-pub/state SITE_DIR=.work/registry-pub/site
-#   CONFIG_FILE=.work/registry-pub/mynpm.json
+#   BUCKET=stuff-mynpm
+#   STUFF_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/stuff
+#   STATE_DIR=$STUFF_STATE_HOME/mynpm/state SITE_DIR=$STUFF_STATE_HOME/mynpm/site
+#   CONFIG_FILE=$STUFF_STATE_HOME/mynpm/mynpm.json
+#   LOCK_DIR=$STUFF_STATE_HOME/mynpm/publish.lock
 #   TARGETS="linux-x64-gnu" (extra space-separated target ids beyond the host
 #   default, which is always imported; platform-specific entries merge)
+#
+# State lives outside the calling checkout and the whole transaction is
+# serialized, so publishing from another source repository extends one index.
 set -eu
 STUFF_DIR=${STUFF_DIR:-../stuff}
 PUBLIC_URL=${PUBLIC_URL:-https://npm.17166969.xyz}
 UPSTREAM_REGISTRY=${UPSTREAM_REGISTRY:-https://registry.npmjs.org/}
 BUCKET=${BUCKET:-stuff-mynpm}
-STATE_DIR=${STATE_DIR:-.work/registry-pub/state}
-SITE_DIR=${SITE_DIR:-.work/registry-pub/site}
+STUFF_STATE_HOME=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+STATE_DIR=${STATE_DIR:-$STUFF_STATE_HOME/mynpm/state}
+SITE_DIR=${SITE_DIR:-$STUFF_STATE_HOME/mynpm/site}
 TARGETS=${TARGETS:-}
-CONFIG_FILE=${CONFIG_FILE:-.work/registry-pub/mynpm.json}
+CONFIG_FILE=${CONFIG_FILE:-$STUFF_STATE_HOME/mynpm/mynpm.json}
+LOCK_DIR=${LOCK_DIR:-$STUFF_STATE_HOME/mynpm/publish.lock}
+
+. "$STUFF_DIR/deploy/publish-lock.sh"
+LEGACY_STATE_DIR=${LEGACY_STATE_DIR:-$PWD/.work/registry-pub/state}
+if { [ ! -d "$STATE_DIR" ] || [ -z "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; } && [ -d "$LEGACY_STATE_DIR" ] && [ "$STATE_DIR" != "$LEGACY_STATE_DIR" ]; then
+  echo "publish-mynpm: legacy per-checkout state exists at $LEGACY_STATE_DIR" >&2
+  echo "publish-mynpm: move it to the canonical $STATE_DIR (or set STATE_DIR explicitly) so another repository cannot hide its packages" >&2
+  exit 1
+fi
+mkdir -p "$STUFF_STATE_HOME/mynpm"
+acquire_publish_lock "$LOCK_DIR"
+trap 'release_publish_lock' EXIT INT TERM HUP
 
 MYNPM_BIN=$STUFF_DIR/target/debug/mynpm
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
