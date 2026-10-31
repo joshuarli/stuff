@@ -58,6 +58,13 @@ All three publish CLIs share one exit-code contract: `2` usage/input,
 operational failures (`mynpm` adds `130` for a cancelled run; `stuff
 doctor` exits `1` on a failed check and `2` on its own error).
 
+## Release
+
+Run the `release` workflow from the default branch to publish the `stuff`
+CLI. It builds Apple Silicon and Linux musl binaries, verifies them, and
+attaches `stuff-<target>.zip` plus `SHA256SUMS` to a `release-<sha>`
+prerelease. Install a release with `sh dl stuff` from `~/usr`.
+
 ## Serve
 
 Serve a published site directory (or a mounted registry prefix) locally:
