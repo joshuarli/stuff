@@ -35,6 +35,15 @@ END=$(date +%s)
 check "$(grep -c '^put ' "$WORK/second.log" || true)" "0" "unchanged re-sync puts"
 grep -q "uploaded 0, skipped $TOTAL" "$WORK/second.log" || { echo "FAIL: unchanged re-sync summary"; exit 1; }
 
+cp -a "$SITE/generations/g1" "$SITE/generations/g1b"
+ln -sfn generations/g1b "$SITE/current"
+"$HERE/r2-sync.sh" "$SITE" t --dry-run > "$WORK/dry.log"
+grep -q '^dry-run g1b: put 2 (.* bytes), multipart 0 (0 bytes), skip ' "$WORK/dry.log" || { echo "FAIL: dry-run summary"; exit 1; }
+rm -rf "$SITE/generations/g1b" "$SITE/manifests/g1b.json"
+ln -sfn generations/g1 "$SITE/current"
+"$HERE/r2-sync.sh" "$SITE" t > "$WORK/after-dry.log"
+check "$(grep -c '^put ' "$WORK/after-dry.log" || true)" "0" "dry-run uploaded nothing"
+
 printf 'changed\n' > "$SITE/tarballs/pkg-7.tgz"
 if R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/third.log" 2>&1; then
   echo "FAIL: changed immutable object was overwritten without --repair"

@@ -189,7 +189,7 @@ state in `$STUFF_STATE_HOME/<registry>` (default
 that directory is the publication source of truth and should be backed up.
 A directory lock serializes the whole transaction across source repositories.
 Sync a published site to its bucket per registry with
-`deploy/r2-sync.sh SITE_DIR BUCKET [--expected ACTIVE_GEN] [--repair]`,
+`deploy/r2-sync.sh SITE_DIR BUCKET [--expected ACTIVE_GEN] [--repair] [--dry-run]`,
 which translates the `current` symlink to a marker object holding the
 generation id (verified against the local R2 simulation). Sync is incremental
 and content-aware: remote objects whose size and content hash match are
@@ -203,7 +203,9 @@ remotely, then replaces `current` with an `If-Match` write (or
 `If-None-Match: *` on first publish); a competing publisher gets 412 instead
 of silently winning. `--expected` additionally pins the generation that must
 already be active. Existing immutable objects with different bytes are
-conflicts; `--repair` is the separate, explicit overwrite path. Conditional
+conflicts; `--repair` is the separate, explicit overwrite path. `--dry-run` lists the
+bucket read-only and prints the object and byte counts it would upload, then stops
+before any upload or promotion (it needs no `R2_S3_*` variables). Conditional
 promotion needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
 `R2_S3_SECRET_ACCESS_KEY`. Roll back with
 `deploy/r2-rollback.sh BUCKET GEN_ID`, which verifies the target generation's
