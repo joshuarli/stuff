@@ -242,6 +242,8 @@ acceptance check; it is not run by CI.
 
 ## Adopt a live publication
 
+`deploy/publish` runs this automatically when the local state is missing. The manual sequence is below.
+
 When `$STUFF_STATE_HOME` is missing (new machine, lost disk) the next publish
 would replace the live registry with the caller's subset. Rebuild the state
 from the buckets first. Pulling only reads the bucket (`cf` authenticated);
