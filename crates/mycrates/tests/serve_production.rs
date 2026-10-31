@@ -4,7 +4,7 @@ use mycrates::config::LimitsConfig;
 use mycrates::serve::{handle_connection, ServeConfig};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -75,7 +75,7 @@ impl Drop for ProdServer {
     }
 }
 
-fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str) -> ProdServer {
+fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str, auth_required: bool) -> ProdServer {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let stop = Arc::new(AtomicBool::new(false));
@@ -84,7 +84,7 @@ fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str) -
     let cfg = ServeConfig {
         bind: format!("127.0.0.1:{}", port),
         token: Some(token.to_string()),
-        auth_required: true,
+        auth_required,
         state_dir,
         site_dir,
         public_base_url: base_url,
@@ -110,11 +110,13 @@ fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str) -
     ProdServer { port, stop, handle: Some(handle) }
 }
 
-fn send_request(port: u16, token: &str, payload: &[u8], split_at: Option<usize>) -> String {
+fn send_request(port: u16, token: Option<&str>, payload: &[u8], split_at: Option<usize>) -> String {
     let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let auth = token
+        .map(|t| format!("Authorization: Bearer {t}\r\n"))
+        .unwrap_or_default();
     let req = format!(
-        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        token,
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\n{auth}Content-Length: {}\r\nConnection: close\r\n\r\n",
         payload.len()
     );
     let full = [req.as_bytes(), payload].concat();
@@ -136,17 +138,43 @@ fn send_request(port: u16, token: &str, payload: &[u8], split_at: Option<usize>)
     resp
 }
 
+fn send_get(port: u16, token: Option<&str>, path: &str) -> (u16, Vec<u8>) {
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let auth = token
+        .map(|t| format!("Authorization: Bearer {t}\r\n"))
+        .unwrap_or_default();
+    let req = format!(
+        "GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\n{auth}Connection: close\r\n\r\n"
+    );
+    stream.write_all(req.as_bytes()).unwrap();
+    stream.flush().unwrap();
+    let mut resp = Vec::new();
+    stream.read_to_end(&mut resp).unwrap();
+    let split = resp
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .map(|i| i + 4)
+        .unwrap_or(resp.len());
+    let head = String::from_utf8_lossy(&resp[..split]);
+    let status = head
+        .split_whitespace()
+        .nth(1)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    (status, resp[split..].to_vec())
+}
+
 #[test]
 fn production_reader_single_write() {
     let dir = tempdir().unwrap();
     let state_dir = dir.path().join("state");
     let site_dir = dir.path().join("site");
     let token = "prod-single-token";
-    let server = start_production_server(state_dir, site_dir, token);
+    let server = start_production_server(state_dir, site_dir, token, true);
 
     let crate_bytes = make_test_crate("prod-single", "1.0.0");
     let payload = build_wire_payload(&body_json("prod-single", "1.0.0"), &crate_bytes);
-    let resp = send_request(server.port, token, &payload, None);
+    let resp = send_request(server.port, Some(token), &payload, None);
     assert!(resp.starts_with("HTTP/1.1 200"), "single-write publish failed: {resp}");
 }
 
@@ -156,7 +184,7 @@ fn production_reader_split_boundaries() {
     let state_dir = dir.path().join("state");
     let site_dir = dir.path().join("site");
     let token = "prod-split-token";
-    let server = start_production_server(state_dir.clone(), site_dir.clone(), token);
+    let server = start_production_server(state_dir.clone(), site_dir.clone(), token, true);
 
     for i in 0..4 {
         let name = format!("prod-split-{}", i);
@@ -170,7 +198,7 @@ fn production_reader_split_boundaries() {
         .len();
         let splits = [req_len - 2, req_len, req_len + 1, req_len + 4, req_len + 10];
         let at = splits[i % splits.len()];
-        let resp = send_request(server.port, token, &payload, Some(at));
+        let resp = send_request(server.port, Some(token), &payload, Some(at));
         assert!(
             resp.starts_with("HTTP/1.1 200"),
             "split publish {name} at {at} failed: {resp}"
@@ -247,7 +275,7 @@ fn production_binary_end_to_end_publish() {
     // actual publish through production HTTP reader in one write
     let crate_bytes = make_test_crate("prod-bin-pkg", "0.2.0");
     let payload = build_wire_payload(&body_json("prod-bin-pkg", "0.2.0"), &crate_bytes);
-    let resp = send_request(port, token, &payload, None);
+    let resp = send_request(port, Some(token), &payload, None);
     assert!(resp.starts_with("HTTP/1.1 200"), "binary publish failed: {resp}");
     let store = mycrates::store::Store::new(state_dir);
     let recs = store.load_native_records().unwrap();
@@ -257,3 +285,64 @@ fn production_binary_end_to_end_publish() {
 }
 
 use std::fs;
+
+fn publish_test_crate(server: &ProdServer, token: &str, name: &str, version: &str) -> Vec<u8> {
+    let crate_bytes = make_test_crate(name, version);
+    let payload = build_wire_payload(&body_json(name, version), &crate_bytes);
+    let resp = send_request(server.port, Some(token), &payload, None);
+    assert!(resp.starts_with("HTTP/1.1 200"), "{name} publish failed: {resp}");
+    crate_bytes
+}
+
+fn published_checksum(state_dir: &Path, name: &str) -> String {
+    mycrates::store::Store::new(state_dir.to_path_buf())
+        .load_native_records()
+        .unwrap()
+        .into_iter()
+        .find(|r| r.name == name)
+        .unwrap()
+        .checksum
+}
+
+#[test]
+fn production_reads_follow_auth_required_false() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let site_dir = dir.path().join("site");
+    let token = "prod-open-token";
+    let server = start_production_server(state_dir.clone(), site_dir, token, false);
+
+    let crate_bytes = publish_test_crate(&server, token, "prod-open", "1.0.0");
+    let path = format!("/blobs/{}.crate", published_checksum(&state_dir, "prod-open"));
+
+    let (status, body) = send_get(server.port, None, &path);
+    assert_eq!(status, 200, "unauthenticated blob GET should be open");
+    assert_eq!(body, crate_bytes);
+
+    let (status, body) = send_get(server.port, Some(token), &path);
+    assert_eq!(status, 200);
+    assert_eq!(body, crate_bytes);
+
+    let payload = build_wire_payload(&body_json("prod-open-write", "1.0.0"), &make_test_crate("prod-open-write", "1.0.0"));
+    let resp = send_request(server.port, None, &payload, None);
+    assert!(resp.starts_with("HTTP/1.1 401"), "unauthenticated publish should fail: {resp}");
+}
+
+#[test]
+fn production_reads_follow_auth_required_true() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let site_dir = dir.path().join("site");
+    let token = "prod-private-token";
+    let server = start_production_server(state_dir.clone(), site_dir, token, true);
+
+    let crate_bytes = publish_test_crate(&server, token, "prod-private", "1.0.0");
+    let path = format!("/blobs/{}.crate", published_checksum(&state_dir, "prod-private"));
+
+    let (status, _) = send_get(server.port, None, &path);
+    assert_eq!(status, 401, "unauthenticated blob GET should require the token");
+
+    let (status, body) = send_get(server.port, Some(token), &path);
+    assert_eq!(status, 200);
+    assert_eq!(body, crate_bytes);
+}

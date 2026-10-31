@@ -62,7 +62,8 @@ impl TestServer {
 
         // Render initial generation so config.json is available
         let store = mycrates::store::Store::new(state_dir);
-        let publ = mycrates::publish::Publisher::new(&store, site_dir, base_url);
+        let publ = mycrates::publish::Publisher::new(&store, site_dir, base_url)
+            .with_auth_required(auth_required);
         let _ = publ.publish();
 
         let prefix_copy = prefix_clean.clone();

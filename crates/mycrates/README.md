@@ -65,6 +65,8 @@ Configuration lives in `config.json` inside the state directory:
 }
 ```
 
+`auth_required` controls reads. When true, `current/registry/config.json` advertises `"auth-required":true` and `serve-publish` requires the token for GET and HEAD. Writes always require the token when `serve-publish` has one. Keep it false for the public Worker, which does not enforce read auth.
+
 ## Quickstart
 
 Initialize the registry directories:
@@ -129,6 +131,8 @@ Start the minimal write service:
 ```sh
 mycrates serve-publish --bind 127.0.0.1:8080 --token-file /etc/mycrates/token
 ```
+
+`serve-publish` also serves `blobs/` for Cargo verification, so a dependent native crate can download its dependency during `cargo publish`.
 
 Configure Cargo client credentials and endpoint in `~/.cargo/config.toml`:
 

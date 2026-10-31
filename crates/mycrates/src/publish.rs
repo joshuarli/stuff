@@ -20,6 +20,7 @@ pub struct Publisher<'a> {
     pub store: &'a Store,
     pub site_dir: PathBuf,
     pub public_base_url: String,
+    pub auth_required: bool,
 }
 
 impl<'a> Publisher<'a> {
@@ -28,7 +29,13 @@ impl<'a> Publisher<'a> {
             store,
             site_dir,
             public_base_url,
+            auth_required: false,
         }
+    }
+
+    pub fn with_auth_required(mut self, auth_required: bool) -> Self {
+        self.auth_required = auth_required;
+        self
     }
 
     pub fn blobs_dir(&self) -> PathBuf {
@@ -102,7 +109,7 @@ impl<'a> Publisher<'a> {
 
         let mut manifest: BTreeMap<(String, String), String> = BTreeMap::new();
 
-        let native_cfg = native_config_json(&self.public_base_url);
+        let native_cfg = native_config_json(&self.public_base_url, self.auth_required);
         let native_cfg_path = staging_registry.join("config.json");
         write_file_durable(&native_cfg_path, native_cfg.as_bytes())?;
         let mut h = Sha256::new();

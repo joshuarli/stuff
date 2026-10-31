@@ -19,13 +19,14 @@ pub fn shard_for_name(name_lower: &str) -> String {
     format!("{}/{}/{}", &name_lower[0..2], &name_lower[2..4], name_lower)
 }
 
-pub fn native_config_json(public_base_url: &str) -> String {
+pub fn native_config_json(public_base_url: &str, auth_required: bool) -> String {
     let dl = format!("{}/blobs/{{sha256-checksum}}.crate", public_base_url.trim_end_matches('/'));
     let api = public_base_url.to_string();
     format!(
-        "{{\"dl\":{},\"api\":{},\"auth-required\":false}}",
+        "{{\"dl\":{},\"api\":{},\"auth-required\":{}}}",
         json_str(&dl),
-        json_str(&api)
+        json_str(&api),
+        auth_required
     )
 }
 

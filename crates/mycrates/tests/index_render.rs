@@ -120,8 +120,11 @@ fn sharding() {
 
 #[test]
 fn configs() {
-    let n = native_config_json("https://example.com/base");
+    let n = native_config_json("https://example.com/base", false);
     assert!(n.contains("\"api\""));
+    assert!(n.contains("\"auth-required\":false"));
+    let n = native_config_json("https://example.com/base", true);
+    assert!(n.contains("\"auth-required\":true"));
     let m = mirror_config_json("https://example.com/base");
     assert!(!m.contains("\"api\""));
 }

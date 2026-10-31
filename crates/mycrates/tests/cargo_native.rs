@@ -67,7 +67,7 @@ fn publish_and_consume() {
         site_dir.clone(),
         "",
         Some(token.to_string()),
-        true,
+        false,
     );
 
     let cargo_home = dir.path().join("cargo_home");
@@ -129,7 +129,7 @@ fn cross_registry() {
         site_dir.clone(),
         "",
         Some(token.to_string()),
-        true,
+        false,
     );
 
     // Setup an upstream crate in the mirror view: `mock-upstream` 0.1.0
@@ -263,7 +263,7 @@ fn idempotent_and_conflict() {
         site_dir.clone(),
         "",
         Some(token.to_string()),
-        true,
+        false,
     );
 
     let cargo_home = dir.path().join("cargo_home");
@@ -364,7 +364,7 @@ fn auth_failure_handling() {
         site_dir.clone(),
         "",
         Some("correct-token".to_string()),
-        true,
+        false,
     );
 
     let pkg_dir = dir.path().join("pkg");
@@ -401,7 +401,7 @@ fn prefix_path_hosting() {
         site_dir.clone(),
         "/custom/prefix",
         Some(token.to_string()),
-        true,
+        false,
     );
 
     let cargo_home = dir.path().join("cargo_home");
@@ -455,7 +455,7 @@ fn yank_and_unyank_resolution() {
         site_dir.clone(),
         "",
         Some(token.to_string()),
-        true,
+        false,
     );
 
     let cargo_home = dir.path().join("cargo_home");

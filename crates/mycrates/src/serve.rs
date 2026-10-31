@@ -6,9 +6,10 @@ use crate::publish::Publisher;
 use crate::store::{NativeRecord, Store};
 use crate::wire::decode_publish_payload;
 use sha2::{Digest, Sha256};
+use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -101,6 +102,48 @@ fn send_error(stream: &TcpStream, status: u16, detail: &str) {
     send_json_response(stream, status, reason, &body);
 }
 
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn serve_blob(mut stream: &TcpStream, method: &str, path: &str, site_dir: &Path) -> Result<()> {
+    let path = path.split('?').next().unwrap_or(path);
+    let Some(rest) = path.strip_prefix("/blobs/") else {
+        send_error(stream, 404, "not found");
+        return Ok(());
+    };
+    let Some(checksum) = rest.strip_suffix(".crate") else {
+        send_error(stream, 404, "not found");
+        return Ok(());
+    };
+    if !is_sha256_hex(checksum) {
+        send_error(stream, 404, "not found");
+        return Ok(());
+    }
+    let body = match fs::read(site_dir.join("blobs").join(rest)) {
+        Ok(body) => body,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            send_error(stream, 404, "not found");
+            return Ok(());
+        }
+        Err(e) => {
+            send_error(stream, 500, &e.to_string());
+            return Ok(());
+        }
+    };
+    let header = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/x-tar\r\nContent-Length: {}\r\nETag: \"{}\"\r\nCache-Control: public, max-age=31536000, immutable\r\nConnection: close\r\n\r\n",
+        body.len(),
+        checksum
+    );
+    stream.write_all(header.as_bytes())?;
+    if method == "GET" {
+        stream.write_all(&body)?;
+    }
+    stream.flush()?;
+    Ok(())
+}
+
 pub fn handle_publish_request<R: Read>(
     stream: &TcpStream,
     method: &str,
@@ -109,7 +152,7 @@ pub fn handle_publish_request<R: Read>(
     reader: &mut R,
     cfg: &ServeConfig,
 ) -> Result<()> {
-    if cfg.auth_required || cfg.token.is_some() {
+    if cfg.auth_required {
         if let Some(ref exp_token) = cfg.token {
             let auth_hdr = headers
                 .iter()
@@ -119,14 +162,19 @@ pub fn handle_publish_request<R: Read>(
                 send_error(stream, 401, "unauthorized");
                 return Ok(());
             }
-        } else if cfg.auth_required {
+        } else {
             send_error(stream, 401, "unauthorized");
             return Ok(());
         }
     }
 
+    if (method == "GET" || method == "HEAD") && path.starts_with("/blobs/") {
+        return serve_blob(stream, method, path, &cfg.site_dir);
+    }
+
     let store = Store::new(cfg.state_dir.clone());
-    let publisher = Publisher::new(&store, cfg.site_dir.clone(), cfg.public_base_url.clone());
+    let publisher = Publisher::new(&store, cfg.site_dir.clone(), cfg.public_base_url.clone())
+        .with_auth_required(cfg.auth_required);
 
     if method == "PUT" && path == "/api/v1/crates/new" {
         if cfg.auth_required || cfg.token.is_some() {
