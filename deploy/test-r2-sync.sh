@@ -23,6 +23,20 @@ done
 
 check() { [ "$1" = "$2" ] || { echo "FAIL: $3: got '$1', want '$2'"; exit 1; }; }
 
+if env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY \
+  "$HERE/r2-sync.sh" "$SITE" t --promote=s3 >"$WORK/s3-missing.log" 2>&1; then
+  echo "FAIL: --promote=s3 ran without S3 credentials"
+  exit 1
+fi
+grep -q 'R2_S3_ENDPOINT is not set' "$WORK/s3-missing.log" || { echo "FAIL: missing S3 credentials were not reported"; exit 1; }
+
+if env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY \
+  "$HERE/r2-rollback.sh" t g1 --promote=s3 >"$WORK/rollback-s3-missing.log" 2>&1; then
+  echo "FAIL: rollback --promote=s3 ran without S3 credentials"
+  exit 1
+fi
+grep -q 'R2_S3_ENDPOINT is not set' "$WORK/rollback-s3-missing.log" || { echo "FAIL: rollback did not report missing S3 credentials"; exit 1; }
+
 START=$(date +%s)
 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log"
 MID=$(date +%s)

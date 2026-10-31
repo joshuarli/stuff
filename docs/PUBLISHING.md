@@ -1,28 +1,58 @@
 # Publish
 
-The publish helpers build a registry site, upload missing objects through the authenticated `cf` CLI, and move the bucket's `current` marker to the new generation. `cf` auth is required, but not sufficient: the normal path also needs R2 S3 credentials for the conditional promotion.
+`deploy/publish` is the normal entry point. It checks `cf` auth, adopts the live publication when local state is missing, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
 
 ## Check prerequisites
 
 | Requirement | Use | Check |
 | --- | --- | --- |
-| `cf` signed in | List and upload R2 objects, deploy the Worker | `cf auth whoami` |
-| R2 S3 API token | Conditional `current` promotion and multipart uploads | `R2_S3_*` is set |
-| Existing publication state | Extend the live registry instead of replacing it | `$STUFF_STATE_HOME` exists |
+| `cf` signed in | List and upload R2 objects, promote `current` | `cf auth whoami` |
+| Publication state | Extend the live registry instead of replacing it | The wrapper adopts if missing |
 | Rust nightly | Build the registry binaries | `cargo --version` |
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
+| R2 S3 token (optional) | Conditional promotion and multipart uploads over 300 MB | `R2_S3_*` is set |
 
-If `cf auth whoami` reports no active session, run `cf auth login`.
-
-Use `cf` for uploads and listings. Use the R2 S3 token for verification and conditional promotion. The fallback below replaces the token with an unconditional `cf` write.
+If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
 The default state root is `${XDG_STATE_HOME:-$HOME/.local/state}/stuff`. Set `STUFF_STATE_HOME` if your state lives elsewhere. Back it up. This directory is the publication source of truth.
 
-## Set R2 S3 credentials
+## Publish a registry
 
-Create an R2 API token in the Cloudflare dashboard and export its S3 credentials:
+Run the wrapper from the repository that owns the packages:
+
+```sh
+CRATES="crate-a crate-b" /path/to/stuff/deploy/publish mycrates
+
+LOCKFILE=pnpm-lock.yaml PROJECT=my-project /path/to/stuff/deploy/publish mynpm
+
+PACKAGES="six==1.16.0" /path/to/stuff/deploy/publish mypypi
+```
+
+If `stuff` is at `../stuff`, use `../stuff/deploy/publish` instead. The wrapper sets `STUFF_DIR` to its own checkout, so the helper builds the right binaries.
+
+The wrapper does three things before it publishes:
+
+- It verifies `cf auth whoami`.
+- It adopts the live bucket when the registry has no local state.
+- It selects `cf` promotion unless you pass `--promote=s3`.
+
+The helper then holds the per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write.
+
+For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish. See the root README for those options.
+
+## Promote with S3
+
+The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. It also removes a long-lived bucket-write secret from the normal path.
+
+Use `--promote=s3` when CI or another machine can publish at the same time:
+
+```sh
+CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
+```
+
+This needs:
 
 ```sh
 export R2_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
@@ -32,37 +62,21 @@ export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 
 `R2_S3_REGION` defaults to `auto`. Temporary credentials also need `R2_S3_SESSION_TOKEN`.
 
-These credentials verify the uploaded generation and move `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner.
+S3 promotion verifies the uploaded generation and moves `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner. Objects over the 300 MB single-PUT cap always need these credentials, even with `cf` promotion.
 
-If you cannot issue S3 credentials, promote through `cf` instead:
+## Publish from a new machine
 
-```sh
-export R2_PROMOTE_UNCONDITIONAL=1
-```
+The wrapper adopts automatically when the local state is missing or has no records. It pulls the current generation and the shared stores, then rebuilds the local publication state before running the helper.
 
-This writes `current` without a conditional check, so it cannot detect a competing publisher. Objects over the 300 MB single-PUT cap still need the S3 credentials.
+If the wrapper refuses because a site directory exists without `current`, do not delete it. Inspect it, or restore the state backup, before publishing. A publish against an empty or partial state would replace the live registry with only the local packages.
 
-## Publish a registry
+For the manual adopt sequence, see [Adopt a live publication](../README.md#adopt-a-live-publication).
 
-Run the helper from the repository that owns the packages:
+## mycrates auth
 
-```sh
-CRATES="crate-a crate-b" ../stuff/deploy/publish-mycrates.sh
+`mycrates` writes require the publish token, whether the helper generates it or you set `MYCRATES_TOKEN`. Reads follow `auth_required` in `config.json`, and the generated `current/registry/config.json` advertises the same value as `auth-required`.
 
-LOCKFILE=pnpm-lock.yaml PROJECT=my-project ../stuff/deploy/publish-mynpm.sh
-
-PACKAGES="six==1.16.0" ../stuff/deploy/publish-mypypi.sh
-```
-
-If `stuff` is not at `../stuff`, set `STUFF_DIR` to its path and invoke the helper by its full path:
-
-```sh
-STUFF_DIR=/path/to/stuff CRATES="crate-a" /path/to/stuff/deploy/publish-mycrates.sh
-```
-
-For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish. See the root README for those options.
-
-Each helper holds a per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write.
+Keep `auth_required` false for the public Worker, which does not enforce read auth. The publish server serves `blobs/` for Cargo verification, so a dependent native crate publishes without `--no-verify`.
 
 ## Sync a site you already built
 
@@ -84,22 +98,9 @@ deploy/r2-sync.sh "$H/mypypi/site" stuff-mypypi
 
 Add `--dry-run` to list what would change. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
 
-Add `--expected <generation>` to require the bucket to be on that generation before promotion. Without `--expected`, the conditional write still rejects another publisher.
+Add `--expected <generation>` to require the bucket to be on that generation before promotion. Without `--expected`, a conditional S3 promotion still rejects another publisher.
 
 `r2-sync.sh` requires `SITE_DIR/current` to be a symlink. For `mynpm`, pass `site/mirror`, not `site`.
-
-## Publish from a new machine
-
-If `$STUFF_STATE_HOME` is missing or empty, stop. A publish helper would extend an empty site and move `current` to a generation that contains only your local packages.
-
-Adopt the live bucket first:
-
-- Pull the bucket with `deploy/r2-pull.py`.
-- Rebuild `mycrates` state from the pulled site with `mycrates adopt`.
-- Run `mynpm adopt` against the pulled site.
-- Keep the pulled `mypypi` site as its state.
-
-Follow [Adopt a live publication](../README.md#adopt-a-live-publication) for the exact commands. After adoption, the next publish carries every live package forward.
 
 ## Deploy the Worker
 
@@ -126,13 +127,14 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
-The rollback verifies every object in the target generation's manifest before moving `current`. It needs the same promotion credentials as a publish. To roll forward, run the same command with the newer generation id.
+The rollback verifies every object in the target generation's manifest before moving `current`. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id.
 
 ## Fix common failures
 
 | Message | Cause | Fix |
 | --- | --- | --- |
-| `FAIL: R2_S3_ENDPOINT is not set` | No S3 credentials | Set `R2_S3_*` or `R2_PROMOTE_UNCONDITIONAL=1` |
+| `cf is not authenticated` | No active cf session | Run `cf auth login --use-keyring` |
+| `R2_S3_ENDPOINT is not set` | `--promote=s3` without S3 credentials | Set `R2_S3_*` or use the default `cf` promotion |
 | `current changed during promotion` | Another publisher moved `current` | Pull the new generation, merge your changes, and publish again |
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |

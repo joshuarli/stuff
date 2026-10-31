@@ -151,7 +151,7 @@ aggregate host also serves the combined inventory at `/llms.txt`.
 
 ## Deploy
 
-See [docs/PUBLISHING.md](docs/PUBLISHING.md) for prerequisites, R2 credentials, the publish helpers, and verification.
+See [docs/PUBLISHING.md](docs/PUBLISHING.md) for the publish wrapper, prerequisites, optional R2 credentials, and verification.
 
 The Cloudflare Worker in `crates/stuff-worker` serves the same layouts from
 R2. URL routing and response planning live in the crate's Rust code
@@ -185,13 +185,15 @@ Real deploys are manual: `cf deploy` (use `--provision` once to create the
 generation pointer:
 `https://crates.17166969.xyz/current/registry/` (cargo sparse),
 `https://npm.17166969.xyz/current/` (npm), and
-`https://pypi.17166969.xyz/current/simple/` (pip). The publish helpers keep
+`https://pypi.17166969.xyz/current/simple/` (pip). Publish through
+`deploy/publish REGISTRY`, which checks `cf` auth, adopts missing state, and
+runs the matching helper. The helpers keep
 state in `$STUFF_STATE_HOME/<registry>` (default
 `${XDG_STATE_HOME:-$HOME/.local/state}/stuff`), not in the calling checkout;
 that directory is the publication source of truth and should be backed up.
 A directory lock serializes the whole transaction across source repositories.
 Sync a published site to its bucket per registry with
-`deploy/r2-sync.sh SITE_DIR BUCKET [--expected ACTIVE_GEN] [--repair] [--dry-run]`,
+`deploy/r2-sync.sh SITE_DIR BUCKET [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3]`,
 which translates the `current` symlink to a marker object holding the
 generation id (verified against the local R2 simulation). Sync is incremental
 and content-aware: remote objects whose size and content hash match are
@@ -201,20 +203,20 @@ any object count without pagination cursors; uploads run `R2_PUT_JOBS`
 at a time (default 8; 1 against the local simulation, which deadlocked at
 8 concurrent writers). Every sync writes a
 `manifests/<id>.json` for each local generation, verifies every listed object
-remotely, then replaces `current` with an `If-Match` write (or
+remotely, then replaces `current`. Promotion defaults to `cf` for a single
+publisher: it writes `current` with a plain put after the same verification
+and needs no S3 credentials. `--promote=s3` uses `If-Match` (or
 `If-None-Match: *` on first publish); a competing publisher gets 412 instead
 of silently winning. `--expected` additionally pins the generation that must
 already be active. Existing immutable objects with different bytes are
 conflicts; `--repair` is the separate, explicit overwrite path. `--dry-run` lists the
 bucket read-only and prints the object and byte counts it would upload, then stops
-before any upload or promotion (it needs no `R2_S3_*` variables). Conditional
-promotion needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
-`R2_S3_SECRET_ACCESS_KEY`. Without S3 credentials,
-`R2_PROMOTE_UNCONDITIONAL=1` verifies the generation remotely and then moves
-`current` with a plain `cf` put, which does not detect a competing publisher.
-Roll back with
+before any upload or promotion (it needs no `R2_S3_*` variables). S3 promotion
+needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
+`R2_S3_SECRET_ACCESS_KEY`. Roll back with
 `deploy/r2-rollback.sh BUCKET GEN_ID`, which verifies the target generation's
-manifest remotely before moving `current`. Generation-scoped
+manifest remotely before moving `current` and defaults to the same `cf`
+promotion. Generation-scoped
 immutable aliases (`wheels/`, `tarballs/`, `-/tarballs/`) are not uploaded;
 the worker resolves them to the shared store instead, including direct
 `generations/<id>/...` requests. Both `stuff-server`

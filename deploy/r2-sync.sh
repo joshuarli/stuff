@@ -2,6 +2,7 @@
 # Sync one published site directory to an R2 bucket, incrementally, then
 # promote the generation atomically.
 # Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]
+#        [--promote=cf|s3]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #
 # Incremental and content-aware: lists remote objects by prefix (deploy/
@@ -27,12 +28,14 @@
 #
 # Files over the 300 MB single-PUT cap (R2_SINGLE_PUT_MAX overrides) are uploaded via S3 multipart
 # (deploy/r2-multipart.py, stdlib-only python3) using R2_S3_ENDPOINT,
-# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. Conditional promotion
-# needs those variables even when no file is large. R2_PROMOTE_UNCONDITIONAL=1
-# instead promotes through the authenticated `cf` CLI with a plain put of
-# `current` (after the same remote verification): no S3 credentials are needed,
-# but a competing publisher is not detected. Files over the single-PUT cap
-# still need the S3 variables.
+# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. Promotion defaults to
+# `cf` when the S3 variables are not all set, or when --promote=cf is passed:
+# the authenticated `cf` CLI writes `current` with a plain put after the same
+# remote verification. A competing publisher is not detected in that mode.
+# --promote=s3 requires the S3 variables and uses a conditional write
+# (If-Match, or If-None-Match:* on first publish); a competing publisher gets
+# 412. Files over the single-PUT cap still need the S3 variables in either
+# mode.
 #
 # Generation-scoped immutable aliases are NOT uploaded: the worker resolves
 # them to the shared store (see stuff-worker alias_key).
@@ -47,6 +50,7 @@ shift 2
 EXPECTED=""
 REPAIR=""
 DRY_RUN=""
+PROMOTE=""
 while [ $# -gt 0 ]; do
   case $1 in
     --expected)
@@ -62,21 +66,43 @@ while [ $# -gt 0 ]; do
       DRY_RUN=1
       shift
       ;;
+    --promote=cf|--promote=s3)
+      PROMOTE=${1#--promote=}
+      shift
+      ;;
     *)
-      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]"
+      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3]"
       exit 1
       ;;
   esac
 done
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
-elif [ -n "${R2_PROMOTE_UNCONDITIONAL:-}" ]; then
-  echo "note: promoting through cf without a conditional write; a competing publisher would not be detected"
 elif [ -z "$DRY_RUN" ]; then
-  for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-    eval "value=\${$var:-}"
-    [ -n "$value" ] || { echo "FAIL: $var is not set; conditional promotion needs the R2 S3 API"; exit 1; }
-  done
+  if [ -z "$PROMOTE" ]; then
+    if [ -n "${R2_PROMOTE_UNCONDITIONAL:-}" ]; then
+      PROMOTE=cf
+    else
+      PROMOTE=s3
+      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+        eval "value=\${$var:-}"
+        [ -n "$value" ] || { PROMOTE=cf; break; }
+      done
+    fi
+  fi
+  case $PROMOTE in
+    cf)
+      export R2_PROMOTE_UNCONDITIONAL=1
+      echo "note: promoting through cf without a conditional write; a competing publisher would not be detected"
+      ;;
+    s3)
+      unset R2_PROMOTE_UNCONDITIONAL
+      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+        eval "value=\${$var:-}"
+        [ -n "$value" ] || { echo "FAIL: $var is not set; --promote=s3 needs the R2 S3 API"; exit 1; }
+      done
+      ;;
+  esac
 fi
 if [ -n "$REPAIR" ]; then
   export R2_REPAIR=1

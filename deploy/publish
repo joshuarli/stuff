@@ -1,0 +1,146 @@
+#!/bin/sh
+# Publish one registry from the source repository that owns its packages.
+# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3]
+#   mycrates: CRATES="name-a name-b" publish mycrates
+#   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
+#   mypypi:   PACKAGES="name==version" publish mypypi
+#
+# The wrapper checks cf auth, adopts the live publication when the local state
+# is missing, and then runs the matching publish helper. Promotion defaults to
+# cf, which is safe for a single publisher and needs no R2 S3 credentials.
+# --promote=s3 keeps the conditional 412 guard for concurrent publishers.
+set -eu
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
+export STUFF_DIR
+H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+ADOPT_TMP=""
+
+usage() {
+  cat >&2 <<'EOF'
+usage: publish mycrates|mynpm|mypypi [--promote=cf|s3]
+  mycrates: CRATES="name-a name-b" publish mycrates
+  mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
+  mypypi:   PACKAGES="name==version" publish mypypi
+EOF
+}
+
+fail() {
+  echo "publish: $1" >&2
+  exit 2
+}
+
+cleanup() {
+  [ -z "$ADOPT_TMP" ] || rm -rf "$ADOPT_TMP"
+}
+trap cleanup EXIT INT TERM HUP
+
+REGISTRY=${1:-}
+case $REGISTRY in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  mycrates | mynpm | mypypi) ;;
+  *) usage; exit 2 ;;
+esac
+shift
+PROMOTE=cf
+while [ $# -gt 0 ]; do
+  case $1 in
+    --promote=cf | --promote=s3)
+      PROMOTE=${1#--promote=}
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+command -v cf >/dev/null 2>&1 || fail "the cf CLI is not on PATH"
+cf auth whoami >/dev/null 2>&1 || fail "cf is not authenticated; run cf auth login"
+
+case $PROMOTE in
+  cf)
+    export R2_PROMOTE_UNCONDITIONAL=1
+    ;;
+  s3)
+    unset R2_PROMOTE_UNCONDITIONAL
+    for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+      eval "value=\${$var:-}"
+      [ -n "$value" ] || fail "$var is not set; --promote=s3 needs the R2 S3 API"
+    done
+    ;;
+esac
+
+adopt_mycrates() {
+  echo "publish: no mycrates state at $STATE_DIR; adopting the live publication" >&2
+  cargo build -q -p mycrates --manifest-path "$STUFF_DIR/Cargo.toml"
+  mkdir -p "$H"
+  ADOPT_TMP=$(mktemp -d "$H/mycrates-adopt.XXXXXX")
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mycrates "$ADOPT_TMP"
+  "$STUFF_DIR/target/debug/mycrates" init --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
+  "$STUFF_DIR/target/debug/mycrates" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
+  "$STUFF_DIR/target/debug/mycrates" adopt --from-site "$ADOPT_TMP" --state-dir "$STATE_DIR"
+  rm -rf "$ADOPT_TMP"
+  ADOPT_TMP=""
+}
+
+adopt_mynpm() {
+  echo "publish: no mynpm publication at $SITE_DIR; adopting the live publication" >&2
+  cargo build -q -p mynpm --manifest-path "$STUFF_DIR/Cargo.toml"
+  mkdir -p "$SITE_DIR"
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mynpm "$SITE_DIR/mirror"
+  "$STUFF_DIR/target/debug/mynpm" adopt --site-dir "$SITE_DIR"
+}
+
+adopt_mypypi() {
+  echo "publish: no mypypi publication at $SITE_DIR; adopting the live publication" >&2
+  mkdir -p "$H"
+  python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mypypi "$SITE_DIR"
+}
+
+case $REGISTRY in
+  mycrates)
+    [ -n "${CRATES:-}" ] || fail "CRATES is empty"
+    STATE_DIR=${STATE_DIR:-$H/mycrates/state}
+    SITE_DIR=${SITE_DIR:-$H/mycrates/site}
+    PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
+    if [ -z "$(find "$STATE_DIR/native" "$STATE_DIR/upstream" -type f -print -quit 2>/dev/null)" ]; then
+      adopt_mycrates
+    fi
+    export STATE_DIR SITE_DIR PUBLIC_URL
+    "$STUFF_DIR/deploy/publish-mycrates.sh"
+    ;;
+  mynpm)
+    [ -n "${LOCKFILE:-}" ] || fail "LOCKFILE is empty"
+    [ -n "${PROJECT:-}" ] || fail "PROJECT is empty"
+    SITE_DIR=${SITE_DIR:-$H/mynpm/site}
+    if [ ! -e "$SITE_DIR/mirror/current" ]; then
+      if [ -d "$SITE_DIR/mirror" ] && [ -n "$(ls -A "$SITE_DIR/mirror" 2>/dev/null)" ]; then
+        fail "$SITE_DIR/mirror exists without current; refusing to overwrite it"
+      fi
+      adopt_mynpm
+    fi
+    export SITE_DIR
+    "$STUFF_DIR/deploy/publish-mynpm.sh"
+    ;;
+  mypypi)
+    [ -n "${PACKAGES:-}" ] || fail "PACKAGES is empty"
+    SITE_DIR=${SITE_DIR:-$H/mypypi/site}
+    if [ ! -e "$SITE_DIR/current" ]; then
+      if [ -d "$SITE_DIR" ] && [ -n "$(ls -A "$SITE_DIR" 2>/dev/null)" ]; then
+        fail "$SITE_DIR exists without current; refusing to overwrite it"
+      fi
+      adopt_mypypi
+    fi
+    export SITE_DIR
+    "$STUFF_DIR/deploy/publish-mypypi.sh"
+    ;;
+esac
