@@ -64,7 +64,8 @@ while [ $# -gt 0 ]; do
 done
 
 command -v cf >/dev/null 2>&1 || fail "the cf CLI is not on PATH"
-cf auth whoami >/dev/null 2>&1 || fail "cf is not authenticated; run cf auth login"
+cf auth whoami 2>/dev/null | grep -q '"authenticated"[[:space:]]*:[[:space:]]*true' ||
+  fail "cf is not authenticated; run cf auth login"
 
 case $PROMOTE in
   cf)
