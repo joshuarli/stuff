@@ -24,18 +24,6 @@ def git(*arguments: str, cwd: Path | None = None) -> str:
     return result.stdout.strip()
 
 
-@pytest.fixture
-def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    global_config = tmp_path / "gitconfig"
-    global_config.write_text(
-        "[user]\n\tname = Test User\n\temail = test@example.invalid\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
-    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "0")
-
-
 def make_catalog(tmp_path: Path) -> Catalog:
     path = tmp_path / "catalog.toml"
     path.write_text(
