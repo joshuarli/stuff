@@ -6,7 +6,7 @@
 #
 # Required env: PACKAGES="name==version ..." (space-separated requirements).
 # Optional env (defaults shown):
-#   STUFF_DIR=../stuff
+#   STUFF_DIR=../stuff PUBLIC_URL=https://pypi.17166969.xyz
 #   BUCKET=stuff-mypypi
 #   STUFF_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/stuff
 #   STATE_DIR=$STUFF_STATE_HOME/mypypi/state SITE_DIR=$STUFF_STATE_HOME/mypypi/site
@@ -21,6 +21,7 @@
 # serialized, so publishing from another source repository extends one index.
 set -eu
 STUFF_DIR=${STUFF_DIR:-../stuff}
+PUBLIC_URL=${PUBLIC_URL:-https://pypi.17166969.xyz}
 BUCKET=${BUCKET:-stuff-mypypi}
 STUFF_STATE_HOME=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
 STATE_DIR=${STATE_DIR:-$STUFF_STATE_HOME/mypypi/state}
@@ -81,6 +82,9 @@ cat > "$CONFIG_FILE" <<EOF
 name = "registry-pub"
 version = "0.1.0"
 requires-python = "$PYTHON_REQ"
+
+[tool.mypypi]
+public_base_url = "$PUBLIC_URL"
 
 [tool.mypypi.targets]
 platforms = ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-arm64"]

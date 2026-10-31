@@ -11,6 +11,7 @@ pub struct ProjectSettings {
     pub python_version: pep440_rs::Version,
     pub platforms: Vec<String>,
     pub linux_repair_policy: String,
+    pub public_base_url: String,
 }
 
 impl ProjectSettings {
@@ -110,13 +111,39 @@ pub fn parse_project_settings(source: &str) -> Result<ProjectSettings> {
     if policy.is_empty() || policy.trim() != policy {
         return Err(fail("Linux repair policy must be a non-empty name"));
     }
+    let public_base_url = match mypypi.get("public_base_url") {
+        Some(value) => {
+            let text = value
+                .as_str()
+                .ok_or_else(|| fail("public_base_url must be a URL"))?;
+            parse_public_base_url(text)?
+        }
+        None => stuff_catalog::DEFAULT_PYPI_ORIGIN.to_string(),
+    };
     Ok(ProjectSettings {
         python_specifier: specifier,
         python_specifier_text: requires_python.to_string(),
         python_version,
         platforms,
         linux_repair_policy: policy.to_string(),
+        public_base_url,
     })
+}
+
+fn parse_public_base_url(text: &str) -> Result<String> {
+    let parsed: url::Url = text
+        .parse()
+        .map_err(|_| fail(format!("public_base_url is not a valid URL: {text}")))?;
+    if parsed.scheme() != "https" && parsed.scheme() != "http" {
+        return Err(fail("public_base_url must use https or http"));
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(fail("public_base_url must not contain credentials"));
+    }
+    if parsed.query().is_some() || parsed.fragment().is_some() {
+        return Err(fail("public_base_url must not contain a query or fragment"));
+    }
+    Ok(text.trim_end_matches('/').to_string())
 }
 
 fn python_minor(spec: &pep440_rs::VersionSpecifiers) -> Result<pep440_rs::Version> {
@@ -212,5 +239,32 @@ mod tests {
         let src2 = "[project]\nrequires-python = \">=3.15,<3.16\"\n\n[tool.mypypi.targets]\nplatforms = [\"linux-x86_64\"]\nlinux_repair_policy = \"manylinux_2_28\"\nextra = \"x\"\n";
         let err = parse_project_settings(src2).unwrap_err();
         assert!(err.detail.contains("unknown target setting"));
+    }
+
+    #[test]
+    fn public_base_url_defaults_to_the_published_origin() {
+        let settings = parse_project_settings(&project(">=3.15,<3.16")).unwrap();
+        assert_eq!(settings.public_base_url, stuff_catalog::DEFAULT_PYPI_ORIGIN);
+    }
+
+    #[test]
+    fn public_base_url_is_configurable_and_normalized() {
+        let src = project(">=3.15,<3.16").replace(
+            "[tool.mypypi.targets]",
+            "[tool.mypypi]\npublic_base_url = \"https://pypi.example.test/mirror/\"\n\n[tool.mypypi.targets]",
+        );
+        let settings = parse_project_settings(&src).unwrap();
+        assert_eq!(settings.public_base_url, "https://pypi.example.test/mirror");
+    }
+
+    #[test]
+    fn rejects_invalid_public_base_url() {
+        for url in ["not a url", "ftp://pypi.example.test", "https://user:pass@pypi.example.test"] {
+            let src = project(">=3.15,<3.16").replace(
+                "[tool.mypypi.targets]",
+                &format!("[tool.mypypi]\npublic_base_url = \"{url}\"\n\n[tool.mypypi.targets]"),
+            );
+            assert!(parse_project_settings(&src).is_err(), "{url}");
+        }
     }
 }

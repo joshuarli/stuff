@@ -183,13 +183,14 @@ case $REGISTRY in
   mypypi)
     [ -n "${PACKAGES:-}" ] || fail "PACKAGES is empty"
     SITE_DIR=${SITE_DIR:-$H/mypypi/site}
+    PUBLIC_URL=${PUBLIC_URL:-https://pypi.17166969.xyz}
     if [ ! -e "$SITE_DIR/current" ]; then
       if [ -d "$SITE_DIR" ] && [ -n "$(ls -A "$SITE_DIR" 2>/dev/null)" ]; then
         fail "$SITE_DIR exists without current; refusing to overwrite it"
       fi
       adopt_mypypi
     fi
-    export SITE_DIR
+    export SITE_DIR PUBLIC_URL
     "$STUFF_DIR/deploy/publish-mypypi.sh"
     ;;
 esac

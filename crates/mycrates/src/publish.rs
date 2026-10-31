@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use stuff_store::{sync_immutable_file, HashAlg, Site, sync_tree, write_file_durable};
 
-const RENDERER_VERSION: u32 = 3;
+const RENDERER_VERSION: u32 = 4;
 
 #[derive(Debug, Clone)]
 pub struct PublishResult {
@@ -194,7 +194,7 @@ impl<'a> Publisher<'a> {
         let catalog_inputs = catalog_inputs(&native_records, &upstream_records);
         let mut catalog = stuff_catalog::cargo_catalog(stuff_catalog::FINGERPRINT_GENERATION, catalog_inputs)
             .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
-        let catalog_fingerprint = stuff_catalog::catalog_fingerprint(&catalog);
+        let catalog_fingerprint = stuff_catalog::catalog_fingerprint(&catalog, &self.public_base_url);
 
         let mut canonical_text = format!("v:{RENDERER_VERSION}\ncatalog:{catalog_fingerprint}\n");
         for ((view, path), sha) in &manifest {
@@ -208,7 +208,7 @@ impl<'a> Publisher<'a> {
         catalog.generation = gen_id.clone();
         let catalog_json = stuff_catalog::render_catalog_json(&catalog);
         let catalog_html = stuff_catalog::render_html(&catalog);
-        let catalog_llms = stuff_catalog::render_llms_txt(&catalog);
+        let catalog_llms = stuff_catalog::render_llms_txt(&catalog, &self.public_base_url);
         write_file_durable(&staging_dir.join("catalog.json"), catalog_json.as_bytes())?;
         write_file_durable(&staging_dir.join("index.html"), catalog_html.as_bytes())?;
         write_file_durable(&staging_dir.join("llms.txt"), catalog_llms.as_bytes())?;

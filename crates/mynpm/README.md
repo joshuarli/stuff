@@ -44,8 +44,10 @@ Contract: inventory `schemaVersion` is 2 until a metadata-only record exists
 and 3 afterwards (`metadataOnly` array), so existing state loads unchanged and
 stays byte-identical until `fetch` records one; older binaries cannot read a
 version 3 inventory. Publication renderer 6 adds `metadataOnly` to
-`manifest.json` and stub-only packuments; generations of renderer 1 to 5 stay
-valid.
+`manifest.json` and stub-only packuments; generation renderer 7 renders
+`llms.txt` with each generation's configured `publicBaseUrl` so a deployment
+at another origin publishes its own registry instructions. Generations of
+renderer 1 to 6 stay valid.
 
 ## Adopting a pulled publication
 

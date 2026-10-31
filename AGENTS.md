@@ -54,7 +54,7 @@ for repair.
   per-ecosystem; only serving/storage/generation code is shared.
 - `tests/fixtures` are the parity corpus for lockfiles, packuments,
   indexes and archives. Do not delete fixtures while Rust tests use them.
-- Published generation formats stay loadable: mycrates renderer 3, mynpm
-  renderer 6 with inventory schemas 2 and 3, mypypi `mypypi-simple-html-v4`.
+- Published generation formats stay loadable: mycrates renderer 4, mynpm
+  renderer 7 with inventory schemas 2 and 3, mypypi `mypypi-simple-html-v5`.
   A format change updates the owning crate README and keeps older
   generations readable.

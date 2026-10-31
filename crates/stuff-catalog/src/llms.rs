@@ -2,6 +2,52 @@
 
 use crate::model::{Catalog, Registry};
 
+pub const DEFAULT_CARGO_ORIGIN: &str = "https://crates.17166969.xyz";
+pub const DEFAULT_NPM_ORIGIN: &str = "https://npm.17166969.xyz";
+pub const DEFAULT_PYPI_ORIGIN: &str = "https://pypi.17166969.xyz";
+pub const DEFAULT_UNIFIED_ORIGIN: &str = "https://stuff.17166969.xyz";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CatalogOrigins {
+    pub cargo: String,
+    pub npm: String,
+    pub pypi: String,
+    pub unified: String,
+}
+
+impl CatalogOrigins {
+    pub fn new(cargo: impl Into<String>, npm: impl Into<String>, pypi: impl Into<String>) -> Self {
+        Self {
+            cargo: trim_origin(cargo.into()),
+            npm: trim_origin(npm.into()),
+            pypi: trim_origin(pypi.into()),
+            unified: DEFAULT_UNIFIED_ORIGIN.to_string(),
+        }
+    }
+
+    pub fn for_registry(&self, registry: Registry) -> &str {
+        match registry {
+            Registry::Cargo => &self.cargo,
+            Registry::Npm => &self.npm,
+            Registry::Pypi => &self.pypi,
+        }
+    }
+}
+
+impl Default for CatalogOrigins {
+    fn default() -> Self {
+        Self::new(
+            DEFAULT_CARGO_ORIGIN,
+            DEFAULT_NPM_ORIGIN,
+            DEFAULT_PYPI_ORIGIN,
+        )
+    }
+}
+
+fn trim_origin(origin: String) -> String {
+    origin.trim_end_matches('/').to_string()
+}
+
 fn registry_title(registry: Registry) -> &'static str {
     match registry {
         Registry::Cargo => "Cargo registry",
@@ -10,15 +56,8 @@ fn registry_title(registry: Registry) -> &'static str {
     }
 }
 
-fn registry_origin(registry: Registry) -> &'static str {
-    match registry {
-        Registry::Cargo => "https://crates.17166969.xyz",
-        Registry::Npm => "https://npm.17166969.xyz",
-        Registry::Pypi => "https://pypi.17166969.xyz",
-    }
-}
-
-fn use_section(registry: Registry, generation: &str) -> String {
+fn use_section(registry: Registry, generation: &str, origin: &str) -> String {
+    let origin = origin.trim_end_matches('/');
     let catalog = format!("/generations/{generation}/catalog.json");
     let index = format!("/generations/{generation}/index.html");
     match registry {
@@ -29,7 +68,7 @@ fn use_section(registry: Registry, generation: &str) -> String {
             [source.crates-io]\n\
             replace-with = \"stuff\"\n\
             [source.stuff]\n\
-            registry = \"sparse+https://crates.17166969.xyz/current/registry/\"\n\
+            registry = \"sparse+{origin}/current/registry/\"\n\
             ```\n\
             \n\
             Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). \
@@ -42,7 +81,7 @@ fn use_section(registry: Registry, generation: &str) -> String {
             "Point npm at the registry root under `current/`:\n\
             \n\
             ```\n\
-            registry=https://npm.17166969.xyz/current/\n\
+            registry={origin}/current/\n\
             ```\n\
             \n\
             Packuments live at `current/<name>` (scoped names URL-encode `/` as `%2f`, e.g. `current/@scope%2fpkg`). \
@@ -54,7 +93,7 @@ fn use_section(registry: Registry, generation: &str) -> String {
             "Point pip at the PEP 503 simple index under `current/simple/`:\n\
             \n\
             ```\n\
-            pip install --index-url https://pypi.17166969.xyz/current/simple/ <package>\n\
+            pip install --index-url {origin}/current/simple/ <package>\n\
             ```\n\
             \n\
             Indexes: [simple](/generations/{generation}/simple/index.html) with per-project pages at `current/simple/<project>/`. \
@@ -96,9 +135,9 @@ fn format_package_line(catalog: &Catalog, name: &str, latest: &str, versions: &[
     out
 }
 
-pub fn render_llms_txt(catalog: &Catalog) -> String {
+pub fn render_llms_txt(catalog: &Catalog, origin: &str) -> String {
     let title = registry_title(catalog.registry);
-    let origin = registry_origin(catalog.registry);
+    let origin = origin.trim_end_matches('/');
     let mut out = String::new();
     out.push_str("# ");
     out.push_str(title);
@@ -126,7 +165,7 @@ pub fn render_llms_txt(catalog: &Catalog) -> String {
     out.push_str(&catalog.generation);
     out.push_str("/index.html)\n");
     out.push_str("\n## Use\n\n");
-    out.push_str(&use_section(catalog.registry, &catalog.generation));
+    out.push_str(&use_section(catalog.registry, &catalog.generation, origin));
     out.push_str("\n\n## Packages\n\n");
     if catalog.packages.is_empty() {
         out.push_str("No packages published in this generation.\n");
@@ -140,7 +179,7 @@ pub fn render_llms_txt(catalog: &Catalog) -> String {
     out
 }
 
-pub fn render_unified_llms_txt(catalogs: &[Catalog]) -> String {
+pub fn render_unified_llms_txt(catalogs: &[Catalog], origins: &CatalogOrigins) -> String {
     let total_packages: usize = catalogs.iter().map(|c| c.package_count()).sum();
     let total_versions: usize = catalogs.iter().map(|c| c.version_count()).sum();
     let mut sorted: Vec<&Catalog> = catalogs.iter().collect();
@@ -154,13 +193,15 @@ pub fn render_unified_llms_txt(catalogs: &[Catalog]) -> String {
     out.push_str(if total_versions == 1 { " version " } else { " versions " });
     out.push_str("across ");
     out.push_str(&sorted.len().to_string());
-    out.push_str(" registries. Aggregate browser: https://stuff.17166969.xyz/ .\n");
+    out.push_str(" registries. Aggregate browser: ");
+    out.push_str(origins.unified.trim_end_matches('/'));
+    out.push_str("/ .\n");
     out.push_str("\n## Registries\n\n");
     for catalog in &sorted {
         out.push_str("- ");
         out.push_str(registry_title(catalog.registry));
         out.push_str(" (");
-        out.push_str(registry_origin(catalog.registry));
+        out.push_str(origins.for_registry(catalog.registry).trim_end_matches('/'));
         out.push_str("): generation `");
         out.push_str(&catalog.generation);
         out.push_str("`, ");
@@ -172,9 +213,17 @@ pub fn render_unified_llms_txt(catalogs: &[Catalog]) -> String {
     }
     out.push_str("\n## Use\n\n");
     out.push_str("Per-registry `llms.txt` files live at the registry roots (`/llms.txt`, pinned under `current/llms.txt` and `generations/<id>/llms.txt`):\n\n");
-    out.push_str("- Cargo: https://crates.17166969.xyz/llms.txt\n");
-    out.push_str("- npm: https://npm.17166969.xyz/llms.txt\n");
-    out.push_str("- PyPI: https://pypi.17166969.xyz/llms.txt\n");
+    for registry in [Registry::Cargo, Registry::Npm, Registry::Pypi] {
+        out.push_str("- ");
+        out.push_str(match registry {
+            Registry::Cargo => "Cargo",
+            Registry::Npm => "npm",
+            Registry::Pypi => "PyPI",
+        });
+        out.push_str(": ");
+        out.push_str(origins.for_registry(registry).trim_end_matches('/'));
+        out.push_str("/llms.txt\n");
+    }
     for catalog in &sorted {
         out.push_str("\n## ");
         out.push_str(registry_title(catalog.registry));
@@ -210,7 +259,7 @@ mod tests {
 
     #[test]
     fn per_registry_llms_txt_shape() {
-        let text = render_llms_txt(&cargo_fixture());
+        let text = render_llms_txt(&cargo_fixture(), DEFAULT_CARGO_ORIGIN);
         assert!(text.starts_with("# Cargo registry\n"));
         assert!(text.contains("> Static snapshot for LLMs. Generation `gen1`"));
         assert!(text.contains("[catalog.json](/generations/gen1/catalog.json)"));
@@ -235,6 +284,37 @@ mod tests {
     }
 
     #[test]
+    fn render_uses_each_registry_origin() {
+        let cargo = render_llms_txt(&cargo_fixture(), "https://cargo.example.test/mirror/");
+        assert!(cargo.contains("- Origin: https://cargo.example.test/mirror\n"));
+        assert!(cargo.contains("sparse+https://cargo.example.test/mirror/current/registry/"));
+        assert!(!cargo.contains("crates.17166969.xyz"));
+
+        let npm = render_llms_txt(
+            &npm_catalog(
+                "g",
+                vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string() }],
+                &std::collections::BTreeMap::new(),
+            )
+            .unwrap(),
+            "https://npm.example.test",
+        );
+        assert!(npm.contains("registry=https://npm.example.test/current/"));
+        assert!(!npm.contains("npm.17166969.xyz"));
+
+        let pypi = render_llms_txt(
+            &pypi_catalog(
+                "g",
+                vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false }],
+            )
+            .unwrap(),
+            "https://pypi.example.test",
+        );
+        assert!(pypi.contains("--index-url https://pypi.example.test/current/simple/"));
+        assert!(!pypi.contains("pypi.17166969.xyz"));
+    }
+
+    #[test]
     fn npm_and_pypi_sections_differ() {
         let npm = npm_catalog(
             "g",
@@ -242,7 +322,7 @@ mod tests {
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let text = render_llms_txt(&npm);
+        let text = render_llms_txt(&npm, DEFAULT_NPM_ORIGIN);
         assert!(text.starts_with("# npm registry\n"));
         assert!(text.contains("registry=https://npm.17166969.xyz/current/"));
         assert!(text.contains("`@mine/utils`"));
@@ -252,7 +332,7 @@ mod tests {
             vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false }],
         )
         .unwrap();
-        let text = render_llms_txt(&pypi);
+        let text = render_llms_txt(&pypi, DEFAULT_PYPI_ORIGIN);
         assert!(text.starts_with("# PyPI registry\n"));
         assert!(text.contains("--index-url https://pypi.17166969.xyz/current/simple/"));
     }
@@ -260,7 +340,7 @@ mod tests {
     #[test]
     fn empty_catalog_reports_no_packages() {
         let catalog = cargo_catalog("g", vec![]).unwrap();
-        let text = render_llms_txt(&catalog);
+        let text = render_llms_txt(&catalog, DEFAULT_CARGO_ORIGIN);
         assert!(text.contains("No packages published"));
     }
 
@@ -273,7 +353,7 @@ mod tests {
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let text = render_unified_llms_txt(&[npm, cargo]);
+        let text = render_unified_llms_txt(&[npm, cargo], &CatalogOrigins::default());
         assert!(text.starts_with("# stuff registries\n"));
         assert!(text.contains("## Registries"));
         assert!(text.contains("https://crates.17166969.xyz/llms.txt"));
@@ -281,5 +361,29 @@ mod tests {
         assert!(text.contains("## npm registry"));
         assert!(text.contains("`h12tiny`"));
         assert!(text.contains("`pkg`"));
+    }
+
+    #[test]
+    fn unified_llms_txt_uses_configured_origins() {
+        let cargo = cargo_fixture();
+        let npm = npm_catalog(
+            "g2",
+            vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string() }],
+            &std::collections::BTreeMap::new(),
+        )
+        .unwrap();
+        let mut origins = CatalogOrigins::new(
+            "https://cargo.example.test",
+            "https://npm.example.test",
+            "https://pypi.example.test",
+        );
+        origins.unified = "https://stuff.example.test".to_string();
+        let text = render_unified_llms_txt(&[npm, cargo], &origins);
+        assert!(text.contains("Aggregate browser: https://stuff.example.test/ ."));
+        assert!(text.contains("Cargo registry (https://cargo.example.test)"));
+        assert!(text.contains("- Cargo: https://cargo.example.test/llms.txt"));
+        assert!(text.contains("- npm: https://npm.example.test/llms.txt"));
+        assert!(text.contains("- PyPI: https://pypi.example.test/llms.txt"));
+        assert!(!text.contains("17166969.xyz"));
     }
 }

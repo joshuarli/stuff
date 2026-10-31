@@ -236,7 +236,12 @@ fn run_render(parsed: &stuff::cli::Parsed) -> Result<()> {
     let sources = RegistrySources::from_parsed(parsed);
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let body = if output.ends_with(".txt") || output.ends_with(".md") {
-        stuff_catalog::render_unified_llms_txt(&catalogs)
+        let origins = stuff_catalog::CatalogOrigins::new(
+            &sources.cargo_base,
+            &sources.npm_base,
+            &sources.pypi_base,
+        );
+        stuff_catalog::render_unified_llms_txt(&catalogs, &origins)
     } else {
         stuff_catalog::render_unified(&catalogs)
     };

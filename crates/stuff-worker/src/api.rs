@@ -328,7 +328,10 @@ fn render_unified_json(catalogs_json: &str, body: UnifiedBody) -> String {
     catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
     let (kind, body) = match body {
         UnifiedBody::Html => ("html", stuff_catalog::render_unified(&catalogs)),
-        UnifiedBody::Markdown => ("markdown", stuff_catalog::render_unified_llms_txt(&catalogs)),
+        UnifiedBody::Markdown => (
+            "markdown",
+            stuff_catalog::render_unified_llms_txt(&catalogs, &stuff_catalog::CatalogOrigins::default()),
+        ),
     };
     to_json(
         &UnifiedJson {

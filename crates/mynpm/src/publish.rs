@@ -81,9 +81,14 @@ fn generation_payload(
     if sealed_catalog {
         let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
             .map_err(Error::Operation)?;
+        let origin = if renderer >= 7 {
+            public_base_url
+        } else {
+            stuff_catalog::DEFAULT_NPM_ORIGIN
+        };
         payload.insert(
             "catalogFingerprint".to_string(),
-            deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog)),
+            deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog, origin)),
         );
     }
     Ok(deser_value::Value::from(payload))
@@ -205,7 +210,7 @@ fn parse_manifest(text: &str, path: &Path) -> Result<GenerationManifest> {
         }
     }
     let schema_ok = record.get("schemaVersion").unwrap_or(&null).as_u64() == Some(1);
-    let renderer_ok = (1..=6).contains(&renderer);
+    let renderer_ok = (1..=7).contains(&renderer);
     let base_ok = record.get("publicBaseUrl").unwrap_or(&null).as_str().is_some();
     let gen_id = record.get("generationId").unwrap_or(&null).as_str().unwrap_or("").to_string();
     let artifacts_ok = record.get("artifacts").unwrap_or(&null).as_seq().is_some();
@@ -419,7 +424,12 @@ fn validate_generation(
     if manifest.renderer_version >= 5 && seal == Seal::Current {
         let catalog = catalog_for(id, &manifest.artifacts, &files)
             .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
-        let expected_llms = stuff_catalog::render_llms_txt(&catalog);
+        let origin = if manifest.renderer_version >= 7 {
+            manifest.public_base_url.as_str()
+        } else {
+            stuff_catalog::DEFAULT_NPM_ORIGIN
+        };
+        let expected_llms = stuff_catalog::render_llms_txt(&catalog, origin);
         let actual_llms = read_regular_file(&generation_dir.join("llms.txt"))?;
         if actual_llms != expected_llms.as_bytes() {
             return Err(Error::Corrupt(format!("generation llms.txt does not match its manifest: {id}")));
@@ -803,7 +813,10 @@ fn ensure_generation(
             write_durable_file(&tmp.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog).as_bytes())?;
             write_durable_file(&tmp.join("index.html"), stuff_catalog::render_html(&catalog).as_bytes())?;
             if manifest.renderer_version >= 5 {
-                write_durable_file(&tmp.join("llms.txt"), stuff_catalog::render_llms_txt(&catalog).as_bytes())?;
+                write_durable_file(
+                    &tmp.join("llms.txt"),
+                    stuff_catalog::render_llms_txt(&catalog, &manifest.public_base_url).as_bytes(),
+                )?;
             }
         }
         let manifest_text = canonical_json(&manifest_value(

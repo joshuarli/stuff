@@ -1158,7 +1158,7 @@ fn command_publish(
             }
         }
     }
-    let current = crate::store::publish(&set.artifacts, &paths.output, &yanked)?;
+    let current = crate::store::publish(&set.artifacts, &paths.output, &yanked, &settings.public_base_url)?;
     println!(
         "published {} new wheel(s) at {}; {} wheel-target pair(s) had no importable modules",
         set.artifacts.len(),

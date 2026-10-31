@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 pub const FINGERPRINT_GENERATION: &str = "fingerprint";
 
-pub fn catalog_fingerprint(catalog: &Catalog) -> String {
+pub fn catalog_fingerprint(catalog: &Catalog, origin: &str) -> String {
     let mut copy = catalog.clone();
     copy.generation = FINGERPRINT_GENERATION.to_string();
     let mut hasher = Sha256::new();
@@ -13,13 +13,14 @@ pub fn catalog_fingerprint(catalog: &Catalog) -> String {
     hasher.update(b"\0");
     hasher.update(render_html(&copy).as_bytes());
     hasher.update(b"\0");
-    hasher.update(render_llms_txt(&copy).as_bytes());
+    hasher.update(render_llms_txt(&copy, origin).as_bytes());
     format!("{:x}", hasher.finalize())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::llms::DEFAULT_CARGO_ORIGIN;
     use crate::model::{CargoInput, CargoSource, cargo_catalog};
 
     fn catalog(version: &str) -> Catalog {
@@ -39,7 +40,17 @@ mod tests {
     fn fingerprint_ignores_generation_but_covers_rendered_content() {
         let first = catalog("1.0.0");
         let second = catalog("1.0.1");
-        assert_eq!(catalog_fingerprint(&first), catalog_fingerprint(&first));
-        assert_ne!(catalog_fingerprint(&first), catalog_fingerprint(&second));
+        assert_eq!(
+            catalog_fingerprint(&first, DEFAULT_CARGO_ORIGIN),
+            catalog_fingerprint(&first, DEFAULT_CARGO_ORIGIN)
+        );
+        assert_ne!(
+            catalog_fingerprint(&first, DEFAULT_CARGO_ORIGIN),
+            catalog_fingerprint(&second, DEFAULT_CARGO_ORIGIN)
+        );
+        assert_ne!(
+            catalog_fingerprint(&first, DEFAULT_CARGO_ORIGIN),
+            catalog_fingerprint(&first, "https://cargo.example.test")
+        );
     }
 }

@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use crate::inventory::{canonical_json, validate_artifact_record, ArtifactRecord, MetadataOnlyRecord};
 
-pub const RENDERER_VERSION: u32 = 6;
+pub const RENDERER_VERSION: u32 = 7;
 
 #[derive(Debug, Clone)]
 pub struct PackumentFile {
@@ -286,7 +286,7 @@ pub fn render_packument_files(
     renderer: Option<u32>,
 ) -> Result<Vec<PackumentFile>> {
     let renderer = renderer.unwrap_or(RENDERER_VERSION);
-    if !(1..=6).contains(&renderer) {
+    if !(1..=7).contains(&renderer) {
         return Err(Error::Input(format!("unsupported renderer version: {renderer}")));
     }
     if renderer < 6 && !metadata_only.is_empty() {

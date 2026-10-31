@@ -174,6 +174,15 @@ fn site_dir_for(name: &str, sources: &RegistrySources) -> PathBuf {
     PathBuf::from(raw)
 }
 
+fn origin_for(name: &str, sources: &RegistrySources) -> String {
+    let base = match name {
+        "cargo" => &sources.cargo_base,
+        "npm" => &sources.npm_base,
+        _ => &sources.pypi_base,
+    };
+    base.trim_end_matches('/').to_string()
+}
+
 fn generation_dir_for(site_dir: &std::path::Path, catalog: &stuff_catalog::Catalog) -> Option<PathBuf> {
     let direct = site_dir.join("catalog.json");
     if site_dir.join("current").symlink_metadata().is_err() && direct.is_file() {
@@ -201,7 +210,7 @@ fn run_local_checks(
         checks.push(Check::pass(format!("{name} endpoints"), "empty catalog: nothing further to check"));
         return;
     }
-    let expected_llms = stuff_catalog::render_llms_txt(catalog);
+    let expected_llms = stuff_catalog::render_llms_txt(catalog, &origin_for(name, sources));
     match std::fs::read_to_string(gen_dir.join("llms.txt")) {
         Ok(actual) if actual == expected_llms => {
             checks.push(Check::pass(format!("{name} llms.txt"), "llms.txt matches catalog".to_string()));
@@ -285,7 +294,7 @@ fn run_remote_checks(
     }
     match fetch_bytes(&format!("{base}/current/llms.txt")) {
         Ok((200, body)) => match String::from_utf8(body) {
-            Ok(text) if text == stuff_catalog::render_llms_txt(catalog) => {
+            Ok(text) if text == stuff_catalog::render_llms_txt(catalog, &base) => {
                 checks.push(Check::pass(format!("{name} llms.txt"), "current/llms.txt matches".to_string()));
             }
             Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt does not match catalog".to_string())),
@@ -794,6 +803,46 @@ mod tests {
         std::fs::write(&blob, b"tampered").unwrap();
         let check = sample_local("cargo", &catalog, &site, &gen_dir);
         assert!(!check.ok, "tampered blob must fail");
+    }
+
+    fn sources_for(site: &std::path::Path, cargo_base: &str) -> RegistrySources {
+        RegistrySources {
+            cargo_base: cargo_base.to_string(),
+            npm_base: DEFAULT_NPM_BASE.to_string(),
+            pypi_base: DEFAULT_PYPI_BASE.to_string(),
+            cargo_dir: Some(site.display().to_string()),
+            npm_dir: None,
+            pypi_dir: None,
+        }
+    }
+
+    #[test]
+    fn local_llms_check_uses_the_configured_origin() {
+        let dir = tempfile::tempdir().unwrap();
+        let (catalog, site, gen_dir) = cargo_fixture(dir.path(), b"crate-bytes");
+        let origin = "https://cargo.example.test/mirror";
+        std::fs::write(
+            gen_dir.join("llms.txt"),
+            stuff_catalog::render_llms_txt(&catalog, origin),
+        )
+        .unwrap();
+
+        let mut matching = Vec::new();
+        run_local_checks(&mut matching, "cargo", &catalog, &sources_for(&site, origin), false);
+        let llms = matching.iter().find(|c| c.name == "cargo llms.txt").unwrap();
+        assert!(llms.ok, "{}", llms.detail);
+
+        let mut mismatched = Vec::new();
+        run_local_checks(
+            &mut mismatched,
+            "cargo",
+            &catalog,
+            &sources_for(&site, "https://other.example.test"),
+            false,
+        );
+        let llms = mismatched.iter().find(|c| c.name == "cargo llms.txt").unwrap();
+        assert!(!llms.ok, "doctor must detect an origin mismatch");
+        assert!(llms.detail.contains("does not match catalog"), "{}", llms.detail);
     }
 
     #[test]

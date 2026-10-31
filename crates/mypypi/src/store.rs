@@ -356,9 +356,14 @@ pub fn project_pages(items: &[IndexArtifact]) -> BTreeMap<String, Vec<u8>> {
     pages
 }
 
-pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: &[IndexArtifact]) -> String {
+pub fn generation_id(
+    manifest: &[u8],
+    pages: &BTreeMap<String, Vec<u8>>,
+    items: &[IndexArtifact],
+    public_base_url: &str,
+) -> String {
     let mut h = Sha256::new();
-    h.update(b"mypypi-simple-html-v4\0");
+    h.update(b"mypypi-simple-html-v5\0");
     h.update(manifest);
     let mut names: Vec<&String> = pages.keys().collect();
     names.sort();
@@ -371,7 +376,7 @@ pub fn generation_id(manifest: &[u8], pages: &BTreeMap<String, Vec<u8>>, items: 
         h.update(&item.metadata);
     }
     let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, items);
-    h.update(stuff_catalog::catalog_fingerprint(&catalog).as_bytes());
+    h.update(stuff_catalog::catalog_fingerprint(&catalog, public_base_url).as_bytes());
     format!("{:x}", h.finalize())
 }
 
@@ -393,6 +398,7 @@ fn verify_generation(
     pages: &BTreeMap<String, Vec<u8>>,
     items: &[IndexArtifact],
     id: &str,
+    public_base_url: &str,
 ) -> Result<()> {
     let inv = |d: &str, p: &Path| pub_error(Kind::Integrity, d, Some(p), None);
     let wheels_link = generation.join("wheels");
@@ -437,7 +443,7 @@ fn verify_generation(
     if !md.file_type().is_file() || std::fs::read(&index_path).map(|b| b != expected_html.as_bytes()).unwrap_or(true) {
         return Err(inv("existing package index generation has an invalid catalog page", generation));
     }
-    let expected_llms = stuff_catalog::render_llms_txt(&catalog);
+    let expected_llms = stuff_catalog::render_llms_txt(&catalog, public_base_url);
     let llms_path = generation.join("llms.txt");
     let md = std::fs::symlink_metadata(&llms_path).map_err(|_| inv("existing package index generation has an invalid llms.txt", generation))?;
     if !md.file_type().is_file() || std::fs::read(&llms_path).map(|b| b != expected_llms.as_bytes()).unwrap_or(true) {
@@ -466,9 +472,14 @@ fn remove_staging_owner(generation: &Path) -> Result<()> {
     }
 }
 
-fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> Result<String> {
+fn write_generation(
+    output: &Path,
+    items: &[IndexArtifact],
+    manifest: &[u8],
+    public_base_url: &str,
+) -> Result<String> {
     let pages = project_pages(items);
-    let generation = generation_id(manifest, &pages, items);
+    let generation = generation_id(manifest, &pages, items, public_base_url);
     let generations = output.join("generations");
     ensure_directory(&generations)?;
     let final_dir = generations.join(&generation);
@@ -476,7 +487,7 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
         if !md.file_type().is_dir() || md.file_type().is_symlink() {
             return Err(pub_error(Kind::Integrity, "package index generation is not a real directory", Some(&final_dir), None));
         }
-        verify_generation(&final_dir, manifest, &pages, items, &generation)?;
+        verify_generation(&final_dir, manifest, &pages, items, &generation, public_base_url)?;
         remove_staging_owner(&final_dir)?;
         return Ok(generation);
     }
@@ -506,7 +517,10 @@ fn write_generation(output: &Path, items: &[IndexArtifact], manifest: &[u8]) -> 
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         std::fs::write(staging.join("index.html"), stuff_catalog::render_html(&catalog))
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        std::fs::write(staging.join("llms.txt"), stuff_catalog::render_llms_txt(&catalog))
+        std::fs::write(
+            staging.join("llms.txt"),
+            stuff_catalog::render_llms_txt(&catalog, public_base_url),
+        )
             .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
         // fsync tree: files then dirs (bottom-up)
         let mut dirs = vec![staging.clone()];
@@ -802,6 +816,7 @@ pub fn publish(
     artifacts: &[ValidatedArtifact],
     output: &Path,
     yanked: &BTreeMap<String, Option<String>>,
+    public_base_url: &str,
 ) -> Result<PathBuf> {
     for (filename, reason) in yanked {
         if filename.is_empty() {
@@ -905,7 +920,7 @@ pub fn publish(
         store_wheel(&output, item, &source)?;
     }
     let manifest = manifest_bytes(&items);
-    let generation = write_generation(&output, &items, &manifest)?;
+    let generation = write_generation(&output, &items, &manifest, public_base_url)?;
     if !(output.join("current").is_symlink()
         && std::fs::read_link(output.join("current")).map(|t| t == Path::new(&format!("generations/{generation}"))).unwrap_or(false))
     {
@@ -959,7 +974,7 @@ mod tests {
             b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\nRequires-Python: >=3.15,<3.16\n\n",
             vec![target("macos-arm64")],
         );
-        let current = publish(std::slice::from_ref(&a), &out, &BTreeMap::new()).unwrap();
+        let current = publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
         assert!(current.ends_with("current"));
         let manifest = std::fs::read_to_string(out.join("current").join("manifest.json").canonicalize().unwrap_or(out.join("current").join("manifest.json"))).unwrap_or_else(|_| {
             let link = std::fs::read_link(&current).unwrap();
@@ -971,7 +986,7 @@ mod tests {
         assert_eq!(published.len(), 1);
         assert_eq!(published[0].wheel.filename, "sample_pkg-1.0-py3-none-any.whl");
         // republishing identical bytes is a no-op merge, not a conflict
-        publish(std::slice::from_ref(&a), &out, &BTreeMap::new()).unwrap();
+        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
     }
 
     #[test]
@@ -986,7 +1001,7 @@ mod tests {
             b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\n\n",
             vec![target("macos-arm64")],
         );
-        publish(std::slice::from_ref(&a), &out, &BTreeMap::new()).unwrap();
+        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
         let mut b = make_validated(
             &src,
             "sample_pkg-1.0-py3-none-any.whl",
@@ -996,7 +1011,7 @@ mod tests {
         // force same filename with different bytes but keep identity consistent-ish:
         // rewrite bytes directly to simulate conflict
         b.sha256 = "0".repeat(64);
-        let err = publish(std::slice::from_ref(&b), &out, &BTreeMap::new()).unwrap_err();
+        let err = publish(std::slice::from_ref(&b), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap_err();
         assert!(matches!(err.kind, Kind::Conflict | Kind::Integrity));
     }
 

@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 27
 
-### STUF-20 · P3 · llms.txt ignores the configured registry origin
-
-- **Area:** Config
-- **Where:** `crates/stuff-catalog/src/llms.rs:10-14,32,45,57,175-177`; publishers at `crates/mycrates/src/publish.rs:212`, `crates/mynpm/src/publish.rs:806`, `crates/mypypi/src/store.rs:509`; config at `crates/mycrates/src/cli/config.rs:52-59` and `crates/mynpm/src/config.rs:218`; verification at `crates/stuff/src/doctor.rs:281`.
-- **Problem:** `render_llms_txt` hardcodes the three `17166969.xyz` origins and cannot render the public base URL each publisher already holds. A deployment at another origin publishes Cargo/npm/pip instructions that point clients at somebody else's registry. `doctor` compares the served document against the same origin-blind renderer, so it cannot detect the mismatch.
-- **Recommendation:** Pass the origin (or a registry-to-origin map) into the renderer from each publisher's configured public base URL. Treat the resulting generation-id change as a format change under the AGENTS invariant.
-- **Fix with:** `single-source-of-truth`
-- **Effort:** M
-
 ### STUF-21 · P3 · stuff doctor misresolves advertised local inputs and silently narrows scope
 
 - **Area:** Operability

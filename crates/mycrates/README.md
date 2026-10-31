@@ -28,6 +28,7 @@ site/
 
 - **Static Read Path**: All downloads and index lookups are static HTTP GET requests. No runtime database or application server is needed on the read path.
 - **Atomic Generations**: Publications create a deterministic generation ID from a canonical manifest of index files, link blobs, and atomically update the `current` symlink.
+- **Configured Origins**: The generated `llms.txt` names the configured `public_base_url` in its Cargo instructions and origin, so a deployment at another origin does not point clients at a different registry. Published generations use renderer 4; generations rendered by earlier versions stay readable.
 - **Strict Verification**: Lockfile checksum equals upstream sparse index checksum equals downloaded archive SHA-256.
 
 ## Installation
