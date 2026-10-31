@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from repomod.rules.actions import action_rules
+from repomod.rules.audit_findings import audit_finding_rules
 from repomod.rules.audit_upgrades import audit_upgrade_rules
 from repomod.rules.binary_release import binary_release_rules
 from repomod.rules.consistency import consistency_rules
@@ -35,6 +36,7 @@ def _protection_placeholder(root: Path, repository: Repository) -> list[Finding]
 def rules() -> tuple[Rule, ...]:
     return (
         *action_rules(),
+        *audit_finding_rules(),
         *audit_upgrade_rules(),
         *binary_release_rules(),
         *consistency_rules(),

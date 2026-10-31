@@ -41,7 +41,7 @@ def selected_rules(
         values = [
         rule
         for rule in values
-        if rule.id not in ("topics", "github-protection", "audit-upgrades", "conventional-commits")
+        if rule.id not in ("topics", "github-protection", "audit-upgrades", "audit-vuln", "conventional-commits")
     ]
     return tuple(values)
 

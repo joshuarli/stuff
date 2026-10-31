@@ -1,9 +1,13 @@
 # Dependency audit
 
-`audit-upgrades` is the fleet's own dependabot rule. It reports stale dependencies,
-known vulnerabilities, and registry policy bans. It trusts lockfiles as the
-source of truth for installed versions. Swift is out of scope and is not
-audited.
+The audit rules report stale dependencies, known vulnerabilities, and registry
+policy bans. They trust lockfiles as the source of truth for installed versions.
+Swift is out of scope and is not audited.
+
+`audit-upgrades` is the fixable rule for stale direct dependencies. The
+`audit-lock`, `audit-banned`, `audit-registry`, and `audit-vuln` rules are
+manual. `audit-vuln` queries OSV over the network, so it is excluded from
+`status --offline` along with `audit-upgrades`.
 
 ```sh
 uv run repomod fix --rule audit-upgrades

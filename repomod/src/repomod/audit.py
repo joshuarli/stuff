@@ -19,7 +19,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import Catalog, atomic_write, repository_path
+from repomod.catalog import (
+    GIT_SOURCE_IGNORE_PREFIX,
+    LOCAL_SOURCE_IGNORE_PREFIX,
+    Catalog,
+    atomic_write,
+    repository_path,
+)
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
 from repomod.io import cache_file, read_toml, safe_relative
@@ -1424,7 +1430,10 @@ def _collect_vuln_candidates(
                 candidates.append(LockedDependency("pypi", name, version, False))
     if _has_ecosystem(tags, root, "Cargo.lock", "rust"):
         versions, _ = _cargo_locked_versions(root)
+        local_names = _local_rust_package_names(root)
         for name, version in versions.items():
+            if _normalize_rust_name(name) in local_names:
+                continue
             key = ("crates", name.casefold(), version)
             if key not in seen:
                 seen.add(key)
@@ -1448,6 +1457,13 @@ def _collect_vuln_candidates(
 
 def _source_kind(source: dict[Any, Any]) -> str:
     return "filesystem" if "path" in source else "git"
+
+
+def _source_ignored(repository: Repository, name: str) -> bool:
+    return any(
+        f"{prefix}{name}" in repository.ignored_rules
+        for prefix in (GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX)
+    )
 
 
 def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
@@ -1542,6 +1558,8 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 continue
             seen_specs.add(spec)
             name = _pep508_name(spec) or spec.strip()
+            if _source_ignored(repository, name):
+                continue
             mechanism = spec.partition("@")[2].strip().split(";")[0].strip().strip("\"'")
             message = (
                 f"dependency '{name}' uses {mechanism}; depend on the registry version instead"
@@ -1557,6 +1575,8 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             if isinstance(sources, dict):
                 for name, source in sorted(sources.items()):
                     if isinstance(source, dict) and ("path" in source or "git" in source):
+                        if _source_ignored(repository, str(name)):
+                            continue
                         kind = _source_kind(source)
                         target = source.get("path", source.get("git"))
                         detail = f' "{target}"' if isinstance(target, str) else ""
@@ -1568,6 +1588,8 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
         direct, _ = _rust_direct_dependencies(root)
         for dependency in sorted(direct, key=lambda item: item.name.casefold()):
+            if _source_ignored(repository, dependency.name):
+                continue
             if dependency.has_path and not dependency.has_version:
                 if _is_relative_crate(root, dependency.manifest, dependency.path_value):
                     continue
@@ -1612,6 +1634,8 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             relative_manifest = (project / "package.json").relative_to(root).as_posix()
             for name in sorted(dependencies):
                 if _js_spec_is_filesystem(dependencies[name]):
+                    if _source_ignored(repository, name):
+                        continue
                     if _is_relative_js_dependency(root, project, dependencies[name]):
                         continue
                     spec = dependencies[name].strip()
