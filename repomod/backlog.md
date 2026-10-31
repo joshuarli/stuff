@@ -29,12 +29,22 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 
 - [x] canonical state in `~/.local/state/stuff` (rehearsal result, intermediate generations pruned)
 - [x] read-only plan against the real buckets: 0 conflicts, 0 multipart; put 1607 / 667 / 194 objects (cargo / npm / pypi)
-- [ ] R2 S3 credentials (`cf` is 403 on token management; needs an R2 API token with object read+write on the three buckets) and promotion with `--expected` 127688d2a3bd447af4b9f830 (cargo), c7c458b0e78a9841c1c7de8808d6af5d61957df5ffedbb77760674e93e9bbdb8 (npm), 345ff46c78fe3e1ef597d206d797f0c8389eb1e7a147d8973da43156db11ee2c (pypi)
+- [x] published to R2 through `cf` with `R2_PROMOTE_UNCONDITIONAL=1` (an API token could not be minted: the `cf` login has no token-management scope), so the `current` marker moves with a plain put; cargo f5a1048969baf6ddb0c38a77, npm 76ebe653859c751fe9070c03fd784ac2710de8db2b89b36e4e50b29d91397daa, pypi 469766803c6329cbbf473425a2938a0e0aa7549e116a866eb4f97504f380c64d; `deploy/deployed-smoke.sh` passes
+- [x] delta ingest after repo locks moved (cargo +32 crates, npm +81 versions, laputa-ptytest 0.3.0 for fz)
+- [ ] `make test-r2-live` multipart acceptance (needs R2 S3 credentials and a scratch bucket; no file is over 100 MB so nothing published needs multipart)
 - [ ] known gap: `mypypi add` appends unrestricted duplicate rows for hand-restricted `pyobjc-*` entries; do not re-run `add` against the catalog until fixed
+- [ ] known gap: `mycrates add` pins an empty checksum that `fetch` rejects; ingest through a lock instead
+- [ ] new repo locks must be ingested before they merge (a Cargo.lock or pnpm-lock.yaml version missing from stuff fails CI)
 
 ## Phase C: migrate repositories
 
-- [ ] per repo: `.cargo/config.toml` replace-with, `.npmrc`, uv index, regenerated locks, PRs
+- [x] `registry-sources` fixer (`repomod fix --rule registry-sources`, run with `enforce` flipped locally and uncommitted) writes the cargo source replacement, `.npmrc`, uv index plus darwin/linux `environments`, and relocks `uv.lock`
+- [x] PRs opened for 23 repositories (diff-pretty, pytest-parallel, e, fastermod, fdu, hi-lite, rustybench, srv merged)
+- [ ] remaining PRs: wait for CI after the delta publish; discover, shadowdriver and toolbox are private and CI cannot start (account billing), so verify them locally before merging
+- [ ] default branches already red before this change: ish, h12tiny (also stale `repomod/fix` branch), discover, shadowdriver, toolbox
+- [ ] tm has a dirty checkout; its PR came from a worktree
+- [ ] tansu keeps two git forks (catalog exception); publish h2-futures-lite and hyper-futures-lite to the native registry to remove it
+- [ ] fz's Cargo.lock has a sourceless `laputa-ptytest` entry; regenerate it
 
 ## Phase D: enforcement
 
