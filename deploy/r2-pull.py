@@ -14,7 +14,6 @@ when the bucket has a wheels/ store, the generation's `wheels` symlink to it.
 Other generations are not pulled.
 """
 
-import hashlib
 import json
 import os
 import re
@@ -22,23 +21,12 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
-PAGE = int(os.environ.get("R2_LIST_PAGE", "1000"))
+from r2_common import cf_command, fail, list_page, md5_hex, safe_relative
+
+PAGE = list_page()
 JOBS = int(os.environ.get("R2_PULL_JOBS", "8"))
 RETRIES = 4
 GENERATION_ID = re.compile(r"[A-Za-z0-9_-]+")
-
-
-def fail(msg):
-    print(f"FAIL: {msg}", file=sys.stderr)
-    sys.exit(1)
-
-
-def cf(args, bucket):
-    cmd = ["cf", "r2", "objects"] + args + ["--bucket-name", bucket]
-    state = os.environ.get("CF_LOCAL_STATE")
-    if state:
-        cmd += ["--local", "--persist-to", state]
-    return cmd
 
 
 def list_all(bucket):
@@ -48,7 +36,7 @@ def list_all(bucket):
         args = ["list", "--per-page", str(PAGE)]
         if after:
             args += ["--start-after", after]
-        done = subprocess.run(cf(args, bucket), capture_output=True, text=True)
+        done = subprocess.run(cf_command(args, bucket), capture_output=True, text=True)
         if done.returncode != 0:
             fail(f"listing failed: {done.stderr.strip()}")
         page = json.loads(done.stdout)
@@ -61,7 +49,9 @@ def list_all(bucket):
 
 
 def current_generation(bucket):
-    done = subprocess.run(cf(["get", "current", "--text"], bucket), capture_output=True, text=True)
+    done = subprocess.run(
+        cf_command(["get", "current", "--text"], bucket), capture_output=True, text=True
+    )
     if done.returncode != 0:
         fail(f"cannot read the current marker: {done.stderr.strip()}")
     generation = done.stdout.strip()
@@ -80,13 +70,6 @@ def wanted(key, generation):
     return True
 
 
-def safe_relative(key):
-    parts = key.split("/")
-    if key.startswith("/") or any(p in ("", ".", "..") for p in parts):
-        fail(f"unsafe object key: {key!r}")
-    return os.path.join(*parts)
-
-
 def download(bucket, dest, obj):
     key = obj["key"]
     etag = obj["etag"].strip('"')
@@ -98,15 +81,13 @@ def download(bucket, dest, obj):
     last = ""
     for _ in range(RETRIES):
         with open(tmp, "wb") as out:
-            done = subprocess.run(cf(["get", key], bucket), stdout=out, stderr=subprocess.PIPE)
+            done = subprocess.run(
+                cf_command(["get", key], bucket), stdout=out, stderr=subprocess.PIPE
+            )
         if done.returncode != 0:
             last = done.stderr.decode("utf-8", "replace").strip()
             continue
-        digest = hashlib.md5()
-        with open(tmp, "rb") as f:
-            for chunk in iter(lambda: f.read(1 << 20), b""):
-                digest.update(chunk)
-        if os.path.getsize(tmp) != obj["size"] or digest.hexdigest() != etag:
+        if os.path.getsize(tmp) != obj["size"] or md5_hex(tmp) != etag:
             last = "size or MD5 differs from the listing"
             continue
         os.rename(tmp, path)

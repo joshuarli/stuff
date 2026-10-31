@@ -12,26 +12,12 @@ signed GET, and deletes it. The bucket must permit those operations.
 """
 
 import hashlib
-import importlib.util
 import os
-import pathlib
 import sys
 import tempfile
 import uuid
 
-SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
-
-
-def load(name, filename):
-    spec = importlib.util.spec_from_file_location(name, SCRIPT_DIR / filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def fail(msg):
-    print(f"FAIL: {msg}", file=sys.stderr)
-    sys.exit(1)
+from r2_common import fail, load_sibling, object_url
 
 
 def main():
@@ -43,10 +29,9 @@ def main():
             fail(f"{var} is not set")
     prefix = os.environ.get("R2_ACCEPTANCE_PREFIX", "_stuff-acceptance").strip("/") or "_stuff-acceptance"
     key = f"{prefix}/{uuid.uuid4().hex}.bin"
-    multipart = load("r2_multipart", "r2-multipart.py")
+    multipart = load_sibling("r2_multipart", "r2-multipart.py")
     endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
-    quoted = "/".join(multipart.quote(part) for part in key.split("/"))
-    url = f"{endpoint}/{bucket}/{quoted}"
+    url = object_url(endpoint, bucket, key)
     payload = os.urandom(1024 * 1024)
     fd, path = tempfile.mkstemp(prefix="stuff-multipart-live-")
     try:

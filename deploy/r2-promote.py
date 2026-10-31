@@ -17,29 +17,18 @@ for the first publication. A competing publication therefore receives 412
 instead of silently overwriting the winner.
 """
 
-import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
-import urllib.parse
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+from r2_common import cf_command, fail, list_page, load_sibling, object_url, remote_index
+from r2_common import safe_object_key
 
 
 def load_multipart():
-    spec = importlib.util.spec_from_file_location(
-        "r2_multipart", os.path.join(SCRIPT_DIR, "r2-multipart.py")
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def fail(msg):
-    print(f"FAIL: {msg}", file=sys.stderr)
-    sys.exit(1)
+    return load_sibling("r2_multipart", "r2-multipart.py")
 
 
 def header(headers, name):
@@ -59,12 +48,8 @@ def local_args():
     return None
 
 
-def cf(args, text=False):
-    cmd = ["cf", "r2", "objects"] + args
-    state = local_args()
-    if state:
-        cmd += state
-    done = subprocess.run(cmd, capture_output=True)
+def cf(args, bucket=None, text=False):
+    done = subprocess.run(cf_command(args, bucket), capture_output=True)
     if done.returncode != 0:
         fail(f"cf {' '.join(args)} failed: {done.stderr.decode('utf-8', 'replace').strip()}")
     if text:
@@ -73,29 +58,15 @@ def cf(args, text=False):
 
 
 def local_get(bucket, key):
-    cmd = ["cf", "r2", "objects", "get", key, "--bucket-name", bucket, "--text"]
-    state = local_args()
-    if state:
-        cmd += state
-    done = subprocess.run(cmd, capture_output=True)
+    done = subprocess.run(cf_command(["get", key, "--text"], bucket), capture_output=True)
     if done.returncode != 0:
         return None
     return done.stdout.decode("utf-8", "replace")
 
 
-def load_plan_module():
-    spec = importlib.util.spec_from_file_location(
-        "r2_plan", os.path.join(SCRIPT_DIR, "r2-plan.py")
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def local_verify(bucket, manifest):
-    plan = load_plan_module()
     keys = [obj["key"] for obj in manifest["objects"]]
-    index = plan.remote_index(bucket, keys)
+    index = remote_index(bucket, keys, list_page())
     for obj in manifest["objects"]:
         key = obj["key"]
         found = index.get(key)
@@ -119,14 +90,12 @@ def local_put_current(bucket, generation):
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             f.write(generation)
-        cf(["put", "current", "--bucket-name", bucket, "--file", path, "--content-type", "text/plain"])
+        cf(
+            ["put", "current", "--file", path, "--content-type", "text/plain"],
+            bucket,
+        )
     finally:
         os.unlink(path)
-
-
-def object_url(endpoint, bucket, key):
-    quoted = "/".join(urllib.parse.quote(part, safe="") for part in key.split("/"))
-    return f"{endpoint}/{urllib.parse.quote(bucket, safe='')}/{quoted}"
 
 
 def s3_get(bucket, key):
@@ -217,12 +186,7 @@ def parse_manifest(text, generation):
         if not isinstance(obj, dict):
             fail(f"manifest for {generation} contains a non-object entry")
         key = obj.get("key")
-        if (
-            not isinstance(key, str)
-            or not key
-            or key.startswith("/")
-            or any(part in ("", ".", "..") for part in key.split("/"))
-        ):
+        if not safe_object_key(key):
             fail(f"manifest for {generation} contains an unsafe key")
         if not isinstance(obj.get("size"), int) or obj["size"] < 0:
             fail(f"manifest for {generation} contains an invalid size")

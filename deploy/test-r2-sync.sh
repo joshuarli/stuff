@@ -117,6 +117,7 @@ FAKE
 chmod +x "$WORK/bin/cf"
 PLAN=$(PATH="$WORK/bin:$PATH" R2_SINGLE_PUT_MAX=200 python3 -I -c '
 import importlib.util, sys
+sys.path.insert(0, "'"$HERE"'")
 spec = importlib.util.spec_from_file_location("r2_plan", "'"$HERE"'/r2-plan.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)

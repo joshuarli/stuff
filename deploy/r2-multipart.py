@@ -20,21 +20,13 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-PART_SIZE = 64 * 1024 * 1024
+from r2_common import PART_SIZE, fail, object_url, quote
+
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
-
-
-def fail(msg):
-    print(f"FAIL: {msg}", file=sys.stderr)
-    sys.exit(1)
 
 
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
-
-
-def quote(value):
-    return urllib.parse.quote(value, safe="-_.~")
 
 
 def canonical_query(query):
@@ -173,8 +165,7 @@ def main():
         if not os.environ.get(var):
             fail(f"{var} is not set")
     endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
-    quoted = "/".join(quote(part) for part in key.split("/"))
-    base = f"{endpoint}/{bucket}/{quoted}"
+    base = object_url(endpoint, bucket, key)
     size = os.path.getsize(path)
 
     status, body, _ = request("POST", base + "?uploads", b"")
