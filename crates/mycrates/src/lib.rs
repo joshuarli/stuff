@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 
 pub mod acquire;
+pub mod adopt;
 pub mod crate_file;
 pub mod index;
 pub mod json;

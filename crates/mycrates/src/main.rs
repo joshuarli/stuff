@@ -18,6 +18,7 @@ fn main() {
         cli::Command::Plan => mycrates::cli::plan::run(&args.args),
         cli::Command::ImportLock => mycrates::cli::import_lock::run(&args.args),
         cli::Command::Add => mycrates::cli::add::run(&args.args),
+        cli::Command::Adopt => mycrates::cli::adopt::run(&args.args),
         cli::Command::Fetch => mycrates::cli::fetch::run(&args.args),
         cli::Command::Publish => mycrates::cli::publish::run(&args.args),
         cli::Command::ServePublish => mycrates::cli::serve_publish::run(&args.args),

@@ -8,6 +8,8 @@ pub mod plan;
 pub mod import_lock;
 #[path = "cli/add.rs"]
 pub mod add;
+#[path = "cli/adopt.rs"]
+pub mod adopt;
 #[path = "cli/fetch.rs"]
 pub mod fetch;
 #[path = "cli/publish.rs"]
@@ -30,6 +32,7 @@ pub enum Command {
     Plan,
     ImportLock,
     Add,
+    Adopt,
     Fetch,
     Publish,
     ServePublish,
@@ -51,6 +54,7 @@ fn parse_command(s: &str) -> Option<Command> {
         "plan" => Some(Command::Plan),
         "import-lock" => Some(Command::ImportLock),
         "add" => Some(Command::Add),
+        "adopt" => Some(Command::Adopt),
         "fetch" => Some(Command::Fetch),
         "publish" => Some(Command::Publish),
         "serve-publish" => Some(Command::ServePublish),
@@ -129,6 +133,7 @@ pub fn print_help() {
     println!("  plan [--state-dir DIR]");
     println!("  import-lock <Cargo.lock> [--project NAME] [--state-dir DIR]");
     println!("  add <name>@<version> [--state-dir DIR]");
+    println!("  adopt --from-site DIR [--state-dir DIR]");
     println!("  fetch [--state-dir DIR] [--config PATH]");
     println!("  publish [--state-dir DIR] [--site-dir DIR] [--config PATH]");
     println!("  serve-publish [--bind ADDR] [--token-file PATH] [--state-dir DIR] [--site-dir DIR] [--config PATH]");
