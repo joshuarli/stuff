@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from functools import cache
@@ -23,6 +26,16 @@ _CRATES_IO_SOURCE_IDS = frozenset(
 )
 _PRUNED_DIRECTORIES = frozenset({".git", ".venv", ".work", "node_modules", "target"})
 _LISTED_NAMES = 5
+_UV_ENVIRONMENTS = ("sys_platform == 'darwin'", "sys_platform == 'linux'")
+_ALLOWED_PATHS = (
+    ".cargo/config.toml",
+    ".npmrc",
+    "*/.npmrc",
+    "pyproject.toml",
+    "*/pyproject.toml",
+    "uv.lock",
+    "*/uv.lock",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,8 +133,10 @@ class _Report:
         self.root = root
         self.findings: dict[Finding, None] = {}
 
-    def add(self, path: Path, message: str) -> None:
-        finding = violation(self.repository, RULE_ID, _relative(self.root, path), message)
+    def add(self, path: Path, message: str, *, fixable: bool = False) -> None:
+        finding = violation(
+            self.repository, RULE_ID, _relative(self.root, path), message, fixable=fixable
+        )
         self.findings[finding] = None
 
     def git_source(self, path: Path, ecosystem: str, name: str, source: str) -> None:
@@ -134,7 +149,15 @@ class _Report:
         )
 
     def unapproved(
-        self, path: Path, ecosystem: str, source: str, names: list[str], approved: str, hint: str
+        self,
+        path: Path,
+        ecosystem: str,
+        source: str,
+        names: list[str],
+        approved: str,
+        hint: str,
+        *,
+        fixable: bool = False,
     ) -> None:
         listed = ", ".join(sorted(names)[:_LISTED_NAMES])
         more = "" if len(names) <= _LISTED_NAMES else f" and {len(names) - _LISTED_NAMES} more"
@@ -142,6 +165,7 @@ class _Report:
             path,
             f"{len(names)} {ecosystem} package(s) resolve from {source} ({listed}{more}) instead "
             f"of {approved}; {hint}",
+            fixable=fixable,
         )
 
 
@@ -170,7 +194,7 @@ def _cargo_config(report: _Report, policy: RegistryPolicy, directory: Path) -> N
         f'"{policy.cargo_source}"'
     )
     detail = "; ".join(reasons) if reasons else "no .cargo/config.toml found"
-    report.add(directory / ".cargo" / "config.toml", f"{detail}; set {fix}")
+    report.add(directory / ".cargo" / "config.toml", f"{detail}; set {fix}", fixable=True)
 
 
 def _cargo_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
@@ -198,15 +222,19 @@ def _cargo_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
         )
 
 
-def _npmrc_entries(path: Path) -> list[tuple[str, str]]:
+def _npmrc_entries_from(text: str) -> list[tuple[str, str]]:
     entries = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         stripped = line.strip()
         if not stripped or stripped[0] in "#;" or "=" not in stripped:
             continue
         key, _, value = stripped.partition("=")
         entries.append((key.strip(), value.strip()))
     return entries
+
+
+def _npmrc_entries(path: Path) -> list[tuple[str, str]]:
+    return _npmrc_entries_from(path.read_text(encoding="utf-8"))
 
 
 def _npm_config(report: _Report, policy: RegistryPolicy, directory: Path) -> None:
@@ -236,6 +264,7 @@ def _npm_config(report: _Report, policy: RegistryPolicy, directory: Path) -> Non
         report.add(
             directory / ".npmrc",
             f"no .npmrc sets the stuff registry; add registry={policy.npm_registry}",
+            fixable=True,
         )
 
 
@@ -363,6 +392,7 @@ def _python_config(report: _Report, policy: RegistryPolicy, directory: Path) -> 
         directory / target,
         f'no default index points at stuff; add [[tool.uv.index]] url = "{policy.python_index}" '
         "default = true (or [[index]] in uv.toml)",
+        fixable=target == "pyproject.toml",
     )
 
 
@@ -400,6 +430,7 @@ def _uv_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
             names,
             policy.python_index,
             f"set the default index to {policy.python_index} and run uv lock",
+            fixable=True,
         )
 
 
@@ -432,6 +463,123 @@ def registry_source_findings(
     return sorted(report.findings, key=lambda item: (item.file or "", item.message))
 
 
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def _with_cargo_source(text: str, policy: RegistryPolicy) -> str:
+    if "source" in tomllib.loads(text):
+        raise RuntimeError(
+            ".cargo/config.toml already defines [source]; point crates-io at "
+            f"{policy.cargo_source} by hand"
+        )
+    block = (
+        f'[source.crates-io]\nreplace-with = "stuff"\n\n'
+        f'[source.stuff]\nregistry = "{policy.cargo_source}"\n'
+    )
+    return f"{text.rstrip()}\n\n{block}" if text.strip() else block
+
+
+def _with_npm_registry(path: str, text: str, policy: RegistryPolicy) -> str:
+    for key, value in _npmrc_entries_from(text):
+        if key == "registry" or key.endswith(":registry"):
+            raise RuntimeError(f"{path} sets {key}={value}; replace it with registry={policy.npm_registry}")
+    separator = "" if not text or text.endswith("\n") else "\n"
+    return f"{text}{separator}registry={policy.npm_registry}\n"
+
+
+def _with_uv_index(path: str, text: str, policy: RegistryPolicy) -> str:
+    document = tomllib.loads(text)
+    tool = document.get("tool")
+    uv = tool.get("uv") if isinstance(tool, dict) else None
+    uv = uv if isinstance(uv, dict) else {}
+    if "index" in uv:
+        raise RuntimeError(f"{path} already defines tool.uv.index; make the stuff index default by hand")
+    environments = ", ".join(f'"{item}"' for item in _UV_ENVIRONMENTS)
+    updated = text.rstrip("\n") + "\n"
+    if "environments" not in uv:
+        line = f"environments = [{environments}]\n"
+        header = re.search(r"^\[tool\.uv\][ \t]*\n", updated, flags=re.MULTILINE)
+        if header is not None:
+            updated = updated[: header.end()] + line + updated[header.end() :]
+        else:
+            updated += f"\n[tool.uv]\n{line}"
+    updated += f'\n[[tool.uv.index]]\nurl = "{policy.python_index}"\ndefault = true\n'
+    index = tomllib.loads(updated)["tool"]["uv"]["index"]
+    if index != [{"url": policy.python_index, "default": True}]:
+        raise RuntimeError(f"{path} could not be edited safely; add the stuff index by hand")
+    return updated
+
+
+def _relock(root: Path, directories: list[str], plan: dict[str, str]) -> None:
+    if shutil.which("uv") is None:
+        raise RuntimeError("uv is required to relock uv.lock and was not found")
+    with tempfile.TemporaryDirectory(prefix="repomod-registry-sources-") as temporary:
+        work = Path(temporary) / "project"
+        shutil.copytree(
+            root,
+            work,
+            symlinks=True,
+            ignore=lambda _directory, names: {
+                name for name in names if name in _PRUNED_DIRECTORIES
+            },
+        )
+        for relative, text in plan.items():
+            target = work / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+        environment = os.environ | {"UV_CACHE_DIR": str(Path(temporary) / "cache")}
+        for directory in directories:
+            project = work / directory
+            result = subprocess.run(
+                ["uv", "lock"],
+                cwd=project,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=600,
+                check=False,
+            )
+            if result.returncode != 0:
+                detail = result.stderr.strip() or result.stdout.strip()
+                raise RuntimeError(f"uv lock failed in {directory}: {detail}")
+            lock = (project / "uv.lock").relative_to(work).as_posix()
+            plan[lock] = (project / "uv.lock").read_text(encoding="utf-8")
+
+
+def registry_source_plan(
+    root: Path, repository: Repository, policy: RegistryPolicy, *, relock: bool = True
+) -> dict[str, str]:
+    plan: dict[str, str] = {}
+    python_directories: set[str] = set()
+    for finding in registry_source_findings(root, repository, policy):
+        if not finding.fixable or finding.file is None:
+            continue
+        path = PurePosixPath(finding.file)
+        if path.name == "config.toml":
+            plan[".cargo/config.toml"] = _with_cargo_source(
+                _read_text(root / ".cargo" / "config.toml"), policy
+            )
+        elif path.name == ".npmrc":
+            plan[finding.file] = _with_npm_registry(
+                finding.file, _read_text(root / finding.file), policy
+            )
+        elif path.name == "pyproject.toml":
+            plan[finding.file] = _with_uv_index(finding.file, (root / finding.file).read_text(encoding="utf-8"), policy)
+            python_directories.add(path.parent.as_posix())
+        elif path.name == "uv.lock":
+            python_directories.add(path.parent.as_posix())
+    if relock and python_directories:
+        _relock(root, sorted(python_directories), plan)
+    return plan
+
+
+def _fix(root: Path, repository: Repository) -> dict[str, str]:
+    return registry_source_plan(root, repository, _default_policy())
+
+
 def _check(root: Path, repository: Repository) -> list[Finding]:
     policy = _default_policy()
     if not policy.enforce:
@@ -446,8 +594,8 @@ def registry_sources_rules() -> tuple[Rule, ...]:
             "Require dependencies to resolve only from the private stuff registry",
             TagPredicate(),
             _check,
-            None,
-            None,
-            (),
+            _fix,
+            "chore(repomod): resolve dependencies from stuff",
+            _ALLOWED_PATHS,
         ),
     )

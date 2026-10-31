@@ -291,3 +291,44 @@ def test_malformed_git_source_ignore_is_rejected(tmp_path: Path, code: str) -> N
     path = catalog_with(tmp_path, code)
     with pytest.raises((CatalogError, PolicyError)):
         validate_ignored_rules(load_catalog(path, {"HOME": str(tmp_path)}).repositories)
+
+
+def apply(root: Path, plan: dict[str, str]) -> None:
+    for relative, text in plan.items():
+        write(root, relative, text)
+
+
+def test_plan_configures_every_ecosystem_and_clears_the_fixable_findings(tmp_path: Path) -> None:
+    write(tmp_path, "Cargo.lock", "version = 4\n")
+    write(tmp_path, ".cargo/config.toml", "[build]\njobs = 2\n")
+    write(tmp_path, "web/package.json", "{}\n")
+    write(tmp_path, "web/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+    write(tmp_path, "web/.npmrc", "save-exact=true")
+    write(
+        tmp_path,
+        "pyproject.toml",
+        '[project]\nname = "demo"\nversion = "1"\n\n[tool.uv]\ndev-dependencies = []\n',
+    )
+    write(tmp_path, "uv.lock", "version = 1\n")
+
+    plan = registry_sources.registry_source_plan(tmp_path, repository(), POLICY, relock=False)
+    apply(tmp_path, plan)
+
+    assert sorted(plan) == [".cargo/config.toml", "pyproject.toml", "web/.npmrc"]
+    assert "[build]\njobs = 2" in plan[".cargo/config.toml"]
+    assert plan["web/.npmrc"] == f"save-exact=true\nregistry={NPM}\n"
+    assert 'environments = ["sys_platform == \'darwin\'", "sys_platform == \'linux\'"]' in plan["pyproject.toml"]
+    assert messages(tmp_path) == []
+
+
+def test_plan_refuses_to_overwrite_a_different_registry_or_cargo_source(tmp_path: Path) -> None:
+    write(tmp_path, "Cargo.lock", "version = 4\n")
+    write(tmp_path, ".cargo/config.toml", '[source.crates-io]\nreplace-with = "mirror"\n')
+    with pytest.raises(RuntimeError, match="already defines"):
+        registry_sources.registry_source_plan(tmp_path, repository(), POLICY, relock=False)
+
+    other = tmp_path / "other"
+    write(other, "package.json", "{}\n")
+    write(other, ".npmrc", "registry=https://registry.npmjs.org/\n")
+    with pytest.raises(RuntimeError, match="replace it"):
+        registry_sources.registry_source_plan(other, repository(), POLICY, relock=False)
