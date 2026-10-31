@@ -21,7 +21,10 @@ echo "--- stuff doctor --remote --sample-artifacts"
 "$ROOT/target/debug/stuff" doctor --remote --sample-artifacts || fail "remote doctor checks failed"
 
 first_pkg() {
-  "$ROOT/target/debug/stuff" ls --registry "$1" --json 2>/dev/null | jaq -r '.catalogs[0].packages[0] | "\(.name) \(.latest)"' 2>/dev/null || true
+  json=$("$ROOT/target/debug/stuff" ls --registry "$1" --json) || fail "stuff ls --registry $1 failed"
+  printf '%s\n' "$json" |
+    jaq -r '.catalogs[0].packages[0] | if . == null then "null null" else "\(.name) \(.latest)" end' ||
+    fail "could not parse stuff ls output for $1"
 }
 
 NPM_PKG=$(first_pkg npm)

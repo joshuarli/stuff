@@ -46,14 +46,6 @@ Next: 27
 - **Fix with:** `single-source-of-truth`
 - **Effort:** M
 
-### STUF-23 · P3 · Deployment verification can print OK without verifying
-
-- **Area:** Tests
-- **Where:** `deploy/deployed-smoke.sh:27-28` (`first_pkg` swallows every failure); `deploy/test-r2-sync.sh:67` (symlink check reads through the link); `deploy/test-r2-pull.sh` (no Makefile or workflow caller); `.github/workflows/ci.yml:104-106`.
-- **Problem:** `first_pkg` sends `stuff ls` stderr to `/dev/null` and ends with `|| true`, so a missing `jaq`, a failed `stuff ls`, or an unexpected JSON shape becomes `skip: registry is empty` and the script still ends with `OK`. `test-r2-sync.sh` checks `$(sed -n 's/^current$//p' "$SITE/current") = ""`; `sed` follows the symlink and reads the generation's file, so the comparison always passes and the intended "current is still a symlink" assertion does not exist. `test-r2-pull.sh` is cited by AGENTS but never run.
-- **Recommendation:** Fail when `jaq` or `stuff ls` fails, replace the vacuous check with `[ -L "$SITE/current" ]`, and wire both shell tests into the existing `make test-r2` target.
-- **Fix with:** `test-audit`
-- **Effort:** S
 
 ### STUF-25 · P3 · stuff accepts flags no command reads and advertises positionals it rejects
 

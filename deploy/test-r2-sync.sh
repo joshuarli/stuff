@@ -68,7 +68,7 @@ if R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/third.log" 2>&1; then
   exit 1
 fi
 grep -q 'tarballs/pkg-7.tgz' "$WORK/third.log" || { echo "FAIL: conflict did not name the object"; exit 1; }
-check "$(sed -n 's/^current$//p' "$SITE/current" 2>/dev/null || true)" "" "current is still a link"
+[ -L "$SITE/current" ] || { echo "FAIL: current is no longer a symlink"; exit 1; }
 
 R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t --repair > "$WORK/repair.log"
 check "$(grep -c '^put ' "$WORK/repair.log")" "2" "repair puts changed object and manifest"
