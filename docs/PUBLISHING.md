@@ -138,6 +138,8 @@ cf deploy
 
 `cf deploy` runs `npm run build:wasm` before bundling `src/entry.ts`. In this deployment, the three buckets already exist. Use `--provision` only when you add a bucket. Custom domains come from the `[[routes]]` entries in `wrangler.toml`.
 
+`cf deploy` delegates the bundle step to the project-local Wrangler, and the runtime integration test uses Miniflare, so both remain development dependencies.
+
 ## Verify the publication
 
 ```sh
