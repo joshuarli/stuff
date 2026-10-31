@@ -89,7 +89,10 @@ deploy/mypypi-container.sh amd64 linux-x86_64 validate   # Rosetta/QEMU on an ar
 because the userspace and binary are x86_64, not because the code runs on x86
 silicon. Publish the Linux wheels from a real x86_64 runner when that matters.
 `add` takes no `--platform` and rewrites the shared catalog; run it before the
-per-platform commands.
+per-platform commands. The container uses the same
+`$STUFF_STATE_HOME/mypypi/{packages.toml,pyproject.toml,state,site}` paths as
+`deploy/publish mypypi` and mounts them, so every platform must use that one
+state home.
 
 ## Catalog
 

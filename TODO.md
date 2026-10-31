@@ -64,15 +64,6 @@ Next: 27
 - **Fix with:** `durable-state`
 - **Effort:** S
 
-### STUF-18 · P2 · The mypypi container writes state and site paths the publish wrapper never syncs
-
-- **Area:** Config
-- **Where:** `deploy/mypypi-container.sh:14-17` (`.work/registry-pub/*` defaults); `deploy/publish-mypypi.sh:26-31` (`$STUFF_STATE_HOME/mypypi/*`); `deploy/publish-mypypi.sh:34-39` (legacy-state refusal); `README.md` multi-platform recipe.
-- **Problem:** The README runs `deploy/mypypi-container.sh` without env overrides for each Linux platform and says all platforms share one catalog, state, and site. With the defaults, the container writes `.work/registry-pub/*` while `deploy/publish mypypi` syncs `$STUFF_STATE_HOME/mypypi/*`. Linux wheels are never promoted, or an operator syncs the wrong site and promotes a generation missing the macOS wheels. The container also creates the `.work/registry-pub/state` directory that `publish-mypypi.sh` refuses as legacy.
-- **Recommendation:** Default the container to the same `$STUFF_STATE_HOME/mypypi/*` paths as the wrapper (computed on the host and bind-mounted), and remove the `.work/registry-pub` defaults.
-- **Fix with:** `single-source-of-truth`
-- **Effort:** S
-
 ### STUF-20 · P3 · llms.txt ignores the configured registry origin
 
 - **Area:** Config
