@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-38 · P3 · mycrates serve-publish reuses fetch limits, so four idle sockets block publishing
-
-- **Area:** Security
-- **Where:** `crates/mycrates/src/cli/serve_publish.rs:73`, `crates/mycrates/src/cli/serve_publish.rs:82`, `crates/mycrates/src/serve.rs:406`, `crates/mycrates/src/serve.rs:500`
-- **Problem:** The upload deadline is `limits.fetch_timeout_secs.max(30)` and admission uses `limits.concurrent_requests` (the fetch worker count, default 4). Admission happens before the header read and before auth, so four idle connections make every request 503 for 30 s at a time, and tuning fetch changes upload behavior. The documented nginx and Caddy setups proxy only the write API, which limits exposure. Constructed from the code, not run.
-- **Recommendation:** Give `serve-publish` its own connection and upload-timeout limits, and authenticate before admitting a slot for writes.
-- **Fix with:** security
-- **Effort:** S
-
 ### STUF-39 · P3 · mycrates fetch holds the exclusive store lock across network I/O
 
 - **Area:** Concurrency

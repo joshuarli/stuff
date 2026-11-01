@@ -61,7 +61,10 @@ Configuration lives in `config.json` inside the state directory. `mycrates init`
     "fetch_bytes": 10737418240,
     "fetch_timeout_secs": 3600,
     "request_timeout_secs": 300,
-    "redirects": 5
+    "redirects": 5,
+    "serve_connections": 64,
+    "serve_writes": 4,
+    "upload_timeout_secs": 300
   },
   "auth_required": false
 }
@@ -134,7 +137,7 @@ Start the minimal write service:
 mycrates serve-publish --bind 127.0.0.1:8080 --token-file /etc/mycrates/token
 ```
 
-`serve-publish` also serves `blobs/` for Cargo verification, so a dependent native crate can download its dependency during `cargo publish`.
+`serve-publish` also serves `blobs/` for Cargo verification, so a dependent native crate can download its dependency during `cargo publish`. It accepts up to `limits.serve_connections` connections, admits up to `limits.serve_writes` authenticated writes at once, and bounds each upload by `limits.upload_timeout_secs`.
 
 Configure Cargo client credentials and endpoint in `~/.cargo/config.toml`:
 

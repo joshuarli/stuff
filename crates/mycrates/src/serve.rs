@@ -63,6 +63,8 @@ pub struct ServeConfig {
     pub site_dir: PathBuf,
     pub public_base_url: String,
     pub limits: LimitsConfig,
+    pub max_connections: usize,
+    pub max_writes: usize,
     pub header_timeout: Duration,
     pub body_timeout: Duration,
 }
@@ -430,7 +432,7 @@ pub fn handle_publish_request<R: Read>(
     Ok(())
 }
 
-pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
+pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig, writes: &Arc<AtomicUsize>) -> Result<()> {
     let _ = stream.set_nonblocking(false);
     let _ = stream.set_write_timeout(Some(WRITE_TIMEOUT));
     let deadline = Instant::now() + cfg.header_timeout;
@@ -490,6 +492,23 @@ pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
         }
     }
 
+    if !request_authorized(cfg, &method, &headers) {
+        send_error(&stream, 401, "unauthorized");
+        return Ok(());
+    }
+
+    let _write_slot = if matches!(method.as_str(), "GET" | "HEAD") {
+        None
+    } else {
+        match try_admit(writes, cfg.max_writes) {
+            Some(guard) => Some(guard),
+            None => {
+                send_error(&stream, 503, "too many concurrent writes");
+                return Ok(());
+            }
+        }
+    };
+
     handle_publish_request(&stream, &method, &path, &headers, &mut reader, cfg)
 }
 
@@ -522,19 +541,21 @@ pub fn try_admit(active: &Arc<AtomicUsize>, limit: usize) -> Option<ActiveGuard>
 pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
     let listener = TcpListener::bind(&cfg.bind)?;
     listener.set_nonblocking(true)?;
-    let active = Arc::new(AtomicUsize::new(0));
+    let connections = Arc::new(AtomicUsize::new(0));
+    let writes = Arc::new(AtomicUsize::new(0));
 
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
             Ok((stream, _)) => {
-                let Some(guard) = try_admit(&active, cfg.limits.concurrent_requests) else {
-                    send_error(&stream, 503, "too many concurrent requests");
+                let Some(guard) = try_admit(&connections, cfg.max_connections) else {
+                    send_error(&stream, 503, "too many concurrent connections");
                     continue;
                 };
                 let cfg_clone = cfg.clone();
+                let writes = Arc::clone(&writes);
                 std::thread::spawn(move || {
                     let _guard = guard;
-                    if let Err(e) = handle_connection(stream, &cfg_clone) {
+                    if let Err(e) = handle_connection(stream, &cfg_clone, &writes) {
                         eprintln!("serve-publish: connection failed: {e}");
                     }
                 });

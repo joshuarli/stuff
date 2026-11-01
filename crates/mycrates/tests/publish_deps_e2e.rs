@@ -100,6 +100,8 @@ fn start_publish_server(state_dir: std::path::PathBuf, site_dir: std::path::Path
         site_dir,
         public_base_url: format!("http://127.0.0.1:{port}"),
         limits: LimitsConfig::default(),
+        max_connections: 64,
+        max_writes: 4,
         header_timeout: Duration::from_secs(30),
         body_timeout: Duration::from_secs(3600),
     };

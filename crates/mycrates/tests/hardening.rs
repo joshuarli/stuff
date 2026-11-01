@@ -112,17 +112,21 @@ fn start_raw_server_with_timeouts(
         site_dir,
         public_base_url: format!("http://127.0.0.1:{port}"),
         limits: LimitsConfig::default(),
+        max_connections: 64,
+        max_writes: 4,
         header_timeout,
         body_timeout,
     };
+    let writes = Arc::new(AtomicUsize::new(0));
     let handle = thread::spawn(move || {
         let _ = listener.set_nonblocking(true);
         while !stop_clone.load(Ordering::Relaxed) {
             match listener.accept() {
                 Ok((stream, _)) => {
                     let cfg = cfg.clone();
+                    let writes = Arc::clone(&writes);
                     thread::spawn(move || {
-                        let _ = handle_connection(stream, &cfg);
+                        let _ = handle_connection(stream, &cfg, &writes);
                     });
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {

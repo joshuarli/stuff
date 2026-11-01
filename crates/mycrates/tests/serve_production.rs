@@ -1,11 +1,11 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use mycrates::config::LimitsConfig;
-use mycrates::serve::{handle_connection, ServeConfig};
+use mycrates::serve::{handle_connection, run_server, ServeConfig};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -89,17 +89,21 @@ fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str, a
         site_dir,
         public_base_url: base_url,
         limits: LimitsConfig::default(),
+        max_connections: 64,
+        max_writes: 4,
         header_timeout: Duration::from_secs(30),
         body_timeout: Duration::from_secs(3600),
     };
+    let writes = Arc::new(AtomicUsize::new(0));
     let handle = thread::spawn(move || {
         let _ = listener.set_nonblocking(true);
         while !stop_clone.load(Ordering::Relaxed) {
             match listener.accept() {
                 Ok((stream, _)) => {
                     let cfg = cfg.clone();
+                    let writes = Arc::clone(&writes);
                     thread::spawn(move || {
-                        let _ = handle_connection(stream, &cfg);
+                        let _ = handle_connection(stream, &cfg, &writes);
                     });
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -109,6 +113,43 @@ fn start_production_server(state_dir: PathBuf, site_dir: PathBuf, token: &str, a
             }
         }
     });
+    ProdServer { port, stop, handle: Some(handle) }
+}
+
+fn start_run_server(
+    state_dir: PathBuf,
+    site_dir: PathBuf,
+    token: &str,
+    max_connections: usize,
+    max_writes: usize,
+) -> ProdServer {
+    let probe = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = probe.local_addr().unwrap().port();
+    drop(probe);
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop_clone = Arc::clone(&stop);
+    let cfg = ServeConfig {
+        bind: format!("127.0.0.1:{port}"),
+        token: Some(token.to_string()),
+        auth_required: false,
+        state_dir,
+        site_dir,
+        public_base_url: format!("http://127.0.0.1:{port}"),
+        limits: LimitsConfig::default(),
+        max_connections,
+        max_writes,
+        header_timeout: Duration::from_secs(30),
+        body_timeout: Duration::from_secs(3600),
+    };
+    let handle = thread::spawn(move || {
+        let _ = run_server(cfg, stop_clone);
+    });
+    for _ in 0..100 {
+        if TcpStream::connect(format!("127.0.0.1:{port}")).is_ok() {
+            break;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
     ProdServer { port, stop, handle: Some(handle) }
 }
 
@@ -164,6 +205,65 @@ fn send_get(port: u16, token: Option<&str>, path: &str) -> (u16, Vec<u8>) {
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     (status, resp[split..].to_vec())
+}
+
+#[test]
+fn idle_connections_do_not_block_authenticated_writes() {
+    let dir = tempdir().unwrap();
+    let server = start_run_server(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        "idle-token",
+        8,
+        1,
+    );
+    let idle: Vec<TcpStream> = (0..4)
+        .map(|_| TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap())
+        .collect();
+
+    let payload = build_wire_payload(
+        &body_json("idle-pkg", "1.0.0"),
+        &make_test_crate("idle-pkg", "1.0.0"),
+    );
+    let resp = send_request(server.port, Some("idle-token"), &payload, None);
+    assert!(resp.starts_with("HTTP/1.1 200"), "publish was blocked: {resp:?}");
+    drop(idle);
+}
+
+#[test]
+fn unauthenticated_requests_do_not_take_write_slots() {
+    let dir = tempdir().unwrap();
+    let server = start_run_server(
+        dir.path().join("state"),
+        dir.path().join("site"),
+        "slot-token",
+        8,
+        1,
+    );
+
+    let mut slow = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    let slow_headers = "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer slot-token\r\nContent-Length: 1000000\r\nConnection: close\r\n\r\n";
+    slow.write_all(slow_headers.as_bytes()).unwrap();
+    slow.write_all(&1000u32.to_le_bytes()).unwrap();
+    slow.write_all(&[b' '; 10]).unwrap();
+    slow.flush().unwrap();
+    thread::sleep(Duration::from_millis(200));
+
+    let payload = build_wire_payload(
+        &body_json("slot-pkg", "1.0.0"),
+        &make_test_crate("slot-pkg", "1.0.0"),
+    );
+    let unauthorized = send_request(server.port, None, &payload, None);
+    assert!(
+        unauthorized.starts_with("HTTP/1.1 401"),
+        "unauthorized write consumed a slot: {unauthorized:?}"
+    );
+    let blocked = send_request(server.port, Some("slot-token"), &payload, None);
+    assert!(
+        blocked.starts_with("HTTP/1.1 503"),
+        "the slow write did not hold the only slot: {blocked:?}"
+    );
+    drop(slow);
 }
 
 #[test]
