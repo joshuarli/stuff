@@ -205,7 +205,6 @@ if [ "$CONFLICTS" -gt 0 ]; then
 fi
 SKIPPED=$(grep -c '^skip ' "$PLAN" || true)
 SKIPPED=${SKIPPED:-0}
-grep '^skip ' "$PLAN" | sed 's/^skip /skip unchanged /' || true
 sed -n 's/^put //p' "$PLAN" > "$PUTS"
 UPLOADED=$(wc -l < "$PUTS" | tr -d ' ')
 if [ -n "$DRY_RUN" ]; then
