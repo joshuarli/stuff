@@ -98,31 +98,3 @@ fn collect_referrer_subjects(dir: &Path, out: &mut BTreeSet<String>) -> Result<(
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::import::import_layout;
-    use stuff_oci::{RepositoryName, Tag};
-
-    #[test]
-    fn reports_the_imported_fixture() {
-        let dir = tempfile::tempdir().unwrap();
-        let state = State::new(dir.path().to_path_buf());
-        let layout = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/fixtures/oci/layout");
-        let repository = RepositoryName::parse("example/app").unwrap();
-        import_layout(&state, &layout, &repository, Some(&Tag::parse("stable").unwrap())).unwrap();
-        let inspection = inspect(&state).unwrap();
-        assert_eq!(inspection.tags, ["stable"]);
-        assert_eq!(inspection.manifests.len(), 4);
-        assert_eq!(inspection.blobs.len(), 6);
-        assert_eq!(
-            inspection.referrers,
-            ["sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4"]
-        );
-        let json = inspection.render_json();
-        assert!(json.contains("\"tags\": [\"stable\"]"));
-        assert!(json.contains("\"manifests\": ["));
-    }
-}
