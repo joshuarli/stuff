@@ -120,14 +120,13 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
       ? new Response(null, { status: cached.status, headers: cached.headers })
       : cached;
   }
-  const parts: string[] = [];
-  for (const binding of ["MYCRATES", "MYNPM", "PYPI"]) {
-    const text = await catalogText(env, binding);
-    if (text === null) {
-      return new Response("unified catalog not ready", { status: 404 });
-    }
-    parts.push(text);
+  const texts = await Promise.all(
+    ["MYCRATES", "MYNPM", "PYPI"].map((binding) => catalogText(env, binding)),
+  );
+  if (texts.some((text) => text === null)) {
+    return new Response("unified catalog not ready", { status: 404 });
   }
+  const parts = texts as string[];
   const url = new URL(req.url);
   const wantMarkdown = url.pathname === "/llms.txt";
   const rendered = JSON.parse(
@@ -221,19 +220,23 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       npmVersion = resolved.npm_version;
     }
     const store = bucket(env, mapped.bucket_binding);
-    let object = await store.get(key);
+    let object: R2ObjectLike | null = null;
     // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
     // and -/tarballs/) are not uploaded as separate R2 objects; the shared
     // store copy is byte-identical by the immutability invariant. Validate
     // the generation exists before serving its shared artifact.
-    if (object === null && aliasKey) {
-      if (generationCatalogKey !== undefined) {
-        const generation = await store.get(generationCatalogKey);
-        if (generation === null) {
-          return new Response("not found", { status: 404 });
-        }
+    if (aliasKey === undefined) {
+      object = await store.get(key);
+    } else {
+      const [generation, aliased] = await Promise.all([
+        generationCatalogKey === undefined
+          ? Promise.resolve(null)
+          : store.get(generationCatalogKey),
+        store.get(aliasKey),
+      ]);
+      if (generationCatalogKey !== undefined && generation === null) {
+        return new Response("not found", { status: 404 });
       }
-      const aliased = await store.get(aliasKey);
       if (aliased !== null) {
         key = aliasKey;
         object = aliased;

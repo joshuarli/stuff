@@ -66,6 +66,7 @@ function worker() {
         import.meta.url,
       ),
     ),
+    // Miniflare 4.20260730.0 supports compatibility dates through 2026-08-06.
     compatibilityDate: "2026-08-06",
     modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
     r2Buckets: ["MYCRATES", "MYNPM", "PYPI"],
