@@ -676,6 +676,9 @@ pub fn run(parsed: &Parsed) -> Result<i32> {
     if parsed.command == Command::Republish {
         return command_republish(parsed);
     }
+    if matches!(parsed.command, Command::Add | Command::Build | Command::Validate) {
+        crate::build::require_uv_version()?;
+    }
     let paths = resolve_paths(parsed)?;
     let settings = load_project_settings(&paths.config)?;
     // runtime gate runs for every command (mirrors cli.main calling it first)

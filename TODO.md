@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 50
+Next: 52
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -9,13 +9,4 @@ Next: 50
 - **Recommendation:** Pass `--require-build-hashes` from the publish helper and decide whether macOS sdist builds move to a credential-free user or account.
 - **Blocked:** `--require-build-hashes` without a hash-pinned build-constraints file fails every build (`Hash-checking is required, but no trusted hash was provided for: setuptools`), so turning it on needs a maintained constraints file; macOS isolation needs an owner decision on a credential-free user or account. Unblock: supply the constraints file and the account decision.
 - **Fix with:** security
-- **Effort:** S
-
-### STUF-51 · P4 · Only sdist builds check the pinned uv version
-
-- **Area:** Config
-- **Where:** `crates/mypypi/src/build.rs:28`, `crates/mypypi/src/add.rs:185`, `crates/mypypi/src/validate.rs:604`, `crates/mypypi/src/validate.rs:690`
-- **Problem:** `UV_VERSION` is checked inside `build_inner`, but `mypypi add` resolves pins with uv and `validate` installs with uv before any build runs. A host with another uv can rewrite the catalog and then fail its first build, leaving state resolved by the unpinned version.
-- **Recommendation:** Require the pinned uv once at CLI start for `add`, `build`, and `validate`.
-- **Fix with:** single-source-of-truth
 - **Effort:** S
