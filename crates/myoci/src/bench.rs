@@ -32,8 +32,18 @@ pub struct BenchOptions {
 
 struct HttpResponse {
     status: u16,
+    headers: Vec<(String, String)>,
     body: Vec<u8>,
     received: u64,
+}
+
+impl HttpResponse {
+    fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.as_str())
+    }
 }
 
 fn client() -> Client {
@@ -41,6 +51,32 @@ fn client() -> Client {
 }
 
 fn request(
+    client: &Client,
+    url: &str,
+    method: http::Method,
+    accept: Option<&str>,
+    capture: bool,
+) -> Result<HttpResponse> {
+    let mut current = url.to_string();
+    for _ in 0..6 {
+        let response = request_once(client, &current, method.clone(), accept, capture)?;
+        if matches!(response.status, 301 | 302 | 303 | 307 | 308)
+            && let Some(location) = response.header("location")
+        {
+            let base = url::Url::parse(&current)
+                .map_err(|error| Error::Network(format!("invalid URL {current}: {error}")))?;
+            current = base
+                .join(location)
+                .map_err(|error| Error::Network(format!("invalid redirect {location}: {error}")))?
+                .to_string();
+            continue;
+        }
+        return Ok(response);
+    }
+    Err(Error::Network(format!("too many redirects for {url}")))
+}
+
+fn request_once(
     client: &Client,
     url: &str,
     method: http::Method,
@@ -61,6 +97,16 @@ fn request(
         .request_with_timeout(req, Some(REQUEST_TIMEOUT))
         .map_err(|e| Error::Network(format!("fetch {url}: {e}")))?;
     let status = response.status().as_u16();
+    let headers = response
+        .headers()
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.as_str().to_ascii_lowercase(),
+                value.to_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect();
     let mut body = Vec::new();
     let mut received = 0u64;
     {
@@ -80,7 +126,7 @@ fn request(
             }
         }
     }
-    Ok(HttpResponse { status, body, received })
+    Ok(HttpResponse { status, headers, body, received })
 }
 
 fn accept() -> &'static str {

@@ -85,7 +85,7 @@ async function seed(mf, { pypiCatalog } = {}) {
   await npm.put("tarballs/abc.tgz", "tarball-bytes");
 }
 
-function worker() {
+function worker(extraBindings = {}) {
   return new Miniflare({
     modules: true,
     scriptPath: join(bundleDir, "entry.js"),
@@ -100,6 +100,7 @@ function worker() {
       STUFF_ROUTES: ROUTES,
       STUFF_UNIFIED_HOST: "stuff.test",
       STUFF_OCI_HOST: "oci.test",
+      ...extraBindings,
     },
   });
 }
@@ -533,7 +534,6 @@ test("oci errors are OCI JSON with the expected status", async (t) => {
   const mf = worker();
   t.after(() => mf.dispose());
   await seedOci(mf);
-
   const unknownManifest = await mf.dispatchFetch(
     "https://oci.test/v2/example/app/manifests/nope",
   );
@@ -558,4 +558,21 @@ test("oci errors are OCI JSON with the expected status", async (t) => {
   assert.equal(write.status, 405);
   assert.equal(write.headers.get("allow"), "GET, HEAD");
   assert.match(await write.text(), /UNSUPPORTED/);
+});
+
+test("oci blobs redirect to the configured blob origin", async (t) => {
+  const mf = worker({ STUFF_OCI_BLOB_ORIGIN: "https://blobs.test/" });
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+  const url = `https://oci.test/v2/example/app/blobs/${OCI_LAYER}`;
+  for (const method of ["GET", "HEAD"]) {
+    const response = await mf.dispatchFetch(url, { method, redirect: "manual" });
+    assert.equal(response.status, 307, method);
+    assert.equal(
+      response.headers.get("location"),
+      `https://blobs.test/sha256/${OCI_LAYER.slice("sha256:".length)}`,
+      method,
+    );
+    assert.equal(response.headers.get("docker-content-digest"), OCI_LAYER, method);
+  }
 });

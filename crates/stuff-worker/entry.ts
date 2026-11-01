@@ -41,6 +41,7 @@ interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
   readonly STUFF_OCI_HOST?: string;
+  readonly STUFF_OCI_BLOB_ORIGIN?: string;
   readonly [binding: string]: R2BucketLike | string | undefined;
 }
 
@@ -276,6 +277,18 @@ async function ociFetch(req: Request, env: WorkerEnv, url: URL): Promise<Respons
       return ociPlanResponse(
         JSON.parse(oci_error_json("DIGEST_INVALID", digest)) as OciPlan,
       );
+    }
+    const blobOrigin = env.STUFF_OCI_BLOB_ORIGIN;
+    if (typeof blobOrigin === "string" && blobOrigin !== "") {
+      const location = `${blobOrigin.replace(/\/+$/, "")}/sha256/${digest.slice("sha256:".length)}`;
+      return new Response(null, {
+        status: 307,
+        headers: {
+          location,
+          "docker-content-digest": digest,
+          "cache-control": "public, max-age=31536000, immutable",
+        },
+      });
     }
     const store = bucket(env, "OCI_BLOBS");
     const key = `sha256/${digest.slice("sha256:".length)}`;

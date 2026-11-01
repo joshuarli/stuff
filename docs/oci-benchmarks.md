@@ -44,3 +44,9 @@
 | first pull | 5 | 249.979 | 252.405 | 252.405 | 5401.2 |
 | repeat pull | 5 | 248.188 | 254.828 | 254.828 | 5393.3 |
 
+
+## Direct CDN comparison (A11)
+
+- Local proof: `deploy/test-oci-redirect.sh` starts the Worker front and a separate blob host, and Docker follows the Worker's `307` to the blob host.
+- O2 gate: compare this matrix against the same matrix with `STUFF_OCI_BLOB_ORIGIN` set on the deployed Worker and a Cache Rule for `oci-blobs.17166969.xyz/sha256/*`. Adopt only if warm p95 and full-pull wall time improve by at least 10% with non-overlapping p95 over five interleaved runs.
+- Status: not adopted. The deployed comparison is **Needs environment**; `STUFF_OCI_BLOB_ORIGIN` stays unset, so blobs are served through the Worker.
