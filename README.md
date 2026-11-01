@@ -142,6 +142,14 @@ pages say so instead of showing empty lists. Readers that predate schema 3
 reject schema 3 catalogs, so deploy the Worker and `stuff` CLI before
 publishing.
 
+Both pages carry a package search box. It is a vendored MiniSearch (with its
+bounded top-k selector, from `~/d/discover`) in `crates/stuff-catalog/web/`,
+bundled into `crates/stuff-catalog/assets/search.js` and inlined in each page.
+It indexes the table rows already on the page (name, registry, source), so the
+pages carry no extra data, and it stays hidden without scripts. After editing
+`web/`, run `make search-bundle` (needs `npm ci` in `crates/stuff-worker`) and
+commit the bundle; `make test-search` runs its tests.
+
 `stuff.17166969.xyz` serves that aggregate page from the Worker, rendered
 with the same Rust catalog code from the three current snapshots (cached
 60 s at the edge). The machine-readable packuments, sparse indexes,

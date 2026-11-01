@@ -1,4 +1,4 @@
-.PHONY: help deploy build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
+.PHONY: help deploy search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -23,6 +23,13 @@ pipecheck: ## Prove one registry's publication never touches another's output
 	deploy/check-pipeline-independence.sh
 
 WORKER_DIR ?= crates/stuff-worker
+SEARCH_DIR ?= crates/stuff-catalog
+
+search-bundle: ## Rebuild the inline search script from web/ (needs npm ci in crates/stuff-worker)
+	$(WORKER_DIR)/node_modules/.bin/esbuild $(SEARCH_DIR)/web/entry.ts --bundle --minify --format=iife --target=es2022 --outfile=$(SEARCH_DIR)/assets/search.js
+
+test-search: ## Run the package search tests
+	node --test $(SEARCH_DIR)/web/search.test.ts
 
 worker-build: ## Compile the worker wasm glue into crates/stuff-worker/build
 	cd $(WORKER_DIR) && npm run build:wasm

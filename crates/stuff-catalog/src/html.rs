@@ -18,6 +18,8 @@ fn escape_html(text: &str) -> String {
     out
 }
 
+const SEARCH_JS: &str = include_str!("../assets/search.js");
+
 const CSS: &str = r#"
 :root { color-scheme: light dark; --bg: #fff; --fg: #171717; --mute: #6b6b6b; --line: #ebebeb; --void: #b42318; }
 @media (prefers-color-scheme: dark) { :root { --bg: #0d0d0d; --fg: #ededed; --mute: #9b9b9b; --line: #242424; --void: #f97066; } }
@@ -33,6 +35,8 @@ header { padding: 2rem 0 4rem; font-weight: 600; letter-spacing: -0.01em; }
 h1 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.5rem; max-width: 30rem; }
 h2 { font-size: 0.9375rem; font-weight: 600; margin: 2.5rem 0 0.5rem; }
 .lede { margin: 0 0 3rem; color: var(--mute); }
+input[type="search"]:not([hidden]) { display: block; width: 100%; margin: 0 0 1.5rem; padding: 0.6rem 0.8rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; }
+input[type="search"]::placeholder { color: var(--mute); }
 .registries { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; margin: 0 0 3.5rem; padding: 0; list-style: none; }
 .registries b { display: block; font-weight: 600; }
 .registries span { color: var(--mute); }
@@ -112,7 +116,7 @@ fn versions_markup(package: &Package) -> String {
 
 fn document(title: &str, body: &str) -> String {
     format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body>\n{body}</body>\n</html>\n",
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body>\n{body}<script>{SEARCH_JS}</script>\n</body>\n</html>\n",
         escape_html(title)
     )
 }
@@ -137,6 +141,23 @@ fn dependents_of<'a>(catalog: &'a Catalog) -> BTreeMap<String, Vec<Dependent<'a>
         }
     }
     dependents
+}
+
+fn search_box() -> &'static str {
+    "<input type=\"search\" data-package-search hidden placeholder=\"Find a package\" aria-label=\"Find a package\" autocomplete=\"off\">\n"
+}
+
+fn no_match_note() -> &'static str {
+    "<p class=\"mute\" data-no-match hidden>No packages match.</p>\n"
+}
+
+fn row_open(registry: Registry, package: &Package) -> String {
+    format!(
+        "<tr data-name=\"{}\" data-registry=\"{}\" data-source=\"{}\">",
+        escape_html(&package.name),
+        registry.as_str(),
+        escape_html(package.source.as_deref().unwrap_or(""))
+    )
 }
 
 fn detail_sections(catalogs: &[&Catalog]) -> String {
@@ -249,13 +270,15 @@ pub fn render_html(catalog: &Catalog) -> String {
         catalog.version_count()
     ));
     let has_source = catalog.registry == Registry::Cargo;
-    out.push_str("<table>\n<thead><tr><th>Package</th>");
+    out.push_str(search_box());
+    out.push_str("<table data-packages>\n<thead><tr><th>Package</th>");
     if has_source {
         out.push_str("<th class=\"hide\">Source</th>");
     }
     out.push_str("<th>Versions</th></tr></thead>\n<tbody>\n");
     for package in &catalog.packages {
-        out.push_str(&format!("<tr><td class=\"pkg\">{}</td>", package_link(catalog.registry, package)));
+        out.push_str(&row_open(catalog.registry, package));
+        out.push_str(&format!("<td class=\"pkg\">{}</td>", package_link(catalog.registry, package)));
         if has_source {
             out.push_str(&format!(
                 "<td class=\"mute hide\">{}</td>",
@@ -264,7 +287,9 @@ pub fn render_html(catalog: &Catalog) -> String {
         }
         out.push_str(&format!("<td class=\"vers\">{}</td></tr>\n", versions_markup(package)));
     }
-    out.push_str("</tbody>\n</table>\n</div>\n");
+    out.push_str("</tbody>\n</table>\n");
+    out.push_str(no_match_note());
+    out.push_str("</div>\n");
     out.push_str(&detail_sections(&[catalog]));
     out.push_str("</main>\n");
     out.push_str(&format!(
@@ -289,11 +314,13 @@ pub fn render_unified(catalogs: &[Catalog]) -> String {
         ));
     }
     out.push_str("</ul>\n");
-    out.push_str("<table>\n<thead><tr><th>Package</th><th>Registry</th><th class=\"hide\">Source</th><th class=\"r\">Latest</th></tr></thead>\n<tbody>\n");
+    out.push_str(search_box());
+    out.push_str("<table data-packages>\n<thead><tr><th>Package</th><th>Registry</th><th class=\"hide\">Source</th><th class=\"r\">Latest</th></tr></thead>\n<tbody>\n");
     for catalog in catalogs {
         for package in &catalog.packages {
+            out.push_str(&row_open(catalog.registry, package));
             out.push_str(&format!(
-                "<tr><td class=\"pkg\">{}</td><td>{}</td><td class=\"mute hide\">{}</td><td class=\"r mono\">{}</td></tr>\n",
+                "<td class=\"pkg\">{}</td><td>{}</td><td class=\"mute hide\">{}</td><td class=\"r mono\">{}</td></tr>\n",
                 package_link(catalog.registry, package),
                 escape_html(registry_label(catalog.registry)),
                 escape_html(package.source.as_deref().unwrap_or("")),
@@ -301,7 +328,9 @@ pub fn render_unified(catalogs: &[Catalog]) -> String {
             ));
         }
     }
-    out.push_str("</tbody>\n</table>\n</div>\n");
+    out.push_str("</tbody>\n</table>\n");
+    out.push_str(no_match_note());
+    out.push_str("</div>\n");
     let all: Vec<&Catalog> = catalogs.iter().collect();
     out.push_str(&detail_sections(&all));
     out.push_str("</main>\n");
@@ -349,6 +378,29 @@ mod tests {
                 "public page link is neither generation-pinned nor in-page: {href}"
             );
         }
+    }
+
+    #[test]
+    fn pages_carry_a_search_box_that_only_scripts_reveal() {
+        let catalog = npm_catalog(
+            "gen1",
+            vec![NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() }],
+            &BTreeMap::new(),
+        )
+        .unwrap();
+        for html in [render_html(&catalog), render_unified(std::slice::from_ref(&catalog))] {
+            assert!(html.contains("<input type=\"search\" data-package-search hidden"));
+            assert!(html.contains("<table data-packages>"));
+            assert!(html.contains("<tr data-name=\"@scope/a\" data-registry=\"npm\" data-source=\"\">"));
+            assert!(html.contains("data-no-match hidden"));
+            assert_eq!(html.matches("<script>").count(), 1);
+        }
+    }
+
+    #[test]
+    fn the_inline_search_script_cannot_close_its_own_tag() {
+        assert!(!SEARCH_JS.is_empty());
+        assert!(!SEARCH_JS.to_ascii_lowercase().contains("</script"));
     }
 
     #[test]
