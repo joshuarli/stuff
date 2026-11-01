@@ -3,7 +3,7 @@
 ## Status
 
 - **Goal:** `stuff` serves and accepts OCI images as a fourth registry. Read-only first: import a multi-architecture image, publish an immutable generation, pull anonymously through the Worker and `myoci serve`, and pass the OCI read conformance suite. Then native, authenticated `docker push` through a separate blob writer, passing the push conformance suite.
-- **State:** not started. Baseline `e914ba5`; the baseline is red in CI (see **Baseline**).
+- **State:** not started. Baseline `2becd9e`; the red rows below were captured on `e914ba5` and are unchanged by the deploy, harness, and doc commits since. See **Baseline**.
 - **Accepted:** none.
 - **Next:** P1.
 - **Harness:** `make test-oci-conformance-fixture` is green against the checked-in fixture (29 rows); the executor inherits a working conformance gate.
@@ -27,7 +27,7 @@
 
 - **O1 · Scope.** Read-only Stage A lands first, then native authenticated push (Stage B) in this campaign. Both stages are in scope; a slice of B never starts before A's local acceptance passes.
 - **O2 · Blob path.** Blobs are served by the Worker until parity. The 307 direct-CDN path is A11, adopted only if A10 measures at least a 10% improvement in warm p95 and full-pull wall time with non-overlapping p95 over five interleaved runs; otherwise A11 closes with the numbers and no code.
-- **O3 · Exposure.** The registry is public and anonymous for reads. No private images, per-repository authorization, or token service. Writes use one registry token and no per-repository scopes.
+- **O3 · Exposure.** The registry is public and anonymous for reads. No private images, per-repository authorization, or token service. Writes use one registry token with no per-repository scopes; this supersedes the draft's per-repository write authorization, which returns with a second writer or private images.
 - **O4 · Naming.** The registry is OCI, the CLI is `myoci`, and Docker is a client, not the model.
 
 ### Prescribed
@@ -57,7 +57,7 @@
 - **S15 · uv pin.** `deploy/uv-version` is the only source of the uv version (`0.13.2`). `crates/mypypi/src/build.rs` includes it, both CI setup-uv steps read it into `env.UV_VERSION`, and the Linux Dockerfile reads the same file. Reason: the code, container, README, and CI currently disagree, which is the baseline's ecosystem failure.
 - **S16 · Worker build.** CI must run `npm run build` (which runs `build-wasm.sh` before `tsrs`) and then `npm run test:runtime`. `entry.ts` imports generated wasm that only `scripts/build.mjs` creates; `cf build` alone cannot work. Reason: the baseline worker failure.
 - **S17 · Bug discipline.** A failing test is never weakened, skipped, or relabeled. P3 keeps the 5 s bound and fixes the Linux-only 30 s path. Every acceptance command in this doc is the pass condition; a subcommand that cannot run here goes to **Needs environment**.
-- **S18 · Benchmarks.** `myoci bench` drives the HTTP API with the sync client across the matrix: manifest GET/HEAD at 1, 8, 32 concurrency; blobs of 1 MiB, 64 MiB, 256 MiB, 1 GiB; cold and warm; a full multi-platform pull and a repeated pull on a clean client. Five runs, interleaved baseline/candidate, report p50/p95/p99 and bytes per second. Cold on the deployed Worker means a freshly published blob digest (a new cache key), because the gateway cache key ignores query strings; record that method. Every number is recorded in `docs/oci-benchmarks.md` with the command and environment. No absolute target gates the campaign; A11's 10% rule is the only adoption gate.
+- **S18 · Benchmarks.** `myoci bench` drives the HTTP API with the sync client across the matrix: manifest GET/HEAD at 1, 8, 32 concurrency; blobs of 1 MiB, 64 MiB, 256 MiB, 1 GiB; cold and warm; a full multi-platform pull and a repeated pull on a clean client. Five runs, interleaved baseline/candidate, report p50/p95/p99 and bytes per second. Cold on the deployed Worker means a freshly published blob digest (a new cache key), because the gateway cache key ignores query strings; record that method. The 1 GiB row is expected to miss the 512 MB cacheable-object cap; record whether it does. Every number is recorded in `docs/oci-benchmarks.md` with the command and environment. No absolute target gates the campaign; A11's 10% rule is the only adoption gate.
 - **S19 · Failure codes.** Reuse the shared exit-code contract: `2` usage/input, `3` integrity, `4` conflict, `5` limit, `6` network, `1` other. `myoci verify` exits 3 on any digest, size, tag, or reference mismatch; `myoci import` exits 3 on a bad source and 4 when a tag would be replaced with different bytes.
 - **S20 · Local simulation.** Publish, sync, GC, and push-writer R2 tests use `CF_LOCAL_STATE` under `.work`; they never touch live R2. The Worker tests use Miniflare with seeded R2 bindings. Docker tests use 127.0.0.1, which Docker treats as an insecure registry without extra configuration.
 - **S21 · Accept is advisory.** Manifest GET and HEAD return the stored media type and never 404 a manifest that exists because the request's `Accept` list omits that type. Reason: the conformance read-only data fetches each digest with one media type, and Docker/containerd accept either family; strict negotiation turns valid indexes into false 404s. The stored type is authoritative.
@@ -72,7 +72,7 @@
 
 ## Baseline
 
-Baseline revision `e914ba5`, 2026-11-01.
+Baseline revision `2becd9e`, 2026-11-01. The red evidence below is run `41314993528` on `e914ba5`; the deploy fix and the OCI harness/doc commits since do not touch the failing paths.
 
 Known red in CI (run `41314993528`, `main`):
 
@@ -327,6 +327,7 @@ The owner runs these; they never block local completion.
 - Live read conformance: `OCI_REGISTRY=oci.17166969.xyz OCI_TLS=enabled deploy/oci-conformance.sh --tag <published-tag> --manifest <digest>... --blob <digest>... --referrer <subject>` against the published image; live push conformance with `--push`.
 - Docker 29 on a clean machine, containerd 2.x, and BuildKit on Linux: pull and push the live image. ORAS live: `oras manifest fetch` and `oras blob fetch`.
 - A 1 GiB push to the deployed writer, then a pull; and the A10 deployed matrix (cold/warm/cache/concurrency/full pull).
+- Zot baseline: run zot on the same host and repeat `deploy/oci-bench.sh` for the draft's third comparison; record it in `docs/oci-benchmarks.md`. It does not gate A11.
 - Cloudflare Cache Rule for `oci-blobs.17166969.xyz/sha256/*` (Cache Everything, immutable TTL), Smart Tiered Cache, and the 512 MB cacheable-object cap observation.
 - Live `make gc` / `deploy/r2-gc-blobs.py` dry run, then the real run.
 - Push the integration branch and confirm CI green (the campaign never pushes).
@@ -337,6 +338,6 @@ Authorized: local edits and tests; `.work/` scratch and worktrees; `CF_LOCAL_STA
 
 Forbidden: any push; any `cf` write, deploy, publish, rollback, or live GC; creating buckets, domains, secrets, or hosts; deleting anything outside `.work`; weakening or deleting tests; `/tmp` scratch; committing the conformance patch upstream.
 
-Non-goals: private images and per-repo authorization; a token service; pull-through or proxy mode; Windows foreign/nondistributable layers; schema 1 and registry v1; `_catalog`; blob/manifest/tag delete; sparse indexes; non-sha256 digests; server-side lazy-pull formats; image conversion, decompression, or recompression on any path; a database or Durable Object in the read path; a Durable Object upload session; replacing npm/pnpm/uv orchestration; Docker Hub pull-through.
+Non-goals: private images and per-repo authorization; a token service; enforcing a Docker client version; pull-through or proxy mode; Windows foreign/nondistributable layers; schema 1 and registry v1; `_catalog`; blob/manifest/tag delete; sparse indexes; non-sha256 digests; server-side lazy-pull formats; image conversion, decompression, or recompression on any path; a database or Durable Object in the read path; a Durable Object upload session; replacing npm/pnpm/uv orchestration; Docker Hub pull-through.
 
 Contract changes to surface in the close report: catalog schema 4 and `registry:"oci"`; new CLI flags and `--oci-dir`; new hosts, buckets, Worker bindings, and secrets; `deploy/publish oci`; `stuff-oci` and `myoci` public APIs; the writer's HTTP surface and HMAC session token.
