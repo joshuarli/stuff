@@ -41,9 +41,20 @@ policy files when changing approved release rules.
 
 `binary-release-static` checks public tool prereleases that publish Linux ELF files, including fork
 workflows. It skips `private-tool` repositories and tools tagged `macos`. Its release-job smoke runs
-after artifact download and before packaging. It rejects ELF `PT_INTERP` and `DT_NEEDED` entries and
-requires exactly one `x86_64` and one `aarch64` ELF artifact. The fixer inserts this smoke when the
-workflow downloads artifacts in its prerelease job before publication.
+after artifact download and before packaging. The ELF checks live once in
+`src/repomod/rules/static_elf.py`: ELF64 with the x86-64 or AArch64 machine, no `PT_INTERP`, and
+no `DT_NEEDED`. When the smoke scans an artifact directory it also requires at least one artifact
+per Linux architecture; explicit artifact paths are checked individually. The checked-in
+`docker/musl/verify-static-elf` and the workflow step are rendered from the same script text, and
+a test keeps the image copy byte-identical. The fixer inserts the step when the workflow downloads
+artifacts in its prerelease job before publication.
+
+An image-mode builder, whose Dockerfile starts from the published canonical image by digest, must
+pass `--trace "$RUNNER_TEMP/linker-trace"` to the verifier. The trace must name the builder's
+`/usr/lib/libc.a` and CRT objects, and it must not contain a rustup self-contained path, a
+`rustlib` path, or a glibc path. Pinned-mode builders may omit the trace until they migrate. The
+verifier never executes a release artifact; the owner-run canary runs each repository's own smoke
+command on the target instead.
 
 Action checks and fixes live in `rules/actions.py`. Package checks live in `rules/release.py`.
 Rules inspect repository files but do not install dependencies, build projects, or execute release

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from repomod.rules import musl_toolchain, static_elf
 from repomod.rules.binary_release import (
     _binary_release_findings,
     _binary_release_standard_findings,
@@ -12,6 +16,9 @@ from repomod.rules.binary_release import (
     _binary_release_static_fix,
 )
 from repomod.types import RepoId, Repository
+
+STATIC_FIXTURES = Path(__file__).parent / "fixtures" / "static_elf"
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def write_workflow(root: Path, source: str) -> None:
@@ -296,8 +303,9 @@ def test_static_smoke_permits_multiple_elf_artifacts_per_arch(tmp_path: Path) ->
         ".github/workflows/release.yml"
     ]
 
-    assert "-lt 1" in workflow
-    assert "at least one x86_64 and one aarch64" in workflow
+    assert "expected at least one artifact for" in workflow
+    assert "ELFCLASS64" in workflow
+    assert "aarch64" in workflow
 
 
 def test_captured_python_wheel_prerelease_is_not_a_binary_tool_policy(
@@ -337,13 +345,11 @@ def test_binary_static_fixer_checks_downloaded_linux_artifacts_before_prerelease
     assert release_job.index("actions/download-artifact") < release_job.index(
         "Verify Linux ELF artifacts are fully static"
     ) < release_job.index("gh release create")
-    assert "readelf -lW" in release_job
-    assert "readelf -dW" in release_job
-    assert "INTERP" in release_job
-    assert "NEEDED" in release_job
-    assert "shopt -s globstar nullglob" in release_job
-    assert "Advanced Micro Devices X86-64" in release_job
-    assert "AArch64" in release_job
+    assert "ELFCLASS64" in release_job
+    assert "DT_NEEDED" in release_job
+    assert "<<'PY'" in release_job
+    assert "self-contained" in release_job
+    assert '"$RUNNER_TEMP/linker-trace"' not in release_job
 
     workflow_path = tmp_path / ".github" / "workflows" / "release.yml"
     workflow_path.write_text(workflow, encoding="utf-8")
@@ -586,3 +592,101 @@ def test_extension_and_build_repositories_keep_binary_contract_checks(
     ]
     assert len(with_tool) == 1
     assert f"remove {tag}" in with_tool[0].message
+
+
+def run_verifier(*arguments: Path | str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "docker" / "musl" / "verify-static-elf"),
+            *[str(argument) for argument in arguments],
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_checked_in_verifier_matches_the_single_source() -> None:
+    verifier = REPO_ROOT / "docker" / "musl" / "verify-static-elf"
+
+    assert verifier.read_text(encoding="utf-8") == static_elf.render_script()
+    assert verifier.stat().st_mode & 0o111
+
+
+def test_verifier_accepts_static_and_rejects_dynamic_artifacts() -> None:
+    static = run_verifier(STATIC_FIXTURES / "static-x86_64.elf")
+    dynamic = run_verifier(STATIC_FIXTURES / "dynamic-x86_64.elf")
+
+    assert static.returncode == 0
+    assert dynamic.returncode == 1
+    assert "dynamic ELF interpreter" in dynamic.stderr
+
+
+def test_verifier_requires_both_arches_only_when_scanning_a_directory(
+    tmp_path: Path,
+) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    shutil.copy(STATIC_FIXTURES / "static-x86_64.elf", dist / "x86_64.elf")
+
+    only_x86_64 = run_verifier(dist)
+
+    assert only_x86_64.returncode == 1
+    assert "expected at least one artifact for aarch64" in only_x86_64.stderr
+
+    shutil.copy(STATIC_FIXTURES / "static-aarch64.elf", dist / "aarch64.elf")
+
+    assert run_verifier(dist).returncode == 0
+    assert run_verifier(STATIC_FIXTURES / "static-x86_64.elf").returncode == 0
+
+
+def test_verifier_rejects_an_unsupported_machine() -> None:
+    result = run_verifier(STATIC_FIXTURES / "unsupported.elf")
+
+    assert result.returncode == 1
+    assert "unsupported ELF machine 3" in result.stderr
+
+
+def test_verifier_checks_the_linker_trace() -> None:
+    artifact = STATIC_FIXTURES / "static-x86_64.elf"
+
+    good = run_verifier("--trace", STATIC_FIXTURES / "trace-good.txt", artifact)
+    bad = run_verifier("--trace", STATIC_FIXTURES / "trace-bad.txt", artifact)
+    glibc = run_verifier("--trace", STATIC_FIXTURES / "trace-glibc.txt", artifact)
+
+    assert good.returncode == 0
+    assert bad.returncode == 1
+    assert "non-builder path" in bad.stderr
+    assert glibc.returncode == 1
+    assert "non-builder path" in glibc.stderr
+
+
+def test_binary_static_fixer_requires_a_trace_in_image_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"),
+    )
+    lock = musl_toolchain.load_musl_toolchain()
+    image = musl_toolchain.Image("ghcr.io/acme/musl-toolchain", "sha256:" + "a" * 64)
+    monkeypatch.setattr(
+        musl_toolchain,
+        "load_musl_toolchain",
+        lambda path=None: replace(lock, image=image),
+    )
+    (tmp_path / "Dockerfile").write_text(
+        f"FROM {image.reference}@{image.digest}\n", encoding="utf-8"
+    )
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+
+    plan = _binary_release_static_fix(tmp_path, tool)
+
+    workflow = plan[".github/workflows/release.yml"]
+    assert '--trace "$RUNNER_TEMP/linker-trace"' in workflow
+    (tmp_path / ".github" / "workflows" / "release.yml").write_text(
+        workflow, encoding="utf-8"
+    )
+    assert _binary_release_static_findings(tmp_path, tool) == []

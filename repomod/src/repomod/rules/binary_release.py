@@ -7,6 +7,7 @@ from pathlib import Path
 
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
 from repomod.rules.release import _POLICY as _RELEASE_POLICY
+from repomod.rules.static_elf import SCRIPT_MARKER, STATIC_SMOKE_NAME, render_workflow_step
 from repomod.rules.workflows import read_workflow_sources
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
@@ -50,17 +51,8 @@ _PLATFORM_TARGET = re.compile(
 _MAKE_RELEASE = re.compile(r"\bmake\s+(?:[^\n]*\s)?(?:release(?:-[a-z0-9_-]+)?|dist)\b", re.IGNORECASE)
 _ARTIFACT_UPLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/upload-artifact@")
 _ARTIFACT_DOWNLOAD = re.compile(r"(?im)^\s*(?:-\s*)?uses\s*:\s*actions/download-artifact@")
-_STATIC_SMOKE_NAME = "Verify Linux ELF artifacts are fully static"
-_STATIC_SMOKE_MARKERS = (
-    "readelf -lW",
-    "readelf -dW",
-    "INTERP",
-    "NEEDED",
-    "Advanced Micro Devices X86-64",
-    "AArch64",
-)
 _STATIC_SMOKE_STEP = re.compile(
-    rf"(?m)^(?P<indent> *)-\s+name:\s*{re.escape(_STATIC_SMOKE_NAME)}\s*$"
+    rf"(?m)^(?P<indent> *)-\s+name:\s*{re.escape(STATIC_SMOKE_NAME)}\s*$"
 )
 _DOWNLOAD_STEP = re.compile(r"(?m)^(?P<indent> *)-\s+uses:\s*actions/download-artifact@")
 _JOB_KEY = re.compile(r"^  ([A-Za-z0-9_-]+):\s*$")
@@ -586,59 +578,7 @@ def _step_end(lines: list[str], start: int, end: int, indentation: int) -> int:
     return end
 
 
-def _static_smoke_step(indentation: int) -> list[str]:
-    prefix = " " * indentation
-    child = prefix + "  "
-    script = child + "  "
-    return [
-        f"{prefix}- name: {_STATIC_SMOKE_NAME}",
-        f"{child}run: |",
-        f"{script}set -euo pipefail",
-        f"{script}shopt -s globstar nullglob",
-        f"{script}command -v readelf >/dev/null",
-        f"{script}X86_64_COUNT=0",
-        f"{script}AARCH64_COUNT=0",
-        f"{script}for binary in dist/**/*; do",
-        f"{script}  [[ -f \"$binary\" ]] || continue",
-        f"{script}  if ! readelf -h \"$binary\" >/dev/null 2>&1; then",
-        f"{script}    continue",
-        f"{script}  fi",
-        f"{script}  machine=$(readelf -h \"$binary\" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')",
-        f"{script}  case \"$machine\" in",
-        f'{script}    "Advanced Micro Devices X86-64") X86_64_COUNT=$((X86_64_COUNT + 1)) ;;',
-        f"{script}    AArch64) AARCH64_COUNT=$((AARCH64_COUNT + 1)) ;;",
-        f"{script}    *) printf '%s has unsupported ELF machine %s\\n' \"$binary\" \"$machine\" >&2; exit 1 ;;",
-        f"{script}  esac",
-        f"{script}  program_headers=$(readelf -lW \"$binary\")",
-        f"{script}  if [[ \"$program_headers\" == *INTERP* ]]; then",
-        f"{script}    printf '%s has a dynamic ELF interpreter\\n' \"$binary\" >&2",
-        f"{script}    exit 1",
-        f"{script}  fi",
-        f"{script}  dynamic_section=$(readelf -dW \"$binary\")",
-        f"{script}  if [[ \"$dynamic_section\" == *NEEDED* ]]; then",
-        f"{script}    printf '%s has a dynamic library dependency\\n' \"$binary\" >&2",
-        f"{script}    exit 1",
-        f"{script}  fi",
-        f"{script}done",
-        f"{script}if [[ \"$X86_64_COUNT\" -lt 1 || \"$AARCH64_COUNT\" -lt 1 ]]; then",
-        f"{script}  printf 'Expected at least one x86_64 and one aarch64 Linux ELF artifact, "
-        f"found x86_64=%s aarch64=%s\\n' "
-        f"\"$X86_64_COUNT\" \"$AARCH64_COUNT\" >&2",
-        f"{script}  exit 1",
-        f"{script}fi",
-    ]
-
-
-def _publish_job_ranges(source: str) -> list[tuple[int, int]]:
-    lines = _workflow_without_comments(source).splitlines()
-    return [
-        (start, end)
-        for _, start, end in _job_ranges("\n".join(lines))
-        if _has_prerelease_intent("\n".join(lines[start:end]))
-    ]
-
-
-def _static_smoke_valid(source: str) -> bool:
+def _static_smoke_valid(source: str, image_mode: bool) -> bool:
     lines = source.splitlines()
     smoke = _STATIC_SMOKE_STEP.search(source)
     download = _DOWNLOAD_STEP.search(source)
@@ -655,10 +595,12 @@ def _static_smoke_valid(source: str) -> bool:
     indentation = len(smoke.group("indent"))
     end = _step_end(lines, start, len(lines), indentation)
     block = "\n".join(lines[start:end])
-    return all(marker in block for marker in _STATIC_SMOKE_MARKERS)
+    if SCRIPT_MARKER not in block or "<<'PY'" not in block or "python3 -" not in block or " dist" not in block:
+        return False
+    return not image_mode or '"$RUNNER_TEMP/linker-trace"' in block
 
 
-def _insert_static_smoke(source: str) -> str | None:
+def _insert_static_smoke(source: str, image_mode: bool) -> str | None:
     lines = source.splitlines()
     clean_lines = _workflow_without_comments(source).splitlines()
     ranges = _publish_job_ranges(source)
@@ -667,7 +609,7 @@ def _insert_static_smoke(source: str) -> str | None:
     insertions: list[tuple[int, int, list[str]]] = []
     for job_start, job_end in ranges:
         job_source = "\n".join(clean_lines[job_start:job_end])
-        if _static_smoke_valid(job_source):
+        if _static_smoke_valid(job_source, image_mode):
             continue
         download = _DOWNLOAD_STEP.search(job_source)
         if download is None:
@@ -679,7 +621,7 @@ def _insert_static_smoke(source: str) -> str | None:
             start = job_start + job_source.count("\n", 0, existing.start())
             end = _step_end(lines, start, job_end, indentation)
             insertions.append((start, end, []))
-        insertions.append((step_end, step_end, _static_smoke_step(indentation)))
+        insertions.append((step_end, step_end, render_workflow_step(indentation, image_mode)))
     for start, end, block in sorted(insertions, reverse=True):
         before = lines[:start]
         after = lines[end:]
@@ -691,9 +633,54 @@ def _insert_static_smoke(source: str) -> str | None:
     return "\n".join(lines) + "\n"
 
 
+def _publish_job_ranges(source: str) -> list[tuple[int, int]]:
+    lines = _workflow_without_comments(source).splitlines()
+    return [
+        (start, end)
+        for _, start, end in _job_ranges("\n".join(lines))
+        if _has_prerelease_intent("\n".join(lines[start:end]))
+    ]
+
+
+def _image_mode(root: Path) -> bool:
+    from repomod.rules.musl_toolchain import (
+        _FROM,
+        _arg_values,
+        _expand,
+        _logical_lines,
+        _split_image,
+        load_musl_toolchain,
+    )
+
+    try:
+        lock = load_musl_toolchain()
+    except (OSError, ValueError):
+        return False
+    if lock.image is None:
+        return False
+    dockerfile = root / "Dockerfile"
+    if dockerfile.is_symlink() or not dockerfile.is_file():
+        return False
+    try:
+        source = dockerfile.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return False
+    arguments = _arg_values(_logical_lines(source))
+    for line in _logical_lines(source):
+        match = _FROM.fullmatch(line.text)
+        if match is None:
+            continue
+        image = _expand(match.group("image"), arguments)
+        repo, _, digest = _split_image(image)
+        if repo.casefold() == lock.image.reference.casefold() and digest == lock.image.digest:
+            return True
+    return False
+
+
 def _binary_release_static_findings(root: Path, repository: Repository) -> list[Finding]:
     if "private-tool" in repository.tags or "macos" in repository.tags:
         return []
+    image_mode = _image_mode(root)
     sources, problems = read_workflow_sources(root)
     findings = [
         operational(repository, "binary-release-static", path, message)
@@ -704,7 +691,10 @@ def _binary_release_static_findings(root: Path, repository: Repository) -> list[
         if _release_kind(root, clean) != "binary":
             continue
         jobs = _publish_job_ranges(clean)
-        if jobs and all(_static_smoke_valid("\n".join(clean.splitlines()[start:end])) for start, end in jobs):
+        if jobs and all(
+            _static_smoke_valid("\n".join(clean.splitlines()[start:end]), image_mode)
+            for start, end in jobs
+        ):
             continue
         fixable = bool(jobs) and all(
             _DOWNLOAD_STEP.search("\n".join(clean.splitlines()[start:end])) is not None
@@ -715,8 +705,8 @@ def _binary_release_static_findings(root: Path, repository: Repository) -> list[
                 repository,
                 "binary-release-static",
                 path,
-                "binary prerelease must reject Linux ELF artifacts with a dynamic interpreter "
-                "or shared-library dependencies before publication",
+                "binary prerelease must run the shared static ELF verifier on downloaded Linux "
+                "artifacts before publication",
                 fixable=fixable,
             )
         )
@@ -724,13 +714,14 @@ def _binary_release_static_findings(root: Path, repository: Repository) -> list[
 
 
 def _binary_release_static_fix(root: Path, repository: Repository) -> dict[str, str]:
+    image_mode = _image_mode(root)
     sources, _ = read_workflow_sources(root)
     plan = {}
     for path, source in sources:
         clean = _workflow_without_comments(source)
         if _release_kind(root, clean) != "binary":
             continue
-        changed = _insert_static_smoke(source)
+        changed = _insert_static_smoke(source, image_mode)
         if changed is not None and changed != source:
             plan[path] = changed
     return plan

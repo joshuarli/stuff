@@ -155,4 +155,7 @@ fi
 exec cargo "$@"
 EOF
 
+COPY verify-static-elf /usr/local/bin/verify-static-elf
+RUN chmod +x /usr/local/bin/verify-static-elf
+
 WORKDIR /work

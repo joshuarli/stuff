@@ -71,9 +71,12 @@ applies to every repository and returns no findings when no musl builder exists.
 `private-tool`, and `macos` repositories are skipped.
 
 `binary-release-static` also checks fork workflows that publish tool prereleases. It checks
-downloaded Linux ELF binaries before packaging and publication. The smoke rejects ELF interpreters
-and shared-library dependencies and requires one binary for each Linux architecture in
-`release-policy.toml`. It skips tools tagged `macos` and `private-tool` repositories.
+downloaded Linux ELF binaries before packaging and publication with the shared verifier in
+`src/repomod/rules/static_elf.py`. The verifier rejects ELF interpreters and shared-library
+dependencies and, when scanning a directory, requires one binary for each Linux architecture in
+`release-policy.toml`. Image-mode builders must also pass a linker trace that names the builder's
+`/usr/lib/libc.a` and CRT paths and rejects a rustup self-contained or glibc path. It skips tools
+tagged `macos` and `private-tool` repositories.
 
 `registry-sources` skips repositories tagged `fork`, whose upstream manifests and lockfiles stay
 outside local policy.
