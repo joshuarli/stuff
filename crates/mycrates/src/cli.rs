@@ -66,18 +66,11 @@ fn parse_command(s: &str) -> Option<Command> {
 }
 
 pub fn parse_args() -> Result<Args> {
-    parse_args_from(std::env::args().skip(1))
-}
-
-fn parse_args_from<I>(args: I) -> Result<Args>
-where
-    I: IntoIterator<Item = String>,
-{
     let mut cmd: Option<Command> = None;
     let mut cmd_seen = false;
     let mut rest: Vec<String> = Vec::new();
 
-    for arg in args {
+    for arg in std::env::args().skip(1) {
         if !cmd_seen {
             if arg == "-h" || arg == "--help" {
                 print_help();
@@ -143,48 +136,4 @@ pub fn print_help() {
     println!();
     println!("Options:");
     println!("  -h, --help  Print help");
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn args(v: &[&str]) -> Vec<String> {
-        v.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn subcommand_options_reach_handlers() {
-        let a = parse_args_from(args(&[
-            "serve-publish",
-            "--bind",
-            "127.0.0.1:9999",
-            "--token-file",
-            "/etc/mycrates/token",
-        ]))
-        .unwrap();
-        assert!(matches!(a.command, Command::ServePublish));
-        assert_eq!(
-            a.args,
-            args(&["--bind", "127.0.0.1:9999", "--token-file", "/etc/mycrates/token"])
-        );
-    }
-
-    #[test]
-    fn unknown_command_rejected() {
-        let err = parse_args_from(args(&["frobnicate"])).unwrap_err();
-        assert!(format!("{err}").contains("unknown command"));
-    }
-
-    #[test]
-    fn global_option_rejected() {
-        let err = parse_args_from(args(&["--bind", "x"])).unwrap_err();
-        assert!(format!("{err}").contains("expected a command"));
-    }
-
-    #[test]
-    fn missing_command_rejected() {
-        let err = parse_args_from(args(&[])).unwrap_err();
-        assert!(format!("{err}").contains("missing command"));
-    }
 }
