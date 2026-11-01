@@ -5,18 +5,44 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import { Miniflare } from "miniflare";
+
+const outputDir = fileURLToPath(
+  new URL("../.cloudflare/output/v0/workers/default", import.meta.url),
+);
+const bundleDir = join(outputDir, "bundle");
 
 const ROUTES = JSON.stringify([
   { host: "crates.test", bucket_binding: "MYCRATES", key_prefix: "" },
   { host: "npm.test", bucket_binding: "MYNPM", key_prefix: "" },
   { host: "pypi.test", bucket_binding: "PYPI", key_prefix: "" },
 ]);
+
+test("the uploaded module graph resolves from the main module name", () => {
+  const { manifest } = JSON.parse(readFileSync(join(outputDir, "worker.config.json"), "utf8"));
+  const graph = new Map();
+  for (const [name, module] of Object.entries(manifest.modules)) {
+    if (module.type === "esm") {
+      graph.set(name, readFileSync(join(bundleDir, name), "utf8"));
+    }
+  }
+  const mainName = posix.basename(manifest.mainModule);
+  graph.set(mainName, readFileSync(join(bundleDir, manifest.mainModule), "utf8"));
+  const names = new Set([...Object.keys(manifest.modules), mainName]);
+  for (const [name, source] of graph) {
+    for (const [, specifier] of source.matchAll(/(?:from\s+|import\s*)["']([^"']+)["']/g)) {
+      if (!specifier.startsWith(".")) continue;
+      const resolved = posix.normalize(posix.join(posix.dirname(name), specifier));
+      assert.ok(names.has(resolved), `${name} imports ${specifier}, uploads as ${resolved}`);
+    }
+  }
+});
 
 function catalog(registry, name) {
   return JSON.stringify({
@@ -60,12 +86,7 @@ async function seed(mf, { pypiCatalog } = {}) {
 function worker() {
   return new Miniflare({
     modules: true,
-    scriptPath: fileURLToPath(
-      new URL(
-        "../.cloudflare/output/v0/workers/default/bundle/src/entry.js",
-        import.meta.url,
-      ),
-    ),
+    scriptPath: join(bundleDir, "entry.js"),
     // Miniflare 4.20260730.0 supports compatibility dates through 2026-08-06.
     compatibilityDate: "2026-08-06",
     modulesRules: [

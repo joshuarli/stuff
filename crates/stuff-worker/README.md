@@ -6,21 +6,21 @@ semantics, `deser` for config parsing), with no `worker` SDK and no async
 runtime in the dependency tree. Routes match on the request hostname, so each
 registry serves from its own domain root (see `STUFF_ROUTES` in
 `cloudflare.config.ts`, which also defines the bindings and custom domains).
-The thin fetch handler `src/entry.ts` initializes the compiled wasm once
+The thin fetch handler `entry.ts` initializes the compiled wasm once
 (`initSync`) and talks to R2 directly.
 
 ## Build
 
 `npm run build` (`scripts/build.mjs`) produces the Cloudflare Build Output
 Specification under `.cloudflare/output/v0`: the wasm module and bindgen glue
-from `scripts/build-wasm.sh`, `src/entry.ts` compiled by `tsrs` to
-`bundle/src/entry.js`, and the `worker.config.json` manifest that names the
+from `scripts/build-wasm.sh`, `entry.ts` compiled by `tsrs` to
+`bundle/entry.js`, and the `worker.config.json` manifest that names the
 three ES modules. It runs, in order:
 
 ```sh
 cf workers types             # regenerate .cloudflare/types from cloudflare.config.ts
 sh scripts/build-wasm.sh     # cargo build + wasm-bindgen + wasm-opt
-tsrs -p tsconfig.json --fast # type-check and compile src/entry.ts into the bundle
+tsrs -p tsconfig.json --fast # type-check and compile entry.ts into the bundle
 ```
 
 `npm run build:wasm` runs only the wasm step. `npm run typecheck` checks

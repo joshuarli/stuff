@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["src/**/*.ts", "build/wasm/*.d.ts", ".cloudflare/types/index.d.ts"]
+  "include": ["entry.ts", "src/**/*.ts", "build/wasm/*.d.ts", ".cloudflare/types/index.d.ts"]
 }

@@ -9,8 +9,8 @@ import {
   resolve_direct_alias_json,
   resolve_npm_tarball_json,
   resolve_pointer_json,
-} from "../build/wasm/stuff_worker.js";
-import wasmModule from "../build/wasm/stuff_worker_bg.wasm";
+} from "./build/wasm/stuff_worker.js";
+import wasmModule from "./build/wasm/stuff_worker_bg.wasm";
 
 initSync({ module: wasmModule });
 

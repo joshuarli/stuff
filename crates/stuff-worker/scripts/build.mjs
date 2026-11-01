@@ -32,15 +32,15 @@ for (const stale of ["cloudflare.config.js", "cloudflare.config.js.map"]) {
 
 const manifest = {
   type: "complete",
-  mainModule: "src/entry.js",
+  mainModule: "entry.js",
   modules: {
-    "src/entry.js": { type: "esm" },
+    "entry.js": { type: "esm" },
     "build/wasm/stuff_worker.js": { type: "esm" },
     "build/wasm/stuff_worker_bg.wasm": { type: "wasm" },
   },
 };
-if (existsSync(join(bundleDir, "src/entry.js.map"))) {
-  manifest.modules["src/entry.js.map"] = { type: "sourcemap" };
+if (existsSync(join(bundleDir, "entry.js.map"))) {
+  manifest.modules["entry.js.map"] = { type: "sourcemap" };
 }
 
 const unregister = registerConfigHooks();
@@ -73,6 +73,6 @@ writeFileSync(
 );
 
 console.log(
-  `built ${manifest.mainModule} (${statSync(join(bundleDir, "src/entry.js")).size} B), ` +
+  `built ${manifest.mainModule} (${statSync(join(bundleDir, "entry.js")).size} B), ` +
     `wasm (${statSync(join(bundleDir, "build/wasm/stuff_worker_bg.wasm")).size} B)`,
 );
