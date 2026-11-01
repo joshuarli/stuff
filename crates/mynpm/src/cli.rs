@@ -27,6 +27,7 @@ pub enum Command {
     Validate,
     Doctor,
     InitConfig,
+    Pins,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,6 +62,7 @@ fn is_command(s: &str) -> Option<Command> {
         "validate" => Some(Command::Validate),
         "doctor" => Some(Command::Doctor),
         "init-config" => Some(Command::InitConfig),
+        "pins" => Some(Command::Pins),
         _ => None,
     }
 }
@@ -204,11 +206,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     if output.is_some() && command != Command::InitConfig {
         return Err(Error::Usage("--output is only valid with init-config".to_string()));
     }
-    if config.is_some() && (command == Command::InitConfig || command == Command::Adopt) {
-        return Err(Error::Usage("--config is not valid with init-config or adopt".to_string()));
+    if config.is_some() && (command == Command::InitConfig || command == Command::Adopt || command == Command::Pins) {
+        return Err(Error::Usage("--config is not valid with init-config, adopt, or pins".to_string()));
     }
-    if state_dir.is_some() && (command == Command::InitConfig || command == Command::Adopt) {
-        return Err(Error::Usage("--state-dir is not valid with init-config or adopt".to_string()));
+    if state_dir.is_some() && (command == Command::InitConfig || command == Command::Adopt || command == Command::Pins) {
+        return Err(Error::Usage("--state-dir is not valid with init-config, adopt, or pins".to_string()));
     }
     if !targets.is_empty() && command != Command::ImportLock && command != Command::Add {
         return Err(Error::Usage(
@@ -276,6 +278,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 return Err(Error::Usage("init-config requires --node-version".to_string()));
             }
         }
+        Command::Pins => {
+            if !positionals.is_empty() {
+                return Err(Error::Usage("pins does not take positional arguments".to_string()));
+            }
+        }
     }
     Ok(Parsed {
         command,
@@ -313,6 +320,7 @@ pub fn print_help() {
     println!("  adopt --site-dir DIR");
     println!("  validate --client npm|pnpm [--smoke-executables]");
     println!("  doctor <projectDir>");
+    println!("  pins");
 }
 
 fn current_target_id(config: &Config) -> Result<String> {
@@ -618,6 +626,19 @@ fn run_plan(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
     Ok(())
 }
 
+fn pin_lines() -> Vec<String> {
+    [Manager::Npm, Manager::Pnpm]
+        .into_iter()
+        .map(|manager| format!("{} {}", manager.as_str(), manager.pinned_version()))
+        .collect()
+}
+
+fn print_pins() {
+    for line in pin_lines() {
+        println!("{line}");
+    }
+}
+
 fn print_publish_summary(summary: &crate::publish::PublishSummary) {
     println!(
         "{} generation {} ({} packages, {} versions, {} metadata-only versions).",
@@ -631,6 +652,10 @@ fn print_publish_summary(summary: &crate::publish::PublishSummary) {
 
 pub fn run(argv: &[String]) -> Result<()> {
     let parsed = parse_args(argv)?;
+    if parsed.command == Command::Pins {
+        print_pins();
+        return Ok(());
+    }
     if parsed.command == Command::InitConfig {
         return run_init_config(&parsed);
     }
@@ -694,6 +719,7 @@ pub fn run(argv: &[String]) -> Result<()> {
             Ok(())
         }
         Command::Adopt => unreachable!("adopt returns before the configuration is read"),
+        Command::Pins => unreachable!("pins returns before the configuration is read"),
         Command::Publish => {
             let site_dir = cwd.join(parsed.site_dir.clone().unwrap_or_else(|| ".work/site".to_string()));
             let summary = publish_site(&PublishOptions {
@@ -751,6 +777,22 @@ mod tests {
         assert!(parse_args(&args(&["validate", "--client", "npm"])).is_ok());
         assert!(parse_args(&args(&["add", "--manager", "npm", "a@1.0.0"])).is_ok());
         assert!(parse_args(&args(&["import-lock", "p.json"])).is_err());
+    }
+
+    #[test]
+    fn pins_reports_the_pinned_manager_versions() {
+        let p = parse_args(&args(&["pins"])).unwrap();
+        assert_eq!(p.command, Command::Pins);
+        assert!(parse_args(&args(&["pins", "extra"])).is_err());
+        assert!(parse_args(&args(&["pins", "--config", "mynpm.json"])).is_err());
+        assert_eq!(
+            pin_lines(),
+            [
+                format!("npm {}", Manager::Npm.pinned_version()),
+                format!("pnpm {}", Manager::Pnpm.pinned_version()),
+            ]
+        );
+        run(&args(&["pins"])).unwrap();
     }
 
     #[test]

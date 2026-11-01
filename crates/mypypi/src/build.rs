@@ -24,14 +24,14 @@ fn uv_version_in(output: &str) -> Option<&str> {
     output.split_whitespace().nth(1).filter(|version| !version.is_empty())
 }
 
-fn require_uv_version() -> Result<()> {
+pub(crate) fn require_uv_version() -> Result<()> {
     let output = std::process::Command::new("uv")
         .arg("--version")
         .stdin(std::process::Stdio::null())
         .output()
         .map_err(|e| {
             Error::dependency(
-                format!("uv {UV_VERSION} is required to build sdists: {e}"),
+                format!("uv {UV_VERSION} is required: {e}"),
                 Stage::Command,
             )
         })?;
@@ -40,7 +40,7 @@ fn require_uv_version() -> Result<()> {
     if !output.status.success() || found != Some(UV_VERSION) {
         return Err(Error::dependency(
             format!(
-                "uv {UV_VERSION} is required to build sdists; found {}",
+                "uv {UV_VERSION} is required; found {}",
                 found.unwrap_or("no version output")
             ),
             Stage::Command,
@@ -460,7 +460,6 @@ fn build_inner(
     opts: &BuildOptions<'_>,
 ) -> Result<PathBuf> {
     let ctx = |e: Error| e.with_package(package).with_target(&target.python_version.to_string(), &target.platform);
-    require_uv_version().map_err(ctx)?;
     let source_dir = stage.join("source");
     std::fs::create_dir(&source_dir).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
     let source_path = match download_artifact(source, &source_dir) {
