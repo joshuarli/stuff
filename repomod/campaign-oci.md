@@ -6,10 +6,11 @@
 
 **Preflight:** ready. Owner decisions D1-D4 were answered on 2026-11-01. Execution started on 2026-11-01.
 
-- **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation.
-- **Red:** the campaign's own checks are green. The fleet is green only under the old `rust-musl-image` rule, which is blind to the findings in **Baseline**. Do not read that green as evidence of compliance.
-- **Next:** M2.
-- **Resume:** "Execute `campaign-oci.md` from M2. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
+- **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation. M2 — `linux-musl-toolchain` replaces `rust-musl-image` and enforces the lock with a deterministic fixer (8e5e209).
+- **Fleet dry-run (M2):** 118 error findings across 15 repositories, 0 operational, 105 fixable. Counts: `ish` 10, `tansu` 25, `chromium-build` 4, `diff-pretty` 9, `e` 9, `fastermod` 6, `fdu` 2, `fz` 10, `git-build` 1, `node-build` 6, `rustybench` 9, `srv` 6, `tm` 6, `vault` 12, `zzz` 3. `fdu` reports the stale `python3` and rustup 1.29.0; `tansu` reports both musl Dockerfiles. `node-build`'s `clang` token has no version in the live Alpine index, so its package findings stay manual instead of inventing one. `python-build` is clean, and skipped or builder-free repositories return no findings. The fleet run takes 0.30 s.
+- **Red:** the campaign's own checks are green. The fleet is red under `linux-musl-toolchain` with 118 findings; that red is the migration backlog, not a campaign failure. It clears only when the owner runs the fixer and merges the pull requests.
+- **Next:** M3.
+- **Resume:** "Execute `campaign-oci.md` from M3. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
 
 ## Charter
 
