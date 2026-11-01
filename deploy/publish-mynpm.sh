@@ -39,7 +39,10 @@ if { [ ! -d "$STATE_DIR" ] || [ -z "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; } && [
 fi
 mkdir -p "$STUFF_STATE_HOME/mynpm"
 acquire_publish_lock "$LOCK_DIR"
-trap 'release_publish_lock' EXIT INT TERM HUP
+trap 'release_publish_lock' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 MYNPM_BIN=$STUFF_DIR/target/debug/mynpm
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh

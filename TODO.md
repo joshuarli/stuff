@@ -10,15 +10,6 @@ Next: 50
 - **Fix with:** architect
 - **Effort:** L
 
-### STUF-36 · P3 · mynpm and mypypi publish helpers keep running unlocked after INT or TERM
-
-- **Area:** Concurrency
-- **Where:** `deploy/publish-mynpm.sh:42`, `deploy/publish-mypypi.sh:43`, `deploy/publish-mycrates.sh:88-91`
-- **Problem:** `trap 'release_publish_lock' EXIT INT TERM HUP` releases the lock and returns, so after a signal aimed at the script (a CI cancel, `timeout`) the remaining sync, promote, and prune run without the lock and the script exits 0. Reproduced with a script sourcing `publish-lock.sh` and the same trap: after `kill -TERM` it printed the lock as free, ran the next step, and exited 0. The mycrates helper and `deploy/publish` already exit from their signal traps.
-- **Recommendation:** Release on EXIT only and add `trap 'exit 130' INT`, `trap 'exit 143' TERM`, `trap 'exit 129' HUP`, as `publish-mycrates.sh` does.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** S
-
 ### STUF-37 · P3 · mycrates serve-publish drops connections silently and reports server faults as 400
 
 - **Area:** Errors

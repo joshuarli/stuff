@@ -40,7 +40,10 @@ if { [ ! -d "$STATE_DIR" ] || [ -z "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; } && [
 fi
 mkdir -p "$STUFF_STATE_HOME/mypypi"
 acquire_publish_lock "$LOCK_DIR"
-trap 'release_publish_lock' EXIT INT TERM HUP
+trap 'release_publish_lock' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 MYPYPI_BIN=$STUFF_DIR/target/debug/mypypi
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
