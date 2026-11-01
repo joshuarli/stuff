@@ -130,14 +130,24 @@ done
 export "CARGO_REGISTRIES_${REG_ENV}_INDEX"="sparse+$LOCAL_SITE/current/registry/"
 export "CARGO_REGISTRIES_${REG_ENV}_TOKEN"="$(cat "$TOKEN_FILE")"
 for c in $CRATES; do
-  (
+  if output=$(
     cd / || exit 1
     if [ -n "$CALLER_TOOLCHAIN" ]; then
       RUSTUP_TOOLCHAIN=$CALLER_TOOLCHAIN
       export RUSTUP_TOOLCHAIN
     fi
-    cargo publish --manifest-path "$CALLER_MANIFEST" -p "$c" --registry "$REGISTRY"
-  )
+    cargo publish --manifest-path "$CALLER_MANIFEST" -p "$c" --registry "$REGISTRY" 2>&1
+  ); then
+    printf '%s\n' "$output"
+  else
+    status=$?
+    if printf '%s\n' "$output" | grep -q "already exists on .*$REGISTRY.* index"; then
+      echo "publish-mycrates: $c already published on $REGISTRY, skipping"
+    else
+      printf '%s\n' "$output" >&2
+      exit "$status"
+    fi
+  fi
   "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
 done
 kill $SRV_PID $STATIC_PID 2>/dev/null
