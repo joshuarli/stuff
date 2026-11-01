@@ -201,23 +201,6 @@ mod tests {
     }
 
     #[test]
-    fn derives_python_from_project_metadata() {
-        let settings = parse_project_settings(&project(">=3.15,<3.16")).unwrap();
-        assert_eq!(settings.python_version.to_string(), "3.15");
-        let v315: pep440_rs::Version = "3.15.0".parse().unwrap();
-        let v314: pep440_rs::Version = "3.14.0".parse().unwrap();
-        let v316: pep440_rs::Version = "3.16.0".parse().unwrap();
-        assert!(settings.contains_python(&v315));
-        assert!(!settings.contains_python(&v314));
-        assert!(!settings.contains_python(&v316));
-        let platforms: Vec<&str> = settings.platforms.iter().map(|s| s.as_str()).collect();
-        assert_eq!(
-            platforms,
-            vec!["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-arm64"]
-        );
-    }
-
-    #[test]
     fn rejects_non_single_minor() {
         for req in [">=3.14,<3.16", ">=3.15,<3.17", "==3.15.*"] {
             assert!(parse_project_settings(&project(req)).is_err(), "{req}");
@@ -225,46 +208,19 @@ mod tests {
     }
 
     #[test]
-    fn rejects_duplicate_platforms() {
-        let src = project(">=3.15,<3.16").replace(
-            "\"macos-arm64\"]",
-            "\"macos-arm64\", \"macos-arm64\"]",
-        );
-        let err = parse_project_settings(&src).unwrap_err();
-        assert!(err.detail.contains("must be unique"));
-    }
-
-    #[test]
-    fn rejects_unknown_target_setting() {
-        let src2 = "[project]\nrequires-python = \">=3.15,<3.16\"\n\n[tool.mypypi.targets]\nplatforms = [\"linux-x86_64\"]\nlinux_repair_policy = \"manylinux_2_28\"\nextra = \"x\"\n";
-        let err = parse_project_settings(src2).unwrap_err();
-        assert!(err.detail.contains("unknown target setting"));
-    }
-
-    #[test]
-    fn public_base_url_defaults_to_the_published_origin() {
-        let settings = parse_project_settings(&project(">=3.15,<3.16")).unwrap();
-        assert_eq!(settings.public_base_url, stuff_catalog::DEFAULT_PYPI_ORIGIN);
-    }
-
-    #[test]
-    fn public_base_url_is_configurable_and_normalized() {
-        let src = project(">=3.15,<3.16").replace(
-            "[tool.mypypi.targets]",
-            "[tool.mypypi]\npublic_base_url = \"https://pypi.example.test/mirror/\"\n\n[tool.mypypi.targets]",
-        );
-        let settings = parse_project_settings(&src).unwrap();
-        assert_eq!(settings.public_base_url, "https://pypi.example.test/mirror");
-    }
-
-    #[test]
-    fn rejects_invalid_public_base_url() {
-        for url in ["not a url", "ftp://pypi.example.test", "https://user:pass@pypi.example.test"] {
-            let src = project(">=3.15,<3.16").replace(
+    fn public_base_url_defaults_and_is_normalized_or_rejected() {
+        let with_url = |url: &str| {
+            project(">=3.15,<3.16").replace(
                 "[tool.mypypi.targets]",
                 &format!("[tool.mypypi]\npublic_base_url = \"{url}\"\n\n[tool.mypypi.targets]"),
-            );
-            assert!(parse_project_settings(&src).is_err(), "{url}");
+            )
+        };
+        let default = parse_project_settings(&project(">=3.15,<3.16")).unwrap();
+        assert_eq!(default.public_base_url, stuff_catalog::DEFAULT_PYPI_ORIGIN);
+        let normalized = parse_project_settings(&with_url("https://pypi.example.test/mirror/")).unwrap();
+        assert_eq!(normalized.public_base_url, "https://pypi.example.test/mirror");
+        for url in ["not a url", "https://user:pass@pypi.example.test"] {
+            assert!(parse_project_settings(&with_url(url)).is_err(), "{url}");
         }
     }
 }

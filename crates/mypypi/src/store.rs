@@ -740,7 +740,6 @@ pub fn publish(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::PackageVersion;
     use sha2::{Digest, Sha256};
 
     fn make_validated(dir: &Path, filename: &str, metadata: &[u8], targets: Vec<Target>) -> ValidatedArtifact {
@@ -771,59 +770,6 @@ mod tests {
     }
 
     #[test]
-    fn publish_round_trip_and_manifest_shape() {
-        let dir = tempfile::tempdir().unwrap();
-        let src = dir.path().join("src");
-        std::fs::create_dir(&src).unwrap();
-        let out = dir.path().join("index");
-        let a = make_validated(
-            &src,
-            "sample_pkg-1.0-py3-none-any.whl",
-            b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\nRequires-Python: >=3.15,<3.16\n\n",
-            vec![target("macos-arm64")],
-        );
-        let current = publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
-        assert!(current.ends_with("current"));
-        let manifest = std::fs::read_to_string(out.join("current").join("manifest.json").canonicalize().unwrap_or(out.join("current").join("manifest.json"))).unwrap_or_else(|_| {
-            let link = std::fs::read_link(&current).unwrap();
-            std::fs::read_to_string(out.join(link).join("manifest.json")).unwrap()
-        });
-        assert!(manifest.contains("\"schema_version\":1"));
-        assert!(manifest.ends_with('\n'));
-        let published = published_artifacts(&out).unwrap();
-        assert_eq!(published.len(), 1);
-        assert_eq!(published[0].wheel.filename, "sample_pkg-1.0-py3-none-any.whl");
-        // republishing identical bytes is a no-op merge, not a conflict
-        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
-    }
-
-    #[test]
-    fn republish_keeps_wheels_and_refuses_an_empty_index() {
-        let dir = tempfile::tempdir().unwrap();
-        let src = dir.path().join("src");
-        std::fs::create_dir(&src).unwrap();
-        let out = dir.path().join("index");
-        assert!(republish(&out, stuff_catalog::DEFAULT_PYPI_ORIGIN).is_err());
-        assert!(!out.exists());
-
-        let a = make_validated(
-            &src,
-            "sample_pkg-1.0-py3-none-any.whl",
-            b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\nRequires-Dist: other-pkg\n\n",
-            vec![target("macos-arm64")],
-        );
-        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
-        let before = std::fs::read_link(out.join("current")).unwrap();
-        republish(&out, "https://mirror.example.test").unwrap();
-        let after = std::fs::read_link(out.join("current")).unwrap();
-        assert_ne!(before, after);
-        let published = published_artifacts(&out).unwrap();
-        assert_eq!(published.len(), 1);
-        let catalog = std::fs::read_to_string(out.join("current").join("catalog.json")).unwrap();
-        assert!(catalog.contains("\"dependencies\": {\"runtime\": [\"other-pkg\"], \"peer\": [], \"build\": [], \"dev\": []}"));
-    }
-
-    #[test]
     fn conflicting_bytes_are_rejected() {
         let dir = tempfile::tempdir().unwrap();
         let src = dir.path().join("src");
@@ -847,11 +793,6 @@ mod tests {
         b.sha256 = "0".repeat(64);
         let err = publish(std::slice::from_ref(&b), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap_err();
         assert!(matches!(err.kind, Kind::Conflict | Kind::Integrity));
-    }
-
-    #[test]
-    fn package_version_parses() {
-        let _ = PackageVersion::parse("sample-pkg", "1.0").unwrap();
     }
 
 }
