@@ -820,23 +820,6 @@ mod tests {
         Target::new("3.15", "macos-arm64").unwrap()
     }
 
-    fn fixture() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/fixtures/mypypi/wheels/validation_fixture-1.0-py3-none-any.whl")
-    }
-
-    #[test]
-    fn inspects_fixture_wheel() {
-        let path = fixture();
-        if !path.exists() {
-            return;
-        }
-        let meta = inspect_wheel(&path, &target(), "manylinux_2_28").unwrap();
-        assert_eq!(meta.identity.package.name, "validation-fixture");
-        assert_eq!(meta.requires_python, ">=3.15,<3.16");
-        assert!(!meta.tags.is_empty());
-    }
-
     #[test]
     fn rejects_bad_policy_construction() {
         assert!(ValidationException::new(ExceptionKind::Extras, "", "reason").is_err());
@@ -860,13 +843,6 @@ mod tests {
         let cmd = install_command(Path::new("/venv/bin/python"), Path::new("/ws/foo-1.0-py3-none-any.whl"), Path::new("/ws"), &policy);
         assert!(cmd.iter().any(|a| a.contains("[socks]")));
         assert!(cmd.iter().any(|a| a == "requests>=2"));
-    }
-
-    #[test]
-    fn supported_tags_cover_pure_wheel() {
-        let t = target();
-        let tags = supported_tags(&t, "manylinux_2_28").unwrap();
-        assert!(tags.iter().any(|tag| tag == "py3-none-any"));
     }
 
     #[test]

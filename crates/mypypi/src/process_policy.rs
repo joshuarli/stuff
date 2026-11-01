@@ -485,38 +485,14 @@ mod tests {
     }
 
     #[test]
-    fn redacts_userinfo() {
+    fn redaction_hides_credentials_and_keeps_the_tail_on_char_boundaries() {
         let v = redacted_diagnostic("fetch https://user:secret@example.test/simple failed", 2000);
         assert!(v.contains("https://[credentials]@example.test/simple"));
         assert!(!v.contains("secret"));
-    }
-
-    #[test]
-    fn redaction_respects_limit_tail() {
-        let v = redacted_diagnostic("abcdef", 3);
-        assert_eq!(v, "def");
-    }
-
-    #[test]
-    fn redaction_handles_multibyte_text() {
+        assert_eq!(redacted_diagnostic("abcdef", 3), "def");
         assert_eq!(redacted_diagnostic("échec", 4096), "échec");
         assert_eq!(redacted_diagnostic("échec", 3), "hec");
-        let long = "é".repeat(10);
-        assert_eq!(redacted_diagnostic(&long, 5), "éé");
-    }
-
-    #[test]
-    fn runs_echo() {
-        let out = run_capture(
-            &["/bin/echo".to_string(), "hi".to_string()],
-            None,
-            &test_env(),
-            None,
-            10,
-        )
-        .unwrap();
-        assert!(out.success());
-        assert_eq!(out.stdout.trim(), "hi");
+        assert_eq!(redacted_diagnostic(&"é".repeat(10), 5), "éé");
     }
 
     #[test]

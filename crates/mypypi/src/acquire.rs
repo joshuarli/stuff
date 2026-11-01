@@ -1042,34 +1042,21 @@ mod tests {
     }
 
     #[test]
-    fn parses_release_metadata() {
+    fn release_metadata_is_parsed_matched_to_identity_and_filtered_by_target() {
         let r = release_from_metadata(&sample_package(), PYPI_JSON, None).unwrap();
         assert_eq!(r.wheels.len(), 1);
         assert_eq!(r.sdists.len(), 1);
         assert_eq!(r.requires_python, ">=3.9");
-    }
-
-    #[test]
-    fn rejects_mismatched_identity() {
         let other = PackageVersion::parse("sample-pkg", "2.0").unwrap();
         assert!(release_from_metadata(&other, PYPI_JSON, None).is_err());
-    }
-
-    #[test]
-    fn selects_compatible_wheel() {
-        let r = release_from_metadata(&sample_package(), PYPI_JSON, None).unwrap();
         let t = Target::new("3.15", "linux-x86_64").unwrap();
-        let wheels = compatible_wheels(&r, &t, "manylinux_2_28").unwrap();
-        assert_eq!(wheels.len(), 1);
+        assert_eq!(compatible_wheels(&r, &t, "manylinux_2_28").unwrap().len(), 1);
     }
 
     #[test]
     fn validates_fixture_wheel_metadata() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../tests/fixtures/mypypi/wheels/validation_fixture-1.0-py3-none-any.whl");
-        if !path.exists() {
-            return;
-        }
         let pkg = PackageVersion::parse("validation-fixture", "1.0").unwrap();
         let t = Target::new("3.15", "macos-arm64").unwrap();
         let id = validate_wheel_metadata(&path, &pkg, &t, "manylinux_2_28", true).unwrap();
