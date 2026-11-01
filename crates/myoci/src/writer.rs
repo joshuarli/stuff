@@ -30,6 +30,7 @@ pub struct WriterOptions {
     pub secret: Vec<u8>,
     pub max_connections: usize,
     pub sink: WriterSink,
+    pub public_origin: String,
 }
 
 pub fn run(options: WriterOptions) -> Result<()> {
@@ -159,7 +160,16 @@ fn handle_connection(mut stream: TcpStream, options: &WriterOptions) {
             Ok(_) => match verify_and_store(&options.state, &temp, &digest, &options.sink) {
                 Ok(()) => {
                     let _ = std::fs::remove_file(&temp);
-                    let location = format!("/v2/{}/blobs/{}", request.repository.as_str(), digest.as_str());
+                    let location = if options.public_origin.is_empty() {
+                        format!("/v2/{}/blobs/{}", request.repository.as_str(), digest.as_str())
+                    } else {
+                        format!(
+                            "{}/v2/{}/blobs/{}",
+                            options.public_origin.trim_end_matches('/'),
+                            request.repository.as_str(),
+                            digest.as_str()
+                        )
+                    };
                     crate::serve::send_plan(&mut stream, &plan_upload_complete(&location, &digest), None);
                 }
                 Err(error) => {
@@ -191,16 +201,33 @@ fn append_body(
             .find(|(key, _)| key.eq_ignore_ascii_case(name))
             .map(|(_, value)| value.as_str())
     };
-    if header("transfer-encoding").is_some() {
-        return Err(OciError::new(
-            ErrorCode::SizeInvalid,
-            "chunked uploads are not supported",
-        ));
+    let chunked = header("transfer-encoding")
+        .map(|value| value.to_ascii_lowercase().contains("chunked"))
+        .unwrap_or(false);
+    let existing = std::fs::metadata(temp).map(|meta| meta.len()).unwrap_or(0);
+    if let Some(range) = header("content-range") {
+        let start = range
+            .trim()
+            .strip_prefix("bytes")
+            .unwrap_or(range.trim())
+            .trim()
+            .split('/')
+            .next()
+            .and_then(|value| value.split_once('-'))
+            .and_then(|(start, _)| start.trim().parse::<u64>().ok());
+        if start != Some(existing) {
+            return Err(OciError::new(
+                ErrorCode::RangeInvalid,
+                "chunk does not continue the upload",
+            ));
+        }
+    }
+    if chunked {
+        return append_chunked(stream, pending, temp);
     }
     let length: u64 = header("content-length")
         .and_then(|value| value.parse().ok())
         .ok_or_else(|| OciError::new(ErrorCode::SizeInvalid, "content-length is required"))?;
-    let existing = std::fs::metadata(temp).map(|meta| meta.len()).unwrap_or(0);
     if existing.saturating_add(length) > MAX_UPLOAD_BYTES {
         return Err(OciError::new(
             ErrorCode::SizeInvalid,
@@ -241,6 +268,129 @@ fn append_body(
     file.sync_all()
         .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, format!("sync upload: {error}")))?;
     Ok(existing + length)
+}
+
+fn append_chunked(
+    stream: &mut TcpStream,
+    pending: &[u8],
+    temp: &Path,
+) -> std::result::Result<u64, OciError> {
+    let fail = |detail: String| OciError::new(ErrorCode::BlobUploadInvalid, detail);
+    if let Some(parent) = temp.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let existing = std::fs::metadata(temp).map(|meta| meta.len()).unwrap_or(0);
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(temp)
+        .map_err(|error| fail(format!("could not open upload: {error}")))?;
+    let mut reader = BodyReader::new(stream, pending);
+    let mut total = existing;
+    loop {
+        let line = reader.read_line()?;
+        let line = line.strip_suffix(b"\r\n").unwrap_or(&line);
+        let size_text = line.split(|byte| *byte == b';').next().unwrap_or(line);
+        let size_text = std::str::from_utf8(size_text).map_err(|_| fail("invalid chunk size".to_string()))?;
+        let size = usize::from_str_radix(size_text.trim(), 16)
+            .map_err(|_| fail("invalid chunk size".to_string()))?;
+        if size == 0 {
+            loop {
+                let trailer = reader.read_line()?;
+                if trailer == b"\r\n" || trailer == b"\n" {
+                    break;
+                }
+            }
+            break;
+        }
+        total = total.saturating_add(size as u64);
+        if total > MAX_UPLOAD_BYTES {
+            return Err(fail("upload exceeds the 20 GiB limit".to_string()));
+        }
+        let mut remaining = size;
+        let mut buffer = [0u8; 1 << 16];
+        while remaining > 0 {
+            let want = remaining.min(buffer.len());
+            reader.read_exact(&mut buffer[..want])?;
+            file.write_all(&buffer[..want])
+                .map_err(|error| fail(format!("write upload: {error}")))?;
+            remaining -= want;
+        }
+        let mut ending = [0u8; 2];
+        reader.read_exact(&mut ending)?;
+        if ending != *b"\r\n" {
+            return Err(fail("invalid chunk terminator".to_string()));
+        }
+    }
+    file.sync_all()
+        .map_err(|error| fail(format!("sync upload: {error}")))?;
+    Ok(total)
+}
+
+struct BodyReader<'a> {
+    stream: &'a mut TcpStream,
+    buffer: Vec<u8>,
+    position: usize,
+}
+
+impl<'a> BodyReader<'a> {
+    fn new(stream: &'a mut TcpStream, pending: &[u8]) -> Self {
+        Self { stream, buffer: pending.to_vec(), position: 0 }
+    }
+
+    fn fill(&mut self) -> std::result::Result<(), OciError> {
+        self.buffer.clear();
+        self.position = 0;
+        let mut chunk = [0u8; 1 << 16];
+        let read = self
+            .stream
+            .read(&mut chunk)
+            .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, format!("read upload: {error}")))?;
+        if read == 0 {
+            return Err(OciError::new(
+                ErrorCode::BlobUploadInvalid,
+                "upload body ended early",
+            ));
+        }
+        self.buffer.extend_from_slice(&chunk[..read]);
+        Ok(())
+    }
+
+    fn read_exact(&mut self, out: &mut [u8]) -> std::result::Result<(), OciError> {
+        let mut written = 0;
+        while written < out.len() {
+            if self.position == self.buffer.len() {
+                self.fill()?;
+            }
+            let take = (out.len() - written).min(self.buffer.len() - self.position);
+            out[written..written + take]
+                .copy_from_slice(&self.buffer[self.position..self.position + take]);
+            self.position += take;
+            written += take;
+        }
+        Ok(())
+    }
+
+    fn read_line(&mut self) -> std::result::Result<Vec<u8>, OciError> {
+        let mut line = Vec::new();
+        loop {
+            if self.position == self.buffer.len() {
+                self.fill()?;
+            }
+            let byte = self.buffer[self.position];
+            self.position += 1;
+            line.push(byte);
+            if byte == b'\n' {
+                return Ok(line);
+            }
+            if line.len() > 4096 {
+                return Err(OciError::new(
+                    ErrorCode::BlobUploadInvalid,
+                    "chunk line is too long",
+                ));
+            }
+        }
+    }
 }
 
 fn verify_and_store(

@@ -36,8 +36,16 @@ printf 'push-token' > "$TOKEN"
 printf 'push-secret' > "$SECRET"
 "$BIN" init --state-dir "$STATE" >/dev/null
 "$BIN" publish --state-dir "$STATE" --site-dir "$SITE" >/dev/null
+PP=$(python3 - <<'PY'
+import socket
+sock = socket.socket()
+sock.bind(("127.0.0.1", 0))
+print(sock.getsockname()[1])
+PY
+)
 
-"$BIN" writer --state-dir "$STATE" --bind 127.0.0.1:0 --secret-file "$SECRET" > "$WORK/writer.log" 2>&1 &
+"$BIN" writer --state-dir "$STATE" --bind 127.0.0.1:0 --secret-file "$SECRET" \
+  --public-origin "http://127.0.0.1:$PP" > "$WORK/writer.log" 2>&1 &
 WRITER_PID=$!
 WP=""
 tries=0
@@ -47,13 +55,6 @@ while [ -z "$WP" ] && [ "$tries" -lt 100 ]; do
   [ -n "$WP" ] || sleep 0.1
 done
 [ -n "$WP" ] || fail "writer did not start"
-PP=$(python3 - <<'PY'
-import socket
-sock = socket.socket()
-sock.bind(("127.0.0.1", 0))
-print(sock.getsockname()[1])
-PY
-)
 "$BIN" serve --site-dir "$SITE" --state-dir "$STATE" --push \
   --writer-url "http://127.0.0.1:$PP" --push-token-file "$TOKEN" \
   --push-secret-file "$SECRET" --bind 127.0.0.1:0 > "$WORK/front.log" 2>&1 &

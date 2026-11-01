@@ -125,7 +125,7 @@ fn handle_connection(
         crate::push::handle_front(&mut stream, &method, &target, &headers, &body, push);
         return;
     }
-    let (plan, path) = plan_response(site_dir, &method, &target, &headers);
+    let (plan, path) = plan_response(site_dir, &method, &target, &headers, push);
     send_plan(&mut stream, &plan, path.as_deref());
     let _ = stream.shutdown(std::net::Shutdown::Write);
 }
@@ -192,6 +192,7 @@ fn plan_response(
     method_text: &str,
     target: &str,
     headers: &[(String, String)],
+    push: Option<&crate::push::PushOptions>,
 ) -> (ResponsePlan, Option<PathBuf>) {
     let method = Method::parse(method_text);
     match stuff_oci::parse_request(method, target) {
@@ -231,20 +232,24 @@ fn plan_response(
         }
         Parsed::Request(Request::Blob { repository, digest, .. }) => {
             let view = match load_view(site_dir, &repository) {
-                Ok(Some(view)) => view,
-                Ok(None) => {
-                    return (
-                        plan_error(&OciError::name_unknown(repository.as_str())),
-                        None,
-                    );
-                }
+                Ok(view) => view,
                 Err(_) => return (internal_error(), None),
             };
-            if view.is_manifest(&digest) {
+            if let Some(view) = view
+                && view.is_manifest(&digest)
+            {
                 return (plan_error(&OciError::blob_unknown(digest.as_str())), None);
             }
             let path = site_dir.join("blobs/sha256").join(digest.hex());
-            let Ok(metadata) = std::fs::metadata(&path) else {
+            let mut metadata = std::fs::metadata(&path);
+            let mut path = path;
+            if metadata.is_err()
+                && let Some(push) = push
+            {
+                path = push.state.blob_path(&digest);
+                metadata = std::fs::metadata(&path);
+            }
+            let Ok(metadata) = metadata else {
                 return (plan_error(&OciError::blob_unknown(digest.as_str())), None);
             };
             let range = header(headers, "range").map(str::to_string);

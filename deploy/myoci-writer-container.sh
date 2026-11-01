@@ -22,6 +22,7 @@ docker run --rm --name stuff-myoci-writer -p "$PORT:5000" \
   -e "CARGO_TARGET_DIR=/work/.work/linux/target-writer" \
   -e STUFF_OCI_PUSH_SECRET_FILE=/run/secrets/oci-push-secret \
   -e "MYOCI_WRITER_STATE=/state" -e MYOCI_WRITER_BIND=0.0.0.0:5000 \
+  -e "MYOCI_WRITER_PUBLIC_ORIGIN=${MYOCI_WRITER_PUBLIC_ORIGIN:-https://oci.17166969.xyz}" \
   -e R2_S3_ENDPOINT -e R2_S3_ACCESS_KEY_ID -e R2_S3_SECRET_ACCESS_KEY \
   -e R2_S3_SESSION_TOKEN -e R2_S3_REGION \
   "$IMAGE" sh -c 'mkdir -p "$RUSTUP_HOME/toolchains"; toolchain=$(basename "$(ls -d /opt/rustup/toolchains/* | head -1)"); ln -sfn "/opt/rustup/toolchains/$toolchain" "$RUSTUP_HOME/toolchains/$toolchain"; cp -f /opt/rustup/settings.toml "$RUSTUP_HOME/settings.toml"; exec deploy/myoci-writer.sh'

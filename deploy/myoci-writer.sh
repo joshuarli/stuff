@@ -15,7 +15,9 @@ DEPLOY_DIR=${MYOCI_WRITER_DEPLOY_DIR:-$ROOT/deploy}
 [ -r "$SECRET_FILE" ] || { echo "myoci-writer: secret file is not readable: $SECRET_FILE" >&2; exit 1; }
 (cd "$ROOT" && cargo build -q -p myoci)
 if [ -n "${MYOCI_WRITER_LOCAL:-}" ]; then
-  exec "$ROOT/target/debug/myoci" writer --state-dir "$STATE_DIR" --bind "$BIND" --secret-file "$SECRET_FILE"
+  exec "$ROOT/target/debug/myoci" writer --state-dir "$STATE_DIR" --bind "$BIND" --secret-file "$SECRET_FILE" \
+    --public-origin "${MYOCI_WRITER_PUBLIC_ORIGIN:-https://oci.17166969.xyz}"
 fi
 exec "$ROOT/target/debug/myoci" writer --state-dir "$STATE_DIR" --bind "$BIND" \
-  --secret-file "$SECRET_FILE" --r2-bucket "$BUCKET" --deploy-dir "$DEPLOY_DIR"
+  --secret-file "$SECRET_FILE" --r2-bucket "$BUCKET" --deploy-dir "$DEPLOY_DIR" \
+  --public-origin "${MYOCI_WRITER_PUBLIC_ORIGIN:-https://oci.17166969.xyz}"

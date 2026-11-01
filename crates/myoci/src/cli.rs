@@ -47,6 +47,7 @@ pub struct Parsed {
     pub writer_url: Option<String>,
     pub r2_bucket: Option<String>,
     pub deploy_dir: Option<String>,
+    pub public_origin: Option<String>,
     pub json: bool,
 }
 
@@ -90,6 +91,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         writer_url: None,
         r2_bucket: None,
         deploy_dir: None,
+        public_origin: None,
         json: false,
     };
     let mut i = 1;
@@ -131,6 +133,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             "--writer-url" => parsed.writer_url = Some(take(argv, &mut i, "--writer-url")?),
             "--r2-bucket" => parsed.r2_bucket = Some(take(argv, &mut i, "--r2-bucket")?),
             "--deploy-dir" => parsed.deploy_dir = Some(take(argv, &mut i, "--deploy-dir")?),
+            "--public-origin" => parsed.public_origin = Some(take(argv, &mut i, "--public-origin")?),
             "--json" => parsed.json = true,
             other => return Err(Error::Usage(format!("unknown option {other}"))),
         }
@@ -140,7 +143,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         return Err(Error::Usage("--state-dir is required".to_string()));
     }
     let allows = |allowed: &[&str]| -> Result<()> {
-        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--push", parsed.push), ("--push-token-file", parsed.push_token_file.is_some()), ("--push-secret-file", parsed.push_secret_file.is_some()), ("--writer-url", parsed.writer_url.is_some()), ("--r2-bucket", parsed.r2_bucket.is_some()), ("--deploy-dir", parsed.deploy_dir.is_some()), ("--json", parsed.json)];
+        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--push", parsed.push), ("--push-token-file", parsed.push_token_file.is_some()), ("--push-secret-file", parsed.push_secret_file.is_some()), ("--writer-url", parsed.writer_url.is_some()), ("--r2-bucket", parsed.r2_bucket.is_some()), ("--deploy-dir", parsed.deploy_dir.is_some()), ("--public-origin", parsed.public_origin.is_some()), ("--json", parsed.json)];
         for (flag, present) in set {
             if present && !allowed.contains(&flag) {
                 return Err(Error::Usage(format!("{flag} is not valid for this command")));
@@ -223,7 +226,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             }
         }
         Command::Writer => {
-            allows(&["--bind", "--max-connections", "--push-secret-file", "--r2-bucket", "--deploy-dir"])?;
+            allows(&["--bind", "--max-connections", "--push-secret-file", "--r2-bucket", "--deploy-dir", "--public-origin"])?;
             if !parsed.push_secret_file.is_some() && std::env::var("STUFF_OCI_PUSH_SECRET").is_err() {
                 return Err(Error::Usage(
                     "writer requires --push-secret-file or STUFF_OCI_PUSH_SECRET".to_string(),
@@ -395,6 +398,7 @@ pub fn run(argv: &[String]) -> Result<()> {
                     },
                     None => crate::writer::WriterSink::Local,
                 },
+                public_origin: parsed.public_origin.clone().unwrap_or_default(),
             })?;
         }
         Command::Bench => {
