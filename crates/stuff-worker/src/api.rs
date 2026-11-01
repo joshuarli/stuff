@@ -158,18 +158,6 @@ pub struct DirectAliasJson {
     pub generation_catalog_key: Option<String>,
 }
 
-/// Shared-store alias for generation-scoped paths that r2-sync does not
-/// upload as separate objects (see the skip list in deploy/r2-sync.sh:
-/// `generations/*/tarballs/*`, which also matches `-/tarballs/`, and the
-/// symlinked `wheels/` dirs). Keep the two lists in agreement; the
-/// `pointer_alias_covers_shared_stores` test below pins this side.
-/// - `wheels/...`: mypypi publishes `generations/<id>/wheels` as a symlink
-///   to the shared immutable wheel store.
-/// - `tarballs/...` and `-/tarballs/...`: mynpm publishes hardlink aliases
-///   of the shared immutable tarball store.
-///
-/// Wheel filenames and content-hash tarball names are immutable, so serving
-/// the shared object is byte-identical to serving a generation copy.
 fn alias_key_for(key_prefix: &str, rel_path: &str) -> Option<String> {
     let target = stuff_http::shared_store_path(rel_path)?;
     let mut parts = Vec::new();

@@ -4,11 +4,6 @@
 # Env: CF_LOCAL_STATE sets a local simulation dir. Without it, promotion
 #      defaults to the authenticated `cf` CLI unless all R2_S3_* variables are
 #      set; --promote=s3 requires them and uses a conditional write.
-#
-# The target generation must exist remotely with a stuff-manifest.json. Every
-# object in that manifest is verified before the marker moves; a generation
-# that was never fully uploaded fails without touching `current`. Rolling
-# forward again is the same command with the newer generation id.
 set -eu
 BUCKET=$1
 GEN_ID=$2

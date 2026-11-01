@@ -285,7 +285,7 @@ deps.example.net {
   checksum, so a following `mycrates publish` renders the identical generation. Blobs the current
   generation no longer references are not adopted. Upstream records get `acquired_at` 0 because
   the published index does not carry it.
-- **Crash Recovery**: If a publish process was interrupted, running `mycrates publish` automatically cleans up staging leftovers (`.staging.*`) and recovers cleanly.
+- **Crash Recovery**: If a publish process was interrupted, running `mycrates publish` automatically cleans up staging leftovers (`.staging.*`) and recovers cleanly. If it instead refuses to replace an immutable generation, `site/generations/<id>` exists with content that fails verification; remove that directory and publish again.
 
 ## Security and Limitations
 

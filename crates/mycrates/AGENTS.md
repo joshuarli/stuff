@@ -1,41 +1,23 @@
 # AGENTS.md
 
-Guidance and reference for coding agents working on `mycrates`.
+`mycrates` is a self-hosted Cargo sparse registry and dependency archive in safe Rust. Build, test, and lint commands are the workspace ones in the root [AGENTS.md](../../AGENTS.md); each file in `tests/` is a target (`cargo test -p mycrates --test <name>`), and `tests/readme.rs` runs the README's `sh verified` blocks.
 
-## Architecture & Layout
+## Module map
 
-`mycrates` is a lean, self-hosted Cargo sparse registry and dependency archive written in safe Rust.
-
-- `src/lib.rs` / `src/main.rs`: Crate entry points. Unsafe code is strictly forbidden (`#![forbid(unsafe_code)]`).
-- `src/model.rs`: Core types: `CrateName`, `Version`, `IndexEntry`, `IndexDep`, `PublishBody`.
-- `src/index.rs`: Sparse registry index formatting and `config.json`; sharding (`1/x`, `2/xx`, `3/x/xxx`, `xx/xx/xxxx`) comes from `stuff-cargo-shard`.
-- `src/crate_file.rs`: Streaming structural archive scan (`scan_crate`) verifying gzip/tar integrity, prefixes, path traversal, `Cargo.toml` name/version parity, and size limits without extracting to disk.
-- `src/lockfile.rs`: Parsing of Cargo.lock (v3/v4) and source classification (crates.io, alternate registry, git, path, workspace).
-- `src/pins.rs`: Exact registry pin storage in `pins/<project>.toml`.
-- `src/store.rs`: Content-addressed blob store (`blobs/<sha256>.crate`), atomic ingest, records (`native/`, `upstream/`), exclusive locking using std `File::lock`, and SHA-256 verification.
-- `src/adopt.rs`: Rebuild state records and blobs from a published site (`mycrates adopt`).
-- `src/publish.rs`: Static generation renderer (`SiteGen`), manifest-derived canonical generation ID calculation, staging, atomic symlink switching (`current`), and crash recovery.
-- `src/wire.rs`: Framing decoding for `PUT /api/v1/crates/new` (length-prefixed JSON + length-prefixed tarball).
-- `src/serve.rs`: HTTP publish service (hand-rolled with `httparse`), constant-time token comparison, yank/unyank routes, and Cargo error JSON responses.
-- `src/upstream.rs`: Upstream crates.io client, `dl` template expansion, bounded download streaming, and trust chain verification.
-- `src/acquire.rs`: `plan`, `fetch`, and `verify` implementation.
-- `src/validate.rs`: Offline verification of locked projects using Cargo proxy denial and source replacement.
-- `src/cli/`: Subcommand handlers: `init`, `add`, `adopt`, `config`, `import-lock`, `plan`, `fetch`, `publish`, `serve-publish`, `verify`, `doctor`, `validate`.
-
-## Development Commands
-
-- Build: `cargo build`
-- Unit and integration tests: `cargo test`
-- Focused test targets:
-  - `cargo test --lib`
-  - `cargo test --test index_render`
-  - `cargo test --test crate_file`
-  - `cargo test --test lockfile`
-  - `cargo test --test store`
-  - `cargo test --test publish_gen`
-  - `cargo test --test serve`
-  - `cargo test --test cargo_native`
-  - `cargo test --test acquire`
-  - `cargo test --test cargo_archive`
-  - `cargo test --test readme`
-- Linter: `cargo clippy --locked --all-targets -- -D warnings`
+- `src/model.rs`: core types `CrateName`, `Version`, `IndexEntry`, `IndexDep`, `PublishBody`; `src/version.rs` holds the SemVer `Version` and `VersionReq` it wraps.
+- `src/config.rs`: `config.json` in the state directory, including `limits`.
+- `src/error.rs`: the `Error` kinds and their exit codes.
+- `src/json.rs`, `src/toml.rs`: thin `deser` wrappers that map parse errors to `Error`.
+- `src/index.rs`: sparse index lines and `config.json`; shard paths come from `stuff-cargo-shard`.
+- `src/crate_file.rs`: `scan_crate_staged`, the single archive gate for uploads and upstream downloads (gzip/tar integrity, entry types, path traversal, `name-version/` prefix, `Cargo.toml` name/version parity, size and ratio limits), without extracting to disk.
+- `src/lockfile.rs`: Cargo.lock (v3/v4) parsing and source classification (crates.io, alternate registry, git, path, workspace).
+- `src/pins.rs`: exact registry pins in `pins/<project>.toml`.
+- `src/store.rs`: content-addressed blob store (`blobs/<sha256>.crate`), records (`native/`, `upstream/`), the exclusive store lock (`File::lock`), and SHA-256 verification.
+- `src/adopt.rs`: rebuild records and blobs from a published site (`mycrates adopt`).
+- `src/publish.rs`: generation rendering, the manifest-derived generation id, and activation through `stuff_store::Site`.
+- `src/wire.rs`: framing for `PUT /api/v1/crates/new` (length-prefixed JSON plus tarball).
+- `src/serve.rs`: the `serve-publish` HTTP service (`httparse`), constant-time token comparison, yank/unyank, and Cargo error JSON.
+- `src/upstream.rs`: crates.io client, `dl` template expansion, bounded downloads, and the download SHA-256 check.
+- `src/acquire.rs`: `plan`, `fetch`, and `verify`, including the trust chain check (lockfile checksum equals index `cksum`).
+- `src/validate.rs`: offline validation of locked projects through Cargo proxy denial and source replacement.
+- `src/cli.rs`, `src/cli/`: one handler per subcommand.

@@ -1,6 +1,6 @@
 # Publish
 
-`deploy/publish` is the normal entry point. It checks `cf` auth, adopts the live publication until local state is marked complete, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
+`deploy/publish REGISTRY` is the normal entry point. It checks `cf` auth, adopts the live publication when local state is missing, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
 
 ## Check prerequisites
 
@@ -12,11 +12,11 @@
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
-| R2 S3 token (optional) | Long-lived credentials, parallel republishes, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
+| R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 
 If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
-The default state root is `${XDG_STATE_HOME:-$HOME/.local/state}/stuff`. Set `STUFF_STATE_HOME` if your state lives elsewhere. Back it up. This directory is the publication source of truth.
+The helpers keep state in `$STUFF_STATE_HOME/<registry>`, default `${XDG_STATE_HOME:-$HOME/.local/state}/stuff`, not in the calling checkout. Back it up. This directory is the publication source of truth.
 
 ## Publish a registry
 
@@ -30,17 +30,17 @@ LOCKFILE=pnpm-lock.yaml PROJECT=my-project /path/to/stuff/deploy/publish mynpm
 PACKAGES="six==1.16.0" /path/to/stuff/deploy/publish mypypi
 ```
 
-If `stuff` is at `../stuff`, use `../stuff/deploy/publish` instead. The wrapper sets `STUFF_DIR` to its own checkout, so the helper builds the right binaries.
+The wrapper sets `STUFF_DIR` to its own checkout unless it is already set, so the helper builds the right binaries. Before it publishes, the wrapper:
 
-The wrapper does three things before it publishes:
+- verifies `cf auth whoami`;
+- adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, for mynpm and mypypi when the site has no `current`;
+- selects `cf` promotion unless you pass `--promote=s3`.
 
-- It verifies `cf auth whoami`.
-- It adopts the live bucket until the local state is marked complete.
-- It selects `cf` promotion unless you pass `--promote=s3`.
+The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. It is local to the machine and serializes the publish helpers only. `make gc`, `r2-rollback.sh`, and manual `r2-sync.sh` runs do not take it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
-The helper then holds the per-registry lock, builds the site, uploads it, and promotes it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
+For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
-For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish. See the root README for those options.
+To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; sync each site afterwards (`make sync LOCAL=1` to rehearse).
 
 ## Republish without new packages
 
@@ -52,83 +52,13 @@ deploy/publish mynpm --republish
 deploy/publish mypypi --republish
 ```
 
-`mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation, and each helper prunes local generations other than the active one after its sync; the bucket keeps their manifests until `make gc` prunes generations outside its retention window.
+`mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation. Each helper prunes local generations other than the active one: mycrates before its sync, mynpm and mypypi after it. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
 
-`make deploy` runs the whole rollout in order: it builds one Worker bundle, tests it, deploys that bundle with `cf deploy --prebuilt`, then runs the three republishes, then `make smoke-deployed`. The three republishes run in parallel; each mints its own temporary S3 credentials when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
-
-## Upload and promote with S3
-
-The `cf` API allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so listing and uploading through `cf` costs several minutes even though the files are small.
-
-Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI with `cf r2 temporary-credentials create`. They are scoped to the bucket with object read and write and expire after `R2_TEMP_CREDENTIALS_TTL` seconds (default 3600). The parent access key ID is the first active account token whose policies mention R2; set `R2_PARENT_ACCESS_KEY_ID` to choose one. The credentials are exported into the sync process and never written to disk. If minting fails, the sync falls back to the paced `cf` API.
-
-When `R2_S3_*` is already set, the sync uses those credentials instead. Listing and uploads then use the S3 API: uploads run `R2_PUT_JOBS` in parallel (default 8), the remote plan comes from one paginated list, and the generation is verified against that list. The upload cap is gone, so a republish is bounded by local rendering and hashing instead of minutes of uploads.
-
-The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. Using it also avoids needing conditional-write credentials.
-
-Use `--promote=s3` when CI or another machine can publish at the same time:
-
-```sh
-CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
-```
-
-This uses the temporary credentials minted by the sync when `R2_S3_*` is not set. To use long-lived credentials instead:
-
-```sh
-export R2_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
-export R2_S3_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
-export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
-```
-
-`R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
-
-S3 promotion verifies the uploaded generation and moves `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner. Objects over the 300 MB single-PUT cap need S3 credentials, either minted or long-lived.
-
-## Publish from a new machine
-
-The wrapper adopts automatically until the mycrates state carries an
-`.adopt-complete` marker. It pulls the current generation and the shared
-stores, then rebuilds the local publication state before running the helper.
-Adoption uses the S3 API with parallel `R2_PULL_JOBS` downloads when
-`R2_S3_*` is set, and mints short-lived bucket credentials otherwise; set
-`R2_PULL_CF_ONLY=1` to fall back to the paced `cf` API.
-
-For an absent or empty state, adoption runs `mycrates init`, `mycrates adopt`,
-and `mycrates verify` in a sibling staging directory next to the state. It
-writes the marker there and renames the whole state into place, so a failed or
-interrupted run leaves no live state behind; the next publish retries because
-the marker is still absent.
-
-An existing state without the marker is never replaced. That includes state
-left by an interrupted older adopt and state this wrapper has not adopted
-before. The wrapper runs the idempotent adopt into it, verifies it, and only
-then writes the marker. Local records that are not on the live site stay in
-place, and an interrupted upgrade is retried next time.
-
-For `mynpm` and `mypypi`, adoption pulls and verifies into a sibling staging
-directory and renames it into the live site only after that step succeeds. A
-failed pull leaves no live site behind; the wrapper prints the staging path and
-the `rm -rf` command that removes it. After inspecting it, run the publish
-again to start a fresh adoption.
-
-If the wrapper refuses because a site directory exists without `current`, do
-not delete it. Inspect it, or restore the state backup, before publishing. A
-publish against an empty or partial state would replace the live registry with
-only the local packages. This refusal covers genuinely ambiguous live
-directories; the staging paths above are only for this wrapper's own failed
-adoptions.
-
-For the manual adopt sequence, see [Adopt a live publication](../README.md#adopt-a-live-publication).
-
-## mycrates auth
-
-`mycrates` writes require the publish token, whether the helper generates it or you set `MYCRATES_TOKEN`. Reads follow `auth_required` in `config.json`, and the generated `current/registry/config.json` advertises the same value as `auth-required`.
-
-Keep `auth_required` false for the public Worker and static servers, which do not enforce read auth. The publish server serves `blobs/` for Cargo verification, so a dependent native crate publishes without `--no-verify`.
+`make deploy` runs the whole rollout in order. It builds one Worker bundle, tests it, and deploys that bundle with `cf deploy --prebuilt`. It then runs the three republishes in parallel, then `make smoke-deployed`. Each republish mints its own temporary S3 credentials when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
 
 ## Sync a site you already built
 
-Use `deploy/r2-sync.sh` when the site is already on disk:
+Use `deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN] [--repair] [--dry-run] [--promote=cf|s3]` when the site is already on disk:
 
 ```sh
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
@@ -138,17 +68,77 @@ deploy/r2-sync.sh "$H/mynpm/site/mirror" stuff-mynpm
 deploy/r2-sync.sh "$H/mypypi/site" stuff-mypypi
 ```
 
-| Registry | Site directory | Bucket |
-| --- | --- | --- |
-| mycrates | `$H/mycrates/site` | `stuff-mycrates` |
-| mynpm | `$H/mynpm/site/mirror` | `stuff-mynpm` |
-| mypypi | `$H/mypypi/site` | `stuff-mypypi` |
+`r2-sync.sh` requires `SITE_DIR/current` to be a symlink, so for `mynpm` pass `site/mirror`, not `site`. It translates `current` into a marker object holding the generation id. The sync is incremental and content-aware: remote objects whose size and content hash match are skipped, so re-syncing an unchanged generation uploads nothing. It writes `manifests/<id>.json` for each local generation, verifies every listed object remotely, and then replaces `current`.
 
-Add `--dry-run` to list what would change. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
+- `--dry-run` lists the bucket read-only and prints the object and byte counts it would upload. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
+- `--expected <generation>` requires the bucket to be on that generation before promotion.
+- An existing immutable object with different bytes is a conflict. `--repair` is the separate, explicit overwrite path.
 
-Add `--expected <generation>` to require the bucket to be on that generation before promotion. Without `--expected`, a conditional S3 promotion still rejects another publisher.
+Generation-scoped aliases (`wheels/`, `tarballs/`, `-/tarballs/`, listed in `deploy/shared-store-paths.txt`) are not uploaded. The Worker resolves them to the shared store, including direct `generations/<id>/...` requests. Files over the 300 MB single-PUT cap upload through S3 multipart (`deploy/r2-multipart.py`, needs `R2_S3_*`). They are skipped when the remote multipart ETag already matches.
 
-`r2-sync.sh` requires `SITE_DIR/current` to be a symlink. For `mynpm`, pass `site/mirror`, not `site`.
+## Upload and promote with S3
+
+The `cf` API allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so listing and uploading through `cf` costs several minutes even though the files are small.
+
+Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI. Listing and uploads then use the S3 API: the remote plan comes from one paginated list, uploads run `R2_PUT_JOBS` in parallel (default 8), and the generation is verified against that list. If minting fails, listing through `cf` (`deploy/r2-plan.py`) and a cross-process pacer remain the fallback. The local simulation (`CF_LOCAL_STATE`) stays single-threaded.
+
+To mint credentials by hand:
+
+```sh
+eval "$(python3 deploy/r2-temp-credentials.py stuff-mycrates)"
+```
+
+The helper picks the first active account token whose policies mention R2 and calls `cf r2 temporary-credentials create` with `object-read-write` scoped to the bucket. It exports `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`, and `R2_S3_SESSION_TOKEN`, and never writes them to disk. `R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, and `R2_ACCOUNT_ID` overrides the account used for the endpoint. `R2_TEMP_CREDENTIALS_TTL` sets the lifetime in seconds (default 3600).
+
+To use long-lived credentials instead, export them before publishing:
+
+```sh
+export R2_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
+export R2_S3_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
+export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
+```
+
+`R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
+
+The `cf` promotion writes `current` without a conditional check. `--promote=s3` writes it with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish. A publisher that moves `current` during verification then gets `412`. The ETag is read after the upload, so neither mode stops a publish built from out-of-date local state from replacing a newer live generation. Publish each registry from one machine.
+
+```sh
+CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
+```
+
+## Publish from a new machine
+
+When `$STUFF_STATE_HOME` is missing (new machine, lost disk), a plain publish would replace the live registry with the caller's subset. The wrapper prevents that by adopting first: it pulls the current generation and the shared stores, then rebuilds the local publication state before running the helper.
+
+`deploy/r2-pull.py BUCKET DEST` only reads the bucket. It fetches the current generation and the shared stores and checks each object against its listing ETag. It refuses multipart objects, whose ETag is not an MD5, so adoption fails once any object exceeds 300 MB. With `R2_S3_*`, or with credentials minted through `cf`, it lists through the S3 API and downloads `R2_PULL_JOBS` objects in parallel. `R2_PULL_CF_ONLY=1` forces the paced `cf` transport.
+
+For mycrates with an absent or empty state, adoption runs `mycrates init`, `mycrates adopt`, and `mycrates verify` in a sibling staging directory next to the state. It writes the marker there and renames the whole state into place, so an interrupted run leaves no live state behind and the next publish retries. An existing state without the marker is never replaced. The wrapper runs the idempotent adopt into it, verifies it, and only then writes the marker. Local records that are not on the live site stay in place.
+
+For mynpm, adoption pulls into a sibling staging directory, runs `mynpm adopt` there, and renames the result into the live site only after it succeeds. mypypi needs no step beyond the pull, so its pulled site is renamed into place as fetched. A failed adoption leaves no live site behind. The wrapper prints the staging path and the `rm -rf` command that removes it. After inspecting it, publish again to start a fresh adoption.
+
+If the wrapper refuses because a site directory exists without `current`, do not delete it. Inspect it, or restore the state backup, before publishing. A publish against an empty or partial state would replace the live registry with only the local packages.
+
+The manual sequence the wrapper automates:
+
+```sh
+H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
+mkdir -p "$H/mycrates" "$H/mynpm" "$H/mypypi"
+deploy/r2-pull.py stuff-mycrates "$H/pull-mycrates"
+mycrates init --state-dir "$H/mycrates/state" --site-dir "$H/mycrates/site"
+mycrates config set-public-base-url https://crates.17166969.xyz --state-dir "$H/mycrates/state"
+mycrates adopt --from-site "$H/pull-mycrates" --state-dir "$H/mycrates/state"
+deploy/r2-pull.py stuff-mynpm "$H/mynpm/site/mirror"
+mynpm adopt --site-dir "$H/mynpm/site"
+deploy/r2-pull.py stuff-mypypi "$H/mypypi/site"
+```
+
+`mycrates` publishes from `state/` alone, so `adopt` rebuilds its records from the pulled index lines and blobs. `mynpm` and `mypypi` extend the `current` generation of their site, so the pulled site is their state. Delete `$H/pull-mycrates` once adopted. A manual mycrates adoption leaves `.adopt-complete` absent, so the next `deploy/publish mycrates` repeats the idempotent adopt in place and writes the marker once it verifies.
+
+## mycrates auth
+
+`mycrates` writes require the publish token, whether the helper generates it or you set `MYCRATES_TOKEN`. Reads follow `auth_required` in `config.json`, and the generated `current/registry/config.json` advertises the same value as `auth-required`.
+
+Keep `auth_required` false for the public Worker and static servers, which do not enforce read auth. The publish server serves `blobs/` for Cargo verification, so a dependent native crate publishes without `--no-verify`.
 
 ## Deploy the Worker
 
@@ -160,19 +150,9 @@ cf deploy --prebuilt --dry-run
 cf deploy --prebuilt
 ```
 
-`npm run build` compiles the wasm, emits `src/entry.ts` with `tsrs`, and writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`; `cf deploy --prebuilt` uploads that spec without rebuilding it. In this deployment, the three buckets already exist. Use `--provision` only when you add a bucket. Custom domains come from `domains` in `cloudflare.config.ts`.
+`npm run build` writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`, and `cf deploy --prebuilt` uploads it without rebuilding (see [crates/stuff-worker/README.md](../crates/stuff-worker/README.md)). The three buckets already exist; use `--provision` only when you add one. Custom domains come from `domains` in `cloudflare.config.ts`.
 
-The runtime integration test uses Miniflare, which remains a development dependency. Wrangler is not part of the build or deploy path.
-
-The Worker uses Workers Caching. The default entrypoint is an uncached gateway;
-the `Registry` entrypoint caches responses under a key that includes the host,
-so the four domains cannot share cache entries. Immutable artifacts carry a
-one-year TTL; mutable generation views carry 60 seconds, so a promotion becomes
-visible within that window without a cache purge. The gateway costs one extra
-worker-to-worker request per request; a cache hit skips `Registry` but still
-runs the gateway. Two requests to the same URL should show `cf-cache-status:
-HIT` on the second. Range requests are sliced from the cached full object, so a
-cold range fetch downloads the whole artifact.
+The Worker uses Workers Caching. The default entrypoint is an uncached gateway. The `Registry` entrypoint caches responses under a key that includes the host, so the four domains cannot share cache entries. Immutable artifacts carry a one-year TTL. Mutable generation views carry 60 seconds, so a promotion becomes visible within that window without a cache purge. The gateway costs one extra worker-to-worker request per request; a cache hit skips `Registry` but still runs the gateway. Two requests to the same URL should show `cf-cache-status: HIT` on the second. Range requests are sliced from the cached full object, so a cold range fetch downloads the whole artifact.
 
 ## Verify the publication
 
@@ -180,7 +160,7 @@ cold range fetch downloads the whole artifact.
 make smoke-deployed
 ```
 
-This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It checks the active generations, catalog objects, sample artifact hashes, and real package-manager probes.
+This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It runs `stuff doctor --sample-artifacts` against the active generations, catalog objects, and sample artifact hashes, plus `npm view` and `uv pip install --dry-run` probes.
 
 ## Roll back a generation
 
@@ -188,13 +168,15 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
-The rollback verifies every object in the target generation's manifest before moving `current`. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id.
+The rollback verifies every object in the target generation's manifest before moving `current`. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id. That works only until the next `make gc`: with the default `GC_KEEP_NEWER=0`, gc deletes generations newer than `current`.
 
 ## Reclaim storage
 
 `make gc` deletes R2 generations outside its retention window and shared-store objects no retained manifest references, then prints per-bucket and total storage before and after. It keeps `current` plus `GC_KEEP_PREVIOUS` older generations (default 1) and `GC_KEEP_NEWER` newer generations (default 0). Preview with `GC_DRY_RUN=1`, and restrict buckets with `GC_BUCKETS`.
 
-The command mints bucket-scoped credentials per bucket, so the usual `cf` login is enough. Because manifests are deleted with their generations, rollback and roll-forward only reach retained generations. Do not run `make gc` while a publish is in progress: it aborts if `current` or the manifest set changes before deletion, and it defers shared-store deletion when a recent generation directory has no manifest.
+The command mints bucket-scoped credentials per bucket, so the usual `cf` login is enough. Because manifests are deleted with their generations, rollback and roll-forward only reach retained generations.
+
+Do not run `make gc` while a publish is in progress. gc takes no lock. It aborts if `current` or the manifest set changed before its delete phase, and it defers shared-store deletion while a recent generation directory has no manifest. A sync uploads its manifest before the shared objects that sort after it, so a publish in flight is not fully protected.
 
 ## Fix common failures
 
@@ -206,5 +188,6 @@ The command mints bucket-scoped credentials per bucket, so the usual `cf` login 
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
+| `is a multipart object; its ETag cannot be verified` | Adoption pulled an object over 300 MB | None yet; adoption cannot verify multipart objects |
 | `publish: waiting for active writer` | Another publish holds the lock | Wait for it to finish |
 | `publish: adoption failed; staging is at ...` | A `mynpm` or `mypypi` adopt failed and left its staging directory | Inspect it, then run the printed `rm -rf` command and publish again |

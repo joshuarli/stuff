@@ -3,12 +3,64 @@
 Python wheel index: resolves and builds wheels, validates them on the host,
 and publishes immutable generations under a `current` pointer.
 
+## Ingest pins from lockfiles
+
+`mypypi add` takes exact `name==version` pins and resolves their
+dependencies with `uv pip compile` for every configured target. Pins can come
+from the registry packages of `uv.lock` files and from requirements files
+(comments and `--hash` continuations are ignored):
+
+```sh
+mypypi --catalog packages.toml --config pyproject.toml --state-dir state add \
+  --uv-lock ../app/uv.lock --requirements pins.txt extra==1.0
+```
+
+Only `[[package]]` entries whose `source` is a registry are read; virtual,
+editable, path, and git packages are skipped. Run `add` once per lockfile:
+one invocation rejects two versions of the same package, and lockfiles in a
+fleet usually disagree. The lockfile hashes are not carried into the catalog;
+compare them with the published wheel hashes after publishing.
+
+## Publish per platform
+
+Wheels are validated on a native runner, so one host publishes only its own
+platform. Packages that exist only for other operating systems (for example
+`pyobjc-*` on Linux) need `platforms = [...]` in their catalog entry, and
+wheels that fail validation by design need `exclude_platforms` or
+`validate_skip_imports` entries with a reason.
+
+One generation serves every platform: run build, validate, and publish once
+per platform against the same catalog, state directory, and site. Each
+`publish` adds that platform's wheels to the current generation and keeps the
+rest. Run the platforms one after another: the container runs do not share
+the host's publish lock. Linux platforms run in a container of the matching
+architecture, which is a native runner for mypypi's check (the binary is
+compiled inside the container, so `current_platform()` reports the
+container's architecture):
+
+```sh
+deploy/mypypi-container.sh arm64 linux-aarch64 build
+deploy/mypypi-container.sh arm64 linux-aarch64 validate
+deploy/mypypi-container.sh arm64 linux-aarch64 publish
+deploy/mypypi-container.sh amd64 linux-x86_64 validate   # Rosetta/QEMU on an arm64 host
+```
+
+`linux-x86_64` on an arm64 host runs under emulation; the check accepts it
+because the userspace and binary are x86_64, not because the code runs on x86
+silicon. Publish the Linux wheels from a real x86_64 runner when that matters.
+`add` takes no `--platform` and rewrites the shared catalog; run it before the
+per-platform commands. The container mounts the same
+`$STUFF_STATE_HOME/mypypi/{packages.toml,pyproject.toml,state,site}` paths as
+`deploy/publish mypypi`, so every platform must use that one state home.
+
 ## Build environment
 
-Build subprocesses keep the sanitized environment and run with a scratch
+Build subprocesses get an allowlisted environment and run with a scratch
 `HOME`, `CARGO_HOME`, and `RUSTUP_HOME`. The scratch homes link to the
 installed Cargo bin and rustup toolchains, so Rust-backed sdists find the host
-toolchain without inheriting the publisher's Cargo cache or credentials.
+toolchain without inheriting the publisher's Cargo cache or credential
+variables. There is no filesystem or network sandbox: an sdist build backend
+runs as the publisher's user and can read any file that user can.
 
 ## Configuration
 

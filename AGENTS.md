@@ -10,21 +10,25 @@ for repair.
 
 ## Layout
 
-- `crates/mycrates`: Cargo sparse registry + archive (Rust, nightly-2026-09-15).
+- `crates/mycrates`: Cargo sparse registry + archive; module map in
+  [crates/mycrates/AGENTS.md](crates/mycrates/AGENTS.md).
 - `crates/mynpm`: npm archive (Rust binary `mynpm`).
 - `crates/mypypi`: wheel index (Rust binary `mypypi`).
-- `crates/h12tiny-*`: TLS client deps of mycrates, imported history, manifests
-  inlined (no workspace root). Keep `src/` byte-identical to upstream.
-- `crates/stuff-store`: generation activation, immutable blob sync, durable writes.
+- `crates/h12tiny-*`: HTTP/TLS client used by every registry CLI and `stuff`,
+  imported with history from upstream `dcdf4f2`, manifests inlined. Keep
+  `src/` byte-identical to upstream.
+- `crates/stuff-store`: generation activation (`Site`, used by mycrates; mynpm
+  and mypypi activate their own), immutable blob sync, durable writes.
 - `crates/stuff-http`: content types, cache policy, path resolution, conditionals, ranges.
 - `crates/stuff-catalog`: normalized catalog rendering, HTML, and `llms.txt`.
+  The page search is a vendored MiniSearch in `web/` bundled into the
+  committed `assets/search.js`.
 - `crates/stuff-cargo-shard`: Cargo sparse-index shard paths shared by
   `mycrates` and the `stuff` CLI.
 - `crates/stuff-server`: native static file server (blocking httparse +
   std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
-- `crates/stuff-worker`: Cloudflare Worker adapter; the cf project lives
-  next to the crate (`npm run build && cf deploy --prebuilt --dry-run`
-  validates the build).
+- `crates/stuff-worker`: Cloudflare Worker adapter; build and architecture in
+  [crates/stuff-worker/README.md](crates/stuff-worker/README.md).
 - `deploy/`: pipeline checks (`check-pipeline-independence.sh`), npm fleet
   ingest (`ingest-npm-fleet.sh`),
   ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;
@@ -34,19 +38,27 @@ for repair.
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels).
 - Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
+- Open tickets: [TODO.md](TODO.md); designs awaiting sign-off: `docs/rfc/`.
 
 ## Commands
 
 - Rust: `cargo build --workspace`, `cargo test --workspace`,
   `cargo clippy --locked --all-targets -- -D warnings`.
+- One toolchain for the workspace: `rust-toolchain.toml` (nightly-2026-09-15).
 - Ecosystem smoke (Node 26 + pinned npm, uv + CPython 3.15, network):
   `deploy/ecosystem-smoke.sh`. `TMPDIR="$PWD/.work/tmp"` for campaign commands.
+- Deploy scripts, offline: `make test-r2` (local fakes and the R2 simulation),
+  `make test-publish-lock`; `make test-r2-live` is the opt-in real-R2 check.
+- Worker: `make worker-test` (bundle under workerd), `make worker-check`.
+- Search: after editing `crates/stuff-catalog/web/`, run `make search-bundle`
+  (needs `npm ci` in `crates/stuff-worker`) and commit the bundle;
+  `make test-search` runs its tests.
 
 ## Invariants
 
 - Apache-2.0 for stuff files; imported crates keep their own license fields.
 - One registry's publication never rebuilds another's output.
-- `#![forbid(unsafe_code)]` in Rust crates; no lifecycle scripts during
+- `#![forbid(unsafe_code)]` in first-party Rust crates; no lifecycle scripts during
   acquire/validate; native-target checks stay.
 - npm/pnpm/uv/CPython are orchestration dependencies for resolution,
   builds and install validation only. The registry application itself
