@@ -2,7 +2,7 @@
 # Sync one published site directory to an R2 bucket, incrementally, then
 # promote the generation atomically.
 # Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]
-#        [--promote=cf|s3]
+#        [--promote=cf|s3] [--allow-drops]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #      R2_PARENT_ACCESS_KEY_ID, R2_ACCOUNT_ID, and R2_TEMP_CREDENTIALS_TTL
 #      tune the temporary credentials minted when R2_S3_* is not set.
@@ -34,6 +34,12 @@
 # site built from state another publisher has since superseded is refused.
 # Roll back with deploy/r2-rollback.sh.
 #
+# Before uploading anything, deploy/r2-catalog-guard.py compares the new
+# generation's catalog.json with the live one and refuses the sync when any
+# version the live catalog serves is missing from the new one, even when the
+# recorded base generation matches. --allow-drops (or R2_ALLOW_DROPS=1) is
+# the explicit way to remove versions.
+#
 # --dry-run lists the bucket (read-only), prints how many objects and bytes
 # would be uploaded, how many are skipped, and any conflicts, then exits
 # without uploading or promoting. It still writes manifests/ into SITE_DIR and
@@ -41,14 +47,15 @@
 #
 # Files over the 300 MB single-PUT cap (R2_SINGLE_PUT_MAX overrides) are uploaded via S3 multipart
 # (deploy/r2-multipart.py, stdlib-only python3) using R2_S3_ENDPOINT,
-# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. Promotion defaults to
-# `cf` when the S3 variables are not all set, or when --promote=cf is passed:
-# the authenticated `cf` CLI writes `current` with a plain put after the same
-# remote verification. A competing publisher is not detected in that mode.
-# --promote=s3 requires the S3 variables and uses a conditional write
-# (If-Match, or If-None-Match:* on first publish); a competing publisher gets
-# 412. Files over the single-PUT cap still need the S3 variables in either
-# mode.
+# R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY. When they are unset they
+# are minted from the authenticated cf CLI (deploy/r2-temp-credentials.py).
+# Promotion defaults to --promote=s3: a conditional write (If-Match, or
+# If-None-Match:* on first publish) where a competing publisher gets 412. It
+# fails when the S3 variables are unset and cannot be minted. --promote=cf
+# is the explicit opt-out: the authenticated `cf` CLI writes `current` with a
+# plain put after the same remote verification, and a competing publisher is
+# not detected. Files over the single-PUT cap still need the S3 variables in
+# either mode.
 #
 # Generation-scoped immutable aliases are NOT uploaded: the worker resolves
 # them to the shared store (see stuff-worker alias_key).
@@ -65,6 +72,7 @@ EXPECTED=""
 REPAIR=""
 DRY_RUN=""
 PROMOTE=""
+ALLOW_DROPS=${R2_ALLOW_DROPS:-}
 while [ $# -gt 0 ]; do
   case $1 in
     --expected)
@@ -84,23 +92,18 @@ while [ $# -gt 0 ]; do
       PROMOTE=${1#--promote=}
       shift
       ;;
+    --allow-drops)
+      ALLOW_DROPS=1
+      shift
+      ;;
     *)
-      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3]"
+      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3] [--allow-drops]"
       exit 1
       ;;
   esac
 done
-s3_credentials_set() {
-  [ -n "${R2_S3_ENDPOINT:-}" ] && [ -n "${R2_S3_ACCESS_KEY_ID:-}" ] && [ -n "${R2_S3_SECRET_ACCESS_KEY:-}" ]
-}
-if [ -z "${CF_LOCAL_STATE:-}" ] && [ -z "$DRY_RUN" ] && ! s3_credentials_set; then
-  if credentials=$(python3 "$SCRIPT_DIR/r2-temp-credentials.py" "$BUCKET" 2>&1); then
-    eval "$credentials"
-  else
-    echo "note: could not mint temporary R2 S3 credentials; using cf uploads" >&2
-    printf '%s\n' "$credentials" | sed 's/^/note: /' >&2
-  fi
-fi
+. "$SCRIPT_DIR/r2-s3-credentials.sh"
+S3_HINT="mint them with: eval \"\$(python3 $SCRIPT_DIR/r2-temp-credentials.py $BUCKET)\", or pass --promote=cf to promote without a conditional write"
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
 elif [ -z "$DRY_RUN" ]; then
@@ -109,11 +112,13 @@ elif [ -z "$DRY_RUN" ]; then
       PROMOTE=cf
     else
       PROMOTE=s3
-      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-        eval "value=\${$var:-}"
-        [ -n "$value" ] || { PROMOTE=cf; break; }
-      done
     fi
+  fi
+  if ! mint_s3_credentials "$BUCKET"; then
+    case $PROMOTE in
+      cf) echo "note: could not mint temporary R2 S3 credentials; using cf uploads" >&2 ;;
+      s3) echo "FAIL: --promote=s3 needs R2_S3_* and minting them failed; $S3_HINT" >&2; exit 1 ;;
+    esac
   fi
   case $PROMOTE in
     cf)
@@ -122,10 +127,6 @@ elif [ -z "$DRY_RUN" ]; then
       ;;
     s3)
       unset R2_PROMOTE_UNCONDITIONAL
-      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-        eval "value=\${$var:-}"
-        [ -n "$value" ] || { echo "FAIL: $var is not set; --promote=s3 needs the R2 S3 API"; exit 1; }
-      done
       ;;
   esac
 fi
@@ -147,6 +148,8 @@ GEN_ID=${GEN_TARGET#generations/}
 case $GEN_ID in
   *[!A-Za-z0-9_-]* | "") echo "FAIL: bad generation id: $GEN_ID"; exit 1 ;;
 esac
+
+python3 "$SCRIPT_DIR/r2-catalog-guard.py" "$SITE_DIR" "$BUCKET" "$GEN_ID" ${ALLOW_DROPS:+--allow-drops}
 
 echo "note: generation alias paths resolve server-side (see worker alias_key); skipping their upload"
 find "$SITE_DIR" -type l ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do

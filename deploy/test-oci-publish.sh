@@ -43,7 +43,7 @@ current_gen() {
 "$BIN" publish --state-dir "$STATE" --site-dir "$SITE" >/dev/null
 GEN1=$(basename "$(readlink "$SITE/current")")
 
-(cd "$ROOT" && deploy/publish oci --republish >/dev/null)
+(cd "$ROOT" && deploy/publish oci --republish --promote=cf >/dev/null)
 list_bucket stuff-oci
 list_bucket stuff-oci-blobs
 python3 - "$WORK/stuff-oci.list.json" "$WORK/stuff-oci-blobs.list.json" "$GEN1" <<'PY'
@@ -88,13 +88,13 @@ PY
 
 "$BIN" tag --state-dir "$STATE" --repository example/app --tag stable \
   --digest sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4 >/dev/null
-(cd "$ROOT" && deploy/publish oci --republish >/dev/null)
+(cd "$ROOT" && deploy/publish oci --republish --promote=cf >/dev/null)
 GEN2=$(basename "$(readlink "$SITE/current")")
 [ "$GEN2" != "$GEN1" ] || fail "tag move did not create a new generation"
 (cd "$ROOT" && deploy/r2-rollback.sh stuff-oci "$GEN1" --promote=cf >/dev/null)
 [ "$(current_gen stuff-oci)" = "$GEN1" ] || fail "rollback did not restore the first generation"
 
-STUFF_STATE_HOME="$WORK/home-adopt" TMPDIR="$TMPDIR" deploy/publish oci --republish >/dev/null
+STUFF_STATE_HOME="$WORK/home-adopt" TMPDIR="$TMPDIR" deploy/publish oci --republish --promote=cf >/dev/null
 "$BIN" verify --state-dir "$WORK/home-adopt/oci/state" >/dev/null
 ADOPTED=$(basename "$(readlink "$WORK/home-adopt/oci/site/current")")
 [ "$ADOPTED" = "$GEN1" ] || fail "adoption restored $ADOPTED, expected $GEN1"

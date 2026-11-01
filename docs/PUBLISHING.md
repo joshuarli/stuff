@@ -1,6 +1,6 @@
 # Publish
 
-`deploy/publish REGISTRY` is the normal entry point. It checks `cf` auth, adopts the live publication when local state is missing, and runs the matching publish helper. Promotion defaults to `cf`, which is safe for a single publisher and needs no R2 S3 credentials.
+`deploy/publish REGISTRY` is the normal entry point. It checks `cf` auth, adopts the live publication when local state is missing, and runs the matching publish helper. Promotion defaults to `s3`, the conditional write, and mints `R2_S3_*` from `cf`; `--promote=cf` is the plain-put opt-out.
 
 ## Check prerequisites
 
@@ -34,8 +34,8 @@ PACKAGES="six==1.16.0" /path/to/stuff/deploy/publish mypypi
 The wrapper sets `STUFF_DIR` to its own checkout unless it is already set, so the helper builds the right binaries. Before it publishes, the wrapper:
 
 - verifies `cf auth whoami`;
-- adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, for mynpm and mypypi when the site has no `current`;
-- selects `cf` promotion unless you pass `--promote=s3`.
+- adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, and again whenever the live generation is not the one this machine last promoted or adopted (the adopt extends the state in place, so another machine's records join this machine's); for mynpm and mypypi when the site has no `current`;
+- selects `s3` promotion, the conditional write, unless you pass `--promote=cf`. It mints `R2_S3_*` from `cf` when they are unset and stops before building if it cannot.
 
 The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`, and every writer of that registry's bucket on the machine takes it: the helpers, adoption, `make sync`, `r2-rollback.sh`, and `make gc`. `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
@@ -128,7 +128,7 @@ deploy/publish mypypi --republish
 
 ## Sync a site you already built
 
-Use `deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN] [--repair] [--dry-run] [--promote=cf|s3]` when the site is already on disk:
+Use `deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN] [--repair] [--dry-run] [--promote=cf|s3] [--allow-drops]` when the site is already on disk:
 
 ```sh
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
@@ -143,6 +143,7 @@ deploy/r2-sync.sh "$H/mypypi/site" stuff-mypypi
 After each promotion the sync records the generation in `$STUFF_STATE_HOME/<registry>/promoted-generation`. Adoption and rollback write the same record. The next sync expects the bucket to still be on that generation and refuses to promote otherwise, so a site built from state that another publisher has since superseded cannot replace the live generation. Without a record, the first sync promotes unconditionally and writes one.
 
 - `--dry-run` lists the bucket read-only and prints the object and byte counts it would upload. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
+- Before uploading, `deploy/r2-catalog-guard.py` compares the new generation's `catalog.json` with the live one and refuses the sync when any (source, package, version) the live catalog serves is missing from the new one. The recorded base generation only proves the bucket has not moved; the guard also catches state that never held another machine's records. `--allow-drops` (or `R2_ALLOW_DROPS=1`, which `deploy/publish --allow-drops` sets) is the explicit way to remove versions. Rollback does not run the guard. A live generation without a `catalog.json` is refused the same way.
 - `--expected <generation>` requires the bucket to be on that generation before promotion, in place of the recorded one.
 - An existing immutable object with different bytes is a conflict. `--repair` is the separate, explicit overwrite path.
 
@@ -154,11 +155,15 @@ The `cf` API allows roughly four requests a second per account. A republish afte
 
 Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI. Listing and uploads then use the S3 API: the remote plan comes from one paginated list, uploads run `R2_PUT_JOBS` in parallel (default 8), and the generation is verified against that list. If minting fails, listing through `cf` (`deploy/r2-plan.py`) and a cross-process pacer remain the fallback. The local simulation (`CF_LOCAL_STATE`) stays single-threaded.
 
-To mint credentials by hand:
+Promotion defaults to `s3`, so a publish, sync, or rollback needs these credentials. When `R2_S3_*` is unset the scripts mint them themselves, and a publish stops before building if minting fails. Minting needs an authenticated `cf` (`cf auth login --use-keyring`, check with `cf auth whoami`) and an active account token whose policies mention R2.
+
+To mint credentials by hand, for the bucket you will write (`stuff-mycrates`, `stuff-mynpm`, or `stuff-mypypi`):
 
 ```sh
 eval "$(python3 deploy/r2-temp-credentials.py stuff-mycrates)"
 ```
+
+The variables exist only in that shell and expire after an hour, so mint again when a long session outlives them. If minting fails, the message names the failing `cf` call. Typical causes are a missing login, no token that mentions R2, or an account `cf auth whoami` cannot resolve. Set `R2_PARENT_ACCESS_KEY_ID` or `R2_ACCOUNT_ID` to pick them explicitly.
 
 The helper picks the first active account token whose policies mention R2 and calls `cf r2 temporary-credentials create` with `object-read-write` scoped to the bucket. It exports `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`, and `R2_S3_SESSION_TOKEN`, and never writes them to disk. `R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, and `R2_ACCOUNT_ID` overrides the account used for the endpoint. `R2_TEMP_CREDENTIALS_TTL` sets the lifetime in seconds (default 3600).
 
@@ -172,10 +177,10 @@ export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 
 `R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
 
-Both promotion modes check the recorded generation first. The `cf` promotion then writes `current` with a plain put. `--promote=s3` writes it with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish, so a publisher that moves `current` during verification gets `412`. The publish lock is local to one machine, and nothing fences two machines publishing the same registry at the same moment; publish each registry from one machine at a time.
+Both promotion modes check the recorded generation first. `--promote=s3`, the default, writes `current` with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish, so a publisher that moves `current` during verification gets `412`. `--promote=cf` is the explicit opt-out: it writes `current` with a plain put and does not detect a competing publisher. The publish lock is local to one machine, and nothing fences two machines publishing the same registry at the same moment; publish each registry from one machine at a time.
 
 ```sh
-CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
+CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=cf
 ```
 
 ## Publish from a new machine
@@ -240,7 +245,7 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
-The rollback verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
+The rollback verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. It defaults to the conditional `s3` promotion, minting `R2_S3_*` when they are unset, and accepts `--promote=cf` for a plain put. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
 
 ## Reclaim storage
 
@@ -255,12 +260,13 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | Message | Cause | Fix |
 | --- | --- | --- |
 | `cf is not authenticated` | No active cf session | Run `cf auth login --use-keyring` |
-| `R2_S3_ENDPOINT is not set` | `--promote=s3` without S3 credentials | Set `R2_S3_*` or use the default `cf` promotion |
+| `--promote=s3 needs R2_S3_* and minting them failed` | The default `s3` promotion has no credentials and `cf` could not mint them | Run `cf auth login --use-keyring`, or mint by hand with `eval "$(python3 deploy/r2-temp-credentials.py BUCKET)"`. Pass `--promote=cf` only when no other machine can publish |
 | `current changed during promotion` | Another publisher moved `current` | Pull the new generation, merge your changes, and publish again |
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
 | `differs from its manifest ETag` | A pulled object does not match the generation's manifest | Rerun the pull; if it repeats, the bucket is inconsistent |
 | `publish: waiting for active writer` | Another publish, sync, rollback, or gc holds the lock | Wait for it to finish |
-| `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Adopt again: move the site (mynpm, mypypi) or the mycrates `.adopt-complete` marker aside and publish |
+| `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Adopt again: for mynpm and mypypi, move the site aside and publish; `deploy/publish mycrates` re-adopts by itself before building |
+| `generation ... drops N versions served by live generation ...` | The new catalog lacks versions the live catalog serves, usually because this machine's state predates another publisher's | Re-adopt the live publication, or pass `--allow-drops` to remove them on purpose |
 | `publish: adoption failed; staging is at ...` | A `mynpm` or `mypypi` adopt failed and left its staging directory | Inspect it, then run the printed `rm -rf` command and publish again |
