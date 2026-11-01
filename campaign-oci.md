@@ -3,10 +3,10 @@
 ## Status
 
 - **Goal:** `stuff` serves and accepts OCI images as a fourth registry. Read-only first: import a multi-architecture image, publish an immutable generation, pull anonymously through the Worker and `myoci serve`, and pass the OCI read conformance suite. Then native, authenticated `docker push` through a separate blob writer, passing the push conformance suite.
-- **State:** locally complete on `campaign/oci` (unpushed; `main` untouched). P1–P3, A1–A11, and B1–B5 are implemented and committed; C1 docs and status are in this commit.
-- **Accepted:** P1–P3, A1–A10, B1–B5. A11's conditional 307 path is implemented and locally proven; its O2 deployed comparison is open in STUF-52.
-- **Evidence:** `make test-oci-conformance` green; `make test-oci-conformance-push` green with 440 passing tests, 0 failures, and 52 gate rows (the suite's optional "Blob post only" row is skipped). B4's 1 GiB push through the writer passed live against a temporary R2 bucket using temporary credentials minted from `cf`; the bucket was removed.
-- **Next:** final workspace close gate, branch review, and merge. Production buckets, domains, secrets, the writer host, and live checks remain in **Needs environment** (STUF-53).
+- **State:** complete locally on `campaign/oci` (unpushed; `main` untouched). P1–P3, A1–A11, B1–B5, and C1 are implemented and committed.
+- **Accepted:** P1–P3, A1–A10, B1–B5, C1. A11's conditional 307 path is implemented and locally proven; its O2 deployed comparison is open in STUF-52.
+- **Evidence:** C1 close gate green: `cargo test -q --workspace`, `cargo clippy -q --workspace --all-targets -- -D warnings`, `make test-r2`, `make test-oci-conformance`, `make test-oci-conformance-push`, and `make oci-bench`. Push conformance: 440 passing tests, 0 failures, 52 gate rows (the suite's optional "Blob post only" row is skipped). `make test-oci-pull`, `make test-oci-push`, `make test-oci-publish`, `make worker-test`, and `make worker-check` also pass. B4's 1 GiB push through the writer passed live against a temporary R2 bucket using temporary credentials minted from `cf`; the bucket was removed.
+- **Next:** branch review and merge. Production buckets, domains, secrets, the writer host, and live checks remain in **Needs environment** (STUF-53).
 
 ## Charter
 
