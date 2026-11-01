@@ -112,6 +112,14 @@ ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\
 ignore = ["mdtool:R003"]
 ignore_reason = "docs/baselines.md quotes the baseline command of another repository."
 
+[overrides."laputa-systems/deser"]
+ignore = ["audit-banned:transitive:tokio-macros", "audit-banned:direct:tokio", "audit-banned:direct:tokio-util"]
+ignore_reason = "deser-tokio exists to provide Tokio AsyncRead and AsyncWrite integration, so Tokio and its codec adapter are the crate's purpose; tokio-macros arrives through Tokio's test-only macros feature. The fork does not publish crates."
+
+[overrides."laputa-systems/rawzip"]
+ignore = ["audit-banned:direct:tokio", "audit-banned:direct:tokio-util"]
+ignore_reason = "The unpublished compare crate drives async_zip and rc-zip with a Tokio runtime and TokioAsyncReadCompatExt adapters."
+
 [overrides."joshuarli/obsidian-ferrisearch"]
 ignore = ["audit-upgrades:crates:getrandom", "audit-banned:transitive:tokio"]
 ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build. Tokio is only reachable through wasm-bindgen's opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; wasm32-unknown-unknown builds never compile it."

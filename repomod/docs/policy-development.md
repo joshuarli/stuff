@@ -15,7 +15,8 @@ registered rule IDs. An entry of the form `mdtool:R005` ignores one `mdtool` fin
 repository and keeps the rest of the documentation audit. An entry of the form
 `audit-upgrades:crates:NAME` (ecosystem `pypi`, `npm`, `crates`, or `go`) exempts one dependency
 from `audit-upgrades`. An entry of the form `audit-banned:transitive:NAME` exempts one transitive
-Rust crate from `audit-banned` without allowing it as a direct dependency. An entry of the form
+Rust crate from `audit-banned` without allowing it as a direct dependency. `audit-banned:direct:NAME`
+exempts one direct Rust dependency and its lockfile entry. An entry of the form
 `registry-sources:git:NAME` allows one git-sourced package
 named `NAME` under `registry-sources`. Document policy changes alongside the rule.
 

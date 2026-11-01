@@ -51,6 +51,8 @@ BANNED_TRANSITIVE_IGNORE_PREFIX = "audit-banned:transitive:"
 _BANNED_TRANSITIVE_IGNORE = re.compile(
     r"audit-banned:transitive:([A-Za-z0-9_.+-]+)\Z"
 )
+BANNED_DIRECT_IGNORE_PREFIX = "audit-banned:direct:"
+_BANNED_DIRECT_IGNORE = re.compile(r"audit-banned:direct:([A-Za-z0-9_.+-]+)\Z")
 
 
 GIT_SOURCE_IGNORE_PREFIX = "registry-sources:git:"
@@ -79,6 +81,11 @@ def parse_dependency_ignore(value: str) -> tuple[str, str] | None:
 
 def parse_banned_transitive_ignore(value: str) -> str | None:
     match = _BANNED_TRANSITIVE_IGNORE.fullmatch(value)
+    return None if match is None else str(match.group(1))
+
+
+def parse_banned_direct_ignore(value: str) -> str | None:
+    match = _BANNED_DIRECT_IGNORE.fullmatch(value)
     return None if match is None else str(match.group(1))
 
 
@@ -227,10 +234,17 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                         "use audit-banned:transitive:NAME"
                     )
                 continue
+            if ignored_rule.startswith(BANNED_DIRECT_IGNORE_PREFIX):
+                if parse_banned_direct_ignore(ignored_rule) is None:
+                    raise CatalogError(
+                        f"invalid banned direct ignore {ignored_rule!r} for {repo_id}; "
+                        "use audit-banned:direct:NAME"
+                    )
+                continue
             if ignored_rule.startswith("audit-banned:"):
                 raise CatalogError(
-                    f"invalid banned transitive ignore {ignored_rule!r} for {repo_id}; "
-                    "use audit-banned:transitive:NAME"
+                    f"invalid banned ignore {ignored_rule!r} for {repo_id}; "
+                    "use audit-banned:transitive:NAME or audit-banned:direct:NAME"
                 )
             if ignored_rule.startswith(GIT_SOURCE_IGNORE_PREFIX):
                 if parse_git_source_ignore(ignored_rule) is None:

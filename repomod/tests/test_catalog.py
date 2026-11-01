@@ -341,32 +341,39 @@ def test_dependency_ignores_are_validated_and_kept(tmp_path: Path) -> None:
     }
 
 
-def test_banned_transitive_ignores_are_validated_and_kept(tmp_path: Path) -> None:
+def test_banned_ignores_are_validated_and_kept(tmp_path: Path) -> None:
     path = tmp_path / "catalog.toml"
     path.write_text(
         versioned_catalog(
             3,
-            'ignore = ["audit-banned:transitive:tokio"]\n'
-            'ignore_reason = "tokio is never compiled for the wasm target"',
+            'ignore = ["audit-banned:transitive:tokio-macros", "audit-banned:direct:tokio"]\n'
+            'ignore_reason = "the crate integrates with Tokio"',
         ),
         encoding="utf-8",
     )
     repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
-    assert repository.ignored_rules == {"audit-banned:transitive:tokio"}
+    assert repository.ignored_rules == {
+        "audit-banned:transitive:tokio-macros",
+        "audit-banned:direct:tokio",
+    }
 
 
 @pytest.mark.parametrize(
     "code",
-    ["audit-banned:tokio", "audit-banned:transitive:", "audit-banned:transitive:a b"],
+    [
+        "audit-banned:tokio",
+        "audit-banned:transitive:",
+        "audit-banned:transitive:a b",
+        "audit-banned:direct:",
+        "audit-banned:direct:a b",
+    ],
 )
-def test_malformed_banned_transitive_ignores_are_rejected(
-    tmp_path: Path, code: str
-) -> None:
+def test_malformed_banned_ignores_are_rejected(tmp_path: Path, code: str) -> None:
     path = tmp_path / "catalog.toml"
     path.write_text(
         versioned_catalog(3, f'ignore = ["{code}"]\nignore_reason = "y"'), encoding="utf-8"
     )
-    with pytest.raises(CatalogError, match="banned transitive ignore"):
+    with pytest.raises(CatalogError, match="banned"):
         load_catalog(path, {"HOME": str(tmp_path)})
 
 

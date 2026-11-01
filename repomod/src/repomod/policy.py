@@ -6,6 +6,7 @@ from pathlib import Path
 
 from repomod.catalog import (
     Catalog,
+    parse_banned_direct_ignore,
     parse_banned_transitive_ignore,
     parse_dependency_ignore,
     parse_git_source_ignore,
@@ -58,6 +59,7 @@ def validate_ignored_rules(repositories: Iterable[Repository]) -> None:
             if not is_mdtool_code_ignore(value)
             and parse_dependency_ignore(value) is None
             and parse_banned_transitive_ignore(value) is None
+            and parse_banned_direct_ignore(value) is None
             and parse_git_source_ignore(value) is None
             and parse_local_source_ignore(value) is None
         }

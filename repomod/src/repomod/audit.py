@@ -24,6 +24,7 @@ from repomod.catalog import (
     LOCAL_SOURCE_IGNORE_PREFIX,
     Catalog,
     atomic_write,
+    parse_banned_direct_ignore,
     parse_banned_transitive_ignore,
     repository_path,
 )
@@ -1475,6 +1476,14 @@ def _banned_transitive_ignored(repository: Repository) -> set[str]:
     }
 
 
+def _banned_direct_ignored(repository: Repository) -> set[str]:
+    return {
+        _normalize_rust_name(name)
+        for value in repository.ignored_rules
+        if (name := parse_banned_direct_ignore(value)) is not None
+    }
+
+
 def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
     reason = _banned_rust_reason(name)
     if reason == "http":
@@ -1616,6 +1625,7 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 )
                 findings.append(_finding(repository, "audit-registry", dependency.manifest, message))
         seen_banned: set[str] = set()
+        ignored_direct = _banned_direct_ignored(repository)
         for dependency in direct:
             if dependency.has_path and not dependency.has_version:
                 continue
@@ -1624,6 +1634,9 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             ):
                 continue
             normalized = _normalize_rust_name(dependency.name)
+            if normalized in ignored_direct:
+                seen_banned.add(normalized)
+                continue
             if _is_banned_rust(dependency.name) and normalized not in seen_banned:
                 seen_banned.add(normalized)
                 message = _banned_rust_message(dependency.name, transitive=False)
