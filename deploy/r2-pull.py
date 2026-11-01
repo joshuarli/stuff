@@ -19,34 +19,15 @@ import os
 import re
 import subprocess
 import sys
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 
-from r2_common import cf_command, fail, list_page, md5_hex, safe_relative
+from r2_common import Pacer, cf_command, fail, list_page, md5_hex, safe_relative
 
 PAGE = list_page()
 JOBS = int(os.environ.get("R2_PULL_JOBS", "8"))
 RETRIES = 6
 RATE_LIMIT_BACKOFF_SECONDS = 15
 GENERATION_ID = re.compile(r"[A-Za-z0-9_-]+")
-
-
-class Pacer:
-    def __init__(self, interval):
-        self.interval = interval
-        self.lock = threading.Lock()
-        self.next_slot = 0.0
-
-    def wait(self):
-        with self.lock:
-            now = time.monotonic()
-            slot = max(now, self.next_slot)
-            self.next_slot = slot + self.interval
-        if slot > now:
-            time.sleep(slot - now)
-
-
 PACER = Pacer(0 if os.environ.get("CF_LOCAL_STATE") else 0.35)
 
 
@@ -114,7 +95,7 @@ def download(bucket, dest, obj):
         if done.returncode != 0:
             last = done.stderr.decode("utf-8", "replace").strip()
             if "429" in last:
-                time.sleep(min(60, RATE_LIMIT_BACKOFF_SECONDS * attempt))
+                PACER.penalize(min(60, RATE_LIMIT_BACKOFF_SECONDS * attempt))
             continue
         if os.path.getsize(tmp) != obj["size"] or md5_hex(tmp) != etag:
             last = "size or MD5 differs from the listing"

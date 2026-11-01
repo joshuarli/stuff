@@ -1,4 +1,4 @@
-.PHONY: help deploy search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -43,14 +43,24 @@ worker-test: ## Build the worker bundle and exercise it under the workerd runtim
 worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
 	cd $(WORKER_DIR) && cf deploy
 
+R2_S3_READY := $(if $(R2_S3_ENDPOINT),$(if $(R2_S3_ACCESS_KEY_ID),$(if $(R2_S3_SECRET_ACCESS_KEY),1)))
+DEPLOY_JOBS ?= $(if $(R2_S3_READY),3,1)
+
 deploy: ## Test and deploy the worker, republish all three registries, then check the live site
 	cf auth whoami
 	$(MAKE) worker-test
 	$(MAKE) worker-deploy
-	deploy/publish mycrates --republish
-	deploy/publish mynpm --republish
-	deploy/publish mypypi --republish
+	$(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
 	$(MAKE) smoke-deployed
+
+republish-mycrates: ## Republish the mycrates site from state
+	deploy/publish mycrates --republish
+
+republish-mynpm: ## Republish the mynpm site from state
+	deploy/publish mynpm --republish
+
+republish-mypypi: ## Republish the mypypi site from state
+	deploy/publish mypypi --republish
 
 SITE_DIR ?= .work/site
 BUCKET ?=
@@ -72,13 +82,14 @@ test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulatio
 test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAITERS=4])
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-publish-lock.sh $(or $(WAITERS),4)
 
-test-r2: ## Check multipart SigV4, pagination, and conditional promotion without network access
+test-r2: ## Check S3 uploads, multipart SigV4, pagination, and conditional promotion without network access
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
 	deploy/test-r2-pull.sh
 	python3 deploy/test-r2-pull-listing.py
 	python3 deploy/test-r2-multipart.py
 	python3 deploy/test-r2-plan.py
 	python3 deploy/test-r2-promote.py
+	python3 deploy/test-r2-put.py
 
 test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... and R2_S3_*)
 	python3 deploy/test-r2-multipart-live.py

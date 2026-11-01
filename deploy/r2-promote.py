@@ -109,22 +109,17 @@ def s3_get(bucket, key):
     return body.decode("utf-8", "replace"), headers
 
 
-def s3_head(bucket, key):
-    multipart = load_multipart()
-    endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
-    status, _, headers = multipart.request("HEAD", object_url(endpoint, bucket, key))
-    return status, headers
-
-
 def s3_verify(bucket, manifest):
+    keys = [obj["key"] for obj in manifest["objects"]]
+    index = remote_index(bucket, keys, list_page())
     for obj in manifest["objects"]:
         key = obj["key"]
-        status, headers = s3_head(bucket, key)
-        if status != 200:
-            fail(f"generation is incomplete: {key} returned HTTP {status}")
-        if int(header(headers, "Content-Length") or -1) != obj["size"]:
+        found = index.get(key)
+        if found is None:
+            fail(f"generation is incomplete: missing {key}")
+        if int(found[0]) != obj["size"]:
             fail(f"generation object has the wrong size: {key}")
-        if header(headers, "ETag").strip('"') != obj["etag"]:
+        if str(found[1]).strip('"') != obj["etag"]:
             fail(f"generation object has the wrong ETag: {key}")
 
 

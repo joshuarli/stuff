@@ -12,7 +12,7 @@
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
-| R2 S3 token (optional) | Conditional promotion and multipart uploads over 300 MB | `R2_S3_*` is set for `--promote=s3` |
+| R2 S3 token (optional) | Parallel uploads, S3 listing, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set |
 
 If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
@@ -54,11 +54,15 @@ deploy/publish mypypi --republish
 
 `mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation.
 
-`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. It stops at the first failure.
+`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. The republishes run in parallel when `R2_S3_*` is set, and sequentially otherwise so the `cf` uploads share the account's API rate limit. A failure stops the rollout before the live check.
 
-## Promote with S3
+## Upload and promote with S3
 
-The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. It also removes a long-lived bucket-write secret from the normal path.
+Without S3 credentials, `r2-sync.sh` lists and uploads through the `cf` API, which allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so this path costs several minutes even though the files are small.
+
+When `R2_S3_*` is set, listing and uploads use the S3 API instead: uploads run `R2_PUT_JOBS` in parallel (default 8), the remote plan comes from one paginated list, and the generation is verified against that list. The upload cap is gone, so a republish is bounded by local rendering and hashing instead of minutes of uploads.
+
+The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. Using it also avoids needing S3 credentials at all.
 
 Use `--promote=s3` when CI or another machine can publish at the same time:
 
@@ -74,7 +78,7 @@ export R2_S3_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
 export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 ```
 
-`R2_S3_REGION` defaults to `auto`. Temporary credentials also need `R2_S3_SESSION_TOKEN`.
+`R2_S3_REGION` defaults to `auto`. Temporary credentials also need `R2_S3_SESSION_TOKEN`. The token should allow object read and write on the three registry buckets and nothing else.
 
 S3 promotion verifies the uploaded generation and moves `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner. Objects over the 300 MB single-PUT cap always need these credentials, even with `cf` promotion.
 

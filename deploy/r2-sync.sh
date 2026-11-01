@@ -5,15 +5,20 @@
 #        [--promote=cf|s3]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #
-# Incremental and content-aware: lists remote objects by prefix (deploy/
-# r2-plan.py, no pagination cursors, any object count) and skips uploads whose
-# remote size and content hash match the local file, so re-syncing an
-# unchanged generation uploads nothing. Large files are compared by their
-# multipart ETag. An existing immutable object with different bytes is a
-# conflict; --repair is the explicit, separate way to overwrite it. The one
-# exception is the manifest of a generation other than the one being promoted:
-# it lists the shared store as it was when that generation was published, so
-# the remote copy is kept.
+# Incremental and content-aware: lists remote objects through the S3 API when
+# R2_S3_* is set, or by prefix through the cf CLI otherwise (deploy/
+# r2-plan.py), and skips uploads whose remote size and content hash match the
+# local file, so re-syncing an unchanged generation uploads nothing. Large
+# files are compared by their multipart ETag. An existing immutable object
+# with different bytes is a conflict; --repair is the explicit, separate way
+# to overwrite it. The one exception is the manifest of a generation other
+# than the one being promoted: it lists the shared store as it was when that
+# generation was published, so the remote copy is kept.
+#
+# Uploads use the S3 API with R2_PUT_JOBS parallel requests (default 8) when
+# R2_S3_* is set, and otherwise run through the cf CLI with one shared pacer
+# at roughly four requests a second. CF_LOCAL_STATE keeps the single-threaded
+# local simulation.
 #
 # Every sync writes manifests/<id>.json for each local generation, then
 # promotes with deploy/r2-promote.py: the manifest's objects are verified
@@ -207,12 +212,7 @@ MULTI_SIZES
   exit 0
 fi
 export SITE_DIR BUCKET CF_LOCAL_STATE
-if [ -n "${CF_LOCAL_STATE:-}" ]; then
-  PUT_JOBS=${R2_PUT_JOBS:-1}
-else
-  PUT_JOBS=${R2_PUT_JOBS:-2}
-fi
-tr '\n' '\0' < "$PUTS" | xargs -0 -n 1 -P "$PUT_JOBS" "$SCRIPT_DIR/r2-put.sh"
+python3 "$SCRIPT_DIR/r2-put.py" "$SITE_DIR" "$BUCKET" "$PUTS"
 while IFS= read -r line; do
   [ -n "$line" ] || continue
   rest=${line#multipart }
@@ -223,7 +223,7 @@ while IFS= read -r line; do
     exit 1
   fi
   echo "multipart $key ($size bytes)"
-  python3 "$SCRIPT_DIR/r2-multipart.py" "$SITE_DIR/$key" "$BUCKET" "$key" "$("$SCRIPT_DIR/r2-put.sh" --type "$key")"
+  python3 "$SCRIPT_DIR/r2-multipart.py" "$SITE_DIR/$key" "$BUCKET" "$key" "$(python3 "$SCRIPT_DIR/r2-put.py" --type "$key")"
   UPLOADED=$((UPLOADED + 1))
 done <<MULTI
 $(grep '^multipart ' "$PLAN" || true)

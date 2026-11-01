@@ -7,6 +7,7 @@ import pathlib
 import threading
 import unittest
 import urllib.parse
+import xml.sax.saxutils
 
 SCRIPT = pathlib.Path(__file__).with_name("r2-promote.py")
 spec = importlib.util.spec_from_file_location("r2_promote", SCRIPT)
@@ -41,8 +42,32 @@ class FakeR2(http.server.BaseHTTPRequestHandler):
         return path.lstrip("/").split("/", 1)[1]
 
     def _handle(self):
-        key = self._path()
+        parsed = urllib.parse.urlsplit(self.path)
+        query = urllib.parse.parse_qs(parsed.query)
         server = self.server
+        if self.command == "GET" and query.get("list-type") == ["2"]:
+            if server.change_current_on_head:
+                server.change_current_on_head = False
+                server.current = "g2"
+                server.current_etag = '"e2"'
+            entries = []
+            for key, (body, etag) in sorted(server.objects.items()):
+                entries.append(
+                    "<Contents>"
+                    f"<Key>{xml.sax.saxutils.escape(key)}</Key>"
+                    f"<Size>{len(body)}</Size>"
+                    f"<ETag>{xml.sax.saxutils.escape(etag)}</ETag>"
+                    "</Contents>"
+                )
+            body = (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
+                "<IsTruncated>false</IsTruncated>"
+                f"{''.join(entries)}</ListBucketResult>"
+            ).encode()
+            self._reply(200, body)
+            return
+        key = self._path()
         if self.command == "GET" and key == "current":
             if server.current is None:
                 self._reply(404)

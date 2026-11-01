@@ -14,6 +14,8 @@ spec = importlib.util.spec_from_file_location("r2_plan", SCRIPT)
 r2 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r2)
 
+S3_VARS = ("R2_S3_ENDPOINT", "R2_S3_ACCESS_KEY_ID", "R2_S3_SECRET_ACCESS_KEY")
+
 FAKE_CF = """#!/usr/bin/env python3
 import json, os, sys
 args = sys.argv[1:]
@@ -62,6 +64,7 @@ class PaginationTests(unittest.TestCase):
         self.saved_path = os.environ.get("PATH")
         os.environ["PATH"] = f"{self.bin}:{self.saved_path}"
         os.environ["FAKE_CF_OBJECTS"] = str(self.objects_file)
+        self.saved_s3 = {name: os.environ.pop(name, None) for name in S3_VARS}
         self.saved_page = r2.PAGE
         r2.PAGE = 100
 
@@ -72,6 +75,11 @@ class PaginationTests(unittest.TestCase):
         else:
             os.environ["PATH"] = self.saved_path
         os.environ.pop("FAKE_CF_OBJECTS", None)
+        for name, value in self.saved_s3.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
         self.work.cleanup()
 
     def test_lists_past_one_page_without_a_cursor(self):

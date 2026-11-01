@@ -209,10 +209,10 @@ which translates the `current` symlink to a marker object holding the
 generation id (verified against the local R2 simulation). Sync is incremental
 and content-aware: remote objects whose size and content hash match are
 skipped, so re-syncing an unchanged generation uploads nothing. Remote
-objects are found by prefix listing (`deploy/r2-plan.py`), which works for
-any object count without pagination cursors; uploads run `R2_PUT_JOBS`
-at a time (default 8; 1 against the local simulation, which deadlocked at
-8 concurrent writers). Every sync writes a
+objects come from the S3 API when `R2_S3_*` is set, or from prefix listing
+through `cf` otherwise (`deploy/r2-plan.py`); S3 uploads run `R2_PUT_JOBS`
+in parallel (default 8), while the `cf` fallback shares one pacer at roughly
+four requests a second. The local simulation stays single-threaded. Every sync writes a
 `manifests/<id>.json` for each local generation, verifies every listed object
 remotely, then replaces `current`. Promotion defaults to `cf` for a single
 publisher: it writes `current` with a plain put after the same verification
