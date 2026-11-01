@@ -34,10 +34,6 @@ fn ingest_same_bytes_and_conflict() {
     assert_eq!(sha1, "9701dd578758d425fc4a09b80c796117e5bbeb3ce77e9e2c98be555006263453");
 
     let rec1 = NativeRecord {
-        name: "my-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha1.clone(),
-        yanked: false,
         entry: sample_entry("my-pkg", "1.0.0", &sha1),
     };
     let written = store.put_native_record(&rec1).unwrap();
@@ -53,11 +49,7 @@ fn ingest_same_bytes_and_conflict() {
     let data2 = b"different-bytes-for-same-version";
     let sha2 = store.ingest_blob(Cursor::new(data2)).unwrap();
     let rec2 = NativeRecord {
-        name: "my-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha2,
-        yanked: false,
-        entry: sample_entry("my-pkg", "1.0.0", "sha2"),
+        entry: sample_entry("my-pkg", "1.0.0", &sha2),
     };
     let err = store.put_native_record(&rec2).unwrap_err();
     match err {
@@ -68,7 +60,7 @@ fn ingest_same_bytes_and_conflict() {
     // Existing record was not overwritten
     let records = store.load_native_records().unwrap();
     assert_eq!(records.len(), 1);
-    assert_eq!(records[0].checksum, sha1);
+    assert_eq!(records[0].entry.cksum, sha1);
 }
 
 #[test]
@@ -80,20 +72,12 @@ fn name_collision_detection() {
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
 
     let rec1 = NativeRecord {
-        name: "foo_bar".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo_bar", "1.0.0", &sha),
     };
     store.put_native_record(&rec1).unwrap();
 
     // Trying to publish "foo-bar" when "foo_bar" exists must fail with Conflict
     let rec2 = NativeRecord {
-        name: "foo-bar".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo-bar", "1.0.0", &sha),
     };
     let err = store.put_native_record(&rec2).unwrap_err();
@@ -121,19 +105,11 @@ fn native_build_metadata_identity_conflict() {
     let store = Store::new(dir.path().to_path_buf());
 
     let rec1 = NativeRecord {
-        name: "meta-pkg".to_string(),
-        vers: "1.0.7".to_string(),
-        checksum: "sha_a".to_string(),
-        yanked: false,
         entry: sample_entry("meta-pkg", "1.0.7", "sha_a"),
     };
     assert!(store.put_native_record(&rec1).unwrap());
 
     let rec2 = NativeRecord {
-        name: "meta-pkg".to_string(),
-        vers: "1.0.7+extra".to_string(),
-        checksum: "sha_b".to_string(),
-        yanked: false,
         entry: sample_entry("meta-pkg", "1.0.7+extra", "sha_b"),
     };
     let err = store.put_native_record(&rec2).unwrap_err();
@@ -153,10 +129,6 @@ fn verify_detects_corrupted_blob() {
     let data = b"valid-blob-contents";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "test-pkg".to_string(),
-        vers: "0.1.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("test-pkg", "0.1.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -289,19 +261,11 @@ fn mixed_case_lookup_and_collision() {
     let data = b"case-data";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "Foo_Bar".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("Foo_Bar", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
 
     let dup = NativeRecord {
-        name: "foo-bar".to_string(),
-        vers: "2.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo-bar", "2.0.0", &sha),
     };
     let err = store.put_native_record(&dup).unwrap_err();
@@ -311,7 +275,7 @@ fn mixed_case_lookup_and_collision() {
     }
 
     let recs = store.load_native_records().unwrap();
-    assert!(recs.iter().any(|r| r.name == "Foo_Bar"));
+    assert!(recs.iter().any(|r| r.entry.name == "Foo_Bar"));
 
     use mycrates::index::shard_for_name;
     assert_eq!(shard_for_name(&"Foo_Bar".to_lowercase()), shard_for_name("foo_bar"));
@@ -324,18 +288,10 @@ fn successive_mixed_case_releases_succeed() {
     let sha1 = store.ingest_blob(std::io::Cursor::new(b"mixed-1")).unwrap();
     let sha2 = store.ingest_blob(std::io::Cursor::new(b"mixed-2")).unwrap();
     let rec1 = NativeRecord {
-        name: "MyCrate".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha1.clone(),
-        yanked: false,
         entry: sample_entry("MyCrate", "1.0.0", &sha1),
     };
     assert!(store.put_native_record(&rec1).unwrap());
     let rec2 = NativeRecord {
-        name: "MyCrate".to_string(),
-        vers: "1.1.0".to_string(),
-        checksum: sha2.clone(),
-        yanked: false,
         entry: sample_entry("MyCrate", "1.1.0", &sha2),
     };
     assert!(store.put_native_record(&rec2).unwrap());
@@ -350,10 +306,6 @@ fn overlapping_normalized_names_across_registries_allowed() {
     let store = Store::new(dir.path().to_path_buf());
     let sha = store.ingest_blob(std::io::Cursor::new(b"cross")).unwrap();
     let native = NativeRecord {
-        name: "foo_bar".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo_bar", "1.0.0", &sha),
     };
     store.put_native_record(&native).unwrap();
@@ -375,17 +327,9 @@ fn prerelease_version_distinct_from_release() {
     let store = Store::new(dir.path().to_path_buf());
 
     let rec_pre = NativeRecord {
-        name: "my-pkg".to_string(),
-        vers: "1.0.0-alpha.1".to_string(),
-        checksum: "sha_pre".to_string(),
-        yanked: false,
         entry: sample_entry("my-pkg", "1.0.0-alpha.1", "sha_pre"),
     };
     let rec_rel = NativeRecord {
-        name: "my-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: "sha_rel".to_string(),
-        yanked: false,
         entry: sample_entry("my-pkg", "1.0.0", "sha_rel"),
     };
 
@@ -394,4 +338,26 @@ fn prerelease_version_distinct_from_release() {
 
     let records = store.load_native_records().unwrap();
     assert_eq!(records.len(), 2);
+}
+
+#[test]
+fn native_record_disagreement_fails_load() {
+    let dir = tempdir().unwrap();
+    let store = Store::new(dir.path().to_path_buf());
+    let sha = "a".repeat(64);
+    let path = store.native_dir().join("agree-pkg").join("1.0.0.toml");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(
+        &path,
+        format!(
+            "name = \"other-pkg\"\nvers = \"1.0.0\"\nchecksum = \"{sha}\"\nyanked = false\n\n[entry]\nname = \"agree-pkg\"\nvers = \"1.0.0\"\ncksum = \"{sha}\"\nyanked = false\n"
+        ),
+    )
+    .unwrap();
+
+    let err = store.load_native_records().unwrap_err();
+    match err {
+        Error::Integrity(msg) => assert!(msg.contains("disagrees"), "{msg}"),
+        other => panic!("expected Integrity, got {other:?}"),
+    }
 }

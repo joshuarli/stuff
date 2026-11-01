@@ -89,7 +89,7 @@ impl<'a> Publisher<'a> {
         let upstream_records = self.store.load_upstream_records()?;
 
         for rec in &native_records {
-            self.sync_blob(&rec.checksum)?;
+            self.sync_blob(&rec.entry.cksum)?;
         }
         for rec in &upstream_records {
             self.sync_blob(&rec.checksum)?;
@@ -186,17 +186,17 @@ impl<'a> Publisher<'a> {
 
         let mut native_by_crate: BTreeMap<String, Vec<&crate::store::NativeRecord>> = BTreeMap::new();
         for rec in native_records {
-            let lower = CrateName::new(&rec.name)?.lower();
+            let lower = CrateName::new(&rec.entry.name)?.lower();
             native_by_crate.entry(lower).or_default().push(rec);
         }
 
         for (crate_lower, mut recs) in native_by_crate {
             recs.sort_by(|a, b| {
-                let va = crate::version::Version::parse(&a.vers);
-                let vb = crate::version::Version::parse(&b.vers);
+                let va = crate::version::Version::parse(&a.entry.vers);
+                let vb = crate::version::Version::parse(&b.entry.vers);
                 match (va, vb) {
                     (Ok(a_ver), Ok(b_ver)) => a_ver.cmp(&b_ver),
-                    _ => a.vers.cmp(&b.vers),
+                    _ => a.entry.vers.cmp(&b.entry.vers),
                 }
             });
 
@@ -306,9 +306,9 @@ fn catalog_inputs(
     let mut out = Vec::with_capacity(native.len() + upstream.len());
     for rec in native {
         out.push(stuff_catalog::CargoInput {
-            name: rec.name.clone(),
-            version: rec.vers.clone(),
-            yanked: rec.yanked,
+            name: rec.entry.name.clone(),
+            version: rec.entry.vers.clone(),
+            yanked: rec.entry.yanked,
             source: stuff_catalog::CargoSource::Native,
             dependencies: catalog_dependencies(&rec.entry),
         });

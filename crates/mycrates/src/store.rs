@@ -26,13 +26,51 @@ pub struct Store {
     collision_index: CollisionIndex,
 }
 
-#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct NativeRecord {
-    pub name: String,
-    pub vers: String,
-    pub checksum: String,
-    pub yanked: bool,
     pub entry: IndexEntry,
+}
+
+#[derive(deser::Serialize, deser::Deserialize)]
+struct StoredNativeRecord {
+    name: String,
+    vers: String,
+    checksum: String,
+    yanked: bool,
+    entry: IndexEntry,
+}
+
+impl StoredNativeRecord {
+    fn from_entry(entry: &IndexEntry) -> Self {
+        Self {
+            name: entry.name.clone(),
+            vers: entry.vers.clone(),
+            checksum: entry.cksum.clone(),
+            yanked: entry.yanked,
+            entry: entry.clone(),
+        }
+    }
+
+    fn into_record(self, path: &Path) -> Result<NativeRecord> {
+        let disagreement = if self.name != self.entry.name {
+            Some("name")
+        } else if self.vers != self.entry.vers {
+            Some("vers")
+        } else if self.checksum != self.entry.cksum {
+            Some("checksum")
+        } else if self.yanked != self.entry.yanked {
+            Some("yanked")
+        } else {
+            None
+        };
+        match disagreement {
+            Some(field) => Err(Error::Integrity(format!(
+                "native record {} disagrees with its index entry on {field}",
+                path.display()
+            ))),
+            None => Ok(NativeRecord { entry: self.entry }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
@@ -314,8 +352,8 @@ impl Store {
 
     pub fn put_native_record(&self, record: &NativeRecord) -> Result<bool> {
         self.ensure_dirs()?;
-        let name = CrateName::new(&record.name)?;
-        let ver = Version::new(&record.vers)?;
+        let name = CrateName::new(&record.entry.name)?;
+        let ver = Version::new(&record.entry.vers)?;
 
         self.check_name_collision(&self.native_dir(), &name)?;
 
@@ -331,14 +369,14 @@ impl Store {
                 .is_some_and(|stem| stem != ver.key())
             {
                 let existing_data = fs::read_to_string(&existing_path)?;
-                let existing: NativeRecord = crate::toml::from_str(&existing_data)
+                let existing: StoredNativeRecord = crate::toml::from_str(&existing_data)
                     .map_err(|e| Error::Integrity(format!("invalid native record {}: {e}", existing_path.display())))?;
                 if let Ok(existing_ver) = Version::new(&existing.vers)
                     && existing_ver.uniqueness_key() == uniq
                 {
                     return Err(Error::Conflict(format!(
                         "version {} conflicts with existing {} (build metadata ignored for identity)",
-                        record.vers, existing.vers
+                        record.entry.vers, existing.vers
                     )));
                 }
             }
@@ -347,19 +385,21 @@ impl Store {
         let record_path = crate_dir.join(format!("{}.toml", ver.key()));
         if record_path.exists() {
             let existing_data = fs::read_to_string(&record_path)?;
-            let existing: NativeRecord = crate::toml::from_str(&existing_data)
+            let existing: StoredNativeRecord = crate::toml::from_str(&existing_data)
                 .map_err(|e| Error::Integrity(format!("invalid native record {}: {e}", record_path.display())))?;
-            if existing.checksum == record.checksum {
+            let existing = existing.into_record(&record_path)?;
+            if existing.entry.cksum == record.entry.cksum {
                 return Ok(false);
             } else {
                 return Err(Error::Conflict(format!(
                     "version {} already exists with different checksum",
-                    record.vers
+                    record.entry.vers
                 )));
             }
         }
 
-        let s = crate::toml::to_string(record).map_err(|e| Error::Operation(e.to_string()))?;
+        let stored = StoredNativeRecord::from_entry(&record.entry);
+        let s = crate::toml::to_string(&stored).map_err(|e| Error::Operation(e.to_string()))?;
         write_file_durable(&record_path, s.as_bytes())?;
         Ok(true)
     }
@@ -375,7 +415,7 @@ impl Store {
             return Err(Error::Input(format!("crate {} version {} not found", name, vers)));
         }
         let data = fs::read_to_string(&record_path)?;
-        let mut record: NativeRecord = crate::toml::from_str(&data)?;
+        let mut record: StoredNativeRecord = crate::toml::from_str(&data)?;
         record.yanked = yanked;
         record.entry.yanked = yanked;
         let s = crate::toml::to_string(&record).map_err(|e| Error::Operation(e.to_string()))?;
@@ -454,15 +494,15 @@ impl Store {
                         && !path.file_name().unwrap().to_string_lossy().starts_with(".tmp")
                     {
                         let s = fs::read_to_string(&path)?;
-                        let rec: NativeRecord = crate::toml::from_str(&s).map_err(|e| {
+                        let rec: StoredNativeRecord = crate::toml::from_str(&s).map_err(|e| {
                             Error::Integrity(format!("failed to parse native record {}: {e}", path.display()))
                         })?;
-                        list.push(rec);
+                        list.push(rec.into_record(&path)?);
                     }
                 }
             }
         }
-        list.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.vers.cmp(&b.vers)));
+        list.sort_by(|a, b| a.entry.name.cmp(&b.entry.name).then_with(|| a.entry.vers.cmp(&b.entry.vers)));
         Ok(list)
     }
 
@@ -536,12 +576,12 @@ impl Store {
         }
 
         for rec in self.load_native_records()? {
-            let blob_path = self.blobs_dir().join(format!("{}.crate", rec.checksum));
+            let blob_path = self.blobs_dir().join(format!("{}.crate", rec.entry.cksum));
             if !blob_path.exists() {
                 return Err(Error::Integrity(format!(
                     "missing blob for native crate {} {}: {}",
-                    rec.name,
-                    rec.vers,
+                    rec.entry.name,
+                    rec.entry.vers,
                     blob_path.display()
                 )));
             }

@@ -34,10 +34,6 @@ fn shared_state_keeps_both_publishers_packages() {
         let sha = store.ingest_blob(Cursor::new(bytes)).unwrap();
         store
             .put_native_record(&NativeRecord {
-                name: name.to_string(),
-                vers: "1.0.0".to_string(),
-                checksum: sha.clone(),
-                yanked: false,
                 entry: sample_entry(name, "1.0.0", &sha),
             })
             .unwrap();
@@ -74,10 +70,6 @@ fn generation_determinism_and_noop() {
     assert_eq!(sha, sha2);
 
     let rec = NativeRecord {
-        name: "foo".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo", "1.0.0", &sha),
     };
     store1.put_native_record(&rec).unwrap();
@@ -115,10 +107,6 @@ fn missing_blob_rejected_before_switch() {
 
     store.ensure_dirs().unwrap();
     let rec = NativeRecord {
-        name: "bar".to_string(),
-        vers: "0.1.0".to_string(),
-        checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
-        yanked: false,
         entry: sample_entry("bar", "0.1.0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
     };
     store.put_native_record(&rec).unwrap();
@@ -140,10 +128,6 @@ fn root_and_prefix_hosting_config() {
     let data = b"payload";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "baz".to_string(),
-        vers: "1.2.3".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("baz", "1.2.3", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -183,10 +167,6 @@ fn tampered_blob_rejected_before_switch() {
     let data = b"original-content";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "tamper-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("tamper-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -211,10 +191,6 @@ fn damaged_generation_requires_explicit_repair() {
     let data = b"repair-payload";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "repair-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("repair-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -324,10 +300,6 @@ fn large_blob_publishes_via_streaming() {
     let big: Vec<u8> = (0..2_000_000u32).map(|i| (i % 251) as u8).collect();
     let sha = store.ingest_blob(Cursor::new(&big)).unwrap();
     let rec = NativeRecord {
-        name: "big-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("big-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -389,10 +361,6 @@ fn catalog_tracks_publish_and_rollback() {
     let data = b"catalog-acceptance-tarball";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "widget".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("widget", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();

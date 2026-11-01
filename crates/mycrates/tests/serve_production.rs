@@ -381,7 +381,7 @@ fn production_binary_end_to_end_publish() {
     assert!(resp.starts_with("HTTP/1.1 200"), "binary publish failed: {resp}");
     let store = mycrates::store::Store::new(state_dir);
     let recs = store.load_native_records().unwrap();
-    assert!(recs.iter().any(|r| r.name == "prod-bin-pkg"));
+    assert!(recs.iter().any(|r| r.entry.name == "prod-bin-pkg"));
     let _ = child.kill();
     let _ = child.wait();
 }
@@ -401,9 +401,10 @@ fn published_checksum(state_dir: &Path, name: &str) -> String {
         .load_native_records()
         .unwrap()
         .into_iter()
-        .find(|r| r.name == name)
+        .find(|r| r.entry.name == name)
         .unwrap()
-        .checksum
+        .entry
+        .cksum
 }
 
 #[test]

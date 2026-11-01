@@ -366,13 +366,7 @@ pub fn handle_publish_request<R: Read>(
             return Ok(());
         }
 
-        let record = NativeRecord {
-            name: body.name.clone(),
-            vers: body.vers.clone(),
-            checksum: blob_sha,
-            yanked: body.yanked,
-            entry: index_entry,
-        };
+        let record = NativeRecord { entry: index_entry };
 
         if let Err(e) = store.put_native_record(&record) {
             send_failure(stream, method, path, &e);

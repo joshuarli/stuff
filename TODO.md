@@ -10,15 +10,6 @@ Next: 50
 - **Fix with:** security
 - **Effort:** S
 
-### STUF-46 · P4 · mycrates native records store four index facts twice
-
-- **Area:** Types
-- **Where:** `crates/mycrates/src/store.rs:28-35`, `crates/mycrates/src/store.rs:348-349`, `crates/mycrates/src/publish.rs:216`, `crates/mycrates/src/publish.rs:321`, `crates/mycrates/src/adopt.rs:45-51`
-- **Problem:** `NativeRecord` carries `name`, `vers`, `checksum`, and `yanked` beside `entry: IndexEntry`, which holds the same facts. `set_native_yank` updates both by hand, the index renders from `entry` while the catalog reads `rec.yanked`, and `load_native_records` never checks they agree. No drift path is reachable today.
-- **Recommendation:** Check agreement on load and return `Integrity` on mismatch, then derive the duplicates from `entry` while keeping stored records readable.
-- **Fix with:** make-invalid-states-unrepresentable
-- **Effort:** M
-
 ### STUF-47 · P4 · Tool and origin pins live in several places
 
 - **Area:** Config

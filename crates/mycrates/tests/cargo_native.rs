@@ -288,7 +288,7 @@ fn idempotent_and_conflict() {
     let store = Store::new(state_dir.clone());
     let recs = store.load_native_records().unwrap();
     assert_eq!(recs.len(), 1);
-    let orig_checksum = recs[0].checksum.clone();
+    let orig_checksum = recs[0].entry.cksum.clone();
     let orig_blob = fs::read(store.blobs_dir().join(format!("{}.crate", orig_checksum))).unwrap();
 
     let json = deser_json::to_string(&deser_value::value!({
@@ -349,7 +349,7 @@ fn idempotent_and_conflict() {
         // Verify original record and blob are preserved intact
         let recs_after = store.load_native_records().unwrap();
         assert_eq!(recs_after.len(), 1);
-        assert_eq!(recs_after[0].checksum, orig_checksum);
+        assert_eq!(recs_after[0].entry.cksum, orig_checksum);
     }
 }
 

@@ -429,7 +429,7 @@ fn corrupted_stored_blob_after_publish() {
     let store = Store::new(state_dir.clone());
     let recs = store.load_native_records().unwrap();
     assert_eq!(recs.len(), 1);
-    let blob_path = store.blobs_dir().join(format!("{}.crate", recs[0].checksum));
+    let blob_path = store.blobs_dir().join(format!("{}.crate", recs[0].entry.cksum));
 
     // Corrupt the blob in state store
     fs::write(&blob_path, b"corrupted-blob-bytes").unwrap();
@@ -546,7 +546,7 @@ fn concurrent_writers_over_http() {
     // Current generation must contain all published crates
     for i in 0..num_writers {
         let name = format!("pkg-conc-{}", i);
-        let rec = recs.iter().find(|r| r.name == name);
+        let rec = recs.iter().find(|r| r.entry.name == name);
         assert!(rec.is_some(), "missing record for {name}");
     }
 }

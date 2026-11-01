@@ -42,13 +42,7 @@ pub fn adopt_site(store: &Store, site_dir: &Path) -> Result<AdoptSummary> {
                 summary.blobs += usize::from(adopt_blob(store, site_dir, &entry.cksum)?);
                 match view {
                     View::Native => {
-                        let record = NativeRecord {
-                            name: entry.name.clone(),
-                            vers: entry.vers.clone(),
-                            checksum: entry.cksum.clone(),
-                            yanked: entry.yanked,
-                            entry,
-                        };
+                        let record = NativeRecord { entry };
                         store.put_native_record(&record)?;
                         summary.native += 1;
                     }

@@ -37,10 +37,6 @@ fn publish_fixture(root: &Path) -> (PathBuf, String) {
         let sha = store.ingest_blob(Cursor::new(bytes)).unwrap();
         store
             .put_native_record(&NativeRecord {
-                name: name.to_string(),
-                vers: vers.to_string(),
-                checksum: sha.clone(),
-                yanked,
                 entry: entry(name, vers, &sha, yanked),
             })
             .unwrap();

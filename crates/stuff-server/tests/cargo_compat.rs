@@ -88,10 +88,6 @@ fn cargo_installs_from_stuff_server() {
     let crate_bytes = make_test_crate("alpha", "0.1.0", "pub fn hello() -> &'static str { \"hello from alpha\" }");
     let sha = store.ingest_blob(&crate_bytes[..]).unwrap();
     let rec = NativeRecord {
-        name: "alpha".to_string(),
-        vers: "0.1.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: IndexEntry {
             name: "alpha".to_string(),
             vers: "0.1.0".to_string(),
