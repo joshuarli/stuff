@@ -86,6 +86,21 @@ impl FetchResponse {
 }
 
 pub fn fetch_response(url: &str, accept: Option<&str>) -> Result<FetchResponse> {
+    let response = fetch_response_once(url, accept)?;
+    if !matches!(response.status, 307 | 308) {
+        return Ok(response);
+    }
+    let Some(location) = response.header("location") else {
+        return Ok(response);
+    };
+    let base: url::Url = url.parse().map_err(|_| Error::usage(format!("invalid URL: {url}")))?;
+    let target = base
+        .join(location)
+        .map_err(|_| Error::Network(format!("invalid redirect location from {url}: {location}")))?;
+    fetch_response_once(target.as_str(), accept)
+}
+
+fn fetch_response_once(url: &str, accept: Option<&str>) -> Result<FetchResponse> {
     check_url_security(url)?;
     let client = Client::builder().connect_timeout(FETCH_TIMEOUT).build();
     let mut builder = http::Request::builder()
@@ -287,6 +302,48 @@ mod tests {
         std::os::unix::fs::symlink("generations/gen1", dir.path().join("current")).unwrap();
         let catalog = load_local_catalog(dir.path().to_str().unwrap()).unwrap();
         assert_eq!(catalog.generation, "gen1");
+    }
+
+    fn serve_redirects(requests: usize) -> u16 {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for _ in 0..requests {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0u8; 1024];
+                while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                    let n = stream.read(&mut chunk).unwrap();
+                    request.extend_from_slice(&chunk[..n]);
+                }
+                let path = String::from_utf8_lossy(&request)
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap()
+                    .to_string();
+                let response = match path.as_str() {
+                    "/redirect" => format!(
+                        "HTTP/1.1 307 Temporary Redirect\r\nlocation: http://127.0.0.1:{port}/final\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+                    ),
+                    "/loop" => format!(
+                        "HTTP/1.1 307 Temporary Redirect\r\nlocation: http://127.0.0.1:{port}/loop\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+                    ),
+                    _ => "HTTP/1.1 200 OK\r\ncontent-length: 7\r\nconnection: close\r\n\r\npayload".to_string(),
+                };
+                stream.write_all(response.as_bytes()).unwrap();
+            }
+        });
+        port
+    }
+
+    #[test]
+    fn a_blob_redirect_is_followed_once() {
+        let port = serve_redirects(4);
+        let followed = fetch_response(&format!("http://127.0.0.1:{port}/redirect"), None).unwrap();
+        assert_eq!((followed.status, followed.body.as_slice()), (200, b"payload".as_slice()));
+        let looping = fetch_response(&format!("http://127.0.0.1:{port}/loop"), None).unwrap();
+        assert_eq!(looping.status, 307);
     }
 
     #[test]
