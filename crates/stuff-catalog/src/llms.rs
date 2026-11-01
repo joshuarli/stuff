@@ -256,8 +256,8 @@ mod tests {
         cargo_catalog(
             "gen1",
             vec![
-                CargoInput { name: "h12tiny".to_string(), version: "0.6.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "h12tiny".to_string(), version: "0.5.0".to_string(), yanked: true, source: CargoSource::Native },
+                CargoInput { name: "h12tiny".to_string(), version: "0.6.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "h12tiny".to_string(), version: "0.5.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap()
@@ -299,7 +299,7 @@ mod tests {
         let npm = render_llms_txt(
             &npm_catalog(
                 "g",
-                vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string() }],
+                vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string(), dependencies: Vec::new() }],
                 &std::collections::BTreeMap::new(),
             )
             .unwrap(),
@@ -311,7 +311,7 @@ mod tests {
         let pypi = render_llms_txt(
             &pypi_catalog(
                 "g",
-                vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false }],
+                vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() }],
             )
             .unwrap(),
             "https://pypi.example.test",
@@ -324,7 +324,7 @@ mod tests {
     fn npm_and_pypi_sections_differ() {
         let npm = npm_catalog(
             "g",
-            vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string() }],
+            vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string(), dependencies: Vec::new() }],
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
@@ -335,7 +335,7 @@ mod tests {
 
         let pypi = pypi_catalog(
             "g",
-            vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false }],
+            vec![PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() }],
         )
         .unwrap();
         let text = render_llms_txt(&pypi, DEFAULT_PYPI_ORIGIN);
@@ -355,7 +355,7 @@ mod tests {
         let cargo = cargo_fixture();
         let npm = npm_catalog(
             "g2",
-            vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string() }],
+            vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() }],
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
@@ -374,7 +374,7 @@ mod tests {
         let cargo = cargo_fixture();
         let npm = npm_catalog(
             "g2",
-            vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string() }],
+            vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() }],
             &std::collections::BTreeMap::new(),
         )
         .unwrap();

@@ -126,8 +126,8 @@ mod tests {
         cargo_catalog(
             "a",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "gone".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "gone".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap()
@@ -137,9 +137,9 @@ mod tests {
         cargo_catalog(
             "b",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native },
-                CargoInput { name: "foo".to_string(), version: "1.1.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "new".to_string(), version: "0.1.0".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "1.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "new".to_string(), version: "0.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap()
@@ -159,14 +159,14 @@ mod tests {
     fn treats_same_name_from_different_sources_as_distinct() {
         let before = cargo_catalog(
             "a",
-            vec![CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native }],
+            vec![CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() }],
         )
         .unwrap();
         let after = cargo_catalog(
             "b",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream, dependencies: Vec::new() },
             ],
         )
         .unwrap();

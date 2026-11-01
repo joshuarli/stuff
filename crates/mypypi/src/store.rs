@@ -387,6 +387,7 @@ pub fn catalog_for(generation: &str, items: &[IndexArtifact]) -> stuff_catalog::
             name: item.package_name.clone(),
             version: item.package_version.clone(),
             yanked: item.yanked_reason.is_some(),
+            dependencies: crate::wheel_metadata::requires_dist_names(&item.metadata),
         })
         .collect();
     stuff_catalog::pypi_catalog(generation, inputs).expect("index artifacts form a valid catalog")

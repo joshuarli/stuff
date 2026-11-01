@@ -235,6 +235,15 @@ impl<'a> Publisher<'a> {
     }
 }
 
+fn normal_dependency_names(entry: &crate::model::IndexEntry) -> Vec<String> {
+    entry
+        .deps
+        .iter()
+        .filter(|dep| matches!(dep.kind.as_deref(), None | Some("normal")))
+        .map(|dep| dep.package.clone().unwrap_or_else(|| dep.name.clone()))
+        .collect()
+}
+
 fn catalog_inputs(
     native: &[crate::store::NativeRecord],
     upstream: &[crate::store::UpstreamRecord],
@@ -246,18 +255,35 @@ fn catalog_inputs(
             version: rec.vers.clone(),
             yanked: rec.yanked,
             source: stuff_catalog::CargoSource::Native,
+            dependencies: normal_dependency_names(&rec.entry),
         });
     }
     for rec in upstream {
-        let yanked = crate::json::from_str::<crate::model::IndexEntry>(&rec.raw_index_line)
-            .map(|e| e.yanked)
-            .unwrap_or(false);
+        let entry = crate::json::from_str::<crate::model::IndexEntry>(&rec.raw_index_line).ok();
         out.push(stuff_catalog::CargoInput {
             name: rec.name.clone(),
             version: rec.vers.clone(),
-            yanked,
+            yanked: entry.as_ref().is_some_and(|e| e.yanked),
             source: stuff_catalog::CargoSource::Upstream,
+            dependencies: entry.as_ref().map(normal_dependency_names).unwrap_or_default(),
         });
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_dependencies_are_normal_kind_under_their_real_crate_name() {
+        let line = r#"{"name":"app","vers":"1.0.0","deps":[
+            {"name":"serde","req":"^1","features":[],"optional":false,"default_features":true,"kind":"normal"},
+            {"name":"json","req":"^1","features":[],"optional":true,"default_features":true,"package":"serde_json"},
+            {"name":"tempfile","req":"^3","features":[],"optional":false,"default_features":true,"kind":"dev"},
+            {"name":"cc","req":"^1","features":[],"optional":false,"default_features":true,"kind":"build"}
+        ],"cksum":"00","features":{},"yanked":false}"#;
+        let entry = crate::json::from_str::<crate::model::IndexEntry>(line).unwrap();
+        assert_eq!(normal_dependency_names(&entry), ["serde", "serde_json"]);
+    }
 }

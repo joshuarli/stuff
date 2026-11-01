@@ -802,6 +802,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 yanked: false,
                 source: stuff_catalog::CargoSource::Native,
+                dependencies: Vec::new(),
             }],
         )
         .unwrap();
@@ -935,7 +936,7 @@ mod tests {
         std::fs::write(site.join("wheels").join("pkg-1.0-py3-none-any.whl"), wheel).unwrap();
         let npm_catalog = stuff_catalog::npm_catalog(
             "g1",
-            vec![stuff_catalog::NpmInput { name: "a".to_string(), version: "1.0.0".to_string() }],
+            vec![stuff_catalog::NpmInput { name: "a".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() }],
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
@@ -943,7 +944,7 @@ mod tests {
         assert_eq!(check.state, CheckState::Pass, "{}", check.detail);
         let pypi_catalog = stuff_catalog::pypi_catalog(
             "g1",
-            vec![stuff_catalog::PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false }],
+            vec![stuff_catalog::PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() }],
         )
         .unwrap();
         std::fs::write(

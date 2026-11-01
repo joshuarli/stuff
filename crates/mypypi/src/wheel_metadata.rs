@@ -12,6 +12,25 @@ pub fn metadata_identity(name: &str, version: &str) -> Result<PackageVersion, St
         .map_err(|_| "wheel has invalid package metadata".to_string())
 }
 
+/// Runtime `Requires-Dist` project names, skipping requirements gated on an extra.
+pub fn requires_dist_names(metadata: &[u8]) -> Vec<String> {
+    crate::validate::parse_headers(metadata)
+        .remove("requires-dist")
+        .unwrap_or_default()
+        .iter()
+        .filter(|requirement| !is_extra_requirement(requirement))
+        .filter_map(|requirement| crate::validate::parse_requirement(requirement))
+        .map(|requirement| requirement.name)
+        .collect()
+}
+
+fn is_extra_requirement(requirement: &str) -> bool {
+    requirement.split_once(';').is_some_and(|(_, marker)| {
+        let marker = marker.replace(' ', "");
+        marker.contains("extra==") || marker.contains("extra!=")
+    })
+}
+
 pub fn matches_dist_info(package_name: &str, version: &pep440_rs::Version, directory: &str) -> bool {
     let suffix = ".dist-info";
     if !directory.ends_with(suffix) {
@@ -33,6 +52,12 @@ pub fn matches_dist_info(package_name: &str, version: &pep440_rs::Version, direc
 mod tests {
     use super::*;
     use std::str::FromStr;
+
+    #[test]
+    fn requires_dist_names_skip_extras_and_keep_markers() {
+        let metadata = b"Metadata-Version: 2.1\nName: Pkg\nVersion: 1.0\nRequires-Dist: Typing_Extensions (>=4)\nRequires-Dist: colorama ; sys_platform == \"win32\"\nRequires-Dist: pytest ; extra == \"test\"\nRequires-Dist: rich[jupyter]>=13 ; python_version >= \"3.9\" and extra != \"none\"\n\nbody Requires-Dist: ignored\n";
+        assert_eq!(requires_dist_names(metadata), ["Typing_Extensions", "colorama"]);
+    }
 
     #[test]
     fn matches_expected_dist_info() {

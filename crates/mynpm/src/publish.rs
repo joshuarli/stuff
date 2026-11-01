@@ -112,6 +112,20 @@ fn generation_id_for_renderer(
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+fn runtime_dependency_names(version_metadata: &deser_value::Value) -> Vec<String> {
+    let Some(dependencies) = version_metadata
+        .as_map()
+        .and_then(|map| map.get("dependencies"))
+        .and_then(|value| value.as_map())
+    else {
+        return Vec::new();
+    };
+    (0..dependencies.len())
+        .filter_map(|i| dependencies.get_index(i))
+        .filter_map(|(name, _)| name.as_str().map(str::to_string))
+        .collect()
+}
+
 fn catalog_for(
     generation_id: &str,
     artifacts: &[ArtifactRecord],
@@ -132,7 +146,11 @@ fn catalog_for(
     }
     let inputs = artifacts
         .iter()
-        .map(|r| stuff_catalog::NpmInput { name: r.name.clone(), version: r.version.clone() })
+        .map(|r| stuff_catalog::NpmInput {
+            name: r.name.clone(),
+            version: r.version.clone(),
+            dependencies: runtime_dependency_names(&r.metadata),
+        })
         .collect();
     stuff_catalog::npm_catalog(generation_id, inputs, &dist_latest)
 }
@@ -1026,6 +1044,19 @@ pub fn adopt_site(site_directory: &Path) -> Result<PublishSummary> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn catalog_dependencies_are_the_runtime_dependency_names() {
+        let metadata: deser_value::Value = deser_json::from_str(
+            r#"{"name":"a","version":"1.0.0","dependencies":{"b":"^1","@s/c":"2"},"devDependencies":{"d":"1"},"peerDependencies":{"e":"1"}}"#,
+        )
+        .unwrap();
+        let mut names = runtime_dependency_names(&metadata);
+        names.sort();
+        assert_eq!(names, ["@s/c", "b"]);
+        let bare: deser_value::Value = deser_json::from_str(r#"{"name":"a","version":"1.0.0"}"#).unwrap();
+        assert!(runtime_dependency_names(&bare).is_empty());
+    }
+
     use super::*;
 
     #[test]

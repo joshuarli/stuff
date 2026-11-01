@@ -95,7 +95,7 @@ pub struct RequirementName {
     pub name: String,
 }
 
-fn parse_requirement(value: &str) -> Option<RequirementName> {
+pub(crate) fn parse_requirement(value: &str) -> Option<RequirementName> {
     let v = value.trim();
     if v.is_empty() {
         return None;
@@ -518,7 +518,7 @@ fn base64_url_nopad(bytes: &[u8]) -> String {
     out
 }
 
-fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
+pub(crate) fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
     let text = String::from_utf8_lossy(bytes);
     let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut current: Option<String> = None;

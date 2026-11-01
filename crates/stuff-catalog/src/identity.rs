@@ -31,6 +31,7 @@ mod tests {
                 version: version.to_string(),
                 yanked: false,
                 source: CargoSource::Native,
+                dependencies: Vec::new(),
             }],
         )
         .unwrap()

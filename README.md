@@ -128,6 +128,15 @@ catalogs into one page (`render --output llms.txt` renders the aggregate
 catalog objects, essential endpoints (including `current/llms.txt`), and one
 fully hash-verified sample artifact per registry.
 
+Catalog schema 2 adds `dependencies` to each package: the sorted, unique
+names of the packages in the same registry that its latest version depends
+on (cargo normal-kind crates by real crate name, npm `dependencies`, PyPI
+`Requires-Dist` without extras, canonicalized). Both HTML pages link each
+package to its dependencies and dependents through in-page `#registry/name`
+views. Dependencies never cross registries. Schema 1 catalogs still load
+and render with no dependencies. Readers that predate schema 2 reject schema
+2 catalogs, so deploy the Worker and `stuff` CLI before publishing.
+
 `stuff.17166969.xyz` serves that aggregate page from the Worker, rendered
 with the same Rust catalog code from the three current snapshots (cached
 60 s at the edge). The machine-readable packuments, sparse indexes,

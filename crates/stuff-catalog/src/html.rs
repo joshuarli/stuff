@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
-use crate::model::Catalog;
+use crate::model::{Catalog, Package, Registry};
+use std::collections::BTreeMap;
 
 fn escape_html(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
@@ -18,123 +19,270 @@ fn escape_html(text: &str) -> String {
 }
 
 const CSS: &str = r#"
-:root { color-scheme: light dark; }
-body { font-family: system-ui, -apple-system, sans-serif; margin: 0 auto; max-width: 72rem; padding: 2rem 1rem; line-height: 1.5; }
-header p { color: #666; }
-.stats { display: flex; gap: 1rem; margin: 1.5rem 0; }
-.stat { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem 1.25rem; }
-.stat b { display: block; font-size: 1.5rem; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e5e5e5; }
-th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: #666; }
-code { font-family: ui-monospace, monospace; }
-.yanked { color: #999; }
-footer { margin-top: 2rem; font-size: 0.85rem; color: #666; }
+:root { color-scheme: light dark; --bg: #fff; --fg: #171717; --mute: #6b6b6b; --line: #ebebeb; --void: #b42318; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0d0d0d; --fg: #ededed; --mute: #9b9b9b; --line: #242424; --void: #f97066; } }
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--fg); }
+body { margin: 0 auto; max-width: 46rem; padding: 0 1.5rem 4rem; font: 400 0.9375rem/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; overflow-wrap: anywhere; }
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 2px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.875em; }
+.mute { color: var(--mute); }
+header { padding: 2rem 0 4rem; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.5rem; max-width: 30rem; }
+h2 { font-size: 0.9375rem; font-weight: 600; margin: 2.5rem 0 0.5rem; }
+.lede { margin: 0 0 3rem; color: var(--mute); }
+.registries { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; margin: 0 0 3.5rem; padding: 0; list-style: none; }
+.registries b { display: block; font-weight: 600; }
+.registries span { color: var(--mute); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 400; color: var(--mute); padding: 0 1rem 0.6rem 0; border-bottom: 1px solid var(--line); }
+td { padding: 0.65rem 1rem 0.65rem 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+th:last-child, td:last-child { padding-right: 0; }
+.r { text-align: right; }
+.pkg { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.875rem; }
+.vers { color: var(--mute); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.8125rem; line-height: 1.7; }
+.vers b { color: var(--fg); }
+.yanked { color: var(--void); text-decoration: line-through; }
+.detail { display: none; }
+.detail:target { display: block; }
+main:has(.detail:target) .index { display: none; }
+.back { margin: 0 0 2rem; }
+.refs { margin: 0; padding: 0; list-style: none; }
+.refs li { padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
+.refs .mute { margin-left: 0.75rem; }
+footer { margin-top: 3rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; color: var(--mute); font-size: 0.875rem; }
+@media (max-width: 640px) { header { padding-bottom: 2.5rem; } .hide { display: none; } }
 "#;
 
-fn registry_label(catalog: &Catalog) -> &'static str {
-    match catalog.registry {
-        crate::model::Registry::Cargo => "Cargo",
-        crate::model::Registry::Npm => "npm",
-        crate::model::Registry::Pypi => "PyPI",
+fn registry_label(registry: Registry) -> &'static str {
+    match registry {
+        Registry::Cargo => "Cargo",
+        Registry::Npm => "npm",
+        Registry::Pypi => "PyPI",
     }
 }
 
-pub fn render_html(catalog: &Catalog) -> String {
-    let label = registry_label(catalog);
-    let mut out = String::new();
-    out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
-    out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-    out.push_str(&format!("<title>{} registry browser</title>\n<style>{CSS}</style>\n</head>\n<body>\n", escape_html(label)));
-    out.push_str(&format!("<header><h1>{} registry</h1>\n", escape_html(label)));
-    out.push_str(&format!(
-        "<p>Generation <code>{}</code> &middot; {} packages &middot; {} versions</p></header>\n",
-        escape_html(&catalog.generation),
-        catalog.package_count(),
-        catalog.version_count()
-    ));
-    out.push_str("<table>\n<thead><tr><th>Package</th><th>Source</th><th>Latest</th><th>Versions</th></tr></thead>\n<tbody>\n");
-    for package in &catalog.packages {
-        let versions: Vec<String> = package
-            .versions
-            .iter()
-            .map(|v| {
-                if v.yanked {
-                    format!("{} (yanked)", v.version)
-                } else {
-                    v.version.clone()
-                }
-            })
-            .collect();
-        out.push_str(&format!(
-            "<tr><td><code>{}</code></td><td>{}</td><td><code>{}</code></td><td>{}</td></tr>\n",
-            escape_html(&package.name),
-            escape_html(package.source.as_deref().unwrap_or("-")),
-            escape_html(&package.latest),
-            escape_html(&versions.join(", "))
-        ));
+fn anchor(registry: Registry, package: &Package) -> String {
+    match &package.source {
+        Some(source) => format!("{}/{source}/{}", registry.as_str(), package.name),
+        None => format!("{}/{}", registry.as_str(), package.name),
     }
-    out.push_str("</tbody>\n</table>\n");
-    out.push_str(&format!(
-        "<footer><p>Machine-readable inventory: <a href=\"/generations/{}/catalog.json\"><code>catalog.json</code></a> &middot; schema version 1 &middot; generation <code>{}</code></p></footer>\n",
-        escape_html(&catalog.generation),
-        escape_html(&catalog.generation)
-    ));
-    out.push_str("</body>\n</html>\n");
+}
+
+fn fragment_href(anchor: &str) -> String {
+    let mut out = String::from("#");
+    for byte in anchor.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'@' | b'/' | b':' => {
+                out.push(byte as char)
+            }
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
     out
 }
 
-pub fn render_unified(catalogs: &[Catalog]) -> String {
-    let total_packages: usize = catalogs.iter().map(|c| c.package_count()).sum();
-    let total_versions: usize = catalogs.iter().map(|c| c.version_count()).sum();
+fn package_link(registry: Registry, package: &Package) -> String {
+    format!(
+        "<a href=\"{}\">{}</a>",
+        escape_html(&fragment_href(&anchor(registry, package))),
+        escape_html(&package.name)
+    )
+}
+
+fn versions_markup(package: &Package) -> String {
+    package
+        .versions
+        .iter()
+        .map(|v| {
+            let version = escape_html(&v.version);
+            if v.yanked {
+                format!("<span class=\"yanked\" title=\"Yanked\">{version}</span>")
+            } else if v.version == package.latest {
+                format!("<b>{version}</b>")
+            } else {
+                version
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn document(title: &str, body: &str) -> String {
+    format!(
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body>\n{body}</body>\n</html>\n",
+        escape_html(title)
+    )
+}
+
+fn detail_sections(catalogs: &[&Catalog]) -> String {
     let mut out = String::new();
-    out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
-    out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-    out.push_str(&format!("<title>stuff registry browser</title>\n<style>{CSS}</style>\n</head>\n<body>\n"));
-    out.push_str("<header><h1>stuff</h1><p>Registry browser</p></header>\n");
-    out.push_str("<div class=\"stats\">\n");
+    for catalog in catalogs {
+        let mut dependents: BTreeMap<String, Vec<&Package>> = BTreeMap::new();
+        for package in &catalog.packages {
+            for name in &package.dependencies {
+                if let Some(target) = catalog.resolve_dependency(name) {
+                    dependents.entry(anchor(catalog.registry, target)).or_default().push(package);
+                }
+            }
+        }
+        for package in &catalog.packages {
+            let id = anchor(catalog.registry, package);
+            out.push_str(&format!("<section class=\"detail\" id=\"{}\">\n", escape_html(&id)));
+            out.push_str("<p class=\"back\"><a href=\"#\">All packages</a></p>\n");
+            let source = package.source.as_deref().map(|s| format!(", {s}")).unwrap_or_default();
+            out.push_str(&format!(
+                "<h1 class=\"pkg\">{}</h1>\n<p class=\"lede\">{}{}. Latest {}.</p>\n",
+                escape_html(&package.name),
+                registry_label(catalog.registry),
+                escape_html(&source),
+                escape_html(&package.latest)
+            ));
+
+            out.push_str("<h2>Depends on</h2>\n");
+            if package.dependencies.is_empty() {
+                out.push_str(&format!(
+                    "<p class=\"mute\">No dependencies in {}.</p>\n",
+                    escape_html(&package.latest)
+                ));
+            } else {
+                out.push_str("<ul class=\"refs\">\n");
+                for name in &package.dependencies {
+                    match catalog.resolve_dependency(name) {
+                        Some(target) => out.push_str(&format!(
+                            "<li class=\"pkg\">{}</li>\n",
+                            package_link(catalog.registry, target)
+                        )),
+                        None => out.push_str(&format!(
+                            "<li class=\"pkg\">{}<span class=\"mute\">not hosted here</span></li>\n",
+                            escape_html(name)
+                        )),
+                    }
+                }
+                out.push_str("</ul>\n");
+            }
+
+            out.push_str("<h2>Used by</h2>\n");
+            match dependents.get(&id) {
+                None => out.push_str("<p class=\"mute\">No package here depends on it.</p>\n"),
+                Some(users) => {
+                    out.push_str("<ul class=\"refs\">\n");
+                    for user in users {
+                        out.push_str(&format!(
+                            "<li class=\"pkg\">{}</li>\n",
+                            package_link(catalog.registry, user)
+                        ));
+                    }
+                    out.push_str("</ul>\n");
+                }
+            }
+
+            out.push_str(&format!(
+                "<h2>Versions</h2>\n<p class=\"vers\">{}</p>\n</section>\n",
+                versions_markup(package)
+            ));
+        }
+    }
+    out
+}
+
+pub fn render_html(catalog: &Catalog) -> String {
+    let label = registry_label(catalog.registry);
+    let mut out = String::new();
+    out.push_str(&format!("<header>{}</header>\n<main>\n", escape_html(label)));
+    out.push_str(&format!(
+        "<div class=\"index\">\n<h1>{} registry</h1>\n<p class=\"lede\">{} packages, {} versions</p>\n",
+        escape_html(label),
+        catalog.package_count(),
+        catalog.version_count()
+    ));
+    let has_source = catalog.registry == Registry::Cargo;
+    out.push_str("<table>\n<thead><tr><th>Package</th>");
+    if has_source {
+        out.push_str("<th class=\"hide\">Source</th>");
+    }
+    out.push_str("<th>Versions</th></tr></thead>\n<tbody>\n");
+    for package in &catalog.packages {
+        out.push_str(&format!("<tr><td class=\"pkg\">{}</td>", package_link(catalog.registry, package)));
+        if has_source {
+            out.push_str(&format!(
+                "<td class=\"mute hide\">{}</td>",
+                escape_html(package.source.as_deref().unwrap_or(""))
+            ));
+        }
+        out.push_str(&format!("<td class=\"vers\">{}</td></tr>\n", versions_markup(package)));
+    }
+    out.push_str("</tbody>\n</table>\n</div>\n");
+    out.push_str(&detail_sections(&[catalog]));
+    out.push_str("</main>\n");
+    out.push_str(&format!(
+        "<footer><span>Generation <code>{generation}</code></span><a href=\"/generations/{generation}/catalog.json\">catalog.json</a><span>Schema version {schema}</span></footer>\n",
+        generation = escape_html(&catalog.generation),
+        schema = catalog.schema_version
+    ));
+    document(&format!("{label} registry browser"), &out)
+}
+
+pub fn render_unified(catalogs: &[Catalog]) -> String {
+    let mut out = String::from("<header>stuff</header>\n<main>\n<div class=\"index\">\n");
+    out.push_str("<h1>Cargo, npm and PyPI packages, served as static files.</h1>\n");
+    out.push_str("<p class=\"lede\">Each publish creates a new generation. The current one is live.</p>\n");
+    out.push_str("<ul class=\"registries\">\n");
     for catalog in catalogs {
         out.push_str(&format!(
-            "<div class=\"stat\"><b>{}</b><span>{} packages</span></div>\n",
+            "<li><b>{}</b><span>{} packages, {} versions</span></li>\n",
+            escape_html(registry_label(catalog.registry)),
             catalog.package_count(),
-            escape_html(registry_label(catalog))
+            catalog.version_count()
         ));
     }
-    out.push_str("</div>\n");
-    out.push_str(&format!("<p>{total_packages} packages &middot; {total_versions} versions</p>\n"));
-    out.push_str("<table>\n<thead><tr><th>Registry</th><th>Package</th><th>Source</th><th>Latest</th></tr></thead>\n<tbody>\n");
+    out.push_str("</ul>\n");
+    out.push_str("<table>\n<thead><tr><th>Package</th><th>Registry</th><th class=\"hide\">Source</th><th class=\"r\">Latest</th></tr></thead>\n<tbody>\n");
     for catalog in catalogs {
         for package in &catalog.packages {
             out.push_str(&format!(
-                "<tr><td>{}</td><td><code>{}</code></td><td>{}</td><td><code>{}</code></td></tr>\n",
-                escape_html(registry_label(catalog)),
-                escape_html(&package.name),
-                escape_html(package.source.as_deref().unwrap_or("-")),
+                "<tr><td class=\"pkg\">{}</td><td>{}</td><td class=\"mute hide\">{}</td><td class=\"r mono\">{}</td></tr>\n",
+                package_link(catalog.registry, package),
+                escape_html(registry_label(catalog.registry)),
+                escape_html(package.source.as_deref().unwrap_or("")),
                 escape_html(&package.latest)
             ));
         }
     }
-    out.push_str("</tbody>\n</table>\n</body>\n</html>\n");
-    out
+    out.push_str("</tbody>\n</table>\n</div>\n");
+    let all: Vec<&Catalog> = catalogs.iter().collect();
+    out.push_str(&detail_sections(&all));
+    out.push_str("</main>\n");
+    document("stuff registry browser", &out)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{CargoInput, CargoSource, cargo_catalog};
+    use crate::model::{CargoInput, CargoSource, NpmInput, cargo_catalog, npm_catalog};
+    use std::collections::BTreeMap;
+
+    fn cargo_input(name: &str, version: &str, dependencies: &[&str]) -> CargoInput {
+        CargoInput {
+            name: name.to_string(),
+            version: version.to_string(),
+            yanked: false,
+            source: CargoSource::Native,
+            dependencies: dependencies.iter().map(|d| d.to_string()).collect(),
+        }
+    }
+
+    fn section<'a>(html: &'a str, id: &str) -> &'a str {
+        let start = html.find(&format!("<section class=\"detail\" id=\"{id}\">")).expect("detail section");
+        let rest = &html[start..];
+        &rest[..rest.find("</section>").expect("section end")]
+    }
 
     #[test]
     fn registry_page_lists_packages_and_links_catalog() {
-        let catalog = cargo_catalog(
-            "gen1",
-            vec![CargoInput {
-                name: "h12tiny".to_string(),
-                version: "0.6.0".to_string(),
-                yanked: false,
-                source: CargoSource::Native,
-            }],
-        )
-        .unwrap();
+        let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
         let html = render_html(&catalog);
         assert!(html.contains("h12tiny"));
         assert!(html.contains("catalog.json"));
@@ -147,26 +295,83 @@ mod tests {
         assert!(!hrefs.is_empty());
         for href in hrefs {
             assert!(
-                href.starts_with("/generations/gen1/"),
-                "public page link is not generation-pinned: {href}"
+                href.starts_with("/generations/gen1/") || href.starts_with('#'),
+                "public page link is neither generation-pinned nor in-page: {href}"
             );
         }
     }
 
     #[test]
     fn unified_page_aggregates_registries() {
-        let catalog = cargo_catalog(
-            "gen1",
-            vec![CargoInput {
-                name: "h12tiny".to_string(),
-                version: "0.6.0".to_string(),
-                yanked: false,
-                source: CargoSource::Native,
-            }],
-        )
-        .unwrap();
+        let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
         let html = render_unified(std::slice::from_ref(&catalog));
         assert!(html.contains("stuff"));
         assert!(html.contains("h12tiny"));
+    }
+
+    #[test]
+    fn package_detail_links_dependencies_and_dependents() {
+        let catalog = cargo_catalog(
+            "gen1",
+            vec![
+                cargo_input("app", "1.0.0", &["lib", "outside"]),
+                cargo_input("lib", "2.0.0", &[]),
+                cargo_input("tool", "0.1.0", &["lib"]),
+            ],
+        )
+        .unwrap();
+        let html = render_html(&catalog);
+
+        let app = section(&html, "cargo/native/app");
+        assert!(app.contains("href=\"#cargo/native/lib\""));
+        assert!(app.contains("outside<span class=\"mute\">not hosted here</span>"));
+        assert!(!app.contains("href=\"#cargo/native/outside\""));
+        assert!(app.contains("No package here depends on it."));
+
+        let lib = section(&html, "cargo/native/lib");
+        assert!(lib.contains("href=\"#cargo/native/app\""));
+        assert!(lib.contains("href=\"#cargo/native/tool\""));
+        assert!(lib.contains("No dependencies in 2.0.0."));
+    }
+
+    #[test]
+    fn scoped_npm_names_keep_a_working_fragment() {
+        let catalog = npm_catalog(
+            "gen1",
+            vec![
+                NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: vec!["@scope/b".to_string()] },
+                NpmInput { name: "@scope/b".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() },
+            ],
+            &BTreeMap::new(),
+        )
+        .unwrap();
+        let html = render_html(&catalog);
+        assert!(section(&html, "npm/@scope/a").contains("href=\"#npm/@scope/b\""));
+        assert!(section(&html, "npm/@scope/b").contains("href=\"#npm/@scope/a\""));
+    }
+
+    #[test]
+    fn dependencies_never_cross_registries() {
+        let cargo = cargo_catalog("g", vec![cargo_input("shared", "1.0.0", &[])]).unwrap();
+        let npm = npm_catalog(
+            "g",
+            vec![NpmInput { name: "shared".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() },
+                 NpmInput { name: "user".to_string(), version: "1.0.0".to_string(), dependencies: vec!["shared".to_string()] }],
+            &BTreeMap::new(),
+        )
+        .unwrap();
+        let html = render_unified(&[cargo, npm]);
+        assert!(section(&html, "cargo/native/shared").contains("No package here depends on it."));
+        assert!(section(&html, "npm/shared").contains("href=\"#npm/user\""));
+    }
+
+    #[test]
+    fn yanked_versions_are_marked_in_listings() {
+        let mut input = cargo_input("a", "1.0.0", &[]);
+        input.yanked = true;
+        let catalog = cargo_catalog("g", vec![input, cargo_input("a", "1.1.0", &[])]).unwrap();
+        let html = render_html(&catalog);
+        assert!(html.contains("<span class=\"yanked\" title=\"Yanked\">1.0.0</span>"));
+        assert!(html.contains("<b>1.1.0</b>"));
     }
 }

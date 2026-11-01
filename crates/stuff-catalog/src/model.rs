@@ -3,7 +3,8 @@
 use crate::version::{compare_npm_version, compare_semver, is_stable_semver, parse_pep440};
 use std::collections::BTreeMap;
 
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
+const OLDEST_READABLE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Registry {
@@ -68,6 +69,7 @@ pub struct Package {
     pub source: Option<String>,
     pub latest: String,
     pub versions: Vec<VersionEntry>,
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,6 +88,10 @@ impl Catalog {
 
     pub fn version_count(&self) -> usize {
         self.packages.iter().map(|p| p.versions.len()).sum()
+    }
+
+    pub fn resolve_dependency(&self, name: &str) -> Option<&Package> {
+        self.packages.iter().find(|p| p.name == name)
     }
 
     pub fn find(&self, name: &str, source: Option<CargoSource>) -> Option<&Package> {
@@ -134,7 +140,7 @@ pub fn render_catalog_json(catalog: &Catalog) -> String {
         out.push_str(&format!("      \"latest\": {},\n", escape_json(&package.latest)));
         out.push_str("      \"versions\": [");
         if package.versions.is_empty() {
-            out.push_str("]\n");
+            out.push_str("],\n");
         } else {
             out.push('\n');
             for (j, v) in package.versions.iter().enumerate() {
@@ -148,8 +154,12 @@ pub fn render_catalog_json(catalog: &Catalog) -> String {
                 }
                 out.push('\n');
             }
-            out.push_str("      ]\n");
+            out.push_str("      ],\n");
         }
+        out.push_str(&format!(
+            "      \"dependencies\": [{}]\n",
+            package.dependencies.iter().map(|d| escape_json(d)).collect::<Vec<_>>().join(", ")
+        ));
         out.push_str("    }");
         if i + 1 < catalog.packages.len() {
             out.push(',');
@@ -180,13 +190,37 @@ fn parse_version_entry(v: &deser_value::Value, context: &str) -> Result<VersionE
     Ok(VersionEntry { version: version.to_string(), yanked })
 }
 
-fn parse_package(v: &deser_value::Value, registry: Registry) -> Result<Package, String> {
+fn parse_dependencies(v: &deser_value::Value, package: &str) -> Result<Vec<String>, String> {
+    let seq = v
+        .as_seq()
+        .ok_or_else(|| format!("package {package} dependencies must be an array"))?;
+    let mut names = Vec::with_capacity(seq.len());
+    for item in seq.iter() {
+        let name = value_as_str(item)
+            .ok_or_else(|| format!("package {package} dependencies must be strings"))?;
+        if name.is_empty() || name.contains('\0') {
+            return Err(format!("package {package} has an empty dependency name"));
+        }
+        names.push(name.to_string());
+    }
+    if names.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err(format!("package {package} dependencies must be sorted and unique"));
+    }
+    Ok(names)
+}
+
+fn parse_package(v: &deser_value::Value, registry: Registry, schema: u32) -> Result<Package, String> {
     let map = v.as_map().ok_or_else(|| "package must be an object".to_string())?;
-    if map.len() != 4 {
+    let keys: &[&str] = if schema >= 2 {
+        &["name", "source", "latest", "versions", "dependencies"]
+    } else {
+        &["name", "source", "latest", "versions"]
+    };
+    if map.len() != keys.len() {
         return Err("package has unknown or missing fields".to_string());
     }
     let null = deser_value::Value::from(deser_value::Kind::Null);
-    for key in ["name", "source", "latest", "versions"] {
+    for key in keys {
         if map.get(key).is_none() {
             return Err("package has unknown or missing fields".to_string());
         }
@@ -234,7 +268,12 @@ fn parse_package(v: &deser_value::Value, registry: Registry) -> Result<Package, 
     if !versions.iter().any(|v| v.version == latest) {
         return Err(format!("package {name} latest {latest} is not in versions"));
     }
-    Ok(Package { name: name.to_string(), source, latest: latest.to_string(), versions })
+    let dependencies = if schema >= 2 {
+        parse_dependencies(map.get("dependencies").unwrap_or(&null), name)?
+    } else {
+        Vec::new()
+    };
+    Ok(Package { name: name.to_string(), source, latest: latest.to_string(), versions, dependencies })
 }
 
 pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
@@ -251,9 +290,10 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     }
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let schema = map.get("schema_version").unwrap_or(&null).as_u64().unwrap_or(0);
-    if schema != u64::from(SCHEMA_VERSION) {
+    if schema < u64::from(OLDEST_READABLE_SCHEMA_VERSION) || schema > u64::from(SCHEMA_VERSION) {
         return Err(format!("unsupported catalog schema_version: {schema}"));
     }
+    let schema = schema as u32;
     let registry_text = map
         .get("registry")
         .unwrap_or(&null)
@@ -273,7 +313,7 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     let seq = packages_val.as_seq().ok_or_else(|| "catalog.packages must be an array".to_string())?;
     let mut packages = Vec::with_capacity(seq.len());
     for item in seq.iter() {
-        packages.push(parse_package(item, registry)?);
+        packages.push(parse_package(item, registry, schema)?);
     }
     let mut names: Vec<(&str, Option<&str>)> = packages
         .iter()
@@ -288,6 +328,27 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     let mut sorted = packages;
     sorted.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry, generation: generation.to_string(), packages: sorted })
+}
+
+#[derive(Default)]
+struct VersionGroup {
+    versions: Vec<VersionEntry>,
+    dependencies_by_version: BTreeMap<String, Vec<String>>,
+}
+
+impl VersionGroup {
+    fn push(&mut self, version: String, yanked: bool, dependencies: Vec<String>) {
+        self.dependencies_by_version.entry(version.clone()).or_default().extend(dependencies);
+        self.versions.push(VersionEntry { version, yanked });
+    }
+}
+
+fn normalize_dependencies(owner: &str, names: Vec<String>) -> Result<Vec<String>, String> {
+    if names.iter().any(|n| n.is_empty() || n.contains('\0')) {
+        return Err(format!("package {owner} has an empty dependency name"));
+    }
+    let unique: std::collections::BTreeSet<String> = names.into_iter().collect();
+    Ok(unique.into_iter().collect())
 }
 
 fn latest_semver(versions: &[VersionEntry]) -> String {
@@ -315,13 +376,14 @@ pub struct CargoInput {
     pub version: String,
     pub yanked: bool,
     pub source: CargoSource,
+    pub dependencies: Vec<String>,
 }
 
 pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalog, String> {
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<(String, CargoSource), Vec<VersionEntry>> = BTreeMap::new();
+    let mut grouped: BTreeMap<(String, CargoSource), VersionGroup> = BTreeMap::new();
     for input in inputs {
         if input.name.is_empty() || input.version.is_empty() {
             return Err("cargo package name and version must not be empty".to_string());
@@ -329,13 +391,11 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
         if crate::version::Semver::parse(&input.version).is_none() {
             return Err(format!("invalid cargo version {} for {}", input.version, input.name));
         }
-        grouped
-            .entry((input.name, input.source))
-            .or_default()
-            .push(VersionEntry { version: input.version, yanked: input.yanked });
+        grouped.entry((input.name, input.source)).or_default().push(input.version, input.yanked, input.dependencies);
     }
     let mut packages = Vec::with_capacity(grouped.len());
-    for ((name, source), mut versions) in grouped {
+    for ((name, source), group) in grouped {
+        let VersionGroup { mut versions, dependencies_by_version: mut dependencies } = group;
         let mut seen = std::collections::BTreeSet::new();
         for v in &versions {
             if !seen.insert(v.version.clone()) {
@@ -348,7 +408,8 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
         }
         sort_semver_versions(&mut versions);
         let latest = latest_semver(&versions);
-        packages.push(Package { name, source: Some(source.as_str().to_string()), latest, versions });
+        let dependencies = normalize_dependencies(&name, dependencies.remove(&latest).unwrap_or_default())?;
+        packages.push(Package { name, source: Some(source.as_str().to_string()), latest, versions, dependencies });
     }
     packages.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Cargo, generation: generation.to_string(), packages })
@@ -358,6 +419,7 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
 pub struct NpmInput {
     pub name: String,
     pub version: String,
+    pub dependencies: Vec<String>,
 }
 
 pub fn npm_catalog(
@@ -368,7 +430,7 @@ pub fn npm_catalog(
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<String, Vec<VersionEntry>> = BTreeMap::new();
+    let mut grouped: BTreeMap<String, VersionGroup> = BTreeMap::new();
     for input in inputs {
         if input.name.is_empty() || input.version.is_empty() {
             return Err("npm package name and version must not be empty".to_string());
@@ -376,10 +438,11 @@ pub fn npm_catalog(
         if crate::version::Semver::parse(&input.version).is_none() {
             return Err(format!("invalid npm version {} for {}", input.version, input.name));
         }
-        grouped.entry(input.name).or_default().push(VersionEntry { version: input.version, yanked: false });
+        grouped.entry(input.name).or_default().push(input.version, false, input.dependencies);
     }
     let mut packages = Vec::with_capacity(grouped.len());
-    for (name, mut versions) in grouped {
+    for (name, group) in grouped {
+        let VersionGroup { mut versions, dependencies_by_version: mut dependencies } = group;
         let mut seen = std::collections::BTreeSet::new();
         for v in &versions {
             if !seen.insert(v.version.clone()) {
@@ -391,7 +454,8 @@ pub fn npm_catalog(
             Some(tag) if versions.iter().any(|v| &v.version == tag) => tag.clone(),
             _ => latest_semver(&versions),
         };
-        packages.push(Package { name, source: None, latest, versions });
+        let dependencies = normalize_dependencies(&name, dependencies.remove(&latest).unwrap_or_default())?;
+        packages.push(Package { name, source: None, latest, versions, dependencies });
     }
     packages.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Npm, generation: generation.to_string(), packages })
@@ -402,6 +466,7 @@ pub struct PypiInput {
     pub name: String,
     pub version: String,
     pub yanked: bool,
+    pub dependencies: Vec<String>,
 }
 
 pub fn canonical_project_name(name: &str) -> String {
@@ -427,6 +492,7 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
         return Err("generation must not be empty".to_string());
     }
     let mut grouped: BTreeMap<String, BTreeMap<String, Vec<bool>>> = BTreeMap::new();
+    let mut dependencies_by_project: BTreeMap<String, BTreeMap<String, Vec<String>>> = BTreeMap::new();
     for file in files {
         if file.name.is_empty() || file.version.is_empty() {
             return Err("pypi package name and version must not be empty".to_string());
@@ -438,6 +504,12 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
             return Err(format!("invalid pypi package name {}", file.name));
         }
         let _ = parsed;
+        dependencies_by_project
+            .entry(project.clone())
+            .or_default()
+            .entry(file.version.clone())
+            .or_default()
+            .extend(file.dependencies.iter().map(|d| canonical_project_name(d)));
         grouped.entry(project).or_default().entry(file.version).or_default().push(file.yanked);
     }
     let mut packages = Vec::with_capacity(grouped.len());
@@ -480,7 +552,14 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
             .map(|(_, v)| v.to_string())
             .unwrap_or_default();
         let versions = entries.into_iter().map(|(version, yanked)| VersionEntry { version, yanked }).collect();
-        packages.push(Package { name, source: None, latest, versions });
+        let dependencies = normalize_dependencies(
+            &name,
+            dependencies_by_project
+                .get_mut(&name)
+                .and_then(|by_version| by_version.remove(&latest))
+                .unwrap_or_default(),
+        )?;
+        packages.push(Package { name, source: None, latest, versions, dependencies });
     }
     packages.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Pypi, generation: generation.to_string(), packages })
@@ -495,8 +574,8 @@ mod tests {
         let catalog = cargo_catalog(
             "abc123",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "foo".to_string(), version: "2.0.0-alpha".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "2.0.0-alpha".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap();
@@ -511,8 +590,8 @@ mod tests {
         let catalog = cargo_catalog(
             "g",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream, dependencies: Vec::new() },
             ],
         )
         .unwrap();
@@ -530,8 +609,8 @@ mod tests {
         let error = cargo_catalog(
             "g",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap_err();
@@ -545,8 +624,8 @@ mod tests {
         let catalog = npm_catalog(
             "g",
             vec![
-                NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string() },
-                NpmInput { name: "pkg".to_string(), version: "2.0.0".to_string() },
+                NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() },
+                NpmInput { name: "pkg".to_string(), version: "2.0.0".to_string(), dependencies: Vec::new() },
             ],
             &tags,
         )
@@ -559,9 +638,9 @@ mod tests {
         let catalog = pypi_catalog(
             "g",
             vec![
-                PypiInput { name: "Foo_Bar".to_string(), version: "1.0".to_string(), yanked: false },
-                PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false },
-                PypiInput { name: "foo-bar".to_string(), version: "2.0a1".to_string(), yanked: false },
+                PypiInput { name: "Foo_Bar".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() },
+                PypiInput { name: "foo-bar".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() },
+                PypiInput { name: "foo-bar".to_string(), version: "2.0a1".to_string(), yanked: false, dependencies: Vec::new() },
             ],
         )
         .unwrap();
@@ -576,8 +655,8 @@ mod tests {
         let catalog = pypi_catalog(
             "g",
             vec![
-                PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: true },
-                PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false },
+                PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: true, dependencies: Vec::new() },
+                PypiInput { name: "pkg".to_string(), version: "1.0".to_string(), yanked: false, dependencies: Vec::new() },
             ],
         )
         .unwrap();
@@ -589,12 +668,83 @@ mod tests {
         let catalog = cargo_catalog(
             "g",
             vec![
-                CargoInput { name: "c".to_string(), version: "2.0.0".to_string(), yanked: true, source: CargoSource::Native },
-                CargoInput { name: "c".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native },
-                CargoInput { name: "c".to_string(), version: "1.5.0-alpha".to_string(), yanked: false, source: CargoSource::Native },
+                CargoInput { name: "c".to_string(), version: "2.0.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "c".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "c".to_string(), version: "1.5.0-alpha".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
             ],
         )
         .unwrap();
         assert_eq!(catalog.packages[0].latest, "1.0.0");
+    }
+
+    #[test]
+    fn dependencies_follow_the_latest_version_and_round_trip() {
+        let catalog = cargo_catalog(
+            "g",
+            vec![
+                CargoInput {
+                    name: "app".to_string(),
+                    version: "1.0.0".to_string(),
+                    yanked: false,
+                    source: CargoSource::Native,
+                    dependencies: vec!["old".to_string()],
+                },
+                CargoInput {
+                    name: "app".to_string(),
+                    version: "1.1.0".to_string(),
+                    yanked: false,
+                    source: CargoSource::Native,
+                    dependencies: vec!["zeta".to_string(), "alpha".to_string(), "zeta".to_string()],
+                },
+            ],
+        )
+        .unwrap();
+        assert_eq!(catalog.packages[0].dependencies, ["alpha", "zeta"]);
+        let parsed = parse_catalog_json(&render_catalog_json(&catalog)).unwrap();
+        assert_eq!(parsed, catalog);
+    }
+
+    #[test]
+    fn pypi_dependencies_are_canonical_and_merged_across_wheels() {
+        let catalog = pypi_catalog(
+            "g",
+            vec![
+                PypiInput {
+                    name: "pkg".to_string(),
+                    version: "1.0".to_string(),
+                    yanked: false,
+                    dependencies: vec!["Typing_Extensions".to_string()],
+                },
+                PypiInput {
+                    name: "pkg".to_string(),
+                    version: "1.0".to_string(),
+                    yanked: false,
+                    dependencies: vec!["colorama".to_string(), "typing-extensions".to_string()],
+                },
+            ],
+        )
+        .unwrap();
+        assert_eq!(catalog.packages[0].dependencies, ["colorama", "typing-extensions"]);
+    }
+
+    #[test]
+    fn schema_one_catalogs_stay_readable_without_dependencies() {
+        let text = r#"{"schema_version":1,"registry":"npm","generation":"g","packages":[{"name":"a","source":null,"latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}]}"#;
+        let catalog = parse_catalog_json(text).unwrap();
+        assert!(catalog.packages[0].dependencies.is_empty());
+    }
+
+    #[test]
+    fn schema_two_requires_sorted_unique_dependencies() {
+        let text = |deps: &str| {
+            format!(
+                r#"{{"schema_version":2,"registry":"npm","generation":"g","packages":[{{"name":"a","source":null,"latest":"1.0.0","versions":[{{"version":"1.0.0","yanked":false}}],"dependencies":{deps}}}]}}"#
+            )
+        };
+        assert!(parse_catalog_json(&text(r#"["b","c"]"#)).is_ok());
+        assert!(parse_catalog_json(&text(r#"["c","b"]"#)).unwrap_err().contains("sorted"));
+        assert!(parse_catalog_json(&text(r#"["b","b"]"#)).unwrap_err().contains("sorted"));
+        let missing = r#"{"schema_version":2,"registry":"npm","generation":"g","packages":[{"name":"a","source":null,"latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}]}"#;
+        assert!(parse_catalog_json(missing).unwrap_err().contains("missing fields"));
     }
 }
