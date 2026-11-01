@@ -278,7 +278,8 @@ Commands:
 Sources default to the live registries (no credentials needed).
 Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir (site, generation, or
 catalog.json) to inspect local published output offline. Registries without
-a local dir are skipped by doctor, which then refuses --expected-generation.
+a local dir are skipped by doctor, which then refuses --expected-generation;
+naming one with --registry needs its --*-dir or --*-base, never the live default.
 --output FILE ending in .txt or .md writes the aggregate llms.txt; any
 other name writes HTML.
 "

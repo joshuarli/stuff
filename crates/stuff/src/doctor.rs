@@ -11,6 +11,7 @@ pub struct RegistrySources {
     pub npm_base: String,
     pub pypi_base: String,
     pub oci_base: String,
+    explicit_base: Vec<&'static str>,
     pub cargo_local: Option<LocalSite>,
     pub npm_local: Option<LocalSite>,
     pub pypi_local: Option<LocalSite>,
@@ -19,27 +20,25 @@ pub struct RegistrySources {
 
 impl RegistrySources {
     pub fn from_parsed(parsed: &crate::cli::Parsed) -> crate::error::Result<Self> {
+        let cargo_base = parsed.cargo_base.clone().or_else(|| std::env::var("STUFF_CARGO_BASE").ok());
+        let npm_base = parsed.npm_base.clone().or_else(|| std::env::var("STUFF_NPM_BASE").ok());
+        let pypi_base = parsed.pypi_base.clone().or_else(|| std::env::var("STUFF_PYPI_BASE").ok());
+        let oci_base = parsed.oci_base.clone().or_else(|| std::env::var("STUFF_OCI_BASE").ok());
+        let explicit_base = [
+            ("cargo", cargo_base.is_some()),
+            ("npm", npm_base.is_some()),
+            ("pypi", pypi_base.is_some()),
+            ("oci", oci_base.is_some()),
+        ]
+        .into_iter()
+        .filter_map(|(name, set)| set.then_some(name))
+        .collect();
         Ok(Self {
-            cargo_base: parsed
-                .cargo_base
-                .clone()
-                .or_else(|| std::env::var("STUFF_CARGO_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_CARGO_ORIGIN.to_string()),
-            npm_base: parsed
-                .npm_base
-                .clone()
-                .or_else(|| std::env::var("STUFF_NPM_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_NPM_ORIGIN.to_string()),
-            pypi_base: parsed
-                .pypi_base
-                .clone()
-                .or_else(|| std::env::var("STUFF_PYPI_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_PYPI_ORIGIN.to_string()),
-            oci_base: parsed
-                .oci_base
-                .clone()
-                .or_else(|| std::env::var("STUFF_OCI_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_OCI_ORIGIN.to_string()),
+            cargo_base: cargo_base.unwrap_or_else(|| DEFAULT_CARGO_ORIGIN.to_string()),
+            npm_base: npm_base.unwrap_or_else(|| DEFAULT_NPM_ORIGIN.to_string()),
+            pypi_base: pypi_base.unwrap_or_else(|| DEFAULT_PYPI_ORIGIN.to_string()),
+            oci_base: oci_base.unwrap_or_else(|| DEFAULT_OCI_ORIGIN.to_string()),
+            explicit_base,
             cargo_local: resolve_local(parsed.cargo_dir.as_deref())?,
             npm_local: resolve_local(parsed.npm_dir.as_deref())?,
             pypi_local: resolve_local(parsed.pypi_dir.as_deref())?,
@@ -90,6 +89,11 @@ pub fn load_catalogs(
     for (name, is_local) in sources.selected(filter) {
         if filter.is_none() && any_local && !is_local {
             continue;
+        }
+        if any_local && !is_local && !sources.explicit_base.contains(&name) {
+            return Err(Error::usage(format!(
+                "{name} has no local source; pass --{name}-dir or --{name}-base to read it"
+            )));
         }
         let catalog = match (name, sources.local(name)) {
             ("cargo", Some(local)) => local.load_catalog()?,

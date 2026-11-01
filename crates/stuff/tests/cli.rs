@@ -140,3 +140,27 @@ fn failures_map_to_the_documented_exit_codes() {
     assert_eq!(incomplete.code, 1);
     assert!(incomplete.stdout.contains("ok: npm catalog"), "{}", incomplete.stdout);
 }
+
+#[test]
+fn a_filtered_registry_without_a_source_is_refused_instead_of_fetching_production() {
+    let work = tempfile::tempdir().unwrap();
+    let local = work.path().join("local");
+    write_catalog(&local, "g1", &package("alpha", "1.0.0", &[("1.0.0", false)]));
+    let local_arg = local.to_str().unwrap();
+
+    for command in ["ls", "search"] {
+        let mut args = vec![command];
+        if command == "search" {
+            args.push("alpha");
+        }
+        args.extend(["--npm-dir", local_arg, "--registry", "cargo"]);
+        let refused = stuff(&args);
+        assert_eq!(refused.code, 2, "{args:?}: {}", refused.stderr);
+        assert!(refused.stderr.contains("cargo has no local source"), "{}", refused.stderr);
+        assert!(refused.stderr.contains("--cargo-dir") && refused.stderr.contains("--cargo-base"), "{}", refused.stderr);
+    }
+
+    let explicit = stuff(&["ls", "--npm-dir", local_arg, "--registry", "cargo", "--cargo-base", "http://127.0.0.1:1"]);
+    assert_ne!(explicit.code, 2, "{}", explicit.stderr);
+    assert!(!explicit.stderr.contains("no local source"), "{}", explicit.stderr);
+}

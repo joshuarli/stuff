@@ -105,7 +105,9 @@ against local output with `--cargo-dir/--npm-dir/--pypi-dir` (site,
 generation, or `catalog.json`). Supplying any local dir limits `doctor` to
 the supplied registries: it prints a skip check for each omitted registry
 and refuses `--expected-generation` unless every selected registry is
-checked. `--json` emits machine-readable inventory, `--versions` lists every
+checked. Naming a registry with `--registry` while another has a local dir
+refuses to fall back to the live registry: pass that registry's `--*-dir` or
+`--*-base` (or `STUFF_*_BASE`). `--json` emits machine-readable inventory, `--versions` lists every
 published version, and `render --output index.html` aggregates the three
 catalogs into one page (`render --output llms.txt` renders the aggregate
 `llms.txt` instead). Health checks cover the active generations, pinned
