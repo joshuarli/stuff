@@ -1,20 +1,14 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Kind, Result, Stage};
-use crate::file_lock::{FileLock, LockError};
 use crate::index::{IndexArtifact, prepare_index_artifacts, project_name, render_project_page, render_root_page};
 use crate::models::{Target, ValidatedArtifact, WheelIdentity};
 use sha2::{Digest, Sha256};
+use stuff_store::{write_file_durable, FileLock, Site};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-
-const STAGING_PREFIX: &str = ".mypypi-staging-";
-const STAGING_OWNER: &str = ".mypypi-owner";
-/// Staging dirs older than this with no owner marker are orphans of a crash
-/// between directory creation and marker write, and are safe to remove.
-const STALE_STAGING_AGE: Duration = Duration::from_secs(3600);
 
 fn pub_error(kind: Kind, detail: impl Into<String>, path: Option<&Path>, item: Option<&IndexArtifact>) -> Error {
     let mut detail = detail.into();
@@ -52,48 +46,14 @@ fn ensure_output_root(output: &Path) -> Result<PathBuf> {
     Ok(output)
 }
 
-fn lock_output(output: &Path) -> Result<FileLock> {
-    let path = output.join(".mypypi.lock");
-    FileLock::acquire(&path, Duration::from_secs(600)).map_err(|e| match e {
-        LockError::TimedOut => pub_error(Kind::Conflict, "another publisher holds the output lock", Some(&path), None),
-        LockError::Io(e) => pub_error(Kind::Io, format!("could not acquire output lock: {e}"), Some(&path), None),
+fn lock_site(site: &Site) -> Result<FileLock> {
+    let path = site.site_dir.join(".publish.lock");
+    site.lock(Duration::from_secs(600)).map_err(|e| match e {
+        stuff_store::Error::Conflict(_) => {
+            pub_error(Kind::Conflict, "another publisher holds the output lock", Some(&path), None)
+        }
+        other => pub_error(Kind::Io, other.to_string(), Some(&path), None),
     })
-}
-
-fn recover_staging(output: &Path) -> Result<()> {
-    let entries = std::fs::read_dir(output)
-        .map_err(|e| pub_error(Kind::Io, format!("could not recover staging: {e}"), Some(output), None))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| pub_error(Kind::Io, format!("could not recover staging: {e}"), Some(output), None))?;
-        let name = entry.file_name().to_string_lossy().to_string();
-        if !name.starts_with(STAGING_PREFIX) {
-            continue;
-        }
-        let candidate = entry.path();
-        let md = match std::fs::symlink_metadata(&candidate) {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-        if !md.file_type().is_dir() {
-            continue;
-        }
-        let marker = candidate.join(STAGING_OWNER);
-        match std::fs::read_to_string(&marker) {
-            Ok(text) if text == "mypypi\n" => {
-                let _ = std::fs::remove_dir_all(&candidate);
-            }
-            // No (or invalid) marker: either a foreign dir sharing the
-            // prefix, a staging dir from a publisher still running under
-            // the output lock, or an orphan of a crash between mkdir and
-            // marker write. Only the last is safe to remove, identified by
-            // the creation timestamp embedded in the staging name.
-            _ if staging_age(&name).is_some_and(|age| age > STALE_STAGING_AGE) => {
-                let _ = std::fs::remove_dir_all(&candidate);
-            }
-            _ => continue,
-        }
-    }
-    Ok(())
 }
 
 fn ensure_directory(path: &Path) -> Result<()> {
@@ -198,24 +158,6 @@ fn store_metadata(wheels: &Path, item: &IndexArtifact) -> Result<()> {
     })();
     let _ = std::fs::remove_file(&tmp);
     write_result
-}
-
-fn now_nanos() -> u128 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)
-}
-
-/// Age of a staging dir from the creation timestamp in its name, or `None`
-/// when the name carries no parseable timestamp.
-fn staging_age(name: &str) -> Option<Duration> {
-    let rest = name.strip_prefix(STAGING_PREFIX)?;
-    let (nanos_hex, _) = rest.split_once('-')?;
-    let nanos = u128::from_str_radix(nanos_hex, 16).ok()?;
-    Some(Duration::from_nanos(now_nanos().saturating_sub(nanos).min(u64::MAX as u128) as u64))
-}
-
-fn staging_name() -> String {
-    format!("{STAGING_PREFIX}{:x}-{:x}", now_nanos(), std::process::id())
 }
 
 fn rand_hex() -> u64 {
@@ -406,138 +348,63 @@ fn verify_generation(
     Ok(())
 }
 
-fn remove_staging_owner(generation: &Path) -> Result<()> {
-    let marker = generation.join(STAGING_OWNER);
-    match std::fs::symlink_metadata(&marker) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(pub_error(Kind::Io, format!("could not remove package index staging marker: {e}"), Some(&marker), None)),
-        Ok(md) => {
-            if !md.file_type().is_file()
-                || std::fs::read_to_string(&marker).map(|t| t != "mypypi\n").unwrap_or(true)
-            {
-                return Err(pub_error(Kind::Integrity, "package index generation has an invalid staging marker", Some(&marker), None));
-            }
-            std::fs::remove_file(&marker)
-                .map_err(|e| pub_error(Kind::Io, format!("could not remove package index staging marker: {e}"), Some(&marker), None))?;
-            stuff_store::sync_dir(generation)
-                .map_err(|e| pub_error(Kind::Io, e.to_string(), Some(generation), None))?;
-            Ok(())
-        }
-    }
-}
-
 fn write_generation(
-    output: &Path,
+    site: &Site,
     items: &[IndexArtifact],
     manifest: &[u8],
     public_base_url: &str,
-) -> Result<String> {
+) -> Result<()> {
     let pages = project_pages(items);
     let generation = generation_id(manifest, &pages, items, public_base_url);
-    let generations = output.join("generations");
-    ensure_directory(&generations)?;
-    let final_dir = generations.join(&generation);
-    if let Ok(md) = std::fs::symlink_metadata(&final_dir) {
-        if !md.file_type().is_dir() || md.file_type().is_symlink() {
-            return Err(pub_error(Kind::Integrity, "package index generation is not a real directory", Some(&final_dir), None));
-        }
-        verify_generation(&final_dir, manifest, &pages, items, &generation, public_base_url)?;
-        remove_staging_owner(&final_dir)?;
-        return Ok(generation);
-    }
-    let staging = output.join(staging_name());
-    std::fs::create_dir(&staging)
-        .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-    let built: Result<()> = (|| {
-        std::fs::write(staging.join(STAGING_OWNER), "mypypi\n")
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        std::fs::create_dir(staging.join("simple"))
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        std::os::unix::fs::symlink(Path::new("../../wheels"), staging.join("wheels"))
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+    let build = |staging: &Path| -> stuff_store::Result<()> {
+        std::fs::create_dir(staging.join("simple"))?;
+        std::os::unix::fs::symlink(Path::new("../../wheels"), staging.join("wheels"))?;
         for (rel, content) in &pages {
-            let page = staging.join(rel);
-            if let Some(parent) = page.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-            }
-            std::fs::write(&page, content)
-                .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+            write_file_durable(&staging.join(rel), content)?;
         }
-        std::fs::write(staging.join("manifest.json"), manifest)
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
+        write_file_durable(&staging.join("manifest.json"), manifest)?;
         let catalog = catalog_for(&generation, items);
-        std::fs::write(staging.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog))
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        std::fs::write(staging.join("index.html"), stuff_catalog::render_html(&catalog))
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        std::fs::write(
-            staging.join("llms.txt"),
-            stuff_catalog::render_llms_txt(&catalog, public_base_url),
+        write_file_durable(
+            &staging.join("catalog.json"),
+            stuff_catalog::render_catalog_json(&catalog).as_bytes(),
+        )?;
+        write_file_durable(
+            &staging.join("index.html"),
+            stuff_catalog::render_html(&catalog).as_bytes(),
+        )?;
+        write_file_durable(
+            &staging.join("llms.txt"),
+            stuff_catalog::render_llms_txt(&catalog, public_base_url).as_bytes(),
+        )?;
+        Ok(())
+    };
+    let verify = |generation_dir: &Path| -> stuff_store::Result<bool> {
+        Ok(verify_generation(
+            generation_dir,
+            manifest,
+            &pages,
+            items,
+            &generation,
+            public_base_url,
         )
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        // fsync tree: files then dirs (bottom-up)
-        let mut dirs = vec![staging.clone()];
-        let mut stack = vec![staging.clone()];
-        while let Some(dir) = stack.pop() {
-            for entry in std::fs::read_dir(&dir)
-                .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?
-            {
-                let entry = entry.map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-                let p = entry.path();
-                let ft = entry.file_type().map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-                if ft.is_dir() {
-                    dirs.push(p.clone());
-                    stack.push(p);
-                } else if ft.is_file() {
-                    let f = std::fs::File::open(&p).map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-                    f.sync_all().map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-                }
-            }
-        }
-        for dir in dirs.iter().rev() {
-            stuff_store::sync_dir(dir).map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&staging), None))?;
-        }
-        std::fs::rename(&staging, &final_dir)
-            .map_err(|e| pub_error(Kind::Io, format!("could not stage package index generation: {e}"), Some(&staging), None))?;
-        stuff_store::sync_dir(&generations).map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&generations), None))?;
-        remove_staging_owner(&final_dir)?;
-        stuff_store::sync_dir(&generations).map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&generations), None))?;
-        Ok(())
-    })();
-    if built.is_err() {
-        let _ = std::fs::remove_dir_all(&staging);
-        return built.map(|()| generation);
-    }
-    built.map(|()| generation)
+        .is_ok())
+    };
+    site.publish(&generation, &build, &verify).map_err(|e| {
+        let kind = match &e {
+            stuff_store::Error::Input(_) => Kind::InvalidInput,
+            stuff_store::Error::Integrity(_) => Kind::Integrity,
+            stuff_store::Error::Conflict(_) => Kind::Conflict,
+            stuff_store::Error::Limit(_) => Kind::Limit,
+            stuff_store::Error::Network(_) => Kind::Network,
+            stuff_store::Error::Operation(_) => Kind::Io,
+        };
+        pub_error(kind, format!("could not publish package index generation: {e}"), None, None)
+    })?;
+    Ok(())
 }
 
-fn promote(output: &Path, generation: &str) -> Result<()> {
-    let current = output.join("current");
-    if current.is_symlink()
-        && std::fs::read_link(&current).map(|t| t == Path::new(&format!("generations/{generation}"))).unwrap_or(false)
-    {
-        return Ok(());
-    }
-    if let Ok(md) = std::fs::symlink_metadata(&current)
-        && !md.file_type().is_symlink() {
-            return Err(pub_error(Kind::Conflict, "current index path is not a symlink", Some(&current), None));
-        }
-    let tmp = output.join(format!(".mypypi-current-{:x}", rand_hex()));
-    let setup: Result<()> = (|| {
-        std::os::unix::fs::symlink(Path::new(&format!("generations/{generation}")), &tmp)
-            .map_err(|e| pub_error(Kind::Io, format!("could not promote package index generation: {e}"), Some(&current), None))?;
-        std::fs::rename(&tmp, &current)
-            .map_err(|e| pub_error(Kind::Io, format!("could not promote package index generation: {e}"), Some(&current), None))?;
-        stuff_store::sync_dir(output).map_err(|e| pub_error(Kind::Io, e.to_string(), Some(output), None))?;
-        Ok(())
-    })();
-    let _ = std::fs::remove_file(&tmp);
-    setup
-}
-
-fn current_items(output: &Path) -> Result<Vec<IndexArtifact>> {
-    let current = output.join("current");
+fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
+    let current = site.current_link();
     let md = match std::fs::symlink_metadata(&current) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(e) => return Err(pub_error(Kind::Io, format!("could not inspect current index path: {e}"), Some(&current), None)),
@@ -546,16 +413,14 @@ fn current_items(output: &Path) -> Result<Vec<IndexArtifact>> {
     if !md.file_type().is_symlink() {
         return Err(pub_error(Kind::Conflict, "current index path is not a symlink", Some(&current), None));
     }
-    let link = std::fs::read_link(&current)
-        .map_err(|e| pub_error(Kind::Integrity, format!("published index has an invalid current link: {e}"), Some(&current), None))?;
-    if link.is_absolute() {
+    let generation = site
+        .current_generation()
+        .map_err(|e| pub_error(Kind::Integrity, format!("published index has an invalid current link: {e}"), Some(&current), None))?
+        .ok_or_else(|| pub_error(Kind::Integrity, "published index has an invalid current link", Some(&current), None))?;
+    if !is_lower_hex64(&generation) {
         return Err(pub_error(Kind::Integrity, "published index has an invalid current link", Some(&current), None));
     }
-    let parts: Vec<String> = link.components().map(|c| c.as_os_str().to_string_lossy().to_string()).collect();
-    if parts.len() != 2 || parts[0] != "generations" || parts[1].len() != 64 || !parts[1].bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')) {
-        return Err(pub_error(Kind::Integrity, "published index has an invalid current link", Some(&current), None));
-    }
-    let generation = output.join(&link);
+    let generation = site.generations_dir().join(generation);
     let manifest_path = generation.join("manifest.json");
     let gen_md = std::fs::symlink_metadata(&generation)
         .map_err(|_| pub_error(Kind::Integrity, "could not read current publication manifest", Some(&manifest_path), None))?;
@@ -565,7 +430,7 @@ fn current_items(output: &Path) -> Result<Vec<IndexArtifact>> {
     let text = std::fs::read_to_string(&manifest_path)
         .map_err(|_| pub_error(Kind::Integrity, "could not read current publication manifest", Some(&manifest_path), None))?;
     let rows = parse_manifest(&text, &manifest_path)?;
-    let wheels = output.join("wheels");
+    let wheels = site.site_dir.join("wheels");
     let wheels_md = std::fs::symlink_metadata(&wheels)
         .map_err(|_| pub_error(Kind::Integrity, "current wheel storage is missing", Some(&wheels), None))?;
     if wheels_md.file_type().is_symlink() || !wheels_md.file_type().is_dir() {
@@ -751,7 +616,7 @@ pub fn published_artifacts(output: &Path) -> Result<Vec<ValidatedArtifact>> {
             }
         }
     }
-    Ok(current_items(&output)?
+    Ok(current_items(&Site::new(output.clone()))?
         .into_iter()
         .map(|item| {
             let identity = WheelIdentity::parse(&item.wheel_filename).expect("stored filename parses");
@@ -819,9 +684,11 @@ pub fn publish(
         out
     })?;
     let output = ensure_output_root(output)?;
-    let _lock = lock_output(&output)?;
-    recover_staging(&output)?;
-    let current = current_items(&output)?;
+    let site = Site::new(output.clone());
+    let _lock = lock_site(&site)?;
+    site.recover_staging()
+        .map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&output), None))?;
+    let current = current_items(&site)?;
     let mut merged: BTreeMap<String, IndexArtifact> = BTreeMap::new();
     for item in current {
         merged.insert(item.wheel_filename.clone(), item);
@@ -881,12 +748,7 @@ pub fn publish(
         store_wheel(&output, item, &source)?;
     }
     let manifest = manifest_bytes(&items);
-    let generation = write_generation(&output, &items, &manifest, public_base_url)?;
-    if !(output.join("current").is_symlink()
-        && std::fs::read_link(output.join("current")).map(|t| t == Path::new(&format!("generations/{generation}"))).unwrap_or(false))
-    {
-        promote(&output, &generation)?;
-    }
+    write_generation(&site, &items, &manifest, public_base_url)?;
     Ok(output.join("current"))
 }
 
@@ -1007,30 +869,4 @@ mod tests {
         let _ = PackageVersion::parse("sample-pkg", "1.0").unwrap();
     }
 
-    #[test]
-    fn recover_staging_ages_out_markerless_orphans() {
-        let dir = tempfile::tempdir().unwrap();
-        let out = dir.path();
-        // Staging with a valid marker is a crashed build: removed.
-        let marked = out.join(format!("{STAGING_PREFIX}abc-1"));
-        std::fs::create_dir(&marked).unwrap();
-        std::fs::write(marked.join(STAGING_OWNER), "mypypi\n").unwrap();
-        // Fresh marker-less staging may belong to a live publisher: kept.
-        let fresh = out.join(staging_name());
-        std::fs::create_dir(&fresh).unwrap();
-        // Ancient marker-less staging is a mkdir/marker-write crash orphan: removed.
-        let orphan = out.join(format!("{STAGING_PREFIX}1-1234"));
-        std::fs::create_dir(&orphan).unwrap();
-        // Unparseable marker-less name: kept (conservative for foreign dirs).
-        let foreign = out.join(format!("{STAGING_PREFIX}not-a-timestamp"));
-        std::fs::create_dir(&foreign).unwrap();
-        let other = out.join("other");
-        std::fs::create_dir(&other).unwrap();
-        recover_staging(out).unwrap();
-        assert!(!marked.exists());
-        assert!(fresh.exists());
-        assert!(!orphan.exists());
-        assert!(foreign.exists());
-        assert!(other.exists());
-    }
 }

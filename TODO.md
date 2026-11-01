@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-35 · P3 · Generation activation, locking, and staging recovery are reimplemented per registry
-
-- **Area:** Architecture
-- **Where:** `crates/stuff-store/src/site.rs:109-130`, `crates/stuff-store/src/site.rs:158-203`, `crates/mynpm/src/publish.rs:746`, `crates/mynpm/src/publish.rs:860-970`, `crates/mypypi/src/store.rs:511-580`, `crates/mycrates/src/publish.rs:161`
-- **Problem:** `Site::activate` has one production caller, mycrates. mynpm and mypypi each implement their own generation rename, `current` swap, and temp names, and each registry has its own lock type, and they disagree on verify-before-switch and on refusing to replace an immutable generation. `Site::recover_staging` removes only `.staging*` and `.current.tmp*`, which mynpm (`.mynpm-*.tmp`, `.mynpm-generation-*`, `.current-*`) and mypypi (`.mypypi-current-*`) never use, so their crash leftovers accumulate. `activate` itself leaves a generation that fails verification in place, after which the same content-addressed id is refused until removed by hand, and it joins an unvalidated `generation_id` into a path. The `current` pointer and generation-id grammar are parsed five more times with different strictness (`crates/stuff-server/src/serve.rs:47`, `crates/stuff/src/source.rs:182`, `crates/stuff-worker/src/entry.ts:104`, `crates/stuff-worker/src/map.rs:69`, `crates/stuff-worker/src/api.rs:222-227`).
-- **Recommendation:** Give `stuff-store` the extend-current publish shape mynpm and mypypi need, move both onto it with one OS-released lock (mypypi's `file_lock` is the model) and one temp-name prefix, quarantine a generation that fails verification, and export one generation-id parser for the server, CLI, and worker.
-- **Fix with:** architect
-- **Effort:** L
-
 ### STUF-37 · P3 · mycrates serve-publish drops connections silently and reports server faults as 400
 
 - **Area:** Errors

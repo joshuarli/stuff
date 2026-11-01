@@ -2,10 +2,10 @@
 
 use crate::catalog::{Catalog, parse_catalog};
 use crate::error::{Error, Kind, Result, Stage};
-use crate::file_lock::{FileLock, LockError};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::target_python_version;
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
+use stuff_store::{FileLock, LockError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt as _;

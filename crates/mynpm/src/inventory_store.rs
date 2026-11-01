@@ -6,31 +6,23 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
-
-#[derive(Debug)]
-pub struct FileLock {
-    _file: std::fs::File,
-}
+use stuff_store::FileLock;
 
 pub fn acquire_file_lock(dir: &Path, name: &str, resource: &str) -> Result<FileLock> {
     fs::create_dir_all(dir)
         .map_err(|e| Error::Operation(format!("could not prepare inventory directory {}: {e}", dir.display())))?;
     let path = dir.join(name);
-    let file = OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .write(true)
-        .mode(0o600)
-        .open(&path)
-        .map_err(|e| Error::Operation(format!("could not open {resource} lock at {}: {e}", path.display())))?;
-    match file.try_lock() {
-        Ok(()) => Ok(FileLock { _file: file }),
-        Err(std::fs::TryLockError::WouldBlock) => Err(Error::Conflict(format!(
+    match FileLock::try_acquire(&path) {
+        Ok(Some(lock)) => Ok(lock),
+        Ok(None) => Err(Error::Conflict(format!(
             "another mynpm operation is updating {resource}"
         ))),
-        Err(std::fs::TryLockError::Error(e)) => Err(Error::Operation(format!(
+        Err(stuff_store::LockError::Io(e)) => Err(Error::Operation(format!(
             "could not acquire {resource} lock at {}: {e}",
             path.display()
+        ))),
+        Err(stuff_store::LockError::TimedOut) => Err(Error::Conflict(format!(
+            "another mynpm operation is updating {resource}"
         ))),
     }
 }

@@ -78,8 +78,21 @@ impl Site {
 
     pub fn current_generation(&self) -> Result<Option<String>> {
         let link = self.current_link();
-        if !link.is_symlink() {
-            return Ok(None);
+        match fs::symlink_metadata(&link) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => {
+                return Err(Error::Operation(format!(
+                    "could not inspect current link {}: {e}",
+                    link.display()
+                )));
+            }
+            Ok(meta) if !meta.file_type().is_symlink() => {
+                return Err(Error::Integrity(format!(
+                    "current link is not a symlink: {}",
+                    link.display()
+                )));
+            }
+            Ok(_) => {}
         }
         let target = fs::read_link(&link)?;
         let mut parts = target.components();
@@ -193,7 +206,7 @@ impl Site {
         validate_generation_id(generation_id)?;
         self.ensure_layout()?;
         let target_gen_dir = self.generations_dir().join(generation_id);
-        if self.current_generation().ok().flatten().as_deref() == Some(generation_id)
+        if self.current_generation()?.as_deref() == Some(generation_id)
             && verify(&target_gen_dir)?
         {
             return Ok(Activation {
@@ -257,7 +270,7 @@ impl Site {
         }
         let target_gen_dir = self.generations_dir().join(generation_id);
 
-        if self.current_generation().ok().flatten().as_deref() == Some(generation_id)
+        if self.current_generation()?.as_deref() == Some(generation_id)
             && verify(&target_gen_dir)?
         {
             let _ = fs::remove_dir_all(&staging);
@@ -272,12 +285,15 @@ impl Site {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 fs::rename(&staging, &target_gen_dir)?;
                 sync_dir(&self.generations_dir())?;
-                if !verify(&target_gen_dir)? {
-                    let quarantined = self.quarantine(generation_id)?;
-                    return Err(Error::Integrity(format!(
-                        "installed generation {generation_id} failed verification; moved it to {}",
-                        quarantined.display()
-                    )));
+                match verify(&target_gen_dir) {
+                    Ok(true) => {}
+                    Ok(false) | Err(_) => {
+                        let quarantined = self.quarantine(generation_id)?;
+                        return Err(Error::Integrity(format!(
+                            "installed generation {generation_id} failed verification; moved it to {}",
+                            quarantined.display()
+                        )));
+                    }
                 }
             }
             Err(e) => {
@@ -565,6 +581,17 @@ mod tests {
             let err = site.publish(id, &|_: &Path| Ok(()), &|_: &Path| Ok(true)).unwrap_err();
             assert!(matches!(err, Error::Input(_)), "{id}: {err}");
         }
+    }
+
+    #[test]
+    fn rejects_a_current_that_is_not_a_symlink() {
+        let (_tmp, site) = test_site();
+        fs::write(site.current_link(), b"generations/gen-a").unwrap();
+        assert!(matches!(site.current_generation(), Err(Error::Integrity(_))));
+        let err = site
+            .publish("gen-b", &|_: &Path| Ok(()), &|_: &Path| Ok(true))
+            .unwrap_err();
+        assert!(matches!(err, Error::Integrity(_)), "{err}");
     }
 
     #[test]

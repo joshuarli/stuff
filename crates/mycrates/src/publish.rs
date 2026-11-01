@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use stuff_store::{sync_immutable_file, HashAlg, Site, sync_tree, write_file_durable};
+use stuff_store::{sync_immutable_file, HashAlg, Site, write_file_durable};
 
 const RENDERER_VERSION: u32 = 4;
 
@@ -133,35 +133,27 @@ impl<'a> Publisher<'a> {
             stuff_catalog::render_llms_txt(&catalog, &self.public_base_url).into_bytes(),
         );
 
-        if site.current_generation()?.as_deref() == Some(gen_id.as_str())
-            && self.generation_matches(&site.generations_dir().join(&gen_id), &manifest)?
-        {
-            return Ok(PublishResult {
-                generation_id: gen_id,
-                is_noop: true,
-            });
-        }
-
-        let staged = site.stage()?;
-        let staging_dir = staged.path().to_path_buf();
-        let _guard = staged;
-        for file in &files {
-            let path = if file.view.is_empty() {
-                staging_dir.join(&file.path)
-            } else {
-                staging_dir.join(file.view).join(&file.path)
-            };
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            write_file_durable(&path, &file.bytes)?;
-        }
-
-        sync_tree(&staging_dir)?;
-        let activation = site.activate(staging_dir, &gen_id, &|gen_dir| {
-            self.generation_matches(gen_dir, &manifest)
-                .map_err(stuff_store::Error::from)
-        })?;
+        let activation = site.publish(
+            &gen_id,
+            &|staging_dir: &Path| {
+                for file in &files {
+                    let path = if file.view.is_empty() {
+                        staging_dir.join(&file.path)
+                    } else {
+                        staging_dir.join(file.view).join(&file.path)
+                    };
+                    if let Some(parent) = path.parent() {
+                        fs::create_dir_all(parent)?;
+                    }
+                    write_file_durable(&path, &file.bytes)?;
+                }
+                Ok(())
+            },
+            &|gen_dir| {
+                self.generation_matches(gen_dir, &manifest)
+                    .map_err(stuff_store::Error::from)
+            },
+        )?;
 
         Ok(PublishResult {
             generation_id: activation.generation_id,

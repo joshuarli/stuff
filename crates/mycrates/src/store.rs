@@ -6,18 +6,14 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use stuff_store::{stream_file_hash, sync_dir, write_file_durable, HashAlg};
+use stuff_store::{stream_file_hash, sync_dir, write_file_durable, FileLock, HashAlg, LockError};
 
 static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 const STALE_UPLOAD_AGE: Duration = Duration::from_secs(3600);
 
-pub struct StoreLockGuard(File);
-
-impl Drop for StoreLockGuard {
-    fn drop(&mut self) {
-        let _ = self.0.unlock();
-    }
+pub struct StoreLockGuard {
+    _lock: FileLock,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +37,13 @@ pub struct UpstreamRecord {
     pub checksum: String,
     pub raw_index_line: String,
     pub acquired_at: u64,
+}
+
+fn lock_error(e: LockError) -> Error {
+    match e {
+        LockError::TimedOut => Error::Conflict("another operation holds the store lock".to_string()),
+        LockError::Io(e) => Error::Operation(format!("store lock failed: {e}")),
+    }
 }
 
 impl Store {
@@ -83,14 +86,8 @@ impl Store {
 
     pub fn lock_exclusive(&self) -> Result<StoreLockGuard> {
         self.ensure_dirs()?;
-        let f = OpenOptions::new()
-            .create(true)
-            .read(true)
-            .write(true)
-            .truncate(false)
-            .open(self.lock_path())?;
-        f.lock().map_err(|e| Error::Operation(format!("store lock failed: {e}")))?;
-        let guard = StoreLockGuard(f);
+        let lock = FileLock::acquire_blocking(&self.lock_path()).map_err(lock_error)?;
+        let guard = StoreLockGuard { _lock: lock };
         self.recover_staging()?;
         self.recover_uploads()?;
         Ok(guard)
@@ -98,14 +95,11 @@ impl Store {
 
     pub fn try_lock_exclusive(&self) -> Result<StoreLockGuard> {
         self.ensure_dirs()?;
-        let f = OpenOptions::new()
-            .create(true)
-            .read(true)
-            .write(true)
-            .truncate(false)
-            .open(self.lock_path())?;
-        f.try_lock().map_err(|e| Error::Operation(format!("store try_lock failed: {e}")))?;
-        let guard = StoreLockGuard(f);
+        let lock = match FileLock::try_acquire(&self.lock_path()).map_err(lock_error)? {
+            Some(lock) => lock,
+            None => return Err(Error::Conflict("another operation holds the store lock".to_string())),
+        };
+        let guard = StoreLockGuard { _lock: lock };
         self.recover_staging()?;
         self.recover_uploads()?;
         Ok(guard)
