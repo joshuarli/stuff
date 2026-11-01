@@ -16,9 +16,10 @@ from repomod.rules.registry_sources import (
 from repomod.types import RepoId, Repository
 
 CARGO = "sparse+https://crates.example/current/crates-io/"
+NATIVE = "sparse+https://crates.example/current/registry/"
 NPM = "https://npm.example/current/"
 PYPI = "https://pypi.example/current/simple/"
-POLICY = RegistryPolicy(True, CARGO, NPM, PYPI)
+POLICY = RegistryPolicy(True, CARGO, NATIVE, NPM, PYPI)
 CRATES_IO = "registry+https://github.com/rust-lang/crates.io-index"
 
 
@@ -80,6 +81,7 @@ def test_cargo_alternate_registry_and_git_sources(tmp_path: Path) -> None:
         tmp_path,
         "Cargo.lock",
         cargo_lock(
+            ("native", NATIVE),
             ("a", "registry+https://other.example/index"),
             ("b", "registry+https://other.example/index"),
             ("fork", "git+https://github.com/acme/fork?rev=abc#abc"),
@@ -236,7 +238,8 @@ def test_rule_is_disabled_until_policy_enforces(tmp_path: Path, monkeypatch: pyt
 
 def policy_source(*, enforce: bool) -> str:
     return (
-        f"enforce = {str(enforce).lower()}\n\n[cargo]\nsource = \"{CARGO}\"\n\n"
+        f"enforce = {str(enforce).lower()}\n\n[cargo]\nsource = \"{CARGO}\"\n"
+        f'native = "{NATIVE}"\n\n'
         f'[npm]\nregistry = "{NPM}"\n\n[python]\nindex = "{PYPI}"\n'
     )
 
@@ -248,6 +251,7 @@ def test_registered_rule_is_selectable() -> None:
 def test_shipped_policy_is_valid_and_enforced() -> None:
     policy = load_registry_policy()
     assert policy.cargo_source.startswith("sparse+https://crates.")
+    assert policy.cargo_native.startswith("sparse+https://crates.")
     assert policy.enforce is True
 
 
@@ -258,6 +262,7 @@ def test_shipped_policy_is_valid_and_enforced() -> None:
         lambda s: s.replace(NPM, "http://npm.example/current/"),
         lambda s: s.replace(PYPI, PYPI.rstrip("/")),
         lambda s: s.replace(CARGO, "https://crates.example/"),
+        lambda s: s.replace(NATIVE, "https://crates.example/registry/"),
         lambda s: s + '\n[extra]\nx = "y"\n',
         lambda s: s.replace("[python]\n", "[python]\nmirror = \"x\"\n"),
         lambda s: "enforce = true\n",

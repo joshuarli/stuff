@@ -42,6 +42,7 @@ _ALLOWED_PATHS = (
 class RegistryPolicy:
     enforce: bool
     cargo_source: str
+    cargo_native: str
     npm_registry: str
     python_index: str
 
@@ -50,14 +51,19 @@ def registry_policy_file() -> Path:
     return Path(__file__).resolve().parents[3] / "registries.toml"
 
 
-def _table(document: dict[str, Any], name: str, key: str, scheme: str) -> str:
+def _table(
+    document: dict[str, Any], name: str, keys: tuple[str, ...], scheme: str
+) -> dict[str, str]:
     table = document.get(name)
-    if not isinstance(table, dict) or set(table) != {key}:
-        raise ValueError(f"registries.toml [{name}] must contain only {key}")
-    value = table[key]
-    if not isinstance(value, str) or not value.startswith(scheme) or not value.endswith("/"):
-        raise ValueError(f"registries.toml {name}.{key} must be a {scheme} URL ending in /")
-    return value
+    if not isinstance(table, dict) or set(table) != set(keys):
+        raise ValueError(f"registries.toml [{name}] must contain only {', '.join(keys)}")
+    values = {}
+    for key in keys:
+        value = table[key]
+        if not isinstance(value, str) or not value.startswith(scheme) or not value.endswith("/"):
+            raise ValueError(f"registries.toml {name}.{key} must be a {scheme} URL ending in /")
+        values[key] = value
+    return values
 
 
 def parse_registry_policy(source: str) -> RegistryPolicy:
@@ -70,11 +76,15 @@ def parse_registry_policy(source: str) -> RegistryPolicy:
     enforce = document["enforce"]
     if not isinstance(enforce, bool):
         raise ValueError("registries.toml enforce must be a boolean")
+    cargo = _table(document, "cargo", ("source", "native"), "sparse+https://")
+    npm = _table(document, "npm", ("registry",), "https://")
+    python = _table(document, "python", ("index",), "https://")
     return RegistryPolicy(
         enforce,
-        _table(document, "cargo", "source", "sparse+https://"),
-        _table(document, "npm", "registry", "https://"),
-        _table(document, "python", "index", "https://"),
+        cargo["source"],
+        cargo["native"],
+        npm["registry"],
+        python["index"],
     )
 
 
@@ -211,10 +221,11 @@ def _cargo_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
     if document is None:
         raise ValueError(f"cannot read {_relative(report.root, lock)}: {error}")
     other: dict[str, list[str]] = {}
+    approved = {policy.cargo_source, policy.cargo_native}
     for package in document.get("package", []):
         source = package.get("source")
         name = str(package.get("name"))
-        if source is None or source in _CRATES_IO_SOURCE_IDS or source == policy.cargo_source:
+        if source is None or source in _CRATES_IO_SOURCE_IDS or source in approved:
             continue
         if str(source).startswith("git+"):
             report.git_source(lock, "cargo", name, str(source).split("#")[0])
