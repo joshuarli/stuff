@@ -205,3 +205,7 @@ dockerfile = "Dockerfile"
 kind = "zzz"
 zig_version = "0.16.0"
 zig_archive_sha256 = "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00"
+
+[image]
+reference = "ghcr.io/joshuarli/musl-toolchain"
+digest = "sha256:b024a1f888fb845e0a9c4f140d08448832ed1735f5202fd3eefd0ce4b2a41021"
