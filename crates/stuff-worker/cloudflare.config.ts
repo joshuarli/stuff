@@ -1,10 +1,13 @@
-import { bindings, defineConfig } from "cf/config";
+import { bindings, defineConfig, exports } from "cf/config";
 
 export default defineConfig({
 	worker: {
 		name: "stuff",
 		compatibilityDate: "2026-10-30",
 		entrypoint: "src/entry.ts",
+		cache: {
+			enabled: true,
+		},
 		observability: {
 			enabled: true,
 			logs: {
@@ -34,6 +37,13 @@ export default defineConfig({
 			}),
 			PYPI: bindings.r2({
 				name: "stuff-mypypi",
+			}),
+		},
+		exports: {
+			default: exports.worker({
+				cache: {
+					enabled: false,
+				},
 			}),
 		},
 	},

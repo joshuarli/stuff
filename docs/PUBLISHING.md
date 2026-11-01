@@ -163,6 +163,13 @@ cf deploy
 
 `cf deploy` delegates the bundle step to the project-local Wrangler, and the runtime integration test uses Miniflare, so both remain development dependencies.
 
+The Worker uses Workers Caching. The default entrypoint is an uncached gateway;
+the `Registry` entrypoint caches responses under a key that includes the host,
+so the four domains cannot share cache entries. Immutable artifacts carry a
+one-year TTL and mutable generation views 60 seconds. Two requests to the same
+URL should show `cf-cache-status: HIT` on the second. Range requests are sliced
+from the cached full object, so a cold range fetch downloads the whole artifact.
+
 ## Verify the publication
 
 ```sh

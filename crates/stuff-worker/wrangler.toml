@@ -57,3 +57,12 @@ head_sampling_rate = 0.25
 [observability.traces]
 enabled = true
 head_sampling_rate = 0.10
+
+[cache]
+enabled = true
+
+[exports.default]
+type = "worker"
+
+  [exports.default.cache]
+  enabled = false

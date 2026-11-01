@@ -66,7 +66,7 @@ function worker() {
         import.meta.url,
       ),
     ),
-    compatibilityDate: "2025-07-18",
+    compatibilityDate: "2026-08-06",
     modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
     r2Buckets: ["MYCRATES", "MYNPM", "PYPI"],
     bindings: {
@@ -135,6 +135,18 @@ test("root pages link to objects that resolve", async (t) => {
   }
   const alias = await mf.dispatchFetch("https://crates.test/catalog.json");
   assert.equal(alias.status, 200);
+});
+
+test("the gateway forwards the host to the cached entrypoint", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seed(mf);
+  const cargo = await mf.dispatchFetch("https://crates.test/catalog.json");
+  const npm = await mf.dispatchFetch("https://npm.test/catalog.json");
+  assert.equal(cargo.status, 200);
+  assert.equal(npm.status, 200);
+  assert.match(await cargo.text(), /"registry":"cargo"/);
+  assert.match(await npm.text(), /"registry":"npm"/);
 });
 
 test("pinned generation artifacts use the shared store aliases", async (t) => {

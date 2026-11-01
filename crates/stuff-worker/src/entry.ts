@@ -1,3 +1,4 @@
+import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   initSync,
   map_asset_json,
@@ -30,6 +31,14 @@ interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
   readonly [binding: string]: R2BucketLike | string | undefined;
+}
+
+interface WorkerContext {
+  readonly exports: {
+    readonly Registry: {
+      fetch(request: Request, options: { cf: { cacheKey: string } }): Promise<Response>;
+    };
+  };
 }
 
 interface Mapped {
@@ -144,8 +153,9 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
     : response;
 }
 
-export default {
-  async fetch(req: Request, env: WorkerEnv): Promise<Response> {
+export class Registry extends WorkerEntrypoint<WorkerEnv> {
+  async fetch(req: Request): Promise<Response> {
+    const env = this.env;
     if (req.method !== "GET" && req.method !== "HEAD") {
       return new Response("method not allowed", { status: 405 });
     }
@@ -310,5 +320,14 @@ export default {
       return new Response(ranged.body, { status: plan.status, headers });
     }
     return new Response(object.body, { status: plan.status, headers });
+  }
+}
+
+export default {
+  async fetch(req: Request, _env: WorkerEnv, ctx: WorkerContext): Promise<Response> {
+    const url = new URL(req.url);
+    return ctx.exports.Registry.fetch(req, {
+      cf: { cacheKey: `${url.hostname}${url.pathname}${url.search}` },
+    });
   },
 };
