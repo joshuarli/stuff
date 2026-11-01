@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -72,6 +72,16 @@ sync: ## Sync a published site dir to its R2 bucket (SITE_DIR= BUCKET=, LOCAL=1 
 	@if [ -n "$(LOCAL)" ]; then CF_LOCAL_STATE="$(LOCAL_STATE)" deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); \
 	else deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); fi
 
+GC_BUCKETS ?= stuff-mycrates stuff-mynpm stuff-mypypi
+GC_KEEP_PREVIOUS ?= 1
+GC_KEEP_NEWER ?= 0
+GC_DRY_RUN ?=
+GC_JOBS ?=
+
+gc: ## Reclaim R2 storage from old generations and unreferenced shared objects, reporting before/after (GC_BUCKETS= GC_KEEP_PREVIOUS= GC_KEEP_NEWER= GC_DRY_RUN=1 GC_JOBS=)
+	@test -n "$(GC_BUCKETS)" || (echo "usage: make gc GC_BUCKETS=<bucket...>"; exit 1)
+	python3 deploy/r2-gc.py $(GC_BUCKETS) --keep-previous $(GC_KEEP_PREVIOUS) --keep-newer $(GC_KEEP_NEWER) $(if $(filter-out 0,$(GC_DRY_RUN)),--dry-run,) $(if $(GC_JOBS),--jobs $(GC_JOBS),)
+
 SERVE_PORT ?= 8000
 
 serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
@@ -91,6 +101,7 @@ test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and prom
 	deploy/test-r2-pull.sh
 	deploy/test-prune-generations.sh
 	python3 deploy/test-r2-pull-listing.py
+	python3 deploy/test-r2-gc.py
 	python3 deploy/test-r2-multipart.py
 	python3 deploy/test-r2-plan.py
 	python3 deploy/test-r2-promote.py

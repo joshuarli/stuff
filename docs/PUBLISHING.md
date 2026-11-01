@@ -52,7 +52,7 @@ deploy/publish mynpm --republish
 deploy/publish mypypi --republish
 ```
 
-`mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation, and each helper prunes local generations other than the active one after its sync; the bucket keeps their manifests for rollback.
+`mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation, and each helper prunes local generations other than the active one after its sync; the bucket keeps their manifests until `make gc` prunes generations outside its retention window.
 
 `make deploy` runs the whole rollout in order: it builds one Worker bundle, tests it, deploys that bundle with `cf deploy --prebuilt`, then runs the three republishes, then `make smoke-deployed`. The three republishes run in parallel; each mints its own temporary S3 credentials when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
 
@@ -188,6 +188,12 @@ deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
 The rollback verifies every object in the target generation's manifest before moving `current`. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id.
+
+## Reclaim storage
+
+`make gc` deletes R2 generations outside its retention window and shared-store objects no retained manifest references, then prints per-bucket and total storage before and after. It keeps `current` plus `GC_KEEP_PREVIOUS` older generations (default 1) and `GC_KEEP_NEWER` newer generations (default 0). Preview with `GC_DRY_RUN=1`, and restrict buckets with `GC_BUCKETS`.
+
+The command mints bucket-scoped credentials per bucket, so the usual `cf` login is enough. Because manifests are deleted with their generations, rollback and roll-forward only reach retained generations. Do not run `make gc` while a publish is in progress: it aborts if `current` or the manifest set changes before deletion, and it defers shared-store deletion when a recent generation directory has no manifest.
 
 ## Fix common failures
 

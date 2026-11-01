@@ -123,7 +123,7 @@ def _child_text(element, name):
     return ""
 
 
-def s3_list(bucket):
+def s3_list_meta(bucket, prefix=""):
     multipart = load_sibling("r2_multipart", "r2-multipart.py")
     endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
     base = f"{endpoint}/{quote(bucket)}"
@@ -132,6 +132,8 @@ def s3_list(bucket):
     token = ""
     while True:
         query = f"list-type=2&max-keys={page}"
+        if prefix:
+            query += f"&prefix={quote(prefix)}"
         if token:
             query += f"&continuation-token={quote(token)}"
         status, body, _ = multipart.request("GET", f"{base}?{query}")
@@ -150,7 +152,11 @@ def s3_list(bucket):
             if not key or not size or not etag:
                 fail(f"listing bucket '{bucket}' returned an incomplete object")
             try:
-                objects[key] = (int(size), etag.strip('"'))
+                objects[key] = (
+                    int(size),
+                    etag.strip('"'),
+                    _child_text(contents, "LastModified"),
+                )
             except ValueError:
                 fail(f"listing bucket '{bucket}' returned an invalid size for {key}")
         truncated = multipart.find_text(root, "IsTruncated").lower() == "true"
@@ -162,6 +168,10 @@ def s3_list(bucket):
         if next_token == token:
             fail(f"listing bucket '{bucket}' repeated a continuation token")
         token = next_token
+
+
+def s3_list(bucket):
+    return {key: (size, etag) for key, (size, etag, _) in s3_list_meta(bucket).items()}
 
 
 def remote_index(bucket, keys, page):

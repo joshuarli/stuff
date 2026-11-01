@@ -250,8 +250,13 @@ single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
 `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`) and are
 skipped when the remote multipart ETag already matches.
 After a successful sync, the publish helpers keep only the active local
-generation and its manifest; the bucket keeps every generation's manifest, so
-rollback does not need the pruned local copy. `deploy/test-r2-sync.sh [COUNT]`
+generation and its manifest. `make gc` deletes remote generations outside its
+retention window (current plus one previous by default) and every shared-store
+object no retained manifest references, then prints per-bucket and total
+storage before and after. Set `GC_KEEP_PREVIOUS`, `GC_KEEP_NEWER`,
+`GC_DRY_RUN=1`, or `GC_BUCKETS` to change that. Old manifests go with their
+generations, so rollback reaches only the retained window.
+`deploy/test-r2-sync.sh [COUNT]`
 (`make test-sync`) checks pagination and idempotency against the local
 simulation only. `make test-r2` checks the multipart SigV4 canonicalization,
 listing past one page, conditional promotion, and generation pruning against
