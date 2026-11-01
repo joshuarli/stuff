@@ -8,6 +8,7 @@ const ARM64_DIGEST: &str = "sha256:576055fc159808ebb0b91a55303a512f5730a93e03697
 const REFERRER_DIGEST: &str = "sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25";
 
 type Tamper = (&'static str, fn(&Path));
+type RejectedTamper = (&'static str, fn(&Path), &'static str);
 
 struct Output {
     code: i32,
@@ -391,4 +392,43 @@ fn pushed_blob_and_manifest_are_served_back_and_verified() {
     ok(&["verify", "--state-dir", state_arg]);
     let current = std::fs::read_to_string(site.join("current/catalog.json")).unwrap();
     assert!(current.contains("example/pushed"), "{current}");
+}
+
+#[test]
+fn verify_names_the_integrity_check_that_rejects_each_tampering() {
+    let work = tempfile::tempdir().unwrap();
+    let cases: [RejectedTamper; 2] = [
+        (
+            "same-length manifest edit keeps its descriptor and graph valid",
+            |state| {
+                let file = state.join("manifests/sha256").join(&ARM64_DIGEST[7..]);
+                let text = std::fs::read_to_string(&file).unwrap();
+                assert!(text.contains("\"size\":117"));
+                std::fs::write(file, text.replace("\"size\":117", "\"size\":118")).unwrap();
+            },
+            "hashes to",
+        ),
+        (
+            "descriptor size disagrees with intact manifest bytes",
+            |state| {
+                let file = state.join("repositories/example/app/repository.json");
+                let text = std::fs::read_to_string(&file).unwrap();
+                let entry = format!("\"digest\":\"{ARM64_DIGEST}\",\"size\":401");
+                assert!(text.contains(&entry));
+                std::fs::write(file, text.replace(&entry, &entry.replace("401", "402"))).unwrap();
+            },
+            "size is 401, descriptor says 402",
+        ),
+    ];
+    for (index, (name, tamper, reason)) in cases.into_iter().enumerate() {
+        let state = work.path().join(format!("state-{index}"));
+        ok(&["init", "--state-dir", path(&state)]);
+        ok(&["import", "--state-dir", path(&state), "--layout", path(&fixture_layout()), "--repository", "example/app"]);
+        ok(&["verify", "--state-dir", path(&state)]);
+        tamper(&state);
+        let verified = myoci(&["verify", "--state-dir", path(&state)]);
+        assert_eq!(verified.code, 3, "{name}: {}{}", verified.stdout, verified.stderr);
+        let expected = format!("manifest {ARM64_DIGEST} {reason}");
+        assert!(verified.stderr.contains(&expected), "{name}: {}", verified.stderr);
+    }
 }
