@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod bench;
 pub mod cli;
 pub mod error;
 pub mod import;

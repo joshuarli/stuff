@@ -20,6 +20,7 @@ pub enum Command {
     Tag,
     Untag,
     Serve,
+    Bench,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,10 @@ pub struct Parsed {
     pub public_url: Option<String>,
     pub bind: Option<String>,
     pub max_connections: Option<usize>,
+    pub base_url: Option<String>,
+    pub runs: Option<usize>,
+    pub label: Option<String>,
+    pub output: Option<String>,
     pub json: bool,
 }
 
@@ -52,6 +57,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         "tag" => Command::Tag,
         "untag" => Command::Untag,
         "serve" => Command::Serve,
+        "bench" => Command::Bench,
         other => return Err(Error::Usage(format!("unknown command {other}"))),
     };
     let mut parsed = Parsed {
@@ -66,6 +72,10 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         public_url: None,
         bind: None,
         max_connections: None,
+        base_url: None,
+        runs: None,
+        label: None,
+        output: None,
         json: false,
     };
     let mut i = 1;
@@ -74,7 +84,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             "--state-dir" => parsed.state_dir = take(argv, &mut i, "--state-dir")?,
             "--layout" => parsed.layout = Some(take(argv, &mut i, "--layout")?),
             "--from" => parsed.from = Some(take(argv, &mut i, "--from")?),
-            "--repository" => parsed.repository = Some(take(argv, &mut i, "--repository")?),
+            "--repository" | "--repo" => parsed.repository = Some(take(argv, &mut i, "--repository")?),
             "--tag" => parsed.tag = Some(take(argv, &mut i, "--tag")?),
             "--digest" => parsed.digest = Some(take(argv, &mut i, "--digest")?),
             "--site-dir" => parsed.site_dir = Some(take(argv, &mut i, "--site-dir")?),
@@ -88,16 +98,27 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                         .map_err(|_| Error::Usage("--max-connections must be an integer".to_string()))?,
                 );
             }
+            "--base-url" => parsed.base_url = Some(take(argv, &mut i, "--base-url")?),
+            "--runs" => {
+                let value = take(argv, &mut i, "--runs")?;
+                parsed.runs = Some(
+                    value
+                        .parse::<usize>()
+                        .map_err(|_| Error::Usage("--runs must be an integer".to_string()))?,
+                );
+            }
+            "--label" => parsed.label = Some(take(argv, &mut i, "--label")?),
+            "--output" => parsed.output = Some(take(argv, &mut i, "--output")?),
             "--json" => parsed.json = true,
             other => return Err(Error::Usage(format!("unknown option {other}"))),
         }
         i += 1;
     }
-    if !matches!(command, Command::Serve) && parsed.state_dir.is_empty() {
+    if !matches!(command, Command::Serve | Command::Bench) && parsed.state_dir.is_empty() {
         return Err(Error::Usage("--state-dir is required".to_string()));
     }
     let allows = |allowed: &[&str]| -> Result<()> {
-        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--json", parsed.json)];
+        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--json", parsed.json)];
         for (flag, present) in set {
             if present && !allowed.contains(&flag) {
                 return Err(Error::Usage(format!("{flag} is not valid for this command")));
@@ -152,6 +173,18 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             allows(&["--site-dir", "--bind", "--max-connections"])?;
             if parsed.site_dir.is_none() {
                 return Err(Error::Usage("serve requires --site-dir".to_string()));
+            }
+        }
+        Command::Bench => {
+            allows(&["--base-url", "--repository", "--tag", "--runs", "--label", "--output"])?;
+            for (flag, present) in [
+                ("--base-url", parsed.base_url.is_some()),
+                ("--repository", parsed.repository.is_some()),
+                ("--tag", parsed.tag.is_some()),
+            ] {
+                if !present {
+                    return Err(Error::Usage(format!("bench requires {flag}")));
+                }
             }
         }
     }
@@ -265,6 +298,28 @@ pub fn run(argv: &[String]) -> Result<()> {
                     .unwrap_or(crate::serve::DEFAULT_MAX_CONNECTIONS),
             })?;
         }
+        Command::Bench => {
+            let repository = repository(&parsed)?;
+            let tag = tag(&parsed)?.ok_or_else(|| Error::Usage("bench requires --tag".to_string()))?;
+            let base_url = parsed.base_url.as_deref().expect("validated");
+            let output = PathBuf::from(
+                parsed
+                    .output
+                    .as_deref()
+                    .unwrap_or("docs/oci-benchmarks.md"),
+            );
+            crate::bench::run(&crate::bench::BenchOptions {
+                base_url: base_url.to_string(),
+                repository,
+                tag,
+                output,
+                runs: parsed.runs.unwrap_or(5),
+                label: parsed
+                    .label
+                    .clone()
+                    .unwrap_or_else(|| "myoci serve".to_string()),
+            })?;
+        }
     }
     Ok(())
 }
@@ -300,6 +355,7 @@ pub fn print_help() {
          \x20 tag --repository NAME --tag TAG --digest DIGEST\n\
          \x20 untag --repository NAME --tag TAG\n\
          \x20 serve --site-dir DIR        serve the read API ([--bind ADDR] [--max-connections N])\n\
+         \x20 bench --base-url URL --repo NAME --tag TAG [--output FILE] [--runs N] [--label TEXT]\n\
          \n\
          import options:\n\
          \x20 --repository NAME            destination repository (required)\n\

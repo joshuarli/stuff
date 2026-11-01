@@ -794,11 +794,13 @@ version = "0.1.0"
 dependencies = [
  "deser-json",
  "deser-value",
+ "h12tiny-client-sync",
  "httparse",
  "stuff-catalog",
  "stuff-oci",
  "stuff-store",
  "tempfile",
+ "url",
 ]
 
 [[package]]
