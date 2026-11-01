@@ -11,6 +11,7 @@ from repomod.rules.conventional_commits import conventional_commits_rules
 from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
 from repomod.rules.lint import lint_rules
+from repomod.rules.macos_runners import macos_runner_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.mirrored_docs import mirrored_docs_rules
 from repomod.rules.python_standard import python_standard_rules
@@ -44,6 +45,7 @@ def rules() -> tuple[Rule, ...]:
         *formatter_rules(),
         *language_rules(),
         *lint_rules(),
+        *macos_runner_rules(),
         *mdtool_rules(),
         *mirrored_docs_rules(),
         *python_standard_rules(),

@@ -57,6 +57,9 @@ Findings carry the file, line, column, and code; `status` and `lint` share the
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
+`gha-macos` requires GitHub Actions macOS runners to be `macos-26` or `macos-27`; it flags
+`macos-latest` and older version labels in runner declarations and matrix values. Its fixer
+rewrites them to `macos-26`, preserving runner suffixes such as `-large` and `-xlarge`.
 `gha-syntax` validates GitHub Actions files offline with Pinact's default profile and the
 explicit `actions.toml` catalog. Its fixer returns a catalog-backed Pinact plan from a disposable
 worktree; repomod keeps validation and repository writes.
