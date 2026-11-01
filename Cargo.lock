@@ -1348,6 +1348,7 @@ dependencies = [
 name = "stuff-oci"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "deser-json",
  "deser-value",
  "sha2",

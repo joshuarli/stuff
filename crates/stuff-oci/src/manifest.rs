@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
 use crate::digest::Digest;
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 use crate::json;
 use crate::media;
 use deser_value::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAX_MANIFEST_BYTES: usize = 4 * 1024 * 1024;
 
@@ -322,6 +322,40 @@ pub fn parse_image(bytes: &[u8]) -> Result<Image, Error> {
     })))
 }
 
+pub fn validate_manifest_push(
+    bytes: &[u8],
+    blobs: &BTreeSet<Digest>,
+    manifests: &BTreeSet<Digest>,
+) -> Result<(Digest, Image), Error> {
+    let image = parse_image(bytes)?;
+    let digest = Digest::from_bytes(bytes);
+    match &image {
+        Image::Manifest(manifest) => {
+            for blob in std::iter::once(&manifest.config).chain(manifest.layers.iter()) {
+                if !blobs.contains(&blob.digest) {
+                    return Err(Error::new(
+                        ErrorCode::ManifestBlobUnknown,
+                        "manifest references a blob that is not present",
+                    )
+                    .with_detail(blob.digest.as_str()));
+                }
+            }
+        }
+        Image::Index(index) => {
+            for child in &index.manifests {
+                if !manifests.contains(&child.digest) {
+                    return Err(Error::new(
+                        ErrorCode::ManifestBlobUnknown,
+                        "index references a manifest that is not present",
+                    )
+                    .with_detail(child.digest.as_str()));
+                }
+            }
+        }
+    }
+    Ok((digest, image))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,6 +365,36 @@ mod tests {
         format!(
             r#"{{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{{"mediaType":"application/vnd.oci.image.config.v1+json","digest":"sha256:1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55","size":292}},"layers":[{layers}]}}"#
         )
+    }
+
+    #[test]
+    fn validates_manifest_push_references() {
+        use std::collections::BTreeSet;
+        let layer = "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
+        let config = "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55";
+        let body = manifest_json(&format!(
+            r#"{{"mediaType":"application/vnd.oci.image.layer.v1.tar+gzip","digest":"sha256:{layer}","size":117}}"#
+        ));
+        let mut blobs = BTreeSet::new();
+        blobs.insert(Digest::parse(&format!("sha256:{config}")).unwrap());
+        blobs.insert(Digest::parse(&format!("sha256:{layer}")).unwrap());
+        let manifests = BTreeSet::new();
+        let (digest, _) = validate_manifest_push(body.as_bytes(), &blobs, &manifests).unwrap();
+        assert_eq!(digest, Digest::from_bytes(body.as_bytes()));
+        let error = validate_manifest_push(body.as_bytes(), &BTreeSet::new(), &manifests).unwrap_err();
+        assert_eq!(error.code, ErrorCode::ManifestBlobUnknown);
+
+        let child = "576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4";
+        let index = format!(
+            r#"{{"schemaVersion":2,"mediaType":"application/vnd.oci.image.index.v1+json","manifests":[{{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:{child}","size":401}}]}}"#
+        );
+        let mut children = BTreeSet::new();
+        children.insert(Digest::parse(&format!("sha256:{child}")).unwrap());
+        assert!(validate_manifest_push(index.as_bytes(), &blobs, &children).is_ok());
+        assert_eq!(
+            validate_manifest_push(index.as_bytes(), &blobs, &BTreeSet::new()).unwrap_err().code,
+            ErrorCode::ManifestBlobUnknown
+        );
     }
 
     #[test]

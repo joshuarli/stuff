@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 use crate::json;
 use crate::manifest::Descriptor;
 use crate::media;
@@ -336,6 +336,76 @@ fn encode_query_value(value: &str) -> String {
     out
 }
 
+fn empty_write_plan(status: u16) -> ResponsePlan {
+    let mut plan = ResponsePlan { status, headers: Vec::new(), body: Body::Empty };
+    plan.push_header("docker-distribution-api-version", "registry/2.0");
+    plan.push_header("content-length", "0");
+    plan.push_header("cache-control", "no-store");
+    plan
+}
+
+fn range_header(offset: u64) -> String {
+    if offset == 0 {
+        "0-0".to_string()
+    } else {
+        format!("0-{}", offset - 1)
+    }
+}
+
+pub fn plan_auth_required() -> ResponsePlan {
+    let mut plan = plan_error(&Error::new(ErrorCode::Unauthorized, "authentication required"));
+    plan.push_header("www-authenticate", "Basic realm=\"stuff-oci\"");
+    plan
+}
+
+pub fn plan_upload_start(location: &str, upload_id: &str) -> ResponsePlan {
+    let mut plan = empty_write_plan(202);
+    plan.push_header("location", location);
+    plan.push_header("docker-upload-uuid", upload_id);
+    plan.push_header("range", range_header(0));
+    plan
+}
+
+pub fn plan_upload_mounted(blob_location: &str, digest: &Digest) -> ResponsePlan {
+    let mut plan = empty_write_plan(201);
+    plan.push_header("location", blob_location);
+    plan.push_header("docker-content-digest", digest.as_str());
+    plan
+}
+
+pub fn plan_upload_status(upload_id: &str, offset: u64) -> ResponsePlan {
+    let mut plan = empty_write_plan(204);
+    plan.push_header("docker-upload-uuid", upload_id);
+    plan.push_header("range", range_header(offset));
+    plan
+}
+
+pub fn plan_upload_patch(location: &str, upload_id: &str, offset: u64) -> ResponsePlan {
+    let mut plan = empty_write_plan(202);
+    plan.push_header("location", location);
+    plan.push_header("docker-upload-uuid", upload_id);
+    plan.push_header("range", range_header(offset));
+    plan
+}
+
+pub fn plan_upload_complete(blob_location: &str, digest: &Digest) -> ResponsePlan {
+    let mut plan = empty_write_plan(201);
+    plan.push_header("location", blob_location);
+    plan.push_header("docker-content-digest", digest.as_str());
+    plan
+}
+
+pub fn plan_upload_cancel() -> ResponsePlan {
+    empty_write_plan(204)
+}
+
+pub fn plan_manifest_put(manifest_location: &str, digest: &Digest) -> ResponsePlan {
+    let mut plan = empty_write_plan(201);
+    plan.push_header("location", manifest_location);
+    plan.push_header("docker-content-digest", digest.as_str());
+    plan
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -646,6 +716,49 @@ mod tests {
             other => panic!("unexpected body {other:?}"),
         };
         assert!(body.contains("UNSUPPORTED"));
+    }
+
+    #[test]
+    fn upload_plans_and_auth_challenge() {
+        let auth = plan_auth_required();
+        assert_eq!(auth.status, 401);
+        assert_eq!(auth.header("www-authenticate"), Some("Basic realm=\"stuff-oci\""));
+
+        let start = plan_upload_start("https://writer.example/v2/example/app/blobs/uploads/u1?session=t", "u1");
+        assert_eq!(start.status, 202);
+        assert_eq!(start.header("docker-upload-uuid"), Some("u1"));
+        assert_eq!(start.header("range"), Some("0-0"));
+        assert_eq!(start.header("docker-distribution-api-version"), Some("registry/2.0"));
+
+        let mounted = plan_upload_mounted(
+            "/v2/example/app/blobs/sha256:00",
+            &Digest::parse(INDEX_DIGEST).unwrap(),
+        );
+        assert_eq!(mounted.status, 201);
+        assert_eq!(mounted.header("docker-content-digest"), Some(INDEX_DIGEST));
+
+        let status = plan_upload_status("u1", 12);
+        assert_eq!(status.status, 204);
+        assert_eq!(status.header("range"), Some("0-11"));
+
+        let patch = plan_upload_patch("https://writer.example/u1", "u1", 12);
+        assert_eq!(patch.status, 202);
+        assert_eq!(patch.header("range"), Some("0-11"));
+
+        let complete = plan_upload_complete(
+            "/v2/example/app/blobs/sha256:00",
+            &Digest::parse(INDEX_DIGEST).unwrap(),
+        );
+        assert_eq!(complete.status, 201);
+        assert_eq!(complete.header("docker-content-digest"), Some(INDEX_DIGEST));
+        assert_eq!(plan_upload_cancel().status, 204);
+
+        let manifest = plan_manifest_put(
+            "/v2/example/app/manifests/stable",
+            &Digest::parse(INDEX_DIGEST).unwrap(),
+        );
+        assert_eq!(manifest.status, 201);
+        assert_eq!(manifest.header("docker-content-digest"), Some(INDEX_DIGEST));
     }
 
     #[test]

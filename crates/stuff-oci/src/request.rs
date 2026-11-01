@@ -159,7 +159,7 @@ pub fn parse_request(method: Method, raw_target: &str) -> Parsed {
     }
 }
 
-fn parse_query(query: &str) -> Result<BTreeMap<String, String>, Error> {
+pub(crate) fn parse_query(query: &str) -> Result<BTreeMap<String, String>, Error> {
     let mut params = BTreeMap::new();
     for pair in query.split('&') {
         if pair.is_empty() {
@@ -216,6 +216,154 @@ fn hex(byte: u8) -> Option<u8> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WriteMethod {
+    UploadStart,
+    UploadMount { mount: Digest, from: Option<RepositoryName> },
+    UploadStatus { upload_id: String },
+    UploadPatch { upload_id: String },
+    UploadPut { upload_id: String, digest: Digest },
+    UploadCancel { upload_id: String },
+    ManifestPut { reference: Reference },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WriteRequest {
+    pub method: WriteMethod,
+    pub repository: RepositoryName,
+    pub session: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParsedWrite {
+    Request(WriteRequest),
+    NotFound,
+    Unsupported,
+    Invalid(Error),
+}
+
+pub fn parse_write_request(method: Method, raw_target: &str) -> ParsedWrite {
+    let (path, query) = match raw_target.split_once('?') {
+        Some((path, query)) => (path, query),
+        None => (raw_target, ""),
+    };
+    if !(path == "/v2" || path == "/v2/" || path.starts_with("/v2/")) {
+        return ParsedWrite::NotFound;
+    }
+    let rest = path.strip_prefix("/v2/").unwrap_or("");
+    let rest = rest.trim_end_matches('/');
+    if rest.is_empty() {
+        return ParsedWrite::NotFound;
+    }
+    let segments: Vec<&str> = rest.split('/').collect();
+    let length = segments.len();
+    let repository = |segments: &[&str]| -> Result<RepositoryName, Error> {
+        let text = segments.join("/");
+        if text.is_empty() {
+            return Err(Error::name_invalid("empty repository name"));
+        }
+        RepositoryName::parse(&text)
+    };
+    if length >= 2 && segments[length - 2] == "manifests" {
+        let repository = match repository(&segments[..length - 2]) {
+            Ok(repository) => repository,
+            Err(error) => return ParsedWrite::Invalid(error),
+        };
+        return match method {
+            Method::Put => match Reference::parse(segments[length - 1]) {
+                Ok(reference) => ParsedWrite::Request(WriteRequest {
+                    method: WriteMethod::ManifestPut { reference },
+                    repository,
+                    session: None,
+                }),
+                Err(error) => ParsedWrite::Invalid(error),
+            },
+            Method::Delete => ParsedWrite::Unsupported,
+            _ => ParsedWrite::NotFound,
+        };
+    }
+    if length >= 2 && segments[length - 2] == "blobs" && segments[length - 1] == "uploads" {
+        let repository = match repository(&segments[..length - 2]) {
+            Ok(repository) => repository,
+            Err(error) => return ParsedWrite::Invalid(error),
+        };
+        if method != Method::Post {
+            return ParsedWrite::Unsupported;
+        }
+        let params = match parse_query(query) {
+            Ok(params) => params,
+            Err(error) => return ParsedWrite::Invalid(error),
+        };
+        let method = match params.get("mount") {
+            Some(mount) => {
+                let mount = match Digest::parse(mount) {
+                    Ok(mount) => mount,
+                    Err(error) => return ParsedWrite::Invalid(error),
+                };
+                let from = match params.get("from") {
+                    Some(from) => match RepositoryName::parse(from) {
+                        Ok(from) => Some(from),
+                        Err(error) => return ParsedWrite::Invalid(error),
+                    },
+                    None => None,
+                };
+                WriteMethod::UploadMount { mount, from }
+            }
+            None => WriteMethod::UploadStart,
+        };
+        return ParsedWrite::Request(WriteRequest { method, repository, session: None });
+    }
+    if length >= 3 && segments[length - 3] == "blobs" && segments[length - 2] == "uploads" {
+        let repository = match repository(&segments[..length - 3]) {
+            Ok(repository) => repository,
+            Err(error) => return ParsedWrite::Invalid(error),
+        };
+        if length != 5 {
+            return ParsedWrite::NotFound;
+        }
+        let upload_id = segments[4];
+        if !valid_upload_id(upload_id) {
+            return ParsedWrite::Invalid(Error::new(
+                crate::error::ErrorCode::BlobUploadInvalid,
+                "invalid upload id",
+            ));
+        }
+        let params = match parse_query(query) {
+            Ok(params) => params,
+            Err(error) => return ParsedWrite::Invalid(error),
+        };
+        let method = match method {
+            Method::Get => WriteMethod::UploadStatus { upload_id: upload_id.to_string() },
+            Method::Patch => WriteMethod::UploadPatch { upload_id: upload_id.to_string() },
+            Method::Delete => WriteMethod::UploadCancel { upload_id: upload_id.to_string() },
+            Method::Put => {
+                let digest = match params.get("digest") {
+                    Some(digest) => match Digest::parse(digest) {
+                        Ok(digest) => digest,
+                        Err(error) => return ParsedWrite::Invalid(error),
+                    },
+                    None => return ParsedWrite::Invalid(Error::digest_invalid("missing digest query")),
+                };
+                WriteMethod::UploadPut { upload_id: upload_id.to_string(), digest }
+            }
+            _ => return ParsedWrite::Unsupported,
+        };
+        return ParsedWrite::Request(WriteRequest {
+            method,
+            repository,
+            session: params.get("session").cloned(),
+        });
+    }
+    ParsedWrite::NotFound
+}
+
+fn valid_upload_id(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'='))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,6 +391,82 @@ mod tests {
         };
         assert!(!head);
         assert!(digest.as_str().starts_with("sha256:882765"));
+    }
+
+    #[test]
+    fn parses_write_routes() {
+        let ParsedWrite::Request(WriteRequest { method, repository, .. }) =
+            parse_write_request(Method::Post, "/v2/example/app/blobs/uploads/")
+        else {
+            panic!("upload start")
+        };
+        assert_eq!(method, WriteMethod::UploadStart);
+        assert_eq!(repository.as_str(), "example/app");
+
+        let digest = "sha256:882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
+        let ParsedWrite::Request(WriteRequest { method, .. }) = parse_write_request(
+            Method::Post,
+            &format!("/v2/example/app/blobs/uploads/?mount={digest}&from=example/base"),
+        ) else {
+            panic!("mount")
+        };
+        assert_eq!(
+            method,
+            WriteMethod::UploadMount {
+                mount: Digest::parse(digest).unwrap(),
+                from: Some(RepositoryName::parse("example/base").unwrap()),
+            }
+        );
+
+        let ParsedWrite::Request(WriteRequest { method, .. }) =
+            parse_write_request(Method::Get, "/v2/example/app/blobs/uploads/abc-1?session=t")
+        else {
+            panic!("status")
+        };
+        assert_eq!(method, WriteMethod::UploadStatus { upload_id: "abc-1".to_string() });
+        let ParsedWrite::Request(WriteRequest { method, .. }) =
+            parse_write_request(Method::Patch, "/v2/example/app/blobs/uploads/abc-1")
+        else {
+            panic!("patch")
+        };
+        assert_eq!(method, WriteMethod::UploadPatch { upload_id: "abc-1".to_string() });
+        let ParsedWrite::Request(WriteRequest { method, .. }) =
+            parse_write_request(Method::Delete, "/v2/example/app/blobs/uploads/abc-1")
+        else {
+            panic!("cancel")
+        };
+        assert_eq!(method, WriteMethod::UploadCancel { upload_id: "abc-1".to_string() });
+        let ParsedWrite::Request(WriteRequest { method, .. }) = parse_write_request(
+            Method::Put,
+            &format!("/v2/example/app/blobs/uploads/abc-1?digest={digest}"),
+        ) else {
+            panic!("put")
+        };
+        assert_eq!(
+            method,
+            WriteMethod::UploadPut { upload_id: "abc-1".to_string(), digest: Digest::parse(digest).unwrap() }
+        );
+
+        let ParsedWrite::Request(WriteRequest { method, .. }) =
+            parse_write_request(Method::Put, "/v2/example/app/manifests/stable")
+        else {
+            panic!("manifest put")
+        };
+        assert_eq!(
+            method,
+            WriteMethod::ManifestPut { reference: Reference::parse("stable").unwrap() }
+        );
+        assert_eq!(
+            parse_write_request(Method::Delete, "/v2/example/app/manifests/stable"),
+            ParsedWrite::Unsupported
+        );
+        let ParsedWrite::Invalid(error) =
+            parse_write_request(Method::Put, "/v2/example/app/blobs/uploads/abc-1")
+        else {
+            panic!("missing digest")
+        };
+        assert_eq!(error.code, crate::error::ErrorCode::DigestInvalid);
+        assert_eq!(parse_write_request(Method::Post, "/v2/_catalog"), ParsedWrite::NotFound);
     }
 
     #[test]

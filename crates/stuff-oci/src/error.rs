@@ -19,6 +19,7 @@ pub enum ErrorCode {
     RangeInvalid,
     SizeInvalid,
     TagInvalid,
+    Unauthorized,
     Unsupported,
 }
 
@@ -40,6 +41,7 @@ impl ErrorCode {
             ErrorCode::RangeInvalid => "RANGE_INVALID",
             ErrorCode::SizeInvalid => "SIZE_INVALID",
             ErrorCode::TagInvalid => "TAG_INVALID",
+            ErrorCode::Unauthorized => "UNAUTHORIZED",
             ErrorCode::Unsupported => "UNSUPPORTED",
         }
     }
@@ -57,6 +59,7 @@ impl ErrorCode {
             | ErrorCode::TagInvalid => 400,
             ErrorCode::Denied => 403,
             ErrorCode::RangeInvalid => 416,
+            ErrorCode::Unauthorized => 401,
             ErrorCode::Unsupported => 405,
             ErrorCode::BlobUploadUnknown | ErrorCode::NameUnknown => 404,
         }
@@ -162,6 +165,7 @@ mod tests {
         assert_eq!(ErrorCode::NameInvalid.status(), 400);
         assert_eq!(ErrorCode::NameUnknown.status(), 404);
         assert_eq!(ErrorCode::Unsupported.status(), 405);
+        assert_eq!(ErrorCode::Unauthorized.status(), 401);
         assert_eq!(ErrorCode::RangeInvalid.status(), 416);
     }
 }
