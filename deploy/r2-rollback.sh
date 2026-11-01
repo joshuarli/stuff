@@ -2,12 +2,14 @@
 # Roll the R2 `current` marker back to an older generation.
 # Usage: r2-rollback.sh BUCKET_NAME GENERATION_ID [--promote=cf|s3]
 # Env: CF_LOCAL_STATE sets a local simulation dir. Without it, promotion
-#      defaults to the authenticated `cf` CLI unless all R2_S3_* variables are
-#      set; --promote=s3 requires them and uses a conditional write.
+#      defaults to --promote=s3, a conditional write that needs R2_S3_*
+#      (minted from the authenticated `cf` CLI when unset). --promote=cf
+#      writes the marker through `cf` with a plain put.
 set -eu
 BUCKET=$1
 GEN_ID=$2
 shift 2
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PROMOTE=""
 while [ $# -gt 0 ]; do
   case $1 in
@@ -30,10 +32,6 @@ if [ -z "${CF_LOCAL_STATE:-}" ]; then
       PROMOTE=cf
     else
       PROMOTE=s3
-      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-        eval "value=\${$var:-}"
-        [ -n "$value" ] || { PROMOTE=cf; break; }
-      done
     fi
   fi
   case $PROMOTE in
@@ -43,14 +41,14 @@ if [ -z "${CF_LOCAL_STATE:-}" ]; then
       ;;
     s3)
       unset R2_PROMOTE_UNCONDITIONAL
-      for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-        eval "value=\${$var:-}"
-        [ -n "$value" ] || { echo "FAIL: $var is not set; --promote=s3 needs the R2 S3 API"; exit 1; }
-      done
+      . "$SCRIPT_DIR/r2-s3-credentials.sh"
+      mint_s3_credentials "$BUCKET" || {
+        echo "FAIL: --promote=s3 needs R2_S3_* and minting them failed; mint them with: eval \"\$(python3 $SCRIPT_DIR/r2-temp-credentials.py $BUCKET)\", or pass --promote=cf" >&2
+        exit 1
+      }
       ;;
   esac
 fi
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 . "$SCRIPT_DIR/publish-lock.sh"
 acquire_publish_lock "$(bucket_lock_path "$BUCKET")"
 trap 'release_publish_lock' EXIT

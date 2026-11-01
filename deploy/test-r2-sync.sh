@@ -33,19 +33,43 @@ done
 
 check() { [ "$1" = "$2" ] || { echo "FAIL: $3: got '$1', want '$2'"; exit 1; }; }
 
-if env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY \
-  "$HERE/r2-sync.sh" "$SITE" t --promote=s3 >"$WORK/s3-missing.log" 2>&1; then
-  echo "FAIL: --promote=s3 ran without S3 credentials"
-  exit 1
+mkdir -p "$WORK/nocf"
+cat > "$WORK/nocf/cf" <<'FAKE'
+#!/bin/sh
+if [ "$1 $2" = "auth whoami" ]; then
+  echo '{"authenticated": true}'
+  exit 0
 fi
-grep -q 'R2_S3_ENDPOINT is not set' "$WORK/s3-missing.log" || { echo "FAIL: missing S3 credentials were not reported"; exit 1; }
+echo "cf unavailable" >&2
+exit 1
+FAKE
+chmod +x "$WORK/nocf/cf"
+no_s3() {
+  env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY -u R2_PROMOTE_UNCONDITIONAL \
+    PATH="$WORK/nocf:$PATH" "$@"
+}
+for args in "--promote=s3" ""; do
+  if no_s3 "$HERE/r2-sync.sh" "$SITE" t $args >"$WORK/s3-missing.log" 2>&1; then
+    echo "FAIL: s3 promotion ran without S3 credentials (${args:-default})"
+    exit 1
+  fi
+  grep -q 'needs R2_S3_\* and minting them failed' "$WORK/s3-missing.log" || { echo "FAIL: missing S3 credentials were not reported (${args:-default})"; exit 1; }
+  grep -q 'r2-temp-credentials.py t' "$WORK/s3-missing.log" || { echo "FAIL: the mint command was not shown (${args:-default})"; exit 1; }
+done
 
-if env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY \
-  "$HERE/r2-rollback.sh" t g1 --promote=s3 >"$WORK/rollback-s3-missing.log" 2>&1; then
-  echo "FAIL: rollback --promote=s3 ran without S3 credentials"
+for args in "--promote=s3" ""; do
+  if no_s3 "$HERE/r2-rollback.sh" t g1 $args >"$WORK/rollback-s3-missing.log" 2>&1; then
+    echo "FAIL: rollback s3 promotion ran without S3 credentials (${args:-default})"
+    exit 1
+  fi
+  grep -q 'needs R2_S3_\* and minting them failed' "$WORK/rollback-s3-missing.log" || { echo "FAIL: rollback did not report missing S3 credentials (${args:-default})"; exit 1; }
+done
+
+if no_s3 "$HERE/publish" mycrates >"$WORK/publish-s3-missing.log" 2>&1; then
+  echo "FAIL: publish defaulted to a promotion without S3 credentials"
   exit 1
 fi
-grep -q 'R2_S3_ENDPOINT is not set' "$WORK/rollback-s3-missing.log" || { echo "FAIL: rollback did not report missing S3 credentials"; exit 1; }
+grep -q 'needs R2_S3_\* and minting them failed' "$WORK/publish-s3-missing.log" || { echo "FAIL: publish did not report missing S3 credentials"; exit 1; }
 
 START=$(date +%s)
 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log" 2>&1

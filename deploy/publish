@@ -9,9 +9,12 @@
 # state carries a completion marker, and then runs the matching publish
 # helper. For mycrates it also adopts again, extending the state in place,
 # whenever the live generation is not the one this machine last promoted or
-# adopted, so another publisher's records are never left out. Promotion defaults to cf, which is safe for a single publisher and
-# needs no R2 S3 credentials.
-# --promote=s3 keeps the conditional 412 guard for concurrent publishers.
+# adopted, so another publisher's records are never left out.
+# Promotion defaults to s3, a conditional write that gives a competing
+# publisher 412. R2_S3_* is minted from cf when unset, and the wrapper fails
+# before building if it cannot be.
+# --promote=cf is the explicit opt-out: a plain put that does not detect a
+# competing publisher.
 # --republish adds no packages: it renders the live publication again under
 # the current renderer and promotes it, so no package inputs are needed.
 # --allow-drops lets the new generation remove versions the live catalog
@@ -21,6 +24,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
 export STUFF_DIR
 . "$STUFF_DIR/deploy/publish-lock.sh"
+. "$STUFF_DIR/deploy/r2-s3-credentials.sh"
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
 ADOPT_PULL=""
 ADOPT_STATE_STAGE=""
@@ -70,7 +74,7 @@ case $REGISTRY in
   *) usage; exit 2 ;;
 esac
 shift
-PROMOTE=cf
+PROMOTE=s3
 REPUBLISH=""
 while [ $# -gt 0 ]; do
   case $1 in
@@ -110,10 +114,8 @@ case $PROMOTE in
     ;;
   s3)
     unset R2_PROMOTE_UNCONDITIONAL
-    for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
-      eval "value=\${$var:-}"
-      [ -n "$value" ] || fail "$var is not set; --promote=s3 needs the R2 S3 API"
-    done
+    (mint_s3_credentials "stuff-$REGISTRY") ||
+      fail "--promote=s3 needs R2_S3_* and minting them failed; mint them with: eval \"\$(python3 $SCRIPT_DIR/r2-temp-credentials.py stuff-$REGISTRY)\", or pass --promote=cf"
     ;;
 esac
 

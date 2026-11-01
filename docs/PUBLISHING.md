@@ -34,7 +34,7 @@ The wrapper sets `STUFF_DIR` to its own checkout unless it is already set, so th
 
 - verifies `cf auth whoami`;
 - adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, and again whenever the live generation is not the one this machine last promoted or adopted (the adopt extends the state in place, so another machine's records join this machine's); for mynpm and mypypi when the site has no `current`;
-- selects `cf` promotion unless you pass `--promote=s3`.
+- selects `s3` promotion, the conditional write, unless you pass `--promote=cf`. It mints `R2_S3_*` from `cf` when they are unset and stops before building if it cannot.
 
 The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`, and every writer of that registry's bucket on the machine takes it: the helpers, adoption, `make sync`, `r2-rollback.sh`, and `make gc`. `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
@@ -85,11 +85,15 @@ The `cf` API allows roughly four requests a second per account. A republish afte
 
 Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI. Listing and uploads then use the S3 API: the remote plan comes from one paginated list, uploads run `R2_PUT_JOBS` in parallel (default 8), and the generation is verified against that list. If minting fails, listing through `cf` (`deploy/r2-plan.py`) and a cross-process pacer remain the fallback. The local simulation (`CF_LOCAL_STATE`) stays single-threaded.
 
-To mint credentials by hand:
+Promotion defaults to `s3`, so a publish, sync, or rollback needs these credentials. When `R2_S3_*` is unset the scripts mint them themselves, and a publish stops before building if minting fails. Minting needs an authenticated `cf` (`cf auth login --use-keyring`, check with `cf auth whoami`) and an active account token whose policies mention R2.
+
+To mint credentials by hand, for the bucket you will write (`stuff-mycrates`, `stuff-mynpm`, or `stuff-mypypi`):
 
 ```sh
 eval "$(python3 deploy/r2-temp-credentials.py stuff-mycrates)"
 ```
+
+The variables exist only in that shell and expire after an hour, so mint again when a long session outlives them. If minting fails, the message names the failing `cf` call. Typical causes are a missing login, no token that mentions R2, or an account `cf auth whoami` cannot resolve. Set `R2_PARENT_ACCESS_KEY_ID` or `R2_ACCOUNT_ID` to pick them explicitly.
 
 The helper picks the first active account token whose policies mention R2 and calls `cf r2 temporary-credentials create` with `object-read-write` scoped to the bucket. It exports `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`, and `R2_S3_SESSION_TOKEN`, and never writes them to disk. `R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, and `R2_ACCOUNT_ID` overrides the account used for the endpoint. `R2_TEMP_CREDENTIALS_TTL` sets the lifetime in seconds (default 3600).
 
@@ -103,10 +107,10 @@ export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 
 `R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
 
-Both promotion modes check the recorded generation first. The `cf` promotion then writes `current` with a plain put. `--promote=s3` writes it with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish, so a publisher that moves `current` during verification gets `412`. The publish lock is local to one machine, and nothing fences two machines publishing the same registry at the same moment; publish each registry from one machine at a time.
+Both promotion modes check the recorded generation first. `--promote=s3`, the default, writes `current` with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish, so a publisher that moves `current` during verification gets `412`. `--promote=cf` is the explicit opt-out: it writes `current` with a plain put and does not detect a competing publisher. The publish lock is local to one machine, and nothing fences two machines publishing the same registry at the same moment; publish each registry from one machine at a time.
 
 ```sh
-CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
+CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=cf
 ```
 
 ## Publish from a new machine
@@ -171,7 +175,7 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
-The rollback verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
+The rollback verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. It defaults to the conditional `s3` promotion, minting `R2_S3_*` when they are unset, and accepts `--promote=cf` for a plain put. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
 
 ## Reclaim storage
 
@@ -186,7 +190,7 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | Message | Cause | Fix |
 | --- | --- | --- |
 | `cf is not authenticated` | No active cf session | Run `cf auth login --use-keyring` |
-| `R2_S3_ENDPOINT is not set` | `--promote=s3` without S3 credentials | Set `R2_S3_*` or use the default `cf` promotion |
+| `--promote=s3 needs R2_S3_* and minting them failed` | The default `s3` promotion has no credentials and `cf` could not mint them | Run `cf auth login --use-keyring`, or mint by hand with `eval "$(python3 deploy/r2-temp-credentials.py BUCKET)"`. Pass `--promote=cf` only when no other machine can publish |
 | `current changed during promotion` | Another publisher moved `current` | Pull the new generation, merge your changes, and publish again |
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
