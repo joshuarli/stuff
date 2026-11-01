@@ -49,7 +49,7 @@ worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 DEPLOY_JOBS ?= 3
 
 deploy: ## Test and deploy the worker, republish all three registries, then check the live site
-	cf auth whoami
+	@cf auth whoami >/dev/null
 	$(MAKE) worker-test worker-deploy
 	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
 	$(MAKE) smoke-deployed
