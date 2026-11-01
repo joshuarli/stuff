@@ -175,7 +175,7 @@ fn header_trickle_exceeds_the_header_deadline() {
         dir.path().join("site"),
         None,
         false,
-        Duration::from_millis(200),
+        Duration::from_secs(1),
         Duration::from_secs(5),
     );
     let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
@@ -189,10 +189,10 @@ fn header_trickle_exceeds_the_header_deadline() {
         .write_all(b"GET / HTTP/1.1\r\nHost: x\r\nX-Trickle: ")
         .unwrap();
     for _ in 0..3 {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(100));
         stream.write_all(b"a").unwrap();
     }
-    thread::sleep(Duration::from_millis(300));
+    thread::sleep(Duration::from_millis(1100));
 
     let mut resp = String::new();
     stream.read_to_string(&mut resp).unwrap();
