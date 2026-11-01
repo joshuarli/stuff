@@ -9,6 +9,7 @@ pub enum RegistryFilter {
     Cargo,
     Npm,
     Pypi,
+    Oci,
 }
 
 impl RegistryFilter {
@@ -17,6 +18,7 @@ impl RegistryFilter {
             RegistryFilter::Cargo => "cargo",
             RegistryFilter::Npm => "npm",
             RegistryFilter::Pypi => "pypi",
+            RegistryFilter::Oci => "oci",
         }
     }
 
@@ -25,6 +27,7 @@ impl RegistryFilter {
             "cargo" => Some(RegistryFilter::Cargo),
             "npm" => Some(RegistryFilter::Npm),
             "pypi" => Some(RegistryFilter::Pypi),
+            "oci" => Some(RegistryFilter::Oci),
             _ => None,
         }
     }
@@ -109,9 +112,11 @@ pub struct Parsed {
     pub cargo_base: Option<String>,
     pub npm_base: Option<String>,
     pub pypi_base: Option<String>,
+    pub oci_base: Option<String>,
     pub cargo_dir: Option<String>,
     pub npm_dir: Option<String>,
     pub pypi_dir: Option<String>,
+    pub oci_dir: Option<String>,
     pub output: Option<String>,
     pub expected_generation: Option<String>,
     pub positionals: Vec<String>,
@@ -154,9 +159,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         cargo_base: None,
         npm_base: None,
         pypi_base: None,
+        oci_base: None,
         cargo_dir: None,
         npm_dir: None,
         pypi_dir: None,
+        oci_dir: None,
         output: None,
         expected_generation: None,
         positionals: Vec::new(),
@@ -177,16 +184,18 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                     RegistryFilter::parse(value).ok_or_else(|| usage_error(format!("unsupported registry '{value}'")))?,
                 );
             }
-            "--cargo-base" | "--npm-base" | "--pypi-base" | "--cargo-dir" | "--npm-dir" | "--pypi-dir" | "--output"
-            | "--expected-generation" => {
+            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" | "--cargo-dir" | "--npm-dir"
+            | "--pypi-dir" | "--oci-dir" | "--output" | "--expected-generation" => {
                 let value = args.next().ok_or_else(|| usage_error(format!("{arg} requires a value")))?;
                 let slot = match arg.as_str() {
                     "--cargo-base" => &mut parsed.cargo_base,
                     "--npm-base" => &mut parsed.npm_base,
                     "--pypi-base" => &mut parsed.pypi_base,
+                    "--oci-base" => &mut parsed.oci_base,
                     "--cargo-dir" => &mut parsed.cargo_dir,
                     "--npm-dir" => &mut parsed.npm_dir,
                     "--pypi-dir" => &mut parsed.pypi_dir,
+                    "--oci-dir" => &mut parsed.oci_dir,
                     "--output" => &mut parsed.output,
                     _ => &mut parsed.expected_generation,
                 };
@@ -208,9 +217,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         ("--cargo-base", parsed.cargo_base.is_some(), allowed.base_urls),
         ("--npm-base", parsed.npm_base.is_some(), allowed.base_urls),
         ("--pypi-base", parsed.pypi_base.is_some(), allowed.base_urls),
+        ("--oci-base", parsed.oci_base.is_some(), allowed.base_urls),
         ("--cargo-dir", parsed.cargo_dir.is_some(), allowed.local_dirs),
         ("--npm-dir", parsed.npm_dir.is_some(), allowed.local_dirs),
         ("--pypi-dir", parsed.pypi_dir.is_some(), allowed.local_dirs),
+        ("--oci-dir", parsed.oci_dir.is_some(), allowed.local_dirs),
         ("--output", parsed.output.is_some(), allowed.output),
         (
             "--expected-generation",
@@ -250,24 +261,24 @@ stuff
 Usage: stuff <COMMAND> [OPTIONS]
 
 Commands:
-  ls [--registry cargo|npm|pypi] [--versions] [--json]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
-  search <query> [--registry cargo|npm|pypi] [--json]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+  ls [--registry cargo|npm|pypi|oci] [--versions] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
+  search <query> [--registry cargo|npm|pypi|oci] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
   diff <before.json> <after.json> [--json]
-  doctor [--registry cargo|npm|pypi] [--expected-generation ID] [--sample-artifacts]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
-  render --output FILE [--registry cargo|npm|pypi]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR]
+  doctor [--registry cargo|npm|pypi|oci] [--expected-generation ID] [--sample-artifacts]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
+  render --output FILE [--registry cargo|npm|pypi|oci]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
 
 Sources default to the live registries (no credentials needed).
-Pass --cargo-dir/--npm-dir/--pypi-dir (site, generation, or catalog.json)
-to inspect local published output offline. Registries without a local dir
-are skipped by doctor, which then refuses --expected-generation.
+Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir (site, generation, or
+catalog.json) to inspect local published output offline. Registries without
+a local dir are skipped by doctor, which then refuses --expected-generation.
 --output FILE ending in .txt or .md writes the aggregate llms.txt; any
 other name writes HTML.
 "
@@ -334,9 +345,11 @@ mod tests {
                 "--cargo-base",
                 "--npm-base",
                 "--pypi-base",
+                "--oci-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
+                "--oci-dir",
             ],
         ),
         (
@@ -347,9 +360,11 @@ mod tests {
                 "--cargo-base",
                 "--npm-base",
                 "--pypi-base",
+                "--oci-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
+                "--oci-dir",
             ],
         ),
         ("diff", &["--json"]),
@@ -362,9 +377,11 @@ mod tests {
                 "--cargo-base",
                 "--npm-base",
                 "--pypi-base",
+                "--oci-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
+                "--oci-dir",
             ],
         ),
         (
@@ -375,9 +392,11 @@ mod tests {
                 "--cargo-base",
                 "--npm-base",
                 "--pypi-base",
+                "--oci-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
+                "--oci-dir",
             ],
         ),
     ];
@@ -390,9 +409,11 @@ mod tests {
         "--cargo-base",
         "--npm-base",
         "--pypi-base",
+        "--oci-base",
         "--cargo-dir",
         "--npm-dir",
         "--pypi-dir",
+        "--oci-dir",
         "--output",
         "--expected-generation",
         "--remote",
@@ -416,8 +437,8 @@ mod tests {
     fn flag_value(flag: &str) -> Option<&'static str> {
         match flag {
             "--registry" => Some("npm"),
-            "--cargo-base" | "--npm-base" | "--pypi-base" => Some("https://example.com"),
-            "--cargo-dir" | "--npm-dir" | "--pypi-dir" => Some("."),
+            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" => Some("https://example.com"),
+            "--cargo-dir" | "--npm-dir" | "--pypi-dir" | "--oci-dir" => Some("."),
             "--output" => Some("out.html"),
             "--expected-generation" => Some("gen1"),
             _ => None,
@@ -438,6 +459,10 @@ mod tests {
         let p = parse_args(&args(&["ls", "--registry", "npm", "--versions", "--json"])).unwrap();
         assert_eq!(p.registry, Some(RegistryFilter::Npm));
         assert!(p.versions && p.json);
+        assert_eq!(
+            parse_args(&args(&["ls", "--registry", "oci"])).unwrap().registry,
+            Some(RegistryFilter::Oci)
+        );
         assert!(parse_args(&args(&["ls", "--registry", "bogus"])).is_err());
         assert!(parse_args(&args(&["ls", "extra"])).is_err());
     }

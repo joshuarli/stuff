@@ -13,6 +13,7 @@ pub struct CatalogOrigins {
     pub cargo: String,
     pub npm: String,
     pub pypi: String,
+    pub oci: String,
     pub unified: String,
 }
 
@@ -21,12 +22,14 @@ impl CatalogOrigins {
         cargo: impl Into<String>,
         npm: impl Into<String>,
         pypi: impl Into<String>,
+        oci: impl Into<String>,
         unified: impl Into<String>,
     ) -> Self {
         Self {
             cargo: trim_origin(cargo.into()),
             npm: trim_origin(npm.into()),
             pypi: trim_origin(pypi.into()),
+            oci: trim_origin(oci.into()),
             unified: trim_origin(unified.into()),
         }
     }
@@ -36,7 +39,7 @@ impl CatalogOrigins {
             Registry::Cargo => &self.cargo,
             Registry::Npm => &self.npm,
             Registry::Pypi => &self.pypi,
-            Registry::Oci => DEFAULT_OCI_ORIGIN,
+            Registry::Oci => &self.oci,
         }
     }
 }
@@ -47,6 +50,7 @@ impl Default for CatalogOrigins {
             DEFAULT_CARGO_ORIGIN,
             DEFAULT_NPM_ORIGIN,
             DEFAULT_PYPI_ORIGIN,
+            DEFAULT_OCI_ORIGIN,
             DEFAULT_UNIFIED_ORIGIN,
         )
     }
@@ -408,6 +412,7 @@ mod tests {
             "https://cargo.example.test",
             "https://npm.example.test",
             "https://pypi.example.test",
+            "https://oci.example.test",
             "https://stuff.example.test",
         );
         let text = render_unified_llms_txt(&[npm, cargo], &origins);

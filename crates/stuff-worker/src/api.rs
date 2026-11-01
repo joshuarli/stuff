@@ -392,10 +392,25 @@ fn unified_origins(
             format!("{scheme}://{host}/{prefix}")
         })
     };
+    let oci = config
+        .routes
+        .iter()
+        .find(|route| route.bucket_binding == "OCI")
+        .map(|route| {
+            let host = if route.host.is_empty() { request_host } else { route.host.as_str() };
+            let prefix = route.url_prefix.trim_matches('/');
+            if prefix.is_empty() {
+                format!("{scheme}://{host}")
+            } else {
+                format!("{scheme}://{host}/{prefix}")
+            }
+        })
+        .unwrap_or_else(|| stuff_catalog::DEFAULT_OCI_ORIGIN.to_string());
     Ok(stuff_catalog::CatalogOrigins::new(
         origin("MYCRATES")?,
         origin("MYNPM")?,
         origin("PYPI")?,
+        oci,
         request_origin,
     ))
 }

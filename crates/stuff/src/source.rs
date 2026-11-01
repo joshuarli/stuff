@@ -69,6 +69,70 @@ pub fn fetch_bytes(url: &str) -> Result<(u16, Vec<u8>)> {
     fetch_bytes_capped(url, MAX_CATALOG_BYTES)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchResponse {
+    pub status: u16,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+impl FetchResponse {
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    }
+}
+
+pub fn fetch_response(url: &str, accept: Option<&str>) -> Result<FetchResponse> {
+    check_url_security(url)?;
+    let client = Client::builder().connect_timeout(FETCH_TIMEOUT).build();
+    let mut builder = http::Request::builder()
+        .method(http::Method::GET)
+        .uri(url.to_string())
+        .header("user-agent", "stuff/0.1.0");
+    if let Some(accept) = accept {
+        builder = builder.header("accept", accept);
+    }
+    let req = builder
+        .body(Vec::new())
+        .map_err(|e| Error::Network(format!("failed to build request for {url}: {e}")))?;
+    let mut resp = client
+        .request_with_timeout(req, Some(FETCH_TIMEOUT))
+        .map_err(|e| Error::Network(format!("failed to fetch {url}: {e}")))?;
+    let status = resp.status().as_u16();
+    let headers = resp
+        .headers()
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.as_str().to_ascii_lowercase(),
+                value.to_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+    let mut body = Vec::new();
+    {
+        let reader = resp.body_mut();
+        let _ = reader.set_read_timeout(Some(FETCH_TIMEOUT));
+        let mut buf = [0u8; 65536];
+        loop {
+            let n = reader
+                .read(&mut buf)
+                .map_err(|e| Error::Network(format!("stream read error from {url}: {e}")))?;
+            if n == 0 {
+                break;
+            }
+            body.extend_from_slice(&buf[..n]);
+            if body.len() as u64 > MAX_CATALOG_BYTES {
+                return Err(Error::Limit(format!("response exceeds size limit: {url}")));
+            }
+        }
+    }
+    Ok(FetchResponse { status, headers, body })
+}
+
 pub fn fetch_bytes_capped(url: &str, cap: u64) -> Result<(u16, Vec<u8>)> {
     check_url_security(url)?;
     let client = Client::builder().connect_timeout(FETCH_TIMEOUT).build();

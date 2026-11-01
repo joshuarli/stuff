@@ -2,15 +2,19 @@
 
 use crate::error::Error;
 use crate::source::{fetch_bytes, LocalSite};
-use stuff_catalog::{DEFAULT_CARGO_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_PYPI_ORIGIN};
+use stuff_catalog::{
+    DEFAULT_CARGO_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_OCI_ORIGIN, DEFAULT_PYPI_ORIGIN,
+};
 
 pub struct RegistrySources {
     pub cargo_base: String,
     pub npm_base: String,
     pub pypi_base: String,
+    pub oci_base: String,
     pub cargo_local: Option<LocalSite>,
     pub npm_local: Option<LocalSite>,
     pub pypi_local: Option<LocalSite>,
+    pub oci_local: Option<LocalSite>,
 }
 
 impl RegistrySources {
@@ -31,9 +35,15 @@ impl RegistrySources {
                 .clone()
                 .or_else(|| std::env::var("STUFF_PYPI_BASE").ok())
                 .unwrap_or_else(|| DEFAULT_PYPI_ORIGIN.to_string()),
+            oci_base: parsed
+                .oci_base
+                .clone()
+                .or_else(|| std::env::var("STUFF_OCI_BASE").ok())
+                .unwrap_or_else(|| DEFAULT_OCI_ORIGIN.to_string()),
             cargo_local: resolve_local(parsed.cargo_dir.as_deref())?,
             npm_local: resolve_local(parsed.npm_dir.as_deref())?,
             pypi_local: resolve_local(parsed.pypi_dir.as_deref())?,
+            oci_local: resolve_local(parsed.oci_dir.as_deref())?,
         })
     }
 
@@ -42,6 +52,7 @@ impl RegistrySources {
             ("cargo", self.cargo_local.is_some()),
             ("npm", self.npm_local.is_some()),
             ("pypi", self.pypi_local.is_some()),
+            ("oci", self.oci_local.is_some()),
         ];
         match filter {
             Some(f) => all.into_iter().filter(|(name, _)| *name == f).collect(),
@@ -50,13 +61,17 @@ impl RegistrySources {
     }
 
     fn any_local(&self) -> bool {
-        self.cargo_local.is_some() || self.npm_local.is_some() || self.pypi_local.is_some()
+        self.cargo_local.is_some()
+            || self.npm_local.is_some()
+            || self.pypi_local.is_some()
+            || self.oci_local.is_some()
     }
 
     fn local(&self, name: &str) -> Option<&LocalSite> {
         match name {
             "cargo" => self.cargo_local.as_ref(),
             "npm" => self.npm_local.as_ref(),
+            "oci" => self.oci_local.as_ref(),
             _ => self.pypi_local.as_ref(),
         }
     }
@@ -80,14 +95,17 @@ pub fn load_catalogs(
             ("cargo", Some(local)) => local.load_catalog()?,
             ("npm", Some(local)) => local.load_catalog()?,
             ("pypi", Some(local)) => local.load_catalog()?,
+            ("oci", Some(local)) => local.load_catalog()?,
             ("cargo", None) => crate::source::fetch_catalog(&sources.cargo_base)?,
             ("npm", None) => crate::source::fetch_catalog(&sources.npm_base)?,
+            ("oci", None) => crate::source::fetch_catalog(&sources.oci_base)?,
             (_, None) => crate::source::fetch_catalog(&sources.pypi_base)?,
             _ => unreachable!(),
         };
         let expected = match name {
             "cargo" => stuff_catalog::Registry::Cargo,
             "npm" => stuff_catalog::Registry::Npm,
+            "oci" => stuff_catalog::Registry::Oci,
             _ => stuff_catalog::Registry::Pypi,
         };
         if catalog.registry != expected {
@@ -210,6 +228,7 @@ fn origin_for(name: &str, sources: &RegistrySources) -> String {
     let base = match name {
         "cargo" => &sources.cargo_base,
         "npm" => &sources.npm_base,
+        "oci" => &sources.oci_base,
         _ => &sources.pypi_base,
     };
     base.trim_end_matches('/').to_string()
@@ -267,6 +286,9 @@ fn run_local_checks(
                 checks.push(Check::fail(format!("{name} manifest"), "manifest.json missing".to_string()));
             }
         }
+        "oci" => {
+            checks.extend(oci_local_checks(catalog, local));
+        }
         _ => {
             let page = gen_dir.join("simple").join(first.name.to_lowercase().replace(['_', '.'], "-").replace("--", "-")).join("index.html");
             let root = gen_dir.join("simple").join("index.html");
@@ -282,9 +304,167 @@ fn run_local_checks(
             }
         }
     }
-    if sample && !catalog.packages.is_empty() {
+    if sample && !catalog.packages.is_empty() && name != "oci" {
         checks.push(sample_local(name, catalog, site_dir, gen_dir));
     }
+}
+
+fn oci_local_checks(catalog: &stuff_catalog::Catalog, local: &LocalSite) -> Vec<Check> {
+    let mut checks = Vec::new();
+    checks.push(Check::pass(
+        "oci current",
+        format!("generation {} is current", catalog.generation),
+    ));
+    let site = &local.site_root;
+    let gen_dir = &local.generation_dir;
+    for package in &catalog.packages {
+        let repository = match stuff_oci::RepositoryName::parse(&package.name) {
+            Ok(repository) => repository,
+            Err(error) => {
+                checks.push(Check::fail(
+                    "oci repository".to_string(),
+                    format!("{}: {error}", package.name),
+                ));
+                continue;
+            }
+        };
+        let mut path = gen_dir.join("repositories");
+        for component in repository.as_str().split('/') {
+            path.push(component);
+        }
+        let path = path.join("repository.json");
+        let view = match std::fs::read_to_string(&path) {
+            Ok(text) => match stuff_oci::parse_repository_json(&repository, &text) {
+                Ok(view) => view,
+                Err(error) => {
+                    checks.push(Check::fail(
+                        format!("oci repository {}", repository.as_str()),
+                        error,
+                    ));
+                    continue;
+                }
+            },
+            Err(error) => {
+                checks.push(Check::fail(
+                    format!("oci repository {}", repository.as_str()),
+                    format!("could not read {}: {error}", path.display()),
+                ));
+                continue;
+            }
+        };
+        for version in &package.versions {
+            let label = format!("oci manifest {}:{}", repository.as_str(), version.version);
+            let tag = match stuff_oci::Tag::parse(&version.version) {
+                Ok(tag) => tag,
+                Err(error) => {
+                    checks.push(Check::fail(label, error));
+                    continue;
+                }
+            };
+            let Some(descriptor) = view.tags.get(&tag) else {
+                checks.push(Check::fail(
+                    label,
+                    format!("tag is missing from {}", path.display()),
+                ));
+                continue;
+            };
+            match verify_oci_manifest(site, &descriptor.digest, Some(descriptor.size), 0) {
+                Ok(()) => checks.push(Check::pass(
+                    label.clone(),
+                    format!("{} resolves and hashes", descriptor.digest),
+                )),
+                Err(error) => {
+                    checks.push(Check::fail(label.clone(), error));
+                    continue;
+                }
+            }
+            match oci_first_config(site, &descriptor.digest, 0) {
+                Ok(config) => {
+                    let config_label = format!("oci config {}:{}", repository.as_str(), version.version);
+                    match verify_oci_blob(site, &config) {
+                        Ok(()) => checks.push(Check::pass(
+                            config_label,
+                            format!("blob {config} hashes"),
+                        )),
+                        Err(error) => checks.push(Check::fail(config_label, error)),
+                    }
+                }
+                Err(error) => checks.push(Check::fail(
+                    format!("oci config {}:{}", repository.as_str(), version.version),
+                    error,
+                )),
+            }
+        }
+    }
+    checks
+}
+
+fn verify_oci_manifest(
+    site: &std::path::Path,
+    digest: &stuff_oci::Digest,
+    expected_size: Option<u64>,
+    depth: usize,
+) -> std::result::Result<(), String> {
+    if depth > 16 {
+        return Err("manifest graph is too deep".to_string());
+    }
+    let path = site.join("oci/manifests/sha256").join(digest.hex());
+    let bytes = std::fs::read(&path)
+        .map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    if let Some(expected) = expected_size
+        && bytes.len() as u64 != expected {
+            return Err(format!("manifest {digest} size is {}, expected {expected}", bytes.len()));
+        }
+    let actual = stuff_oci::Digest::from_bytes(&bytes);
+    if actual != *digest {
+        return Err(format!("manifest {digest} hashes to {actual}"));
+    }
+    let image = stuff_oci::parse_image(&bytes).map_err(|error| error.to_string())?;
+    if let stuff_oci::Image::Index(index) = &image {
+        for child in &index.manifests {
+            verify_oci_manifest(site, &child.digest, Some(child.size), depth + 1)?;
+        }
+    }
+    Ok(())
+}
+
+fn oci_first_config(
+    site: &std::path::Path,
+    digest: &stuff_oci::Digest,
+    depth: usize,
+) -> std::result::Result<stuff_oci::Digest, String> {
+    if depth > 16 {
+        return Err("manifest graph is too deep".to_string());
+    }
+    let path = site.join("oci/manifests/sha256").join(digest.hex());
+    let bytes = std::fs::read(&path)
+        .map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let image = stuff_oci::parse_image(&bytes).map_err(|error| error.to_string())?;
+    match &image {
+        stuff_oci::Image::Manifest(manifest) => Ok(manifest.config.digest.clone()),
+        stuff_oci::Image::Index(index) => {
+            for child in &index.manifests {
+                if let Ok(config) = oci_first_config(site, &child.digest, depth + 1) {
+                    return Ok(config);
+                }
+            }
+            Err(format!("index {digest} has no manifest with a config"))
+        }
+    }
+}
+
+fn verify_oci_blob(
+    site: &std::path::Path,
+    digest: &stuff_oci::Digest,
+) -> std::result::Result<(), String> {
+    let path = site.join("blobs/sha256").join(digest.hex());
+    let bytes = std::fs::read(&path)
+        .map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let actual = stuff_oci::Digest::from_bytes(&bytes);
+    if actual != *digest {
+        return Err(format!("blob {digest} hashes to {actual}"));
+    }
+    Ok(())
 }
 
 fn run_remote_checks(
@@ -297,6 +477,7 @@ fn run_remote_checks(
     let base = match name {
         "cargo" => sources.cargo_base.trim_end_matches('/').to_string(),
         "npm" => sources.npm_base.trim_end_matches('/').to_string(),
+        "oci" => sources.oci_base.trim_end_matches('/').to_string(),
         _ => sources.pypi_base.trim_end_matches('/').to_string(),
     };
     let immutable = format!("{base}/generations/{}/catalog.json", catalog.generation);
@@ -357,6 +538,7 @@ fn run_remote_checks(
                 Err(e) => checks.push(Check::fail(format!("{name} packument"), e)),
             }
         }
+        "oci" => oci_remote_checks(checks, catalog, &base),
         _ => {
             let project = first.name.to_lowercase();
             let url = format!("{base}/current/simple/{project}/");
@@ -367,8 +549,109 @@ fn run_remote_checks(
             }
         }
     }
-    if sample && !catalog.packages.is_empty() {
+    if sample && !catalog.packages.is_empty() && name != "oci" {
         checks.push(sample_remote(name, catalog, &base));
+    }
+}
+
+fn oci_remote_checks(
+    checks: &mut Vec<Check>,
+    catalog: &stuff_catalog::Catalog,
+    base: &str,
+) {
+    match crate::source::fetch_response(&format!("{base}/v2/"), None) {
+        Ok(response)
+            if response.status == 200
+                && response.header("docker-distribution-api-version") == Some("registry/2.0") =>
+        {
+            checks.push(Check::pass("oci ping", "registry/2.0"));
+        }
+        Ok(response) => checks.push(Check::fail(
+            "oci ping",
+            format!(
+                "HTTP {} version {}",
+                response.status,
+                response.header("docker-distribution-api-version").unwrap_or("missing")
+            ),
+        )),
+        Err(error) => checks.push(Check::fail("oci ping", error)),
+    }
+    let Some(first) = catalog.packages.first() else {
+        return;
+    };
+    let tag = &first.latest;
+    let label = format!("oci manifest {}:{}", first.name, tag);
+    let accept = "application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json";
+    let manifest_url = format!("{base}/v2/{}/manifests/{tag}", first.name);
+    let response = match crate::source::fetch_response(&manifest_url, Some(accept)) {
+        Ok(response) => response,
+        Err(error) => {
+            checks.push(Check::fail(label, error));
+            return;
+        }
+    };
+    if response.status != 200 {
+        checks.push(Check::fail(label, format!("HTTP {}", response.status)));
+        return;
+    }
+    let actual = stuff_oci::Digest::from_bytes(&response.body);
+    match response.header("docker-content-digest") {
+        Some(digest) if digest == actual.as_str() => {
+            checks.push(Check::pass(label.clone(), actual.to_string()));
+        }
+        Some(digest) => {
+            checks.push(Check::fail(
+                label.clone(),
+                format!("Docker-Content-Digest {digest} does not match {actual}"),
+            ));
+            return;
+        }
+        None => {
+            checks.push(Check::fail(label.clone(), "Docker-Content-Digest is missing"));
+            return;
+        }
+    }
+    let image = match stuff_oci::parse_image(&response.body) {
+        Ok(image) => image,
+        Err(error) => {
+            checks.push(Check::fail(label, error));
+            return;
+        }
+    };
+    let config = match &image {
+        stuff_oci::Image::Manifest(manifest) => Some(manifest.config.digest.clone()),
+        stuff_oci::Image::Index(index) => index.manifests.iter().find_map(|child| {
+            let url = format!("{base}/v2/{}/manifests/{}", first.name, child.digest);
+            let response = crate::source::fetch_response(&url, Some(accept)).ok()?;
+            if response.status != 200 {
+                return None;
+            }
+            match stuff_oci::parse_image(&response.body).ok()? {
+                stuff_oci::Image::Manifest(manifest) => Some(manifest.config.digest),
+                stuff_oci::Image::Index(_) => None,
+            }
+        }),
+    };
+    let config_label = format!("oci config {}:{}", first.name, tag);
+    let Some(config) = config else {
+        checks.push(Check::fail(config_label, "manifest graph has no config blob"));
+        return;
+    };
+    match crate::source::fetch_response(
+        &format!("{base}/v2/{}/blobs/{config}", first.name),
+        None,
+    ) {
+        Ok(response)
+            if response.status == 200
+                && stuff_oci::Digest::from_bytes(&response.body) == config =>
+        {
+            checks.push(Check::pass(config_label, format!("blob {config} hashes")));
+        }
+        Ok(response) => checks.push(Check::fail(
+            config_label,
+            format!("HTTP {} for {config}", response.status),
+        )),
+        Err(error) => checks.push(Check::fail(config_label, error)),
     }
 }
 
@@ -748,9 +1031,11 @@ mod tests {
             cargo_base: None,
             npm_base: None,
             pypi_base: None,
+            oci_base: None,
             cargo_dir: None,
             npm_dir: None,
             pypi_dir: None,
+            oci_dir: None,
             output: None,
             expected_generation: None,
             positionals: Vec::new(),
@@ -887,6 +1172,88 @@ mod tests {
     }
 
     #[test]
+    fn doctor_checks_oci_manifests_and_config_blobs() {
+        use stuff_oci::{Descriptor, Digest, RepositoryName, Tag};
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path().to_path_buf();
+        let gen_dir = site.join("generations").join("gen1");
+        std::fs::create_dir_all(gen_dir.join("repositories/example/app")).unwrap();
+        std::fs::create_dir_all(site.join("oci/manifests/sha256")).unwrap();
+        std::fs::create_dir_all(site.join("blobs/sha256")).unwrap();
+        let layout = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/oci/layout");
+        let entries = [
+            ("04237663eeeaf2ee4f6dec1a5d23c8a7c1bc70275cbfa205e6f35377603c6388", "application/vnd.oci.image.index.v1+json", 491u64, true),
+            ("576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4", "application/vnd.oci.image.manifest.v1+json", 401, true),
+            ("d4ae9ea60e8f1f455de9959f23d711014d5f97e9d85ce82a6ecc769a61d1c65c", "application/vnd.oci.image.manifest.v1+json", 401, true),
+            ("3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25", "application/vnd.oci.image.manifest.v1+json", 671, true),
+        ];
+        let mut view = stuff_oci::RepositoryView::new(RepositoryName::parse("example/app").unwrap());
+        let mut index = None;
+        for (hex, media_type, size, manifest) in entries {
+            let bytes = std::fs::read(layout.join("blobs/sha256").join(hex)).unwrap();
+            if manifest {
+                std::fs::write(site.join("oci/manifests/sha256").join(hex), &bytes).unwrap();
+            }
+            let descriptor = Descriptor {
+                media_type: media_type.to_string(),
+                digest: Digest::parse(&format!("sha256:{hex}")).unwrap(),
+                size,
+                artifact_type: None,
+                annotations: std::collections::BTreeMap::new(),
+                platform: None,
+                urls: Vec::new(),
+            };
+            view.insert_manifest(descriptor.clone());
+            if index.is_none() && hex.starts_with("04237663") {
+                index = Some(descriptor);
+            }
+        }
+        view.tag(Tag::parse("stable").unwrap(), index.unwrap());
+        for hex in [
+            "120ab4e8b5d4dfbdda6b6ccd16c9e4320530c08b35463b414e411fb76d9e30c9",
+            "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55",
+            "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "6615b2d5776183ba25e1bfa8e789346fe3a65066e808ac5b6beb5710bb94d10e",
+            "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f",
+            "bf2585f7b79b5ba8a5d7f256f7c2ce5a537ebc1c0d9e043ca90c461f2183f718",
+        ] {
+            let bytes = std::fs::read(layout.join("blobs/sha256").join(hex)).unwrap();
+            std::fs::write(site.join("blobs/sha256").join(hex), bytes).unwrap();
+        }
+        std::fs::write(
+            gen_dir.join("repositories/example/app/repository.json"),
+            stuff_oci::render_repository_json(&view),
+        )
+        .unwrap();
+        let catalog = stuff_catalog::oci_catalog(
+            "gen1",
+            vec![stuff_catalog::OciInput {
+                name: "example/app".to_string(),
+                tags: vec!["stable".to_string()],
+            }],
+        )
+        .unwrap();
+        std::fs::write(gen_dir.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog)).unwrap();
+        std::fs::write(gen_dir.join("index.html"), stuff_catalog::render_html(&catalog)).unwrap();
+        std::fs::write(
+            gen_dir.join("llms.txt"),
+            stuff_catalog::render_llms_txt(&catalog, DEFAULT_OCI_ORIGIN),
+        )
+        .unwrap();
+        std::os::unix::fs::symlink("generations/gen1", site.join("current")).unwrap();
+
+        let mut parsed = doctor_parsed();
+        parsed.oci_dir = Some(site.to_string_lossy().to_string());
+        let checks = doctor_checks(&parsed).unwrap();
+        for name in ["oci manifest example/app:stable", "oci config example/app:stable"] {
+            let check = checks.iter().find(|check| check.name == name).unwrap();
+            assert_eq!(check.state, CheckState::Pass, "{}: {}", check.name, check.detail);
+        }
+        assert!(run_doctor(&parsed).unwrap());
+    }
+
+    #[test]
     fn local_input_skips_omitted_registries_and_refuses_expected_generation() {
         let dir = tempfile::tempdir().unwrap();
         let (_, site, _) = cargo_fixture(dir.path(), b"crate-bytes");
@@ -898,7 +1265,7 @@ mod tests {
             .filter(|check| check.state == CheckState::Skip)
             .map(|check| check.name.as_str())
             .collect();
-        assert_eq!(skipped, vec!["npm registry", "pypi registry"]);
+        assert_eq!(skipped, vec!["npm registry", "pypi registry", "oci registry"]);
         assert!(checks.iter().all(|check| check.state != CheckState::Fail));
 
         parsed.expected_generation = Some("gen1".to_string());

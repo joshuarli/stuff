@@ -1313,6 +1313,7 @@ dependencies = [
  "sha2",
  "stuff-cargo-shard",
  "stuff-catalog",
+ "stuff-oci",
  "stuff-store",
  "tempfile",
  "url",
