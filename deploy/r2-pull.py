@@ -19,14 +19,35 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from r2_common import cf_command, fail, list_page, md5_hex, safe_relative
 
 PAGE = list_page()
 JOBS = int(os.environ.get("R2_PULL_JOBS", "8"))
-RETRIES = 4
+RETRIES = 6
+RATE_LIMIT_BACKOFF_SECONDS = 15
 GENERATION_ID = re.compile(r"[A-Za-z0-9_-]+")
+
+
+class Pacer:
+    def __init__(self, interval):
+        self.interval = interval
+        self.lock = threading.Lock()
+        self.next_slot = 0.0
+
+    def wait(self):
+        with self.lock:
+            now = time.monotonic()
+            slot = max(now, self.next_slot)
+            self.next_slot = slot + self.interval
+        if slot > now:
+            time.sleep(slot - now)
+
+
+PACER = Pacer(0 if os.environ.get("CF_LOCAL_STATE") else 0.35)
 
 
 def list_all(bucket):
@@ -37,6 +58,7 @@ def list_all(bucket):
         args = ["list", "--per-page", str(PAGE)]
         if after:
             args += ["--start-after", after]
+        PACER.wait()
         done = subprocess.run(cf_command(args, bucket), capture_output=True, text=True)
         if done.returncode != 0:
             fail(f"listing failed: {done.stderr.strip()}")
@@ -52,6 +74,7 @@ def list_all(bucket):
 
 
 def current_generation(bucket):
+    PACER.wait()
     done = subprocess.run(
         cf_command(["get", "current", "--text"], bucket), capture_output=True, text=True
     )
@@ -82,13 +105,16 @@ def download(bucket, dest, obj):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".part"
     last = ""
-    for _ in range(RETRIES):
+    for attempt in range(1, RETRIES + 1):
+        PACER.wait()
         with open(tmp, "wb") as out:
             done = subprocess.run(
                 cf_command(["get", key], bucket), stdout=out, stderr=subprocess.PIPE
             )
         if done.returncode != 0:
             last = done.stderr.decode("utf-8", "replace").strip()
+            if "429" in last:
+                time.sleep(min(60, RATE_LIMIT_BACKOFF_SECONDS * attempt))
             continue
         if os.path.getsize(tmp) != obj["size"] or md5_hex(tmp) != etag:
             last = "size or MD5 differs from the listing"

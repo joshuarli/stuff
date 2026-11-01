@@ -210,7 +210,7 @@ export SITE_DIR BUCKET CF_LOCAL_STATE
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   PUT_JOBS=${R2_PUT_JOBS:-1}
 else
-  PUT_JOBS=${R2_PUT_JOBS:-8}
+  PUT_JOBS=${R2_PUT_JOBS:-2}
 fi
 tr '\n' '\0' < "$PUTS" | xargs -0 -n 1 -P "$PUT_JOBS" "$SCRIPT_DIR/r2-put.sh"
 while IFS= read -r line; do

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Upload one site file as one R2 object. Called by r2-sync.sh (xargs -P).
 # Usage: r2-put.sh KEY | r2-put.sh --type KEY (print the content type only)
-# Env: SITE_DIR, BUCKET, CF_LOCAL_STATE (optional local simulation dir), R2_PUT_ATTEMPTS (default 5).
+# Env: SITE_DIR, BUCKET, CF_LOCAL_STATE (optional local simulation dir), R2_PUT_ATTEMPTS (default 6).
 set -eu
 if [ "$1" = "--type" ]; then
   KEY=$2
@@ -35,8 +35,9 @@ put_once() {
 }
 attempt=1
 until put_once; do
-  [ "$attempt" -lt "${R2_PUT_ATTEMPTS:-5}" ] || { echo "FAIL: put $KEY failed after $attempt attempts" >&2; exit 1; }
-  sleep $((attempt * 2))
+  [ "$attempt" -lt "${R2_PUT_ATTEMPTS:-6}" ] || { echo "FAIL: put $KEY failed after $attempt attempts" >&2; exit 1; }
+  sleep $((attempt * 10))
   attempt=$((attempt + 1))
 done
+[ -n "${CF_LOCAL_STATE:-}" ] || sleep 0.6
 echo "put $KEY"
