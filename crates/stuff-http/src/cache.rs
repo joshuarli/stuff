@@ -15,7 +15,7 @@ impl CachePolicy {
         if self.immutable {
             format!("public, max-age={}, immutable", self.max_age_secs)
         } else {
-            format!("public, max-age={}", self.max_age_secs)
+            format!("public, max-age={}, stale-if-error=0", self.max_age_secs)
         }
     }
 }
@@ -42,6 +42,6 @@ mod tests {
         let imm = cache_policy_for(RouteKind::ImmutableFile);
         assert_eq!(imm.header_value(), "public, max-age=31536000, immutable");
         let ptr = cache_policy_for(RouteKind::GenerationPointer);
-        assert_eq!(ptr.header_value(), "public, max-age=60");
+        assert_eq!(ptr.header_value(), "public, max-age=60, stale-if-error=0");
     }
 }

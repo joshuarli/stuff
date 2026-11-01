@@ -1098,7 +1098,7 @@ mod tests {
         assert!(head.head);
         assert_eq!(
             head.headers.get("cache-control").map(String::as_str),
-            Some("public, max-age=60")
+            Some("public, max-age=60, stale-if-error=0")
         );
         assert_eq!(
             head.headers.get("content-type").map(String::as_str),

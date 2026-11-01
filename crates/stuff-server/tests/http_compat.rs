@@ -132,7 +132,7 @@ fn static_read_semantics() {
     let r = get(&server, "/current/registry/config.json", &[]);
     assert_eq!(r.status, 200);
     assert_eq!(r.headers["content-type"], "application/json");
-    assert_eq!(r.headers["cache-control"], "public, max-age=60");
+    assert_eq!(r.headers["cache-control"], "public, max-age=60, stale-if-error=0");
     assert_eq!(r.headers["accept-ranges"], "bytes");
     assert!(r.headers.contains_key("etag"));
     assert_eq!(r.body, br#"{"dl":"http://x/{crate}"}"#);

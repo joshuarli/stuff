@@ -623,7 +623,7 @@ mod tests {
             let r = respond(&route, path, "GET", &no_headers);
             assert_eq!(r.status, 200, "{path}");
             let cache = r.headers.iter().find(|(k, _)| k == "cache-control").unwrap();
-            assert_eq!(cache.1, "public, max-age=60", "{path}");
+            assert_eq!(cache.1, "public, max-age=60, stale-if-error=0", "{path}");
             if body == "{}" {
                 assert!(matches!(&r.body, ResponseBody::File { path, .. } if path.ends_with("catalog.json")));
             } else {
