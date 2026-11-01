@@ -55,6 +55,9 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   `packageManager: yarn@*` are banned because pnpm is the only package
   manager. Rust must not depend on `clap` or `tokio`,
   including transitive `clap-*` and `tokio-*` crates via `Cargo.lock`.
+  A repository with a target-specific transitive crate that is never compiled
+  can exempt that crate with `audit-banned:transitive:NAME`; direct
+  dependencies remain banned.
   Rust must not use HTTP clients `reqwest`, `tiny_http`, `hyper`, `h2`,
   `ureq`, `attohttpc`, `surf`, `isahc`, `curl`, or `awc` (including suffixed
   crates such as `hyper-*` and `reqwest-*`); use `h12tiny-*`,

@@ -24,6 +24,7 @@ from repomod.catalog import (
     LOCAL_SOURCE_IGNORE_PREFIX,
     Catalog,
     atomic_write,
+    parse_banned_transitive_ignore,
     repository_path,
 )
 from repomod.git import GitError, status
@@ -1466,6 +1467,14 @@ def _source_ignored(repository: Repository, name: str) -> bool:
     )
 
 
+def _banned_transitive_ignored(repository: Repository) -> set[str]:
+    return {
+        _normalize_rust_name(name)
+        for value in repository.ignored_rules
+        if (name := parse_banned_transitive_ignore(value)) is not None
+    }
+
+
 def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
     reason = _banned_rust_reason(name)
     if reason == "http":
@@ -1621,8 +1630,9 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 findings.append(_finding(repository, "audit-banned", dependency.manifest, message))
         versions, _ = _cargo_locked_versions(root)
         local_names = _local_rust_package_names(root)
+        ignored_transitive = _banned_transitive_ignored(repository)
         for normalized, version in sorted(versions.items()):
-            if normalized in local_names:
+            if normalized in local_names or normalized in ignored_transitive:
                 continue
             if _is_banned_rust(normalized) and normalized not in seen_banned:
                 seen_banned.add(normalized)

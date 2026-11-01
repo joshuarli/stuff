@@ -47,6 +47,10 @@ DEPENDENCY_IGNORE_PREFIX = "audit-upgrades:"
 _DEPENDENCY_IGNORE = re.compile(
     r"audit-upgrades:(pypi|npm|crates|go):([A-Za-z0-9@_./+-]+)\Z"
 )
+BANNED_TRANSITIVE_IGNORE_PREFIX = "audit-banned:transitive:"
+_BANNED_TRANSITIVE_IGNORE = re.compile(
+    r"audit-banned:transitive:([A-Za-z0-9_.+-]+)\Z"
+)
 
 
 GIT_SOURCE_IGNORE_PREFIX = "registry-sources:git:"
@@ -71,6 +75,11 @@ def parse_dependency_ignore(value: str) -> tuple[str, str] | None:
         return None
     ecosystem, name = match.groups()
     return str(ecosystem), str(name)
+
+
+def parse_banned_transitive_ignore(value: str) -> str | None:
+    match = _BANNED_TRANSITIVE_IGNORE.fullmatch(value)
+    return None if match is None else str(match.group(1))
 
 
 class CatalogError(ValueError):
@@ -211,6 +220,18 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                         "use audit-upgrades:ECOSYSTEM:NAME with pypi, npm, crates, or go"
                     )
                 continue
+            if ignored_rule.startswith(BANNED_TRANSITIVE_IGNORE_PREFIX):
+                if parse_banned_transitive_ignore(ignored_rule) is None:
+                    raise CatalogError(
+                        f"invalid banned transitive ignore {ignored_rule!r} for {repo_id}; "
+                        "use audit-banned:transitive:NAME"
+                    )
+                continue
+            if ignored_rule.startswith("audit-banned:"):
+                raise CatalogError(
+                    f"invalid banned transitive ignore {ignored_rule!r} for {repo_id}; "
+                    "use audit-banned:transitive:NAME"
+                )
             if ignored_rule.startswith(GIT_SOURCE_IGNORE_PREFIX):
                 if parse_git_source_ignore(ignored_rule) is None:
                     raise CatalogError(

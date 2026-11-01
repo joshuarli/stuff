@@ -341,6 +341,35 @@ def test_dependency_ignores_are_validated_and_kept(tmp_path: Path) -> None:
     }
 
 
+def test_banned_transitive_ignores_are_validated_and_kept(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(
+            3,
+            'ignore = ["audit-banned:transitive:tokio"]\n'
+            'ignore_reason = "tokio is never compiled for the wasm target"',
+        ),
+        encoding="utf-8",
+    )
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+    assert repository.ignored_rules == {"audit-banned:transitive:tokio"}
+
+
+@pytest.mark.parametrize(
+    "code",
+    ["audit-banned:tokio", "audit-banned:transitive:", "audit-banned:transitive:a b"],
+)
+def test_malformed_banned_transitive_ignores_are_rejected(
+    tmp_path: Path, code: str
+) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, f'ignore = ["{code}"]\nignore_reason = "y"'), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="banned transitive ignore"):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
 @pytest.mark.parametrize("code", ["audit-upgrades:getrandom", "audit-upgrades:swift:x", "audit-upgrades:crates:"])
 def test_malformed_dependency_ignores_are_rejected(tmp_path: Path, code: str) -> None:
     path = tmp_path / "catalog.toml"

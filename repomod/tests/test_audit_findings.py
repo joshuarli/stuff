@@ -83,6 +83,70 @@ def test_registry_audit_honors_catalog_source_ignore(tmp_path: Path) -> None:
     assert "foo" in findings[0].message
 
 
+def test_banned_transitive_ignore_suppresses_only_the_named_transitive_crate(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "demo"
+    root.mkdir()
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\nserde = "1"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "serde"\nversion = "1.0.0"\n'
+        '[[package]]\nname = "tokio"\nversion = "1.54.1"\n'
+        '[[package]]\nname = "tokio-macros"\nversion = "2.7.2"\n',
+        encoding="utf-8",
+    )
+    plain = repository("tool", "rust")
+    ignored = Repository(
+        RepoId("acme", "demo"),
+        ("tool", "rust"),
+        ignored_rules=frozenset({"audit-banned:transitive:tokio"}),
+    )
+
+    assert [
+        finding.message
+        for finding in _policy_rule("audit-banned")(root, plain)
+    ] == [
+        "remove bloated transitive tokio 1.54.1",
+        "remove bloated transitive tokio-macros 2.7.2",
+    ]
+    assert [
+        finding.message
+        for finding in _policy_rule("audit-banned")(root, ignored)
+    ] == ["remove bloated transitive tokio-macros 2.7.2"]
+
+
+def test_banned_transitive_ignore_does_not_hide_a_direct_dependency(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "demo"
+    root.mkdir()
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\ntokio = "1"\n',
+        encoding="utf-8",
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "demo"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "tokio"\nversion = "1.54.1"\n',
+        encoding="utf-8",
+    )
+    ignored = Repository(
+        RepoId("acme", "demo"),
+        ("tool", "rust"),
+        ignored_rules=frozenset({"audit-banned:transitive:tokio"}),
+    )
+
+    assert [
+        finding.message
+        for finding in _policy_rule("audit-banned")(root, ignored)
+    ] == ["remove bloated dependency tokio"]
+
+
 def test_vuln_check_reports_osv_entries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
