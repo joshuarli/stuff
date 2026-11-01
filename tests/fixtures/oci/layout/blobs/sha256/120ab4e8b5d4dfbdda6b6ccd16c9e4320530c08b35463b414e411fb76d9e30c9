@@ -1,0 +1,1 @@
+{"architecture":"amd64","config":{"Cmd":["/hello"]},"created":"2026-11-01T00:00:00Z","history":[{"created":"2026-11-01T00:00:00Z","created_by":"stuff oci fixture"}],"os":"linux","rootfs":{"diff_ids":["sha256:978c80575dccc8925810e6ba9cae1b9ca4974d70b37148b6b9b5b9083a2d5e54"],"type":"layers"}}

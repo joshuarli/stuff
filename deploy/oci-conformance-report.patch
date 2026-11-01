@@ -1,0 +1,14 @@
+diff --git a/conformance/run.go b/conformance/run.go
+index 214914d..a7e5761 100644
+--- a/conformance/run.go
++++ b/conformance/run.go
+@@ -815,6 +815,9 @@ func (r *runner) ReportResultsYAML(w io.Writer) error {
+ 		Data:   map[string]status{},
+ 	}
+ 	for k, v := range r.State.DataStatus {
++		if r.State.Data[k] == nil {
++			continue
++		}
+ 		results.Data[r.State.Data[k].name] = v
+ 	}
+ 	return yaml.NewEncoder(w).Encode(results)
