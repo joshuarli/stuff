@@ -101,7 +101,7 @@ jobs:
         run: npm ci
         working-directory: crates/stuff-worker
       - name: build the actual worker bundle
-        run: npm exec -- cf build --mode production
+        run: npm run build
         working-directory: crates/stuff-worker
       - name: exercise the worker runtime
         run: npm run test:runtime

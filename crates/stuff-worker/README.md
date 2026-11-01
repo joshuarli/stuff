@@ -55,3 +55,7 @@ pins (`=0.2.129`).
 `make worker-test` builds the bundle and runs it under workerd (Miniflare,
 a development dependency) for cold-HEAD cache, root-link, and pinned
 artifact-alias coverage.
+
+CI runs `npm run build` and then `npm run test:runtime` in the same build
+directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that
+only `scripts/build.mjs` generates, so the wasm step must run before `tsrs`.
