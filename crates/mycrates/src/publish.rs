@@ -97,33 +97,105 @@ impl<'a> Publisher<'a> {
             self.sync_blob(&rec.checksum)?;
         }
 
+        let rendered = self.render_index(&native_records, &upstream_records)?;
+        let mut manifest = rendered.manifest;
+        let mut files = rendered.files;
+        let mut catalog = rendered.catalog;
+        let mut canonical_text = format!("v:{RENDERER_VERSION}\ncatalog:{}\n", rendered.catalog_fingerprint);
+        for ((view, path), sha) in &manifest {
+            canonical_text.push_str(&format!("{view}|{path}|{sha}\n"));
+        }
+        let mut h = Sha256::new();
+        h.update(canonical_text.as_bytes());
+        let full_sha = format!("{:x}", h.finalize_reset());
+        let gen_id = full_sha[..24].to_string();
+
+        catalog.generation = gen_id.clone();
+        push_rendered_file(
+            &mut manifest,
+            &mut files,
+            "",
+            "catalog.json".to_string(),
+            stuff_catalog::render_catalog_json(&catalog).into_bytes(),
+        );
+        push_rendered_file(
+            &mut manifest,
+            &mut files,
+            "",
+            "index.html".to_string(),
+            stuff_catalog::render_html(&catalog).into_bytes(),
+        );
+        push_rendered_file(
+            &mut manifest,
+            &mut files,
+            "",
+            "llms.txt".to_string(),
+            stuff_catalog::render_llms_txt(&catalog, &self.public_base_url).into_bytes(),
+        );
+
+        if site.current_generation()?.as_deref() == Some(gen_id.as_str())
+            && self.generation_matches(&site.generations_dir().join(&gen_id), &manifest)?
+        {
+            return Ok(PublishResult {
+                generation_id: gen_id,
+                is_noop: true,
+            });
+        }
+
         let staged = site.stage()?;
         let staging_dir = staged.path().to_path_buf();
         let _guard = staged;
+        for file in &files {
+            let path = if file.view.is_empty() {
+                staging_dir.join(&file.path)
+            } else {
+                staging_dir.join(file.view).join(&file.path)
+            };
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            write_file_durable(&path, &file.bytes)?;
+        }
 
-        let staging_registry = staging_dir.join("registry");
-        let staging_mirror = staging_dir.join("crates-io");
-        fs::create_dir_all(&staging_registry)?;
-        fs::create_dir_all(&staging_mirror)?;
+        sync_tree(&staging_dir)?;
+        let activation = site.activate(staging_dir, &gen_id, &|gen_dir| {
+            self.generation_matches(gen_dir, &manifest)
+                .map_err(stuff_store::Error::from)
+        })?;
 
-        let mut manifest: BTreeMap<(String, String), String> = BTreeMap::new();
+        Ok(PublishResult {
+            generation_id: activation.generation_id,
+            is_noop: activation.is_noop,
+        })
+    }
+
+    fn render_index(
+        &self,
+        native_records: &[crate::store::NativeRecord],
+        upstream_records: &[crate::store::UpstreamRecord],
+    ) -> Result<RenderedIndex> {
+        let mut manifest = BTreeMap::new();
+        let mut files = Vec::new();
 
         let native_cfg = native_config_json(&self.public_base_url, self.auth_required);
-        let native_cfg_path = staging_registry.join("config.json");
-        write_file_durable(&native_cfg_path, native_cfg.as_bytes())?;
-        let mut h = Sha256::new();
-        h.update(native_cfg.as_bytes());
-        manifest.insert(("registry".to_string(), "config.json".to_string()), format!("{:x}", h.finalize_reset()));
-
+        push_rendered_file(
+            &mut manifest,
+            &mut files,
+            "registry",
+            "config.json".to_string(),
+            native_cfg.into_bytes(),
+        );
         let mirror_cfg = mirror_config_json(&self.public_base_url);
-        let mirror_cfg_path = staging_mirror.join("config.json");
-        write_file_durable(&mirror_cfg_path, mirror_cfg.as_bytes())?;
-        let mut h = Sha256::new();
-        h.update(mirror_cfg.as_bytes());
-        manifest.insert(("crates-io".to_string(), "config.json".to_string()), format!("{:x}", h.finalize_reset()));
+        push_rendered_file(
+            &mut manifest,
+            &mut files,
+            "crates-io",
+            "config.json".to_string(),
+            mirror_cfg.into_bytes(),
+        );
 
         let mut native_by_crate: BTreeMap<String, Vec<&crate::store::NativeRecord>> = BTreeMap::new();
-        for rec in &native_records {
+        for rec in native_records {
             let lower = CrateName::new(&rec.name)?.lower();
             native_by_crate.entry(lower).or_default().push(rec);
         }
@@ -138,27 +210,22 @@ impl<'a> Publisher<'a> {
                 }
             });
 
-            let shard = shard_for_name(&crate_lower);
-            let out_path = staging_registry.join(&shard);
-            if let Some(parent) = out_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-
             let mut lines = Vec::new();
             for r in recs {
-                let line = serialize_index_line(&r.entry)?;
-                lines.push(line);
+                lines.push(serialize_index_line(&r.entry)?);
             }
             let content = format!("{}\n", lines.join("\n"));
-            write_file_durable(&out_path, content.as_bytes())?;
-
-            let mut h = Sha256::new();
-            h.update(content.as_bytes());
-            manifest.insert(("registry".to_string(), shard), format!("{:x}", h.finalize_reset()));
+            push_rendered_file(
+                &mut manifest,
+                &mut files,
+                "registry",
+                shard_for_name(&crate_lower),
+                content.into_bytes(),
+            );
         }
 
         let mut upstream_by_crate: BTreeMap<String, Vec<&crate::store::UpstreamRecord>> = BTreeMap::new();
-        for rec in &upstream_records {
+        for rec in upstream_records {
             let lower = CrateName::new(&rec.name)?.lower();
             upstream_by_crate.entry(lower).or_default().push(rec);
         }
@@ -173,66 +240,59 @@ impl<'a> Publisher<'a> {
                 }
             });
 
-            let shard = shard_for_name(&crate_lower);
-            let out_path = staging_mirror.join(&shard);
-            if let Some(parent) = out_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-
             let mut lines = Vec::new();
             for r in recs {
                 lines.push(r.raw_index_line.trim().to_string());
             }
             let content = format!("{}\n", lines.join("\n"));
-            write_file_durable(&out_path, content.as_bytes())?;
-
-            let mut h = Sha256::new();
-            h.update(content.as_bytes());
-            manifest.insert(("crates-io".to_string(), shard), format!("{:x}", h.finalize_reset()));
+            push_rendered_file(
+                &mut manifest,
+                &mut files,
+                "crates-io",
+                shard_for_name(&crate_lower),
+                content.into_bytes(),
+            );
         }
 
-        let catalog_inputs = catalog_inputs(&native_records, &upstream_records);
-        let mut catalog = stuff_catalog::cargo_catalog(stuff_catalog::FINGERPRINT_GENERATION, catalog_inputs)
-            .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
+        let catalog = stuff_catalog::cargo_catalog(
+            stuff_catalog::FINGERPRINT_GENERATION,
+            catalog_inputs(native_records, upstream_records),
+        )
+        .map_err(|e| crate::error::Error::Operation(format!("could not build package catalog: {e}")))?;
         let catalog_fingerprint = stuff_catalog::catalog_fingerprint(&catalog, &self.public_base_url);
-
-        let mut canonical_text = format!("v:{RENDERER_VERSION}\ncatalog:{catalog_fingerprint}\n");
-        for ((view, path), sha) in &manifest {
-            canonical_text.push_str(&format!("{view}|{path}|{sha}\n"));
-        }
-        let mut h = Sha256::new();
-        h.update(canonical_text.as_bytes());
-        let full_sha = format!("{:x}", h.finalize_reset());
-        let gen_id = full_sha[..24].to_string();
-
-        catalog.generation = gen_id.clone();
-        let catalog_json = stuff_catalog::render_catalog_json(&catalog);
-        let catalog_html = stuff_catalog::render_html(&catalog);
-        let catalog_llms = stuff_catalog::render_llms_txt(&catalog, &self.public_base_url);
-        write_file_durable(&staging_dir.join("catalog.json"), catalog_json.as_bytes())?;
-        write_file_durable(&staging_dir.join("index.html"), catalog_html.as_bytes())?;
-        write_file_durable(&staging_dir.join("llms.txt"), catalog_llms.as_bytes())?;
-        let mut h = Sha256::new();
-        h.update(catalog_json.as_bytes());
-        manifest.insert((String::new(), "catalog.json".to_string()), format!("{:x}", h.finalize_reset()));
-        let mut h = Sha256::new();
-        h.update(catalog_html.as_bytes());
-        manifest.insert((String::new(), "index.html".to_string()), format!("{:x}", h.finalize_reset()));
-        let mut h = Sha256::new();
-        h.update(catalog_llms.as_bytes());
-        manifest.insert((String::new(), "llms.txt".to_string()), format!("{:x}", h.finalize_reset()));
-
-        sync_tree(&staging_dir)?;
-        let activation = site.activate(staging_dir, &gen_id, &|gen_dir| {
-            self.generation_matches(gen_dir, &manifest)
-                .map_err(stuff_store::Error::from)
-        })?;
-
-        Ok(PublishResult {
-            generation_id: activation.generation_id,
-            is_noop: activation.is_noop,
+        Ok(RenderedIndex {
+            manifest,
+            files,
+            catalog,
+            catalog_fingerprint,
         })
     }
+}
+
+struct RenderedFile {
+    view: &'static str,
+    path: String,
+    bytes: Vec<u8>,
+}
+
+struct RenderedIndex {
+    manifest: BTreeMap<(String, String), String>,
+    files: Vec<RenderedFile>,
+    catalog: stuff_catalog::Catalog,
+    catalog_fingerprint: String,
+}
+
+fn push_rendered_file(
+    manifest: &mut BTreeMap<(String, String), String>,
+    files: &mut Vec<RenderedFile>,
+    view: &'static str,
+    path: String,
+    bytes: Vec<u8>,
+) {
+    let mut h = Sha256::new();
+    h.update(&bytes);
+    manifest.insert((view.to_string(), path.clone()), format!("{:x}", h.finalize()));
+    files.push(RenderedFile { view, path, bytes });
 }
 
 fn catalog_dependencies(entry: &crate::model::IndexEntry) -> stuff_catalog::Dependencies {
