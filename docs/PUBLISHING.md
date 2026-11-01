@@ -112,7 +112,7 @@ CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
 
 When `$STUFF_STATE_HOME` is missing (new machine, lost disk), a plain publish would replace the live registry with the caller's subset. The wrapper prevents that by adopting first: it pulls the current generation and the shared stores, then rebuilds the local publication state before running the helper.
 
-`deploy/r2-pull.py BUCKET DEST` only reads the bucket. It fetches the current generation and the shared stores and checks each object against its listing ETag. It refuses multipart objects, whose ETag is not an MD5, so adoption fails once any object exceeds 300 MB. With `R2_S3_*`, or with credentials minted through `cf`, it lists through the S3 API and downloads `R2_PULL_JOBS` objects in parallel. `R2_PULL_CF_ONLY=1` forces the paced `cf` transport.
+`deploy/r2-pull.py BUCKET DEST` only reads the bucket. It fetches the current generation and the shared stores and checks each object against its listing ETag, using the multipart ETag algorithm for objects uploaded in parts. After the download it checks every entry of the generation's manifest (key, size, ETag) against the pulled tree; a generation published before manifests existed is pulled without that check. With `R2_S3_*`, or with credentials minted through `cf`, it lists through the S3 API and downloads `R2_PULL_JOBS` objects in parallel. `R2_PULL_CF_ONLY=1` forces the paced `cf` transport.
 
 For mycrates with an absent or empty state, adoption runs `mycrates init`, `mycrates adopt`, and `mycrates verify` in a sibling staging directory next to the state. It writes the marker there and renames the whole state into place, so an interrupted run leaves no live state behind and the next publish retries. An existing state without the marker is never replaced. The wrapper runs the idempotent adopt into it, verifies it, and only then writes the marker. Local records that are not on the live site stay in place.
 
@@ -190,7 +190,7 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
-| `is a multipart object; its ETag cannot be verified` | Adoption pulled an object over 300 MB | None yet; adoption cannot verify multipart objects |
+| `differs from its manifest ETag` | A pulled object does not match the generation's manifest | Rerun the pull; if it repeats, the bucket is inconsistent |
 | `publish: waiting for active writer` | Another publish, sync, rollback, or gc holds the lock | Wait for it to finish |
 | `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Adopt again: move the site (mynpm, mypypi) or the mycrates `.adopt-complete` marker aside and publish |
 | `publish: adoption failed; staging is at ...` | A `mynpm` or `mypypi` adopt failed and left its staging directory | Inspect it, then run the printed `rm -rf` command and publish again |

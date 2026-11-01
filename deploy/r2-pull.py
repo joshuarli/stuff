@@ -9,7 +9,8 @@ Env: CF_LOCAL_STATE (local simulation dir), R2_LIST_PAGE (objects per listing
 Read-only against the bucket. DEST_DIR must not exist or must be empty. Pulls
 the generation named by the `current` marker, the manifest of that generation
 when the bucket has one, and every shared immutable store (blobs/, tarballs/,
-wheels/). Each object is verified by size and MD5 ETag against the listing.
+wheels/). Each object is verified by size and ETag against the listing, then
+every entry of the generation's manifest is checked against the pulled tree.
 Then it restores the layout r2-sync leaves out: the `current` symlink and,
 when the bucket has a wheels/ store, the generation's `wheels` symlink to it.
 Other generations are not pulled.
@@ -33,12 +34,14 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 from r2_common import (
+    PART_SIZE,
     Pacer,
     cf_command,
     fail,
     list_page,
     load_sibling,
     md5_hex,
+    multipart_etag,
     object_url,
     s3_list,
     s3_ready,
@@ -141,11 +144,13 @@ def wanted(key, generation):
     return True
 
 
+def object_etag(path, etag):
+    return multipart_etag(path, PART_SIZE) if "-" in etag else md5_hex(path)
+
+
 def download(bucket, dest, obj):
     key = obj["key"]
     etag = obj["etag"].strip('"')
-    if "-" in etag:
-        fail(f"{key} is a multipart object; its ETag cannot be verified by MD5")
     path = os.path.join(dest, safe_relative(key))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".part"
@@ -164,8 +169,8 @@ def download(bucket, dest, obj):
             if "429" in last:
                 PACER.penalize(min(60, RATE_LIMIT_BACKOFF_SECONDS * attempt))
             continue
-        if os.path.getsize(tmp) != obj["size"] or md5_hex(tmp) != etag:
-            last = "size or MD5 differs from the listing"
+        if os.path.getsize(tmp) != obj["size"] or object_etag(tmp, etag) != etag:
+            last = "size or ETag differs from the listing"
             continue
         os.rename(tmp, path)
         return
@@ -201,12 +206,53 @@ def download_s3(bucket, key, path, tmp, size, etag):
             last = str(e)
             time.sleep(min(60, RATE_LIMIT_BACKOFF_SECONDS * attempt))
             continue
-        if received != size or digest.hexdigest() != etag:
-            last = "size or MD5 differs from the listing"
+        actual = multipart_etag(tmp, PART_SIZE) if "-" in etag else digest.hexdigest()
+        if received != size or actual != etag:
+            last = "size or ETag differs from the listing"
             continue
         os.rename(tmp, path)
         return
     fail(f"could not pull {key}: {last}")
+
+
+def verify_manifest(dest, generation):
+    manifest = os.path.join(dest, "manifests", f"{generation}.json")
+    if not os.path.isfile(manifest):
+        print(
+            f"note: generation {generation} has no manifest; object verification is skipped",
+            file=sys.stderr,
+        )
+        return 0
+    try:
+        with open(manifest, encoding="utf-8") as f:
+            document = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        fail(f"cannot read the manifest for generation {generation}: {e}")
+    if not isinstance(document, dict) or document.get("schemaVersion") != 1:
+        fail(f"manifest for generation {generation} has an unsupported schema")
+    objects = document.get("objects")
+    if not isinstance(objects, list):
+        fail(f"manifest for generation {generation} has no object list")
+    for entry in objects:
+        if not isinstance(entry, dict):
+            fail(f"manifest for generation {generation} has an invalid object entry")
+        key = entry.get("key")
+        size = entry.get("size")
+        etag = entry.get("etag")
+        if not isinstance(key, str) or not isinstance(size, int) or not isinstance(etag, str):
+            fail(f"manifest for generation {generation} has an incomplete object entry")
+        local = os.path.join(dest, safe_relative(key))
+        try:
+            actual_size = os.path.getsize(local)
+        except OSError:
+            fail(f"manifest lists {key}, which was not pulled for generation {generation}")
+        if actual_size != size:
+            fail(
+                f"{key} is {actual_size} bytes, but its manifest records {size} for generation {generation}"
+            )
+        if object_etag(local, etag) != etag:
+            fail(f"{key} differs from its manifest ETag for generation {generation}")
+    return len(objects)
 
 
 def main():
@@ -224,6 +270,7 @@ def main():
     with ThreadPoolExecutor(max_workers=JOBS) as pool:
         for _ in pool.map(lambda o: download(bucket, dest, o), objects):
             pass
+    verified = verify_manifest(dest, generation)
     os.symlink(f"generations/{generation}", os.path.join(dest, "current"))
     wheels_store = os.path.join(dest, "wheels")
     wheels_alias = os.path.join(dest, "generations", generation, "wheels")
@@ -231,6 +278,8 @@ def main():
         os.symlink("../../wheels", wheels_alias)
     total = sum(o["size"] for o in objects)
     print(f"pulled {len(objects)} objects ({total} bytes) from {bucket}; current is {generation}")
+    if verified:
+        print(f"verified {verified} manifest objects against the pulled tree")
 
 
 if __name__ == "__main__":

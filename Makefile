@@ -99,6 +99,7 @@ test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and prom
 	@mkdir -p .work/tmp
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
 	deploy/test-r2-pull.sh
+	python3 deploy/test-r2-pull.py
 	deploy/test-prune-generations.sh
 	python3 deploy/test-r2-pull-listing.py
 	python3 deploy/test-r2-gc.py

@@ -33,6 +33,7 @@ check "$(cat "$WORK/dest/manifests/g1.json" | grep -c '"key"')" "4" "manifest li
 [ ! -e "$WORK/dest/generations/g2" ] || { echo "FAIL: pulled a non-current generation"; exit 1; }
 [ -z "$(find "$WORK/dest" -name '*.part')" ] || { echo "FAIL: partial files left behind"; exit 1; }
 grep -q '^pulled 5 objects' "$WORK/pull.log" || { echo "FAIL: summary: $(cat "$WORK/pull.log")"; exit 1; }
+grep -q '^verified 4 manifest objects' "$WORK/pull.log" || { echo "FAIL: manifest verification: $(cat "$WORK/pull.log")"; exit 1; }
 
 if "$HERE/r2-pull.py" t "$WORK/dest" > "$WORK/again.log" 2>&1; then
   echo "FAIL: pulled into a non-empty directory"

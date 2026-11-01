@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-32 · P2 · State recovery from R2 fails on any multipart object
-
-- **Area:** Data
-- **Where:** `deploy/r2-pull.py:144-148`, `deploy/r2-sync.sh:229-243`, `deploy/publish:121`, `deploy/publish:149`, `deploy/publish:162`
-- **Problem:** `download()` fails when a listing ETag contains `-`. `r2-sync.sh` uploads every object over 300 MB as multipart, so the first such wheel or tarball makes every adoption fail, and `deploy/publish` refuses to publish without adopted state. Recovery breaks exactly when the state is lost. No local object exceeds 300 MB today (`fd -S +300m` over the state home found none), so this is not yet hit. Adoption also never checks the pulled tree against `manifests/<gen>.json`, so for mypypi a missing object is adopted silently.
-- **Recommendation:** Verify multipart objects with `r2_common.multipart_etag(path, PART_SIZE)` against the listing ETag, and after the pull check every entry of the generation's manifest (key, size, ETag).
-- **Fix with:** error-model
-- **Effort:** S
-
 ### STUF-34 · P2 · mynpm fetch discards every staged download on one failure or a late deadline
 
 - **Area:** Operability
