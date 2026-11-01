@@ -22,8 +22,9 @@ for repair.
   `mycrates` and the `stuff` CLI.
 - `crates/stuff-server`: native static file server (blocking httparse +
   std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
-- `crates/stuff-worker`: Cloudflare Worker adapter; the wrangler/cf
-  project lives next to the crate (`cf deploy --dry-run` validates).
+- `crates/stuff-worker`: Cloudflare Worker adapter; the cf project lives
+  next to the crate (`npm run build && cf deploy --prebuilt --dry-run`
+  validates the build).
 - `deploy/`: pipeline checks (`check-pipeline-independence.sh`), npm fleet
   ingest (`ingest-npm-fleet.sh`),
   ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;

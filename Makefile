@@ -35,10 +35,10 @@ worker-build: ## Compile the worker wasm glue into crates/stuff-worker/build
 	cd $(WORKER_DIR) && npm run build:wasm
 
 worker-check: ## Validate the worker build and deploy plan without credentials
-	cd $(WORKER_DIR) && cf deploy --dry-run
+	cd $(WORKER_DIR) && npm run build && cf deploy --prebuilt --dry-run
 
 worker-bundle: ## Build the Cloudflare worker bundle once for test and deploy
-	cd $(WORKER_DIR) && cf build --mode production
+	cd $(WORKER_DIR) && npm run build
 
 worker-test: worker-bundle ## Exercise the worker bundle under the workerd runtime
 	cd $(WORKER_DIR) && npm run test:runtime

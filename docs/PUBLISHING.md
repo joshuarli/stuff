@@ -155,13 +155,14 @@ Add `--expected <generation>` to require the bucket to be on that generation bef
 ```sh
 cd crates/stuff-worker
 npm ci
-cf deploy --dry-run
-cf deploy
+npm run build
+cf deploy --prebuilt --dry-run
+cf deploy --prebuilt
 ```
 
-`cf deploy` runs `npm run build:wasm` before bundling `src/entry.ts`. In this deployment, the three buckets already exist. Use `--provision` only when you add a bucket. Custom domains come from the `[[routes]]` entries in `wrangler.toml`.
+`npm run build` compiles the wasm, emits `src/entry.ts` with `tsrs`, and writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`; `cf deploy --prebuilt` uploads that spec without rebuilding it. In this deployment, the three buckets already exist. Use `--provision` only when you add a bucket. Custom domains come from `domains` in `cloudflare.config.ts`.
 
-`cf deploy` delegates the bundle step to the project-local Wrangler, and the runtime integration test uses Miniflare, so both remain development dependencies.
+The runtime integration test uses Miniflare, which remains a development dependency. Wrangler is not part of the build or deploy path.
 
 The Worker uses Workers Caching. The default entrypoint is an uncached gateway;
 the `Registry` entrypoint caches responses under a key that includes the host,

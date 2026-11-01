@@ -170,32 +170,32 @@ R2. URL routing and response planning live in the crate's Rust code
 config parsing — no `worker` SDK, no async runtime in the dependency tree);
 routes match on the request hostname, so each registry serves from its own
 domain root. The thin fetch handler is `src/entry.ts`, which initializes the
-compiled wasm once (`initSync`) and talks to R2 directly. Its project files
-(`wrangler.toml`, generated `cloudflare.config.ts`) live next to the crate.
-Build the wasm and validate without credentials:
+compiled wasm once (`initSync`) and talks to R2 directly. `cloudflare.config.ts`
+next to the crate defines the Worker, bindings, and custom domains. Build and
+validate without credentials:
 
 ```sh
 cd crates/stuff-worker
-npm run build:wasm
-cf migrate --dry-run ./wrangler.toml
-cf deploy --dry-run
+npm run build
+cf deploy --prebuilt --dry-run
 ```
 
-`npm run build:wasm` compiles the crate for `wasm32-unknown-unknown` and
-runs `wasm-bindgen --target web` into `build/` (explicit init: the bundler
-target's namespace import does not resolve to the wasm exports under
-wrangler); keep the installed `wasm-bindgen` CLI at the version pinned in
-`Cargo.lock`. `wrangler deploy` (and `cf deploy`) runs the same build
-automatically via the `[build]` command before bundling `src/entry.ts`.
+`npm run build` compiles the crate for `wasm32-unknown-unknown`, runs
+`wasm-bindgen --target web` into `build/` (explicit init: the bundler target's
+namespace import does not resolve to the wasm exports), emits `src/entry.ts`
+with `tsrs`, and writes the Cloudflare Build Output Specification under
+`.cloudflare/output/v0`. Keep the installed `wasm-bindgen` CLI at the version
+pinned in `Cargo.lock`. `npm run typecheck` checks the TypeScript without
+emitting. Nothing invokes Wrangler: `cf deploy --prebuilt` uploads the spec
+produced by `npm run build`.
 
 Real deploys are manual: `make deploy` builds the Worker bundle once, tests
 it, deploys the same bundle with `cf deploy --prebuilt`, republishes the three
-registries in parallel, and runs the live check. A bare `cf deploy` still
-works (it rebuilds first); use `--provision` once to create the
-`stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets. The
-`[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`,
-`pypi`, and `stuff` custom domains, each serving its registry from `/`
-(see `STUFF_ROUTES` hosts). Registry roots for clients include the
+registries in parallel, and runs the live check. Use `--provision` once to
+create the `stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets. The
+`domains` in `cloudflare.config.ts` attach the `crates`, `npm`, `pypi`, and
+`stuff` custom domains, each serving its registry from `/` (see
+`STUFF_ROUTES` hosts). Registry roots for clients include the
 generation pointer:
 `https://crates.17166969.xyz/current/registry/` (cargo sparse),
 `https://npm.17166969.xyz/current/` (npm), and
