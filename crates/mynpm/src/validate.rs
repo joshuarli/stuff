@@ -403,6 +403,10 @@ fn handle_connection(mut stream: std::net::TcpStream, mirror_dir: &Path, request
         if let Ok(mut log) = requests.lock() {
             log.push(record.clone());
         }
+        let _ = stream.shutdown(std::net::Shutdown::Write);
+        let _ = stream.set_read_timeout(Some(Duration::from_millis(50)));
+        let mut discard = [0u8; 512];
+        while matches!(stream.read(&mut discard), Ok(n) if n > 0) {}
     };
     let is_head = method == "HEAD";
     if method != "GET" && !is_head {
