@@ -272,13 +272,7 @@ fn plan_response(
         }
         Parsed::Request(Request::Referrers { repository, subject, artifact_type, pagination }) => {
             let view = match load_view(site_dir, &repository) {
-                Ok(Some(view)) => view,
-                Ok(None) => {
-                    return (
-                        plan_error(&OciError::name_unknown(repository.as_str())),
-                        None,
-                    );
-                }
+                Ok(view) => view,
                 Err(_) => return (internal_error(), None),
             };
             let _ = view;

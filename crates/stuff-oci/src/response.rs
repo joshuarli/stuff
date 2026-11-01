@@ -399,10 +399,17 @@ pub fn plan_upload_cancel() -> ResponsePlan {
     empty_write_plan(204)
 }
 
-pub fn plan_manifest_put(manifest_location: &str, digest: &Digest) -> ResponsePlan {
+pub fn plan_manifest_put(
+    manifest_location: &str,
+    digest: &Digest,
+    subject: Option<&Digest>,
+) -> ResponsePlan {
     let mut plan = empty_write_plan(201);
     plan.push_header("location", manifest_location);
     plan.push_header("docker-content-digest", digest.as_str());
+    if let Some(subject) = subject {
+        plan.push_header("oci-subject", subject.as_str());
+    }
     plan
 }
 
@@ -756,6 +763,7 @@ mod tests {
         let manifest = plan_manifest_put(
             "/v2/example/app/manifests/stable",
             &Digest::parse(INDEX_DIGEST).unwrap(),
+            None,
         );
         assert_eq!(manifest.status, 201);
         assert_eq!(manifest.header("docker-content-digest"), Some(INDEX_DIGEST));

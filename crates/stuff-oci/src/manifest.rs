@@ -303,14 +303,7 @@ pub fn parse_image(bytes: &[u8]) -> Result<Image, Error> {
         .ok_or_else(|| Error::manifest_invalid("manifest.layers must be an array"))?;
     let mut layers = Vec::with_capacity(layers_seq.len());
     for (i, item) in layers_seq.iter().enumerate() {
-        let descriptor = parse_descriptor(item, &format!("manifest.layers[{i}]"))?;
-        if media::is_foreign_layer(&descriptor.media_type) {
-            return Err(Error::manifest_invalid(format!(
-                "foreign or nondistributable layer is not supported: {}",
-                descriptor.media_type
-            )));
-        }
-        layers.push(descriptor);
+        layers.push(parse_descriptor(item, &format!("manifest.layers[{i}]"))?);
     }
     Ok(Image::Manifest(Box::new(Manifest {
         media_type,
@@ -332,6 +325,9 @@ pub fn validate_manifest_push(
     match &image {
         Image::Manifest(manifest) => {
             for blob in std::iter::once(&manifest.config).chain(manifest.layers.iter()) {
+                if !blob.urls.is_empty() {
+                    continue;
+                }
                 if !blobs.contains(&blob.digest) {
                     return Err(Error::new(
                         ErrorCode::ManifestBlobUnknown,
@@ -419,11 +415,11 @@ mod tests {
     }
 
     #[test]
-    fn rejects_schema_one_foreign_layers_and_bad_digests() {
+    fn rejects_schema_one_and_bad_digests() {
         let schema1 = br#"{"schemaVersion":1,"mediaType":"application/vnd.docker.distribution.manifest.v1+json","fsLayers":[]}"#;
         assert_eq!(parse_image(schema1).unwrap_err().code, ErrorCode::ManifestInvalid);
         let foreign = r#"{"mediaType":"application/vnd.docker.image.rootfs.foreign.diff.tar.gzip","digest":"sha256:882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f","size":117}"#;
-        assert_eq!(parse_image(manifest_json(foreign).as_bytes()).unwrap_err().code, ErrorCode::ManifestInvalid);
+        assert!(parse_image(manifest_json(foreign).as_bytes()).is_ok());
         let bad = r#"{"mediaType":"application/vnd.oci.image.layer.v1.tar+gzip","digest":"sha512:00","size":1}"#;
         assert_eq!(parse_image(manifest_json(bad).as_bytes()).unwrap_err().code, ErrorCode::DigestInvalid);
         assert!(parse_image(&[0xff]).is_err());

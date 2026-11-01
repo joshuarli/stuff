@@ -348,7 +348,7 @@ pub fn oci_manifest_put_json(repository: &str, digest: &str) -> String {
     match (RepositoryName::parse(repository), Digest::parse(digest)) {
         (Ok(repository), Ok(digest)) => {
             let location = format!("/v2/{}/manifests/{}", repository.as_str(), digest.as_str());
-            plan_to_json(stuff_oci::plan_manifest_put(&location, &digest), None, None, false)
+            plan_to_json(stuff_oci::plan_manifest_put(&location, &digest, None), None, None, false)
         }
         (Err(error), _) | (_, Err(error)) => plan_to_json(plan_error(&error), None, None, false),
     }

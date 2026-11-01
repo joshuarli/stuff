@@ -60,14 +60,19 @@ pub fn verify_state(state: &State) -> Result<VerifySummary> {
             }
             if let stuff_oci::Image::Manifest(manifest) = &image {
                 for blob in std::iter::once(&manifest.config).chain(manifest.layers.iter()) {
-                    referenced_blobs.insert(blob.digest.clone());
+                    if blob.urls.is_empty() {
+                        referenced_blobs.insert(blob.digest.clone());
+                    }
                 }
             }
-            if let Some(subject) = image.subject() {
+            if let Some(subject) = image.subject()
+                && let Some(referrer) =
+                    stuff_oci::referrer_descriptor(&image, descriptor.digest.clone(), descriptor.size)
+            {
                 referrers
                     .entry(subject.digest.clone())
                     .or_default()
-                    .push(descriptor.clone());
+                    .push(referrer);
             }
         }
         for (tag, descriptor) in &view.tags {

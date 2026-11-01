@@ -245,9 +245,15 @@ impl State {
     }
 
     pub fn try_push_lock(&self) -> Result<stuff_store::FileLock> {
-        stuff_store::FileLock::try_acquire(&self.root.join(".push.lock"))
-            .map_err(|error| Error::Operation(format!("could not lock the push state: {error:?}")))?
-            .ok_or_else(|| Error::Conflict("another push is committing a manifest".to_string()))
+        stuff_store::FileLock::acquire(&self.root.join(".push.lock"), std::time::Duration::from_secs(5))
+            .map_err(|error| match error {
+                stuff_store::LockError::TimedOut => {
+                    Error::Conflict("another push is committing a manifest".to_string())
+                }
+                stuff_store::LockError::Io(error) => {
+                    Error::Operation(format!("could not lock the push state: {error}"))
+                }
+            })
     }
 
     pub fn set_tag(&self, repository: &RepositoryName, tag: stuff_oci::Tag, digest: &Digest) -> Result<()> {
@@ -280,11 +286,11 @@ impl State {
             let bytes = self.read_manifest(digest)?;
             let image = stuff_oci::parse_image(&bytes)
                 .map_err(|error| Error::Integrity(format!("manifest {digest}: {error}")))?;
-            if let Some(subject) = image.subject() {
+            if let Some(descriptor) = stuff_oci::referrer_descriptor(&image, digest.clone(), bytes.len() as u64) {
                 referrers
-                    .entry(subject.digest.clone())
+                    .entry(image.subject().expect("referrer descriptor requires a subject").digest.clone())
                     .or_default()
-                    .push(view.manifests[digest].clone());
+                    .push(descriptor);
             }
         }
         for (subject, descriptors) in &referrers {

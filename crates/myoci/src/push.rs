@@ -90,9 +90,9 @@ pub fn handle_front(
                 }
             };
             match commit_manifest(&request.repository, &reference, &body, options) {
-                Ok(digest) => {
+                Ok((digest, subject)) => {
                     let location = format!("/v2/{}/manifests/{}", request.repository.as_str(), digest.as_str());
-                    crate::serve::send_plan(stream, &plan_manifest_put(&location, &digest), None);
+                    crate::serve::send_plan(stream, &plan_manifest_put(&location, &digest, subject.as_ref()), None);
                 }
                 Err(error) => crate::serve::send_plan(stream, &plan_error(&error), None),
             }
@@ -119,7 +119,7 @@ fn commit_manifest(
     reference: &Reference,
     body: &[u8],
     options: &PushOptions,
-) -> std::result::Result<Digest, OciError> {
+) -> std::result::Result<(Digest, Option<Digest>), OciError> {
     let _lock = options.state.try_push_lock().map_err(map_error)?;
     let mut view = options
         .state
@@ -146,14 +146,17 @@ fn commit_manifest(
     if let Image::Manifest(manifest) = &image {
         index.insert(manifest.config.digest.clone());
         for layer in &manifest.layers {
-            index.insert(layer.digest.clone());
+            if layer.urls.is_empty() {
+                index.insert(layer.digest.clone());
+            }
         }
     }
     options.state.write_blobs(&index).map_err(map_error)?;
     options.state.write_repository(&view).map_err(map_error)?;
     options.state.rebuild_referrers(&view).map_err(map_error)?;
     publish::publish(&options.state, &options.site_dir, &options.public_url).map_err(map_error)?;
-    Ok(digest)
+    let subject = image.subject().map(|subject| subject.digest.clone());
+    Ok((digest, subject))
 }
 
 fn map_error(error: Error) -> OciError {
@@ -172,11 +175,10 @@ fn read_body(
     pending: &[u8],
     limit: usize,
 ) -> std::result::Result<Vec<u8>, OciError> {
-    if header(headers, "transfer-encoding").is_some() {
-        return Err(OciError::new(
-            ErrorCode::SizeInvalid,
-            "chunked request bodies are not supported",
-        ));
+    if header(headers, "transfer-encoding")
+        .is_some_and(|value| value.to_ascii_lowercase().contains("chunked"))
+    {
+        return read_chunked_body(stream, pending, limit);
     }
     let length = header(headers, "content-length")
         .and_then(|value| value.parse::<usize>().ok())
@@ -194,6 +196,62 @@ fn read_body(
         stream
             .read_exact(&mut body[copied..])
             .map_err(|error| OciError::new(ErrorCode::SizeInvalid, format!("could not read body: {error}")))?;
+    }
+    Ok(body)
+}
+
+fn read_chunked_body(
+    stream: &mut TcpStream,
+    pending: &[u8],
+    limit: usize,
+) -> std::result::Result<Vec<u8>, OciError> {
+    use std::io::{BufRead, BufReader, Read};
+
+    let mut reader = BufReader::new(std::io::Cursor::new(pending.to_vec()).chain(stream));
+    let mut body = Vec::new();
+    loop {
+        let mut line = String::new();
+        reader
+            .read_line(&mut line)
+            .map_err(|error| OciError::new(ErrorCode::SizeInvalid, format!("could not read chunk size: {error}")))?;
+        let size_text = line
+            .trim_end_matches(['\r', '\n'])
+            .split(';')
+            .next()
+            .unwrap_or("")
+            .trim();
+        let size = usize::from_str_radix(size_text, 16)
+            .map_err(|_| OciError::new(ErrorCode::SizeInvalid, format!("invalid chunk size {size_text:?}")))?;
+        if size == 0 {
+            loop {
+                let mut trailer = String::new();
+                let read = reader
+                    .read_line(&mut trailer)
+                    .map_err(|error| OciError::new(ErrorCode::SizeInvalid, format!("could not read trailers: {error}")))?;
+                if read == 0 || trailer == "\r\n" || trailer == "\n" {
+                    break;
+                }
+            }
+            break;
+        }
+        if body.len() + size > limit {
+            return Err(OciError::new(
+                ErrorCode::SizeInvalid,
+                format!("request body exceeds {limit} bytes"),
+            ));
+        }
+        let start = body.len();
+        body.resize(start + size, 0);
+        reader
+            .read_exact(&mut body[start..])
+            .map_err(|error| OciError::new(ErrorCode::SizeInvalid, format!("could not read chunk: {error}")))?;
+        let mut crlf = [0u8; 2];
+        reader
+            .read_exact(&mut crlf)
+            .map_err(|error| OciError::new(ErrorCode::SizeInvalid, format!("could not read chunk terminator: {error}")))?;
+        if crlf != *b"\r\n" {
+            return Err(OciError::new(ErrorCode::SizeInvalid, "chunk is not CRLF terminated"));
+        }
     }
     Ok(body)
 }

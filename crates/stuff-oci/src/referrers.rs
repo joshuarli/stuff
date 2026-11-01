@@ -8,7 +8,13 @@ use crate::error::Error;
 
 pub fn referrer_descriptor(image: &Image, digest: Digest, size: u64) -> Option<Descriptor> {
     image.subject()?;
-    Some(image.descriptor(digest, size))
+    let mut descriptor = image.descriptor(digest, size);
+    if descriptor.artifact_type.is_none()
+        && let Image::Manifest(manifest) = image
+    {
+        descriptor.artifact_type = Some(manifest.config.media_type.clone());
+    }
+    Some(descriptor)
 }
 
 pub fn filter_referrers(descriptors: &[Descriptor], artifact_type: Option<&str>) -> Vec<Descriptor> {

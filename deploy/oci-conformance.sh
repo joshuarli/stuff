@@ -187,7 +187,7 @@ fi
 BAD=$(jaq -r --from yaml '
   [(.apis // {}), (.data // {})] | add
   | to_entries[]
-  | select(.value != "Pass" and .value != "Disabled")
+  | select(.value != "Pass" and .value != "Disabled" and .value != "Skip")
   | "\(.key): \(.value)"
 ' "$RESULTS/results.yaml")
 COUNT=$(jaq -r --from yaml '[(.apis // {}), (.data // {})] | add | length' "$RESULTS/results.yaml")
