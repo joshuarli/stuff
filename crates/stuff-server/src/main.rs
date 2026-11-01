@@ -3,7 +3,7 @@
 use std::io::{Read, Seek, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use stuff_server::admission::try_admit;
@@ -11,6 +11,7 @@ use stuff_server::{etag_for, respond, Config, ResponseBody, Route};
 
 const DEFAULT_MAX_CONNECTIONS: usize = 64;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+const MIN_TRANSFER_BYTES_PER_SEC: u64 = 64 * 1024;
 const MAX_HEADER_LINE: usize = 8192;
 const MAX_HEADER_BYTES: usize = 65536;
 
@@ -18,6 +19,7 @@ const NOT_FOUND: &[u8] = b"not found";
 const HEADER_LINE_TOO_LONG: &[u8] = b"header line too long";
 const HEADERS_TOO_LARGE: &[u8] = b"headers too large";
 const REQUEST_TIMED_OUT: &[u8] = b"request timed out";
+const MALFORMED_REQUEST: &[u8] = b"malformed request";
 const TOO_MANY_REQUESTS: &[u8] = b"too many concurrent requests";
 
 struct DeadlineReader {
@@ -63,6 +65,19 @@ fn send_text(stream: &mut TcpStream, status: u16, reason: &str, body: &'static [
     let _ = stream.write_all(body);
 }
 
+fn refuse(mut stream: TcpStream, status: u16, reason: &str, body: &'static [u8]) {
+    send_text(&mut stream, status, reason, body);
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+    let _ = stream.set_nonblocking(true);
+    let mut sink = [0u8; 8192];
+    for _ in 0..64 {
+        match stream.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {}
+        }
+    }
+}
+
 fn usage() -> ! {
     eprintln!("usage: stuff-server --bind ADDR --route PREFIX=DIR [--route PREFIX=DIR ...]");
     std::process::exit(2);
@@ -105,10 +120,19 @@ fn set_header(headers: &mut Vec<(String, String)>, name: &str, value: String) {
     }
 }
 
+fn response_deadline(len: u64) -> Duration {
+    REQUEST_TIMEOUT.max(Duration::from_secs(len.div_ceil(MIN_TRANSFER_BYTES_PER_SEC)))
+}
+
 fn send_opened(stream: &mut TcpStream, mut file: std::fs::File, len: u64) {
+    let deadline = Instant::now() + response_deadline(len);
     let mut remaining = len;
     let mut buf = [0u8; 65536];
     while remaining > 0 {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() || stream.set_write_timeout(Some(left)).is_err() {
+            break;
+        }
         let want = remaining.min(buf.len() as u64) as usize;
         let n = match file.read(&mut buf[..want]) {
             Ok(0) => break,
@@ -180,6 +204,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) {
     let mut headers_buf = [httparse::EMPTY_HEADER; 64];
     let mut req = httparse::Request::new(&mut headers_buf);
     if !matches!(req.parse(&header_bytes), Ok(httparse::Status::Complete(_))) {
+        send_text(&mut stream, 400, "Bad Request", MALFORMED_REQUEST);
         return;
     }
     let method = req.method.unwrap_or_default();
@@ -309,16 +334,15 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     listener.set_nonblocking(true)?;
     println!("listening on {}", listener.local_addr()?);
 
-    static STOP: AtomicBool = AtomicBool::new(false);
     let active = Arc::new(AtomicUsize::new(0));
-    while !STOP.load(Ordering::Relaxed) {
+    loop {
         match listener.accept() {
-            Ok((mut stream, _)) => {
+            Ok((stream, _)) => {
                 if stream.set_nonblocking(false).is_err() {
                     continue;
                 }
                 let Some(guard) = try_admit(&active, max_connections) else {
-                    send_text(&mut stream, 503, "Service Unavailable", TOO_MANY_REQUESTS);
+                    refuse(stream, 503, "Service Unavailable", TOO_MANY_REQUESTS);
                     continue;
                 };
                 let config = config.clone();
@@ -330,8 +354,10 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 std::thread::sleep(Duration::from_millis(10));
             }
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => {
+                eprintln!("stuff-server: accept failed: {e}");
+                std::thread::sleep(Duration::from_millis(100));
+            }
         }
     }
-    Ok(())
 }

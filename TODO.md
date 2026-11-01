@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-42 · P3 · stuff-server slots can be pinned by slow readers, and an accept error exits the server
-
-- **Area:** Concurrency
-- **Where:** `crates/stuff-server/src/main.rs:108-127`, `crates/stuff-server/src/main.rs:182-184`, `crates/stuff-server/src/main.rs:312-333`
-- **Problem:** The 30 s deadline covers only the header read; the body send has a per-write timeout only, so a client reading slowly holds one of the `--max-connections` slots indefinitely. Any non-`WouldBlock` `accept` error, including transient ones and `EMFILE`, returns from the loop and exits the process. A header parse failure closes the socket without a response, and `static STOP` is never set. `--max-connections` and its 503 path have no test.
-- **Recommendation:** Add a total response deadline or minimum transfer rate, log and continue on transient accept errors, answer parse failures with 400, delete `STOP`, and add one overload test.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### STUF-43 · P3 · Worker range requests read R2 twice and query strings bypass the cache
 
 - **Area:** Performance
