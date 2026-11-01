@@ -94,5 +94,25 @@ request. `merge --dry-run` lists the matches without writing.
 Push uses a normal fast-forward Git push and keeps local commits on failure. `push` pushes
 each selected checkout's current branch when it is ahead of its origin upstream and skips
 anything else with a reason. `topics apply`
-replaces GitHub topics with the catalog's complete tag set. `pins refresh` updates the local
-approved GitHub Action, Python tool, and TypeScript tool versions from their upstream sources.
+replaces GitHub topics with the catalog's complete tag set.
+
+`pins refresh` updates the local approved pins from their upstream sources: `actions.toml`,
+`python-tools.toml`, `typescript-tools.toml`, and `musl-toolchain.toml`. `--only` restricts
+the run to `actions`, `python`, `typescript`, or `musl` so one domain's upstream outage or
+drift does not block another. `--check` fetches and compares every selected file, prints the
+paths that would change, writes nothing, and exits 1 on drift. A fetch or parse failure
+writes no file and exits 2. The command stages refreshed content in a disposable directory
+and validates it before any file is replaced, so a failed run leaves the approved pins
+untouched.
+
+`musl-toolchain.toml` is the approved source for musl Linux builds. It records the upstream
+musl release, the `stable` and `edge` Alpine channels with their index and per-architecture
+manifest digests, exact direct package versions per channel and architecture, the LLVM, mold,
+and rustup archives with SHA256 checksums, the bespoke builder adapters, and an optional
+published canonical image. The refresh reads only the musl release page, the Alpine
+`APKINDEX` files, and Docker image metadata; it preserves the manually owned toolchain
+versions and checksums. The stable channel approves one immutable patch, so the moving
+`alpine:<branch>` release is reported as an observation and never written. The owner reviews
+that observation, updates `image` and `index_digest`, and builds the image before a newer
+patch becomes approved. See [policy development](policy-development.md) for the checks the
+lock enforces.

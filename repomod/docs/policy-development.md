@@ -129,7 +129,48 @@ See the [Pinact guide](https://github.com/joshuarli/usr/blob/main/tools/pinact/R
 
 `pins refresh` fetches stable releases and commit SHAs for `actions.toml`. Pinact's catalog-backed
 fixer updates references and version comments only within an identifiable major; major changes and
-unlabeled SHAs still need review.
+unlabeled SHAs still need review. `--only actions|python|typescript|musl` restricts the run to one
+pin domain, and `--check` reports the files that would change without writing them (exit 1 on
+drift). A failing fetch or malformed source exits 2 and writes nothing.
+
+## Musl toolchain lock
+
+`musl-toolchain.toml` is the single approved lock for musl Linux build inputs. It owns:
+
+- the upstream musl release and release date;
+- the `stable` and `edge` Alpine channels, with the approved `image` tag, index digest,
+  per-architecture (`amd64`, `arm64`) manifest digests, and Alpine release;
+- the exact direct `apk` versions per channel and architecture (`x86_64`, `aarch64`);
+- the LLVM, mold, and rustup version and archive pins with SHA256 checksums;
+- the bespoke builder adapters (`python-build`, `chromium-build`, `node-build`, `git-build`,
+  and `zzz`);
+- an optional `[image]` reference and digest for the published canonical builder.
+
+The loader rejects a lock whose version is not `1`, whose channel names are not `stable` and
+`edge`, whose digests are not `sha256:` values with 64 lowercase hex characters, whose
+`musl` and `musl-dev` versions differ within a channel and architecture, whose musl package
+does not match the upstream release, whose adapter kind or fields are unknown, or whose
+adapter paths escape the repository. The `stable` branch is an Alpine major/minor line; the
+`edge` branch is `edge`.
+
+`pins refresh --only musl` reads the musl release page, the stable and edge main and
+community `APKINDEX` files for both architectures, and the Docker image metadata for each
+approved channel. It parses `P:`/`V:`/`S:` records directly rather than shelling out to
+`apk`, keeps the approved package set, and verifies that each package still exists. Unrelated
+packages that appear more than once in an index do not affect the approved set. A missing
+package, a malformed index, a failed fetch, a Docker failure, or a rendered lock that does not
+round-trip fails the refresh without writing.
+
+The refresh updates the upstream release, channel digests, manifests, Alpine releases, and
+package versions. It preserves the manually owned LLVM, mold, and rustup versions and
+checksums; those bumps are explicit, checksum-verified edits. The stable channel
+approves one immutable patch, so `pins refresh --only musl` prints the current release of the
+moving `alpine:<branch>` tag as an observation but does not write it. A newer branch patch
+does not fail `--check`; a newer musl package revision, a changed channel digest, or a stale
+approved image does. To approve a newer patch, update `image` and `index_digest`, refresh,
+build the canonical image, and run its smoke test. The package table covers every package the
+conventional builders, tansu, and `git-build` install directly; add a package only when a
+real builder uses it, with its live index version.
 
 `github-protection` requires zero approving reviews on protected branches so owner-only
 automation never waits on reviews. Repositories without branch protection are skipped.

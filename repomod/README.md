@@ -105,6 +105,21 @@ See [policy development](docs/policy-development.md) for rule behavior. Report p
 See [GitHub Actions integration](docs/policy-development.md#github-actions-with-pinact) for the
 Pinact checker, approved catalog, and fix-plan flow.
 
+## Pins
+
+`repomod pins refresh` updates the approved pin files from their upstream sources:
+`actions.toml`, `python-tools.toml`, `typescript-tools.toml`, and `musl-toolchain.toml`.
+`--only` restricts the run to `actions`, `python`, `typescript`, or `musl`. `--check`
+fetches and compares without writing, prints the files that would change, and exits 1 on
+drift; a failed fetch or malformed source exits 2 and writes nothing. Pin bumps that select
+a new toolchain version, such as LLVM, mold, or rustup, are manual, checksum-verified edits.
+
+```sh
+uv run repomod pins refresh
+uv run repomod pins refresh --check
+uv run repomod pins refresh --only musl
+```
+
 ## Push
 
 `repomod push` pushes each selected checkout's current branch when it is ahead of

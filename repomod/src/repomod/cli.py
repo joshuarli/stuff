@@ -11,6 +11,7 @@ from repomod.cmd.fix import _fix
 from repomod.cmd.gc import _gc
 from repomod.cmd.lint import _lint
 from repomod.cmd.merge import _merge
+from repomod.cmd.pins import _pins
 from repomod.cmd.push import _push
 from repomod.cmd.status import _status
 from repomod.cmd.sync import _sync
@@ -53,6 +54,12 @@ def _parser() -> argparse.ArgumentParser:
     sync = commands.add_parser("sync", help="clone or safely fast-forward catalogued checkouts")
     sync.add_argument("--dry-run", action="store_true")
     sync.add_argument("--workers", type=int, default=4)
+
+    pins = commands.add_parser("pins", help="refresh approved action, tool, and toolchain pins")
+    pin_commands = pins.add_subparsers(dest="operation", required=True)
+    refresh = pin_commands.add_parser("refresh", help="refresh pin files from their upstream sources")
+    refresh.add_argument("--check", action="store_true", help="report drift without writing")
+    refresh.add_argument("--only", choices=("actions", "python", "typescript", "musl"))
 
     push = commands.add_parser(
         "push", help="push checked-out branches that are ahead of their origin upstream"
@@ -111,6 +118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "lint": _lint,
             "fix": _fix,
             "sync": _sync,
+            "pins": _pins,
             "push": _push,
             "merge": _merge,
             "gc": _gc,
