@@ -7,10 +7,6 @@ use std::time::Duration;
 
 use crate::error::{Error, Result};
 
-pub const DEFAULT_CARGO_BASE: &str = "https://crates.17166969.xyz";
-pub const DEFAULT_NPM_BASE: &str = "https://npm.17166969.xyz";
-pub const DEFAULT_PYPI_BASE: &str = "https://pypi.17166969.xyz";
-
 const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_CATALOG_BYTES: u64 = 32 * 1024 * 1024;
 

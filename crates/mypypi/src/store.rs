@@ -599,7 +599,6 @@ fn parse_manifest(text: &str, manifest_path: &Path) -> Result<Vec<ManifestRow>> 
             yanked,
             targets,
         });
-        let _ = rows;
     }
     Ok(rows)
 }
@@ -664,21 +663,7 @@ pub fn publish(
         }
     }
     let new_items = prepare_index_artifacts(artifacts, &reasons).map_err(|e| {
-        let kind = match &e.kind {
-            Kind::InvalidInput => Kind::InvalidInput,
-            Kind::Configuration => Kind::Configuration,
-            Kind::MissingArtifact => Kind::MissingArtifact,
-            Kind::Integrity => Kind::Integrity,
-            Kind::Incompatible => Kind::Incompatible,
-            Kind::Dependency => Kind::Dependency,
-            Kind::Build => Kind::Build,
-            Kind::Validation => Kind::Validation,
-            Kind::Conflict => Kind::Conflict,
-            Kind::Limit => Kind::Limit,
-            Kind::Network => Kind::Network,
-            Kind::Io => Kind::Io,
-        };
-        let mut out = Error::new(kind, e.detail.clone(), Stage::Publication);
+        let mut out = Error::new(e.kind, e.detail.clone(), Stage::Publication);
         out.package = e.package.clone();
         out.target = e.target.clone();
         out

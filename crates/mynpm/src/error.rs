@@ -11,7 +11,6 @@ pub enum Error {
     Corrupt(String),
     Limit(String),
     Network(String),
-    Cancelled(String),
 }
 
 impl std::fmt::Display for Error {
@@ -24,7 +23,6 @@ impl std::fmt::Display for Error {
             Error::Corrupt(s) => write!(f, "corrupt: {s}"),
             Error::Limit(s) => write!(f, "limit: {s}"),
             Error::Network(s) => write!(f, "network: {s}"),
-            Error::Cancelled(s) => write!(f, "cancelled: {s}"),
         }
     }
 }
@@ -60,7 +58,7 @@ impl From<Error> for stuff_store::Error {
     fn from(e: Error) -> Self {
         match e {
             Error::Usage(s) | Error::Input(s) => stuff_store::Error::Input(s),
-            Error::Operation(s) | Error::Cancelled(s) => stuff_store::Error::Operation(s),
+            Error::Operation(s) => stuff_store::Error::Operation(s),
             Error::Conflict(s) => stuff_store::Error::Conflict(s),
             Error::Corrupt(s) => stuff_store::Error::Integrity(s),
             Error::Limit(s) => stuff_store::Error::Limit(s),
@@ -81,7 +79,6 @@ impl Error {
             Error::Corrupt(_) => 3,
             Error::Limit(_) => 5,
             Error::Network(_) => 6,
-            Error::Cancelled(_) => 130,
         }
     }
 }
@@ -99,7 +96,6 @@ mod tests {
         assert_eq!(Error::Corrupt(String::new()).exit_code(), 3);
         assert_eq!(Error::Limit(String::new()).exit_code(), 5);
         assert_eq!(Error::Network(String::new()).exit_code(), 6);
-        assert_eq!(Error::Cancelled(String::new()).exit_code(), 130);
     }
 
     #[test]

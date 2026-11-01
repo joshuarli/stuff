@@ -190,17 +190,19 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
         }
         Ok((timed_out, exit_code))
     })();
-    let _ = out_handle.join();
-    let _ = err_handle.join();
     let (timed_out, exit_code) = match overflow {
         Ok(values) => values,
         Err(e) => {
             signal_group(pid, "-KILL");
             let _ = child.kill();
             let _ = child.wait();
+            let _ = out_handle.join();
+            let _ = err_handle.join();
             return Err(e);
         }
     };
+    let _ = out_handle.join();
+    let _ = err_handle.join();
 
     if timed_out {
         return Err(Error::Operation(format!(
@@ -254,6 +256,22 @@ mod tests {
         let message = format!("{err}");
         assert!(message.contains("exited with status 3"), "{message}");
         assert!(message.contains("oops"), "{message}");
+    }
+
+    #[test]
+    fn output_overflow_kills_the_child_before_joining_readers() {
+        let mut options = opts();
+        options.stdout_mode = StdoutMode::Full { max_bytes: 1024 };
+        options.timeout_ms = 60_000;
+        let started = Instant::now();
+        let err = run_process(
+            "/bin/sh",
+            &["-c".to_string(), "yes | head -c 100000; sleep 30".to_string()],
+            &options,
+        )
+        .unwrap_err();
+        assert!(format!("{err}").contains("output exceeds"), "{err}");
+        assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
     }
 
     #[test]

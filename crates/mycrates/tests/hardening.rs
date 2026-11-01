@@ -112,17 +112,21 @@ fn start_raw_server_with_timeouts(
         site_dir,
         public_base_url: format!("http://127.0.0.1:{port}"),
         limits: LimitsConfig::default(),
+        max_connections: 64,
+        max_writes: 4,
         header_timeout,
         body_timeout,
     };
+    let writes = Arc::new(AtomicUsize::new(0));
     let handle = thread::spawn(move || {
         let _ = listener.set_nonblocking(true);
         while !stop_clone.load(Ordering::Relaxed) {
             match listener.accept() {
                 Ok((stream, _)) => {
                     let cfg = cfg.clone();
+                    let writes = Arc::clone(&writes);
                     thread::spawn(move || {
-                        let _ = handle_connection(stream, &cfg);
+                        let _ = handle_connection(stream, &cfg, &writes);
                     });
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -425,7 +429,7 @@ fn corrupted_stored_blob_after_publish() {
     let store = Store::new(state_dir.clone());
     let recs = store.load_native_records().unwrap();
     assert_eq!(recs.len(), 1);
-    let blob_path = store.blobs_dir().join(format!("{}.crate", recs[0].checksum));
+    let blob_path = store.blobs_dir().join(format!("{}.crate", recs[0].entry.cksum));
 
     // Corrupt the blob in state store
     fs::write(&blob_path, b"corrupted-blob-bytes").unwrap();
@@ -439,10 +443,10 @@ fn corrupted_stored_blob_after_publish() {
         other => panic!("expected Integrity, got {other:?}"),
     }
 
-    // Subsequent publish attempt fails before exposing
+    // A publish without changes does not re-hash the store; full content
+    // checks belong to `verify` (and adoption).
     let publ = Publisher::new(&store, site_dir.clone(), server.base_url());
-    let pub_err = publ.publish().unwrap_err();
-    assert!(format!("{pub_err}").contains("tampered blob"));
+    assert!(publ.publish().unwrap().is_noop);
 }
 
 #[test]
@@ -542,7 +546,7 @@ fn concurrent_writers_over_http() {
     // Current generation must contain all published crates
     for i in 0..num_writers {
         let name = format!("pkg-conc-{}", i);
-        let rec = recs.iter().find(|r| r.name == name);
+        let rec = recs.iter().find(|r| r.entry.name == name);
         assert!(rec.is_some(), "missing record for {name}");
     }
 }
@@ -578,11 +582,11 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 400"), "expected 400, got {resp:?}");
         assert!(resp.contains("empty json"));
     }
 
-    // 2. Corrupt gzip payload in crate tarball -> 400
+    // 2. Corrupt gzip payload in crate tarball -> 422
     {
         let json = deser_json::to_string(&deser_value::value!({
             "name": "corrupt-gz",
@@ -605,10 +609,10 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 422"), "expected 422, got {resp:?}");
     }
 
-    // 3. Name mismatch between JSON metadata and Cargo.toml -> 400
+    // 3. Name mismatch between JSON metadata and Cargo.toml -> 422
     {
         let crate_bytes = make_test_crate("real-name", "1.0.0");
         let json = deser_json::to_string(&deser_value::value!({
@@ -631,7 +635,7 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 422"), "expected 422, got {resp:?}");
         assert!(resp.contains("wrong prefix") || resp.contains("name/version mismatch"));
     }
 }

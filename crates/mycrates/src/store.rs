@@ -1,10 +1,12 @@
 use crate::error::{Error, Result};
 use crate::model::{CrateName, IndexEntry, Version};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use stuff_store::{stream_file_hash, sync_dir, write_file_durable, FileLock, HashAlg, LockError};
 
@@ -16,18 +18,59 @@ pub struct StoreLockGuard {
     _lock: FileLock,
 }
 
+type CollisionIndex = Arc<Mutex<HashMap<PathBuf, HashMap<String, Vec<PathBuf>>>>>;
+
 #[derive(Debug, Clone)]
 pub struct Store {
     pub state_dir: PathBuf,
+    collision_index: CollisionIndex,
 }
 
-#[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct NativeRecord {
-    pub name: String,
-    pub vers: String,
-    pub checksum: String,
-    pub yanked: bool,
     pub entry: IndexEntry,
+}
+
+#[derive(deser::Serialize, deser::Deserialize)]
+struct StoredNativeRecord {
+    name: String,
+    vers: String,
+    checksum: String,
+    yanked: bool,
+    entry: IndexEntry,
+}
+
+impl StoredNativeRecord {
+    fn from_entry(entry: &IndexEntry) -> Self {
+        Self {
+            name: entry.name.clone(),
+            vers: entry.vers.clone(),
+            checksum: entry.cksum.clone(),
+            yanked: entry.yanked,
+            entry: entry.clone(),
+        }
+    }
+
+    fn into_record(self, path: &Path) -> Result<NativeRecord> {
+        let disagreement = if self.name != self.entry.name {
+            Some("name")
+        } else if self.vers != self.entry.vers {
+            Some("vers")
+        } else if self.checksum != self.entry.cksum {
+            Some("checksum")
+        } else if self.yanked != self.entry.yanked {
+            Some("yanked")
+        } else {
+            None
+        };
+        match disagreement {
+            Some(field) => Err(Error::Integrity(format!(
+                "native record {} disagrees with its index entry on {field}",
+                path.display()
+            ))),
+            None => Ok(NativeRecord { entry: self.entry }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
@@ -48,7 +91,10 @@ fn lock_error(e: LockError) -> Error {
 
 impl Store {
     pub fn new(state_dir: PathBuf) -> Self {
-        Self { state_dir }
+        Self {
+            state_dir,
+            collision_index: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     pub fn blobs_dir(&self) -> PathBuf {
@@ -93,29 +139,13 @@ impl Store {
         Ok(guard)
     }
 
-    pub fn try_lock_exclusive(&self) -> Result<StoreLockGuard> {
-        self.ensure_dirs()?;
-        let lock = match FileLock::try_acquire(&self.lock_path()).map_err(lock_error)? {
-            Some(lock) => lock,
-            None => return Err(Error::Conflict("another operation holds the store lock".to_string())),
-        };
-        let guard = StoreLockGuard { _lock: lock };
-        self.recover_staging()?;
-        self.recover_uploads()?;
-        Ok(guard)
-    }
-
     pub fn recover_staging(&self) -> Result<()> {
         let blobs = self.blobs_dir();
         if blobs.exists() {
             for entry in fs::read_dir(&blobs)? {
                 let entry = entry?;
                 let file_name = entry.file_name();
-                let name = file_name.to_string_lossy();
-                let stale_tmp = name.starts_with(".tmp");
-                let stale_upload =
-                    name.starts_with(".upload.") && is_older_than(&entry.path(), STALE_UPLOAD_AGE);
-                if stale_tmp || stale_upload {
+                if file_name.to_string_lossy().starts_with(".tmp") {
                     let _ = fs::remove_file(entry.path());
                 }
             }
@@ -147,20 +177,38 @@ impl Store {
             return Ok(());
         }
         let norm = name.norm_key();
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            if !entry.file_type()?.is_dir() {
-                continue;
+        let matching = {
+            let mut index = self.collision_index.lock().unwrap_or_else(|p| p.into_inner());
+            if !index.contains_key(dir) {
+                let mut by_norm: HashMap<String, Vec<PathBuf>> = HashMap::new();
+                for entry in fs::read_dir(dir)? {
+                    let entry = entry?;
+                    if !entry.file_type()?.is_dir() {
+                        continue;
+                    }
+                    let dir_norm = entry
+                        .file_name()
+                        .to_string_lossy()
+                        .to_lowercase()
+                        .replace('_', "-");
+                    by_norm.entry(dir_norm).or_default().push(entry.path());
+                }
+                index.insert(dir.to_path_buf(), by_norm);
             }
-            let crate_dir = entry.path();
-            let dir_name = entry.file_name().to_string_lossy().to_string();
-            let dir_norm = dir_name.to_lowercase().replace('_', "-");
-            if dir_norm != norm {
-                continue;
-            }
+            index
+                .get(dir)
+                .and_then(|by_norm| by_norm.get(&norm))
+                .cloned()
+                .unwrap_or_default()
+        };
+        for crate_dir in matching {
+            let dir_name = crate_dir
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
             match canonical_names_in(&crate_dir)? {
                 None => {
-                    if dir_name != name.lower() && dir_norm == norm {
+                    if dir_name != name.lower() {
                         let existing = canonical_fallback(&crate_dir);
                         return Err(Error::Conflict(format!(
                             "crate name collision: '{}' conflicts with existing '{}'",
@@ -183,6 +231,16 @@ impl Store {
             }
         }
         Ok(())
+    }
+
+    fn remember_crate_dir(&self, dir: &Path, name: &CrateName, crate_dir: &Path) {
+        let mut index = self.collision_index.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(by_norm) = index.get_mut(dir) {
+            let entries = by_norm.entry(name.norm_key()).or_default();
+            if !entries.iter().any(|path| path == crate_dir) {
+                entries.push(crate_dir.to_path_buf());
+            }
+        }
     }
 
     pub fn ingest_staged_file(&self, path: &Path, expected_sha256: &str) -> Result<String> {
@@ -278,13 +336,14 @@ impl Store {
 
     pub fn put_native_record(&self, record: &NativeRecord) -> Result<bool> {
         self.ensure_dirs()?;
-        let name = CrateName::new(&record.name)?;
-        let ver = Version::new(&record.vers)?;
+        let name = CrateName::new(&record.entry.name)?;
+        let ver = Version::new(&record.entry.vers)?;
 
         self.check_name_collision(&self.native_dir(), &name)?;
 
         let crate_dir = self.native_dir().join(name.lower());
         fs::create_dir_all(&crate_dir)?;
+        self.remember_crate_dir(&self.native_dir(), &name, &crate_dir);
 
         let uniq = ver.uniqueness_key();
         for existing_path in self.native_version_files(&crate_dir)? {
@@ -294,14 +353,14 @@ impl Store {
                 .is_some_and(|stem| stem != ver.key())
             {
                 let existing_data = fs::read_to_string(&existing_path)?;
-                let existing: NativeRecord = crate::toml::from_str(&existing_data)
+                let existing: StoredNativeRecord = crate::toml::from_str(&existing_data)
                     .map_err(|e| Error::Integrity(format!("invalid native record {}: {e}", existing_path.display())))?;
                 if let Ok(existing_ver) = Version::new(&existing.vers)
                     && existing_ver.uniqueness_key() == uniq
                 {
                     return Err(Error::Conflict(format!(
                         "version {} conflicts with existing {} (build metadata ignored for identity)",
-                        record.vers, existing.vers
+                        record.entry.vers, existing.vers
                     )));
                 }
             }
@@ -310,19 +369,21 @@ impl Store {
         let record_path = crate_dir.join(format!("{}.toml", ver.key()));
         if record_path.exists() {
             let existing_data = fs::read_to_string(&record_path)?;
-            let existing: NativeRecord = crate::toml::from_str(&existing_data)
+            let existing: StoredNativeRecord = crate::toml::from_str(&existing_data)
                 .map_err(|e| Error::Integrity(format!("invalid native record {}: {e}", record_path.display())))?;
-            if existing.checksum == record.checksum {
+            let existing = existing.into_record(&record_path)?;
+            if existing.entry.cksum == record.entry.cksum {
                 return Ok(false);
             } else {
                 return Err(Error::Conflict(format!(
                     "version {} already exists with different checksum",
-                    record.vers
+                    record.entry.vers
                 )));
             }
         }
 
-        let s = crate::toml::to_string(record).map_err(|e| Error::Operation(e.to_string()))?;
+        let stored = StoredNativeRecord::from_entry(&record.entry);
+        let s = crate::toml::to_string(&stored).map_err(|e| Error::Operation(e.to_string()))?;
         write_file_durable(&record_path, s.as_bytes())?;
         Ok(true)
     }
@@ -338,7 +399,7 @@ impl Store {
             return Err(Error::Input(format!("crate {} version {} not found", name, vers)));
         }
         let data = fs::read_to_string(&record_path)?;
-        let mut record: NativeRecord = crate::toml::from_str(&data)?;
+        let mut record: StoredNativeRecord = crate::toml::from_str(&data)?;
         record.yanked = yanked;
         record.entry.yanked = yanked;
         let s = crate::toml::to_string(&record).map_err(|e| Error::Operation(e.to_string()))?;
@@ -355,6 +416,7 @@ impl Store {
 
         let crate_dir = self.upstream_dir().join(name.lower());
         fs::create_dir_all(&crate_dir)?;
+        self.remember_crate_dir(&self.upstream_dir(), &name, &crate_dir);
 
         let uniq = ver.uniqueness_key();
         for existing_path in self.upstream_version_files(&crate_dir)? {
@@ -416,15 +478,15 @@ impl Store {
                         && !path.file_name().unwrap().to_string_lossy().starts_with(".tmp")
                     {
                         let s = fs::read_to_string(&path)?;
-                        let rec: NativeRecord = crate::toml::from_str(&s).map_err(|e| {
+                        let rec: StoredNativeRecord = crate::toml::from_str(&s).map_err(|e| {
                             Error::Integrity(format!("failed to parse native record {}: {e}", path.display()))
                         })?;
-                        list.push(rec);
+                        list.push(rec.into_record(&path)?);
                     }
                 }
             }
         }
-        list.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.vers.cmp(&b.vers)));
+        list.sort_by(|a, b| a.entry.name.cmp(&b.entry.name).then_with(|| a.entry.vers.cmp(&b.entry.vers)));
         Ok(list)
     }
 
@@ -498,12 +560,12 @@ impl Store {
         }
 
         for rec in self.load_native_records()? {
-            let blob_path = self.blobs_dir().join(format!("{}.crate", rec.checksum));
+            let blob_path = self.blobs_dir().join(format!("{}.crate", rec.entry.cksum));
             if !blob_path.exists() {
                 return Err(Error::Integrity(format!(
                     "missing blob for native crate {} {}: {}",
-                    rec.name,
-                    rec.vers,
+                    rec.entry.name,
+                    rec.entry.vers,
                     blob_path.display()
                 )));
             }

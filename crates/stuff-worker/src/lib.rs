@@ -8,5 +8,5 @@ pub mod wasm;
 
 pub use map::{
     map_asset, object_key_for, parse_pointer, pointer_key, AssetKey, MappedAsset, RegistryRoute,
-    RouteKind, WorkerConfig,
+    WorkerConfig,
 };

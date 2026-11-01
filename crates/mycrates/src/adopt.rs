@@ -33,7 +33,10 @@ pub fn adopt_site(store: &Store, site_dir: &Path) -> Result<AdoptSummary> {
             for line in text.lines().filter(|l| !l.trim().is_empty()) {
                 let entry: IndexEntry = crate::json::from_str(line)?;
                 let name = CrateName::new(&entry.name)?;
-                if shard_for_name(&name.lower()) != relative {
+                let expected_shard = shard_for_name(&name.lower()).ok_or_else(|| {
+                    Error::Integrity(format!("index line name is not ASCII: {}", entry.name))
+                })?;
+                if expected_shard != relative {
                     return Err(Error::Integrity(format!(
                         "index line for {} is stored at {relative}",
                         entry.name
@@ -42,13 +45,7 @@ pub fn adopt_site(store: &Store, site_dir: &Path) -> Result<AdoptSummary> {
                 summary.blobs += usize::from(adopt_blob(store, site_dir, &entry.cksum)?);
                 match view {
                     View::Native => {
-                        let record = NativeRecord {
-                            name: entry.name.clone(),
-                            vers: entry.vers.clone(),
-                            checksum: entry.cksum.clone(),
-                            yanked: entry.yanked,
-                            entry,
-                        };
+                        let record = NativeRecord { entry };
                         store.put_native_record(&record)?;
                         summary.native += 1;
                     }

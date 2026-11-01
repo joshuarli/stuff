@@ -26,6 +26,7 @@ interface R2BucketLike {
     key: string,
     options?: { range: { offset: number; length: number } },
   ): Promise<R2ObjectLike | null>;
+  head(key: string): Promise<R2ObjectLike | null>;
 }
 
 interface WorkerEnv {
@@ -95,6 +96,15 @@ function bucket(env: WorkerEnv, binding: string): R2BucketLike {
   return found;
 }
 
+const NOT_FOUND_CACHE_CONTROL = "public, max-age=60";
+
+function notFound(): Response {
+  return new Response("not found", {
+    status: 404,
+    headers: { "cache-control": NOT_FOUND_CACHE_CONTROL },
+  });
+}
+
 async function catalogText(env: WorkerEnv, binding: string): Promise<string | null> {
   const store = bucket(env, binding);
   const pointer = await store.get("current");
@@ -114,7 +124,8 @@ async function catalogText(env: WorkerEnv, binding: string): Promise<string | nu
 
 async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
   const cache = caches.default;
-  const cacheKey = new Request(req.url, { method: "GET" });
+  const url = new URL(req.url);
+  const cacheKey = new Request(`${url.origin}${url.pathname}`, { method: "GET" });
   const cached = await cache.match(cacheKey);
   if (cached) {
     return req.method === "HEAD"
@@ -125,10 +136,12 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
     ["MYCRATES", "MYNPM", "PYPI"].map((binding) => catalogText(env, binding)),
   );
   if (texts.some((text) => text === null)) {
-    return new Response("unified catalog not ready", { status: 404 });
+    return new Response("unified catalog not ready", {
+      status: 404,
+      headers: { "cache-control": NOT_FOUND_CACHE_CONTROL },
+    });
   }
   const parts = texts as string[];
-  const url = new URL(req.url);
   const wantMarkdown = url.pathname === "/llms.txt";
   const rendered = JSON.parse(
     wantMarkdown
@@ -176,7 +189,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       throw new Error(mapped.message ?? "routes");
     }
     if (mapped.kind === "not_found" || !mapped.bucket_binding) {
-      return new Response("not found", { status: 404 });
+      return notFound();
     }
     let key: string;
     let route: "immutable" | "pointer";
@@ -204,14 +217,14 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       }
       const pointer = await bucket(env, mapped.bucket_binding).get(mapped.pointer_key);
       if (pointer === null) {
-        return new Response("not found", { status: 404 });
+        return notFound();
       }
       pointerText = await pointer.text();
       const resolved = JSON.parse(
         resolve_pointer_json(mapped.pointer_key, pointerText, mapped.rel_path),
       ) as PointerResolution;
       if (resolved.kind !== "key" || !resolved.key) {
-        return new Response("not found", { status: 404 });
+        return notFound();
       }
       key = resolved.key;
       route = mapped.cache ?? "pointer";
@@ -221,22 +234,25 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       npmVersion = resolved.npm_version;
     }
     const store = bucket(env, mapped.bucket_binding);
+    const wantsRange = req.headers.get("range") !== null;
+    const fetchObject = (key: string): Promise<R2ObjectLike | null> =>
+      wantsRange ? store.head(key) : store.get(key);
     let object: R2ObjectLike | null = null;
     // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
     // and -/tarballs/) are not uploaded as separate R2 objects; the shared
     // store copy is byte-identical by the immutability invariant. Validate
     // the generation exists before serving its shared artifact.
     if (aliasKey === undefined) {
-      object = await store.get(key);
+      object = await fetchObject(key);
     } else {
       const [generation, aliased] = await Promise.all([
         generationCatalogKey === undefined
           ? Promise.resolve(null)
-          : store.get(generationCatalogKey),
-        store.get(aliasKey),
+          : store.head(generationCatalogKey),
+        fetchObject(aliasKey),
       ]);
       if (generationCatalogKey !== undefined && generation === null) {
-        return new Response("not found", { status: 404 });
+        return notFound();
       }
       if (aliased !== null) {
         key = aliasKey;
@@ -251,7 +267,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
           resolve_npm_tarball_json(mapped.pointer_key, await packument.text(), npmVersion),
         ) as PointerResolution;
         if (tarball.alias_key) {
-          const aliased = await store.get(tarball.alias_key);
+          const aliased = await fetchObject(tarball.alias_key);
           if (aliased !== null) {
             key = tarball.alias_key;
             object = aliased;
@@ -261,7 +277,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       }
     }
     if (object === null && mapped.kind === "direct" && mapped.fallback_key) {
-      object = await store.get(mapped.fallback_key);
+      object = await fetchObject(mapped.fallback_key);
       if (object !== null) {
         key = mapped.fallback_key;
       }
@@ -277,7 +293,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
         resolve_pointer_json(mapped.pointer_key, pointerText, mapped.fallback_rel_path),
       ) as PointerResolution;
       if (fallback.kind === "key" && fallback.key) {
-        const indexed = await store.get(fallback.key);
+        const indexed = await fetchObject(fallback.key);
         if (indexed !== null) {
           key = fallback.key;
           object = indexed;
@@ -285,7 +301,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       }
     }
     if (object === null) {
-      return new Response("not found", { status: 404 });
+      return notFound();
     }
     const plan = JSON.parse(
       plan_object_response_json(
@@ -323,6 +339,13 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       }
       return new Response(ranged.body, { status: plan.status, headers });
     }
+    if (object.body === null) {
+      const full = await store.get(key);
+      if (full === null) {
+        throw new Error("object vanished");
+      }
+      object = full;
+    }
     return new Response(object.body, { status: plan.status, headers });
   }
 }
@@ -331,7 +354,7 @@ export default {
   async fetch(req: Request, _env: WorkerEnv, ctx: WorkerContext): Promise<Response> {
     const url = new URL(req.url);
     return ctx.exports.Registry.fetch(req, {
-      cf: { cacheKey: `${url.hostname}${url.pathname}${url.search}` },
+      cf: { cacheKey: `${url.hostname}${url.pathname}` },
     });
   },
 };

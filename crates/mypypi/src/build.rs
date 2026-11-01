@@ -18,6 +18,37 @@ const BINARY_SUFFIXES: &[&str] = &[".so", ".dylib", ".pyd", ".dll", ".exe"];
 const SDIST_EXPANDED_LIMIT: u64 = 1024 * 1024 * 1024;
 const HEAD_BYTES: usize = 1024 * 1024;
 
+pub const UV_VERSION: &str = "0.13.2";
+
+fn uv_version_in(output: &str) -> Option<&str> {
+    output.split_whitespace().nth(1).filter(|version| !version.is_empty())
+}
+
+fn require_uv_version() -> Result<()> {
+    let output = std::process::Command::new("uv")
+        .arg("--version")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .map_err(|e| {
+            Error::dependency(
+                format!("uv {UV_VERSION} is required to build sdists: {e}"),
+                Stage::Command,
+            )
+        })?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let found = uv_version_in(&text);
+    if !output.status.success() || found != Some(UV_VERSION) {
+        return Err(Error::dependency(
+            format!(
+                "uv {UV_VERSION} is required to build sdists; found {}",
+                found.unwrap_or("no version output")
+            ),
+            Stage::Command,
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
     let parsed: url::Url = url.parse().map_err(|_| {
         Error::configuration(
@@ -107,7 +138,6 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
     })?)
     .is_ok();
-    void_is_zip_check(sdist, is_zip)?;
     let mut extensions: BTreeMap<String, bool> = BTreeMap::new();
     let mut native_payloads: BTreeMap<String, bool> = BTreeMap::new();
     let mut setup_py: Vec<u8> = Vec::new();
@@ -242,10 +272,6 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         return Ok(Some("source archive setup.py declares cffi_modules".to_string()));
     }
     Ok(None)
-}
-
-fn void_is_zip_check(_sdist: &Path, _is_zip: bool) -> Result<()> {
-    Ok(())
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
@@ -434,6 +460,7 @@ fn build_inner(
     opts: &BuildOptions<'_>,
 ) -> Result<PathBuf> {
     let ctx = |e: Error| e.with_package(package).with_target(&target.python_version.to_string(), &target.platform);
+    require_uv_version().map_err(ctx)?;
     let source_dir = stage.join("source");
     std::fs::create_dir(&source_dir).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
     let source_path = match download_artifact(source, &source_dir) {
@@ -863,6 +890,13 @@ mod tests {
             builder.append_data(&mut header, name, *contents).unwrap();
         }
         builder.into_inner().unwrap().finish().unwrap();
+    }
+
+    #[test]
+    fn reads_the_uv_version() {
+        assert_eq!(uv_version_in("uv 0.13.2 (63f83b1a2 2026-10-19 aarch64-apple-darwin)"), Some("0.13.2"));
+        assert_eq!(uv_version_in(""), None);
+        assert_eq!(uv_version_in("uv"), None);
     }
 
     #[test]

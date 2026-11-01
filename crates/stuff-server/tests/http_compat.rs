@@ -16,12 +16,21 @@ struct TestServer {
 
 impl TestServer {
     fn boot(site_dir: &Path, tmp: TempDir) -> Self {
+        Self::boot_with(site_dir, tmp, &[])
+    }
+
+    fn boot_with(site_dir: &Path, tmp: TempDir, extra: &[&str]) -> Self {
         let bin = env!("CARGO_BIN_EXE_stuff-server");
-        let mut child = Command::new(bin)
+        let mut command = Command::new(bin);
+        command
             .arg("--bind")
             .arg("127.0.0.1:0")
             .arg("--route")
-            .arg(format!("/={}", site_dir.display()))
+            .arg(format!("/={}", site_dir.display()));
+        for arg in extra {
+            command.arg(arg);
+        }
+        let mut child = command
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -181,6 +190,15 @@ fn static_read_semantics() {
     let r = get(&server, "/current/%2e%2e/x", &[]);
     assert_eq!(r.status, 404);
 
+    fs::write(site_dir.join(".publish.lock"), b"").unwrap();
+    fs::create_dir_all(site_dir.join(".staging.1")).unwrap();
+    fs::write(site_dir.join(".staging.1/index.html"), b"in flight").unwrap();
+    for path in ["/.publish.lock", "/.staging.1/index.html", "/unknown/file"] {
+        let r = get(&server, path, &[]);
+        assert_eq!(r.status, 404, "{path}: {}", r.status);
+        assert_ne!(r.body, b"in flight", "{path}");
+    }
+
     let raw = "HEAD /current/registry/config.json HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n";
     let r = request(&server, raw);
     assert_eq!(r.status, 200);
@@ -198,6 +216,26 @@ fn static_read_semantics() {
     .unwrap();
     let r = get(&server, &format!("/generations/{gen_id}/sneaky"), &[]);
     assert_eq!(r.status, 404);
+}
+
+#[test]
+fn malformed_request_gets_400() {
+    let (tmp, site_dir, _) = fixture_site();
+    let server = TestServer::boot(&site_dir, tmp);
+    let r = request(&server, "NOT A REQUEST\r\n\r\n");
+    assert_eq!(r.status, 400);
+    assert_eq!(r.body, b"malformed request");
+}
+
+#[test]
+fn max_connections_refuses_extra_sockets() {
+    let (tmp, site_dir, _) = fixture_site();
+    let server = TestServer::boot_with(&site_dir, tmp, &["--max-connections", "1"]);
+    let idle = TcpStream::connect(server.base_url.trim_start_matches("http://")).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    let r = get(&server, "/current/registry/config.json", &[]);
+    assert_eq!(r.status, 503);
+    drop(idle);
 }
 
 #[test]

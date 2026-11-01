@@ -63,6 +63,8 @@ pub struct ServeConfig {
     pub site_dir: PathBuf,
     pub public_base_url: String,
     pub limits: LimitsConfig,
+    pub max_connections: usize,
+    pub max_writes: usize,
     pub header_timeout: Duration,
     pub body_timeout: Duration,
 }
@@ -154,10 +156,28 @@ fn send_error(stream: &TcpStream, status: u16, detail: &str) {
         411 => "Length Required",
         408 => "Request Timeout",
         413 => "Payload Too Large",
+        422 => "Unprocessable Entity",
+        502 => "Bad Gateway",
         503 => "Service Unavailable",
         _ => "Internal Server Error",
     };
     send_json_response(stream, status, reason, &body);
+}
+
+fn status_for(error: &Error) -> u16 {
+    match error {
+        Error::Input(_) => 400,
+        Error::Integrity(_) => 422,
+        Error::Conflict(_) => 409,
+        Error::Limit(_) => 413,
+        Error::Network(_) => 502,
+        Error::Operation(_) => 500,
+    }
+}
+
+fn send_failure(stream: &TcpStream, method: &str, path: &str, error: &Error) {
+    eprintln!("serve-publish: {method} {path}: {error}");
+    send_error(stream, status_for(error), &error.to_string());
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -268,12 +288,8 @@ pub fn handle_publish_request<R: Read>(
             &staging_dir,
         ) {
             Ok(d) => d,
-            Err(Error::Limit(msg)) => {
-                send_error(stream, 413, &msg);
-                return Ok(());
-            }
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
@@ -289,7 +305,7 @@ pub fn handle_publish_request<R: Read>(
         let staged_file = match decoded.open() {
             Ok(f) => f,
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
@@ -303,58 +319,62 @@ pub fn handle_publish_request<R: Read>(
             &scan_limits,
         ) {
             Ok(s) => s,
-            Err(Error::Limit(msg)) => {
-                send_error(stream, 413, &msg);
-                return Ok(());
-            }
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
 
-        let _guard = store.lock_exclusive()?;
+        let _guard = match store.lock_exclusive() {
+            Ok(guard) => guard,
+            Err(e) => {
+                send_failure(stream, method, path, &e);
+                return Ok(());
+            }
+        };
 
-        let blob_sha = store.ingest_staged_file(&decoded.crate_bytes_path, &decoded.crate_sha256)?;
-        if blob_sha != scan_res.checksum {
-            send_error(stream, 400, "checksum mismatch");
+        if decoded.crate_sha256 != scan_res.checksum {
+            send_failure(stream, method, path, &Error::Integrity("checksum mismatch".to_string()));
             return Ok(());
         }
-
         let mut body = decoded.body;
-        body.checksum = blob_sha.clone();
-
-        let packaged = parse_packaged_manifest(&scan_res.cargo_toml)?;
+        body.checksum = decoded.crate_sha256.clone();
+        let packaged = match parse_packaged_manifest(&scan_res.cargo_toml) {
+            Ok(packaged) => packaged,
+            Err(e) => {
+                send_failure(stream, method, path, &e);
+                return Ok(());
+            }
+        };
         let index_entry = match publish_to_index_with_manifest(&body, Some(&packaged)) {
             Ok(entry) => entry,
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
 
-        let record = NativeRecord {
-            name: body.name.clone(),
-            vers: body.vers.clone(),
-            checksum: blob_sha,
-            yanked: body.yanked,
-            entry: index_entry,
-        };
-
-        match store.put_native_record(&record) {
-            Ok(_) => {}
-            Err(Error::Conflict(msg)) => {
-                send_error(stream, 409, &msg);
-                return Ok(());
-            }
+        let blob_sha = match store.ingest_staged_file(&decoded.crate_bytes_path, &decoded.crate_sha256) {
+            Ok(blob_sha) => blob_sha,
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
+        };
+        if blob_sha != body.checksum {
+            send_failure(stream, method, path, &Error::Integrity("checksum mismatch".to_string()));
+            return Ok(());
+        }
+
+        let record = NativeRecord { entry: index_entry };
+
+        if let Err(e) = store.put_native_record(&record) {
+            send_failure(stream, method, path, &e);
+            return Ok(());
         }
 
         if let Err(e) = publisher.publish() {
-            send_error(stream, 500, &e.to_string());
+            send_failure(stream, method, path, &e);
             return Ok(());
         }
 
@@ -372,11 +392,17 @@ pub fn handle_publish_request<R: Read>(
             let crate_name = parts[3];
             let crate_version = parts[4];
 
-            let _guard = store.lock_exclusive()?;
+            let _guard = match store.lock_exclusive() {
+                Ok(guard) => guard,
+                Err(e) => {
+                    send_failure(stream, method, path, &e);
+                    return Ok(());
+                }
+            };
             match store.set_native_yank(crate_name, crate_version, is_yank) {
                 Ok(_) => {
                     if let Err(e) = publisher.publish() {
-                        send_error(stream, 500, &e.to_string());
+                        send_failure(stream, method, path, &e);
                         return Ok(());
                     }
                     send_json_response(stream, 200, "OK", "{\"ok\":true}");
@@ -387,7 +413,7 @@ pub fn handle_publish_request<R: Read>(
                     return Ok(());
                 }
                 Err(e) => {
-                    send_error(stream, 400, &e.to_string());
+                    send_failure(stream, method, path, &e);
                     return Ok(());
                 }
             }
@@ -400,7 +426,7 @@ pub fn handle_publish_request<R: Read>(
     Ok(())
 }
 
-pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
+pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig, writes: &Arc<AtomicUsize>) -> Result<()> {
     let _ = stream.set_nonblocking(false);
     let _ = stream.set_write_timeout(Some(WRITE_TIMEOUT));
     let deadline = Instant::now() + cfg.header_timeout;
@@ -460,6 +486,23 @@ pub fn handle_connection(stream: TcpStream, cfg: &ServeConfig) -> Result<()> {
         }
     }
 
+    if !request_authorized(cfg, &method, &headers) {
+        send_error(&stream, 401, "unauthorized");
+        return Ok(());
+    }
+
+    let _write_slot = if matches!(method.as_str(), "GET" | "HEAD") {
+        None
+    } else {
+        match try_admit(writes, cfg.max_writes) {
+            Some(guard) => Some(guard),
+            None => {
+                send_error(&stream, 503, "too many concurrent writes");
+                return Ok(());
+            }
+        }
+    };
+
     handle_publish_request(&stream, &method, &path, &headers, &mut reader, cfg)
 }
 
@@ -492,19 +535,23 @@ pub fn try_admit(active: &Arc<AtomicUsize>, limit: usize) -> Option<ActiveGuard>
 pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
     let listener = TcpListener::bind(&cfg.bind)?;
     listener.set_nonblocking(true)?;
-    let active = Arc::new(AtomicUsize::new(0));
+    let connections = Arc::new(AtomicUsize::new(0));
+    let writes = Arc::new(AtomicUsize::new(0));
 
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
             Ok((stream, _)) => {
-                let Some(guard) = try_admit(&active, cfg.limits.concurrent_requests) else {
-                    send_error(&stream, 503, "too many concurrent requests");
+                let Some(guard) = try_admit(&connections, cfg.max_connections) else {
+                    send_error(&stream, 503, "too many concurrent connections");
                     continue;
                 };
                 let cfg_clone = cfg.clone();
+                let writes = Arc::clone(&writes);
                 std::thread::spawn(move || {
                     let _guard = guard;
-                    let _ = handle_connection(stream, &cfg_clone);
+                    if let Err(e) = handle_connection(stream, &cfg_clone, &writes) {
+                        eprintln!("serve-publish: connection failed: {e}");
+                    }
                 });
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -515,4 +562,24 @@ pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failure_categories_map_to_statuses() {
+        let cases = [
+            (Error::Input(String::new()), 400),
+            (Error::Integrity(String::new()), 422),
+            (Error::Conflict(String::new()), 409),
+            (Error::Limit(String::new()), 413),
+            (Error::Network(String::new()), 502),
+            (Error::Operation(String::new()), 500),
+        ];
+        for (error, status) in cases {
+            assert_eq!(status_for(&error), status, "{error}");
+        }
+    }
 }

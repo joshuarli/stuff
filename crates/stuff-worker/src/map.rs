@@ -11,18 +11,11 @@ pub struct WorkerConfig {
     pub routes: Vec<RegistryRoute>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RouteKind {
-    ImmutableObject,
-    ViaPointer,
-}
-
 #[derive(Debug, Clone)]
 pub struct AssetKey {
     pub bucket_binding: String,
     pub key: String,
     pub key_prefix: String,
-    pub kind: RouteKind,
     pub fallback_key: Option<String>,
 }
 
@@ -119,7 +112,6 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
             bucket_binding: route.bucket_binding.clone(),
             key: object_key_for(&route.key_prefix, &generation, &plan.rel_path),
             key_prefix: route.key_prefix.clone(),
-            kind: RouteKind::ImmutableObject,
             fallback_key: plan
                 .index_fallback
                 .map(|fallback| object_key_for(&route.key_prefix, &generation, &fallback)),
@@ -130,7 +122,6 @@ pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAss
                 bucket_binding: route.bucket_binding.clone(),
                 key: join_key(&route.key_prefix, &parts),
                 key_prefix: route.key_prefix.clone(),
-                kind: RouteKind::ImmutableObject,
                 fallback_key: plan
                     .index_fallback
                     .map(|fallback| join_key(&route.key_prefix, &fallback.split('/').collect::<Vec<_>>())),

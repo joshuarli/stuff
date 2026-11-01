@@ -24,6 +24,37 @@ use sha2::Sha512;
 
 pub const CLIENT_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 
+const WORKSPACE_PREFIX: &str = "mynpm-validate-";
+const STALE_WORKSPACE_AGE: Duration = Duration::from_secs(60 * 60);
+
+fn sweep_stale_workspaces(scratch_root: &Path, max_age: Duration) {
+    let Ok(entries) = std::fs::read_dir(scratch_root) else {
+        return;
+    };
+    let now = std::time::SystemTime::now();
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let Some(name) = file_name.to_str() else {
+            continue;
+        };
+        if !name.starts_with(WORKSPACE_PREFIX) {
+            continue;
+        }
+        if !entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let stale = entry
+            .metadata()
+            .and_then(|meta| meta.modified())
+            .ok()
+            .and_then(|modified| now.duration_since(modified).ok())
+            .is_some_and(|age| age > max_age);
+        if stale {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ValidationResult {
     pub client: String,
@@ -466,7 +497,7 @@ fn handle_connection(mut stream: std::net::TcpStream, mirror_dir: &Path, request
 }
 
 fn check_client_version(client: &Manager, target: &Target, cwd: &str, env: &HashMap<String, String>) -> Result<String> {
-    let expected = if *client == Manager::Npm { crate::resolve::NPM_VERSION } else { crate::resolve::PNPM_VERSION };
+    let expected = client.pinned_version();
     let node_out = run_process(
         "node",
         &["--version".to_string()],
@@ -684,7 +715,7 @@ fn assert_snapshot_matches_project(project: &ProjectRecord, target: &Target) -> 
             project.id
         )));
     }
-    let expected_pin = format!("{}@{}", project.manager().as_str(), if project.manager() == Manager::Npm { crate::resolve::NPM_VERSION } else { crate::resolve::PNPM_VERSION });
+    let expected_pin = format!("{}@{}", project.manager().as_str(), project.manager().pinned_version());
     if let Some(ref commit_pin) = project.package_manager_pin {
         let base = commit_pin.split('+').next().unwrap_or("");
         if base != expected_pin {
@@ -1898,7 +1929,7 @@ fn install_project(
     write_project_snapshot(&project_dir, project, &migrated_lock, lockfile_name)?;
     let cache_dir = install_workspace.join("cache");
     let environment = client_environment(&install_workspace, registry, &cache_dir)?;
-    let mut args: Vec<String> = if *client == Manager::Npm {
+    let args: Vec<String> = if *client == Manager::Npm {
         let mut base = vec![
             "ci".to_string(),
             format!("--registry={registry}"),
@@ -1920,7 +1951,6 @@ fn install_project(
             "--ignore-pnpmfile".to_string(),
         ]
     };
-    let _ = &mut args;
     run_process(
         client.as_str(),
         &args,
@@ -1976,7 +2006,7 @@ fn npm_snapshot_install_args(project: &ProjectRecord) -> Result<Vec<String>> {
 }
 
 fn client_environment(workspace: &Path, registry: &str, cache_dir: &Path) -> Result<HashMap<String, String>> {
-    for directory in [workspace.join("home"), workspace.join("config"), cache_dir.to_path_buf(), workspace.join("pnpm-store")] {
+    for directory in [workspace.join("home"), workspace.join("config"), cache_dir.to_path_buf(), workspace.join("pnpm-store"), workspace.join("tmp")] {
         std::fs::create_dir_all(&directory)
             .map_err(|_| Error::Operation(format!("could not create validation directory {}", directory.display())))?;
         std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).ok();
@@ -1991,7 +2021,7 @@ fn client_environment(workspace: &Path, registry: &str, cache_dir: &Path) -> Res
     env.insert("LANG".to_string(), std::env::var("LANG").unwrap_or_else(|_| "C".to_string()));
     env.insert("LC_ALL".to_string(), "C".to_string());
     env.insert("HOME".to_string(), workspace.join("home").to_string_lossy().to_string());
-    env.insert("TMPDIR".to_string(), std::env::current_dir().map(|cwd| cwd.join(".work").join("tmp").to_string_lossy().to_string()).unwrap_or_else(|_| "/tmp".to_string()));
+    env.insert("TMPDIR".to_string(), workspace.join("tmp").to_string_lossy().to_string());
     env.insert("XDG_CONFIG_HOME".to_string(), workspace.join("config").to_string_lossy().to_string());
     env.insert("COREPACK_HOME".to_string(), workspace.join("corepack").to_string_lossy().to_string());
     env.insert("CI".to_string(), "true".to_string());
@@ -2037,7 +2067,8 @@ pub fn validate_inventory(options: &ValidateOptions) -> Result<ValidationResult>
     let scratch_root = options.cwd.join(".work").join("tmp");
     std::fs::create_dir_all(&scratch_root)
         .map_err(|_| Error::Operation(format!("could not create validation scratch directory {}", scratch_root.display())))?;
-    let workspace = scratch_root.join(format!("mynpm-validate-{}", unique_suffix()));
+    sweep_stale_workspaces(&scratch_root, STALE_WORKSPACE_AGE);
+    let workspace = scratch_root.join(format!("{WORKSPACE_PREFIX}{}", unique_suffix()));
     std::fs::create_dir_all(&workspace)
         .map_err(|_| Error::Operation("could not create validation workspace".to_string()))?;
     let result = (|| -> Result<ValidationResult> {
@@ -2189,4 +2220,31 @@ fn unique_suffix() -> String {
             .unwrap_or(0),
         COUNTER.fetch_add(1, Ordering::SeqCst)
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sweeps_only_stale_validation_workspaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let stale = dir.path().join("mynpm-validate-stale");
+        let fresh = dir.path().join("mynpm-validate-fresh");
+        let unrelated = dir.path().join("other");
+        for path in [&stale, &fresh, &unrelated] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        std::fs::File::open(&stale)
+            .unwrap()
+            .set_times(
+                std::fs::FileTimes::new()
+                    .set_modified(std::time::SystemTime::now() - Duration::from_secs(7200)),
+            )
+            .unwrap();
+        sweep_stale_workspaces(dir.path(), STALE_WORKSPACE_AGE);
+        assert!(!stale.exists());
+        assert!(fresh.exists());
+        assert!(unrelated.exists());
+    }
 }

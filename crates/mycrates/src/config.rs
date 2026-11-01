@@ -29,6 +29,9 @@ pub struct LimitsConfig {
     pub fetch_timeout_secs: u64,
     pub request_timeout_secs: u64,
     pub redirects: u32,
+    pub serve_connections: usize,
+    pub serve_writes: usize,
+    pub upload_timeout_secs: u64,
 }
 
 impl Default for LimitsConfig {
@@ -43,6 +46,9 @@ impl Default for LimitsConfig {
             fetch_timeout_secs: 3600,
             request_timeout_secs: 300,
             redirects: 5,
+            serve_connections: 64,
+            serve_writes: 4,
+            upload_timeout_secs: 300,
         }
     }
 }

@@ -55,6 +55,10 @@ per-platform commands. The container mounts the same
 
 ## Build environment
 
+Sdist builds require `uv` 0.13.2, the version installed in the Linux build
+container; another version on `PATH` fails the build instead of resolving build
+dependencies differently per platform.
+
 Build subprocesses get an allowlisted environment and run with a scratch
 `HOME`, `CARGO_HOME`, and `RUSTUP_HOME`. The scratch homes link to the
 installed Cargo bin and rustup toolchains, so Rust-backed sdists find the host

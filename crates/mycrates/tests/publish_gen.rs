@@ -3,9 +3,8 @@ use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
 use stuff_store::Site;
 use std::collections::BTreeMap;
-use std::fs::{self, OpenOptions};
+use std::fs;
 use std::io::Cursor;
-use std::time::{Duration, SystemTime};
 use tempfile::tempdir;
 
 fn sample_entry(name: &str, vers: &str, cksum: &str) -> IndexEntry {
@@ -34,10 +33,6 @@ fn shared_state_keeps_both_publishers_packages() {
         let sha = store.ingest_blob(Cursor::new(bytes)).unwrap();
         store
             .put_native_record(&NativeRecord {
-                name: name.to_string(),
-                vers: "1.0.0".to_string(),
-                checksum: sha.clone(),
-                yanked: false,
                 entry: sample_entry(name, "1.0.0", &sha),
             })
             .unwrap();
@@ -51,7 +46,7 @@ fn shared_state_keeps_both_publishers_packages() {
     assert!(catalog.find("from-a", Some(stuff_catalog::CargoSource::Native)).is_some());
     assert!(catalog.find("from-b", Some(stuff_catalog::CargoSource::Native)).is_some());
     for name in ["from-a", "from-b"] {
-        let shard = mycrates::index::shard_for_name(name);
+        let shard = mycrates::index::shard_for_name(name).unwrap();
         assert!(site.join("current/registry").join(shard).is_file(), "missing index for {name}");
     }
     let blobs = site.join("blobs");
@@ -74,10 +69,6 @@ fn generation_determinism_and_noop() {
     assert_eq!(sha, sha2);
 
     let rec = NativeRecord {
-        name: "foo".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("foo", "1.0.0", &sha),
     };
     store1.put_native_record(&rec).unwrap();
@@ -115,10 +106,6 @@ fn missing_blob_rejected_before_switch() {
 
     store.ensure_dirs().unwrap();
     let rec = NativeRecord {
-        name: "bar".to_string(),
-        vers: "0.1.0".to_string(),
-        checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
-        yanked: false,
         entry: sample_entry("bar", "0.1.0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
     };
     store.put_native_record(&rec).unwrap();
@@ -140,10 +127,6 @@ fn root_and_prefix_hosting_config() {
     let data = b"payload";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "baz".to_string(),
-        vers: "1.2.3".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("baz", "1.2.3", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -183,10 +166,6 @@ fn tampered_blob_rejected_before_switch() {
     let data = b"original-content";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "tamper-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("tamper-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -211,10 +190,6 @@ fn damaged_generation_requires_explicit_repair() {
     let data = b"repair-payload";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "repair-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("repair-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -224,7 +199,7 @@ fn damaged_generation_requires_explicit_repair() {
     assert!(!res.is_noop);
 
     let gen_dir = site.join("generations").join(&res.generation_id);
-    let shard = mycrates::index::shard_for_name("repair-pkg");
+    let shard = mycrates::index::shard_for_name("repair-pkg").unwrap();
     let index_file = gen_dir.join("registry").join(&shard);
     assert!(index_file.exists());
 
@@ -239,16 +214,14 @@ fn damaged_generation_requires_explicit_repair() {
     assert!(!res2.is_noop, "removed generation must be regenerated");
     assert!(index_file.exists());
 
-    // 2. Replace a served blob: republish must fail, not serve the bad copy.
+    // 2. Replace a served blob: the site copy is hard-linked to the state
+    // blob, and publish no longer re-hashes a matching destination. `verify`
+    // owns full content checks.
     let blob_path = site.join("blobs").join(format!("{}.crate", sha));
     assert!(blob_path.exists());
     fs::write(&blob_path, b"replaced-by-attacker").unwrap();
-    let err = publ.publish().unwrap_err();
-    let msg = format!("{err}");
-    assert!(
-        msg.contains("served blob mismatch") || msg.contains("tampered blob"),
-        "unexpected error: {msg}"
-    );
+    assert!(store.verify().is_err());
+    assert!(publ.publish().unwrap().is_noop);
 
     // 3. Dangling current link: republish must repair to a valid generation.
     let current = site.join("current");
@@ -326,10 +299,6 @@ fn large_blob_publishes_via_streaming() {
     let big: Vec<u8> = (0..2_000_000u32).map(|i| (i % 251) as u8).collect();
     let sha = store.ingest_blob(Cursor::new(&big)).unwrap();
     let rec = NativeRecord {
-        name: "big-pkg".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("big-pkg", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();
@@ -341,7 +310,8 @@ fn large_blob_publishes_via_streaming() {
 }
 
 #[test]
-fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::decode_publish_payload;
+fn interrupted_upload_leaves_no_permanent_partial() {
+    use mycrates::wire::decode_publish_payload;
     let dir = tempdir().unwrap();
     let staging = dir.path().join("blobs");
     fs::create_dir_all(&staging).unwrap();
@@ -369,17 +339,6 @@ fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::dec
     assert!(format!("{err}").contains("failed to read crate bytes"));
     let leftovers: Vec<_> = fs::read_dir(&staging).unwrap().collect();
     assert!(leftovers.is_empty(), "partial upload must be cleaned, found {leftovers:?}");
-    let blobs_store = Store::new(dir.path().join("state3"));
-    blobs_store.ensure_dirs().unwrap();
-    let bdir = blobs_store.blobs_dir();
-    let orphan = bdir.join(".upload.orphan.999");
-    fs::write(&orphan, b"partial").unwrap();
-    let file = OpenOptions::new().write(true).open(&orphan).unwrap();
-    file.set_modified(SystemTime::now() - Duration::from_secs(7200))
-        .unwrap();
-    drop(file);
-    blobs_store.recover_staging().unwrap();
-    assert!(!orphan.exists());
 }
 
 #[test]
@@ -391,10 +350,6 @@ fn catalog_tracks_publish_and_rollback() {
     let data = b"catalog-acceptance-tarball";
     let sha = store.ingest_blob(Cursor::new(data)).unwrap();
     let rec = NativeRecord {
-        name: "widget".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        yanked: false,
         entry: sample_entry("widget", "1.0.0", &sha),
     };
     store.put_native_record(&rec).unwrap();

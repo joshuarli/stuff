@@ -338,10 +338,14 @@ fn read_regular_file(path: &Path) -> Result<Vec<u8>> {
 }
 
 fn hash_file(path: &Path, expected: &str) -> Result<()> {
-    let bytes = read_regular_file(path)?;
-    let mut hasher = Sha512::new();
-    hasher.update(&bytes);
-    let actual = format!("{:x}", hasher.finalize());
+    let meta = std::fs::symlink_metadata(path).map_err(|_| {
+        Error::Corrupt(format!("managed path is not a regular file: {}", path.display()))
+    })?;
+    if !meta.is_file() || meta.file_type().is_symlink() {
+        return Err(Error::Corrupt(format!("managed path is not a regular file: {}", path.display())));
+    }
+    let actual = stuff_store::stream_file_hash(path, stuff_store::HashAlg::Sha512)
+        .map_err(|e| Error::Corrupt(format!("could not read published artifact {}: {e}", path.display())))?;
     if actual != expected {
         return Err(Error::Corrupt(format!("SHA-512 mismatch for published artifact {}", path.display())));
     }
@@ -509,9 +513,15 @@ fn validate_generation_sealed(
             paths.push(generation_dir.join("-").join("tarballs").join(format!("{digest}.tgz")));
         }
         for path in paths {
-            let metadata = std::fs::metadata(&path).map_err(|_| {
+            let metadata = std::fs::symlink_metadata(&path).map_err(|_| {
                 Error::Corrupt(format!("could not inspect published artifact {}", path.display()))
             })?;
+            if !metadata.is_file() || metadata.file_type().is_symlink() {
+                return Err(Error::Corrupt(format!(
+                    "managed path is not a regular file: {}",
+                    path.display()
+                )));
+            }
             let key = (metadata.dev(), metadata.ino());
             if let Some(previous) = verified.get(&key) {
                 if previous != digest {
@@ -522,7 +532,9 @@ fn validate_generation_sealed(
                 }
                 continue;
             }
-            hash_file(&path, digest)?;
+            if seal == Seal::Adopted {
+                hash_file(&path, digest)?;
+            }
             verified.insert(key, digest.to_string());
         }
     }
@@ -704,16 +716,36 @@ fn copy_artifact(record: &ArtifactRecord, state_dir: &Path, tarballs_dir: &Path)
     use std::io::Read;
     let digest = &record.artifact.sha512;
     let destination = tarballs_dir.join(format!("{digest}.tgz"));
-    if std::fs::symlink_metadata(&destination).is_ok() {
-        hash_file(&destination, digest)?;
-        return Ok(());
-    }
     let source = state_dir.join("objects").join("sha512").join(format!("{digest}.tgz"));
     let source_meta = std::fs::symlink_metadata(&source).map_err(|_| {
         Error::Corrupt(format!("managed path is not a regular file: {}", source.display()))
     })?;
     if !source_meta.is_file() || source_meta.file_type().is_symlink() {
         return Err(Error::Corrupt(format!("managed path is not a regular file: {}", source.display())));
+    }
+    match std::fs::symlink_metadata(&destination) {
+        Ok(meta) => {
+            if !meta.is_file() || meta.file_type().is_symlink() {
+                return Err(Error::Corrupt(format!(
+                    "managed path is not a regular file: {}",
+                    destination.display()
+                )));
+            }
+            if meta.len() == source_meta.len() {
+                return Ok(());
+            }
+            return Err(Error::Corrupt(format!(
+                "published artifact size mismatch for {}@{}",
+                record.name, record.version
+            )));
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            return Err(Error::Operation(format!(
+                "could not inspect published artifact {}: {e}",
+                destination.display()
+            )));
+        }
     }
     let tmp = stuff_store::tmp_sibling(&destination)?;
     let result = (|| -> Result<()> {
@@ -751,7 +783,15 @@ fn copy_artifact(record: &ArtifactRecord, state_dir: &Path, tarballs_dir: &Path)
         match std::fs::hard_link(&tmp, &destination) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                hash_file(&destination, digest)?;
+                let meta = std::fs::symlink_metadata(&destination).map_err(|_| {
+                    Error::Corrupt(format!("managed path is not a regular file: {}", destination.display()))
+                })?;
+                if !meta.is_file() || meta.file_type().is_symlink() || meta.len() != source_meta.len() {
+                    return Err(Error::Corrupt(format!(
+                        "published artifact size mismatch for {}@{}",
+                        record.name, record.version
+                    )));
+                }
             }
             Err(_) => {
                 return Err(Error::Operation(format!(

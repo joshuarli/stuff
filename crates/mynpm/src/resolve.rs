@@ -10,8 +10,6 @@ use crate::process::{run_process, ProcessOptions};
 use crate::project_snapshot::assert_restorable_snapshot;
 use std::collections::HashMap;
 
-pub const NPM_VERSION: &str = "12.2.1";
-pub const PNPM_VERSION: &str = "12.15.0";
 const OPERATION_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 
 #[derive(Debug, Clone)]
@@ -200,7 +198,7 @@ fn resolve_target(
         other => Error::Operation(format!("{other}")),
     })?;
     let found = version_out.stdout.split_whitespace().next().unwrap_or("").to_string();
-    let expected = if *manager == Manager::Npm { NPM_VERSION } else { PNPM_VERSION };
+    let expected = manager.pinned_version();
     if found != expected {
         return Err(Error::Operation(format!(
             "{manager_bin} {expected} is required for add; found {}",
@@ -313,7 +311,7 @@ pub fn add_packages(options: &AddOptions) -> Result<()> {
     let result = (|| -> Result<Vec<ProjectRecord>> {
         let mut projects = Vec::new();
         let manager_bin = options.manager.as_str();
-        let pin = format!("{manager_bin}@{}", if options.manager == Manager::Npm { NPM_VERSION } else { PNPM_VERSION });
+        let pin = format!("{manager_bin}@{}", options.manager.pinned_version());
         for target in &targets {
             projects.push(resolve_target(
                 &options.manager,
@@ -332,7 +330,7 @@ pub fn add_packages(options: &AddOptions) -> Result<()> {
     let _ = std::fs::remove_dir_all(&workspace);
     let projects = result?;
     let manager_bin = options.manager.as_str();
-    let pin = format!("{manager_bin}@{}", if options.manager == Manager::Npm { NPM_VERSION } else { PNPM_VERSION });
+    let pin = format!("{manager_bin}@{}", options.manager.pinned_version());
     update_inventory(std::path::Path::new(&options.state_directory), |inv| {
         let mut acc = inv.clone();
         for project in &projects {

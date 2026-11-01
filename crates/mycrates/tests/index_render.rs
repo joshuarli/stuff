@@ -112,10 +112,10 @@ fn links_and_rust_version() {
 
 #[test]
 fn sharding() {
-    assert_eq!(shard_for_name("a"), "1/a");
-    assert_eq!(shard_for_name("ab"), "2/ab");
-    assert_eq!(shard_for_name("abc"), "3/a/abc");
-    assert_eq!(shard_for_name("abcd"), "ab/cd/abcd");
+    assert_eq!(shard_for_name("a").as_deref(), Some("1/a"));
+    assert_eq!(shard_for_name("ab").as_deref(), Some("2/ab"));
+    assert_eq!(shard_for_name("abc").as_deref(), Some("3/a/abc"));
+    assert_eq!(shard_for_name("abcd").as_deref(), Some("ab/cd/abcd"));
 }
 
 #[test]

@@ -10,7 +10,7 @@ use std::fs;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Barrier};
 use std::thread;
 use tar::Builder;
 use tempfile::tempdir;
@@ -196,6 +196,85 @@ fn fetch_trust_chain_and_idempotence() {
     assert!(plan_after.is_empty());
     let summary2 = fetch(&state_dir, &cfg).unwrap();
     assert_eq!(summary2.fetched_count, 0);
+}
+
+#[test]
+fn fetch_downloads_without_holding_the_store_lock() {
+    let (crate_bytes, real_sha) = make_test_crate("lock-scope-pkg", "1.0.0");
+    let crate_bytes_clone = crate_bytes.clone();
+    let real_sha_clone = real_sha.clone();
+    let started = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let started_handler = Arc::clone(&started);
+    let release_handler = Arc::clone(&release);
+
+    let upstream = MockUpstream::start(move |_method, path, host| {
+        if path == "/config.json" {
+            (
+                200,
+                format!("{{\"dl\":\"http://{}/{{crate}}/{{crate}}-{{version}}.crate\"}}", host).into_bytes(),
+                "application/json",
+            )
+        } else if path.ends_with("/lock-scope-pkg") {
+            let line = deser_json::to_string(&deser_value::value!({
+                "name": "lock-scope-pkg",
+                "vers": "1.0.0",
+                "deps": [],
+                "cksum": real_sha_clone.clone(),
+                "features": {},
+                "yanked": false
+            }))
+            .unwrap();
+            (200, format!("{line}\n").into_bytes(), "text/plain")
+        } else if path.ends_with(".crate") {
+            started_handler.wait();
+            release_handler.wait();
+            (200, crate_bytes_clone.clone(), "application/x-tar")
+        } else {
+            (404, b"not found".to_vec(), "text/plain")
+        }
+    });
+
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let store = Store::new(state_dir.clone());
+    store.ensure_dirs().unwrap();
+    let pins = Pins {
+        registry: vec![PinEntry {
+            name: "lock-scope-pkg".to_string(),
+            version: "1.0.0".to_string(),
+            checksum: real_sha.clone(),
+            source: "registry+https://github.com/rust-lang/crates.io-index".to_string(),
+        }],
+        unsupported: vec![],
+        ..Default::default()
+    };
+    write_pins(&store.pins_dir().join("default.toml"), &pins).unwrap();
+
+    let cfg = Config {
+        upstream: UpstreamConfig {
+            index_url: format!("http://127.0.0.1:{}", upstream.port),
+        },
+        ..Default::default()
+    };
+    let fetch_state = state_dir.clone();
+    let handle = thread::spawn(move || fetch(&fetch_state, &cfg));
+
+    started.wait();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let lock_state = state_dir.clone();
+    let lock_holder = thread::spawn(move || {
+        let guard = Store::new(lock_state).lock_exclusive().unwrap();
+        let _ = tx.send(());
+        guard
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(5))
+        .expect("fetch held the store lock across the download");
+    drop(lock_holder.join().unwrap());
+    release.wait();
+
+    let summary = handle.join().unwrap().unwrap();
+    assert_eq!(summary.fetched_count, 1);
 }
 
 #[test]
