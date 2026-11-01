@@ -35,6 +35,11 @@ TOKEN_FILE=${TOKEN_FILE:-$STUFF_STATE_HOME/mycrates/token}
 LOCK_DIR=${LOCK_DIR:-$STUFF_STATE_HOME/mycrates/publish.lock}
 PUBLISH_PORT=${PUBLISH_PORT:-8080}
 STATIC_PORT=${STATIC_PORT:-8081}
+CALLER_MANIFEST=${CALLER_MANIFEST:-$PWD/Cargo.toml}
+CALLER_TOOLCHAIN=
+if command -v rustup >/dev/null 2>&1; then
+  CALLER_TOOLCHAIN=$(rustup show active-toolchain 2>/dev/null | awk '{ print $1 }') || CALLER_TOOLCHAIN=
+fi
 
 . "$STUFF_DIR/deploy/publish-lock.sh"
 LEGACY_STATE_DIR=${LEGACY_STATE_DIR:-$PWD/.work/registry-pub/state}
@@ -125,7 +130,14 @@ done
 export "CARGO_REGISTRIES_${REG_ENV}_INDEX"="sparse+$LOCAL_SITE/current/registry/"
 export "CARGO_REGISTRIES_${REG_ENV}_TOKEN"="$(cat "$TOKEN_FILE")"
 for c in $CRATES; do
-  cargo publish -p "$c" --registry "$REGISTRY"
+  (
+    cd / || exit 1
+    if [ -n "$CALLER_TOOLCHAIN" ]; then
+      RUSTUP_TOOLCHAIN=$CALLER_TOOLCHAIN
+      export RUSTUP_TOOLCHAIN
+    fi
+    cargo publish --manifest-path "$CALLER_MANIFEST" -p "$c" --registry "$REGISTRY"
+  )
   "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
 done
 kill $SRV_PID $STATIC_PID 2>/dev/null
