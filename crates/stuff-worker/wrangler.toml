@@ -1,7 +1,8 @@
 # stuff worker deployment (Cloudflare).
 # Owner flow: cf deploy (builds wasm via npm run build:wasm, provisions R2 with
 # --provision on first deploy). Do not edit cloudflare.config.ts or
-# wrangler.config.ts by hand; change wrangler.toml and re-run cf migrate.
+# wrangler.config.ts by hand; delete both and re-run cf migrate, which refuses
+# to overwrite an existing generated config.
 # Bucket names below are the intended names. R2 object layout per
 # registry is the published site root (generations/, current marker
 # object holding the generation id, shared blob dirs).
@@ -44,3 +45,15 @@ custom_domain = true
 [[routes]]
 pattern = "stuff.17166969.xyz"
 custom_domain = true
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+head_sampling_rate = 0.25
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 0.10

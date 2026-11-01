@@ -5,6 +5,18 @@ export default defineConfig({
 		name: "stuff",
 		compatibilityDate: "2026-10-30",
 		entrypoint: "src/entry.ts",
+		observability: {
+			enabled: true,
+			logs: {
+				enabled: true,
+				invocationLogs: true,
+				headSamplingRate: 0.25,
+			},
+			traces: {
+				enabled: true,
+				headSamplingRate: 0.1,
+			},
+		},
 		domains: [
 			"crates.17166969.xyz",
 			"npm.17166969.xyz",
