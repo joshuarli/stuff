@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-oci-conformance-fixture test-oci-pull fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-oci-conformance-fixture test-oci-conformance test-oci-pull fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -114,6 +114,14 @@ test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... a
 
 test-oci-conformance-fixture: ## Prove the pinned OCI conformance harness against the checked-in fixture
 	deploy/oci-conformance.sh --fixture-layout tests/fixtures/oci/layout
+
+OCI_CONFORMANCE_WORK ?= .work/oci-conformance
+test-oci-conformance: ## Run the pinned read conformance suite against myoci serve
+	rm -rf $(OCI_CONFORMANCE_WORK)
+	cargo run -q -p myoci -- init --state-dir $(OCI_CONFORMANCE_WORK)/state
+	cargo run -q -p myoci -- import --state-dir $(OCI_CONFORMANCE_WORK)/state --layout tests/fixtures/oci/layout --repository example/app
+	cargo run -q -p myoci -- publish --state-dir $(OCI_CONFORMANCE_WORK)/state --site-dir $(OCI_CONFORMANCE_WORK)/site
+	deploy/oci-conformance.sh --myoci-state $(OCI_CONFORMANCE_WORK)/state --myoci-site $(OCI_CONFORMANCE_WORK)/site
 
 test-oci-pull: ## Serve the fixture locally and pull it with curl, Docker, and ORAS
 	deploy/test-oci-pull.sh
