@@ -2,9 +2,10 @@
 # Exercise r2-sync.sh against the local R2 simulation (never real R2).
 # Usage: test-r2-sync.sh [OBJECT_COUNT]   (default 1100, above the 1000 page)
 # Checks: listing past one page, unchanged re-sync uploads nothing, changed
-# immutable content is a conflict unless --repair is explicit, the marker is
-# last and verified, a large file whose multipart ETag matches is skipped, and
-# rollback refuses a generation that was never uploaded.
+# immutable content is a conflict unless --repair is explicit, the manifest
+# uploads after every object it lists, the marker is last and verified, a large file whose multipart ETag matches is skipped, and
+# rollback refuses a generation that was never uploaded, and a machine whose
+# last promotion is no longer live cannot replace the newer generation.
 set -eu
 COUNT=${1:-1100}
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -12,6 +13,7 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/r2-sync-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 SITE=$WORK/site
 export CF_LOCAL_STATE="$WORK/state"
+export STUFF_STATE_HOME="$WORK/home-a"
 mkdir -p "$SITE/generations/g1" "$SITE/tarballs" "$SITE/generations/g1/tarballs" "$SITE/generations/g1/-/tarballs"
 echo '{}' > "$SITE/generations/g1/catalog.json"
 printf 'alias\n' > "$SITE/generations/g1/tarballs/alias.tgz"
@@ -44,6 +46,8 @@ START=$(date +%s)
 MID=$(date +%s)
 TOTAL=$((COUNT + 2))
 check "$(grep -c '^put ' "$WORK/first.log")" "$TOTAL" "first sync puts"
+check "$(grep '^put ' "$WORK/first.log" | tail -n 1)" "put manifests/g1.json" "manifest is the last upload"
+check "$(cat "$STUFF_STATE_HOME/t/promoted-generation")" "g1" "recorded promotion"
 tail -n 2 "$WORK/first.log" | grep -q 'verified current is g1' || { echo "FAIL: marker not verified last"; exit 1; }
 grep -q '^skip alias generations/g1/tarballs/alias.tgz$' "$WORK/first.log" || { echo "FAIL: generation tarball alias was not skipped"; exit 1; }
 grep -q '^skip alias generations/g1/-/tarballs/alias.tgz$' "$WORK/first.log" || { echo "FAIL: generation -/tarballs alias was not skipped"; exit 1; }
@@ -89,6 +93,23 @@ ln -sfn generations/g4 "$SITE/current"
 R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t --expected g1 > "$WORK/later-gen.log"
 grep -q 'verified current is g4' "$WORK/later-gen.log" || { echo "FAIL: later generation was not promoted"; exit 1; }
 
+# A machine whose last promotion is no longer live must not replace the newer generation.
+SITE_B=$WORK/site-b
+cp -a "$SITE" "$SITE_B"
+cp -a "$SITE_B/generations/g4" "$SITE_B/generations/g5"
+ln -sfn generations/g5 "$SITE_B/current"
+STUFF_STATE_HOME="$WORK/home-b" R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE_B" t > "$WORK/machine-b.log"
+grep -q 'verified current is g5' "$WORK/machine-b.log" || { echo "FAIL: machine B did not promote g5"; exit 1; }
+cp -a "$SITE/generations/g4" "$SITE/generations/g6"
+ln -sfn generations/g6 "$SITE/current"
+if R2_LIST_PAGE=50 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/stale-base.log" 2>&1; then
+  echo "FAIL: a stale base replaced the live generation"
+  exit 1
+fi
+grep -q "remote current is 'g5', expected 'g4'" "$WORK/stale-base.log" || { echo "FAIL: stale base was not reported"; exit 1; }
+check "$(cat "$STUFF_STATE_HOME/t/promoted-generation")" "g4" "stale base kept its record"
+rm -rf "$SITE/generations/g6" "$SITE/manifests/g6.json"
+
 # A generation with no remote manifest must not move current.
 ln -sfn generations/g3 "$SITE/current"
 mkdir -p "$SITE/generations/g3"
@@ -99,6 +120,8 @@ if "$HERE/r2-rollback.sh" t g3 > "$WORK/rollback.log" 2>&1; then
 fi
 grep -q 'no manifests/g3.json' "$WORK/rollback.log" || { echo "FAIL: rollback failure was not explicit"; exit 1; }
 check "$(grep -o 'verified current is [A-Za-z0-9_-]*' "$WORK/rollback-ok.log" | tail -n 1)" "verified current is g1" "rollback left current untouched"
+"$HERE/r2-rollback.sh" t g4 > "$WORK/rollback-g4.log"
+check "$(cat "$STUFF_STATE_HOME/t/promoted-generation")" "g4" "rollback recorded its promotion"
 
 BIG=$WORK/big
 mkdir -p "$BIG"

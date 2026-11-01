@@ -2,14 +2,15 @@
 
 use crate::catalog::{Catalog, parse_catalog};
 use crate::error::{Error, Kind, Result, Stage};
+use crate::file_lock::{FileLock, LockError};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::target_python_version;
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt as _;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::path::Path;
+use std::time::Duration;
 
 const PYTHON_PLATFORMS: &[(&str, &str)] = &[
     ("linux-x86_64", "x86_64-manylinux_2_28"),
@@ -380,7 +381,7 @@ pub fn add_packages(catalog_path: &Path, requirements: &[String], targets: &[Tar
     let initial = read_catalog(catalog_path)?;
     parse_catalog(&initial)?;
     let resolved = resolve_dependencies_inner(requirements, targets, python)?;
-    let guard = CatalogLock::acquire(catalog_path)?;
+    let guard = lock_catalog(catalog_path)?;
     let source = read_catalog(catalog_path)?;
     let existing = parse_catalog(&source)?;
     let updated = append_entries(&source, &resolved, &existing)?;
@@ -406,72 +407,16 @@ fn read_catalog(path: &Path) -> Result<String> {
     })
 }
 
-/// Cooperative inter-process lock using an O_CREAT|O_EXCL lock file plus a
-/// PID-liveness check via `/bin/kill -0` (no libc).
-struct CatalogLock {
-    path: PathBuf,
-}
-
-impl CatalogLock {
-    fn acquire(catalog: &Path) -> Result<Self> {
-        let name = catalog.file_name().and_then(|s| s.to_str()).unwrap_or("packages.toml");
-        let lock_path = catalog.with_file_name(format!(".{name}.lock"));
-        let deadline = Instant::now() + Duration::from_secs(120);
-        loop {
-            match std::fs::OpenOptions::new().write(true).create_new(true).open(&lock_path) {
-                Ok(mut f) => {
-                    let _ = writeln!(f, "{}", std::process::id());
-                    let _ = f.sync_all();
-                    return Ok(Self { path: lock_path });
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if Self::stale(&lock_path) {
-                        let _ = std::fs::remove_file(&lock_path);
-                        continue;
-                    }
-                    if Instant::now() >= deadline {
-                        return Err(Error::io(
-                            format!("could not lock catalog at {}: timed out", lock_path.display()),
-                            Stage::Configuration,
-                        ));
-                    }
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-                Err(e) => {
-                    return Err(Error::io(
-                        format!("could not lock catalog at {}: {e}", lock_path.display()),
-                        Stage::Configuration,
-                    ));
-                }
-            }
-        }
-    }
-
-    fn stale(lock_path: &Path) -> bool {
-        let Ok(text) = std::fs::read_to_string(lock_path) else {
-            return true;
+fn lock_catalog(catalog: &Path) -> Result<FileLock> {
+    let name = catalog.file_name().and_then(|s| s.to_str()).unwrap_or("packages.toml");
+    let lock_path = catalog.with_file_name(format!(".{name}.lock"));
+    FileLock::acquire(&lock_path, Duration::from_secs(120)).map_err(|e| {
+        let reason = match e {
+            LockError::TimedOut => "timed out".to_string(),
+            LockError::Io(e) => e.to_string(),
         };
-        let Ok(pid) = text.trim().parse::<u32>() else {
-            return false;
-        };
-        // kill -0 checks liveness without signalling
-        match std::process::Command::new("/bin/kill")
-            .args(["-0", &pid.to_string()])
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-        {
-            Ok(s) => !s.success(),
-            Err(_) => false,
-        }
-    }
-}
-
-impl Drop for CatalogLock {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
-    }
+        Error::io(format!("could not lock catalog at {}: {reason}", lock_path.display()), Stage::Configuration)
+    })
 }
 
 fn replace_catalog(path: &Path, source: &str) -> Result<()> {

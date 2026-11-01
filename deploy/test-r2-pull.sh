@@ -9,6 +9,7 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/r2-pull-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 SITE=$WORK/site
 export CF_LOCAL_STATE="$WORK/state"
+export STUFF_STATE_HOME="$WORK/home"
 mkdir -p "$SITE/generations/g1/simple" "$SITE/generations/g2" "$SITE/wheels" "$SITE/blobs"
 echo '{"gen":1}' > "$SITE/generations/g1/catalog.json"
 echo '<html>1</html>' > "$SITE/generations/g1/simple/index.html"

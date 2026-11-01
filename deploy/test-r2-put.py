@@ -24,6 +24,7 @@ spec.loader.exec_module(r2)
 ENV_NAMES = (
     "PATH",
     "CF_LOCAL_STATE",
+    "STUFF_STATE_HOME",
     "R2_S3_ENDPOINT",
     "R2_S3_ACCESS_KEY_ID",
     "R2_S3_SECRET_ACCESS_KEY",
@@ -249,6 +250,7 @@ class R2PutTests(unittest.TestCase):
         os.environ["R2_PUT_JOBS"] = "2"
         os.environ.pop("R2_PROMOTE_UNCONDITIONAL", None)
         os.environ.pop("CF_LOCAL_STATE", None)
+        os.environ["STUFF_STATE_HOME"] = str(self.root / "home")
         done = subprocess.run(
             [str(HERE / "r2-sync.sh"), str(self.site), "bucket", "--promote=s3"],
             env=os.environ.copy(),

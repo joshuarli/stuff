@@ -72,9 +72,10 @@ impl Default for Config {
 impl Config {
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
-            let cfg = Config::default();
-            cfg.save(path)?;
-            return Ok(cfg);
+            return Err(Error::Input(format!(
+                "{} does not exist; run `mycrates init` for this state directory first",
+                path.display()
+            )));
         }
         let s = fs::read_to_string(path).map_err(|e| Error::Operation(e.to_string()))?;
         let cfg: Config = crate::json::from_str(&s).map_err(|e| Error::Input(e.to_string()))?;

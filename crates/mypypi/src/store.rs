@@ -1,13 +1,14 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Kind, Result, Stage};
+use crate::file_lock::{FileLock, LockError};
 use crate::index::{IndexArtifact, prepare_index_artifacts, project_name, render_project_page, render_root_page};
 use crate::models::{Target, ValidatedArtifact, WheelIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const STAGING_PREFIX: &str = ".mypypi-staging-";
 const STAGING_OWNER: &str = ".mypypi-owner";
@@ -51,60 +52,12 @@ fn ensure_output_root(output: &Path) -> Result<PathBuf> {
     Ok(output)
 }
 
-/// Blocking cooperative lock (create_new spin with stale-PID stealing).
-struct ProcessLock {
-    path: PathBuf,
-}
-
-impl ProcessLock {
-    fn acquire(path: &Path) -> Result<Self> {
-        let deadline = Instant::now() + Duration::from_secs(600);
-        loop {
-            match std::fs::OpenOptions::new().write(true).create_new(true).open(path) {
-                Ok(mut f) => {
-                    let _ = writeln!(f, "{}", std::process::id());
-                    let _ = f.sync_all();
-                    return Ok(Self { path: path.to_path_buf() });
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if stale_lock(path) {
-                        let _ = std::fs::remove_file(path);
-                        continue;
-                    }
-                    if Instant::now() >= deadline {
-                        return Err(pub_error(Kind::Conflict, "another publisher holds the output lock", Some(path), None));
-                    }
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-                Err(e) => return Err(pub_error(Kind::Io, format!("could not acquire output lock: {e}"), Some(path), None)),
-            }
-        }
-    }
-}
-
-impl Drop for ProcessLock {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
-    }
-}
-
-fn stale_lock(path: &Path) -> bool {
-    let Ok(text) = std::fs::read_to_string(path) else {
-        return true;
-    };
-    let Ok(pid) = text.trim().parse::<u32>() else {
-        return false;
-    };
-    match std::process::Command::new("/bin/kill")
-        .args(["-0", &pid.to_string()])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-    {
-        Ok(s) => !s.success(),
-        Err(_) => false,
-    }
+fn lock_output(output: &Path) -> Result<FileLock> {
+    let path = output.join(".mypypi.lock");
+    FileLock::acquire(&path, Duration::from_secs(600)).map_err(|e| match e {
+        LockError::TimedOut => pub_error(Kind::Conflict, "another publisher holds the output lock", Some(&path), None),
+        LockError::Io(e) => pub_error(Kind::Io, format!("could not acquire output lock: {e}"), Some(&path), None),
+    })
 }
 
 fn recover_staging(output: &Path) -> Result<()> {
@@ -866,7 +819,7 @@ pub fn publish(
         out
     })?;
     let output = ensure_output_root(output)?;
-    let _lock = ProcessLock::acquire(&output.join(".mypypi.lock"))?;
+    let _lock = lock_output(&output)?;
     recover_staging(&output)?;
     let current = current_items(&output)?;
     let mut merged: BTreeMap<String, IndexArtifact> = BTreeMap::new();

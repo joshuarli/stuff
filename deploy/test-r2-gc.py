@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import contextlib
 import datetime
+import fcntl
 import hashlib
 import http.server
 import importlib.util
@@ -8,6 +9,7 @@ import io
 import json
 import os
 import pathlib
+import tempfile
 import threading
 import unittest
 import urllib.parse
@@ -97,6 +99,9 @@ class FakeR2(http.server.BaseHTTPRequestHandler):
             return
         if self.command == "DELETE":
             server.deleted.append(key)
+            if server.change_current_on_delete:
+                server.change_current_on_delete = False
+                server.objects["current"]["body"] = b"g5"
             if key in server.objects:
                 del server.objects[key]
                 self._reply(204)
@@ -116,6 +121,9 @@ class GcTests(unittest.TestCase):
         self.server.objects = {}
         self.server.deleted = []
         self.server.change_current_on_manifest_list = False
+        self.server.change_current_on_delete = False
+        self.state = tempfile.TemporaryDirectory()
+        os.environ["STUFF_STATE_HOME"] = self.state.name
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         for key, value in ENDPOINT_KEYS.items():
@@ -139,6 +147,7 @@ class GcTests(unittest.TestCase):
     def tearDown(self):
         self.server.shutdown()
         self.server.server_close()
+        self.state.cleanup()
         os.environ.clear()
         os.environ.update(self.saved)
 
@@ -243,6 +252,39 @@ class GcTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.run_gc()
         self.assertEqual(self.server.deleted, [])
+
+    def test_default_keeps_every_generation_newer_than_current(self):
+        output = self.run_gc()
+        self.assertIn("keep generations: g3, g2, g5, g4", output)
+        for generation in ("g4", "g5"):
+            self.assertIn(f"manifests/{generation}.json", self.server.objects)
+            self.assertIn(f"generations/{generation}/index.html", self.server.objects)
+        self.assertIn("blobs/new4", self.server.objects)
+        self.assertNotIn("manifests/g1.json", self.server.objects)
+
+    def test_stops_when_current_moves_between_delete_batches(self):
+        gc.DELETE_BATCH = 1
+        self.addCleanup(setattr, gc, "DELETE_BATCH", 256)
+        self.server.change_current_on_delete = True
+        with self.assertRaises(SystemExit):
+            self.run_gc("--keep-newer", "0")
+        self.assertEqual(len(self.server.deleted), 1)
+        self.assertIn("blobs/old1", self.server.objects)
+
+    def test_waits_for_the_registry_publish_lock(self):
+        path = pathlib.Path(self.state.name, "bucket", "publish.lock")
+        path.parent.mkdir(parents=True)
+        holder = open(path, "a")
+        fcntl.flock(holder, fcntl.LOCK_EX)
+        worker = threading.Thread(target=self.run_gc)
+        worker.start()
+        worker.join(0.5)
+        self.assertTrue(worker.is_alive())
+        self.assertEqual(self.server.deleted, [])
+        holder.close()
+        worker.join(10)
+        self.assertFalse(worker.is_alive())
+        self.assertIn("manifests/g1.json", self.server.deleted)
 
     def test_zero_retention_keeps_only_current(self):
         self.run_gc("--keep-previous", "0", "--keep-newer", "0")

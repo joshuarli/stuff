@@ -1,6 +1,8 @@
 #!/bin/sh
 # Check that deploy/publish-lock.sh admits one writer at a time, including
-# while reclaiming a stale directory lock left by an older release.
+# while reclaiming a stale directory lock left by an older release, and that
+# gc's Python lock, with-publish-lock.sh, and mypypi-container.sh contend on
+# the same file.
 # Usage: deploy/test-publish-lock.sh [WAITERS]
 set -eu
 
@@ -64,3 +66,45 @@ awk '
 ' "$log"
 
 echo "publish lock serialized $waiters writers"
+
+export STUFF_STATE_HOME="$tmp/home"
+order=$tmp/order.log
+"$here/with-publish-lock.sh" stuff-demo sh -c "echo shell-enter >>'$order'; sleep 0.5; echo shell-exit >>'$order'" &
+shell_pid=$!
+sleep 0.2
+python3 -I -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+from r2_common import publish_lock
+with publish_lock("stuff-demo"):
+    open(sys.argv[2], "a").write("python-enter\n")
+' "$here" "$order" >/dev/null
+wait "$shell_pid"
+[ "$(cat "$order")" = "$(printf 'shell-enter\nshell-exit\npython-enter')" ] || {
+  echo "gc lock did not wait for the shell holder:"
+  cat "$order"
+  exit 1
+}
+echo "gc and shell writers share the registry lock"
+
+mkdir -p "$tmp/bin"
+cat > "$tmp/bin/docker" <<FAKE
+#!/bin/sh
+case \$1 in
+  run) echo container-run >>'$order' ;;
+  wait) echo 0 ;;
+esac
+FAKE
+chmod +x "$tmp/bin/docker"
+: >"$order"
+"$here/with-publish-lock.sh" stuff-mypypi sh -c "echo host-enter >>'$order'; sleep 0.5; echo host-exit >>'$order'" &
+host_pid=$!
+sleep 0.2
+PATH="$tmp/bin:$PATH" "$here/mypypi-container.sh" arm64 linux-aarch64 publish >/dev/null
+wait "$host_pid"
+[ "$(cat "$order")" = "$(printf 'host-enter\nhost-exit\ncontainer-run')" ] || {
+  echo "container run did not wait for the host publish lock:"
+  cat "$order"
+  exit 1
+}
+echo "container runs share the host mypypi lock"

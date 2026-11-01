@@ -136,7 +136,7 @@ def s3_promote(bucket, generation, expected):
         current_etag = header(headers, "ETag")
     else:
         fail(f"could not read current marker: HTTP {status}")
-    if expected is not None and current != expected:
+    if expected is not None and current not in (expected, generation):
         fail(
             f"remote current is '{current or '<missing>'}', expected '{expected}'; "
             "refusing to overwrite a competing publication"
@@ -210,7 +210,7 @@ def main():
     local = local_args()
     if local is not None:
         current = local_current(bucket)
-        if expected is not None and current != expected:
+        if expected is not None and current not in (expected, generation):
             fail(
                 f"remote current is '{current or '<missing>'}', expected '{expected}'; "
                 "refusing to overwrite a competing publication"

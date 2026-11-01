@@ -452,3 +452,19 @@ fn catalog_tracks_publish_and_rollback() {
     .unwrap();
     assert!(!restored.find("widget", Some(stuff_catalog::CargoSource::Native)).unwrap().versions[0].yanked);
 }
+
+#[test]
+fn publish_refuses_a_state_directory_that_was_never_initialized() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("mistyped-state");
+    let site_dir = dir.path().join("site");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_mycrates"))
+        .args(["publish", "--state-dir", state_dir.to_str().unwrap(), "--site-dir", site_dir.to_str().unwrap()])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(2), "{stderr}");
+    assert!(stderr.contains("mycrates init"), "{stderr}");
+    assert!(!state_dir.join("config.json").exists());
+    assert!(!site_dir.join("current").exists());
+}

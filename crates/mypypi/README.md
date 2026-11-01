@@ -32,8 +32,8 @@ wheels that fail validation by design need `exclude_platforms` or
 One generation serves every platform: run build, validate, and publish once
 per platform against the same catalog, state directory, and site. Each
 `publish` adds that platform's wheels to the current generation and keeps the
-rest. Run the platforms one after another: the container runs do not share
-the host's publish lock. Linux platforms run in a container of the matching
+rest. Each container run holds the host's mypypi publish lock, so platforms
+publish one at a time. Linux platforms run in a container of the matching
 architecture, which is a native runner for mypypi's check (the binary is
 compiled inside the container, so `current_platform()` reports the
 container's architecture):

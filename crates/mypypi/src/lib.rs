@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod cli;
 pub mod config;
 pub mod error;
+pub mod file_lock;
 pub mod index;
 pub mod json;
 pub mod models;

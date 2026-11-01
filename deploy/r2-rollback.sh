@@ -51,4 +51,11 @@ if [ -z "${CF_LOCAL_STATE:-}" ]; then
   esac
 fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+. "$SCRIPT_DIR/publish-lock.sh"
+acquire_publish_lock "$(bucket_lock_path "$BUCKET")"
+trap 'release_publish_lock' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 python3 "$SCRIPT_DIR/r2-promote.py" "$BUCKET" "$GEN_ID"
+record_promoted_generation "$BUCKET" "$GEN_ID"

@@ -16,6 +16,7 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
 export STUFF_DIR
+. "$STUFF_DIR/deploy/publish-lock.sh"
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
 ADOPT_PULL=""
 ADOPT_STATE_STAGE=""
@@ -108,6 +109,17 @@ case $PROMOTE in
     ;;
 esac
 
+adopted_generation() {
+  target=$(readlink "$1/current")
+  printf '%s\n' "${target#generations/}"
+}
+
+adopt_locked() {
+  acquire_publish_lock "$(bucket_lock_path "stuff-$REGISTRY")"
+  "$@"
+  release_publish_lock
+}
+
 adopt_marker() {
   printf 'adopted %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$1/.adopt-complete"
 }
@@ -137,6 +149,7 @@ adopt_mycrates() {
     mv "$ADOPT_STATE_STAGE" "$STATE_DIR"
     ADOPT_STATE_STAGE=""
   fi
+  record_promoted_generation stuff-mycrates "$(adopted_generation "$ADOPT_PULL")"
   rm -rf "$ADOPT_PULL"
   ADOPT_PULL=""
 }
@@ -153,6 +166,7 @@ adopt_mynpm() {
   mv "$ADOPT_STAGE/mirror" "$SITE_DIR/mirror"
   rmdir "$ADOPT_STAGE"
   ADOPT_STAGE=""
+  record_promoted_generation stuff-mynpm "$(adopted_generation "$SITE_DIR/mirror")"
 }
 
 adopt_mypypi() {
@@ -163,6 +177,7 @@ adopt_mypypi() {
   [ ! -d "$SITE_DIR" ] || rmdir "$SITE_DIR"
   mv "$ADOPT_STAGE" "$SITE_DIR"
   ADOPT_STAGE=""
+  record_promoted_generation stuff-mypypi "$(adopted_generation "$SITE_DIR")"
 }
 
 case $REGISTRY in
@@ -172,7 +187,7 @@ case $REGISTRY in
     SITE_DIR=${SITE_DIR:-$H/mycrates/site}
     PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
     if [ ! -f "$STATE_DIR/.adopt-complete" ]; then
-      adopt_mycrates
+      adopt_locked adopt_mycrates
     fi
     export STATE_DIR SITE_DIR PUBLIC_URL
     "$STUFF_DIR/deploy/publish-mycrates.sh"
@@ -185,7 +200,7 @@ case $REGISTRY in
       if [ -d "$SITE_DIR/mirror" ] && [ -n "$(ls -A "$SITE_DIR/mirror" 2>/dev/null)" ]; then
         fail "$SITE_DIR/mirror exists without current; refusing to overwrite it"
       fi
-      adopt_mynpm
+      adopt_locked adopt_mynpm
     fi
     export SITE_DIR
     "$STUFF_DIR/deploy/publish-mynpm.sh"
@@ -198,7 +213,7 @@ case $REGISTRY in
       if [ -d "$SITE_DIR" ] && [ -n "$(ls -A "$SITE_DIR" 2>/dev/null)" ]; then
         fail "$SITE_DIR exists without current; refusing to overwrite it"
       fi
-      adopt_mypypi
+      adopt_locked adopt_mypypi
     fi
     export SITE_DIR PUBLIC_URL
     "$STUFF_DIR/deploy/publish-mypypi.sh"

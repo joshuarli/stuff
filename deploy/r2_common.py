@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared stdlib-only infrastructure for the R2 deployment helpers."""
 
+import contextlib
 import fcntl
 import hashlib
 import importlib.util
@@ -38,6 +39,32 @@ def list_page():
 
 def single_put_max():
     return int(os.environ.get("R2_SINGLE_PUT_MAX", str(DEFAULT_SINGLE_PUT_MAX)))
+
+
+def state_home():
+    explicit = os.environ.get("STUFF_STATE_HOME")
+    if explicit:
+        return explicit
+    base = os.environ.get("XDG_STATE_HOME") or os.path.join(os.path.expanduser("~"), ".local", "state")
+    return os.path.join(base, "stuff")
+
+
+def bucket_lock_path(bucket):
+    registry = bucket[len("stuff-"):] if bucket.startswith("stuff-") else bucket
+    return os.path.join(state_home(), registry, "publish.lock")
+
+
+@contextlib.contextmanager
+def publish_lock(bucket):
+    path = bucket_lock_path(bucket)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print(f"publish: waiting for active writer ({path})", flush=True)
+            fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
 
 
 def s3_ready():

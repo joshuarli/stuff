@@ -43,7 +43,7 @@ cp target/release/mycrates /usr/local/bin/
 
 ## Configuration
 
-Configuration lives in `config.json` inside the state directory:
+Configuration lives in `config.json` inside the state directory. `mycrates init` creates it, and every command that reads it refuses a state directory without one:
 
 ```json
 {

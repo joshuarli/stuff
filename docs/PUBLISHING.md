@@ -36,7 +36,7 @@ The wrapper sets `STUFF_DIR` to its own checkout unless it is already set, so th
 - adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, for mynpm and mypypi when the site has no `current`;
 - selects `cf` promotion unless you pass `--promote=s3`.
 
-The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. It is local to the machine and serializes the publish helpers only. `make gc`, `r2-rollback.sh`, and manual `r2-sync.sh` runs do not take it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
+The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`, and every writer of that registry's bucket on the machine takes it: the helpers, adoption, `make sync`, `r2-rollback.sh`, and `make gc`. `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
 For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
@@ -68,10 +68,12 @@ deploy/r2-sync.sh "$H/mynpm/site/mirror" stuff-mynpm
 deploy/r2-sync.sh "$H/mypypi/site" stuff-mypypi
 ```
 
-`r2-sync.sh` requires `SITE_DIR/current` to be a symlink, so for `mynpm` pass `site/mirror`, not `site`. It translates `current` into a marker object holding the generation id. The sync is incremental and content-aware: remote objects whose size and content hash match are skipped, so re-syncing an unchanged generation uploads nothing. It writes `manifests/<id>.json` for each local generation, verifies every listed object remotely, and then replaces `current`.
+`r2-sync.sh` requires `SITE_DIR/current` to be a symlink, so for `mynpm` pass `site/mirror`, not `site`. It translates `current` into a marker object holding the generation id. The sync is incremental and content-aware: remote objects whose size and content hash match are skipped, so re-syncing an unchanged generation uploads nothing. It writes `manifests/<id>.json` for each local generation and uploads it after every object it lists, so a generation directory without a manifest is always a sync in flight. It then verifies every listed object remotely and replaces `current`.
+
+After each promotion the sync records the generation in `$STUFF_STATE_HOME/<registry>/promoted-generation`. Adoption and rollback write the same record. The next sync expects the bucket to still be on that generation and refuses to promote otherwise, so a site built from state that another publisher has since superseded cannot replace the live generation. Without a record, the first sync promotes unconditionally and writes one.
 
 - `--dry-run` lists the bucket read-only and prints the object and byte counts it would upload. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
-- `--expected <generation>` requires the bucket to be on that generation before promotion.
+- `--expected <generation>` requires the bucket to be on that generation before promotion, in place of the recorded one.
 - An existing immutable object with different bytes is a conflict. `--repair` is the separate, explicit overwrite path.
 
 Generation-scoped aliases (`wheels/`, `tarballs/`, `-/tarballs/`, listed in `deploy/shared-store-paths.txt`) are not uploaded. The Worker resolves them to the shared store, including direct `generations/<id>/...` requests. Files over the 300 MB single-PUT cap upload through S3 multipart (`deploy/r2-multipart.py`, needs `R2_S3_*`). They are skipped when the remote multipart ETag already matches.
@@ -100,7 +102,7 @@ export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 
 `R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
 
-The `cf` promotion writes `current` without a conditional check. `--promote=s3` writes it with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish. A publisher that moves `current` during verification then gets `412`. The ETag is read after the upload, so neither mode stops a publish built from out-of-date local state from replacing a newer live generation. Publish each registry from one machine.
+Both promotion modes check the recorded generation first. The `cf` promotion then writes `current` with a plain put. `--promote=s3` writes it with `If-Match` on the ETag read just before the write, or `If-None-Match: *` on first publish, so a publisher that moves `current` during verification gets `412`. The publish lock is local to one machine, and nothing fences two machines publishing the same registry at the same moment; publish each registry from one machine at a time.
 
 ```sh
 CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
@@ -168,15 +170,15 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 deploy/r2-rollback.sh stuff-mycrates <generation-id>
 ```
 
-The rollback verifies every object in the target generation's manifest before moving `current`. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id. That works only until the next `make gc`: with the default `GC_KEEP_NEWER=0`, gc deletes generations newer than `current`.
+The rollback verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. It defaults to `cf` promotion and accepts `--promote=s3` for the conditional write. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
 
 ## Reclaim storage
 
-`make gc` deletes R2 generations outside its retention window and shared-store objects no retained manifest references, then prints per-bucket and total storage before and after. It keeps `current` plus `GC_KEEP_PREVIOUS` older generations (default 1) and `GC_KEEP_NEWER` newer generations (default 0). Preview with `GC_DRY_RUN=1`, and restrict buckets with `GC_BUCKETS`.
+`make gc` deletes R2 generations outside its retention window and shared-store objects no retained manifest references, then prints per-bucket and total storage before and after. It keeps `current` plus `GC_KEEP_PREVIOUS` older generations (default 1) and `GC_KEEP_NEWER` newer generations (default `all`). Preview with `GC_DRY_RUN=1`, and restrict buckets with `GC_BUCKETS`.
 
 The command mints bucket-scoped credentials per bucket, so the usual `cf` login is enough. Because manifests are deleted with their generations, rollback and roll-forward only reach retained generations.
 
-Do not run `make gc` while a publish is in progress. gc takes no lock. It aborts if `current` or the manifest set changed before its delete phase, and it defers shared-store deletion while a recent generation directory has no manifest. A sync uploads its manifest before the shared objects that sort after it, so a publish in flight is not fully protected.
+gc holds each bucket's publish lock while it plans and deletes, so it waits for a publish on the same machine and a publish waits for it. It deletes manifests first, then generation trees, then shared objects, and before every batch it re-reads `current` and the manifest set and stops if either changed. It also defers shared-store deletion while a recent generation directory has no manifest.
 
 ## Fix common failures
 
@@ -189,5 +191,6 @@ Do not run `make gc` while a publish is in progress. gc takes no lock. It aborts
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
 | `is a multipart object; its ETag cannot be verified` | Adoption pulled an object over 300 MB | None yet; adoption cannot verify multipart objects |
-| `publish: waiting for active writer` | Another publish holds the lock | Wait for it to finish |
+| `publish: waiting for active writer` | Another publish, sync, rollback, or gc holds the lock | Wait for it to finish |
+| `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Adopt again: move the site (mynpm, mypypi) or the mycrates `.adopt-complete` marker aside and publish |
 | `publish: adoption failed; staging is at ...` | A `mynpm` or `mypypi` adopt failed and left its staging directory | Inspect it, then run the printed `rm -rf` command and publish again |

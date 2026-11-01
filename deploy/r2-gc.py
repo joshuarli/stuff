@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """Delete R2 objects no retained generation needs, then report storage before and after.
 
-Usage: r2-gc.py BUCKET... [--keep-previous N] [--keep-newer N] [--dry-run]
+Usage: r2-gc.py BUCKET... [--keep-previous N] [--keep-newer N|all] [--dry-run]
        [--grace-minutes N] [--jobs N]
 
 The `current` marker and its generation are always kept. Beyond that, the N
 most recent generations older than `current` are kept (default one, so one
-rollback target survives), and --keep-newer can retain roll-forward targets.
-Generation trees and manifests outside that set are deleted, then shared-store
-objects no retained manifest references. A generation directory with no
-manifest is deleted only after the grace period; a recent one is treated as an
-in-flight publication and blocks shared-store deletion for that bucket.
+rollback target survives), and every generation newer than `current` is kept
+so a rollback can roll forward again (--keep-newer N keeps only the N most
+recent). Manifests outside that set are deleted, then their generation
+trees, then shared-store objects no retained manifest references. A
+generation directory with no manifest is deleted only after the grace period;
+a recent one is a sync in flight and blocks shared-store deletion for that
+bucket.
 
-Before deleting, the helper re-reads `current` and the manifest list and
-aborts if either changed. Run it when no publication is in progress.
+Each bucket is processed under its registry's publish lock
+($STUFF_STATE_HOME/<bucket without "stuff-">/publish.lock, the lock the
+publish helpers hold). Before every delete batch the helper re-reads
+`current` and the manifest list and aborts if either changed.
 
 Without R2_S3_* it mints bucket-scoped temporary credentials from the
 authenticated cf CLI for each bucket.
@@ -30,7 +34,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from r2_common import fail, object_url, s3_list_meta, s3_ready, safe_object_key
+from r2_common import fail, object_url, publish_lock, s3_list_meta, s3_ready, safe_object_key
 
 CURRENT_KEY = "current"
 MANIFEST_PREFIX = "manifests/"
@@ -43,6 +47,7 @@ S3_VARS = (
     "R2_S3_SESSION_TOKEN",
 )
 DELETE_RETRIES = 5
+DELETE_BATCH = 256
 RETRYABLE = {429, 500, 502, 503, 504}
 
 
@@ -164,7 +169,7 @@ def select_retained(manifests, current, keep_previous, keep_newer):
         reverse=True,
     )
     previous = older[:keep_previous]
-    forward = newer[:keep_newer]
+    forward = newer if keep_newer is None else newer[:keep_newer]
     return {current, *previous, *forward}, previous, forward
 
 
@@ -289,10 +294,11 @@ def manifest_signature(bucket):
     }
 
 
-def assert_unchanged(plan):
+def assert_unchanged(plan, deleted):
     api = plan["api"]
     before = manifest_signature(plan["bucket"])
-    if set(before) != {manifest["key"] for manifest in plan["manifests"].values()}:
+    expected = {manifest["key"] for manifest in plan["manifests"].values()} - deleted
+    if set(before) != expected:
         fail(f"{plan['bucket']} manifest set changed; rerun gc")
     for key, (_, etag) in before.items():
         generation = key[len(MANIFEST_PREFIX) : -len(".json")]
@@ -321,20 +327,32 @@ def delete_one(api, endpoint, bucket, key):
     return f"{key}: retries exhausted"
 
 
+def delete_batches(plan):
+    for phase in ("drop_manifests", "drop_generation", "drop_shared"):
+        keys = sorted(plan[phase])
+        for start in range(0, len(keys), DELETE_BATCH):
+            yield keys[start : start + DELETE_BATCH]
+
+
 def delete_keys(plan, jobs):
     failures = []
-    keys = sorted(plan["drop_keys"])
+    deleted = set()
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = {
-            pool.submit(
-                delete_one, plan["api"], plan["endpoint"], plan["bucket"], key
-            ): key
-            for key in keys
-        }
-        for future in as_completed(futures):
-            error = future.result()
-            if error is not None:
-                failures.append(error)
+        for batch in delete_batches(plan):
+            assert_unchanged(plan, deleted)
+            futures = {
+                pool.submit(
+                    delete_one, plan["api"], plan["endpoint"], plan["bucket"], key
+                ): key
+                for key in batch
+            }
+            for future in as_completed(futures):
+                error = future.result()
+                if error is not None:
+                    failures.append(error)
+            deleted.update(batch)
+            if failures:
+                break
     if failures:
         fail(
             f"{plan['bucket']} could not delete {len(failures)} objects: "
@@ -393,7 +411,6 @@ def run_bucket(bucket, args):
 
     if not plan["drop_keys"]:
         return before_bytes, before_count, before_bytes, before_count
-    assert_unchanged(plan)
     delete_keys(plan, args.jobs)
     after = s3_list_meta(bucket)
     current_body = get_object(plan["api"], plan["endpoint"], bucket, CURRENT_KEY)
@@ -409,16 +426,20 @@ def run_bucket(bucket, args):
     return before_bytes, before_count, final_bytes, final_count
 
 
+def keep_count(value):
+    return None if value == "all" else int(value)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Delete R2 objects no retained generation needs")
     parser.add_argument("buckets", nargs="+")
     parser.add_argument("--keep-previous", type=int, default=1)
-    parser.add_argument("--keep-newer", type=int, default=0)
+    parser.add_argument("--keep-newer", type=keep_count, default=None)
     parser.add_argument("--grace-minutes", type=int, default=60)
     parser.add_argument("--jobs", type=int, default=int(os.environ.get("R2_GC_JOBS", "8")))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.keep_previous < 0 or args.keep_newer < 0:
+    if args.keep_previous < 0 or (args.keep_newer is not None and args.keep_newer < 0):
         fail("--keep-previous and --keep-newer must be non-negative")
     if args.grace_minutes < 0:
         fail("--grace-minutes must be non-negative")
@@ -433,7 +454,8 @@ def main(argv=None):
         if not user_s3:
             clear_s3()
             mint_credentials(bucket)
-        result = run_bucket(bucket, args)
+        with publish_lock(bucket):
+            result = run_bucket(bucket, args)
         for position, value in enumerate(result):
             totals[position] += value
     print()

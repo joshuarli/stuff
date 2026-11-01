@@ -23,11 +23,16 @@
 # the cf CLI with one shared pacer at roughly four requests a second.
 # CF_LOCAL_STATE keeps the single-threaded local simulation.
 #
-# Every sync writes manifests/<id>.json for each local generation, then
-# promotes with deploy/r2-promote.py: the manifest's objects are verified
+# Every sync writes manifests/<id>.json for each local generation and uploads
+# it after every other object, so a generation directory without a manifest
+# is always a sync in flight (r2-gc.py relies on this). It then promotes with
+# deploy/r2-promote.py: the manifest's objects are verified
 # remotely first, and `current` is replaced with If-Match (If-None-Match:*
 # on first publish). A competing publisher gets 412 instead of overwriting
-# the winner. Roll back with deploy/r2-rollback.sh.
+# the winner. Without --expected, the generation this machine last promoted
+# (promoted-generation next to the registry's publish lock) is expected, so a
+# site built from state another publisher has since superseded is refused.
+# Roll back with deploy/r2-rollback.sh.
 #
 # --dry-run lists the bucket (read-only), prints how many objects and bytes
 # would be uploaded, how many are skipped, and any conflicts, then exits
@@ -129,6 +134,13 @@ if [ -n "$REPAIR" ]; then
   echo "repair: existing immutable objects may be overwritten"
 fi
 
+. "$SCRIPT_DIR/publish-lock.sh"
+RECORD=$(promoted_generation_path "$BUCKET")
+if [ -z "$EXPECTED" ] && [ -f "$RECORD" ]; then
+  EXPECTED=$(cat "$RECORD")
+  echo "note: expecting remote current $EXPECTED, the generation this machine last promoted ($RECORD)"
+fi
+
 [ -L "$SITE_DIR/current" ] || { echo "FAIL: $SITE_DIR/current is not a symlink"; exit 1; }
 GEN_TARGET=$(readlink "$SITE_DIR/current")
 GEN_ID=${GEN_TARGET#generations/}
@@ -157,7 +169,8 @@ LIST=$(mktemp)
 MANIFEST_KEYS=$(mktemp)
 PLAN=$(mktemp)
 PUTS=$(mktemp)
-trap 'rm -f "$LIST" "$MANIFEST_KEYS" "$PLAN" "$PUTS"' EXIT
+MANIFEST_PUTS=$(mktemp)
+trap 'rm -f "$LIST" "$MANIFEST_KEYS" "$PLAN" "$PUTS" "$MANIFEST_PUTS"' EXIT
 find "$SITE_DIR" -type f ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do
   key=${f#"$SITE_DIR"/}
   if is_shared_store_path "$key"; then
@@ -205,14 +218,17 @@ if [ "$CONFLICTS" -gt 0 ]; then
 fi
 SKIPPED=$(grep -c '^skip ' "$PLAN" || true)
 SKIPPED=${SKIPPED:-0}
-sed -n 's/^put //p' "$PLAN" > "$PUTS"
-UPLOADED=$(wc -l < "$PUTS" | tr -d ' ')
+sed -n 's/^put //p' "$PLAN" | grep -v '^manifests/' > "$PUTS" || true
+sed -n 's/^put //p' "$PLAN" | grep '^manifests/' > "$MANIFEST_PUTS" || true
+UPLOADED=$(cat "$PUTS" "$MANIFEST_PUTS" | wc -l | tr -d ' ')
 if [ -n "$DRY_RUN" ]; then
   PUT_BYTES=0
   while IFS= read -r key; do
     [ -n "$key" ] || continue
     PUT_BYTES=$((PUT_BYTES + $(wc -c < "$SITE_DIR/$key")))
-  done < "$PUTS"
+  done <<PUT_KEYS
+$(cat "$PUTS" "$MANIFEST_PUTS")
+PUT_KEYS
   MULTIPART=$(grep -c '^multipart ' "$PLAN" || true)
   MULTIPART_BYTES=0
   while IFS= read -r line; do
@@ -241,6 +257,9 @@ while IFS= read -r line; do
 done <<MULTI
 $(grep '^multipart ' "$PLAN" || true)
 MULTI
+if [ -s "$MANIFEST_PUTS" ]; then
+  python3 "$SCRIPT_DIR/r2-put.py" "$SITE_DIR" "$BUCKET" "$MANIFEST_PUTS"
+fi
 
 echo "activate $GEN_ID (uploaded $UPLOADED, skipped $SKIPPED)"
 if [ -n "$EXPECTED" ]; then
@@ -248,3 +267,4 @@ if [ -n "$EXPECTED" ]; then
 else
   python3 "$SCRIPT_DIR/r2-promote.py" "$BUCKET" "$GEN_ID"
 fi
+record_promoted_generation "$BUCKET" "$GEN_ID"

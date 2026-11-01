@@ -1,7 +1,25 @@
 #!/bin/sh
-# Serialize one registry's whole publication transaction across source repos.
-# Sourced by deploy/publish-*.sh. The caller traps release_publish_lock.
+# Serialize writers of one registry's bucket on this machine: the publish
+# helpers, adoption, manual sync, rollback, and gc (deploy/r2_common.py
+# publish_lock takes the same flock). The caller traps release_publish_lock.
+# promoted-generation next to the lock names the generation this machine last
+# promoted or adopted; r2-sync.sh promotes only while the bucket still has it.
 set -eu
+
+bucket_lock_path() {
+  printf '%s/%s/publish.lock\n' "${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}" "${1#stuff-}"
+}
+
+promoted_generation_path() {
+  printf '%s/promoted-generation\n' "$(dirname "$(bucket_lock_path "$1")")"
+}
+
+record_promoted_generation() {
+  record=$(promoted_generation_path "$1")
+  mkdir -p "$(dirname "$record")"
+  printf '%s\n' "$2" > "$record.tmp.$$"
+  mv "$record.tmp.$$" "$record"
+}
 
 publish_lock_try() {
   if command -v flock >/dev/null 2>&1; then

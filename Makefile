@@ -70,11 +70,11 @@ LOCAL_STATE ?= .work/r2-local
 sync: ## Sync a published site dir to its R2 bucket (SITE_DIR= BUCKET=, LOCAL=1 for the local simulation)
 	@test -n "$(BUCKET)" || (echo "usage: make sync SITE_DIR=<dir> BUCKET=<name> [LOCAL=1]"; exit 1)
 	@if [ -n "$(LOCAL)" ]; then CF_LOCAL_STATE="$(LOCAL_STATE)" deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); \
-	else deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); fi
+	else deploy/with-publish-lock.sh $(BUCKET) deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); fi
 
 GC_BUCKETS ?= stuff-mycrates stuff-mynpm stuff-mypypi
 GC_KEEP_PREVIOUS ?= 1
-GC_KEEP_NEWER ?= 0
+GC_KEEP_NEWER ?= all
 GC_DRY_RUN ?=
 GC_JOBS ?=
 

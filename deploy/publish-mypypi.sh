@@ -85,8 +85,9 @@ mkdir -p "$STATE_DIR" "$SITE_DIR" "$(dirname "$CATALOG_FILE")" "$(dirname "$CONF
     echo "version = \"$version\""
     echo '[[packages]]'
   done
-} | sed '$d' > "$CATALOG_FILE"
-cat > "$CONFIG_FILE" <<EOF
+} | sed '$d' > "$CATALOG_FILE.tmp.$$"
+mv "$CATALOG_FILE.tmp.$$" "$CATALOG_FILE"
+cat > "$CONFIG_FILE.tmp.$$" <<EOF
 [project]
 name = "registry-pub"
 version = "0.1.0"
@@ -99,6 +100,7 @@ public_base_url = "$PUBLIC_URL"
 platforms = ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-arm64"]
 linux_repair_policy = "manylinux_2_28"
 EOF
+mv "$CONFIG_FILE.tmp.$$" "$CONFIG_FILE"
 M="--catalog $CATALOG_FILE --config $CONFIG_FILE --state-dir $STATE_DIR"
 # shellcheck disable=SC2086
 "$MYPYPI_BIN" $M add $PACKAGES

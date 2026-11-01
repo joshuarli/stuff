@@ -38,7 +38,7 @@ for repair.
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels).
 - Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
-- Open tickets: [TODO.md](TODO.md); designs awaiting sign-off: `docs/rfc/`.
+- Open tickets: [TODO.md](TODO.md).
 
 ## Commands
 

@@ -1,50 +1,12 @@
 Prefix: STUF
 Next: 50
 
-### STUF-29 · P2 · Garbage collection and rollback race publication and can delete objects a live generation needs
-
-- **Area:** Concurrency
-- **Where:** `deploy/r2-gc.py:152-168`, `deploy/r2-gc.py:396-402`, `deploy/r2-sync.sh:193-228`, `deploy/r2-rollback.sh`, `deploy/publish-lock.sh:39-54`, `deploy/publish:174-178`, `Makefile:81-83`
-- **Problem:** The publish lock covers only the three `publish-*.sh` helpers. `make gc`, `deploy/r2-rollback.sh`, `make sync`, and mycrates adoption run without it, and the lock is machine-local. `r2-plan` sorts keys, so `manifests/<id>.json` is uploaded before the shared `wheels/` and `tarballs/` objects that sort after it; mycrates `blobs/` sort first and are never protected. gc treats only manifest-less generation directories as in flight, and with the default `GC_KEEP_NEWER=0` it deletes a newer-than-current generation's tree, manifest, and shared objects. `assert_unchanged` runs once before the delete phase, so a publish that verifies and promotes while `delete_keys` runs can have an already-present shared object deleted after verification, leaving `current` on a generation with a missing object. A rollback with the default `cf` promotion is overwritten by any in-flight publish. Reproduced on the `test-r2-gc.py` fake S3: gc deleted `generations/g9/index.html`, `manifests/g9.json`, and `blobs/new9` mid-publish; promoting g9 at gc's first DELETE left `current = g9` with its manifest-listed `blobs/old1` gone.
-- **Recommendation:** Upload `manifests/<id>.json` last, after every other object including multipart uploads, so "generation without a manifest" means in flight. Take the per-registry publish lock in `make gc`, `r2-rollback.sh`, and adoption, and have gc re-read `current` and the manifest set between delete batches. A bucket-side fence closes the cross-machine case.
-- **Fix with:** durable-state
-- **Effort:** M
-- **Design:** [docs/rfc/STUF-29-r2-publication-fence.md](docs/rfc/STUF-29-r2-publication-fence.md)
-
-### STUF-30 · P2 · A publish built from stale local state promotes over a newer live generation
-
-- **Area:** Data
-- **Where:** `deploy/r2-promote.py:126-160`, `deploy/publish:98-109`, `deploy/r2-sync.sh:246-250`, `deploy/publish-mycrates.sh:136`, `deploy/publish-mynpm.sh:72`, `deploy/publish-mypypi.sh:108`
-- **Problem:** No helper passes `--expected`, and `s3_promote` reads `current` and its ETag at promote time, after the upload. `If-Match` therefore guards only the verification window. Adoption runs once (until `.adopt-complete` for mycrates, or while `current` is missing for mynpm and mypypi), so a publish from a second machine, or from a restored older state backup, renders from the old base and replaces the newer live generation under both `cf` and `s3` promotion. The other publisher's packages vanish from the registry, and the next `make gc` deletes their objects. Reproduced on the `test-r2-promote.py` fake: with `current` at `g2`, `s3_promote("bucket", "g1", None)` promoted `g1` with `If-Match: "e2"`.
-- **Recommendation:** Record the generation each site last promoted (from the site's `current` before the build) and pass it as `--expected` on every helper sync; on mismatch fail with an instruction to re-adopt.
-- **Fix with:** durable-state
-- **Effort:** M
-- **Design:** [docs/rfc/STUF-29-r2-publication-fence.md](docs/rfc/STUF-29-r2-publication-fence.md)
-
-### STUF-31 · P2 · mypypi output and catalog locks are stolen across the container boundary
-
-- **Area:** Concurrency
-- **Where:** `crates/mypypi/src/store.rs:54-108`, `crates/mypypi/src/store.rs:869`, `crates/mypypi/src/add.rs:409-468`, `deploy/mypypi-container.sh:68-77`, `deploy/publish-mypypi.sh:34-47`, `deploy/publish-mypypi.sh:92-100`
-- **Problem:** The README tells operators to run build, validate, and publish once per platform against one shared state home, with Linux platforms in containers. `ProcessLock` and `CatalogLock` write a PID and treat the lock as stale when `/bin/kill -0 <pid>` fails, then delete it. A PID written inside a container names a process the host cannot see (or one it may not signal), so a host publisher deletes a live container's lock; two waiters can also both judge a lock stale and end with two holders. `deploy/mypypi-container.sh` never sources `publish-lock.sh`, so the host `flock` does not cover container runs, and the host rewrites `packages.toml` in place with `>` while a container may read it. Two holders both extend the same `current`, and the later promote drops the platform wheels the other added. The script and lock code are read directly; the namespace steal is unproven by execution.
-- **Recommendation:** Replace the PID-liveness locks with an OS advisory lock released on process death (`File::lock`, as mycrates' store already uses), make `mypypi-container.sh` hold the host `publish.lock` for the container command, and write the catalog with temp file plus rename.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### STUF-32 · P2 · State recovery from R2 fails on any multipart object
 
 - **Area:** Data
 - **Where:** `deploy/r2-pull.py:144-148`, `deploy/r2-sync.sh:229-243`, `deploy/publish:121`, `deploy/publish:149`, `deploy/publish:162`
 - **Problem:** `download()` fails when a listing ETag contains `-`. `r2-sync.sh` uploads every object over 300 MB as multipart, so the first such wheel or tarball makes every adoption fail, and `deploy/publish` refuses to publish without adopted state. Recovery breaks exactly when the state is lost. No local object exceeds 300 MB today (`fd -S +300m` over the state home found none), so this is not yet hit. Adoption also never checks the pulled tree against `manifests/<gen>.json`, so for mypypi a missing object is adopted silently.
 - **Recommendation:** Verify multipart objects with `r2_common.multipart_etag(path, PART_SIZE)` against the listing ETag, and after the pull check every entry of the generation's manifest (key, size, ETag).
-- **Fix with:** error-model
-- **Effort:** S
-
-### STUF-33 · P2 · mycrates silently creates a localhost config, so a wrong state path publishes a live generation
-
-- **Area:** Config
-- **Where:** `crates/mycrates/src/config.rs:60-78`, `crates/mycrates/src/cli/publish.rs:38`, `crates/mycrates/src/cli/serve_publish.rs:51`, `crates/mycrates/src/cli/fetch.rs:32`
-- **Problem:** `Config::load` writes a default `config.json` when the file is missing, with `public_base_url` `http://localhost:8080`. A mistyped `--state-dir` therefore creates an empty state and `publish` succeeds: the review ran `mycrates publish --state-dir st --site-dir si` in an empty scratch dir, which exited 0, printed `published generation 4a0a0329…`, and wrote `si/current/registry/config.json` with `"dl":"http://localhost:8080/blobs/{sha256-checksum}.crate"`. Syncing that site would replace the live registry with an empty one pointing at localhost. `init` already exists as the explicit creator.
-- **Recommendation:** Make `Config::load` return `Error::Input` when the file is missing, so only `init` creates it.
 - **Fix with:** error-model
 - **Effort:** S
 
@@ -60,9 +22,9 @@ Next: 50
 ### STUF-35 · P3 · Generation activation, locking, and staging recovery are reimplemented per registry
 
 - **Area:** Architecture
-- **Where:** `crates/stuff-store/src/site.rs:109-130`, `crates/stuff-store/src/site.rs:158-203`, `crates/mynpm/src/publish.rs:746`, `crates/mynpm/src/publish.rs:860-970`, `crates/mypypi/src/store.rs:54-108`, `crates/mypypi/src/store.rs:511-580`, `crates/mycrates/src/publish.rs:161`
-- **Problem:** `Site::activate` has one production caller, mycrates. mynpm and mypypi each implement their own generation rename, `current` swap, lock, and temp names, and they disagree on verify-before-switch and on refusing to replace an immutable generation. `Site::recover_staging` removes only `.staging*` and `.current.tmp*`, which mynpm (`.mynpm-*.tmp`, `.mynpm-generation-*`, `.current-*`) and mypypi (`.mypypi-current-*`) never use, so their crash leftovers accumulate. `activate` itself leaves a generation that fails verification in place, after which the same content-addressed id is refused until removed by hand, and it joins an unvalidated `generation_id` into a path. The `current` pointer and generation-id grammar are parsed five more times with different strictness (`crates/stuff-server/src/serve.rs:47`, `crates/stuff/src/source.rs:182`, `crates/stuff-worker/src/entry.ts:104`, `crates/stuff-worker/src/map.rs:69`, `crates/stuff-worker/src/api.rs:222-227`). STUF-31 is one consequence.
-- **Recommendation:** Give `stuff-store` the extend-current publish shape mynpm and mypypi need, move both onto it with one lock and one temp-name prefix, quarantine a generation that fails verification, and export one generation-id parser for the server, CLI, and worker.
+- **Where:** `crates/stuff-store/src/site.rs:109-130`, `crates/stuff-store/src/site.rs:158-203`, `crates/mynpm/src/publish.rs:746`, `crates/mynpm/src/publish.rs:860-970`, `crates/mypypi/src/store.rs:511-580`, `crates/mycrates/src/publish.rs:161`
+- **Problem:** `Site::activate` has one production caller, mycrates. mynpm and mypypi each implement their own generation rename, `current` swap, and temp names, and each registry has its own lock type, and they disagree on verify-before-switch and on refusing to replace an immutable generation. `Site::recover_staging` removes only `.staging*` and `.current.tmp*`, which mynpm (`.mynpm-*.tmp`, `.mynpm-generation-*`, `.current-*`) and mypypi (`.mypypi-current-*`) never use, so their crash leftovers accumulate. `activate` itself leaves a generation that fails verification in place, after which the same content-addressed id is refused until removed by hand, and it joins an unvalidated `generation_id` into a path. The `current` pointer and generation-id grammar are parsed five more times with different strictness (`crates/stuff-server/src/serve.rs:47`, `crates/stuff/src/source.rs:182`, `crates/stuff-worker/src/entry.ts:104`, `crates/stuff-worker/src/map.rs:69`, `crates/stuff-worker/src/api.rs:222-227`).
+- **Recommendation:** Give `stuff-store` the extend-current publish shape mynpm and mypypi need, move both onto it with one OS-released lock (mypypi's `file_lock` is the model) and one temp-name prefix, quarantine a generation that fails verification, and export one generation-id parser for the server, CLI, and worker.
 - **Fix with:** architect
 - **Effort:** L
 
