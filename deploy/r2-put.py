@@ -9,10 +9,10 @@ KEYS_FILE holds one object key per line, relative to SITE_DIR.
 Uploads use the S3 API when R2_S3_ENDPOINT, R2_S3_ACCESS_KEY_ID and
 R2_S3_SECRET_ACCESS_KEY are set, and the authenticated `cf` CLI otherwise.
 CF_LOCAL_STATE always keeps uploads on the local `cf` simulation. The cf path
-shares one request pacer because the Cloudflare API allows roughly four
-requests a second per account; the S3 path runs R2_PUT_JOBS requests in
-parallel (default 8, cf default 4, local default 1). R2_PUT_ATTEMPTS defaults
-to 6.
+shares one request pacer across concurrent registry syncs through
+R2_PUT_PACE_FILE because the Cloudflare API allows roughly four requests a
+second per account; the S3 path runs R2_PUT_JOBS requests in parallel
+(default 8, cf default 4, local default 1). R2_PUT_ATTEMPTS defaults to 6.
 """
 
 import hashlib
@@ -20,6 +20,7 @@ import http.client
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.parse
@@ -207,19 +208,31 @@ def main(argv=None):
         keys = [line.strip() for line in f if line.strip()]
     if not keys:
         return 0
-    if os.environ.get("CF_LOCAL_STATE"):
+    local = bool(os.environ.get("CF_LOCAL_STATE"))
+    interval = 0.0
+    if local:
         transport = "cf"
-        pacer = Pacer(0)
         default_jobs = "1"
     elif s3_ready():
         transport = "s3"
-        pacer = None
         default_jobs = "8"
     else:
         transport = "cf"
-        pacer = Pacer(float(os.environ.get("R2_PUT_INTERVAL", "0.28")))
+        interval = float(os.environ.get("R2_PUT_INTERVAL", "0.28"))
         default_jobs = "4"
     jobs = int(os.environ.get("R2_PUT_JOBS", default_jobs))
+    pacer = None
+    if transport == "cf":
+        shared_path = None
+        if jobs > 1 and not local:
+            shared_path = os.environ.get("R2_PUT_PACE_FILE")
+            if shared_path is None:
+                shared_path = os.path.join(
+                    tempfile.gettempdir(), f"stuff-r2-put-{os.getuid()}.pace"
+                )
+            if shared_path.lower() in ("", "none", "0"):
+                shared_path = None
+        pacer = Pacer(interval, shared_path=shared_path)
     failures = []
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         pending = {

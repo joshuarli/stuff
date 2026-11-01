@@ -90,8 +90,10 @@ done
 
 export REPUBLISH
 command -v cf >/dev/null 2>&1 || fail "the cf CLI is not on PATH"
-cf auth whoami 2>/dev/null | grep -q '"authenticated"[[:space:]]*:[[:space:]]*true' ||
-  fail "cf is not authenticated; run cf auth login"
+if [ -z "${CF_AUTH_CHECKED:-}" ]; then
+  cf auth whoami 2>/dev/null | grep -q '"authenticated"[[:space:]]*:[[:space:]]*true' ||
+    fail "cf is not authenticated; run cf auth login"
+fi
 
 case $PROMOTE in
   cf)

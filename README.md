@@ -210,12 +210,11 @@ generation id (verified against the local R2 simulation). Sync is incremental
 and content-aware: remote objects whose size and content hash match are
 skipped, so re-syncing an unchanged generation uploads nothing. Without
 `R2_S3_*`, the sync mints short-lived bucket-scoped credentials from `cf`
-(`--parent-access-key-id` comes from the first active R2-capable account
-token; `R2_PARENT_ACCESS_KEY_ID` overrides it). Remote objects then come from
-the S3 API; uploads run `R2_PUT_JOBS` in parallel (default 8). If minting
-fails, prefix listing through `cf` (`deploy/r2-plan.py`) and a shared pacer
-at roughly four requests a second remain the fallback. The local simulation
-stays single-threaded. Every sync writes a
+(see [Fast path credentials](#fast-path-credentials)). Remote objects then
+come from the S3 API; uploads run `R2_PUT_JOBS` in parallel (default 8). If
+minting fails, prefix listing through `cf` (`deploy/r2-plan.py`) and a
+cross-process pacer at roughly four requests a second remain the fallback.
+The local simulation stays single-threaded. Every sync writes a
 `manifests/<id>.json` for each local generation, verifies every listed object
 remotely, then replaces `current`. Promotion defaults to `cf` for a single
 publisher: it writes `current` with a plain put after the same verification
@@ -255,6 +254,48 @@ Worker bundle and runs it under workerd (Miniflare) for cold-HEAD cache,
 root-link, and pinned artifact-alias coverage. `make test-r2-live`
 (`R2_ACCEPTANCE_BUCKET=...` plus `R2_S3_*`) is the opt-in real-R2 multipart
 acceptance check; it is not run by CI.
+
+### Fast path credentials
+
+The fast upload path uses R2's S3 API with:
+
+```sh
+export R2_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
+export R2_S3_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
+export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
+```
+
+When those are absent, `r2-sync.sh` mints short-lived credentials for the
+bucket through the authenticated `cf` CLI. To do it by hand:
+
+```sh
+eval "$(python3 deploy/r2-temp-credentials.py stuff-mycrates)"
+```
+
+That helper selects the first active account token whose policies mention R2,
+calls `cf r2 temporary-credentials create` with `object-read-write` scoped to
+the bucket, and exports the four variables the sync needs (the three above
+plus `R2_S3_SESSION_TOKEN`). The credentials are never written to disk.
+`R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, `R2_ACCOUNT_ID`
+overrides the account used for the endpoint, and `R2_TEMP_CREDENTIALS_TTL`
+sets the lifetime in seconds (default 3600).
+
+The equivalent manual command, using the parent token ID from
+`cf accounts tokens list`, is:
+
+```sh
+cf r2 temporary-credentials create \
+  --parent-access-key-id <R2_TOKEN_ID> \
+  --bucket stuff-mycrates \
+  --permission object-read-write \
+  --ttl-seconds 3600
+```
+
+Repeat for `stuff-mynpm` and `stuff-mypypi`; the helper does this
+automatically for each registry sync. `make deploy` uses the fast path by
+default and runs the three registry republishes in parallel. Set
+`DEPLOY_JOBS=1` to serialize them, or export `R2_S3_*` to use long-lived
+credentials instead of minting.
 
 ## Adopt a live publication
 

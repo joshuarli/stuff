@@ -43,14 +43,13 @@ worker-test: ## Build the worker bundle and exercise it under the workerd runtim
 worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
 	cd $(WORKER_DIR) && cf deploy
 
-R2_S3_READY := $(if $(R2_S3_ENDPOINT),$(if $(R2_S3_ACCESS_KEY_ID),$(if $(R2_S3_SECRET_ACCESS_KEY),1)))
-DEPLOY_JOBS ?= $(if $(R2_S3_READY),3,1)
+DEPLOY_JOBS ?= 3
 
 deploy: ## Test and deploy the worker, republish all three registries, then check the live site
 	cf auth whoami
 	$(MAKE) worker-test
 	$(MAKE) worker-deploy
-	$(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
+	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
 	$(MAKE) smoke-deployed
 
 republish-mycrates: ## Republish the mycrates site from state

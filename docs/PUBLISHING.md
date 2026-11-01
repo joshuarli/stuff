@@ -54,7 +54,7 @@ deploy/publish mypypi --republish
 
 `mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation.
 
-`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. The republishes run in parallel when `R2_S3_*` is already set; otherwise they run sequentially, each minting its own temporary S3 credentials. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
+`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. The three republishes run in parallel; each mints its own temporary S3 credentials when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
 
 ## Upload and promote with S3
 

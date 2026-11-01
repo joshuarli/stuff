@@ -19,9 +19,11 @@ import os
 import shlex
 import subprocess
 import sys
+import time
 
 TTL_DEFAULT = 3600
 MAX_TTL = 604800
+RETRIES = 3
 
 
 class CommandError(Exception):
@@ -34,11 +36,17 @@ def fail(message):
 
 
 def run(args):
-    done = subprocess.run(args, capture_output=True, text=True)
-    if done.returncode != 0:
+    for attempt in range(1, RETRIES + 1):
+        done = subprocess.run(args, capture_output=True, text=True)
+        if done.returncode == 0:
+            return done.stdout
         detail = (done.stderr or done.stdout).strip()
+        rate_limited = "429" in detail or "rate limit" in detail.lower()
+        if rate_limited and attempt < RETRIES:
+            time.sleep(2**attempt)
+            continue
         raise CommandError(detail or f"{' '.join(args[:3])} failed")
-    return done.stdout
+    raise CommandError(f"{' '.join(args[:3])} failed")
 
 
 def account_id():

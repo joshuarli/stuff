@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared stdlib-only infrastructure for the R2 deployment helpers."""
 
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -46,22 +47,40 @@ def s3_ready():
 
 
 class Pacer:
-    def __init__(self, interval):
+    def __init__(self, interval, shared_path=None):
         self.interval = interval
+        self.shared_path = shared_path
         self.lock = threading.Lock()
         self.next_slot = 0.0
 
-    def wait(self):
+    def reserve(self, extra=0.0):
+        if self.shared_path:
+            with open(self.shared_path, "a+", encoding="utf-8") as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+                f.seek(0)
+                raw = f.read().strip()
+                stored = float(raw) if raw else 0.0
+                now = time.time()
+                slot = max(now, stored)
+                f.seek(0)
+                f.truncate()
+                f.write(str(slot + self.interval + extra))
+                f.flush()
+                fcntl.flock(f, fcntl.LOCK_UN)
+            return slot, now
         with self.lock:
             now = time.monotonic()
             slot = max(now, self.next_slot)
-            self.next_slot = slot + self.interval
+            self.next_slot = slot + self.interval + extra
+        return slot, now
+
+    def wait(self):
+        slot, now = self.reserve()
         if slot > now:
             time.sleep(slot - now)
 
     def penalize(self, seconds):
-        with self.lock:
-            self.next_slot = max(self.next_slot, time.monotonic() + seconds)
+        self.reserve(seconds)
 
 
 def cf_command(args, bucket=None):
@@ -78,9 +97,16 @@ def list_prefix(bucket, prefix, page):
     args = ["list", "--per-page", str(page)]
     if prefix:
         args += ["--prefix", prefix]
-    done = subprocess.run(cf_command(args, bucket), capture_output=True, text=True)
-    if done.returncode != 0:
-        fail(f"listing prefix '{prefix}' failed: {done.stderr.strip()}")
+    for attempt in range(1, 4):
+        done = subprocess.run(cf_command(args, bucket), capture_output=True, text=True)
+        if done.returncode == 0:
+            break
+        detail = done.stderr.strip()
+        rate_limited = "429" in detail or "rate limit" in detail.lower()
+        if rate_limited and attempt < 3:
+            time.sleep(2**attempt)
+            continue
+        fail(f"listing prefix '{prefix}' failed: {detail}")
     try:
         objects = json.loads(done.stdout)
     except json.JSONDecodeError as e:

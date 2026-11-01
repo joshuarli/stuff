@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.parse
 import xml.sax.saxutils
@@ -260,6 +261,19 @@ class R2PutTests(unittest.TestCase):
         )
         self.assertIn(("bucket", "generations/g1/catalog.json"), self.server.objects)
         self.assertIn(("bucket", "manifests/g1.json"), self.server.objects)
+
+    def test_shared_pacer_spaces_concurrent_syncs(self):
+        path = self.root / "pace"
+        first = r2_common.Pacer(0.15, shared_path=str(path))
+        second = r2_common.Pacer(0.15, shared_path=str(path))
+        started = time.monotonic()
+        first.wait()
+        second.wait()
+        self.assertGreaterEqual(time.monotonic() - started, 0.12)
+        first.penalize(0.1)
+        started = time.monotonic()
+        second.wait()
+        self.assertGreaterEqual(time.monotonic() - started, 0.08)
 
     def test_remote_index_uses_paginated_s3_listing(self):
         self.use_s3()
