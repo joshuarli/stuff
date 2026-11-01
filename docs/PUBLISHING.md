@@ -85,6 +85,8 @@ push token; delete endpoints are not implemented.
 
 ### Push writer
 
+Production does not run a writer. The Worker has no `STUFF_OCI_PUSH_TOKEN`, `STUFF_OCI_PUSH_SECRET`, or `STUFF_OCI_WRITER_ORIGIN`, so every write returns the OCI `405 UNSUPPORTED` error, and images are published with `deploy/publish oci`. Enabling network push means starting the writer below on a TLS host and setting those three on the Worker.
+
 The front (`myoci serve --push`) owns authentication, manifest validation,
 generation creation, and the `current` flip. A separate `myoci writer` owns
 only blob bytes: it accepts upload `PATCH`/`PUT`s on an HMAC-signed,

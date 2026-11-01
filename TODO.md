@@ -1,16 +1,6 @@
 Prefix: STUF
 Next: 57
 
-### STUF-53 · Provision and verify the live OCI registry
-
-- **Area:** Operations
-- **Where:** `docs/PUBLISHING.md`, `docs/oci-design.md` (Needs environment)
-- **Problem:** The `stuff-oci` and `stuff-oci-blobs` buckets exist, `oci-blobs.17166969.xyz` is active with its Cache Rule, the Worker is deployed with the OCI bindings, the push token and secret, and the blob redirect, and `example/app:stable` and `example/bench:stable` are published. Live smoke, the pinned read conformance suite, and Docker and ORAS pulls pass. A push with the right token returns Worker error 1101 ("OCI push writer is not configured") because there is no writer host or `STUFF_OCI_WRITER_ORIGIN`, so push conformance, Docker/ORAS pushes, and the 1 GiB push/pull remain unrun.
-- **Recommendation:** Start `deploy/myoci-writer.sh` with TLS on a server, move `~/.local/state/stuff/oci/{push-secret,r2-writer.env}` there, set `STUFF_OCI_WRITER_ORIGIN` on the Worker, then run `deploy/oci-conformance.sh --push` against it, Docker and ORAS pushes, and the 1 GiB push/pull.
-- **Blocked:** The writer host. Unblock: choose the host.
-- **Fix with:** stuff-registries
-- **Effort:** M
-
 ### STUF-55 · P3 · `deploy/publish oci` fails on layers over 300 MB
 
 - **Area:** Operations

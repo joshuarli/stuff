@@ -125,6 +125,8 @@ mismatched digest/size, a foreign layer, and schema 1. The tag comes from
 
 ## Push authentication and writer
 
+The deployed registry leaves push off: the Worker has no push token, secret, or writer origin, and writes return `405`. This section describes the capability for a deployment that runs a writer host.
+
 The Worker secret `STUFF_OCI_PUSH_TOKEN` (or `--push-token-file` locally) is
 the registry token. Writes use `Authorization: Basic base64("stuff:" + token)`.
 Missing or wrong credentials get 401 with `WWW-Authenticate: Basic
