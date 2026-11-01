@@ -5,7 +5,7 @@ Next: 57
 
 - **Area:** Operations
 - **Where:** `deploy/publish:114-122`, `deploy/r2-sync-blobs.sh`
-- **Problem:** The wrapper mints S3 credentials only for `stuff-oci`, in a subshell. `r2-sync-blobs.sh` then needs `R2_S3_*` for `stuff-oci-blobs` to upload a layer over the 300 MB single-PUT cap and stops with `R2_S3_ENDPOINT is not set`. Publishing the 1 GiB benchmark layer worked only after syncing blobs by hand with the writer key and then running `deploy/publish oci --republish`.
+- **Problem:** The wrapper mints S3 credentials only for `stuff-oci`, in a subshell. `r2-sync-blobs.sh` then needs `R2_S3_*` for `stuff-oci-blobs` to upload a layer over the 300 MB single-PUT cap and stops with `R2_S3_ENDPOINT is not set`. Publishing the 1 GiB benchmark layer worked only after syncing blobs by hand with a blob-bucket key (`R2_S3_* deploy/r2-sync-blobs.sh SITE stuff-oci-blobs`) and then running `deploy/publish oci --republish`.
 - **Recommendation:** Mint credentials for the blob bucket before the blob sync and for the metadata bucket before the metadata sync, or have `r2-sync-blobs.sh` mint its own as the other syncs do. Cover a layer over 300 MB in the offline publish test.
 - **Fix with:** stuff-registries
 - **Effort:** S
