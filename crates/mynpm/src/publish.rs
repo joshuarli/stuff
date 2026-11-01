@@ -10,10 +10,10 @@ use crate::inventory::{
 use crate::inventory_store::{acquire_file_lock, load_inventory};
 use crate::packument::{render_packument_files, PackumentFile, RENDERER_VERSION};
 use sha2::{Digest, Sha256, Sha512};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -370,6 +370,15 @@ fn validate_generation(
     mirror_root: &Path,
     seal: Seal,
 ) -> Result<Option<GenerationManifest>> {
+    Ok(validate_generation_sealed(generations_dir, id, mirror_root, seal)?.map(|(manifest, _, _)| manifest))
+}
+
+fn validate_generation_sealed(
+    generations_dir: &Path,
+    id: &str,
+    mirror_root: &Path,
+    seal: Seal,
+) -> Result<Option<(GenerationManifest, bool, usize)>> {
     let generation_dir = generations_dir.join(id);
     match std::fs::symlink_metadata(&generation_dir) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -489,22 +498,35 @@ fn validate_generation(
             return Err(Error::Corrupt(format!("generation llms.txt does not match its manifest: {id}")));
         }
     }
+    let mut verified: HashMap<(u64, u64), String> = HashMap::new();
     for record in &manifest.artifacts {
-        hash_file(&mirror_root.join("tarballs").join(format!("{}.tgz", record.artifact.sha512)), &record.artifact.sha512)?;
+        let digest = record.artifact.sha512.as_str();
+        let mut paths = vec![mirror_root.join("tarballs").join(format!("{digest}.tgz"))];
         if manifest.renderer_version != 1 {
-            hash_file(
-                &generation_dir.join("tarballs").join(format!("{}.tgz", record.artifact.sha512)),
-                &record.artifact.sha512,
-            )?;
+            paths.push(generation_dir.join("tarballs").join(format!("{digest}.tgz")));
         }
         if manifest.renderer_version >= 3 {
-            hash_file(
-                &generation_dir.join("-").join("tarballs").join(format!("{}.tgz", record.artifact.sha512)),
-                &record.artifact.sha512,
-            )?;
+            paths.push(generation_dir.join("-").join("tarballs").join(format!("{digest}.tgz")));
+        }
+        for path in paths {
+            let metadata = std::fs::metadata(&path).map_err(|_| {
+                Error::Corrupt(format!("could not inspect published artifact {}", path.display()))
+            })?;
+            let key = (metadata.dev(), metadata.ino());
+            if let Some(previous) = verified.get(&key) {
+                if previous != digest {
+                    return Err(Error::Corrupt(format!(
+                        "published artifacts share a file with different digests: {}",
+                        path.display()
+                    )));
+                }
+                continue;
+            }
+            hash_file(&path, digest)?;
+            verified.insert(key, digest.to_string());
         }
     }
-    Ok(Some(manifest))
+    Ok(Some((manifest, sealed_by_current_renderer, files.len())))
 }
 
 fn current_generation_id(mirror_root: &Path) -> Result<Option<String>> {
@@ -830,7 +852,6 @@ fn write_tarball_aliases(directory: &Path, artifacts: &[ArtifactRecord], mirror_
                     Error::Operation(format!("could not expose published artifact {digest}"))
                 })?;
             }
-            hash_file(&alias, digest)?;
         }
     }
     Ok(())
@@ -1066,8 +1087,18 @@ pub fn adopt_site(site_directory: &Path) -> Result<PublishSummary> {
         )));
     }
     write_tarball_aliases(&generation_dir, &listed.artifacts, &mirror.root)?;
-    let adopted = validate_generation(&mirror.generations, &id, &mirror.root, Seal::Adopted)?
-        .ok_or_else(|| Error::Corrupt(format!("current publication points to a missing generation: {id}")))?;
+    let (adopted, sealed, package_count) =
+        validate_generation_sealed(&mirror.generations, &id, &mirror.root, Seal::Adopted)?
+            .ok_or_else(|| Error::Corrupt(format!("current publication points to a missing generation: {id}")))?;
+    if sealed {
+        return Ok(PublishSummary {
+            generation_id: id,
+            package_count,
+            version_count: adopted.artifacts.len(),
+            metadata_only_count: adopted.metadata_only.len(),
+            no_op: true,
+        });
+    }
     activate(
         &mirror,
         Some(format!("generations/{id}")),
