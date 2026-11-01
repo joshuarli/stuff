@@ -15,9 +15,9 @@ Next: 54
 
 - **Area:** Operations
 - **Where:** `docs/PUBLISHING.md`, `docs/oci-design.md` (Needs environment)
-- **Problem:** The OCI campaign is locally green, but `stuff-oci`/`stuff-oci-blobs`, the `oci` and `oci-blobs` custom domains, Worker bindings and secrets, and the writer host are not provisioned. The one live writer proof used a temporary bucket and minted credentials; production publication, live read/push conformance, and Docker/ORAS interop remain unrun.
-- **Recommendation:** Create the buckets and domains, set the Worker secrets, start `deploy/myoci-writer.sh` with TLS, run `deploy/publish oci`, then run `make deploy`, `make smoke-deployed`, the live conformance commands, and the 1 GiB push/pull.
-- **Blocked:** Owner-provisioned Cloudflare resources and writer host. Unblock: provision them, then run the deployment checklist.
+- **Problem:** The OCI campaign is locally green. The `stuff-oci` and `stuff-oci-blobs` buckets exist, `oci-blobs.17166969.xyz` is attached to the blob bucket, and the push token, push secret, and a `stuff-oci-writer` R2 key scoped to `stuff-oci-blobs` are minted. The Worker secrets and `oci` domain deploy, the writer host, production publication, live read/push conformance, and Docker/ORAS interop remain unrun.
+- **Recommendation:** Set the Worker secrets, start `deploy/myoci-writer.sh` with TLS, run `deploy/publish oci`, then run `make deploy`, `make smoke-deployed`, the live conformance commands, and the 1 GiB push/pull.
+- **Blocked:** The writer host and the Worker secrets. Unblock: choose the host, set the secrets, then run the deployment checklist.
 - **Fix with:** stuff-registries
 - **Effort:** M
 
