@@ -6,11 +6,12 @@
 
 **Preflight:** ready. Owner decisions D1-D4 were answered on 2026-11-01. Execution started on 2026-11-01.
 
-- **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation. M2 — `linux-musl-toolchain` replaces `rust-musl-image` and enforces the lock with a deterministic fixer (8e5e209).
+- **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation. M2 — `linux-musl-toolchain` replaces `rust-musl-image` and enforces the lock with a deterministic fixer (8e5e209). M3 — canonical `docker/musl/Dockerfile`, its `rust-toolchain.toml`, and `repomod musl build` (cd1f16f). A local `linux/amd64` build completed within the time box; its OCI layout digest was `sha256:f3d9149eb4f54d7e1b49fddaf8d81ddede0545ee9cb41bae34209bf6fb1d1bc6`, and the smoke test printed clang 23.1.0-rc2 and mold 3.0.0 and found `/usr/local/bin/musl-cargo`. The local image and OCI output were removed after the proof.
+- **Environment note:** a post-M3 retry of `pins refresh --check --only musl` hit Docker Hub's unauthenticated rate limit (HTTP 429). The M1 check was green, the added `xz` pin came from the live stable and edge indexes, and the Dockerfile/lock consistency test is green; retry the live check at M5.
 - **Fleet dry-run (M2):** 118 error findings across 15 repositories, 0 operational, 105 fixable. Counts: `ish` 10, `tansu` 25, `chromium-build` 4, `diff-pretty` 9, `e` 9, `fastermod` 6, `fdu` 2, `fz` 10, `git-build` 1, `node-build` 6, `rustybench` 9, `srv` 6, `tm` 6, `vault` 12, `zzz` 3. `fdu` reports the stale `python3` and rustup 1.29.0; `tansu` reports both musl Dockerfiles. `node-build`'s `clang` token has no version in the live Alpine index, so its package findings stay manual instead of inventing one. `python-build` is clean, and skipped or builder-free repositories return no findings. The fleet run takes 0.30 s.
 - **Red:** the campaign's own checks are green. The fleet is red under `linux-musl-toolchain` with 118 findings; that red is the migration backlog, not a campaign failure. It clears only when the owner runs the fixer and merges the pull requests.
-- **Next:** M3.
-- **Resume:** "Execute `campaign-oci.md` from M3. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
+- **Next:** M4.
+- **Resume:** "Execute `campaign-oci.md` from M4. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
 
 ## Charter
 
