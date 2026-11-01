@@ -465,100 +465,36 @@ mod tests {
     }
 
     #[test]
-    fn manifest_by_tag() {
-        let Request::Manifest { reference, head, .. } = request("/v2/example/app/manifests/stable") else {
-            panic!("manifest")
-        };
-        assert!(!head);
-        let plan = plan_manifest(
-            Method::Get,
-            &reference,
-            media::OCI_INDEX,
-            &Digest::parse(INDEX_DIGEST).unwrap(),
-            491,
-        );
-        assert_eq!(plan.status, 200);
-        assert_eq!(plan.header("content-type"), Some(media::OCI_INDEX));
-        assert_eq!(plan.header("docker-content-digest"), Some(INDEX_DIGEST));
-        assert_eq!(plan.header("cache-control"), Some(CACHE_POINTER));
-        assert_eq!(plan.body, Body::Opaque { length: 491 });
+    fn manifest_plans_follow_method_and_reference_kind() {
+        let by_digest = format!("/v2/example/app/manifests/{ARM64_DIGEST}");
+        let index_by_digest = format!("/v2/example/app/manifests/{INDEX_DIGEST}");
+        let cases = [
+            (Method::Get, "/v2/example/app/manifests/stable", media::OCI_INDEX, INDEX_DIGEST, 491, CACHE_POINTER),
+            (Method::Head, "/v2/example/app/manifests/stable", media::OCI_INDEX, INDEX_DIGEST, 491, CACHE_POINTER),
+            (Method::Get, by_digest.as_str(), media::OCI_MANIFEST, ARM64_DIGEST, 401, CACHE_IMMUTABLE),
+            (Method::Head, by_digest.as_str(), media::OCI_MANIFEST, ARM64_DIGEST, 401, CACHE_IMMUTABLE),
+            (Method::Get, index_by_digest.as_str(), media::OCI_INDEX, INDEX_DIGEST, 491, CACHE_IMMUTABLE),
+        ];
+        for (method, target, media_type, digest, size, cache) in cases {
+            let Request::Manifest { reference, head, .. } = request(target) else {
+                panic!("{target} is not a manifest route")
+            };
+            assert!(!head, "{target}");
+            let plan = plan_manifest(method, &reference, media_type, &Digest::parse(digest).unwrap(), size);
+            assert_eq!(plan.status, 200, "{method:?} {target}");
+            assert_eq!(plan.header("content-type"), Some(media_type), "{method:?} {target}");
+            assert_eq!(plan.header("docker-content-digest"), Some(digest), "{method:?} {target}");
+            assert_eq!(plan.header("cache-control"), Some(cache), "{method:?} {target}");
+            let expected = if method == Method::Head { Body::Empty } else { Body::Opaque { length: size } };
+            assert_eq!(plan.body, expected, "{method:?} {target}");
+            if method == Method::Head {
+                assert_eq!(plan.header("content-length"), Some(size.to_string().as_str()), "{target}");
+            }
+        }
     }
 
     #[test]
-    fn manifest_head_by_tag() {
-        let Request::Manifest { reference, head, .. } = request("/v2/example/app/manifests/stable") else {
-            panic!("manifest")
-        };
-        assert!(!head);
-        let plan = plan_manifest(
-            Method::Head,
-            &reference,
-            media::OCI_INDEX,
-            &Digest::parse(INDEX_DIGEST).unwrap(),
-            491,
-        );
-        assert_eq!(plan.status, 200);
-        assert_eq!(plan.header("content-length"), Some("491"));
-        assert_eq!(plan.body, Body::Empty);
-    }
-
-    #[test]
-    fn manifest_by_digest() {
-        let Request::Manifest { reference, head, .. } =
-            request(&format!("/v2/example/app/manifests/{ARM64_DIGEST}"))
-        else {
-            panic!("manifest")
-        };
-        assert!(!head);
-        let plan = plan_manifest(
-            Method::Get,
-            &reference,
-            media::OCI_MANIFEST,
-            &Digest::parse(ARM64_DIGEST).unwrap(),
-            401,
-        );
-        assert_eq!(plan.status, 200);
-        assert_eq!(plan.header("cache-control"), Some(CACHE_IMMUTABLE));
-        assert_eq!(plan.body, Body::Opaque { length: 401 });
-    }
-
-    #[test]
-    fn manifest_head_by_digest() {
-        let Request::Manifest { reference, .. } =
-            request(&format!("/v2/example/app/manifests/{ARM64_DIGEST}"))
-        else {
-            panic!("manifest")
-        };
-        let plan = plan_manifest(
-            Method::Head,
-            &reference,
-            media::OCI_MANIFEST,
-            &Digest::parse(ARM64_DIGEST).unwrap(),
-            401,
-        );
-        assert_eq!(plan.body, Body::Empty);
-        assert_eq!(plan.header("content-length"), Some("401"));
-    }
-
-    #[test]
-    fn manifest_stored_type() {
-        let Request::Manifest { reference, .. } =
-            request(&format!("/v2/example/app/manifests/{INDEX_DIGEST}"))
-        else {
-            panic!("manifest")
-        };
-        let plan = plan_manifest(
-            Method::Get,
-            &reference,
-            media::OCI_INDEX,
-            &Digest::parse(INDEX_DIGEST).unwrap(),
-            491,
-        );
-        assert_eq!(plan.header("content-type"), Some(media::OCI_INDEX));
-    }
-
-    #[test]
-    fn blob_get() {
+    fn blob_plans_cover_get_head_and_ranges() {
         let Request::Blob { digest, head, .. } =
             request(&format!("/v2/example/app/blobs/{LAYER_DIGEST}"))
         else {
@@ -572,24 +508,12 @@ mod tests {
         assert_eq!(plan.header("docker-content-digest"), Some(LAYER_DIGEST));
         assert_eq!(plan.header("accept-ranges"), Some("bytes"));
         assert_eq!(plan.body, Body::Opaque { length: 117 });
-    }
 
-    #[test]
-    fn blob_head() {
-        let Request::Blob { digest, .. } =
-            request(&format!("/v2/example/app/blobs/{LAYER_DIGEST}"))
-        else {
-            panic!("blob")
-        };
         let plan = plan_blob(Method::Head, &digest, 117, &RequestHeaders::default());
         assert_eq!(plan.status, 200);
         assert_eq!(plan.header("content-length"), Some("117"));
         assert_eq!(plan.body, Body::Empty);
-    }
 
-    #[test]
-    fn blob_range() {
-        let digest = Digest::parse(LAYER_DIGEST).unwrap();
         let headers = RequestHeaders { range: Some("bytes=0-9".to_string()) };
         let plan = plan_blob(Method::Get, &digest, 117, &headers);
         assert_eq!(plan.status, 206);
@@ -609,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn tags_list() {
+    fn tags_lists_sorted_and_paginated() {
         assert_eq!(request("/v2/example/app/tags/list"), Request::Tags {
             repository: repository(),
             pagination: Pagination::default(),
@@ -622,10 +546,7 @@ mod tests {
             other => panic!("unexpected body {other:?}"),
         };
         assert_eq!(body, "{\"name\":\"example/app\",\"tags\":[\"beta\",\"stable\"]}");
-    }
 
-    #[test]
-    fn tags_pagination() {
         let all = tags(&["a", "b", "c"]);
         let first = plan_tags(
             Method::Get,
@@ -654,10 +575,14 @@ mod tests {
         };
         assert_eq!(body, "{\"name\":\"example/app\",\"tags\":[\"c\"]}");
         assert_eq!(second.header("link"), None);
+
+        let head = plan_tags(Method::Head, &repository(), &all, &Pagination::default());
+        assert_eq!(head.status, 200);
+        assert_eq!(head.body, Body::Empty);
     }
 
     #[test]
-    fn referrers() {
+    fn referrers_list_and_filter_by_artifact_type() {
         let descriptors = vec![
             descriptor(ARM64_DIGEST, media::OCI_MANIFEST, 401, None),
             descriptor(
@@ -678,20 +603,7 @@ mod tests {
         };
         assert!(body.contains("\"schemaVersion\":2"));
         assert!(body.contains(&format!("\"digest\":\"{ARM64_DIGEST}\"")));
-    }
 
-    #[test]
-    fn referrers_filter() {
-        let descriptors = vec![
-            descriptor(ARM64_DIGEST, media::OCI_MANIFEST, 401, None),
-            descriptor(
-                "sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25",
-                media::OCI_MANIFEST,
-                671,
-                Some("application/vnd.stuff.sbom.v1+json"),
-            ),
-        ];
-        let subject = Digest::parse(SUBJECT).unwrap();
         let plan = plan_referrers(
             Method::Get,
             &repository(),
