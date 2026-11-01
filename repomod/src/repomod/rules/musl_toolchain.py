@@ -993,7 +993,16 @@ def _stage_check(
             findings.append(
                 _failure(repository, path, "Debian or Ubuntu host image must be digest-pinned", line.line)
             )
-        return _Stage(image, tag, digest, platform, None, False), findings, edits
+        elif name != "scratch":
+            findings.append(
+                _failure(
+                    repository,
+                    path,
+                    f"base image {repo} is not an approved Alpine base or the published canonical image",
+                    line.line,
+                )
+            )
+        return _Stage(image, tag, digest, platform, None, name == "scratch"), findings, edits
     arch = _platform_arch(platform)
     adapter_channel = adapter.channel if adapter is not None else None
     channel = adapter_channel or _channel_from_tag(lock, tag)
@@ -1875,6 +1884,93 @@ def _linux_musl_toolchain_fix(root: Path, repository: Repository) -> dict[str, s
             if fixed != source:
                 plan[relative] = fixed
     return plan
+
+
+def image_build_arguments(lock: MuslToolchain) -> dict[str, str]:
+    stable = lock.channels["stable"]
+    archives = lock.toolchain.archives
+    return {
+        "BASE_IMAGE": f"{stable.image}@{stable.index_digest}",
+        "LLVM_VERSION": lock.toolchain.llvm_version,
+        "LLVM_RELEASE_SHA": lock.toolchain.llvm_release,
+        "LLVM_X86_64_SHA256": archives["llvm"]["x86_64"].sha256,
+        "LLVM_AARCH64_SHA256": archives["llvm"]["aarch64"].sha256,
+        "MOLD_VERSION": lock.toolchain.mold_version,
+        "MOLD_RELEASE_SHA": lock.toolchain.mold_release,
+        "MOLD_X86_64_SHA256": archives["mold"]["x86_64"].sha256,
+        "MOLD_AARCH64_SHA256": archives["mold"]["aarch64"].sha256,
+        "RUSTUP_VERSION": lock.toolchain.rustup_version,
+        "RUSTUP_X86_64_SHA256": archives["rustup"]["x86_64"].sha256,
+        "RUSTUP_AARCH64_SHA256": archives["rustup"]["aarch64"].sha256,
+    }
+
+
+def image_package_versions(lock: MuslToolchain) -> dict[str, str]:
+    stable = lock.channels["stable"]
+    x86_64 = stable.packages["x86_64"]
+    aarch64 = stable.packages["aarch64"]
+    differing = sorted(
+        name
+        for name in set(x86_64) | set(aarch64)
+        if x86_64.get(name) != aarch64.get(name)
+    )
+    if differing:
+        raise ValueError(
+            "canonical image requires one approved stable version per architecture: "
+            + ", ".join(differing)
+        )
+    return dict(x86_64)
+
+
+def validate_image_definition(
+    lock: MuslToolchain, dockerfile: str, toolchain_source: str
+) -> None:
+    arguments = _arg_values(_logical_lines(dockerfile))
+    for name, expected in image_build_arguments(lock).items():
+        if arguments.get(name) != expected:
+            raise ValueError(f"canonical image ARG {name} must default to {expected}")
+    packages = image_package_versions(lock)
+    for line in _logical_lines(dockerfile):
+        run_match = _RUN.match(line.text)
+        if run_match is None:
+            continue
+        for command in _apk_commands(line.text[run_match.end() :]):
+            for package in command.packages:
+                expected = packages.get(package.name)
+                if expected is None:
+                    raise ValueError(
+                        f"canonical image package {package.name} is not in the approved stable package table"
+                    )
+                if package.version != expected:
+                    raise ValueError(
+                        f"canonical image package {package.name} must be {package.name}={expected}"
+                    )
+    for marker, message in (
+        ("FROM ${BASE_IMAGE}", "canonical image must use the locked BASE_IMAGE argument"),
+        ("sha256sum -c", "canonical image must verify every toolchain archive with sha256"),
+        ("rustup toolchain install", "canonical image must install a Rust toolchain"),
+        ("x86_64-unknown-linux-musl", "canonical image must install the x86_64 musl target"),
+        ("aarch64-unknown-linux-musl", "canonical image must install the aarch64 musl target"),
+        ("rust-src", "canonical image must install rust-src"),
+        ("musl-cargo", "canonical image must provide the musl-cargo wrapper"),
+        ("crtbegin", "canonical image must provide musl CRT stubs"),
+        ("libutil.a", "canonical image must stub libutil.a"),
+    ):
+        if marker not in dockerfile:
+            raise ValueError(message)
+    try:
+        document = tomllib.loads(toolchain_source)
+    except tomllib.TOMLDecodeError as error:
+        raise ValueError(f"canonical image rust-toolchain.toml is invalid TOML: {error}") from error
+    toolchain = document.get("toolchain")
+    if not isinstance(toolchain, dict):
+        raise ValueError("canonical image rust-toolchain.toml must contain [toolchain]")
+    channel = toolchain.get("channel")
+    if not isinstance(channel, str) or not channel.startswith("nightly-"):
+        raise ValueError("canonical image rust-toolchain.toml must pin a nightly channel")
+    components = toolchain.get("components")
+    if not isinstance(components, list) or "rust-src" not in components:
+        raise ValueError("canonical image rust-toolchain.toml must include rust-src")
 
 
 def musl_toolchain_rules() -> tuple[Rule, ...]:

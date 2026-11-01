@@ -118,3 +118,11 @@ patch becomes approved. See [policy development](policy-development.md) for the 
 lock enforces. The `linux-musl-toolchain` rule enforces the lock across conventional
 builders, tansu, and the bespoke adapters; its fixer repairs only deterministic base-digest
 and package-version edits.
+
+`docker/musl/Dockerfile` is the canonical builder source. Its build arguments default to the
+lock's stable image, package versions, and toolchain archive pins, so a direct build without
+arguments uses approved values. `repomod musl build` validates the Dockerfile and its
+`rust-toolchain.toml` against the lock, builds one platform under `.work/`, and writes a local
+OCI layout with no push path. A published digest is recorded in `[image]`; a builder may then
+use that image by digest and keep its package setup in the image. Publishing and consumer
+migration stay owner-run.

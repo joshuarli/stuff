@@ -122,6 +122,18 @@ uv run repomod pins refresh --check
 uv run repomod pins refresh --only musl
 ```
 
+## Canonical musl image
+
+`docker/musl/Dockerfile` builds the shared musl toolchain image. `repomod musl build`
+validates its build arguments and package pins against `musl-toolchain.toml`, builds one
+platform with the lock's values, and writes a local OCI layout. It prints the layout's
+manifest digest and has no push path. Publishing is an owner-run step: build with `--push`,
+record the index digest in `[image]`, then run `pins refresh --check`.
+
+```sh
+uv run repomod musl build --platform linux/amd64 --output .work/oci/musl
+```
+
 ## Push
 
 `repomod push` pushes each selected checkout's current branch when it is ahead of

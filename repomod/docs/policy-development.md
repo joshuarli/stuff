@@ -217,6 +217,23 @@ every package in the file has an approved version. It may rewrite the `node-buil
 `apk add` line when every package there is approved, and it adds the approved checksum to the
 `zzz` download. Bespoke lock mismatches stay manual.
 
+## Canonical musl image
+
+`docker/musl/Dockerfile` is the canonical builder source for the conventional Rust builders.
+Its `BASE_IMAGE`, LLVM, mold, and rustup `ARG` defaults must equal `musl-toolchain.toml`, and
+its direct `apk` packages must equal the approved stable versions for both architectures.
+`repomod musl build --platform linux/amd64|linux/arm64 --output PATH` validates those
+defaults and the image's `rust-toolchain.toml`, builds with the lock's build arguments, and
+writes a local OCI layout. It prints the layout's manifest digest and has no push path. A
+failed build or a Dockerfile/lock mismatch exits nonzero without replacing the output.
+
+When `[image]` records a published reference and digest, a conventional builder may start from
+that image by digest; the rule accepts the stage and exempts it from package and toolchain
+checks because the image owns them. A different digest is a finding. Until `[image]` is
+present, pinned Alpine mode is the only accepted form: a musl builder must use an approved
+Alpine base, not an unpublished canonical reference. The fixer never switches a builder to
+image mode; that migration is an owner-run step after publication.
+
 `github-protection` requires zero approving reviews on protected branches so owner-only
 automation never waits on reviews. Repositories without branch protection are skipped.
 It has no fixer; change protection with explicit API calls.

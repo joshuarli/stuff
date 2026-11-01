@@ -193,6 +193,19 @@ def test_canonical_image_stage_is_exempt_and_checked(
     assert findings[0].fixable is True
 
 
+def test_unpublished_canonical_image_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = bare_repo(
+        tmp_path,
+        f"FROM ghcr.io/acme/musl-toolchain@{STABLE_INDEX}\n",
+    )
+
+    findings = check(monkeypatch, root)
+
+    assert any("not an approved Alpine base" in message for message in messages(findings))
+
+
 def test_host_musl_build_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = approved_repo(tmp_path)
     workflows = root / ".github" / "workflows"

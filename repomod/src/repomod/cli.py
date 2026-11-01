@@ -11,6 +11,7 @@ from repomod.cmd.fix import _fix
 from repomod.cmd.gc import _gc
 from repomod.cmd.lint import _lint
 from repomod.cmd.merge import _merge
+from repomod.cmd.musl import _musl
 from repomod.cmd.pins import _pins
 from repomod.cmd.push import _push
 from repomod.cmd.status import _status
@@ -60,6 +61,12 @@ def _parser() -> argparse.ArgumentParser:
     refresh = pin_commands.add_parser("refresh", help="refresh pin files from their upstream sources")
     refresh.add_argument("--check", action="store_true", help="report drift without writing")
     refresh.add_argument("--only", choices=("actions", "python", "typescript", "musl"))
+
+    musl = commands.add_parser("musl", help="build the canonical musl toolchain image")
+    musl_commands = musl.add_subparsers(dest="operation", required=True)
+    build = musl_commands.add_parser("build", help="build a local OCI layout")
+    build.add_argument("--platform", required=True, choices=("linux/amd64", "linux/arm64"))
+    build.add_argument("--output", type=Path, default=Path(".work/oci/musl"), metavar="PATH")
 
     push = commands.add_parser(
         "push", help="push checked-out branches that are ahead of their origin upstream"
@@ -119,6 +126,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "fix": _fix,
             "sync": _sync,
             "pins": _pins,
+            "musl": _musl,
             "push": _push,
             "merge": _merge,
             "gc": _gc,
