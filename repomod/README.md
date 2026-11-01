@@ -63,11 +63,13 @@ uv run repomod gc
 
 ## Status and lint
 
-`repomod status` shows local Git, current default-branch CI, the latest status for each GitHub
-workflow, outstanding ticket headings in each root `TODO.md`, lint rules with findings, and, for
-forks, how many commits behind their upstream parent they are.
-`status --offline` reads cached CI and upstream data without network calls. `--failed` filters to CI failures,
-error-level policy findings, operational lint findings, and forks behind their upstream.
+`repomod status` shows only what needs attention: repositories with local Git work, CI or workflow
+failures, conflicting pull requests, forks behind their upstream, or lint findings. Passing
+repositories and passing workflow entries are omitted. `--json` still reports every selected
+repository.
+`status --offline` reads cached CI and upstream data without network calls. `--failed` narrows the
+report to CI failures, error-level policy findings, operational lint findings, and forks behind
+their upstream.
 
 ```sh
 uv run repomod status --offline

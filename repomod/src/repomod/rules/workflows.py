@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from repomod.run_cache import cached
 from repomod.types import Repository
 from repomod.workflow_policy import is_fork_workflow
 
 
-def workflow_files(
+def _workflow_files(
     root: Path, repository: Repository | None = None
 ) -> tuple[list[Path], list[tuple[str, str]]]:
     github = root / ".github"
@@ -31,7 +32,16 @@ def workflow_files(
     return files, problems
 
 
-def read_workflow_sources(
+def workflow_files(
+    root: Path, repository: Repository | None = None
+) -> tuple[list[Path], list[tuple[str, str]]]:
+    return cached(
+        ("workflow_files", root, repository is not None and "fork" in repository.tags),
+        lambda: _workflow_files(root, repository),
+    )
+
+
+def _read_workflow_sources(
     root: Path, repository: Repository | None = None
 ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
     files, problems = workflow_files(root, repository)
@@ -43,3 +53,12 @@ def read_workflow_sources(
         except (OSError, UnicodeError) as error:
             problems.append((relative, f"cannot read workflow: {error}"))
     return sources, problems
+
+
+def read_workflow_sources(
+    root: Path, repository: Repository | None = None
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    return cached(
+        ("workflow_sources", root, repository is not None and "fork" in repository.tags),
+        lambda: _read_workflow_sources(root, repository),
+    )

@@ -14,7 +14,7 @@ from typing import Any
 from repomod import github, policy
 from repomod.catalog import CatalogError, repository_path
 from repomod.git import branch_checked_out_time, oldest_unpushed_commit_time, status
-from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository
+from repomod.types import Catalog, CiResult, Finding, GitStatus, Repository, WorkflowStatus
 
 from . import common
 
@@ -253,21 +253,60 @@ def _upstream_label(upstream: dict[str, Any]) -> tuple[str, str]:
     return f"{parent} {state}{suffix}", "33"
 
 
+def _upstream_surfaced(row: dict[str, object]) -> bool:
+    upstream = row.get("upstream")
+    if not isinstance(upstream, dict):
+        return False
+    if _upstream_behind(row) or upstream.get("error") is not None or upstream.get("state") == "unknown":
+        return True
+    parent = upstream.get("parent")
+    return not isinstance(parent, str) or not parent
+
+
+def _local_surfaced(row: dict[str, object]) -> bool:
+    local = str(row["local"])
+    return row.get("stale_local_work") is True or local.startswith(
+        ("missing", "invalid", "detached", "dirty", "diverged", "ahead", "behind")
+    )
+
+
+def _workflow_surfaced(workflow: WorkflowStatus) -> bool:
+    return workflow.state not in {"passed", "skipped"}
+
+
+def _status_row_visible(
+    row: dict[str, object], findings: Sequence[Finding], ci: CiResult
+) -> bool:
+    if findings or _local_surfaced(row) or _upstream_surfaced(row) or _has_conflicting_pr(row):
+        return True
+    if ci.state not in {"passed", "none"}:
+        return True
+    if ci.workflows is None:
+        return True
+    return any(_workflow_surfaced(workflow) for workflow in ci.workflows)
+
+
 def _status_text(
     rows: Sequence[dict[str, object]],
     findings_by_repository: dict[str, list[Finding]],
     ci_by_repository: dict[str, CiResult],
 ) -> None:
     width = max(40, shutil.get_terminal_size((80, 24)).columns)
-    for index, row in enumerate(rows):
+    visible_rows = [
+        row
+        for row in rows
+        if _status_row_visible(
+            row,
+            findings_by_repository.get(str(row["repository"]), []),
+            ci_by_repository[str(row["repository"])],
+        )
+    ]
+    for index, row in enumerate(visible_rows):
         if index:
             print()
         name = str(row["repository"])
         local = str(row["local"])
         ci = ci_by_repository[name]
-        raw_todo_count = row["todo_items"]
-        assert isinstance(raw_todo_count, int)
-        todo_count = raw_todo_count
         lint_findings = findings_by_repository.get(name, [])
         lint_color = (
             "31"
@@ -279,51 +318,59 @@ def _status_text(
             else "32"
         )
         print(common._paint(name, "36"))
-        _print_wrapped_items(
-            (
-                (f"local {local}", _local_color(local, row.get("stale_local_work") is True)),
-                (f"CI {_ci_label(ci)}", _state_color(ci.state)),
-                (f"TODO {todo_count}", "33" if todo_count else "90"),
-                (f"lints {row['lint']}", lint_color),
+        items = []
+        if _local_surfaced(row):
+            items.append(
+                (
+                    f"local {local}",
+                    _local_color(local, row.get("stale_local_work") is True),
+                )
             )
-        )
+        if ci.state not in {"passed", "none"}:
+            items.append((f"CI {_ci_label(ci)}", _state_color(ci.state)))
+        if lint_findings:
+            items.append((f"lints {len(lint_findings)}", lint_color))
+        if items:
+            _print_wrapped_items(items)
 
         if ci.workflows is None:
             print(f"  workflows {common._paint('unavailable', '33')}")
-        elif not ci.workflows:
-            print(f"  workflows {common._paint('none found', '90')}")
         else:
-            workflow_items = [
-                (f"{_workflow_label(workflow.state)} {workflow.name}", _state_color(workflow.state))
-                for workflow in ci.workflows
+            workflows = [
+                workflow for workflow in ci.workflows if _workflow_surfaced(workflow)
             ]
-            workflow_length = len("  workflows ") + sum(len(item) for item, _ in workflow_items)
-            workflow_length += 3 * max(0, len(workflow_items) - 1)
-            if workflow_length > width:
-                print("  workflows")
-                _print_wrapped_items(workflow_items, prefix="    ")
-            else:
-                _print_wrapped_items(
-                    [(f"workflows {workflow_items[0][0]}", workflow_items[0][1]), *workflow_items[1:]]
-                )
+            if workflows:
+                workflow_items = [
+                    (f"{_workflow_label(workflow.state)} {workflow.name}", _state_color(workflow.state))
+                    for workflow in workflows
+                ]
+                workflow_length = len("  workflows ") + sum(len(item) for item, _ in workflow_items)
+                workflow_length += 3 * max(0, len(workflow_items) - 1)
+                if workflow_length > width:
+                    print("  workflows")
+                    _print_wrapped_items(workflow_items, prefix="    ")
+                else:
+                    _print_wrapped_items(
+                        [(f"workflows {workflow_items[0][0]}", workflow_items[0][1]), *workflow_items[1:]]
+                    )
 
         prs = row.get("open_prs")
-        if isinstance(prs, list) and prs:
-            pr_items = [
-                (
-                    _pr_label(request),
-                    "31"
-                    if isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
-                    else "33",
-                )
+        conflicting = (
+            [
+                request
                 for request in prs
+                if isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
             ]
+            if isinstance(prs, list)
+            else []
+        )
+        if conflicting:
+            pr_items = [(_pr_label(request), "31") for request in conflicting]
             _print_wrapped_items([(f"PRs {pr_items[0][0]}", pr_items[0][1]), *pr_items[1:]])
 
         upstream: Any = row.get("upstream")
-        if isinstance(upstream, dict) and (
-            isinstance(upstream.get("parent"), str) or isinstance(upstream.get("error"), str)
-        ):
+        if _upstream_surfaced(row):
+            assert isinstance(upstream, dict)
             label, color = _upstream_label(upstream)
             print(f"  upstream {common._paint(label, color)}")
 
@@ -332,7 +379,7 @@ def _status_text(
                 print(f"    {common._paint(policy.format_finding_short(finding), common._finding_color(finding))}")
     visible_findings = [
         finding
-        for row in rows
+        for row in visible_rows
         for finding in findings_by_repository.get(str(row["repository"]), [])
     ]
     for code, description in policy.lint_legend(visible_findings):
@@ -342,32 +389,31 @@ def _status_text(
 def _status(args: argparse.Namespace) -> int:
     catalog = common._catalog()
     repositories = common._select(catalog, args.repo, args.tag)
-    checkouts = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
+    overrides = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
     with ThreadPoolExecutor(
         max_workers=min(32, max(1, 2 * len(repositories))), thread_name_prefix="repomod-status"
     ) as pool:
-        checkout_futures = {}
-        findings_futures = {}
-        for repository in repositories:
-            name = str(repository.id)
-            checkout_futures[name] = pool.submit(_status_checkout, catalog, repository, checkouts.get(name))
-            findings_futures[name] = pool.submit(
-                policy.lint_repositories,
-                catalog,
-                (repository,),
-                local_only=True,
-                checkouts=checkouts,
+        checkout_futures = {
+            str(repository.id): pool.submit(
+                _status_checkout, catalog, repository, overrides.get(str(repository.id))
             )
+            for repository in repositories
+        }
+        checkouts = {name: future.result() for name, future in checkout_futures.items()}
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="repomod-lint") as pool:
+        findings_future = pool.submit(
+            policy.lint_repositories,
+            catalog,
+            repositories,
+            local_only=True,
+            checkouts=overrides,
+            workers=min(32, max(1, 2 * len(repositories))),
+        )
         remotes = {} if args.offline else github.remote_metadata(repositories)
         ci = github.ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
         upstreams = github.upstream_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
         pull_requests = {} if args.offline else github.open_pull_requests(repositories)
-        findings = [
-            finding
-            for name in sorted(findings_futures, key=str.casefold)
-            for finding in findings_futures[name].result()
-        ]
-        checkouts = {name: future.result() for name, future in checkout_futures.items()}
+        findings = findings_future.result()
 
     findings_by_repository: dict[str, list[Finding]] = {}
     for finding in findings:

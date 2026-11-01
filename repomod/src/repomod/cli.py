@@ -24,12 +24,12 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="repomod", description="Repair policy violations and open pull requests")
     commands = parser.add_subparsers(dest="command", required=True)
 
-    status_parser = commands.add_parser("status", help="show local Git, remote CI, TODO, and lint status")
+    status_parser = commands.add_parser("status", help="show failures and lint findings")
     _filters(status_parser)
     _checkout_option(status_parser)
     status_parser.add_argument("--offline", action="store_true")
     status_parser.add_argument("--dirty", action="store_true")
-    status_parser.add_argument("--failed", action="store_true")
+    status_parser.add_argument("--failed", action="store_true", help="only error-level failures")
     status_parser.add_argument("--refresh", action="store_true")
     status_parser.add_argument(
         "--details", action="store_true", help="show failed CI checks"

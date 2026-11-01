@@ -46,7 +46,10 @@ branch, so fork-behind comparisons stay verifiable locally; a failing upstream f
 in the result without failing the sync.
 
 Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
-upstream, so they are not current remote state. Online status checks CI for GitHub's current
+upstream, so they are not current remote state. Text output lists only repositories that need
+attention: local Git failures, non-passing CI or workflow states, conflicting pull requests, forks
+behind upstream, and lint findings. Passing repositories and passing workflow entries are omitted;
+`--json` still carries every selected repository. Online status checks CI for GitHub's current
 default-branch commit. The CI cache is keyed by repository and commit SHA and expires after five
 minutes. Offline status reads cached CI without network calls. For repositories that GitHub reports
 as forks, online status also compares the fork default branch against its upstream parent and

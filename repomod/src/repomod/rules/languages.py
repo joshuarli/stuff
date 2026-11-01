@@ -8,6 +8,7 @@ from typing import Any
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
 from repomod.io import read_json_object, read_toml, safe_relative
 from repomod.rules.binary_release import has_binary_release_contract
+from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate
 from repomod.types import violation as _violation
 
@@ -54,7 +55,7 @@ def _finding(repository: Repository, rule: str, path: str | None, message: str) 
     return _violation(repository, rule, path, message)
 
 
-def _manifest_paths(root: Path, name: str) -> list[Path]:
+def _manifest_paths_uncached(root: Path, name: str) -> list[Path]:
     found = []
     pending = [(root, 0)]
     while pending:
@@ -73,6 +74,10 @@ def _manifest_paths(root: Path, name: str) -> list[Path]:
             ):
                 pending.append((Path(entry.path), depth + 1))
     return sorted(found, key=lambda path: path.relative_to(root).as_posix().casefold())
+
+
+def _manifest_paths(root: Path, name: str) -> list[Path]:
+    return cached(("manifest_paths", root, name), lambda: _manifest_paths_uncached(root, name))
 
 
 def _manifest_bases(root: Path, name: str) -> tuple[str, ...]:
@@ -96,7 +101,7 @@ def _safe_manifest(root: Path, path: Path) -> bool:
     return path.is_file() and safe_relative(root, path) is not None
 
 
-def _rust_manifests(
+def _rust_manifests_uncached(
     root: Path,
 ) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any]]], list[tuple[str, str]]]:
     candidates = _cargo_candidates(root)
@@ -155,6 +160,12 @@ def _rust_manifests(
         manifests.append((path, document, workspaces.get(workspace_path, document)))
     manifests.sort(key=lambda item: item[0].relative_to(root).as_posix().casefold())
     return manifests, sorted(problems)
+
+
+def _rust_manifests(
+    root: Path,
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any]]], list[tuple[str, str]]]:
+    return cached(("rust_manifests", root), lambda: _rust_manifests_uncached(root))
 
 
 def _rust_tool_configs(root: Path, repository: Repository) -> list[Finding]:
@@ -268,7 +279,7 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _js_manifests(root: Path) -> list[Path]:
+def _js_manifests_uncached(root: Path) -> list[Path]:
     paths = []
     for child in (root, *sorted(root.iterdir(), key=lambda item: item.name.casefold())):
         if child != root and (
@@ -279,6 +290,10 @@ def _js_manifests(root: Path) -> list[Path]:
         if manifest.is_file() and not manifest.is_symlink():
             paths.append(manifest)
     return paths
+
+
+def _js_manifests(root: Path) -> list[Path]:
+    return cached(("js_manifests", root), lambda: _js_manifests_uncached(root))
 
 
 def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -344,7 +359,7 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _python_source_present(root: Path) -> bool:
+def _python_source_present_uncached(root: Path) -> bool:
     bases = {""}
     root_patterns = (
         "*.py",
@@ -381,6 +396,10 @@ def _python_source_present(root: Path) -> bool:
             except OSError:
                 continue
     return False
+
+
+def _python_source_present(root: Path) -> bool:
+    return cached(("python_source_present", root), lambda: _python_source_present_uncached(root))
 
 
 def _source_present(root: Path, patterns: tuple[str, ...], suffixes: frozenset[str]) -> bool:
@@ -443,7 +462,7 @@ def _rust_source_present(root: Path) -> bool:
     return False
 
 
-def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
+def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> set[str]:
     observed = set()
     javascript_packages = _js_manifests(root)
     if javascript_packages:
@@ -521,6 +540,13 @@ def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
     if _source_present(root, ("*.xsh", "src/*.xsh", "src/*/*.xsh", "scripts/*.xsh", "bin/*.xsh"), frozenset({".xsh"})):
         observed.add("xsh")
     return observed
+
+
+def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
+    return cached(
+        ("language_sources", root, nested_manifests),
+        lambda: _language_sources_uncached(root, nested_manifests=nested_manifests),
+    )
 
 
 def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:

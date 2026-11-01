@@ -40,6 +40,7 @@ from repomod.types import (
     RepoId,
     Repository,
     TagPredicate,
+    WorkflowStatus,
 )
 
 
@@ -1745,6 +1746,58 @@ def _upstream_status_for(
     )
 
 
+def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
+    rows: list[dict[str, object]] = [
+        {
+            "repository": "acme/passing",
+            "local": "clean",
+            "lint": 0,
+            "lint_errors": 0,
+            "lint_warnings": 0,
+            "lint_operational": 0,
+            "todo_items": 0,
+        },
+        {
+            "repository": "acme/failing",
+            "local": "dirty (1)",
+            "lint": 0,
+            "lint_errors": 0,
+            "lint_warnings": 0,
+            "lint_operational": 0,
+            "todo_items": 4,
+        },
+    ]
+    ci = {
+        "acme/passing": CiResult(
+            "acme/passing",
+            None,
+            None,
+            "passed",
+            (),
+            workflows=(WorkflowStatus("build", "passed"), WorkflowStatus("lint", "passed")),
+        ),
+        "acme/failing": CiResult(
+            "acme/failing",
+            None,
+            None,
+            "failed",
+            (),
+            workflows=(WorkflowStatus("build", "passed"), WorkflowStatus("CI", "failed")),
+        ),
+    }
+
+    _status_text(rows, {}, ci)
+    out = capsys.readouterr().out
+
+    assert "acme/passing" not in out
+    assert "acme/failing" in out
+    assert "local dirty (1)" in out
+    assert "CI failed" in out
+    assert "FAIL CI" in out
+    assert "PASS build" not in out
+    assert "TODO" not in out
+
+
 def test_status_text_renders_upstream_line(tmp_path: Path, capsys) -> None:
     rows: list[dict[str, object]] = [
         {
@@ -1825,9 +1878,10 @@ def test_status_text_renders_upstream_line(tmp_path: Path, capsys) -> None:
     _status_text(rows, {}, ci)
     out = capsys.readouterr().out
     assert "upstream cli/cli behind 12" in out
-    assert "upstream cli/cli in sync (cached 42s)" in out
     assert "upstream cli/cli unavailable" in out
-    assert out.count("  upstream ") == 3
+    assert "upstream cli/cli in sync (cached 42s)" not in out
+    assert "acme/plain" not in out
+    assert out.count("  upstream ") == 2
 
 
 def test_status_failed_includes_behind_forks(tmp_path: Path, monkeypatch, capsys) -> None:

@@ -14,6 +14,7 @@ from repomod.audit import (
     _resolve_vulns,
     _write_cache,
 )
+from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate, violation
 
 _AUDITED = frozenset({"python", "typescript", "javascript", "rust", "go"})
@@ -21,11 +22,11 @@ _AUDITED = frozenset({"python", "typescript", "javascript", "rust", "go"})
 
 def _policy_rule(rule_id: str) -> Callable[[Path, Repository], list[Finding]]:
     def check(root: Path, repository: Repository) -> list[Finding]:
-        return [
-            finding
-            for finding in _policy_findings(root, repository)
-            if finding.rule == rule_id
-        ]
+        findings = cached(
+            ("audit_policy", root, str(repository.id), repository.tags, repository.ignored_rules),
+            lambda: _policy_findings(root, repository),
+        )
+        return [finding for finding in findings if finding.rule == rule_id]
 
     return check
 

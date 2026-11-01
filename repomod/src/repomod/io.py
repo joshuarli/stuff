@@ -6,13 +6,19 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from repomod.run_cache import cached
 
-def read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+
+def _read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     try:
         value = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
         return None, str(error)
     return value, None
+
+
+def read_toml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    return cached(("read_toml", path), lambda: _read_toml(path))
 
 
 def strip_jsonc(source: str) -> tuple[str | None, str | None]:
@@ -70,7 +76,7 @@ def strip_jsonc(source: str) -> tuple[str | None, str | None]:
     return "".join(characters), None
 
 
-def read_json_object(
+def _read_json_object(
     path: Path, *, allow_jsonc: bool = False
 ) -> tuple[dict[str, Any] | None, str | None]:
     try:
@@ -88,6 +94,15 @@ def read_json_object(
     if not isinstance(value, dict):
         return None, "top-level value must be an object"
     return value, None
+
+
+def read_json_object(
+    path: Path, *, allow_jsonc: bool = False
+) -> tuple[dict[str, Any] | None, str | None]:
+    return cached(
+        ("read_json_object", path, allow_jsonc),
+        lambda: _read_json_object(path, allow_jsonc=allow_jsonc),
+    )
 
 
 def safe_relative(root: Path, path: Path) -> str | None:
