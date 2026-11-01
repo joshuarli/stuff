@@ -1,5 +1,25 @@
 Prefix: STUF
-Next: 52
+Next: 54
+
+### STUF-52 · OCI A11 decides the deployed 307 blob path
+
+- **Area:** Performance
+- **Where:** `crates/stuff-worker/entry.ts:549`, `docs/oci-benchmarks.md`, `deploy/test-oci-redirect.sh`
+- **Problem:** The conditional `307` path is implemented and locally proven when `STUFF_OCI_BLOB_ORIGIN` is set, but the O2 gate needs the deployed warm-p95 and full-pull comparison. The loopback matrix cannot settle whether direct CDN blobs beat the Worker path by 10% with non-overlapping p95 over five interleaved runs.
+- **Recommendation:** Run `deploy/oci-bench.sh` against the deployed Worker with and without `STUFF_OCI_BLOB_ORIGIN` and the blob cache rule; adopt the redirect if O2 passes, otherwise close A11 with the recorded numbers and remove the conditional path.
+- **Blocked:** Needs provisioned buckets, the deployed Worker, the `oci-blobs` custom domain, and a Cache Rule. Unblock: run the deployed matrix.
+- **Fix with:** make-it-fast
+- **Effort:** M
+
+### STUF-53 · Provision and verify the live OCI registry
+
+- **Area:** Operations
+- **Where:** `docs/PUBLISHING.md`, `campaign-oci.md` (Needs environment)
+- **Problem:** The OCI campaign is locally green, but `stuff-oci`/`stuff-oci-blobs`, the `oci` and `oci-blobs` custom domains, Worker bindings and secrets, and the writer host are not provisioned. The one live writer proof used a temporary bucket and minted credentials; production publication, live read/push conformance, and Docker/ORAS interop remain unrun.
+- **Recommendation:** Create the buckets and domains, set the Worker secrets, start `deploy/myoci-writer.sh` with TLS, run `deploy/publish oci`, then run `make deploy`, `make smoke-deployed`, the live conformance commands, and the 1 GiB push/pull.
+- **Blocked:** Owner-provisioned Cloudflare resources and writer host. Unblock: provision them, then run the deployment checklist.
+- **Fix with:** stuff-registries
+- **Effort:** M
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 

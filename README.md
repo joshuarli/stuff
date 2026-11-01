@@ -1,13 +1,14 @@
 # stuff
 
-One repository, three registries, one serving platform.
+One repository, four registries, one serving platform.
 
-`stuff` consolidates the `mycrates` (Cargo), `mynpm` (npm), and `mypypi`
-(Python wheel) static registries onto shared Rust infrastructure for HTTP
-serving, storage, and generation management. All first-party registry
-logic is Rust; external ecosystems are orchestrated, not reimplemented
-(npm/pnpm resolve and install, uv/CPython build and install wheels).
-Package semantics stay per-ecosystem; only the serving layer is shared.
+`stuff` consolidates the `mycrates` (Cargo), `mynpm` (npm), `mypypi`
+(Python wheel), and `myoci` (OCI Distribution) registries onto shared Rust
+infrastructure for HTTP serving, storage, and generation management. All
+first-party registry logic is Rust; external ecosystems are orchestrated, not
+reimplemented (npm/pnpm resolve and install, uv/CPython build and install
+wheels, oras imports OCI images). Package semantics stay per-ecosystem; only
+the serving layer is shared.
 
 ## Registries
 
@@ -20,16 +21,28 @@ Client roots include the generation pointer:
 - Cargo sparse: `https://crates.17166969.xyz/current/registry/`
 - npm: `https://npm.17166969.xyz/current/`
 - pip: `https://pypi.17166969.xyz/current/simple/`
+- OCI: `https://oci.17166969.xyz` (blobs at `https://oci-blobs.17166969.xyz/sha256/`)
 
-`https://stuff.17166969.xyz` serves the aggregate catalog of all three.
+`https://stuff.17166969.xyz` serves the aggregate catalog of all four.
+
+OCI reads are anonymous and follow the Distribution 1.1 API:
+
+```sh
+docker pull oci.17166969.xyz/example/app:stable
+oras manifest fetch oci.17166969.xyz/example/app:stable
+```
+
+Pushes need the registry token and are documented in
+[docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 Per-registry usage: [mycrates](crates/mycrates/README.md),
-[mynpm](crates/mynpm/README.md), [mypypi](crates/mypypi/README.md).
+[mynpm](crates/mynpm/README.md), [mypypi](crates/mypypi/README.md),
+[myoci](crates/myoci/README.md).
 Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## Exit codes
 
-All three publish CLIs share one exit-code contract: `2` usage/input,
+All four publish CLIs share one exit-code contract: `2` usage/input,
 `3` integrity, `4` conflict, `5` limit, `6` network, `1` other
 operational failures (`stuff doctor` exits `1` on a failed check and
 `2` on its own error).

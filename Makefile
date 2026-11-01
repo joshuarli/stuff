@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -133,6 +133,9 @@ test-oci-conformance: ## Run the pinned read conformance suite against myoci ser
 	cargo run -q -p myoci -- import --state-dir $(OCI_CONFORMANCE_WORK)/state --layout tests/fixtures/oci/layout --repository example/app
 	cargo run -q -p myoci -- publish --state-dir $(OCI_CONFORMANCE_WORK)/state --site-dir $(OCI_CONFORMANCE_WORK)/site
 	deploy/oci-conformance.sh --myoci-state $(OCI_CONFORMANCE_WORK)/state --myoci-site $(OCI_CONFORMANCE_WORK)/site
+
+test-oci-conformance-push: ## Run the pinned push conformance suite against myoci serve and the writer
+	deploy/test-oci-conformance-push.sh
 
 oci-bench: ## Benchmark the local OCI fixture and rewrite docs/oci-benchmarks.md ([RUNS=5])
 	deploy/oci-bench.sh --runs $(or $(RUNS),5)

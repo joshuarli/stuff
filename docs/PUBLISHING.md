@@ -13,6 +13,7 @@
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
+| OCI writer host (optional) | Large anonymous `docker push`; reads/writes `stuff-oci-blobs` | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
 
 If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
@@ -41,6 +42,75 @@ The helper then holds the registry's publish lock, builds the site, uploads it, 
 For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; sync each site afterwards (`make sync LOCAL=1` to rehearse).
+
+## Publish the OCI registry
+
+`deploy/publish oci` imports every image into `$STUFF_STATE_HOME/oci/state`,
+renders one OCI generation, syncs blobs before metadata, and flips `current`.
+The metadata bucket is `stuff-oci`; blob bytes live in `stuff-oci-blobs`
+under `sha256/<hex>`. `BUCKET_META` and `BUCKET_BLOBS` override both names.
+
+```sh
+OCI_IMAGES="example/app=ghcr.io/example/app:v1" deploy/publish oci
+
+OCI_LAYOUT=tests/fixtures/oci/layout OCI_REPOSITORY=example/app \
+  OCI_TAG=stable deploy/publish oci
+
+deploy/publish oci --republish
+```
+
+`OCI_IMAGES` imports through pinned `oras`; `OCI_LAYOUT` imports a local OCI
+image layout. Import verifies every digest and size, walks indexes and
+referrers, and rejects sparse indexes, missing blobs, foreign layers, and
+schema 1. A tag move or push creates a new content-derived generation; a
+rollback is `deploy/r2-rollback.sh stuff-oci <generation>`. Adoption rebuilds
+local state from the published generation through `r2-pull.py`.
+
+Blob garbage collection is separate from generation GC:
+`deploy/r2-gc-blobs.py [--dry-run]` unions every retained generation's
+`blobs.json` and deletes unreferenced `sha256/*` objects. `myoci verify`
+exits 3 on any digest, size, tag, or referrer mismatch.
+
+The registry is sha256-only. Limits: repository name 255 characters, tag 128
+characters, manifest 4 MiB, upload session one hour, one upload 20 GiB.
+Reads are anonymous. Writes require `Authorization: Basic` with the registry
+push token; delete endpoints are not implemented.
+
+### Push writer
+
+The front (`myoci serve --push`) owns authentication, manifest validation,
+generation creation, and the `current` flip. A separate `myoci writer` owns
+only blob bytes: it accepts upload `PATCH`/`PUT`s on an HMAC-signed,
+repo-bound, one-hour `Location`, streams and verifies the digest, then writes
+`sha256/<hex>` to the blob bucket through `deploy/r2-put.py` and
+`deploy/r2-multipart.py`. The writer never sees registry credentials.
+
+```sh
+MYOCI_WRITER_SECRET_FILE=/run/secrets/oci-push-secret \
+  MYOCI_WRITER_BUCKET=stuff-oci-blobs deploy/myoci-writer.sh
+
+target/debug/myoci serve --site-dir SITE --state-dir STATE --push \
+  --writer-url https://oci-writer.example \
+  --push-token-file /run/secrets/oci-push-token \
+  --push-secret-file /run/secrets/oci-push-secret \
+  --bind 0.0.0.0:5000
+```
+
+Worker bindings: `OCI` and `OCI_BLOBS`, `STUFF_OCI_HOST`,
+`STUFF_OCI_PUSH_TOKEN`, `STUFF_OCI_PUSH_SECRET`, and
+`STUFF_OCI_WRITER_ORIGIN`. Setting `STUFF_OCI_BLOB_ORIGIN` returns a `307` to
+`<origin>/sha256/<hex>` for blob GET/HEAD; it is adopted only if the deployed
+benchmark beats the Worker path by 10% under the A11 rule. `R2_S3_*` can be
+minted per bucket:
+
+```sh
+eval "$(python3 deploy/r2-temp-credentials.py stuff-oci-blobs)"
+```
+
+Offline proofs: `make test-oci-pull`, `make test-oci-push`,
+`make test-oci-publish`, `make test-oci-conformance`,
+`make test-oci-conformance-push`, `make oci-bench`, and
+`R2_S3_* make test-r2-multipart`.
 
 ## Republish without new packages
 
