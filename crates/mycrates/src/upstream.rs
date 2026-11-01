@@ -108,7 +108,8 @@ impl UpstreamClient {
         vers: &str,
         cksum: &str,
     ) -> Result<String> {
-        let shard = shard_for_name(&name.to_lowercase());
+        let shard = shard_for_name(&name.to_lowercase())
+            .ok_or_else(|| Error::Input(format!("crate name is not ASCII: {name}")))?;
         let prefix = if let Some((p, _)) = shard.rsplit_once('/') { p } else { "" };
         let lowerprefix = prefix.to_lowercase();
 
@@ -138,7 +139,8 @@ impl UpstreamClient {
     }
 
     pub fn fetch_index_entry(&self, name: &str, vers: &str) -> Result<(String, IndexEntry)> {
-        let shard = shard_for_name(&name.to_lowercase());
+        let shard = shard_for_name(&name.to_lowercase())
+            .ok_or_else(|| Error::Input(format!("crate name is not ASCII: {name}")))?;
         let url = format!("{}/{}", self.index_url.trim_end_matches('/'), shard);
         let (_final_url, body) = self.get(&url)?;
         let body_str = String::from_utf8(body)

@@ -104,7 +104,7 @@ pub fn load_catalogs(
     Ok(out)
 }
 
-fn cargo_shard(lower_name: &str) -> String {
+fn cargo_shard(lower_name: &str) -> Option<String> {
     stuff_cargo_shard::shard_for_name(lower_name)
 }
 
@@ -239,15 +239,20 @@ fn run_local_checks(
     }
     let first = &catalog.packages[0];
     match name {
-        "cargo" => {
-            let shard = cargo_shard(&first.name.to_lowercase());
-            let candidates = [gen_dir.join("registry").join(&shard), gen_dir.join("crates-io").join(&shard)];
-            if candidates.iter().any(|p| p.is_file()) {
-                checks.push(Check::pass(format!("{name} index"), format!("{} present", first.name)));
-            } else {
-                checks.push(Check::fail(format!("{name} index"), format!("{} missing ({}:{})", first.name, catalog.generation, shard)));
+        "cargo" => match cargo_shard(&first.name.to_lowercase()) {
+            Some(shard) => {
+                let candidates = [gen_dir.join("registry").join(&shard), gen_dir.join("crates-io").join(&shard)];
+                if candidates.iter().any(|p| p.is_file()) {
+                    checks.push(Check::pass(format!("{name} index"), format!("{} present", first.name)));
+                } else {
+                    checks.push(Check::fail(format!("{name} index"), format!("{} missing ({}:{})", first.name, catalog.generation, shard)));
+                }
             }
-        }
+            None => checks.push(Check::fail(
+                format!("{name} index"),
+                format!("{} is not an ASCII crate name", first.name),
+            )),
+        },
         "npm" => {
             let packument = gen_dir.join(&first.name);
             if packument.is_file() {
@@ -324,19 +329,24 @@ fn run_remote_checks(
     }
     let first = &catalog.packages[0];
     match name {
-        "cargo" => {
-            let shard = cargo_shard(&first.name.to_lowercase());
-            let url = format!("{base}/current/registry/{shard}");
-            let mirror_url = format!("{base}/current/crates-io/{shard}");
-            match fetch_bytes(&url) {
-                Ok((200, _)) => checks.push(Check::pass(format!("{name} index"), format!("{} reachable", first.name))),
-                Ok(_) => match fetch_bytes(&mirror_url) {
-                    Ok((200, _)) => checks.push(Check::pass(format!("{name} index"), format!("{} reachable via mirror", first.name))),
-                    Ok((status, _)) => checks.push(Check::fail(format!("{name} index"), format!("HTTP {status}"))),
+        "cargo" => match cargo_shard(&first.name.to_lowercase()) {
+            Some(shard) => {
+                let url = format!("{base}/current/registry/{shard}");
+                let mirror_url = format!("{base}/current/crates-io/{shard}");
+                match fetch_bytes(&url) {
+                    Ok((200, _)) => checks.push(Check::pass(format!("{name} index"), format!("{} reachable", first.name))),
+                    Ok(_) => match fetch_bytes(&mirror_url) {
+                        Ok((200, _)) => checks.push(Check::pass(format!("{name} index"), format!("{} reachable via mirror", first.name))),
+                        Ok((status, _)) => checks.push(Check::fail(format!("{name} index"), format!("HTTP {status}"))),
+                        Err(e) => checks.push(Check::fail(format!("{name} index"), e)),
+                    },
                     Err(e) => checks.push(Check::fail(format!("{name} index"), e)),
-                },
-                Err(e) => checks.push(Check::fail(format!("{name} index"), e)),
+                }
             }
+            None => checks.push(Check::fail(
+                format!("{name} index"),
+                format!("{} is not an ASCII crate name", first.name),
+            )),
         }
         "npm" => {
             let route = first.name.replace('/', "%2f");
@@ -437,16 +447,18 @@ fn first_index_line(text: &str) -> Option<String> {
     text.lines().map(str::trim).find(|l| !l.is_empty()).map(|l| l.to_string())
 }
 
-fn expand_dl(template: &str, name: &str, vers: &str, cksum: &str) -> String {
+fn expand_dl(template: &str, name: &str, vers: &str, cksum: &str) -> Option<String> {
     let lower = name.to_lowercase();
-    let shard = cargo_shard(&lower);
+    let shard = cargo_shard(&lower)?;
     let prefix = shard.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
-    template
-        .replace("{crate}", name)
-        .replace("{version}", vers)
-        .replace("{prefix}", prefix)
-        .replace("{lowerprefix}", &prefix.to_lowercase())
-        .replace("{sha256-checksum}", cksum)
+    Some(
+        template
+            .replace("{crate}", name)
+            .replace("{version}", vers)
+            .replace("{prefix}", prefix)
+            .replace("{lowerprefix}", &prefix.to_lowercase())
+            .replace("{sha256-checksum}", cksum),
+    )
 }
 
 fn sample_local(
@@ -459,7 +471,9 @@ fn sample_local(
     let first = &catalog.packages[0];
     match name {
         "cargo" => {
-            let shard = cargo_shard(&first.name.to_lowercase());
+            let Some(shard) = cargo_shard(&first.name.to_lowercase()) else {
+                return Check::fail(label, format!("{} is not an ASCII crate name", first.name));
+            };
             let mut line = None;
             for view in ["registry", "crates-io"] {
                 let path = gen_dir.join(view).join(&shard);
@@ -570,7 +584,9 @@ fn sample_remote(name: &str, catalog: &stuff_catalog::Catalog, base: &str) -> Ch
             let Some(dl) = json_str(&config, "dl") else {
                 return Check::fail(label, "config.json has no dl template".to_string());
             };
-            let shard = cargo_shard(&first.name.to_lowercase());
+            let Some(shard) = cargo_shard(&first.name.to_lowercase()) else {
+                return Check::fail(label, format!("{} is not an ASCII crate name", first.name));
+            };
             let mut index_body = None;
             for view in ["registry", "crates-io"] {
                 match crate::source::fetch_bytes(&format!("{base}/current/{view}/{shard}")) {
@@ -601,7 +617,9 @@ fn sample_remote(name: &str, catalog: &stuff_catalog::Catalog, base: &str) -> Ch
             else {
                 return Check::fail(label, "index entry has no name/vers/cksum".to_string());
             };
-            let url = expand_dl(dl, entry_name, vers, cksum);
+            let Some(url) = expand_dl(dl, entry_name, vers, cksum) else {
+                return Check::fail(label, format!("{entry_name} is not an ASCII crate name"));
+            };
             match crate::source::fetch_bytes_capped(&url, SAMPLE_CAP) {
                 Ok((200, bytes)) if sha256_hex(&bytes) == cksum => {
                     Check::pass(label, format!("{entry_name} {vers} hash matches"))
@@ -749,6 +767,30 @@ mod tests {
     }
 
     #[test]
+    fn non_ascii_catalog_name_fails_the_index_check() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("catalog.json"), "{}").unwrap();
+        let local = LocalSite::resolve(dir.path()).unwrap();
+        let catalog = stuff_catalog::cargo_catalog(
+            "gen1",
+            vec![stuff_catalog::CargoInput {
+                name: "café".to_string(),
+                version: "1.0.0".to_string(),
+                yanked: false,
+                source: stuff_catalog::CargoSource::Native,
+                dependencies: stuff_catalog::Dependencies::default(),
+            }],
+        )
+        .unwrap();
+
+        let mut checks = Vec::new();
+        run_local_checks(&mut checks, "cargo", &catalog, &local, "https://example.test", false);
+        let index = checks.iter().find(|c| c.name == "cargo index").unwrap();
+        assert_eq!(index.state, CheckState::Fail);
+        assert!(index.detail.contains("ASCII"), "{}", index.detail);
+    }
+
+    #[test]
     fn failed_checks_exit_one() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("catalog.json"), "{").unwrap();
@@ -764,7 +806,8 @@ mod tests {
             "Foo-Bar",
             "1.0.0",
             "ab12",
-        );
+        )
+        .unwrap();
         assert!(url.contains("Foo-Bar/1.0.0/fo/o-/fo/o-/ab12"), "{url}");
     }
 
@@ -788,7 +831,7 @@ mod tests {
         let cksum = format!("{:x}", h.finalize());
         let site = dir.to_path_buf();
         let gen_dir = site.join("generations").join("gen1");
-        let shard = cargo_shard("foo");
+        let shard = cargo_shard("foo").unwrap();
         let index_path = gen_dir.join("registry").join(&shard);
         std::fs::create_dir_all(index_path.parent().unwrap()).unwrap();
         std::fs::create_dir_all(site.join("blobs")).unwrap();

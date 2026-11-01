@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::index::{mirror_config_json, native_config_json, serialize_index_line, shard_for_name};
 use crate::model::CrateName;
 use crate::store::Store;
@@ -209,7 +209,8 @@ impl<'a> Publisher<'a> {
                 &mut manifest,
                 &mut files,
                 "registry",
-                shard_for_name(&crate_lower),
+                shard_for_name(&crate_lower)
+                    .ok_or_else(|| Error::Integrity(format!("crate name is not ASCII: {crate_lower}")))?,
                 content.into_bytes(),
             );
         }
@@ -239,7 +240,8 @@ impl<'a> Publisher<'a> {
                 &mut manifest,
                 &mut files,
                 "crates-io",
-                shard_for_name(&crate_lower),
+                shard_for_name(&crate_lower)
+                    .ok_or_else(|| Error::Integrity(format!("crate name is not ASCII: {crate_lower}")))?,
                 content.into_bytes(),
             );
         }

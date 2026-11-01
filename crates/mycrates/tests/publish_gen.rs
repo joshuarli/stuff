@@ -46,7 +46,7 @@ fn shared_state_keeps_both_publishers_packages() {
     assert!(catalog.find("from-a", Some(stuff_catalog::CargoSource::Native)).is_some());
     assert!(catalog.find("from-b", Some(stuff_catalog::CargoSource::Native)).is_some());
     for name in ["from-a", "from-b"] {
-        let shard = mycrates::index::shard_for_name(name);
+        let shard = mycrates::index::shard_for_name(name).unwrap();
         assert!(site.join("current/registry").join(shard).is_file(), "missing index for {name}");
     }
     let blobs = site.join("blobs");
@@ -199,7 +199,7 @@ fn damaged_generation_requires_explicit_repair() {
     assert!(!res.is_noop);
 
     let gen_dir = site.join("generations").join(&res.generation_id);
-    let shard = mycrates::index::shard_for_name("repair-pkg");
+    let shard = mycrates::index::shard_for_name("repair-pkg").unwrap();
     let index_file = gen_dir.join("registry").join(&shard);
     assert!(index_file.exists());
 
