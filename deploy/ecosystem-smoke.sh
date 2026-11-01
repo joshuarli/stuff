@@ -3,7 +3,8 @@
 # package managers (npm for mynpm, uv/CPython for mypypi) and assert that
 # installation from the published sites works.
 #
-# Requirements: node with npm@12.2.1, uv with CPython 3.15, network access.
+# Requirements: node with npm at the version reported by `mynpm pins`, uv with
+# CPython 3.15, network access.
 # Usage: deploy/ecosystem-smoke.sh [WORKDIR]
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -17,7 +18,10 @@ fail() { echo "FAIL: $1"; exit 1; }
 
 NODE_VERSION=$(node --version 2>/dev/null || echo "none")
 NPM_VERSION=$(npm --version 2>/dev/null || echo "none")
-echo "node $NODE_VERSION npm $NPM_VERSION uv $(uv --version 2>/dev/null || echo none)"
+PINS=$(cd "$ROOT" && cargo run -q -p mynpm -- pins) || fail "mynpm pins"
+NPM_PIN=$(echo "$PINS" | sed -n 's/^npm //p')
+PNPM_PIN=$(echo "$PINS" | sed -n 's/^pnpm //p')
+echo "node $NODE_VERSION npm $NPM_VERSION (pinned $NPM_PIN) uv $(uv --version 2>/dev/null || echo none) (pinned pnpm $PNPM_PIN)"
 if [ -z "${PYTHON:-}" ]; then
   PYTHON=$(uv python find 3.15)
 fi
@@ -44,14 +48,14 @@ echo "$OUT2" | grep -q "Already published generation $GEN_1" || fail "mynpm repu
 (cd "$ROOT" && cargo run -q -p stuff -- doctor --npm-dir "$MYNPM_WORK/site/mirror" --npm-base "$NPM_BASE") || fail "stuff doctor failed on published npm site"
 echo "smoke: mynpm npm flow green (generation $GEN_1)"
 
-if [ "$(pnpm --version 2>/dev/null || echo none)" = "12.15.0" ]; then
+if [ "$(pnpm --version 2>/dev/null || echo none)" = "$PNPM_PIN" ]; then
   (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" add --manager pnpm "is-odd@3.0.1") || fail "mynpm add pnpm"
   (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" fetch) || fail "mynpm fetch pnpm"
   (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" publish --site-dir "$MYNPM_WORK/site") || fail "mynpm publish pnpm"
   (cd "$ROOT" && cargo run -q -p mynpm -- --config "$MYNPM_WORK/mynpm.json" --state-dir "$MYNPM_WORK/state" validate --client pnpm) || fail "mynpm validate pnpm"
   echo "smoke: mynpm pnpm flow green"
 else
-  echo "skip: pnpm 12.15.0 not installed ($(pnpm --version 2>/dev/null || echo none)), pnpm flow not exercised"
+  echo "skip: pnpm $PNPM_PIN not installed ($(pnpm --version 2>/dev/null || echo none)), pnpm flow not exercised"
 fi
 
 # --- mypypi: add/build/validate/publish with uv, then install ---

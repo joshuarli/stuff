@@ -31,7 +31,7 @@ fn project(snapshot: Option<ProjectSnapshot>) -> ProjectRecord {
     ProjectRecord {
         id: "demo".to_string(),
         manager: Manager::Pnpm,
-        package_manager_pin: Some("pnpm@12.15.0".to_string()),
+        package_manager_pin: Some(format!("pnpm@{}", Manager::Pnpm.pinned_version())),
         lockfile_path: "pnpm-lock.yaml".to_string(),
         lockfile_version: LockfileVersion::Pnpm("9.0".to_string()),
         targets: vec!["darwin-arm64".to_string()],

@@ -11,15 +11,6 @@ Next: 50
 - **Fix with:** security
 - **Effort:** S
 
-### STUF-50 · P4 · Smoke script and fixtures repeat the manager pins
-
-- **Area:** Config
-- **Where:** `deploy/ecosystem-smoke.sh:6`, `deploy/ecosystem-smoke.sh:47`, `deploy/ecosystem-smoke.sh:54`, `crates/mynpm/tests/inventory_identity.rs:34`
-- **Problem:** `Manager::pinned_version` is now the one place the npm and pnpm versions live, but the smoke script still compares pnpm against a literal `12.15.0` and names npm `12.2.1` in its requirements, and one inventory test builds a literal `pnpm@12.15.0` pin. Bumping the pin silently skips the pnpm smoke flow instead of failing, and the test keeps validating the old pin.
-- **Recommendation:** Print the pins from the `mynpm` binary (for example a `mynpm pins` command used by the smoke script) and build the test pin with `Manager::Pnpm.pinned_version()`.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### STUF-51 · P4 · Only sdist builds check the pinned uv version
 
 - **Area:** Config
