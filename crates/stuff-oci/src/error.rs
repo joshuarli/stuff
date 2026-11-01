@@ -7,6 +7,7 @@ pub enum ErrorCode {
     BlobUnknown,
     BlobUploadInvalid,
     BlobUploadUnknown,
+    Conflict,
     Denied,
     DigestInvalid,
     ManifestBlobUnknown,
@@ -29,6 +30,7 @@ impl ErrorCode {
             ErrorCode::BlobUnknown => "BLOB_UNKNOWN",
             ErrorCode::BlobUploadInvalid => "BLOB_UPLOAD_INVALID",
             ErrorCode::BlobUploadUnknown => "BLOB_UPLOAD_UNKNOWN",
+            ErrorCode::Conflict => "CONFLICT",
             ErrorCode::Denied => "DENIED",
             ErrorCode::DigestInvalid => "DIGEST_INVALID",
             ErrorCode::ManifestBlobUnknown => "MANIFEST_BLOB_UNKNOWN",
@@ -58,6 +60,7 @@ impl ErrorCode {
             | ErrorCode::SizeInvalid
             | ErrorCode::TagInvalid => 400,
             ErrorCode::Denied => 403,
+            ErrorCode::Conflict => 409,
             ErrorCode::RangeInvalid => 416,
             ErrorCode::Unauthorized => 401,
             ErrorCode::Unsupported => 405,

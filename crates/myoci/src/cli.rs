@@ -20,6 +20,7 @@ pub enum Command {
     Tag,
     Untag,
     Serve,
+    Writer,
     Bench,
 }
 
@@ -40,6 +41,10 @@ pub struct Parsed {
     pub runs: Option<usize>,
     pub label: Option<String>,
     pub output: Option<String>,
+    pub push: bool,
+    pub push_token_file: Option<String>,
+    pub push_secret_file: Option<String>,
+    pub writer_url: Option<String>,
     pub json: bool,
 }
 
@@ -57,6 +62,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         "tag" => Command::Tag,
         "untag" => Command::Untag,
         "serve" => Command::Serve,
+        "writer" => Command::Writer,
         "bench" => Command::Bench,
         other => return Err(Error::Usage(format!("unknown command {other}"))),
     };
@@ -76,6 +82,10 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         runs: None,
         label: None,
         output: None,
+        push: false,
+        push_token_file: None,
+        push_secret_file: None,
+        writer_url: None,
         json: false,
     };
     let mut i = 1;
@@ -109,6 +119,12 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             }
             "--label" => parsed.label = Some(take(argv, &mut i, "--label")?),
             "--output" => parsed.output = Some(take(argv, &mut i, "--output")?),
+            "--push" => parsed.push = true,
+            "--push-token-file" => parsed.push_token_file = Some(take(argv, &mut i, "--push-token-file")?),
+            "--push-secret-file" | "--secret-file" => {
+                parsed.push_secret_file = Some(take(argv, &mut i, "--push-secret-file")?)
+            }
+            "--writer-url" => parsed.writer_url = Some(take(argv, &mut i, "--writer-url")?),
             "--json" => parsed.json = true,
             other => return Err(Error::Usage(format!("unknown option {other}"))),
         }
@@ -118,7 +134,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         return Err(Error::Usage("--state-dir is required".to_string()));
     }
     let allows = |allowed: &[&str]| -> Result<()> {
-        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--json", parsed.json)];
+        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--push", parsed.push), ("--push-token-file", parsed.push_token_file.is_some()), ("--push-secret-file", parsed.push_secret_file.is_some()), ("--writer-url", parsed.writer_url.is_some()), ("--json", parsed.json)];
         for (flag, present) in set {
             if present && !allowed.contains(&flag) {
                 return Err(Error::Usage(format!("{flag} is not valid for this command")));
@@ -170,9 +186,42 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             }
         }
         Command::Serve => {
-            allows(&["--site-dir", "--bind", "--max-connections"])?;
+            allows(&[
+                "--site-dir",
+                "--bind",
+                "--max-connections",
+                "--push",
+                "--push-token-file",
+                "--push-secret-file",
+                "--writer-url",
+            ])?;
             if parsed.site_dir.is_none() {
                 return Err(Error::Usage("serve requires --site-dir".to_string()));
+            }
+            if parsed.push {
+                for (flag, present) in [
+                    ("--state-dir", !parsed.state_dir.is_empty()),
+                    ("--writer-url", parsed.writer_url.is_some()),
+                    ("--push-token-file", parsed.push_token_file.is_some() || std::env::var("STUFF_OCI_PUSH_TOKEN").is_ok()),
+                    ("--push-secret-file", parsed.push_secret_file.is_some() || std::env::var("STUFF_OCI_PUSH_SECRET").is_ok()),
+                ] {
+                    if !present {
+                        return Err(Error::Usage(format!("serve --push requires {flag}")));
+                    }
+                }
+            } else if parsed.push_token_file.is_some()
+                || parsed.push_secret_file.is_some()
+                || parsed.writer_url.is_some()
+            {
+                return Err(Error::Usage("serve --push options require --push".to_string()));
+            }
+        }
+        Command::Writer => {
+            allows(&["--bind", "--max-connections", "--push-secret-file"])?;
+            if !parsed.push_secret_file.is_some() && std::env::var("STUFF_OCI_PUSH_SECRET").is_err() {
+                return Err(Error::Usage(
+                    "writer requires --push-secret-file or STUFF_OCI_PUSH_SECRET".to_string(),
+                ));
             }
         }
         Command::Bench => {
@@ -290,12 +339,47 @@ pub fn run(argv: &[String]) -> Result<()> {
         }
         Command::Serve => {
             let site_dir = parsed.site_dir.as_deref().expect("validated");
+            let site_path = PathBuf::from(site_dir);
+            let push = if parsed.push {
+                let state_dir = parsed.state_dir.as_str();
+                let state = State::new(PathBuf::from(state_dir));
+                state.init()?;
+                let token = String::from_utf8(read_secret(
+                    parsed.push_token_file.as_deref(),
+                    "STUFF_OCI_PUSH_TOKEN",
+                )?)
+                .map_err(|_| Error::Input("--push-token-file must be UTF-8".to_string()))?;
+                Some(crate::push::PushOptions {
+                    state,
+                    site_dir: site_path.clone(),
+                    public_url: DEFAULT_PUBLIC_URL.to_string(),
+                    token,
+                    secret: read_secret(parsed.push_secret_file.as_deref(), "STUFF_OCI_PUSH_SECRET")?,
+                    writer_url: parsed.writer_url.clone().expect("validated"),
+                })
+            } else {
+                None
+            };
             crate::serve::run(crate::serve::ServeOptions {
-                site_dir: PathBuf::from(site_dir),
+                site_dir: site_path,
                 bind: parsed.bind.clone().unwrap_or_else(|| "127.0.0.1:0".to_string()),
                 max_connections: parsed
                     .max_connections
                     .unwrap_or(crate::serve::DEFAULT_MAX_CONNECTIONS),
+                push,
+            })?;
+        }
+        Command::Writer => {
+            let state_dir = parsed.state_dir.as_str();
+            let state = State::new(PathBuf::from(state_dir));
+            state.init()?;
+            crate::writer::run(crate::writer::WriterOptions {
+                bind: parsed.bind.clone().unwrap_or_else(|| "127.0.0.1:0".to_string()),
+                state,
+                secret: read_secret(parsed.push_secret_file.as_deref(), "STUFF_OCI_PUSH_SECRET")?,
+                max_connections: parsed
+                    .max_connections
+                    .unwrap_or(crate::writer::DEFAULT_MAX_CONNECTIONS),
             })?;
         }
         Command::Bench => {
@@ -329,6 +413,24 @@ fn repository(parsed: &Parsed) -> Result<RepositoryName> {
         .map_err(|error| Error::Input(format!("--repository: {error}")))
 }
 
+fn read_secret(file: Option<&str>, env_name: &str) -> Result<Vec<u8>> {
+    let mut bytes = match file {
+        Some(path) => std::fs::read(path)
+            .map_err(|error| Error::Input(format!("could not read {path}: {error}")))?,
+        None => match std::env::var(env_name) {
+            Ok(value) => value.into_bytes(),
+            Err(_) => return Err(Error::Input(format!("{env_name} is not set"))),
+        },
+    };
+    while matches!(bytes.last(), Some(b'\n' | b'\r' | b' ' | b'\t')) {
+        bytes.pop();
+    }
+    if bytes.is_empty() {
+        return Err(Error::Input(format!("{env_name} is empty")));
+    }
+    Ok(bytes)
+}
+
 fn tag(parsed: &Parsed) -> Result<Option<Tag>> {
     parsed
         .tag
@@ -355,6 +457,8 @@ pub fn print_help() {
          \x20 tag --repository NAME --tag TAG --digest DIGEST\n\
          \x20 untag --repository NAME --tag TAG\n\
          \x20 serve --site-dir DIR        serve the read API ([--bind ADDR] [--max-connections N])\n\
+         \x20 serve --push               enable writes; requires --state-dir and --writer-url\n\
+         \x20 writer                     run the blob writer ([--bind ADDR] [--max-connections N])\n\
          \x20 bench --base-url URL --repo NAME --tag TAG [--output FILE] [--runs N] [--label TEXT]\n\
          \n\
          import options:\n\

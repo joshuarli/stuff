@@ -26,6 +26,7 @@ pub struct ServeOptions {
     pub site_dir: PathBuf,
     pub bind: String,
     pub max_connections: usize,
+    pub push: Option<crate::push::PushOptions>,
 }
 
 pub fn run(options: ServeOptions) -> Result<()> {
@@ -53,9 +54,10 @@ pub fn run(options: ServeOptions) -> Result<()> {
                     continue;
                 };
                 let site_dir = options.site_dir.clone();
+                let push = options.push.clone();
                 std::thread::spawn(move || {
                     let _guard = guard;
-                    handle_connection(stream, &site_dir);
+                    handle_connection(stream, &site_dir, push.as_ref());
                 });
             }
             Err(ref error) if error.kind() == std::io::ErrorKind::WouldBlock => {
@@ -105,19 +107,37 @@ fn refuse(mut stream: TcpStream) {
     let _ = stream.shutdown(std::net::Shutdown::Write);
 }
 
-fn handle_connection(mut stream: TcpStream, site_dir: &Path) {
+fn handle_connection(
+    mut stream: TcpStream,
+    site_dir: &Path,
+    push: Option<&crate::push::PushOptions>,
+) {
     let _ = stream.set_read_timeout(Some(READ_TIMEOUT));
     let _ = stream.set_write_timeout(Some(WRITE_TIMEOUT));
-    let Some((method, target, headers)) = read_request(&mut stream) else {
+    let Some(head) = read_request(&mut stream) else {
         send_text(&mut stream, 400, "Bad Request", b"malformed request");
         return;
     };
+    let RequestHead { method, target, headers, body } = head;
+    if let Some(push) = push
+        && !matches!(Method::parse(&method), Method::Get | Method::Head)
+    {
+        crate::push::handle_front(&mut stream, &method, &target, &headers, &body, push);
+        return;
+    }
     let (plan, path) = plan_response(site_dir, &method, &target, &headers);
     send_plan(&mut stream, &plan, path.as_deref());
     let _ = stream.shutdown(std::net::Shutdown::Write);
 }
 
-fn read_request(stream: &mut TcpStream) -> Option<(String, String, HeaderList)> {
+pub(crate) struct RequestHead {
+    pub method: String,
+    pub target: String,
+    pub headers: HeaderList,
+    pub body: Vec<u8>,
+}
+
+pub(crate) fn read_request(stream: &mut TcpStream) -> Option<RequestHead> {
     let mut bytes = Vec::new();
     let mut chunk = [0u8; 8192];
     loop {
@@ -135,9 +155,15 @@ fn read_request(stream: &mut TcpStream) -> Option<(String, String, HeaderList)> 
             break;
         }
     }
+    let header_end = bytes
+        .windows(4)
+        .position(|window| window == b"\r\n\r\n")
+        .map(|position| position + 4)
+        .or_else(|| bytes.windows(2).position(|window| window == b"\n\n").map(|position| position + 2))?;
+    let body = bytes[header_end..].to_vec();
     let mut header_buf = [httparse::EMPTY_HEADER; 64];
     let mut request = httparse::Request::new(&mut header_buf);
-    if !matches!(request.parse(&bytes), Ok(httparse::Status::Complete(_))) {
+    if !matches!(request.parse(&bytes[..header_end]), Ok(httparse::Status::Complete(_))) {
         return None;
     }
     let method = request.method?.to_string();
@@ -151,7 +177,7 @@ fn read_request(stream: &mut TcpStream) -> Option<(String, String, HeaderList)> 
             ));
         }
     }
-    Some((method, target, headers))
+    Some(RequestHead { method, target, headers, body })
 }
 
 fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
@@ -415,7 +441,7 @@ fn reason(status: u16) -> &'static str {
     }
 }
 
-fn send_plan(stream: &mut TcpStream, plan: &ResponsePlan, path: Option<&Path>) {
+pub(crate) fn send_plan(stream: &mut TcpStream, plan: &ResponsePlan, path: Option<&Path>) {
     let mut head = format!(
         "HTTP/1.1 {} {}\r\nconnection: close\r\n",
         plan.status,

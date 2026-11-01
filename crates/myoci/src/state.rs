@@ -215,6 +215,41 @@ impl State {
         Ok(out)
     }
 
+    pub fn blob_digests_on_disk(&self) -> Result<BTreeSet<Digest>> {
+        let dir = self.blobs_dir();
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeSet::new()),
+            Err(error) => {
+                return Err(Error::Operation(format!("could not read {}: {error}", dir.display())));
+            }
+        };
+        let mut digests = BTreeSet::new();
+        for entry in entries {
+            let entry = entry
+                .map_err(|e| Error::Operation(format!("could not read {}: {e}", dir.display())))?;
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else { continue };
+            if name.len() != 64 || !name.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+                continue;
+            }
+            if let Ok(digest) = Digest::parse(&format!("sha256:{name}")) {
+                digests.insert(digest);
+            }
+        }
+        Ok(digests)
+    }
+
+    pub fn uploads_dir(&self) -> PathBuf {
+        self.root.join(".uploads")
+    }
+
+    pub fn try_push_lock(&self) -> Result<stuff_store::FileLock> {
+        stuff_store::FileLock::try_acquire(&self.root.join(".push.lock"))
+            .map_err(|error| Error::Operation(format!("could not lock the push state: {error:?}")))?
+            .ok_or_else(|| Error::Conflict("another push is committing a manifest".to_string()))
+    }
+
     pub fn set_tag(&self, repository: &RepositoryName, tag: stuff_oci::Tag, digest: &Digest) -> Result<()> {
         let mut view = self
             .read_repository(repository)?
