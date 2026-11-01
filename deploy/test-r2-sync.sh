@@ -71,6 +71,50 @@ if no_s3 "$HERE/publish" mycrates >"$WORK/publish-s3-missing.log" 2>&1; then
 fi
 grep -q 'needs R2_S3_\* and minting them failed' "$WORK/publish-s3-missing.log" || { echo "FAIL: publish did not report missing S3 credentials"; exit 1; }
 
+BLOBROOT=$WORK/blobroot
+mkdir -p "$BLOBROOT/deploy" "$WORK/mintcf" "$WORK/blobsite/blobs/sha256"
+cp -R "$HERE/." "$BLOBROOT/deploy/"
+cat > "$BLOBROOT/deploy/r2-multipart.py" <<'STUB'
+import os
+import sys
+
+with open(os.environ["MULTIPART_LOG"], "a") as log:
+    log.write(f"{os.environ['R2_S3_ACCESS_KEY_ID']} {sys.argv[2]} {sys.argv[3]}\n")
+STUB
+cat > "$WORK/mintcf/cf" <<'FAKE'
+#!/bin/sh
+case "$1 $2" in
+  "auth whoami") echo '{"authenticated": true, "accounts": [{"id": "acct"}]}' ;;
+  "accounts tokens") echo '[{"id":"r2","status":"active","policies":[{"permission_groups":[{"name":"Workers R2 Storage Write"}]}]}]' ;;
+  "r2 temporary-credentials")
+    if [ -n "${FAKE_CF_NO_MINT:-}" ]; then echo denied >&2; exit 1; fi
+    while [ $# -gt 0 ]; do
+      if [ "$1" = "--bucket" ]; then printf '%s\n' "$2" >> "$CF_MINT_LOG"; fi
+      shift
+    done
+    echo '{"accessKeyId":"minted","secretAccessKey":"secret","sessionToken":"session"}'
+    ;;
+  "r2 objects") echo '[]' ;;
+  *) echo "unexpected cf invocation: $*" >&2; exit 1 ;;
+esac
+FAKE
+chmod +x "$WORK/mintcf/cf"
+BLOB_HEX=$(printf 'large layer' | shasum -a 256 | cut -d' ' -f1)
+head -c 300 /dev/zero > "$WORK/blobsite/blobs/sha256/$BLOB_HEX"
+blob_sync() {
+  env -u CF_LOCAL_STATE -u R2_S3_ENDPOINT -u R2_S3_ACCESS_KEY_ID -u R2_S3_SECRET_ACCESS_KEY \
+    PATH="$WORK/mintcf:$PATH" CF_MINT_LOG="$WORK/mint.log" MULTIPART_LOG="$WORK/multipart.log" \
+    R2_SINGLE_PUT_MAX=200 "$@" "$BLOBROOT/deploy/r2-sync-blobs.sh" "$WORK/blobsite" stuff-oci-blobs
+}
+if blob_sync FAKE_CF_NO_MINT=1 >"$WORK/blob-nomint.log" 2>&1; then
+  echo "FAIL: a multipart blob synced without credentials"
+  exit 1
+fi
+grep -q 'r2-temp-credentials.py stuff-oci-blobs' "$WORK/blob-nomint.log" || { echo "FAIL: the blob bucket mint command was not shown"; exit 1; }
+blob_sync >"$WORK/blob-mint.log" 2>&1 || { echo "FAIL: a multipart blob did not sync with minted credentials"; cat "$WORK/blob-mint.log"; exit 1; }
+check "$(cat "$WORK/mint.log")" "stuff-oci-blobs" "credentials minted for the blob bucket"
+check "$(cat "$WORK/multipart.log")" "minted stuff-oci-blobs sha256/$BLOB_HEX" "multipart upload used the minted credentials"
+
 START=$(date +%s)
 "$HERE/r2-sync.sh" "$SITE" t > "$WORK/first.log" 2>&1
 MID=$(date +%s)

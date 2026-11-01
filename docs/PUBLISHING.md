@@ -110,8 +110,9 @@ Worker bindings: `OCI` and `OCI_BLOBS`, `STUFF_OCI_HOST`,
 `STUFF_OCI_WRITER_ORIGIN`. `STUFF_OCI_BLOB_ORIGIN` is set in `cloudflare.config.ts` to
 `https://oci-blobs.17166969.xyz`, so blob GET/HEAD returns a `307` to
 `<origin>/sha256/<hex>`; the `oci-blobs` bucket domain needs the Cache Rule
-for `/sha256/*`. Layers over 300 MB need `R2_S3_*` for `stuff-oci-blobs`; mint
-them per bucket:
+for `/sha256/*`. Layers over 300 MB upload through S3 multipart;
+`deploy/r2-sync-blobs.sh` mints `R2_S3_*` for `stuff-oci-blobs` when they are
+unset. To mint them by hand:
 
 ```sh
 eval "$(python3 deploy/r2-temp-credentials.py stuff-oci-blobs)"

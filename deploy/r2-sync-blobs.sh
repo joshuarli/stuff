@@ -1,7 +1,8 @@
 #!/bin/sh
 # Upload the immutable OCI blob store before any metadata.
 # Usage: r2-sync-blobs.sh SITE_DIR [BUCKET]
-# Env: CF_LOCAL_STATE (local simulation), R2_S3_* for multipart blobs.
+# Env: CF_LOCAL_STATE (local simulation), R2_S3_* for multipart blobs (minted
+# for BUCKET from cf when unset).
 set -eu
 SITE_DIR=$1
 BUCKET=${2:-stuff-oci-blobs}
@@ -60,6 +61,12 @@ if [ "$PUT_COUNT" -gt 0 ]; then
   python3 "$ROOT/deploy/r2-put.py" "$STAGE" "$BUCKET" "$PUTS"
 fi
 if [ "$MULTIPART_COUNT" -gt 0 ]; then
+  if [ -z "${CF_LOCAL_STATE:-}" ]; then
+    SCRIPT_DIR=$ROOT/deploy
+    . "$SCRIPT_DIR/r2-s3-credentials.sh"
+    mint_s3_credentials "$BUCKET" ||
+      fail "large blobs need R2_S3_* and minting them failed; mint them with: eval \"\$(python3 $SCRIPT_DIR/r2-temp-credentials.py $BUCKET)\""
+  fi
   for var in R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
     eval "value=\${$var:-}"
     [ -n "$value" ] || fail "$var is not set; large blobs need the R2 S3 API"
