@@ -1,8 +1,8 @@
 #!/bin/sh
 # Read-only smoke test against the DEPLOYED Cloudflare registries.
 # Usage: deploy/deployed-smoke.sh
-# Env: STUFF_CARGO_BASE / STUFF_NPM_BASE / STUFF_PYPI_BASE override the
-# default https://{crates,npm,pypi}.17166969.xyz origins (stuff honors the
+# Env: STUFF_CARGO_BASE / STUFF_NPM_BASE / STUFF_PYPI_BASE / STUFF_OCI_BASE
+# override the default https://{crates,npm,pypi,oci}.17166969.xyz origins (stuff honors the
 # same variables). NPM_REGISTRY / PYPI_INDEX_URL override the
 # package-manager URLs similarly.
 #
@@ -45,11 +45,14 @@ else
   echo "skip: pypi registry is empty"
 fi
 
-if [ -n "${STUFF_OCI_BASE:-}" ]; then
-  echo "--- stuff doctor --registry oci --oci-base $STUFF_OCI_BASE"
-  target/debug/stuff doctor --registry oci --oci-base "$STUFF_OCI_BASE" || fail "OCI doctor failed"
+OCI_HOST=$(printf '%s' "${STUFF_OCI_BASE:-https://oci.17166969.xyz}" | sed 's|^https*://||; s|/*$||')
+OCI_PKG=$(first_pkg oci)
+if [ -n "$OCI_PKG" ] && [ "$OCI_PKG" != "null null" ]; then
+  set -- $OCI_PKG
+  echo "--- oras manifest fetch $OCI_HOST/$1:$2"
+  oras manifest fetch --descriptor "$OCI_HOST/$1:$2" >/dev/null || fail "oras manifest fetch failed"
 else
-  echo "skip: OCI registry is not provisioned (set STUFF_OCI_BASE)"
+  echo "skip: oci registry is empty"
 fi
 
 echo "OK: deployed registries answer through HTTP and their package managers"
