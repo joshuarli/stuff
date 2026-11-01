@@ -400,7 +400,7 @@ These items do not hold the campaign open. Run them on the owner's authority and
 5. **Consumer migration to the shared image.** The image is published, public, and recorded in `[image]`; switch the canary Dockerfiles to the canonical image by digest, remove the duplicated toolchain setup, run the canaries again, then roll forward. This is the consolidation phase, not a local campaign task. It stays blocked until the `tm` canary passes and the image-mode trace is wired into the consumer release workflows.
 
 6. **Daily refresh.** Schedule `uv run repomod pins refresh --check --only musl` externally (cron or systemd timer). A change is reviewed, the image is rebuilt, the canaries run, and only then are consumer digests updated. Nothing publishes a release automatically.
-   - Installed as the `com.joshuarli.repomod-musl-refresh` LaunchAgent at 09:00 daily, logging to `~/Library/Logs/repomod-musl-refresh.log`. Remove it with `launchctl bootout gui/$(id -u)/com.joshuarli.repomod-musl-refresh`.
+   - The owner declined the scheduled refresh; the `com.joshuarli.repomod-musl-refresh` LaunchAgent and its log were removed. The refresh stays manual.
 
 7. **`fix --push` documentation mismatch.** Decide separately whether `fix` should default to local and require `--push`, matching `AGENTS.md`, or whether the documentation should describe the current unconditional push. The campaign does not change it.
    - Resolved by documenting the current unconditional push in `AGENTS.md`; `fix` behavior is unchanged.
