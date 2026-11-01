@@ -178,10 +178,11 @@ object cap.
 
 When `STUFF_OCI_BLOB_ORIGIN` is set, blob GET/HEAD returns a 307 to
 `<origin>/sha256/<hex>` with `Docker-Content-Digest`; otherwise blobs are
-served from `OCI_BLOBS`. Adoption requires the deployed matrix to improve
-warm p95 and full-pull wall time by at least 10% with non-overlapping p95 over
-five interleaved runs. That comparison is still pending (STUF-52), so the
-redirect stays off by default.
+served from `OCI_BLOBS`. The deployed Worker sets it to
+`https://oci-blobs.17166969.xyz` in `cloudflare.config.ts`, with a Cache Rule
+on that host for `/sha256/*`. The deployed A/B matrix in
+[oci-a11.md](oci-a11.md) adopted it: full-pull time fell about
+40% at the median and 53% at p95, at the cost of about 100 ms on 1 MiB blobs.
 
 ## Security and operations
 

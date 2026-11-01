@@ -105,10 +105,11 @@ target/debug/myoci serve --site-dir SITE --state-dir STATE --push \
 
 Worker bindings: `OCI` and `OCI_BLOBS`, `STUFF_OCI_HOST`,
 `STUFF_OCI_PUSH_TOKEN`, `STUFF_OCI_PUSH_SECRET`, and
-`STUFF_OCI_WRITER_ORIGIN`. Setting `STUFF_OCI_BLOB_ORIGIN` returns a `307` to
-`<origin>/sha256/<hex>` for blob GET/HEAD; it is adopted only if the deployed
-benchmark beats the Worker path by 10% under the A11 rule. `R2_S3_*` can be
-minted per bucket:
+`STUFF_OCI_WRITER_ORIGIN`. `STUFF_OCI_BLOB_ORIGIN` is set in `cloudflare.config.ts` to
+`https://oci-blobs.17166969.xyz`, so blob GET/HEAD returns a `307` to
+`<origin>/sha256/<hex>`; the `oci-blobs` bucket domain needs the Cache Rule
+for `/sha256/*`. Layers over 300 MB need `R2_S3_*` for `stuff-oci-blobs`; mint
+them per bucket:
 
 ```sh
 eval "$(python3 deploy/r2-temp-credentials.py stuff-oci-blobs)"
