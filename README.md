@@ -188,8 +188,11 @@ wrangler); keep the installed `wasm-bindgen` CLI at the version pinned in
 `Cargo.lock`. `wrangler deploy` (and `cf deploy`) runs the same build
 automatically via the `[build]` command before bundling `src/entry.ts`.
 
-Real deploys are manual: `cf deploy` (use `--provision` once to create the
-`stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets). The
+Real deploys are manual: `make deploy` builds the Worker bundle once, tests
+it, deploys the same bundle with `cf deploy --prebuilt`, republishes the three
+registries in parallel, and runs the live check. A bare `cf deploy` still
+works (it rebuilds first); use `--provision` once to create the
+`stuff-mycrates`, `stuff-mynpm`, and `stuff-mypypi` buckets. The
 `[[routes]]` entries in `wrangler.toml` attach the `crates`, `npm`,
 `pypi`, and `stuff` custom domains, each serving its registry from `/`
 (see `STUFF_ROUTES` hosts). Registry roots for clients include the
@@ -246,12 +249,15 @@ install from such lockfiles. Files over the 300 MB
 single-PUT cap upload via S3 multipart (`deploy/r2-multipart.py`, needs
 `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`) and are
 skipped when the remote multipart ETag already matches.
-`deploy/test-r2-sync.sh [COUNT]` (`make test-sync`) checks pagination and
-idempotency against the local simulation only. `make test-r2` checks the
-multipart SigV4 canonicalization, listing past one page, and conditional
-promotion against local fakes, and `make worker-test` builds the actual
-Worker bundle and runs it under workerd (Miniflare) for cold-HEAD cache,
-root-link, and pinned artifact-alias coverage. `make test-r2-live`
+After a successful sync, the publish helpers keep only the active local
+generation and its manifest; the bucket keeps every generation's manifest, so
+rollback does not need the pruned local copy. `deploy/test-r2-sync.sh [COUNT]`
+(`make test-sync`) checks pagination and idempotency against the local
+simulation only. `make test-r2` checks the multipart SigV4 canonicalization,
+listing past one page, conditional promotion, and generation pruning against
+local fakes, and `make worker-test` builds the actual Worker bundle and runs
+it under workerd (Miniflare) for cold-HEAD cache, root-link, and pinned
+artifact-alias coverage. `make test-r2-live`
 (`R2_ACCEPTANCE_BUCKET=...` plus `R2_S3_*`) is the opt-in real-R2 multipart
 acceptance check; it is not run by CI.
 
