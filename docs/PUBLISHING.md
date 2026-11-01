@@ -42,6 +42,20 @@ The helper then holds the per-registry lock, builds the site, uploads it, and pr
 
 For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish. See the root README for those options.
 
+## Republish without new packages
+
+A renderer or catalog change reaches a registry's pages only when that registry publishes again. `--republish` does that without package inputs. It adopts the live publication if needed, renders it again under the current renderer, and promotes it:
+
+```sh
+deploy/publish mycrates --republish
+deploy/publish mynpm --republish
+deploy/publish mypypi --republish
+```
+
+`mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation.
+
+`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. It stops at the first failure.
+
 ## Promote with S3
 
 The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. It also removes a long-lived bucket-write secret from the normal path.

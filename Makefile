@@ -36,10 +36,14 @@ worker-test: ## Build the worker bundle and exercise it under the workerd runtim
 worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
 	cd $(WORKER_DIR) && cf deploy
 
-deploy: ## Check cf auth, test the worker under workerd, then deploy it
+deploy: ## Test and deploy the worker, republish all three registries, then check the live site
 	cf auth whoami
 	$(MAKE) worker-test
 	$(MAKE) worker-deploy
+	deploy/publish mycrates --republish
+	deploy/publish mynpm --republish
+	deploy/publish mypypi --republish
+	$(MAKE) smoke-deployed
 
 SITE_DIR ?= .work/site
 BUCKET ?=

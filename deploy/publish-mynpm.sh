@@ -44,6 +44,13 @@ trap 'release_publish_lock' EXIT INT TERM HUP
 MYNPM_BIN=$STUFF_DIR/target/debug/mynpm
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 
+if [ -n "${REPUBLISH:-}" ]; then
+  cargo build -p mynpm --manifest-path "$STUFF_DIR/Cargo.toml"
+  "$MYNPM_BIN" adopt --site-dir "$SITE_DIR"
+  "$R2_SYNC" "$SITE_DIR/mirror" "$BUCKET"
+  exit 0
+fi
+
 [ -n "${LOCKFILE:-}" ] || { echo "publish-mynpm: LOCKFILE is empty" >&2; exit 1; }
 [ -n "${PROJECT:-}" ] || { echo "publish-mynpm: PROJECT is empty" >&2; exit 1; }
 

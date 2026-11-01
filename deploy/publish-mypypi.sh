@@ -45,6 +45,13 @@ trap 'release_publish_lock' EXIT INT TERM HUP
 MYPYPI_BIN=$STUFF_DIR/target/debug/mypypi
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 
+if [ -n "${REPUBLISH:-}" ]; then
+  cargo build -p mypypi --manifest-path "$STUFF_DIR/Cargo.toml"
+  "$MYPYPI_BIN" republish --output "$SITE_DIR" --public-url "$PUBLIC_URL"
+  "$R2_SYNC" "$SITE_DIR" "$BUCKET"
+  exit 0
+fi
+
 [ -n "${PACKAGES:-}" ] || { echo "publish-mypypi: PACKAGES is empty" >&2; exit 1; }
 command -v uv >/dev/null 2>&1 || { echo "publish-mypypi: uv is not installed" >&2; exit 1; }
 if [ -z "${PYTHON:-}" ]; then

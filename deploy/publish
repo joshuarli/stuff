@@ -1,6 +1,6 @@
 #!/bin/sh
 # Publish one registry from the source repository that owns its packages.
-# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3]
+# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
 #   mycrates: CRATES="name-a name-b" publish mycrates
 #   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
 #   mypypi:   PACKAGES="name==version" publish mypypi
@@ -10,6 +10,8 @@
 # helper. Promotion defaults to cf, which is safe for a single publisher and
 # needs no R2 S3 credentials.
 # --promote=s3 keeps the conditional 412 guard for concurrent publishers.
+# --republish adds no packages: it renders the live publication again under
+# the current renderer and promotes it, so no package inputs are needed.
 set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
@@ -21,7 +23,7 @@ ADOPT_STAGE=""
 
 usage() {
   cat >&2 <<'EOF'
-usage: publish mycrates|mynpm|mypypi [--promote=cf|s3]
+usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
   mycrates: CRATES="name-a name-b" publish mycrates
   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
   mypypi:   PACKAGES="name==version" publish mypypi
@@ -64,8 +66,13 @@ case $REGISTRY in
 esac
 shift
 PROMOTE=cf
+REPUBLISH=""
 while [ $# -gt 0 ]; do
   case $1 in
+    --republish)
+      REPUBLISH=1
+      shift
+      ;;
     --promote=cf | --promote=s3)
       PROMOTE=${1#--promote=}
       shift
@@ -81,6 +88,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+export REPUBLISH
 command -v cf >/dev/null 2>&1 || fail "the cf CLI is not on PATH"
 cf auth whoami 2>/dev/null | grep -q '"authenticated"[[:space:]]*:[[:space:]]*true' ||
   fail "cf is not authenticated; run cf auth login"
@@ -157,7 +165,7 @@ adopt_mypypi() {
 
 case $REGISTRY in
   mycrates)
-    [ -n "${CRATES:-}" ] || fail "CRATES is empty"
+    [ -n "$REPUBLISH" ] || [ -n "${CRATES:-}" ] || fail "CRATES is empty"
     STATE_DIR=${STATE_DIR:-$H/mycrates/state}
     SITE_DIR=${SITE_DIR:-$H/mycrates/site}
     PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
@@ -168,8 +176,8 @@ case $REGISTRY in
     "$STUFF_DIR/deploy/publish-mycrates.sh"
     ;;
   mynpm)
-    [ -n "${LOCKFILE:-}" ] || fail "LOCKFILE is empty"
-    [ -n "${PROJECT:-}" ] || fail "PROJECT is empty"
+    [ -n "$REPUBLISH" ] || [ -n "${LOCKFILE:-}" ] || fail "LOCKFILE is empty"
+    [ -n "$REPUBLISH" ] || [ -n "${PROJECT:-}" ] || fail "PROJECT is empty"
     SITE_DIR=${SITE_DIR:-$H/mynpm/site}
     if [ ! -e "$SITE_DIR/mirror/current" ]; then
       if [ -d "$SITE_DIR/mirror" ] && [ -n "$(ls -A "$SITE_DIR/mirror" 2>/dev/null)" ]; then
@@ -181,7 +189,7 @@ case $REGISTRY in
     "$STUFF_DIR/deploy/publish-mynpm.sh"
     ;;
   mypypi)
-    [ -n "${PACKAGES:-}" ] || fail "PACKAGES is empty"
+    [ -n "$REPUBLISH" ] || [ -n "${PACKAGES:-}" ] || fail "PACKAGES is empty"
     SITE_DIR=${SITE_DIR:-$H/mypypi/site}
     PUBLIC_URL=${PUBLIC_URL:-https://pypi.17166969.xyz}
     if [ ! -e "$SITE_DIR/current" ]; then

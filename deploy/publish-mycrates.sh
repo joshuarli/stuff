@@ -7,6 +7,8 @@
 # never leaves a localhost base URL for a later manual r2-sync to promote.
 #
 # Required env: CRATES="name-a name-b ..." (space-separated package names).
+# With REPUBLISH=1, CRATES is not needed: the site is rebuilt from state under
+# the current renderer and synced without publishing any crate.
 # Optional env (defaults shown):
 #   STUFF_DIR=../stuff REGISTRY=mycrates REG_ENV=MYCRATES
 #   PUBLIC_URL=https://crates.17166969.xyz BUCKET=stuff-mycrates
@@ -87,6 +89,14 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
+
+if [ -n "${REPUBLISH:-}" ]; then
+  cargo build -p mycrates --manifest-path "$STUFF_DIR/Cargo.toml"
+  restore_public_site
+  SITE_RESTORED=1
+  "$R2_SYNC" "$SITE_DIR" "$BUCKET"
+  exit 0
+fi
 
 [ -n "${CRATES:-}" ] || { echo "publish-mycrates: CRATES is empty" >&2; exit 1; }
 
