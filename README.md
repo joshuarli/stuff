@@ -208,11 +208,14 @@ Sync a published site to its bucket per registry with
 which translates the `current` symlink to a marker object holding the
 generation id (verified against the local R2 simulation). Sync is incremental
 and content-aware: remote objects whose size and content hash match are
-skipped, so re-syncing an unchanged generation uploads nothing. Remote
-objects come from the S3 API when `R2_S3_*` is set, or from prefix listing
-through `cf` otherwise (`deploy/r2-plan.py`); S3 uploads run `R2_PUT_JOBS`
-in parallel (default 8), while the `cf` fallback shares one pacer at roughly
-four requests a second. The local simulation stays single-threaded. Every sync writes a
+skipped, so re-syncing an unchanged generation uploads nothing. Without
+`R2_S3_*`, the sync mints short-lived bucket-scoped credentials from `cf`
+(`--parent-access-key-id` comes from the first active R2-capable account
+token; `R2_PARENT_ACCESS_KEY_ID` overrides it). Remote objects then come from
+the S3 API; uploads run `R2_PUT_JOBS` in parallel (default 8). If minting
+fails, prefix listing through `cf` (`deploy/r2-plan.py`) and a shared pacer
+at roughly four requests a second remain the fallback. The local simulation
+stays single-threaded. Every sync writes a
 `manifests/<id>.json` for each local generation, verifies every listed object
 remotely, then replaces `current`. Promotion defaults to `cf` for a single
 publisher: it writes `current` with a plain put after the same verification
@@ -222,8 +225,10 @@ of silently winning. `--expected` additionally pins the generation that must
 already be active. Existing immutable objects with different bytes are
 conflicts; `--repair` is the separate, explicit overwrite path. `--dry-run` lists the
 bucket read-only and prints the object and byte counts it would upload, then stops
-before any upload or promotion (it needs no `R2_S3_*` variables). S3 promotion
-needs `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
+before any upload or promotion (it needs no `R2_S3_*` variables). During a
+sync, S3 promotion uses the temporary credentials minted from `cf` when
+`R2_S3_*` is not set; long-lived credentials can be supplied with
+`R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, and
 `R2_S3_SECRET_ACCESS_KEY`. Roll back with
 `deploy/r2-rollback.sh BUCKET GEN_ID`, which verifies the target generation's
 manifest remotely before moving `current` and defaults to the same `cf`

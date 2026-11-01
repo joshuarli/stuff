@@ -82,7 +82,7 @@ test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulatio
 test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAITERS=4])
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-publish-lock.sh $(or $(WAITERS),4)
 
-test-r2: ## Check S3 uploads, multipart SigV4, pagination, and conditional promotion without network access
+test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and promotion without network access
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
 	deploy/test-r2-pull.sh
 	python3 deploy/test-r2-pull-listing.py
@@ -90,6 +90,7 @@ test-r2: ## Check S3 uploads, multipart SigV4, pagination, and conditional promo
 	python3 deploy/test-r2-plan.py
 	python3 deploy/test-r2-promote.py
 	python3 deploy/test-r2-put.py
+	python3 deploy/test-r2-temp-credentials.py
 
 test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... and R2_S3_*)
 	python3 deploy/test-r2-multipart-live.py

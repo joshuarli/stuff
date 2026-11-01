@@ -12,7 +12,7 @@
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
-| R2 S3 token (optional) | Parallel uploads, S3 listing, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set |
+| R2 S3 token (optional) | Long-lived credentials, parallel republishes, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 
 If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`.
 
@@ -54,15 +54,17 @@ deploy/publish mypypi --republish
 
 `mycrates` rebuilds its site from state, `mynpm` runs `mynpm adopt` on the site, and `mypypi` runs `mypypi republish`, which refuses an index with nothing published. Unchanged output reports no new generation.
 
-`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. The republishes run in parallel when `R2_S3_*` is set, and sequentially otherwise so the `cf` uploads share the account's API rate limit. A failure stops the rollout before the live check.
+`make deploy` runs the whole rollout in order: the Worker first, so it can read the newest catalog schema, then the three republishes, then `make smoke-deployed`. The republishes run in parallel when `R2_S3_*` is already set; otherwise they run sequentially, each minting its own temporary S3 credentials. A failed mint falls back to the paced `cf` API. A failure stops the rollout before the live check.
 
 ## Upload and promote with S3
 
-Without S3 credentials, `r2-sync.sh` lists and uploads through the `cf` API, which allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so this path costs several minutes even though the files are small.
+The `cf` API allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so listing and uploading through `cf` costs several minutes even though the files are small.
 
-When `R2_S3_*` is set, listing and uploads use the S3 API instead: uploads run `R2_PUT_JOBS` in parallel (default 8), the remote plan comes from one paginated list, and the generation is verified against that list. The upload cap is gone, so a republish is bounded by local rendering and hashing instead of minutes of uploads.
+Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI with `cf r2 temporary-credentials create`. They are scoped to the bucket with object read and write and expire after `R2_TEMP_CREDENTIALS_TTL` seconds (default 3600). The parent access key ID is the first active account token whose policies mention R2; set `R2_PARENT_ACCESS_KEY_ID` to choose one. The credentials are exported into the sync process and never written to disk. If minting fails, the sync falls back to the paced `cf` API.
 
-The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. Using it also avoids needing S3 credentials at all.
+When `R2_S3_*` is already set, the sync uses those credentials instead. Listing and uploads then use the S3 API: uploads run `R2_PUT_JOBS` in parallel (default 8), the remote plan comes from one paginated list, and the generation is verified against that list. The upload cap is gone, so a republish is bounded by local rendering and hashing instead of minutes of uploads.
+
+The `cf` promotion writes `current` without a conditional check. That is safe for a single publisher because no other writer can race it. Using it also avoids needing conditional-write credentials.
 
 Use `--promote=s3` when CI or another machine can publish at the same time:
 
@@ -70,7 +72,7 @@ Use `--promote=s3` when CI or another machine can publish at the same time:
 CRATES="crate-a" /path/to/stuff/deploy/publish mycrates --promote=s3
 ```
 
-This needs:
+This uses the temporary credentials minted by the sync when `R2_S3_*` is not set. To use long-lived credentials instead:
 
 ```sh
 export R2_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
@@ -78,9 +80,9 @@ export R2_S3_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
 export R2_S3_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
 ```
 
-`R2_S3_REGION` defaults to `auto`. Temporary credentials also need `R2_S3_SESSION_TOKEN`. The token should allow object read and write on the three registry buckets and nothing else.
+`R2_S3_REGION` defaults to `auto`. Long-lived tokens should allow object read and write on the three registry buckets and nothing else.
 
-S3 promotion verifies the uploaded generation and moves `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner. Objects over the 300 MB single-PUT cap always need these credentials, even with `cf` promotion.
+S3 promotion verifies the uploaded generation and moves `current` with `If-Match`. A competing publisher gets `412` instead of overwriting the winner. Objects over the 300 MB single-PUT cap need S3 credentials, either minted or long-lived.
 
 ## Publish from a new machine
 

@@ -4,6 +4,8 @@
 # Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]
 #        [--promote=cf|s3]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
+#      R2_PARENT_ACCESS_KEY_ID, R2_ACCOUNT_ID, and R2_TEMP_CREDENTIALS_TTL
+#      tune the temporary credentials minted when R2_S3_* is not set.
 #
 # Incremental and content-aware: lists remote objects through the S3 API when
 # R2_S3_* is set, or by prefix through the cf CLI otherwise (deploy/
@@ -16,9 +18,10 @@
 # generation was published, so the remote copy is kept.
 #
 # Uploads use the S3 API with R2_PUT_JOBS parallel requests (default 8) when
-# R2_S3_* is set, and otherwise run through the cf CLI with one shared pacer
-# at roughly four requests a second. CF_LOCAL_STATE keeps the single-threaded
-# local simulation.
+# R2_S3_* is set, or with short-lived bucket-scoped credentials minted from
+# the authenticated cf CLI otherwise. If minting fails, uploads run through
+# the cf CLI with one shared pacer at roughly four requests a second.
+# CF_LOCAL_STATE keeps the single-threaded local simulation.
 #
 # Every sync writes manifests/<id>.json for each local generation, then
 # promotes with deploy/r2-promote.py: the manifest's objects are verified
@@ -52,6 +55,7 @@ set -eu
 SITE_DIR=$1
 BUCKET=$2
 shift 2
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 EXPECTED=""
 REPAIR=""
 DRY_RUN=""
@@ -81,6 +85,17 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+s3_credentials_set() {
+  [ -n "${R2_S3_ENDPOINT:-}" ] && [ -n "${R2_S3_ACCESS_KEY_ID:-}" ] && [ -n "${R2_S3_SECRET_ACCESS_KEY:-}" ]
+}
+if [ -z "${CF_LOCAL_STATE:-}" ] && [ -z "$DRY_RUN" ] && ! s3_credentials_set; then
+  if credentials=$(python3 "$SCRIPT_DIR/r2-temp-credentials.py" "$BUCKET" 2>&1); then
+    eval "$credentials"
+  else
+    echo "note: could not mint temporary R2 S3 credentials; using cf uploads" >&2
+    printf '%s\n' "$credentials" | sed 's/^/note: /' >&2
+  fi
+fi
 if [ -n "${CF_LOCAL_STATE:-}" ]; then
   mkdir -p "$CF_LOCAL_STATE"
 elif [ -z "$DRY_RUN" ]; then
@@ -113,7 +128,6 @@ if [ -n "$REPAIR" ]; then
   export R2_REPAIR=1
   echo "repair: existing immutable objects may be overwritten"
 fi
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 [ -L "$SITE_DIR/current" ] || { echo "FAIL: $SITE_DIR/current is not a symlink"; exit 1; }
 GEN_TARGET=$(readlink "$SITE_DIR/current")
