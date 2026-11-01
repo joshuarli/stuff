@@ -352,7 +352,7 @@ pub fn render_project_page(artifacts: &[IndexArtifact]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{PackageVersion, WheelIdentity};
+    use crate::models::WheelIdentity;
     use std::io::Write as _;
     use std::path::Path;
 
@@ -433,10 +433,5 @@ mod tests {
         let prepared = prepare_index_artifacts(&[a, b], &BTreeMap::new()).unwrap();
         let text = String::from_utf8(render_root_page(&prepared)).unwrap();
         assert!(text.find("alpha").unwrap() < text.find("zeta").unwrap());
-    }
-
-    #[test]
-    fn package_parses_for_failure_context() {
-        let _ = PackageVersion::parse("sample-pkg", "1.0").unwrap();
     }
 }

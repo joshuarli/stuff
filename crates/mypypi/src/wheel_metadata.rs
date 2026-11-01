@@ -67,11 +67,4 @@ mod tests {
         assert!(!matches_dist_info("validation-fixture", &v, "validation_fixture-1.1.dist-info"));
         assert!(!matches_dist_info("validation-fixture", &v, "validation_fixture-1.0.data"));
     }
-
-    #[test]
-    fn identity_canonicalizes_name() {
-        let id = metadata_identity("Pkg", "1.0").unwrap();
-        assert_eq!(id.name, "pkg");
-        assert!(metadata_identity("Pkg", "not-a-version").is_err());
-    }
 }

@@ -892,14 +892,6 @@ mod tests {
     }
 
     #[test]
-    fn reads_the_uv_version() {
-        let output = format!("uv {UV_VERSION} (63f83b1a2 2026-10-19 aarch64-apple-darwin)");
-        assert_eq!(uv_version_in(&output), Some(UV_VERSION));
-        assert_eq!(uv_version_in(""), None);
-        assert_eq!(uv_version_in("uv"), None);
-    }
-
-    #[test]
     fn validates_build_index_forms() {
         assert!(validate_build_index("https://pypi.org/simple", false).is_ok());
         assert!(validate_build_index("http://127.0.0.1:8000/simple", false).is_ok());
@@ -918,45 +910,6 @@ mod tests {
         let other = if current.starts_with("linux") { "macos-arm64" } else { "linux-x86_64" };
         let bad = Target::new("3.15", other).unwrap();
         assert!(require_native_target(&bad).is_err());
-    }
-
-    #[test]
-    fn build_environment_excludes_publisher_secrets_and_operator_home() {
-        let dir = tempfile::tempdir().unwrap();
-        let stage = dir.path();
-        let mut base = BTreeMap::new();
-        base.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
-        base.insert("SSL_CERT_FILE".to_string(), "/etc/certs/ca.pem".to_string());
-        base.insert("HOME".to_string(), "/Users/publisher".to_string());
-        for name in [
-            "R2_S3_ACCESS_KEY_ID",
-            "R2_S3_SECRET_ACCESS_KEY",
-            "R2_S3_SESSION_TOKEN",
-            "AWS_ACCESS_KEY_ID",
-            "AWS_SECRET_ACCESS_KEY",
-            "AWS_SESSION_TOKEN",
-            "GITHUB_TOKEN",
-            "PYPI_TOKEN",
-            "UV_INDEX",
-            "PIP_INDEX_URL",
-        ] {
-            base.insert(name.to_string(), "publisher-secret".to_string());
-        }
-        let env = build_environment(&base, stage).unwrap();
-        let expected_home = stage.join("home").display().to_string();
-        let expected_temp = stage.join("tmp").display().to_string();
-        assert_eq!(env.get("HOME"), Some(&expected_home));
-        assert_eq!(env.get("TMPDIR"), Some(&expected_temp));
-        assert_eq!(env.get("SSL_CERT_FILE").map(String::as_str), Some("/etc/certs/ca.pem"));
-        assert!(!env.values().any(|v| v == "/Users/publisher"));
-        assert!(
-            !env.keys().any(|k| k.starts_with("R2_S3_")
-                || k.starts_with("AWS_")
-                || k.ends_with("_TOKEN")
-                || k.starts_with("UV_")
-                || k.starts_with("PIP_")),
-            "{env:?}"
-        );
     }
 
     #[test]

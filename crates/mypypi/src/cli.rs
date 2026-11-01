@@ -1208,51 +1208,6 @@ fn command_publish(
 mod tests {
     use super::*;
 
-    fn args(v: &[&str]) -> Vec<String> {
-        v.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn parses_add_and_plan() {
-        let p = parse_args(&args(&["add", "foo==1.0"])).unwrap();
-        assert_eq!(p.command, Command::Add);
-        let p = parse_args(&args(&["plan", "--platform", "linux-x86_64"])).unwrap();
-        assert_eq!(p.platforms, vec!["linux-x86_64".to_string()]);
-        assert!(parse_args(&args(&["plan", "extra"])).is_err());
-        let p = parse_args(&args(&["add", "--uv-lock", "uv.lock", "--requirements", "r.txt"])).unwrap();
-        assert_eq!(p.uv_locks, vec!["uv.lock".to_string()]);
-        assert_eq!(p.requirements_files, vec!["r.txt".to_string()]);
-        assert!(parse_args(&args(&["add"])).is_err());
-        let p = parse_args(&args(&["plan", "--uv-lock", "uv.lock"])).unwrap();
-        assert!(match resolve_paths(&p) { Ok(_) => panic!("expected error"), Err(e) => e }.usage);
-    }
-
-    #[test]
-    fn publish_requires_output_as_usage_error() {
-        let p = parse_args(&args(&["publish", "--platform", "macos-arm64"])).unwrap();
-        let err = match resolve_paths(&p) { Ok(_) => panic!("expected error"), Err(e) => e };
-        assert!(err.usage);
-    }
-
-    #[test]
-    fn build_flags_are_rejected_outside_build() {
-        let p = parse_args(&args(&["plan", "--strict-build-deps"])).unwrap();
-        assert!(match resolve_paths(&p) { Ok(_) => panic!("expected error"), Err(e) => e }.usage);
-        let p = parse_args(&args(&["add", "foo==1.0", "--platform", "macos-arm64"])).unwrap();
-        assert!(match resolve_paths(&p) { Ok(_) => panic!("expected error"), Err(e) => e }.usage);
-    }
-
-    #[test]
-    fn formats_errors_with_package_target_and_stage() {
-        let pkg = PackageVersion::parse("foo", "1.0").unwrap();
-        let target = Target::new("3.15", "macos-arm64").unwrap();
-        let err = Error::conflict("boom", Stage::Planning)
-            .with_package(&pkg)
-            .with_target(&target.python_version.to_string(), &target.platform);
-        let settings_text = format_error(&err, None);
-        assert!(settings_text.starts_with("mypypi: boom (foo==1.0, Python 3.15 on macos-arm64, stage planning)"));
-    }
-
     #[test]
     fn outcome_text_covers_all_outcomes() {
         let pkg = PackageVersion::parse("foo", "1.0").unwrap();

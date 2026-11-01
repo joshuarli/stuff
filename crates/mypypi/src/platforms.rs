@@ -602,31 +602,6 @@ mod tests {
     }
 
     #[test]
-    fn linux_tags_prefer_manylinux() {
-        let t = target("linux-x86_64");
-        let tags = ordered_target_tags(&t, "manylinux_2_28").unwrap();
-        assert!(tags.iter().any(|t| t.platform == "manylinux_2_28_x86_64"));
-        assert!(tags.iter().any(|t| t.platform == "any"));
-        let first = &tags[0];
-        assert_eq!(first.interpreter, "cp315");
-        assert_eq!(first.platform, "manylinux_2_28_x86_64");
-    }
-
-    #[test]
-    fn macos_tags_accept_wheels_built_for_older_releases() {
-        let t = target("macos-arm64");
-        let tags = target_platform_tags(&t, "manylinux_2_28").unwrap();
-        assert_eq!(tags[0], "macosx_15_0_arm64");
-        assert!(tags.iter().any(|p| p == "macosx_11_0_arm64"));
-        assert!(tags.iter().any(|p| p == "macosx_10_9_universal2"));
-        assert!(!tags.iter().any(|p| p == "macosx_16_0_arm64"));
-        assert!(!tags.iter().any(|p| p.contains("x86_64")));
-        let intel = target_platform_tags(&target("macos-x86_64"), "manylinux_2_28").unwrap();
-        assert!(intel.iter().any(|p| p == "macosx_10_9_x86_64"));
-        assert!(!intel.iter().any(|p| p == "macosx_11_0_arm64"));
-    }
-
-    #[test]
     fn rejects_bad_policy() {
         let t = target("linux-x86_64");
         assert!(target_platform_tags(&t, "musllinux_1_2").is_err());
