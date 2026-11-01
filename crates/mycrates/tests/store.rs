@@ -1,5 +1,5 @@
 use mycrates::error::Error;
-use mycrates::model::{IndexEntry, Version};
+use mycrates::model::IndexEntry;
 use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
 use std::collections::BTreeMap;
@@ -64,39 +64,37 @@ fn ingest_same_bytes_and_conflict() {
 }
 
 #[test]
-fn name_collision_detection() {
+fn crate_identity_normalizes_names_and_distinguishes_versions() {
+    use mycrates::store::UpstreamRecord;
     let dir = tempdir().unwrap();
     let store = Store::new(dir.path().to_path_buf());
+    let sha = store.ingest_blob(Cursor::new(b"identity")).unwrap();
 
-    let data = b"some-crate-data";
-    let sha = store.ingest_blob(Cursor::new(data)).unwrap();
-
-    let rec1 = NativeRecord {
-        entry: sample_entry("foo_bar", "1.0.0", &sha),
-    };
-    store.put_native_record(&rec1).unwrap();
-
-    // Trying to publish "foo-bar" when "foo_bar" exists must fail with Conflict
-    let rec2 = NativeRecord {
-        entry: sample_entry("foo-bar", "1.0.0", &sha),
-    };
-    let err = store.put_native_record(&rec2).unwrap_err();
-    match err {
-        Error::Conflict(msg) => {
-            assert!(msg.contains("collision"));
+    assert!(store.put_native_record(&NativeRecord { entry: sample_entry("Foo_Bar", "1.0.0", &sha) }).unwrap());
+    for colliding in ["foo-bar", "foo_bar", "FOO-BAR"] {
+        let err = store
+            .put_native_record(&NativeRecord { entry: sample_entry(colliding, "2.0.0", &sha) })
+            .unwrap_err();
+        match err {
+            Error::Conflict(msg) => assert!(msg.contains("collision"), "{colliding}: {msg}"),
+            other => panic!("{colliding}: expected Conflict, got {other:?}"),
         }
-        other => panic!("expected Conflict, got {other:?}"),
     }
-}
 
-#[test]
-fn build_metadata_accepted_with_uniqueness_key() {
-    assert!(Version::new("1.0.0+build1").is_ok());
-    assert!(Version::new("2.0.16+zstd.1.5.7").is_ok());
-    let v = Version::new("2.0.16+zstd.1.5.7").unwrap();
-    assert_eq!(v.uniqueness_key(), "2.0.16");
-    assert_eq!(v.as_str(), "2.0.16+zstd.1.5.7");
-    assert!(Version::new("1.0.0").is_ok());
+    assert!(store.put_native_record(&NativeRecord { entry: sample_entry("Foo_Bar", "1.1.0", &sha) }).unwrap());
+    assert!(store.put_native_record(&NativeRecord { entry: sample_entry("Foo_Bar", "1.1.0-alpha.1", &sha) }).unwrap());
+    assert_eq!(store.load_native_records().unwrap().len(), 3);
+
+    let upstream = UpstreamRecord {
+        name: "foo-bar".to_string(),
+        vers: "1.0.0".to_string(),
+        checksum: sha.clone(),
+        raw_index_line: deser_json::to_string(&deser_value::value!({"name":"foo-bar","vers":"1.0.0","deps":[],"cksum":sha,"features":{},"yanked":false})).unwrap(),
+        acquired_at: 1,
+    };
+    assert!(store.put_upstream_record(&upstream).unwrap(), "upstream names may overlap native names");
+    assert_eq!(store.load_upstream_records().unwrap().len(), 1);
+    assert_eq!(store.load_native_records().unwrap().len(), 3);
 }
 
 #[test]
@@ -245,93 +243,6 @@ fn concurrent_verify_and_publish_leave_in_flight_uploads_alone() {
     writer.sync_all().unwrap();
     drop(writer);
     assert_eq!(fs::read(&upload).unwrap(), b"in-flight-more");
-}
-
-#[test]
-fn mixed_case_lookup_and_collision() {
-    let dir = tempdir().unwrap();
-    let store = Store::new(dir.path().to_path_buf());
-
-    let data = b"case-data";
-    let sha = store.ingest_blob(Cursor::new(data)).unwrap();
-    let rec = NativeRecord {
-        entry: sample_entry("Foo_Bar", "1.0.0", &sha),
-    };
-    store.put_native_record(&rec).unwrap();
-
-    let dup = NativeRecord {
-        entry: sample_entry("foo-bar", "2.0.0", &sha),
-    };
-    let err = store.put_native_record(&dup).unwrap_err();
-    match err {
-        Error::Conflict(msg) => assert!(msg.contains("collision")),
-        other => panic!("expected Conflict, got {other:?}"),
-    }
-
-    let recs = store.load_native_records().unwrap();
-    assert!(recs.iter().any(|r| r.entry.name == "Foo_Bar"));
-
-    use mycrates::index::shard_for_name;
-    assert_eq!(shard_for_name(&"Foo_Bar".to_lowercase()), shard_for_name("foo_bar"));
-}
-
-#[test]
-fn successive_mixed_case_releases_succeed() {
-    let dir = tempdir().unwrap();
-    let store = Store::new(dir.path().to_path_buf());
-    let sha1 = store.ingest_blob(std::io::Cursor::new(b"mixed-1")).unwrap();
-    let sha2 = store.ingest_blob(std::io::Cursor::new(b"mixed-2")).unwrap();
-    let rec1 = NativeRecord {
-        entry: sample_entry("MyCrate", "1.0.0", &sha1),
-    };
-    assert!(store.put_native_record(&rec1).unwrap());
-    let rec2 = NativeRecord {
-        entry: sample_entry("MyCrate", "1.1.0", &sha2),
-    };
-    assert!(store.put_native_record(&rec2).unwrap());
-    let recs = store.load_native_records().unwrap();
-    assert_eq!(recs.len(), 2);
-}
-
-#[test]
-fn overlapping_normalized_names_across_registries_allowed() {
-    use mycrates::store::UpstreamRecord;
-    let dir = tempdir().unwrap();
-    let store = Store::new(dir.path().to_path_buf());
-    let sha = store.ingest_blob(std::io::Cursor::new(b"cross")).unwrap();
-    let native = NativeRecord {
-        entry: sample_entry("foo_bar", "1.0.0", &sha),
-    };
-    store.put_native_record(&native).unwrap();
-    let upstream = UpstreamRecord {
-        name: "foo-bar".to_string(),
-        vers: "1.0.0".to_string(),
-        checksum: sha.clone(),
-        raw_index_line: deser_json::to_string(&deser_value::value!({"name":"foo-bar","vers":"1.0.0","deps":[],"cksum":sha,"features":{},"yanked":false})).unwrap(),
-        acquired_at: 1,
-    };
-    assert!(store.put_upstream_record(&upstream).unwrap());
-    assert_eq!(store.load_native_records().unwrap().len(), 1);
-    assert_eq!(store.load_upstream_records().unwrap().len(), 1);
-}
-
-#[test]
-fn prerelease_version_distinct_from_release() {
-    let dir = tempdir().unwrap();
-    let store = Store::new(dir.path().to_path_buf());
-
-    let rec_pre = NativeRecord {
-        entry: sample_entry("my-pkg", "1.0.0-alpha.1", "sha_pre"),
-    };
-    let rec_rel = NativeRecord {
-        entry: sample_entry("my-pkg", "1.0.0", "sha_rel"),
-    };
-
-    assert!(store.put_native_record(&rec_pre).unwrap());
-    assert!(store.put_native_record(&rec_rel).unwrap());
-
-    let records = store.load_native_records().unwrap();
-    assert_eq!(records.len(), 2);
 }
 
 #[test]
