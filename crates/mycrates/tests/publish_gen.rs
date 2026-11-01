@@ -3,9 +3,8 @@ use mycrates::publish::Publisher;
 use mycrates::store::{NativeRecord, Store};
 use stuff_store::Site;
 use std::collections::BTreeMap;
-use std::fs::{self, OpenOptions};
+use std::fs;
 use std::io::Cursor;
-use std::time::{Duration, SystemTime};
 use tempfile::tempdir;
 
 fn sample_entry(name: &str, vers: &str, cksum: &str) -> IndexEntry {
@@ -311,7 +310,8 @@ fn large_blob_publishes_via_streaming() {
 }
 
 #[test]
-fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::decode_publish_payload;
+fn interrupted_upload_leaves_no_permanent_partial() {
+    use mycrates::wire::decode_publish_payload;
     let dir = tempdir().unwrap();
     let staging = dir.path().join("blobs");
     fs::create_dir_all(&staging).unwrap();
@@ -339,17 +339,6 @@ fn interrupted_upload_leaves_no_permanent_partial() {    use mycrates::wire::dec
     assert!(format!("{err}").contains("failed to read crate bytes"));
     let leftovers: Vec<_> = fs::read_dir(&staging).unwrap().collect();
     assert!(leftovers.is_empty(), "partial upload must be cleaned, found {leftovers:?}");
-    let blobs_store = Store::new(dir.path().join("state3"));
-    blobs_store.ensure_dirs().unwrap();
-    let bdir = blobs_store.blobs_dir();
-    let orphan = bdir.join(".upload.orphan.999");
-    fs::write(&orphan, b"partial").unwrap();
-    let file = OpenOptions::new().write(true).open(&orphan).unwrap();
-    file.set_modified(SystemTime::now() - Duration::from_secs(7200))
-        .unwrap();
-    drop(file);
-    blobs_store.recover_staging().unwrap();
-    assert!(!orphan.exists());
 }
 
 #[test]

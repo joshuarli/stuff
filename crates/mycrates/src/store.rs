@@ -139,29 +139,13 @@ impl Store {
         Ok(guard)
     }
 
-    pub fn try_lock_exclusive(&self) -> Result<StoreLockGuard> {
-        self.ensure_dirs()?;
-        let lock = match FileLock::try_acquire(&self.lock_path()).map_err(lock_error)? {
-            Some(lock) => lock,
-            None => return Err(Error::Conflict("another operation holds the store lock".to_string())),
-        };
-        let guard = StoreLockGuard { _lock: lock };
-        self.recover_staging()?;
-        self.recover_uploads()?;
-        Ok(guard)
-    }
-
     pub fn recover_staging(&self) -> Result<()> {
         let blobs = self.blobs_dir();
         if blobs.exists() {
             for entry in fs::read_dir(&blobs)? {
                 let entry = entry?;
                 let file_name = entry.file_name();
-                let name = file_name.to_string_lossy();
-                let stale_tmp = name.starts_with(".tmp");
-                let stale_upload =
-                    name.starts_with(".upload.") && is_older_than(&entry.path(), STALE_UPLOAD_AGE);
-                if stale_tmp || stale_upload {
+                if file_name.to_string_lossy().starts_with(".tmp") {
                     let _ = fs::remove_file(entry.path());
                 }
             }

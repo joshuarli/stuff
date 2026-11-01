@@ -182,9 +182,3 @@ pub struct IndexDep {
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub package: Option<String>,
 }
-
-#[derive(Debug, Clone)]
-pub struct UpstreamIndexLine {
-    pub raw: String,
-    pub value: IndexEntry,
-}

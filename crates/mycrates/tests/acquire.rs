@@ -261,10 +261,16 @@ fn fetch_downloads_without_holding_the_store_lock() {
     let handle = thread::spawn(move || fetch(&fetch_state, &cfg));
 
     started.wait();
-    let guard = Store::new(state_dir.clone())
-        .try_lock_exclusive()
+    let (tx, rx) = std::sync::mpsc::channel();
+    let lock_state = state_dir.clone();
+    let lock_holder = thread::spawn(move || {
+        let guard = Store::new(lock_state).lock_exclusive().unwrap();
+        let _ = tx.send(());
+        guard
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(5))
         .expect("fetch held the store lock across the download");
-    drop(guard);
+    drop(lock_holder.join().unwrap());
     release.wait();
 
     let summary = handle.join().unwrap().unwrap();

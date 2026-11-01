@@ -157,14 +157,19 @@ fn store_exclusive_locking() {
     let store = Store::new(dir.path().to_path_buf());
 
     let guard1 = store.lock_exclusive().unwrap();
-    // Second try_lock should fail while guard1 is held
-    let try2 = store.try_lock_exclusive();
-    assert!(try2.is_err());
+    let (tx, rx) = std::sync::mpsc::channel();
+    let waiting = store.clone();
+    let waiter = thread::spawn(move || {
+        let guard = waiting.lock_exclusive().unwrap();
+        let _ = tx.send(());
+        guard
+    });
+    assert!(rx.recv_timeout(Duration::from_millis(200)).is_err());
 
     drop(guard1);
-    // After dropping guard1, try_lock should succeed
-    let guard3 = store.try_lock_exclusive().unwrap();
-    drop(guard3);
+    rx.recv_timeout(Duration::from_secs(5))
+        .expect("the store lock was not released");
+    drop(waiter.join().unwrap());
 }
 
 fn age_file(path: &std::path::Path) {
@@ -181,16 +186,9 @@ fn stale_temp_cleanup() {
 
     let tmp_file = store.blobs_dir().join(".tmp.stale.crate");
     fs::write(&tmp_file, b"stale data").unwrap();
-    let upload_file = store.blobs_dir().join(".upload.123.456.789");
-    fs::write(&upload_file, b"partial upload").unwrap();
-    age_file(&upload_file);
-    let fresh_upload = store.blobs_dir().join(".upload.999999.123.456");
-    fs::write(&fresh_upload, b"in-flight upload").unwrap();
 
     store.recover_staging().unwrap();
     assert!(!tmp_file.exists());
-    assert!(!upload_file.exists());
-    assert!(fresh_upload.exists());
 }
 
 #[test]
@@ -227,9 +225,6 @@ fn concurrent_verify_and_publish_leave_in_flight_uploads_alone() {
     writer.write_all(b"in-flight").unwrap();
     writer.flush().unwrap();
 
-    let legacy = store.blobs_dir().join(".upload.424242.1.2");
-    fs::write(&legacy, b"legacy-in-flight").unwrap();
-
     let verify_store = store.clone();
     let verify = thread::spawn(move || verify_store.verify());
     let publish_store = store.clone();
@@ -250,7 +245,6 @@ fn concurrent_verify_and_publish_leave_in_flight_uploads_alone() {
     writer.sync_all().unwrap();
     drop(writer);
     assert_eq!(fs::read(&upload).unwrap(), b"in-flight-more");
-    assert_eq!(fs::read(&legacy).unwrap(), b"legacy-in-flight");
 }
 
 #[test]

@@ -1929,7 +1929,7 @@ fn install_project(
     write_project_snapshot(&project_dir, project, &migrated_lock, lockfile_name)?;
     let cache_dir = install_workspace.join("cache");
     let environment = client_environment(&install_workspace, registry, &cache_dir)?;
-    let mut args: Vec<String> = if *client == Manager::Npm {
+    let args: Vec<String> = if *client == Manager::Npm {
         let mut base = vec![
             "ci".to_string(),
             format!("--registry={registry}"),
@@ -1951,7 +1951,6 @@ fn install_project(
             "--ignore-pnpmfile".to_string(),
         ]
     };
-    let _ = &mut args;
     run_process(
         client.as_str(),
         &args,

@@ -138,7 +138,6 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
     })?)
     .is_ok();
-    void_is_zip_check(sdist, is_zip)?;
     let mut extensions: BTreeMap<String, bool> = BTreeMap::new();
     let mut native_payloads: BTreeMap<String, bool> = BTreeMap::new();
     let mut setup_py: Vec<u8> = Vec::new();
@@ -273,10 +272,6 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         return Ok(Some("source archive setup.py declares cffi_modules".to_string()));
     }
     Ok(None)
-}
-
-fn void_is_zip_check(_sdist: &Path, _is_zip: bool) -> Result<()> {
-    Ok(())
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {

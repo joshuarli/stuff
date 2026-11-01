@@ -158,10 +158,6 @@ pub fn redacted_diagnostic(value: &str, limit: usize) -> String {
 }
 
 fn redact_credentials(value: &str) -> String {
-    redact_credentials_clean(value)
-}
-
-fn redact_credentials_clean(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     let mut i = 0;
     let b = value.as_bytes();
