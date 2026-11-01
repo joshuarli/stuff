@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -254,13 +254,14 @@ def sync_repositories(
     catalog: Catalog,
     remotes: dict[str, RemoteRepository],
     *,
+    repositories: Iterable[Repository] | None = None,
     dry_run: bool = False,
     jobs: int = 4,
     on_complete: Callable[[int, int, SyncResult], None] | None = None,
 ) -> list[SyncResult]:
     if jobs < 1:
         raise ValueError("jobs must be at least one")
-    repos = catalog.repositories
+    repos = tuple(catalog.repositories if repositories is None else repositories)
     if not repos:
         return []
     workers = min(jobs, 32, len(repos))

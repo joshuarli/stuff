@@ -43,7 +43,9 @@ def _parser() -> argparse.ArgumentParser:
     lint.add_argument("--json", action="store_true")
     lint.add_argument("--strict", action="store_true", help="treat warnings as violations")
 
-    fix = commands.add_parser("fix", help="repair policy violations and open pull requests")
+    fix = commands.add_parser(
+        "fix", help="sync selected checkouts, repair policy violations, and open pull requests"
+    )
     _filters(fix)
     fix.add_argument("--rule", action="append", default=[])
     fix.add_argument("--workers", type=int, default=4)

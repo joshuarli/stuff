@@ -90,8 +90,8 @@ uv run repomod lint --repo acme/tool --checkout .work/wt/fix
 
 ## Fix
 
-`repomod fix` repairs policy violations and opens a pull request per repository.
-Each successful fixer gets one local commit on a `repomod/fix/*` branch,
+`repomod fix` syncs the selected repositories, repairs policy violations, and opens a pull
+request per repository. Each successful fixer gets one local commit on a `repomod/fix/*` branch,
 which is pushed and opened (or reused) as a pull request.
 Use `--rule` to select fixers and `--repo`/`--tag` to select repositories.
 

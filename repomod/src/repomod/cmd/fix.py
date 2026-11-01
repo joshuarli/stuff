@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from repomod import catalog as catalog_module
 from repomod import fix as fix_engine
 from repomod import git, github, policy
+from repomod.sync import sync_repositories
 from repomod.types import Repository
 
 from . import common
@@ -23,6 +24,23 @@ def _fix(args: argparse.Namespace) -> int:
     fixers = tuple(rule for rule in available if rule.fix is not None)
     if not fixers:
         raise policy.PolicyError("selected rules have no automatic fixer")
+    remotes = github.remote_metadata(repositories)
+    sync_targets = tuple(
+        repository
+        for repository in repositories
+        if (remote := remotes.get(str(repository.id))) is not None
+        and remote.archived is not True
+    )
+    sync_failed = False
+    for result in sync_repositories(
+        catalog, remotes, repositories=sync_targets, jobs=args.workers
+    ):
+        if result.action != "current":
+            print(
+                f"{result.repository}: sync {result.action}: {result.message}",
+                file=sys.stderr,
+            )
+        sync_failed |= result.failed
     remotes = github.remote_metadata(repositories)
     outcomes: list[fix_engine.FixOutcome] = []
     eligible = [
@@ -183,4 +201,4 @@ def _fix(args: argparse.Namespace) -> int:
         else:
             print(f"{repository.id}: {state}" + (f": {message}" if message is not None else ""))
             failed |= state == "failed"
-    return 1 if failed else 0
+    return 1 if failed or sync_failed else 0

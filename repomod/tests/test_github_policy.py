@@ -8,6 +8,7 @@ from pathlib import Path
 from threading import Barrier, Lock
 
 import pytest
+from fix_helpers import initialize_repository
 
 from repomod import github
 from repomod.catalog import load_catalog
@@ -929,6 +930,7 @@ def test_fix_cli_reports_failed_outcomes_as_nonzero(
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.fix.sync_repositories", lambda *_, **__: [])
     monkeypatch.setattr(
         "repomod.github.remote_metadata",
         lambda _: {
@@ -1384,6 +1386,7 @@ def test_fix_groups_outcome_lines_by_repository(
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.fix.sync_repositories", lambda *_, **__: [])
     monkeypatch.setattr(
         "repomod.github.remote_metadata",
         lambda _: {"acme/demo": RemoteRepository("acme/demo", "main", "a" * 40, False)},
@@ -1407,6 +1410,57 @@ def test_fix_groups_outcome_lines_by_repository(
         "    committed release bbbbbbbbbbbb",
     ]
     assert captured.err.splitlines() == ["    failed publish: boom"]
+
+
+def test_fix_syncs_selected_repositories_before_fixing(
+    tmp_path: Path, monkeypatch, capsys, git_environment: None
+) -> None:
+    catalog, repository, path, _ = initialize_repository(tmp_path)
+    clone = tmp_path / "author"
+    subprocess.run(
+        ["git", "clone", str(tmp_path / "remote.git"), str(clone)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (clone / "README.md").write_text("remote update\n", encoding="utf-8")
+    for arguments in (["add", "README.md"], ["commit", "-m", "remote update"], ["push", "origin", "main"]):
+        subprocess.run(
+            ["git", *arguments], cwd=clone, check=True, capture_output=True, text=True
+        )
+    remote_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=clone,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    observed: dict[str, str] = {}
+
+    def fake_fix(_catalog, _repository, _selected, _default_branch, _remote_head=None):
+        observed["head"] = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        return FixOutcome(str(repository.id))
+
+    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda _: {
+            str(repository.id): RemoteRepository(
+                str(repository.id), "main", remote_head, False
+            )
+        },
+    )
+    monkeypatch.setattr("repomod.fix.fix_repository", fake_fix)
+
+    assert _fix(argparse.Namespace(repo=[], tag=[], rule=[], workers=1)) == 0
+    assert observed["head"] == remote_head
+    assert "sync updated" in capsys.readouterr().err
 
 
 def test_operational_lint_failure_has_distinct_exit_code(    tmp_path: Path, monkeypatch
