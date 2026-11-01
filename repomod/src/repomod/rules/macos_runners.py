@@ -15,6 +15,7 @@ _MACOS_RUNNER = re.compile(
 _ACCEPTED_MAJOR_VERSIONS = frozenset({26, 27})
 _REPAIRED_MAJOR_VERSION = "26"
 _RUNNER_DECLARATION = re.compile(r"(?:^|[\s{,])(?:runs-on|os|macos|runner)\s*:")
+_LIST_ITEM = re.compile(r"^\s*-\s+(?P<value>.*?)\s*$")
 
 
 def _major_version(match: re.Match[str]) -> int | None:
@@ -33,7 +34,12 @@ def _code_portion(line: str) -> str:
 
 
 def _runner_line(code: str) -> bool:
-    return bool(_RUNNER_DECLARATION.search(code)) or code.lstrip().startswith("- ")
+    if _RUNNER_DECLARATION.search(code):
+        return True
+    item = _LIST_ITEM.match(code)
+    if item is None:
+        return False
+    return _MACOS_RUNNER.fullmatch(item.group("value").strip("'\"")) is not None
 
 
 def _macos_runner_findings(root: Path, repository: Repository) -> list[Finding]:

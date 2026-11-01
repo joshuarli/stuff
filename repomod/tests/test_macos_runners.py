@@ -61,6 +61,37 @@ def test_old_and_floating_macos_runners_are_fixable(tmp_path: Path) -> None:
     assert _fix_macos_runners(tmp_path, repository()) == {}
 
 
+def test_block_list_and_matrix_mapping_runners_are_fixable(tmp_path: Path) -> None:
+    source = (
+        "jobs:\n"
+        "  intel:\n"
+        "    runs-on:\n"
+        "      - macos-15-intel\n"
+        "  matrix:\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        include:\n"
+        "          - runner: macos-latest\n"
+        "        os:\n"
+        "          - macos-14\n"
+    )
+    workflow(tmp_path, source)
+
+    findings = _macos_runner_findings(tmp_path, repository())
+
+    assert [(finding.line, finding.column) for finding in findings] == [
+        (4, 9),
+        (9, 21),
+        (11, 13),
+    ]
+
+    repaired = _fix_macos_runners(tmp_path, repository())[".github/workflows/ci.yml"]
+
+    assert "      - macos-26-intel\n" in repaired
+    assert "- runner: macos-26\n" in repaired
+    assert "          - macos-26\n" in repaired
+
+
 def test_macos_runner_rule_has_an_autofix() -> None:
     rule = next(rule for rule in selected_rules(rule_ids=("gha-macos",)))
 
@@ -76,7 +107,11 @@ def test_comments_and_non_runner_mentions_are_not_reported(tmp_path: Path) -> No
         "jobs:\n"
         "  test:\n"
         "    name: build on macos-15\n"
-        "    runs-on: ubuntu-latest\n",
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - name: build on macos-15\n"
+        "      - 'build macos-14'\n"
+        "      - uses: actions/checkout@v4 # macos-14\n",
     )
 
     assert _macos_runner_findings(tmp_path, repository()) == []
