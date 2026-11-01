@@ -230,7 +230,7 @@ impl std::error::Error for RunError {}
 fn signal_group(pid: u32, signal: &str) {
     let target = format!("-{pid}");
     let _ = Command::new("/bin/kill")
-        .args([signal, &target])
+        .args([signal, "--", &target])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -239,25 +239,19 @@ fn signal_group(pid: u32, signal: &str) {
 
 fn stop_process_group(child: &mut std::process::Child) {
     let pid = child.id();
-    if child.try_wait().ok().flatten().is_some() {
-        return;
-    }
     signal_group(pid, "-TERM");
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         if let Ok(Some(_)) = child.try_wait() {
-            return;
+            break;
         }
         if Instant::now() >= deadline {
             break;
         }
         std::thread::sleep(Duration::from_millis(50));
     }
-    if child.try_wait().ok().flatten().is_none() {
-        signal_group(pid, "-KILL");
-        let _ = child.wait();
-    }
-    let _ = child.kill();
+    signal_group(pid, "-KILL");
+    let _ = child.wait();
 }
 
 fn spawn_reader<R: Read + Send + 'static>(
