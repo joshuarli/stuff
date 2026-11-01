@@ -38,6 +38,20 @@ current_gen() {
     --local --persist-to "$CF_LOCAL_STATE"
 }
 
+FIRST_R2=$WORK/r2-first
+FIRST_HOME=$WORK/home-first
+(cd "$ROOT" && STUFF_STATE_HOME="$FIRST_HOME" CF_LOCAL_STATE="$FIRST_R2" \
+  OCI_LAYOUT="$ROOT/tests/fixtures/oci/layout" OCI_REPOSITORY=example/app \
+  deploy/publish oci --promote=cf >/dev/null) || fail "first publication into empty buckets failed"
+FIRST_LIVE=$(cf r2 objects get current --text --bucket-name stuff-oci --local --persist-to "$FIRST_R2" | tr -d '[:space:]')
+FIRST_LOCAL=$(basename "$(readlink "$FIRST_HOME/oci/site/current")")
+[ -n "$FIRST_LIVE" ] && [ "$FIRST_LIVE" = "$FIRST_LOCAL" ] || fail "first publication promoted '$FIRST_LIVE', expected '$FIRST_LOCAL'"
+if (cd "$ROOT" && STUFF_STATE_HOME="$WORK/home-empty" CF_LOCAL_STATE="$WORK/r2-empty" \
+  deploy/publish oci --republish --promote=cf >/dev/null 2>"$WORK/empty-republish.err"); then
+  fail "republish of empty buckets succeeded"
+fi
+grep -q "nothing to republish" "$WORK/empty-republish.err" || fail "republish of empty buckets gave no clear reason"
+
 "$BIN" init --state-dir "$STATE" >/dev/null
 "$BIN" import --state-dir "$STATE" --layout "$ROOT/tests/fixtures/oci/layout" --repository example/app >/dev/null
 "$BIN" publish --state-dir "$STATE" --site-dir "$SITE" >/dev/null

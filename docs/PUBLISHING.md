@@ -62,6 +62,10 @@ OCI_LAYOUT=tests/fixtures/oci/layout OCI_REPOSITORY=example/app \
 deploy/publish oci --republish
 ```
 
+An empty `stuff-oci` bucket makes the first publication: the wrapper skips
+adoption and builds from the inputs, and `--republish` refuses with nothing to
+republish.
+
 `OCI_IMAGES` imports through pinned `oras`; `OCI_LAYOUT` imports a local OCI
 image layout. Import verifies every digest and size, walks indexes and
 referrers, and rejects sparse indexes, missing blobs, foreign layers, and

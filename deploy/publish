@@ -197,7 +197,20 @@ adopt_mypypi() {
   record_promoted_generation stuff-mypypi "$(adopted_generation "$SITE_DIR")"
 }
 
+oci_bucket_is_empty() {
+  if [ -n "${CF_LOCAL_STATE:-}" ]; then
+    cf r2 objects list --per-page 1 --bucket-name "$1" --local --persist-to "$CF_LOCAL_STATE"
+  else
+    cf r2 objects list --per-page 1 --bucket-name "$1"
+  fi | python3 -c 'import json, sys; sys.exit(0 if json.load(sys.stdin) == [] else 1)'
+}
+
 adopt_oci() {
+  if oci_bucket_is_empty "${BUCKET_META:-stuff-oci}"; then
+    [ -z "$REPUBLISH" ] || fail "${BUCKET_META:-stuff-oci} is empty; nothing to republish"
+    echo "publish: ${BUCKET_META:-stuff-oci} is empty; making the first publication" >&2
+    return 0
+  fi
   echo "publish: no OCI publication at $SITE_DIR; adopting the live publication" >&2
   cargo build -q -p myoci --manifest-path "$STUFF_DIR/Cargo.toml"
   BIN=$STUFF_DIR/target/debug/myoci

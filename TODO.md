@@ -21,15 +21,6 @@ Next: 55
 - **Fix with:** stuff-registries
 - **Effort:** M
 
-### STUF-54 · P3 · `deploy/publish oci` cannot make a first publication
-
-- **Area:** Operations
-- **Where:** `deploy/publish:200-246`, `deploy/r2-pull.py`
-- **Problem:** When the local site is missing, the wrapper adopts the live publication. On an empty `stuff-oci` bucket there is no `current` marker, so adoption fails with `cannot read the current marker: HTTP 404` before anything uploads. The first production publish needed `myoci init`, `import`, and `publish` by hand, then `deploy/publish oci --republish`.
-- **Recommendation:** Treat a bucket with no objects as a first publication: skip adoption and let `publish-myoci.sh` build from the imported layout. Cover it in `deploy/test-oci-publish.sh` with an empty simulated bucket and no seeded site.
-- **Fix with:** stuff-registries
-- **Effort:** S
-
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
 - **Area:** Security
