@@ -12,6 +12,7 @@ fn main() {
             "build" => Some(cli::Command::Build),
             "validate" => Some(cli::Command::Validate),
             "publish" => Some(cli::Command::Publish),
+            "republish" => Some(cli::Command::Republish),
             _ => None,
         });
         match command {

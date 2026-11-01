@@ -813,6 +813,13 @@ fn item_target_path(output: &Path, item: &IndexArtifact) -> PathBuf {
     output.join("wheels").join(&item.wheel_filename)
 }
 
+pub fn republish(output: &Path, public_base_url: &str) -> Result<PathBuf> {
+    if published_artifacts(output)?.is_empty() {
+        return Err(pub_error(Kind::InvalidInput, "no published index to republish", Some(output), None));
+    }
+    publish(&[], output, &BTreeMap::new(), public_base_url)
+}
+
 pub fn publish(
     artifacts: &[ValidatedArtifact],
     output: &Path,
@@ -988,6 +995,32 @@ mod tests {
         assert_eq!(published[0].wheel.filename, "sample_pkg-1.0-py3-none-any.whl");
         // republishing identical bytes is a no-op merge, not a conflict
         publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+    }
+
+    #[test]
+    fn republish_keeps_wheels_and_refuses_an_empty_index() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("src");
+        std::fs::create_dir(&src).unwrap();
+        let out = dir.path().join("index");
+        assert!(republish(&out, stuff_catalog::DEFAULT_PYPI_ORIGIN).is_err());
+        assert!(!out.exists());
+
+        let a = make_validated(
+            &src,
+            "sample_pkg-1.0-py3-none-any.whl",
+            b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\nRequires-Dist: other-pkg\n\n",
+            vec![target("macos-arm64")],
+        );
+        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+        let before = std::fs::read_link(out.join("current")).unwrap();
+        republish(&out, "https://mirror.example.test").unwrap();
+        let after = std::fs::read_link(out.join("current")).unwrap();
+        assert_ne!(before, after);
+        let published = published_artifacts(&out).unwrap();
+        assert_eq!(published.len(), 1);
+        let catalog = std::fs::read_to_string(out.join("current").join("catalog.json")).unwrap();
+        assert!(catalog.contains("\"dependencies\": [\"other-pkg\"]"));
     }
 
     #[test]

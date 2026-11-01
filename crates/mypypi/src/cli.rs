@@ -9,6 +9,7 @@ pub enum Command {
     Build,
     Validate,
     Publish,
+    Republish,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +19,7 @@ pub struct Parsed {
     pub state_dir: Option<String>,
     pub config: Option<String>,
     pub output: Option<String>,
+    pub public_url: Option<String>,
     pub platforms: Vec<String>,
     pub build_index: Option<String>,
     pub strict_build_deps: bool,
@@ -38,6 +40,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut state_dir = None;
     let mut config = None;
     let mut output = None;
+    let mut public_url = None;
     let mut platforms: Vec<String> = Vec::new();
     let mut build_index = None;
     let mut strict = false;
@@ -77,11 +80,16 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                     i += 1;
                     continue;
                 }
+                "republish" => {
+                    command = Some(Command::Republish);
+                    i += 1;
+                    continue;
+                }
                 _ => {}
             }
         }
         match arg {
-            "--catalog" | "--state-dir" | "--config" | "--output" | "--platform"
+            "--catalog" | "--state-dir" | "--config" | "--output" | "--public-url" | "--platform"
             | "--build-index" | "--build-constraints" | "--uv-lock" | "--requirements" => {
                 let value = argv.get(i + 1).ok_or_else(|| fail(format!("{arg} requires a value")))?;
                 i += 2;
@@ -90,6 +98,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                     "--state-dir" => state_dir = Some(value.clone()),
                     "--config" => config = Some(value.clone()),
                     "--output" => output = Some(value.clone()),
+                    "--public-url" => public_url = Some(value.clone()),
                     "--platform" => platforms.push(value.clone()),
                     "--build-index" => build_index = Some(value.clone()),
                     "--uv-lock" => uv_locks.push(value.clone()),
@@ -132,6 +141,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         state_dir,
         config,
         output,
+        public_url,
         platforms,
         build_index,
         strict_build_deps: strict,
@@ -154,6 +164,7 @@ pub fn print_help() {
     println!("  build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps]");
     println!("  validate [--output DIR] [--platform P]...");
     println!("  publish [--output DIR] [--platform P]...");
+    println!("  republish --output DIR --public-url URL");
 }
 
 pub fn print_command_help(command: &Command) {
@@ -177,6 +188,10 @@ pub fn print_command_help(command: &Command) {
         Command::Publish => {
             println!("mypypi publish --output DIR [--platform P]...");
             println!("publish validated wheels to a local index");
+        }
+        Command::Republish => {
+            println!("mypypi republish --output DIR --public-url URL");
+            println!("render the published index again under the current renderer, adding no wheels");
         }
     }
 }
@@ -643,7 +658,24 @@ pub fn resolve_paths(parsed: &Parsed) -> Result<ResolvedPaths> {
     })
 }
 
+fn command_republish(parsed: &Parsed) -> Result<i32> {
+    let output = parsed
+        .output
+        .as_deref()
+        .ok_or_else(|| Error::usage("the following arguments are required: --output"))?;
+    let public_url = parsed
+        .public_url
+        .as_deref()
+        .ok_or_else(|| Error::usage("the following arguments are required: --public-url"))?;
+    let current = crate::store::republish(Path::new(output), public_url)?;
+    println!("republished {}", current.display());
+    Ok(0)
+}
+
 pub fn run(parsed: &Parsed) -> Result<i32> {
+    if parsed.command == Command::Republish {
+        return command_republish(parsed);
+    }
     let paths = resolve_paths(parsed)?;
     let settings = load_project_settings(&paths.config)?;
     // runtime gate runs for every command (mirrors cli.main calling it first)
@@ -656,6 +688,7 @@ pub fn run(parsed: &Parsed) -> Result<i32> {
         Command::Build => command_build(parsed, &settings, &paths, &catalog),
         Command::Validate => command_validate(&settings, &paths, &catalog, &parsed.platforms),
         Command::Publish => command_publish(&settings, &paths, &catalog, &parsed.platforms),
+        Command::Republish => command_republish(parsed),
     }
 }
 
