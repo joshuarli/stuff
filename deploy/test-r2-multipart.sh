@@ -73,10 +73,13 @@ PY
 LOCATION=$(curl -sS -u stuff:$(cat "$WORK/token") -X POST -D - -o /dev/null \
   "http://127.0.0.1:$FP/v2/example/r2/blobs/uploads/" | sed -n 's/^location: //Ip' | tr -d '\r')
 [ -n "$LOCATION" ] || { echo "FAIL: no writer location" >&2; exit 1; }
-curl -sS -f -X PATCH --data-binary @"$WORK/blob" "$LOCATION" >/dev/null
+curl -sS -f -X PATCH -T "$WORK/blob" "$LOCATION" >/dev/null
 curl -sS -f -X PUT --data-binary '' "$LOCATION&digest=sha256:$HEX" >/dev/null
-HEAD=$(cf r2 objects head "sha256/$HEX" --bucket-name "$BUCKET" 2>/dev/null || true)
-[ -n "$HEAD" ] || { echo "FAIL: R2 object sha256/$HEX is missing" >&2; exit 1; }
-SIZE=$(printf '%s' "$HEAD" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("size"))')
+SIZE=$(cf r2 objects list --bucket-name "$BUCKET" --prefix "sha256/$HEX" --per-page 10 \
+  | python3 -c 'import json,sys
+data = json.load(sys.stdin)
+items = data.get("objects", data) if isinstance(data, dict) else data
+print(next((str(item["size"]) for item in items if item["key"] == sys.argv[1]), ""))' "sha256/$HEX")
+[ -n "$SIZE" ] || { echo "FAIL: R2 object sha256/$HEX is missing" >&2; exit 1; }
 [ "$SIZE" = "1073741824" ] || { echo "FAIL: R2 object size is $SIZE" >&2; exit 1; }
 echo "OK: 1 GiB blob uploaded through the writer as sha256/$HEX"
