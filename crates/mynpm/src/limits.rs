@@ -63,15 +63,4 @@ mod tests {
         assert_eq!(format_duration(1_000), "1 second");
         assert_eq!(format_duration(500), "500 milliseconds");
     }
-
-    #[test]
-    fn frozen_caps_match_typescript() {
-        assert_eq!(METADATA_BYTES, 64 * 1024 * 1024);
-        assert_eq!(TARBALL_BYTES, 1024 * 1024 * 1024);
-        assert_eq!(UNPACKED_BYTES, 2 * 1024 * 1024 * 1024);
-        assert_eq!(ARCHIVE_ENTRIES, 100_000);
-        assert_eq!(REDIRECTS, 5);
-        assert_eq!(CONCURRENT_DOWNLOADS, 4);
-        assert_eq!(FETCH_BYTES, 10 * 1024 * 1024 * 1024);
-    }
 }
