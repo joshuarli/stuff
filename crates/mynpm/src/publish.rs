@@ -123,18 +123,26 @@ fn generation_id_for_renderer(
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-fn runtime_dependency_names(version_metadata: &deser_value::Value) -> Vec<String> {
-    let Some(dependencies) = version_metadata
-        .as_map()
-        .and_then(|map| map.get("dependencies"))
-        .and_then(|value| value.as_map())
-    else {
-        return Vec::new();
+fn catalog_dependencies(version_metadata: &deser_value::Value) -> stuff_catalog::Dependencies {
+    let names = |field: &str| -> Vec<String> {
+        let Some(group) = version_metadata
+            .as_map()
+            .and_then(|map| map.get(field))
+            .and_then(|value| value.as_map())
+        else {
+            return Vec::new();
+        };
+        (0..group.len())
+            .filter_map(|i| group.get_index(i))
+            .filter_map(|(name, _)| name.as_str().map(str::to_string))
+            .collect()
     };
-    (0..dependencies.len())
-        .filter_map(|i| dependencies.get_index(i))
-        .filter_map(|(name, _)| name.as_str().map(str::to_string))
-        .collect()
+    stuff_catalog::Dependencies {
+        runtime: names("dependencies"),
+        peer: names("peerDependencies"),
+        build: Vec::new(),
+        dev: names("devDependencies"),
+    }
 }
 
 fn catalog_for(
@@ -160,7 +168,7 @@ fn catalog_for(
         .map(|r| stuff_catalog::NpmInput {
             name: r.name.clone(),
             version: r.version.clone(),
-            dependencies: runtime_dependency_names(&r.metadata),
+            dependencies: catalog_dependencies(&r.metadata),
         })
         .collect();
     stuff_catalog::npm_catalog(generation_id, inputs, &dist_latest)
@@ -1072,20 +1080,23 @@ pub fn adopt_site(site_directory: &Path) -> Result<PublishSummary> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn catalog_dependencies_are_the_runtime_dependency_names() {
+    fn catalog_dependencies_keep_runtime_peer_and_dev_names() {
         let metadata: deser_value::Value = deser_json::from_str(
-            r#"{"name":"a","version":"1.0.0","dependencies":{"b":"^1","@s/c":"2"},"devDependencies":{"d":"1"},"peerDependencies":{"e":"1"}}"#,
+            r#"{"name":"a","version":"1.0.0","dependencies":{"b":"^1","@s/c":"2"},"devDependencies":{"d":"1"},"peerDependencies":{"e":"1"},"optionalDependencies":{"f":"1"}}"#,
         )
         .unwrap();
-        let mut names = runtime_dependency_names(&metadata);
-        names.sort();
-        assert_eq!(names, ["@s/c", "b"]);
+        let mut dependencies = catalog_dependencies(&metadata);
+        dependencies.runtime.sort();
+        assert_eq!(dependencies.runtime, ["@s/c", "b"]);
+        assert_eq!(dependencies.peer, ["e"]);
+        assert_eq!(dependencies.dev, ["d"]);
+        assert!(dependencies.build.is_empty());
         let bare: deser_value::Value = deser_json::from_str(r#"{"name":"a","version":"1.0.0"}"#).unwrap();
-        assert!(runtime_dependency_names(&bare).is_empty());
+        assert!(catalog_dependencies(&bare).is_empty());
     }
-
-    use super::*;
 
     #[test]
     fn directory_tree_accepts_a_symlinked_parent() {

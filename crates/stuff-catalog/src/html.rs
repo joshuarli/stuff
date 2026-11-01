@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use crate::model::{Catalog, Package, Registry};
+use crate::model::{Catalog, DependencyKind, Package, Registry};
 use std::collections::BTreeMap;
 
 fn escape_html(text: &str) -> String {
@@ -51,7 +51,7 @@ main:has(.detail:target) .index { display: none; }
 .back { margin: 0 0 2rem; }
 .refs { margin: 0; padding: 0; list-style: none; }
 .refs li { padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
-.refs .mute { margin-left: 0.75rem; }
+.refs .mute { margin-left: 0.75rem; }\ndetails { margin: 1rem 0 0; }\nsummary { cursor: pointer; font-weight: 600; }\ndetails[open] summary { margin-bottom: 0.5rem; }
 footer { margin-top: 3rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; color: var(--mute); font-size: 0.875rem; }
 @media (max-width: 640px) { header { padding-bottom: 2.5rem; } .hide { display: none; } }
 "#;
@@ -117,17 +117,32 @@ fn document(title: &str, body: &str) -> String {
     )
 }
 
+struct Dependent<'a> {
+    package: &'a Package,
+    kind: DependencyKind,
+}
+
+fn dependents_of<'a>(catalog: &'a Catalog) -> BTreeMap<String, Vec<Dependent<'a>>> {
+    let mut dependents: BTreeMap<String, Vec<Dependent<'a>>> = BTreeMap::new();
+    for package in &catalog.packages {
+        let mut strongest: BTreeMap<String, DependencyKind> = BTreeMap::new();
+        for (kind, name) in package.dependencies.iter() {
+            if let Some(target) = catalog.resolve_dependency(name) {
+                let slot = strongest.entry(anchor(catalog.registry, target)).or_insert(kind);
+                *slot = (*slot).min(kind);
+            }
+        }
+        for (target, kind) in strongest {
+            dependents.entry(target).or_default().push(Dependent { package, kind });
+        }
+    }
+    dependents
+}
+
 fn detail_sections(catalogs: &[&Catalog]) -> String {
     let mut out = String::new();
     for catalog in catalogs {
-        let mut dependents: BTreeMap<String, Vec<&Package>> = BTreeMap::new();
-        for package in &catalog.packages {
-            for name in &package.dependencies {
-                if let Some(target) = catalog.resolve_dependency(name) {
-                    dependents.entry(anchor(catalog.registry, target)).or_default().push(package);
-                }
-            }
-        }
+        let dependents = dependents_of(catalog);
         for package in &catalog.packages {
             let id = anchor(catalog.registry, package);
             out.push_str(&format!("<section class=\"detail\" id=\"{}\">\n", escape_html(&id)));
@@ -140,11 +155,10 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
                 escape_html(&source),
                 escape_html(&package.latest)
             ));
-
             if catalog.schema_version < 2 {
                 out.push_str("<p class=\"mute\">This generation was published before dependencies were recorded.</p>\n");
             } else {
-                out.push_str(&dependency_lists(catalog, package, &id, &dependents));
+                out.push_str(&dependency_sections(catalog, package, dependents.get(&id)));
             }
             out.push_str(&format!(
                 "<h2>Versions</h2>\n<p class=\"vers\">{}</p>\n</section>\n",
@@ -155,38 +169,68 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
     out
 }
 
-fn dependency_lists(
-    catalog: &Catalog,
-    package: &Package,
-    id: &str,
-    dependents: &BTreeMap<String, Vec<&Package>>,
-) -> String {
+fn name_list(catalog: &Catalog, names: &[String]) -> String {
+    let mut hosted = String::new();
+    let mut elsewhere = Vec::new();
+    for name in names {
+        match catalog.resolve_dependency(name) {
+            Some(target) => hosted.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, target))),
+            None => elsewhere.push(format!("<span class=\"pkg\">{}</span>", escape_html(name))),
+        }
+    }
+    let mut out = String::new();
+    if !hosted.is_empty() {
+        out.push_str(&format!("<ul class=\"refs\">\n{hosted}</ul>\n"));
+    }
+    if !elsewhere.is_empty() {
+        out.push_str(&format!("<p class=\"mute\">Not hosted here: {}</p>\n", elsewhere.join(", ")));
+    }
+    out
+}
+
+fn kind_title(kind: DependencyKind) -> &'static str {
+    match kind {
+        DependencyKind::Runtime => "Dependencies",
+        DependencyKind::Peer => "Peer dependencies",
+        DependencyKind::Build => "Build dependencies",
+        DependencyKind::Dev => "Dev dependencies",
+    }
+}
+
+fn dependency_sections(catalog: &Catalog, package: &Package, users: Option<&Vec<Dependent<'_>>>) -> String {
     let mut out = String::from("<h2>Depends on</h2>\n");
-    if package.dependencies.is_empty() {
+    if package.dependencies.runtime.is_empty() {
         out.push_str(&format!("<p class=\"mute\">No dependencies in {}.</p>\n", escape_html(&package.latest)));
     } else {
-        out.push_str("<ul class=\"refs\">\n");
-        for name in &package.dependencies {
-            match catalog.resolve_dependency(name) {
-                Some(target) => {
-                    out.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, target)))
-                }
-                None => out.push_str(&format!(
-                    "<li class=\"pkg\">{}<span class=\"mute\">not hosted here</span></li>\n",
-                    escape_html(name)
-                )),
+        out.push_str(&name_list(catalog, &package.dependencies.runtime));
+    }
+    if catalog.schema_version < 3 {
+        out.push_str("<p class=\"mute\">Peer, build and dev dependencies were not recorded for this generation.</p>\n");
+    } else {
+        for kind in [DependencyKind::Peer, DependencyKind::Build, DependencyKind::Dev] {
+            let names = package.dependencies.of(kind);
+            if !names.is_empty() {
+                out.push_str(&format!(
+                    "<details>\n<summary>{} ({})</summary>\n{}</details>\n",
+                    kind_title(kind),
+                    names.len(),
+                    name_list(catalog, names)
+                ));
             }
         }
-        out.push_str("</ul>\n");
     }
 
     out.push_str("<h2>Used by</h2>\n");
-    match dependents.get(id) {
+    match users {
         None => out.push_str("<p class=\"mute\">No package here depends on it.</p>\n"),
         Some(users) => {
             out.push_str("<ul class=\"refs\">\n");
             for user in users {
-                out.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, user)));
+                let note = match user.kind {
+                    DependencyKind::Runtime => String::new(),
+                    kind => format!("<span class=\"mute\">{}</span>", kind.as_str()),
+                };
+                out.push_str(&format!("<li class=\"pkg\">{}{note}</li>\n", package_link(catalog.registry, user.package)));
             }
             out.push_str("</ul>\n");
         }
@@ -267,7 +311,7 @@ pub fn render_unified(catalogs: &[Catalog]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{CargoInput, CargoSource, NpmInput, cargo_catalog, npm_catalog};
+    use crate::model::{CargoInput, CargoSource, Dependencies, NpmInput, cargo_catalog, npm_catalog};
     use std::collections::BTreeMap;
 
     fn cargo_input(name: &str, version: &str, dependencies: &[&str]) -> CargoInput {
@@ -276,7 +320,7 @@ mod tests {
             version: version.to_string(),
             yanked: false,
             source: CargoSource::Native,
-            dependencies: dependencies.iter().map(|d| d.to_string()).collect(),
+            dependencies: Dependencies::runtime_only(dependencies.iter().map(|d| d.to_string()).collect()),
         }
     }
 
@@ -330,7 +374,7 @@ mod tests {
 
         let app = section(&html, "cargo/native/app");
         assert!(app.contains("href=\"#cargo/native/lib\""));
-        assert!(app.contains("outside<span class=\"mute\">not hosted here</span>"));
+        assert!(app.contains("Not hosted here: <span class=\"pkg\">outside</span>"));
         assert!(!app.contains("href=\"#cargo/native/outside\""));
         assert!(app.contains("No package here depends on it."));
 
@@ -341,12 +385,51 @@ mod tests {
     }
 
     #[test]
+    fn non_runtime_kinds_get_their_own_sections_and_labels() {
+        let mut app = cargo_input("app", "1.0.0", &["lib"]);
+        app.dependencies.dev = vec!["helper".to_string(), "outside-dev".to_string()];
+        app.dependencies.build = vec!["lib".to_string()];
+        app.dependencies.peer = vec!["outside-peer".to_string()];
+        let catalog = cargo_catalog(
+            "gen1",
+            vec![app, cargo_input("lib", "2.0.0", &[]), cargo_input("helper", "0.1.0", &[])],
+        )
+        .unwrap();
+        let html = render_html(&catalog);
+
+        let app = section(&html, "cargo/native/app");
+        assert!(app.contains("<summary>Peer dependencies (1)</summary>"));
+        assert!(app.contains("<summary>Build dependencies (1)</summary>"));
+        assert!(app.contains("<summary>Dev dependencies (2)</summary>"));
+        assert!(app.contains("Not hosted here: <span class=\"pkg\">outside-dev</span>"));
+        assert!(app.contains("href=\"#cargo/native/helper\""));
+
+        let lib = section(&html, "cargo/native/lib");
+        let used_by = &lib[lib.find("Used by").unwrap()..];
+        assert!(used_by.contains("href=\"#cargo/native/app\""));
+        assert!(!used_by.contains("<span class=\"mute\">build</span>"), "a runtime use outranks a build use");
+
+        let helper = section(&html, "cargo/native/helper");
+        assert!(helper.contains("<span class=\"mute\">dev</span>"));
+        assert!(!lib.contains("<summary>"), "kinds with no names get no section");
+    }
+
+    #[test]
+    fn schema_two_catalogs_do_not_claim_other_kinds_are_empty() {
+        let text = r#"{"schema_version":2,"registry":"cargo","generation":"g","packages":[{"name":"a","source":"native","latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}],"dependencies":["b"]}]}"#;
+        let html = render_html(&crate::model::parse_catalog_json(text).unwrap());
+        let detail = section(&html, "cargo/native/a");
+        assert!(detail.contains("Peer, build and dev dependencies were not recorded"));
+        assert!(detail.contains("Not hosted here: <span class=\"pkg\">b</span>"));
+    }
+
+    #[test]
     fn scoped_npm_names_keep_a_working_fragment() {
         let catalog = npm_catalog(
             "gen1",
             vec![
-                NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: vec!["@scope/b".to_string()] },
-                NpmInput { name: "@scope/b".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() },
+                NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["@scope/b".to_string()]) },
+                NpmInput { name: "@scope/b".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
             ],
             &BTreeMap::new(),
         )
@@ -361,8 +444,8 @@ mod tests {
         let cargo = cargo_catalog("g", vec![cargo_input("shared", "1.0.0", &[])]).unwrap();
         let npm = npm_catalog(
             "g",
-            vec![NpmInput { name: "shared".to_string(), version: "1.0.0".to_string(), dependencies: Vec::new() },
-                 NpmInput { name: "user".to_string(), version: "1.0.0".to_string(), dependencies: vec!["shared".to_string()] }],
+            vec![NpmInput { name: "shared".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
+                 NpmInput { name: "user".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["shared".to_string()]) }],
             &BTreeMap::new(),
         )
         .unwrap();

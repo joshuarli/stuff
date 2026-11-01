@@ -387,7 +387,7 @@ pub fn catalog_for(generation: &str, items: &[IndexArtifact]) -> stuff_catalog::
             name: item.package_name.clone(),
             version: item.package_version.clone(),
             yanked: item.yanked_reason.is_some(),
-            dependencies: crate::wheel_metadata::requires_dist_names(&item.metadata),
+            dependencies: stuff_catalog::Dependencies::runtime_only(crate::wheel_metadata::requires_dist_names(&item.metadata)),
         })
         .collect();
     stuff_catalog::pypi_catalog(generation, inputs).expect("index artifacts form a valid catalog")
@@ -1020,7 +1020,7 @@ mod tests {
         let published = published_artifacts(&out).unwrap();
         assert_eq!(published.len(), 1);
         let catalog = std::fs::read_to_string(out.join("current").join("catalog.json")).unwrap();
-        assert!(catalog.contains("\"dependencies\": [\"other-pkg\"]"));
+        assert!(catalog.contains("\"dependencies\": {\"runtime\": [\"other-pkg\"], \"peer\": [], \"build\": [], \"dev\": []}"));
     }
 
     #[test]

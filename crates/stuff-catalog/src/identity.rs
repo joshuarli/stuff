@@ -36,7 +36,7 @@ pub fn stored_catalog_fingerprint(generation: &str, catalog_json: &str, html: &s
 mod tests {
     use super::*;
     use crate::llms::DEFAULT_CARGO_ORIGIN;
-    use crate::model::{CargoInput, CargoSource, cargo_catalog};
+    use crate::model::{CargoInput, CargoSource, Dependencies, cargo_catalog};
 
     fn catalog(version: &str) -> Catalog {
         cargo_catalog(
@@ -46,7 +46,7 @@ mod tests {
                 version: version.to_string(),
                 yanked: false,
                 source: CargoSource::Native,
-                dependencies: Vec::new(),
+                dependencies: Dependencies::default(),
             }],
         )
         .unwrap()

@@ -235,13 +235,18 @@ impl<'a> Publisher<'a> {
     }
 }
 
-fn normal_dependency_names(entry: &crate::model::IndexEntry) -> Vec<String> {
-    entry
-        .deps
-        .iter()
-        .filter(|dep| matches!(dep.kind.as_deref(), None | Some("normal")))
-        .map(|dep| dep.package.clone().unwrap_or_else(|| dep.name.clone()))
-        .collect()
+fn catalog_dependencies(entry: &crate::model::IndexEntry) -> stuff_catalog::Dependencies {
+    let mut dependencies = stuff_catalog::Dependencies::default();
+    for dep in &entry.deps {
+        let name = dep.package.clone().unwrap_or_else(|| dep.name.clone());
+        match dep.kind.as_deref() {
+            None | Some("normal") => dependencies.runtime.push(name),
+            Some("build") => dependencies.build.push(name),
+            Some("dev") => dependencies.dev.push(name),
+            Some(_) => {}
+        }
+    }
+    dependencies
 }
 
 fn catalog_inputs(
@@ -255,7 +260,7 @@ fn catalog_inputs(
             version: rec.vers.clone(),
             yanked: rec.yanked,
             source: stuff_catalog::CargoSource::Native,
-            dependencies: normal_dependency_names(&rec.entry),
+            dependencies: catalog_dependencies(&rec.entry),
         });
     }
     for rec in upstream {
@@ -265,7 +270,7 @@ fn catalog_inputs(
             version: rec.vers.clone(),
             yanked: entry.as_ref().is_some_and(|e| e.yanked),
             source: stuff_catalog::CargoSource::Upstream,
-            dependencies: entry.as_ref().map(normal_dependency_names).unwrap_or_default(),
+            dependencies: entry.as_ref().map(catalog_dependencies).unwrap_or_default(),
         });
     }
     out
@@ -276,7 +281,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn catalog_dependencies_are_normal_kind_under_their_real_crate_name() {
+    fn catalog_dependencies_keep_each_kind_under_the_real_crate_name() {
         let line = r#"{"name":"app","vers":"1.0.0","deps":[
             {"name":"serde","req":"^1","features":[],"optional":false,"default_features":true,"kind":"normal"},
             {"name":"json","req":"^1","features":[],"optional":true,"default_features":true,"package":"serde_json"},
@@ -284,6 +289,10 @@ mod tests {
             {"name":"cc","req":"^1","features":[],"optional":false,"default_features":true,"kind":"build"}
         ],"cksum":"00","features":{},"yanked":false}"#;
         let entry = crate::json::from_str::<crate::model::IndexEntry>(line).unwrap();
-        assert_eq!(normal_dependency_names(&entry), ["serde", "serde_json"]);
+        let dependencies = catalog_dependencies(&entry);
+        assert_eq!(dependencies.runtime, ["serde", "serde_json"]);
+        assert_eq!(dependencies.dev, ["tempfile"]);
+        assert_eq!(dependencies.build, ["cc"]);
+        assert!(dependencies.peer.is_empty());
     }
 }

@@ -120,14 +120,14 @@ pub fn diff_catalogs(before: &Catalog, after: &Catalog) -> Result<CatalogDiff, S
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{CargoInput, CargoSource, cargo_catalog};
+    use crate::model::{CargoInput, CargoSource, Dependencies, cargo_catalog};
 
     fn catalog_a() -> Catalog {
         cargo_catalog(
             "a",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
-                CargoInput { name: "gone".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() },
+                CargoInput { name: "gone".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() },
             ],
         )
         .unwrap()
@@ -137,9 +137,9 @@ mod tests {
         cargo_catalog(
             "b",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Vec::new() },
-                CargoInput { name: "foo".to_string(), version: "1.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
-                CargoInput { name: "new".to_string(), version: "0.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: true, source: CargoSource::Native, dependencies: Dependencies::default() },
+                CargoInput { name: "foo".to_string(), version: "1.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() },
+                CargoInput { name: "new".to_string(), version: "0.1.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() },
             ],
         )
         .unwrap()
@@ -159,14 +159,14 @@ mod tests {
     fn treats_same_name_from_different_sources_as_distinct() {
         let before = cargo_catalog(
             "a",
-            vec![CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() }],
+            vec![CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() }],
         )
         .unwrap();
         let after = cargo_catalog(
             "b",
             vec![
-                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Vec::new() },
-                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream, dependencies: Vec::new() },
+                CargoInput { name: "foo".to_string(), version: "1.0.0".to_string(), yanked: false, source: CargoSource::Native, dependencies: Dependencies::default() },
+                CargoInput { name: "foo".to_string(), version: "2.0.0".to_string(), yanked: false, source: CargoSource::Upstream, dependencies: Dependencies::default() },
             ],
         )
         .unwrap();
