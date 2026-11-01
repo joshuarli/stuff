@@ -162,7 +162,10 @@ pub fn plan_route(raw_target: &str) -> Result<RoutePlan, PathError> {
         [generations, generation, rest @ ..] if generations == "generations" => {
             (RouteScope::Generation(generation.clone()), rest.join("/"))
         }
-        _ => (RouteScope::Site, segments.join("/")),
+        [root, ..] if matches!(root.as_str(), "blobs" | "tarballs" | "wheels" | "manifests") => {
+            (RouteScope::Site, segments.join("/"))
+        }
+        _ => return Err(PathError::NotFound),
     };
     let shared_store_path = shared_store_path(&rel);
     let (rel_path, index_fallback) = if rel.is_empty() {
@@ -211,6 +214,9 @@ pub fn resolve_path(raw_target: &str) -> Result<ResolvedPath, PathError> {
     }
     if segments.is_empty() {
         return Err(PathError::Empty);
+    }
+    if segments.iter().any(|segment| segment.starts_with('.')) {
+        return Err(PathError::NotFound);
     }
     Ok(ResolvedPath { segments })
 }
@@ -294,6 +300,23 @@ mod tests {
             plan_route("/current/registry/config.json").unwrap().index_fallback.as_deref(),
             Some("registry/config.json/index.html")
         );
+    }
+
+    #[test]
+    fn serves_only_shared_store_roots_at_site_scope() {
+        for path in ["/blobs/abc.crate", "/tarballs/x.tgz", "/wheels/x.whl", "/manifests/g1.json"] {
+            assert_eq!(plan_route(path).unwrap().scope, RouteScope::Site, "{path}");
+        }
+        for path in [
+            "/foo/bar",
+            "/.staging.1/index.html",
+            "/.publish.lock",
+            "/current/.hidden",
+            "/generations/gen1/.current.tmp.1",
+            "/blobs/.hidden",
+        ] {
+            assert_eq!(plan_route(path).unwrap_err(), PathError::NotFound, "{path}");
+        }
     }
 
     #[test]

@@ -181,6 +181,15 @@ fn static_read_semantics() {
     let r = get(&server, "/current/%2e%2e/x", &[]);
     assert_eq!(r.status, 404);
 
+    fs::write(site_dir.join(".publish.lock"), b"").unwrap();
+    fs::create_dir_all(site_dir.join(".staging.1")).unwrap();
+    fs::write(site_dir.join(".staging.1/index.html"), b"in flight").unwrap();
+    for path in ["/.publish.lock", "/.staging.1/index.html", "/unknown/file"] {
+        let r = get(&server, path, &[]);
+        assert_eq!(r.status, 404, "{path}: {}", r.status);
+        assert_ne!(r.body, b"in flight", "{path}");
+    }
+
     let raw = "HEAD /current/registry/config.json HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n";
     let r = request(&server, raw);
     assert_eq!(r.status, 200);

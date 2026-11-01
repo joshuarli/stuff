@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-41 · P3 · stuff-server serves dot-prefixed staging and lock files with immutable caching
-
-- **Area:** Security
-- **Where:** `crates/stuff-http/src/route.rs:97`, `crates/stuff-http/src/route.rs:165`, `crates/stuff-server/src/serve.rs:36-43`
-- **Problem:** Any path outside `current/`, `simple/`, and `generations/` becomes `RouteScope::Site`, and `resolve_path` rejects only `.` and `..`. On the native server `/.staging.<pid>.<ns>.<n>/…` serves an unverified in-progress tree, and `/.publish.lock` and temp files are reachable. Every Site response is `public, max-age=31536000, immutable`, so a CDN can pin a transient file for a year. Traced by reading `plan_route`, `map_request`, and `respond`; not exercised.
-- **Recommendation:** Allow only the shared-store roots (`blobs/`, `tarballs/`, `wheels/`, `manifests/`) in Site scope and return 404 for other paths, including any dot-prefixed segment.
-- **Fix with:** security
-- **Effort:** S
-
 ### STUF-42 · P3 · stuff-server slots can be pinned by slow readers, and an accept error exits the server
 
 - **Area:** Concurrency
