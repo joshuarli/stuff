@@ -97,10 +97,10 @@ jobs:
         run: npm ci
         working-directory: crates/stuff-worker
       - name: build the actual worker bundle
-        run: npm run build:worker
+        run: npm exec -- cf build --mode production
         working-directory: crates/stuff-worker
       - name: exercise the worker runtime
         run: npm run test:runtime
         working-directory: crates/stuff-worker
       - name: check deploy protocol helpers
-        run: make test-r2
+        run: PATH="$PWD/crates/stuff-worker/node_modules/.bin:$PATH" make test-r2
