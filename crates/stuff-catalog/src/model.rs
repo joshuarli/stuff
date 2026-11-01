@@ -121,7 +121,8 @@ fn escape_json(s: &str) -> String {
 
 pub fn render_catalog_json(catalog: &Catalog) -> String {
     let mut out = String::from("{\n");
-    out.push_str(&format!("  \"schema_version\": {},\n", SCHEMA_VERSION));
+    out.push_str(&format!("  \"schema_version\": {},\n", catalog.schema_version));
+    let records_dependencies = catalog.schema_version >= 2;
     out.push_str(&format!("  \"registry\": {},\n", escape_json(catalog.registry.as_str())));
     out.push_str(&format!("  \"generation\": {},\n", escape_json(&catalog.generation)));
     out.push_str("  \"packages\": [");
@@ -139,8 +140,9 @@ pub fn render_catalog_json(catalog: &Catalog) -> String {
         }
         out.push_str(&format!("      \"latest\": {},\n", escape_json(&package.latest)));
         out.push_str("      \"versions\": [");
+        let versions_end = if records_dependencies { "," } else { "" };
         if package.versions.is_empty() {
-            out.push_str("],\n");
+            out.push_str(&format!("]{versions_end}\n"));
         } else {
             out.push('\n');
             for (j, v) in package.versions.iter().enumerate() {
@@ -154,12 +156,14 @@ pub fn render_catalog_json(catalog: &Catalog) -> String {
                 }
                 out.push('\n');
             }
-            out.push_str("      ],\n");
+            out.push_str(&format!("      ]{versions_end}\n"));
         }
-        out.push_str(&format!(
-            "      \"dependencies\": [{}]\n",
-            package.dependencies.iter().map(|d| escape_json(d)).collect::<Vec<_>>().join(", ")
-        ));
+        if records_dependencies {
+            out.push_str(&format!(
+                "      \"dependencies\": [{}]\n",
+                package.dependencies.iter().map(|d| escape_json(d)).collect::<Vec<_>>().join(", ")
+            ));
+        }
         out.push_str("    }");
         if i + 1 < catalog.packages.len() {
             out.push(',');
@@ -327,7 +331,7 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     }
     let mut sorted = packages;
     sorted.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
-    Ok(Catalog { schema_version: SCHEMA_VERSION, registry, generation: generation.to_string(), packages: sorted })
+    Ok(Catalog { schema_version: schema, registry, generation: generation.to_string(), packages: sorted })
 }
 
 #[derive(Default)]
@@ -731,7 +735,12 @@ mod tests {
     fn schema_one_catalogs_stay_readable_without_dependencies() {
         let text = r#"{"schema_version":1,"registry":"npm","generation":"g","packages":[{"name":"a","source":null,"latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}]}"#;
         let catalog = parse_catalog_json(text).unwrap();
+        assert_eq!(catalog.schema_version, 1);
         assert!(catalog.packages[0].dependencies.is_empty());
+        let rendered = render_catalog_json(&catalog);
+        assert!(rendered.contains("\"schema_version\": 1"));
+        assert!(!rendered.contains("dependencies"));
+        assert_eq!(parse_catalog_json(&rendered).unwrap(), catalog);
     }
 
     #[test]

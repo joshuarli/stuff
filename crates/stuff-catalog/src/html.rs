@@ -141,48 +141,54 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
                 escape_html(&package.latest)
             ));
 
-            out.push_str("<h2>Depends on</h2>\n");
-            if package.dependencies.is_empty() {
-                out.push_str(&format!(
-                    "<p class=\"mute\">No dependencies in {}.</p>\n",
-                    escape_html(&package.latest)
-                ));
+            if catalog.schema_version < 2 {
+                out.push_str("<p class=\"mute\">This generation was published before dependencies were recorded.</p>\n");
             } else {
-                out.push_str("<ul class=\"refs\">\n");
-                for name in &package.dependencies {
-                    match catalog.resolve_dependency(name) {
-                        Some(target) => out.push_str(&format!(
-                            "<li class=\"pkg\">{}</li>\n",
-                            package_link(catalog.registry, target)
-                        )),
-                        None => out.push_str(&format!(
-                            "<li class=\"pkg\">{}<span class=\"mute\">not hosted here</span></li>\n",
-                            escape_html(name)
-                        )),
-                    }
-                }
-                out.push_str("</ul>\n");
+                out.push_str(&dependency_lists(catalog, package, &id, &dependents));
             }
-
-            out.push_str("<h2>Used by</h2>\n");
-            match dependents.get(&id) {
-                None => out.push_str("<p class=\"mute\">No package here depends on it.</p>\n"),
-                Some(users) => {
-                    out.push_str("<ul class=\"refs\">\n");
-                    for user in users {
-                        out.push_str(&format!(
-                            "<li class=\"pkg\">{}</li>\n",
-                            package_link(catalog.registry, user)
-                        ));
-                    }
-                    out.push_str("</ul>\n");
-                }
-            }
-
             out.push_str(&format!(
                 "<h2>Versions</h2>\n<p class=\"vers\">{}</p>\n</section>\n",
                 versions_markup(package)
             ));
+        }
+    }
+    out
+}
+
+fn dependency_lists(
+    catalog: &Catalog,
+    package: &Package,
+    id: &str,
+    dependents: &BTreeMap<String, Vec<&Package>>,
+) -> String {
+    let mut out = String::from("<h2>Depends on</h2>\n");
+    if package.dependencies.is_empty() {
+        out.push_str(&format!("<p class=\"mute\">No dependencies in {}.</p>\n", escape_html(&package.latest)));
+    } else {
+        out.push_str("<ul class=\"refs\">\n");
+        for name in &package.dependencies {
+            match catalog.resolve_dependency(name) {
+                Some(target) => {
+                    out.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, target)))
+                }
+                None => out.push_str(&format!(
+                    "<li class=\"pkg\">{}<span class=\"mute\">not hosted here</span></li>\n",
+                    escape_html(name)
+                )),
+            }
+        }
+        out.push_str("</ul>\n");
+    }
+
+    out.push_str("<h2>Used by</h2>\n");
+    match dependents.get(id) {
+        None => out.push_str("<p class=\"mute\">No package here depends on it.</p>\n"),
+        Some(users) => {
+            out.push_str("<ul class=\"refs\">\n");
+            for user in users {
+                out.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, user)));
+            }
+            out.push_str("</ul>\n");
         }
     }
     out
@@ -363,6 +369,17 @@ mod tests {
         let html = render_unified(&[cargo, npm]);
         assert!(section(&html, "cargo/native/shared").contains("No package here depends on it."));
         assert!(section(&html, "npm/shared").contains("href=\"#npm/user\""));
+    }
+
+    #[test]
+    fn schema_one_catalogs_do_not_claim_empty_dependencies() {
+        let text = r#"{"schema_version":1,"registry":"cargo","generation":"g","packages":[{"name":"a","source":"native","latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}]}"#;
+        let catalog = crate::model::parse_catalog_json(text).unwrap();
+        let html = render_html(&catalog);
+        let detail = section(&html, "cargo/native/a");
+        assert!(detail.contains("published before dependencies were recorded"));
+        assert!(!detail.contains("No dependencies"));
+        assert!(!detail.contains("Used by"));
     }
 
     #[test]
