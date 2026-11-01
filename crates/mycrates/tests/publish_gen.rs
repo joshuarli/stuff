@@ -239,16 +239,14 @@ fn damaged_generation_requires_explicit_repair() {
     assert!(!res2.is_noop, "removed generation must be regenerated");
     assert!(index_file.exists());
 
-    // 2. Replace a served blob: republish must fail, not serve the bad copy.
+    // 2. Replace a served blob: the site copy is hard-linked to the state
+    // blob, and publish no longer re-hashes a matching destination. `verify`
+    // owns full content checks.
     let blob_path = site.join("blobs").join(format!("{}.crate", sha));
     assert!(blob_path.exists());
     fs::write(&blob_path, b"replaced-by-attacker").unwrap();
-    let err = publ.publish().unwrap_err();
-    let msg = format!("{err}");
-    assert!(
-        msg.contains("served blob mismatch") || msg.contains("tampered blob"),
-        "unexpected error: {msg}"
-    );
+    assert!(store.verify().is_err());
+    assert!(publ.publish().unwrap().is_noop);
 
     // 3. Dangling current link: republish must repair to a valid generation.
     let current = site.join("current");

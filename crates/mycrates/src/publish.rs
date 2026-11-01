@@ -58,8 +58,6 @@ impl<'a> Publisher<'a> {
     }
 
     fn generation_matches(&self, gen_dir: &Path, expected_manifest: &BTreeMap<(String, String), String>) -> Result<bool> {
-        // Blob existence needs no check here: publish syncs every blob from
-        // the store before staging, so a missing blob errors out first.
         for ((view, rel), sha) in expected_manifest {
             let p = if view.is_empty() {
                 gen_dir.join(rel)

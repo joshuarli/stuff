@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-40 · P3 · Each publish re-hashes the whole artifact store
-
-- **Area:** Performance
-- **Where:** `crates/mycrates/src/publish.rs:93-98`, `crates/stuff-store/src/blob.rs:12-37`, `crates/mynpm/src/publish.rs:340-349`, `crates/mynpm/src/publish.rs:525`, `crates/mynpm/src/publish.rs:736`, `crates/mynpm/src/acquire.rs:927-935`
-- **Problem:** mycrates calls `sync_blob` for every record before the no-op check, and `sync_immutable_file` hashes both the state and site copy (the same inode when hard-linked), under the exclusive store lock that `serve-publish` requests wait on. mynpm hashes every tarball at least twice per publish and loads each whole file into memory to do it. The cost grows with total corpus bytes: one SHA-256 pass over the live 181 MB, 1095-crate mycrates store takes about 0.5 s, so this is a scaling tax, not a current outage.
-- **Recommendation:** Skip re-hashing when the destination is the same inode or already present with the expected size, stream mynpm hashes, and leave full verification to `verify` and `adopt`.
-- **Fix with:** make-it-fast
-- **Effort:** M
-
 ### STUF-41 · P3 · stuff-server serves dot-prefixed staging and lock files with immutable caching
 
 - **Area:** Security

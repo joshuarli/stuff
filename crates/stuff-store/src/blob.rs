@@ -3,6 +3,7 @@ use crate::fsync::sync_dir;
 use crate::hash::{stream_file_hash, HashAlg};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -10,12 +11,44 @@ use std::time::{SystemTime, UNIX_EPOCH};
 static BLOB_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 pub fn sync_immutable_file(src: &Path, dst: &Path, expected_hex: &str, alg: HashAlg) -> Result<()> {
-    if !src.exists() {
+    let src_meta = fs::symlink_metadata(src).map_err(|_| {
+        Error::Integrity(format!("missing blob {}", src.display()))
+    })?;
+    if !src_meta.is_file() || src_meta.file_type().is_symlink() {
         return Err(Error::Integrity(format!(
-            "missing blob {}",
+            "managed path is not a regular file: {}",
             src.display()
         )));
     }
+
+    match fs::symlink_metadata(dst) {
+        Ok(dst_meta) => {
+            if !dst_meta.is_file() || dst_meta.file_type().is_symlink() {
+                return Err(Error::Integrity(format!(
+                    "served blob mismatch for {expected_hex}: destination is not a regular file ({})",
+                    dst.display()
+                )));
+            }
+            if (dst_meta.dev(), dst_meta.ino()) == (src_meta.dev(), src_meta.ino()) {
+                return Ok(());
+            }
+            if dst_meta.len() == src_meta.len() {
+                return Ok(());
+            }
+            return Err(Error::Integrity(format!(
+                "served blob mismatch for {expected_hex}: destination is stale or replaced ({})",
+                dst.display()
+            )));
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            return Err(Error::Operation(format!(
+                "could not inspect served blob {}: {e}",
+                dst.display()
+            )));
+        }
+    }
+
     let actual = stream_file_hash(src, alg)?;
     if actual != expected_hex {
         return Err(Error::Integrity(format!(
@@ -23,17 +56,6 @@ pub fn sync_immutable_file(src: &Path, dst: &Path, expected_hex: &str, alg: Hash
             src.display(),
             expected_hex,
             actual
-        )));
-    }
-
-    if dst.exists() {
-        let dst_hash = stream_file_hash(dst, alg)?;
-        if dst_hash == expected_hex {
-            return Ok(());
-        }
-        return Err(Error::Integrity(format!(
-            "served blob mismatch for {expected_hex}: destination is stale or replaced ({})",
-            dst.display()
         )));
     }
     if let Some(parent) = dst.parent() {
@@ -160,5 +182,31 @@ mod tests {
         let dst = dir.path().join("out/a.tgz");
         sync_immutable_file(&src, &dst, &hex, HashAlg::Sha512).unwrap();
         assert_eq!(hex.len(), 128);
+    }
+
+    #[test]
+    fn accepts_a_same_size_destination_without_rehashing() {
+        let dir = tempdir().unwrap();
+        let (src, hex) = fixture(dir.path(), "a.bin", b"payload", HashAlg::Sha256);
+        let dst = dir.path().join("out/a.bin");
+        fs::create_dir_all(dst.parent().unwrap()).unwrap();
+        fs::write(&dst, b"sevens!").unwrap();
+        sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap();
+        assert_eq!(fs::read(&dst).unwrap(), b"sevens!");
+    }
+
+    #[test]
+    fn a_hard_linked_destination_is_not_rehashed() {
+        let dir = tempdir().unwrap();
+        let (src, hex) = fixture(dir.path(), "a.bin", b"payload", HashAlg::Sha256);
+        let dst = dir.path().join("out/a.bin");
+        sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap();
+        File::options()
+            .write(true)
+            .open(&dst)
+            .unwrap()
+            .write_all(b"changed")
+            .unwrap();
+        sync_immutable_file(&src, &dst, &hex, HashAlg::Sha256).unwrap();
     }
 }

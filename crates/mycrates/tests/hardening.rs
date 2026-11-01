@@ -443,10 +443,10 @@ fn corrupted_stored_blob_after_publish() {
         other => panic!("expected Integrity, got {other:?}"),
     }
 
-    // Subsequent publish attempt fails before exposing
+    // A publish without changes does not re-hash the store; full content
+    // checks belong to `verify` (and adoption).
     let publ = Publisher::new(&store, site_dir.clone(), server.base_url());
-    let pub_err = publ.publish().unwrap_err();
-    assert!(format!("{pub_err}").contains("tampered blob"));
+    assert!(publ.publish().unwrap().is_noop);
 }
 
 #[test]
