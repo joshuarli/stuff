@@ -1,10 +1,11 @@
 import { bindings, defineConfig, exports } from "cf/config";
+import * as entrypoint from "./src/entry.ts" with { type: "cf-worker" };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
 	worker: {
 		name: "stuff",
 		compatibilityDate: "2026-10-30",
-		entrypoint: "src/entry.ts",
+		entrypoint,
 		cache: {
 			enabled: true,
 		},
@@ -39,12 +40,18 @@ export default defineConfig({
 				name: "stuff-mypypi",
 			}),
 		},
-		exports: {
-			default: exports.worker({
-				cache: {
-					enabled: false,
-				},
-			}),
-		},
+		// The Vite plugin treats an exports.default entrypoint as a named export
+		// and emits `export const default`, so omit it while developing.
+		...(mode === "development"
+			? {}
+			: {
+					exports: {
+						default: exports.worker({
+							cache: {
+								enabled: false,
+							},
+						}),
+					},
+				}),
 	},
-});
+}));

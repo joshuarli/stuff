@@ -26,7 +26,7 @@ WORKER_DIR ?= crates/stuff-worker
 SEARCH_DIR ?= crates/stuff-catalog
 
 search-bundle: ## Rebuild the inline search script from web/ (needs npm ci in crates/stuff-worker)
-	$(WORKER_DIR)/node_modules/.bin/esbuild $(SEARCH_DIR)/web/entry.ts --bundle --minify --format=iife --target=es2022 --outfile=$(SEARCH_DIR)/assets/search.js
+	cd $(WORKER_DIR) && node_modules/.bin/vite build --config vite.search.config.ts
 
 test-search: ## Run the package search tests
 	node --test $(SEARCH_DIR)/web/search.test.ts

@@ -177,6 +177,7 @@ validate without credentials:
 ```sh
 cd crates/stuff-worker
 npm run build
+npm run dev
 cf deploy --prebuilt --dry-run
 ```
 
@@ -186,8 +187,10 @@ namespace import does not resolve to the wasm exports), emits `src/entry.ts`
 with `tsrs`, and writes the Cloudflare Build Output Specification under
 `.cloudflare/output/v0`. Keep the installed `wasm-bindgen` CLI at the version
 pinned in `Cargo.lock`. `npm run typecheck` checks the TypeScript without
-emitting. Nothing invokes Wrangler: `cf deploy --prebuilt` uploads the spec
-produced by `npm run build`.
+emitting; `npm run dev` starts the Vite dev server through `cf dev` (Vite 8
+builds with Rolldown, so esbuild is not in the dependency tree). Nothing
+invokes Wrangler: `cf deploy --prebuilt` uploads the spec produced by
+`npm run build`.
 
 Real deploys are manual: `make deploy` builds the Worker bundle once, tests
 it, deploys the same bundle with `cf deploy --prebuilt`, republishes the three

@@ -12,8 +12,13 @@ tsrs -p tsconfig.json --fast # type-check and emit src/entry.ts into the bundle
 ```
 
 `npm run build:wasm` runs only the first wasm step. `npm run typecheck` checks
-the TypeScript without emitting. `cf deploy --prebuilt` uploads the spec
-as-is; it does not rebuild anything.
+the TypeScript without emitting. `npm run dev` starts the Vite dev server that
+`cf dev` discovers through `@cloudflare/vite-plugin`. `cf deploy --prebuilt`
+uploads the spec as-is; it does not rebuild anything.
+
+Vite 8 builds with Rolldown, so the worker toolchain does not install esbuild.
+The repository's `make search-bundle` target uses the same Vite to rebuild
+`crates/stuff-catalog/assets/search.js`.
 
 The wasm step runs:
 
