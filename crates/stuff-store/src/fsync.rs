@@ -78,18 +78,11 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn durable_write_survives_listing() {
-        let dir = tempdir().unwrap();
-        let p = dir.path().join("sub/file.txt");
-        write_file_durable(&p, b"hello").unwrap();
-        assert_eq!(fs::read(&p).unwrap(), b"hello");
-    }
-
-    #[test]
-    fn sync_tree_covers_nested_parents() {
+    fn durable_write_creates_nested_parents_and_the_tree_syncs() {
         let dir = tempdir().unwrap();
         let p = dir.path().join("a/b/file.txt");
-        write_file_durable(&p, b"x").unwrap();
+        write_file_durable(&p, b"hello").unwrap();
+        assert_eq!(fs::read(&p).unwrap(), b"hello");
         sync_tree(dir.path()).unwrap();
     }
 }

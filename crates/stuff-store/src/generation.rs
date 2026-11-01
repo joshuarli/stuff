@@ -15,22 +15,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn accepts_generation_ids() {
-        for id in ["gen1", "g", "demo-v1", "a_b-c9"] {
+    fn generation_ids_are_bounded_path_safe_names() {
+        let max = "a".repeat(MAX_GENERATION_ID_LEN);
+        for id in ["gen1", "g", "demo-v1", "a_b-c9", max.as_str()] {
             assert_eq!(parse_generation_id(id), Some(id));
         }
-    }
-
-    #[test]
-    fn rejects_unsafe_generation_ids() {
-        for id in ["", ".", "..", "gen/1", "gen.1", "gen 1", "gén", &"a".repeat(129)] {
+        for id in ["", ".", "..", "gen/1", "gen.1", "gen 1", "gén", &"a".repeat(MAX_GENERATION_ID_LEN + 1)] {
             assert_eq!(parse_generation_id(id), None, "{id:?}");
         }
-    }
-
-    #[test]
-    fn accepts_max_length_id() {
-        let id = "a".repeat(MAX_GENERATION_ID_LEN);
-        assert_eq!(parse_generation_id(&id), Some(id.as_str()));
     }
 }

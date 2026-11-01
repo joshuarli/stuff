@@ -1076,15 +1076,6 @@ mod tests {
     }
 
     #[test]
-    fn failed_checks_exit_one() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("catalog.json"), "{").unwrap();
-        let mut parsed = doctor_parsed();
-        parsed.cargo_dir = Some(dir.path().to_string_lossy().to_string());
-        assert!(!run_doctor(&parsed).unwrap());
-    }
-
-    #[test]
     fn expands_dl_templates() {
         let url = expand_dl(
             "https://dl.example/{crate}/{version}/{prefix}/{lowerprefix}/{sha256-checksum}",

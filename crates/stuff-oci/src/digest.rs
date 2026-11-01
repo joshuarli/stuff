@@ -54,7 +54,7 @@ mod tests {
     use crate::error::ErrorCode;
 
     #[test]
-    fn parses_only_sha256() {
+    fn parses_only_lowercase_sha256_and_hashes_bytes() {
         let text = "sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4";
         let digest = Digest::parse(text).unwrap();
         assert_eq!(digest.as_str(), text);
@@ -62,10 +62,6 @@ mod tests {
         assert_eq!(Digest::parse("sha512:00").unwrap_err().code, ErrorCode::DigestInvalid);
         assert!(Digest::parse("sha256:00").is_err());
         assert!(Digest::parse("sha256:576055FC159808EBB0B91A55303A512F5730A93E036977F652E59ADC769DEBF4").is_err());
-    }
-
-    #[test]
-    fn hashes_bytes() {
         assert_eq!(
             Digest::from_bytes(b"{}").as_str(),
             "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"

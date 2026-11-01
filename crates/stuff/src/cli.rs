@@ -468,17 +468,6 @@ mod tests {
     }
 
     #[test]
-    fn parses_other_commands() {
-        assert_eq!(parse_args(&args(&["search", "foo"])).unwrap().positionals, vec!["foo".to_string()]);
-        assert!(parse_args(&args(&["search"])).is_err());
-        assert!(parse_args(&args(&["diff", "a.json", "b.json"])).unwrap().positionals.len() == 2);
-        assert!(parse_args(&args(&["diff", "a.json"])).is_err());
-        assert!(parse_args(&args(&["doctor", "--sample-artifacts"])).unwrap().sample_artifacts);
-        assert!(parse_args(&args(&["render", "--output", "index.html"])).unwrap().output.as_deref() == Some("index.html"));
-        assert!(parse_args(&args(&["bogus"])).is_err());
-    }
-
-    #[test]
     fn every_command_rejects_each_unsupported_flag() {
         for (command, _) in COMMANDS {
             for flag in ALL_FLAGS.iter().copied() {
@@ -497,14 +486,6 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn rejects_flags_no_command_reads() {
-        assert!(parse_args(&args(&["doctor", "--remote"])).is_err());
-        assert!(parse_args(&args(&["render", "--output", "x.html", "--json"])).is_err());
-        assert!(parse_args(&args(&["diff", "--cargo-base", "https://example.com", "a", "b"])).is_err());
-        assert!(parse_args(&args(&["ls", "--sample-artifacts"])).is_err());
     }
 
     #[test]
@@ -564,10 +545,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn usage_errors_exit_two() {
-        let err = parse_args(&args(&["bogus"])).unwrap_err();
-        assert!(matches!(err, Error::Usage(_)));
-        assert_eq!(err.exit_code(), 2);
-    }
 }

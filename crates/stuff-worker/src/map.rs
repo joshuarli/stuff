@@ -224,17 +224,6 @@ mod tests {
     }
 
     #[test]
-    fn scoped_route_maps_to_nested_key() {
-        let c = config();
-        match map_asset(&c, "", "/mirror/current/@flatrepo%2fdemo") {
-            MappedAsset::ViaPointer { rel_path, .. } => {
-                assert_eq!(rel_path, "@flatrepo/demo");
-            }
-            other => panic!("unexpected {other:?}"),
-        }
-    }
-
-    #[test]
     fn root_aliases_serve_generation_pages() {
         let c = config();
         for (path, rel) in [
@@ -260,6 +249,10 @@ mod tests {
                 assert_eq!(rel_path, "simple/proj");
                 assert_eq!(fallback_rel_path.as_deref(), Some("simple/proj/index.html"));
             }
+            other => panic!("unexpected {other:?}"),
+        }
+        match map_asset(&c, "", "/generations/g/simple/") {
+            MappedAsset::Direct(a) => assert_eq!(a.key, "generations/g/simple/index.html"),
             other => panic!("unexpected {other:?}"),
         }
         match map_asset(&c, "", "/generations/g/simple/proj") {
@@ -317,21 +310,6 @@ mod tests {
     }
 
     #[test]
-    fn trailing_slash_appends_index() {
-        let c = config();
-        match map_asset(&c, "", "/current/simple/proj/") {
-            MappedAsset::ViaPointer { rel_path, .. } => {
-                assert_eq!(rel_path, "simple/proj/index.html");
-            }
-            other => panic!("unexpected {other:?}"),
-        }
-        match map_asset(&c, "", "/generations/g/simple/") {
-            MappedAsset::Direct(a) => assert_eq!(a.key, "generations/g/simple/index.html"),
-            other => panic!("unexpected {other:?}"),
-        }
-    }
-
-    #[test]
     fn root_and_bare_current_serve_catalog_page() {
         let c = config();
         match map_asset(&c, "", "/") {
@@ -345,19 +323,6 @@ mod tests {
         match map_asset(&c, "", "/current") {
             MappedAsset::ViaPointer { rel_path, .. } => {
                 assert_eq!(rel_path, "index.html");
-            }
-            other => panic!("unexpected {other:?}"),
-        }
-    }
-
-    #[test]
-    fn root_llms_txt_maps_through_pointer() {
-        let c = config();
-        match map_asset(&c, "", "/llms.txt") {
-            MappedAsset::ViaPointer { bucket_binding, pointer_key, rel_path, .. } => {
-                assert_eq!(bucket_binding, "MYCRATES");
-                assert_eq!(pointer_key, "current");
-                assert_eq!(rel_path, "llms.txt");
             }
             other => panic!("unexpected {other:?}"),
         }

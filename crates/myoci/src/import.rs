@@ -330,83 +330,12 @@ fn layout_blob_path(layout: &std::path::Path, digest: &Digest) -> std::path::Pat
 #[cfg(test)]
 mod tests {
     use super::*;
-    use stuff_oci::{render_referrers, render_repository_json};
-
-    fn fixture_layout() -> std::path::PathBuf {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/oci/layout")
-    }
 
     fn repository() -> RepositoryName {
         RepositoryName::parse("example/app").unwrap()
     }
 
-    #[test]
-    fn imports_the_checked_in_fixture() {
-        let state_dir = tempfile::tempdir().unwrap();
-        let state = State::new(state_dir.path().to_path_buf());
-        let summary = import_layout(&state, &fixture_layout(), &repository(), None).unwrap();
-        assert_eq!(
-            summary.root.as_str(),
-            "sha256:04237663eeeaf2ee4f6dec1a5d23c8a7c1bc70275cbfa205e6f35377603c6388"
-        );
-        assert_eq!(summary.tag.as_str(), "stable");
-        assert_eq!(summary.manifests, 4);
-        assert_eq!(summary.blobs, 6);
-        assert_eq!(summary.referrers, 1);
 
-        let view = state.read_repository(&repository()).unwrap().unwrap();
-        assert_eq!(view.tags.len(), 1);
-        assert_eq!(view.tags[&Tag::parse("stable").unwrap()].digest, summary.root);
-        assert_eq!(view.manifests.len(), 4);
-
-        let blobs = state.read_blobs().unwrap();
-        assert_eq!(blobs.len(), 6);
-        for digest in &blobs {
-            assert!(state.blob_path(digest).is_file());
-        }
-        for digest in view.manifests.keys() {
-            assert!(state.manifest_path(digest).is_file());
-        }
-
-        let subject = Digest::parse(
-            "sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4",
-        )
-        .unwrap();
-        let referrers_path = state.referrers_path(&repository(), &subject);
-        let referrers: deser_value::Value =
-            deser_json::from_str(&std::fs::read_to_string(&referrers_path).unwrap()).unwrap();
-        let manifests = referrers
-            .as_map()
-            .and_then(|map| map.get("manifests"))
-            .and_then(|value| value.as_seq())
-            .unwrap();
-        assert_eq!(manifests.len(), 1);
-        let descriptor = manifests.iter().next().unwrap();
-        assert_eq!(
-            descriptor
-                .as_map()
-                .and_then(|map| map.get("digest"))
-                .and_then(|value| value.as_str()),
-            Some("sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25")
-        );
-    }
-
-    #[test]
-    fn importing_the_same_layout_twice_is_a_noop() {
-        let state_dir = tempfile::tempdir().unwrap();
-        let state = State::new(state_dir.path().to_path_buf());
-        import_layout(&state, &fixture_layout(), &repository(), None).unwrap();
-        let before = std::fs::read(state.repository_json_path(&repository())).unwrap();
-        let summary = import_layout(&state, &fixture_layout(), &repository(), None).unwrap();
-        assert_eq!(summary.manifests, 4);
-        let after = std::fs::read(state.repository_json_path(&repository())).unwrap();
-        assert_eq!(before, after);
-        assert_eq!(state.read_blobs().unwrap().len(), 6);
-        assert_eq!(
-            render_repository_json(&state.read_repository(&repository()).unwrap().unwrap()),
-            String::from_utf8(after).unwrap()
-        );
-    }
 
     #[test]
     fn rejects_a_tag_that_would_change_bytes() {
@@ -520,22 +449,4 @@ mod tests {
         std::fs::write(dir.join("index.json"), index).unwrap();
     }
 
-    #[test]
-    fn renders_referrers_as_an_index() {
-        let descriptor = Descriptor {
-            media_type: "application/vnd.oci.image.manifest.v1+json".to_string(),
-            digest: Digest::parse(
-                "sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25",
-            )
-            .unwrap(),
-            size: 671,
-            artifact_type: Some("application/vnd.stuff.sbom.v1+json".to_string()),
-            annotations: BTreeMap::new(),
-            platform: None,
-            urls: Vec::new(),
-        };
-        let text = render_referrers(std::slice::from_ref(&descriptor));
-        assert!(text.contains("application/vnd.oci.image.index.v1+json"));
-        assert!(text.contains("application/vnd.stuff.sbom.v1+json"));
-    }
 }

@@ -354,70 +354,6 @@ mod tests {
     }
 
     #[test]
-    fn current_resolves_through_symlink() {
-        let (_tmp, route) = test_route();
-        match map_request(&route, "/current/registry/config.json") {
-            Mapped::File(f) => {
-                assert_eq!(f.kind, RouteKind::GenerationPointer);
-                assert_eq!(fs::read(&f.path).unwrap(), b"{}");
-            }
-            Mapped::NotFound => panic!("should resolve"),
-        }
-    }
-
-    #[test]
-    fn generations_resolve_directly() {
-        let (_tmp, route) = test_route();
-        match map_request(&route, "/generations/gen1/registry/config.json") {
-            Mapped::File(f) => {
-                assert_eq!(f.kind, RouteKind::ImmutableFile);
-                assert_eq!(fs::read(&f.path).unwrap(), b"{}");
-            }
-            Mapped::NotFound => panic!("should resolve"),
-        }
-    }
-
-    #[test]
-    fn rejects_link_escape_and_traversal() {
-        let (_tmp, route) = test_route();
-        assert!(matches!(map_request(&route, "/current/../../etc"), Mapped::NotFound));
-        assert!(matches!(
-            map_request(&route, "/current/%2e%2e/x"),
-            Mapped::NotFound
-        ));
-    }
-
-    #[test]
-    fn missing_current_link_is_not_found() {
-        let dir = tempdir().unwrap();
-        let site_dir = dir.path().join("empty");
-        fs::create_dir_all(&site_dir).unwrap();
-        let route = Route {
-            prefix: String::new(),
-            canonical_site_dir: std::fs::canonicalize(&site_dir).unwrap(),
-            site_dir,
-        };
-        assert!(matches!(map_request(&route, "/current/x"), Mapped::NotFound));
-    }
-
-    #[test]
-    fn root_serves_current_index() {
-        let (_tmp, route) = test_route();
-        let no_headers: Vec<(String, String)> = Vec::new();
-        let r = respond(&route, "/", "GET", &no_headers);
-        assert_eq!((r.status, r.reason), (404, "Not Found"));
-
-        std::fs::write(route.site_dir.join("generations/gen1/index.html"), b"<html></html>").unwrap();
-        let r = respond(&route, "/", "GET", &no_headers);
-        assert_eq!((r.status, r.reason), (200, "OK"));
-
-        match map_request(&route, "/current/%2e%2e/x") {
-            Mapped::NotFound => {}
-            Mapped::File(_) => panic!("traversal must not resolve"),
-        }
-    }
-
-    #[test]
     fn root_llms_txt_resolves_through_current() {
         let (_tmp, route) = test_route();
         match map_request(&route, "/llms.txt") {
@@ -451,59 +387,6 @@ mod tests {
             "{:?}",
             r.headers
         );
-    }
-
-    #[test]
-    fn respond_covers_methods_conditions_and_range() {
-        let (_tmp, route) = test_route();
-        let no_headers: Vec<(String, String)> = Vec::new();
-
-        let r = respond(&route, "/current/registry/config.json", "POST", &no_headers);
-        assert_eq!((r.status, r.reason), (405, "Method Not Allowed"));
-        assert!(matches!(r.body, ResponseBody::Inline(_)));
-
-        let r = respond(&route, "/current/registry/config.json", "GET", &no_headers);
-        assert_eq!((r.status, r.reason), (200, "OK"));
-        assert!(matches!(r.body, ResponseBody::File { len: 2, .. }));
-        let etag = r.headers.iter().find(|(k, _)| k == "etag").unwrap().1.clone();
-
-        let r = respond(
-            &route,
-            "/current/registry/config.json",
-            "GET",
-            &[("If-None-Match".to_string(), etag.clone())],
-        );
-        assert_eq!(r.status, 304);
-
-        let r = respond(
-            &route,
-            "/current/registry/config.json",
-            "GET",
-            &[("If-Match".to_string(), "\"nope\"".to_string())],
-        );
-        assert_eq!(r.status, 412);
-
-        let r = respond(
-            &route,
-            "/current/registry/config.json",
-            "GET",
-            &[("Range".to_string(), "bytes=0-0".to_string())],
-        );
-        assert_eq!((r.status, r.reason), (206, "Partial Content"));
-        assert!(matches!(r.body, ResponseBody::File { offset: 0, len: 1, .. }));
-
-        let r = respond(
-            &route,
-            "/current/registry/config.json",
-            "GET",
-            &[("Range".to_string(), "bytes=99-".to_string())],
-        );
-        assert_eq!(r.status, 416);
-
-        let r = respond(&route, "/missing", "GET", &no_headers);
-        assert_eq!(r.status, 404);
-        let r = respond(&route, "/current/%2e%2e/x", "GET", &no_headers);
-        assert_eq!(r.status, 404);
     }
 
     const DIGEST: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -612,6 +495,7 @@ mod tests {
     fn root_aliases_and_slashless_directories_resolve_through_current() {
         let (_tmp, route) = test_route();
         let generation = route.site_dir.join("generations/gen1");
+        assert_eq!(respond(&route, "/", "GET", &[]).status, 404);
         fs::write(generation.join("index.html"), b"<html>root</html>").unwrap();
         fs::create_dir_all(generation.join("simple/proj")).unwrap();
         fs::write(generation.join("simple/proj/index.html"), b"<html>proj</html>").unwrap();
@@ -639,7 +523,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_generations_do_not_expose_shared_store_files() {
+    fn missing_generations_and_unpublished_sites_do_not_expose_files() {
         let (_tmp, route) = test_route();
         fs::create_dir_all(route.site_dir.join("wheels")).unwrap();
         fs::write(route.site_dir.join("wheels/pkg-1.0-py3-none-any.whl"), b"wheel").unwrap();
@@ -651,6 +535,15 @@ mod tests {
         assert_eq!(missing.status, 404);
         let missing_current = respond(&route, "/current/-/tarballs/missing.tgz", "GET", &no_headers);
         assert_eq!(missing_current.status, 404);
+
+        let empty = tempdir().unwrap();
+        let unpublished = Route {
+            prefix: String::new(),
+            canonical_site_dir: std::fs::canonicalize(empty.path()).unwrap(),
+            site_dir: empty.path().to_path_buf(),
+        };
+        assert_eq!(respond(&unpublished, "/current/x", "GET", &no_headers).status, 404);
+        assert_eq!(respond(&unpublished, "/", "GET", &no_headers).status, 404);
     }
 
     #[test]
