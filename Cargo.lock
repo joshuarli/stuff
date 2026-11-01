@@ -794,6 +794,7 @@ version = "0.1.0"
 dependencies = [
  "deser-json",
  "deser-value",
+ "stuff-catalog",
  "stuff-oci",
  "stuff-store",
  "tempfile",

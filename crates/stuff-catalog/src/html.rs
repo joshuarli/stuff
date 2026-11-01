@@ -66,6 +66,7 @@ fn registry_label(registry: Registry) -> &'static str {
         Registry::Cargo => "Cargo",
         Registry::Npm => "npm",
         Registry::Pypi => "PyPI",
+        Registry::Oci => "OCI",
     }
 }
 
@@ -177,7 +178,9 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
                 escape_html(&source),
                 escape_html(&package.latest)
             ));
-            if catalog.schema_version < 2 {
+            if catalog.registry == Registry::Oci {
+                out.push_str("<p class=\"mute\">Tags resolve to OCI manifests through the registry API.</p>\n");
+            } else if catalog.schema_version < 2 {
                 out.push_str("<p class=\"mute\">This generation was published before dependencies were recorded.</p>\n");
             } else {
                 out.push_str(&dependency_sections(catalog, package, dependents.get(&id)));
@@ -307,7 +310,7 @@ pub fn render_unified(catalogs: &[Catalog]) -> String {
 
 pub fn render_unified_with_notices(catalogs: &[Catalog], notices: &[String]) -> String {
     let mut out = String::from("<header>stuff</header>\n<main>\n<div class=\"index\">\n");
-    out.push_str("<h1>Cargo, npm and PyPI packages, served as static files.</h1>\n");
+    out.push_str("<h1>Cargo, npm, PyPI and OCI packages, served as static files.</h1>\n");
     out.push_str("<p class=\"lede\">Each publish creates a new generation. The current one is live.</p>\n");
     for notice in notices {
         out.push_str(&format!("<p class=\"notice\" role=\"status\">{}</p>\n", escape_html(notice)));

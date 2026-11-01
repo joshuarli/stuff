@@ -5,6 +5,7 @@ use crate::model::{Catalog, Registry};
 pub const DEFAULT_CARGO_ORIGIN: &str = "https://crates.17166969.xyz";
 pub const DEFAULT_NPM_ORIGIN: &str = "https://npm.17166969.xyz";
 pub const DEFAULT_PYPI_ORIGIN: &str = "https://pypi.17166969.xyz";
+pub const DEFAULT_OCI_ORIGIN: &str = "https://oci.17166969.xyz";
 pub const DEFAULT_UNIFIED_ORIGIN: &str = "https://stuff.17166969.xyz";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,7 @@ impl CatalogOrigins {
             Registry::Cargo => &self.cargo,
             Registry::Npm => &self.npm,
             Registry::Pypi => &self.pypi,
+            Registry::Oci => DEFAULT_OCI_ORIGIN,
         }
     }
 }
@@ -59,6 +61,7 @@ fn registry_title(registry: Registry) -> &'static str {
         Registry::Cargo => "Cargo registry",
         Registry::Npm => "npm registry",
         Registry::Pypi => "PyPI registry",
+        Registry::Oci => "OCI registry",
     }
 }
 
@@ -106,6 +109,19 @@ fn use_section(registry: Registry, generation: &str, origin: &str) -> String {
             Wheels live at `current/wheels/<filename>` (content-addressed by sha256). \
             Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
             Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+        ),
+        Registry::Oci => format!(
+            "Point an OCI client at the registry root:\n\
+            \n\
+            ```\n\
+            docker pull {host}/<repository>:<tag>\n\
+            ```\n\
+            \n\
+            Manifests resolve at `current/repositories/<repository>/repository.json` through `/v2/<repository>/manifests/<tag|digest>`; \
+            blobs are content-addressed by `sha256/<hex>`. \
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
+            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`.",
+            host = origin.trim_end_matches('/').trim_start_matches("https://").trim_start_matches("http://"),
         ),
     }
 }
@@ -196,7 +212,7 @@ pub fn render_unified_llms_txt_with_notices(catalogs: &[Catalog], origins: &Cata
     sorted.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
     let mut out = String::new();
     out.push_str("# stuff registries\n");
-    out.push_str("> Aggregate Cargo + npm + PyPI snapshot for LLMs. ");
+    out.push_str("> Aggregate Cargo + npm + PyPI + OCI snapshot for LLMs. ");
     out.push_str(&total_packages.to_string());
     out.push_str(if total_packages == 1 { " package, " } else { " packages, " });
     out.push_str(&total_versions.to_string());
@@ -228,15 +244,16 @@ pub fn render_unified_llms_txt_with_notices(catalogs: &[Catalog], origins: &Cata
     }
     out.push_str("\n## Use\n\n");
     out.push_str("Per-registry `llms.txt` files live at the registry roots (`/llms.txt`, pinned under `current/llms.txt` and `generations/<id>/llms.txt`):\n\n");
-    for registry in [Registry::Cargo, Registry::Npm, Registry::Pypi] {
+    for catalog in &sorted {
         out.push_str("- ");
-        out.push_str(match registry {
+        out.push_str(match catalog.registry {
             Registry::Cargo => "Cargo",
             Registry::Npm => "npm",
             Registry::Pypi => "PyPI",
+            Registry::Oci => "OCI",
         });
         out.push_str(": ");
-        out.push_str(origins.for_registry(registry).trim_end_matches('/'));
+        out.push_str(origins.for_registry(catalog.registry).trim_end_matches('/'));
         out.push_str("/llms.txt\n");
     }
     for catalog in &sorted {
@@ -398,7 +415,7 @@ mod tests {
         assert!(text.contains("Cargo registry (https://cargo.example.test)"));
         assert!(text.contains("- Cargo: https://cargo.example.test/llms.txt"));
         assert!(text.contains("- npm: https://npm.example.test/llms.txt"));
-        assert!(text.contains("- PyPI: https://pypi.example.test/llms.txt"));
+        assert!(!text.contains("- PyPI:"));
         assert!(!text.contains("17166969.xyz"));
     }
 

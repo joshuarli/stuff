@@ -3,7 +3,7 @@
 use crate::version::{compare_npm_version, compare_semver, is_stable_semver, parse_pep440};
 use std::collections::BTreeMap;
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 const OLDEST_READABLE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -11,6 +11,7 @@ pub enum Registry {
     Cargo,
     Npm,
     Pypi,
+    Oci,
 }
 
 impl Registry {
@@ -19,6 +20,7 @@ impl Registry {
             Registry::Cargo => "cargo",
             Registry::Npm => "npm",
             Registry::Pypi => "pypi",
+            Registry::Oci => "oci",
         }
     }
 
@@ -27,6 +29,7 @@ impl Registry {
             "cargo" => Some(Registry::Cargo),
             "npm" => Some(Registry::Npm),
             "pypi" => Some(Registry::Pypi),
+            "oci" => Some(Registry::Oci),
             _ => None,
         }
     }
@@ -388,6 +391,9 @@ fn parse_package(v: &deser_value::Value, registry: Registry, schema: u32) -> Res
     } else {
         Dependencies::default()
     };
+    if registry == Registry::Oci && !dependencies.is_empty() {
+        return Err(format!("oci package {name} must not carry dependencies"));
+    }
     Ok(Package { name: name.to_string(), source, latest: latest.to_string(), versions, dependencies })
 }
 
@@ -566,6 +572,52 @@ pub fn npm_catalog(
     }
     packages.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Npm, generation: generation.to_string(), packages })
+}
+
+#[derive(Debug, Clone)]
+pub struct OciInput {
+    pub name: String,
+    pub tags: Vec<String>,
+}
+
+pub fn oci_catalog(generation: &str, inputs: Vec<OciInput>) -> Result<Catalog, String> {
+    if generation.is_empty() {
+        return Err("generation must not be empty".to_string());
+    }
+    let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for input in inputs {
+        if input.name.is_empty() {
+            return Err("oci repository name must not be empty".to_string());
+        }
+        let slot = grouped.entry(input.name).or_default();
+        slot.extend(input.tags);
+    }
+    let mut packages = Vec::with_capacity(grouped.len());
+    for (name, mut tags) in grouped {
+        if tags.iter().any(|tag| tag.is_empty()) {
+            return Err(format!("oci repository {name} has an empty tag"));
+        }
+        tags.sort();
+        tags.dedup();
+        if tags.is_empty() {
+            continue;
+        }
+        let latest = if tags.iter().any(|tag| tag == "latest") {
+            "latest".to_string()
+        } else {
+            tags.last().cloned().expect("tags is not empty")
+        };
+        let versions = tags.into_iter().map(|version| VersionEntry { version, yanked: false }).collect();
+        packages.push(Package {
+            name,
+            source: None,
+            latest,
+            versions,
+            dependencies: Dependencies::default(),
+        });
+    }
+    packages.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(Catalog { schema_version: SCHEMA_VERSION, registry: Registry::Oci, generation: generation.to_string(), packages })
 }
 
 #[derive(Debug, Clone)]
@@ -766,6 +818,48 @@ mod tests {
         )
         .unwrap();
         assert!(!catalog.packages[0].versions[0].yanked);
+    }
+
+    #[test]
+    fn oci_catalogs_use_tags_as_versions() {
+        let catalog = oci_catalog(
+            "g",
+            vec![
+                OciInput {
+                    name: "example/app".to_string(),
+                    tags: vec!["stable".to_string(), "beta".to_string(), "beta".to_string()],
+                },
+                OciInput { name: "example/empty".to_string(), tags: vec![] },
+                OciInput {
+                    name: "example/tagged".to_string(),
+                    tags: vec!["latest".to_string(), "latest".to_string()],
+                },
+            ],
+        )
+        .unwrap();
+        assert_eq!(catalog.schema_version, 4);
+        assert_eq!(catalog.registry, Registry::Oci);
+        assert_eq!(catalog.packages.len(), 2);
+        assert_eq!(catalog.packages[0].name, "example/app");
+        assert_eq!(catalog.packages[0].latest, "stable");
+        assert_eq!(
+            catalog.packages[0].versions.iter().map(|v| v.version.as_str()).collect::<Vec<_>>(),
+            ["beta", "stable"]
+        );
+        assert!(catalog.packages[0].dependencies.is_empty());
+        assert_eq!(catalog.packages[1].name, "example/tagged");
+        assert_eq!(catalog.packages[1].latest, "latest");
+        let rendered = render_catalog_json(&catalog);
+        assert!(rendered.contains("\"schema_version\": 4"));
+        assert!(rendered.contains("\"registry\": \"oci\""));
+        assert_eq!(parse_catalog_json(&rendered).unwrap(), catalog);
+    }
+
+    #[test]
+    fn oci_catalogs_reject_dependencies_and_empty_tags() {
+        let text = r#"{"schema_version":4,"registry":"oci","generation":"g","packages":[{"name":"a","source":null,"latest":"1","versions":[{"version":"1","yanked":false}],"dependencies":{"runtime":["b"],"peer":[],"build":[],"dev":[]}}]}"#;
+        assert!(parse_catalog_json(text).unwrap_err().contains("must not carry dependencies"));
+        assert!(oci_catalog("g", vec![OciInput { name: "a".to_string(), tags: vec![String::new()] }]).is_err());
     }
 
     #[test]

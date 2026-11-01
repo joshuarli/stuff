@@ -72,23 +72,7 @@ pub fn import_layout(
         state.store_manifest(digest, bytes)?;
     }
 
-    let mut referrers = BTreeMap::new();
-    for (digest, (descriptor, bytes)) in &walk.manifests {
-        let image = parse_image(bytes).map_err(|error| Error::Integrity(error.to_string()))?;
-        if let Some(subject) = image.subject() {
-            if subject.digest == *digest {
-                return Err(Error::Integrity("manifest cannot be its own subject".to_string()));
-            }
-            referrers
-                .entry(subject.digest.clone())
-                .or_insert_with(Vec::new)
-                .push(descriptor.clone());
-        }
-    }
-    for (subject, descriptors) in &referrers {
-        let sorted = stuff_oci::filter_referrers(descriptors, None);
-        state.write_referrers(repository, subject, &sorted)?;
-    }
+    let referrers = state.rebuild_referrers(&view)?;
 
     let mut blobs = state.read_blobs()?;
     blobs.extend(walk.blobs.iter().cloned());
@@ -100,7 +84,7 @@ pub fn import_layout(
         tag: root_tag,
         manifests: walk.manifests.len(),
         blobs: walk.blobs.len(),
-        referrers: referrers.values().map(Vec::len).sum(),
+        referrers,
     })
 }
 

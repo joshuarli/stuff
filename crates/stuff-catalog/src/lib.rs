@@ -15,8 +15,8 @@ pub use llms::{
     DEFAULT_NPM_ORIGIN, DEFAULT_PYPI_ORIGIN, DEFAULT_UNIFIED_ORIGIN,
 };
 pub use model::{
-    canonical_project_name, cargo_catalog, npm_catalog, parse_catalog_json, pypi_catalog,
-    render_catalog_json, CargoInput, CargoSource, Catalog, Dependencies, DependencyKind, NpmInput, Package, PypiInput, Registry,
-    VersionEntry,
+    canonical_project_name, cargo_catalog, npm_catalog, oci_catalog, parse_catalog_json, pypi_catalog,
+    render_catalog_json, CargoInput, CargoSource, Catalog, Dependencies, DependencyKind, NpmInput, OciInput, Package, PypiInput,
+    Registry, VersionEntry,
 };
 pub use version::{compare_npm_version, compare_semver, is_stable_semver, parse_pep440};

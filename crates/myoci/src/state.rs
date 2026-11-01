@@ -100,7 +100,43 @@ impl State {
     }
 
     pub fn store_blob(&self, source: &Path, digest: &Digest) -> Result<()> {
-        stuff_store::sync_immutable_file(source, &self.blob_path(digest), digest.hex(), stuff_store::HashAlg::Sha256)?;
+        let destination = self.blob_path(digest);
+        if destination.exists() {
+            let hash = stuff_store::stream_file_hash(&destination, stuff_store::HashAlg::Sha256)?;
+            if hash != digest.hex() {
+                return Err(Error::Integrity(format!(
+                    "blob {digest} is immutable and hashes to sha256:{hash}"
+                )));
+            }
+            return Ok(());
+        }
+        let metadata = std::fs::symlink_metadata(source)
+            .map_err(|_| Error::Integrity(format!("blob {digest} is missing from {}", source.display())))?;
+        if !metadata.file_type().is_file() {
+            return Err(Error::Integrity(format!("blob {digest} must be a regular file")));
+        }
+        let hash = stuff_store::stream_file_hash(source, stuff_store::HashAlg::Sha256)?;
+        if hash != digest.hex() {
+            return Err(Error::Integrity(format!(
+                "blob {digest} hashes to sha256:{hash} at {}",
+                source.display()
+            )));
+        }
+        std::fs::create_dir_all(self.blobs_dir())?;
+        let temporary = stuff_store::tmp_sibling(&destination)?;
+        std::fs::copy(source, &temporary)?;
+        let file = std::fs::File::open(&temporary)?;
+        file.sync_all()?;
+        drop(file);
+        let copied = stuff_store::stream_file_hash(&temporary, stuff_store::HashAlg::Sha256)?;
+        if copied != digest.hex() {
+            let _ = std::fs::remove_file(&temporary);
+            return Err(Error::Integrity(format!(
+                "copied blob {digest} hashes to sha256:{copied}"
+            )));
+        }
+        std::fs::rename(&temporary, &destination)?;
+        stuff_store::sync_dir(&self.blobs_dir())?;
         Ok(())
     }
 
@@ -177,6 +213,74 @@ impl State {
         collect_repository_files(self, &self.repositories_dir(), &mut out)?;
         out.sort_by(|(a, _), (b, _)| a.as_str().cmp(b.as_str()));
         Ok(out)
+    }
+
+    pub fn set_tag(&self, repository: &RepositoryName, tag: stuff_oci::Tag, digest: &Digest) -> Result<()> {
+        let mut view = self
+            .read_repository(repository)?
+            .ok_or_else(|| Error::Input(format!("repository {} is not in state", repository.as_str())))?;
+        let descriptor = view
+            .manifests
+            .get(digest)
+            .cloned()
+            .ok_or_else(|| Error::Integrity(format!("manifest {digest} is not in the repository view")))?;
+        view.tag(tag, descriptor);
+        self.write_repository(&view)
+    }
+
+    pub fn remove_tag(&self, repository: &RepositoryName, tag: &stuff_oci::Tag) -> Result<bool> {
+        let mut view = self
+            .read_repository(repository)?
+            .ok_or_else(|| Error::Input(format!("repository {} is not in state", repository.as_str())))?;
+        let removed = view.remove_tag(tag).is_some();
+        if removed {
+            self.write_repository(&view)?;
+        }
+        Ok(removed)
+    }
+
+    pub fn rebuild_referrers(&self, view: &stuff_oci::RepositoryView) -> Result<usize> {
+        let mut referrers: std::collections::BTreeMap<Digest, Vec<Descriptor>> = std::collections::BTreeMap::new();
+        for digest in view.manifests.keys() {
+            let bytes = self.read_manifest(digest)?;
+            let image = stuff_oci::parse_image(&bytes)
+                .map_err(|error| Error::Integrity(format!("manifest {digest}: {error}")))?;
+            if let Some(subject) = image.subject() {
+                referrers
+                    .entry(subject.digest.clone())
+                    .or_default()
+                    .push(view.manifests[digest].clone());
+            }
+        }
+        for (subject, descriptors) in &referrers {
+            let sorted = stuff_oci::filter_referrers(descriptors, None);
+            self.write_referrers(&view.name, subject, &sorted)?;
+        }
+        Ok(referrers.values().map(Vec::len).sum())
+    }
+
+    pub fn referrer_subjects(&self, repository: &RepositoryName) -> Result<Vec<Digest>> {
+        let dir = self.referrers_dir(repository);
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) => {
+                return Err(Error::Operation(format!("could not read {}: {error}", dir.display())));
+            }
+        };
+        let mut subjects = Vec::new();
+        for entry in entries {
+            let entry = entry
+                .map_err(|e| Error::Operation(format!("could not read {}: {e}", dir.display())))?;
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else { continue };
+            let Some(hex) = name.strip_suffix(".json") else { continue };
+            let digest = Digest::parse(&format!("sha256:{hex}"))
+                .map_err(|error| Error::Integrity(format!("referrer file {name}: {error}")))?;
+            subjects.push(digest);
+        }
+        subjects.sort();
+        Ok(subjects)
     }
 }
 
