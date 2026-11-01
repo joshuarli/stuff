@@ -5,6 +5,7 @@ pub mod error;
 pub mod import;
 pub mod inspect;
 pub mod publish;
+pub mod serve;
 pub mod state;
 pub mod verify;
 

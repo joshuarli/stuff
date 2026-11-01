@@ -19,6 +19,7 @@ path = "src/main.rs"
 [dependencies]
 deser-json = "0.10"
 deser-value = "0.10"
+httparse = "1"
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-oci = { version = "0.1.0", path = "../stuff-oci" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }

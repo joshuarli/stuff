@@ -19,6 +19,7 @@ pub enum Command {
     Adopt,
     Tag,
     Untag,
+    Serve,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,6 +33,8 @@ pub struct Parsed {
     pub digest: Option<String>,
     pub site_dir: Option<String>,
     pub public_url: Option<String>,
+    pub bind: Option<String>,
+    pub max_connections: Option<usize>,
     pub json: bool,
 }
 
@@ -48,6 +51,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         "adopt" => Command::Adopt,
         "tag" => Command::Tag,
         "untag" => Command::Untag,
+        "serve" => Command::Serve,
         other => return Err(Error::Usage(format!("unknown command {other}"))),
     };
     let mut parsed = Parsed {
@@ -60,6 +64,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         digest: None,
         site_dir: None,
         public_url: None,
+        bind: None,
+        max_connections: None,
         json: false,
     };
     let mut i = 1;
@@ -73,16 +79,25 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             "--digest" => parsed.digest = Some(take(argv, &mut i, "--digest")?),
             "--site-dir" => parsed.site_dir = Some(take(argv, &mut i, "--site-dir")?),
             "--public-url" => parsed.public_url = Some(take(argv, &mut i, "--public-url")?),
+            "--bind" => parsed.bind = Some(take(argv, &mut i, "--bind")?),
+            "--max-connections" => {
+                let value = take(argv, &mut i, "--max-connections")?;
+                parsed.max_connections = Some(
+                    value
+                        .parse::<usize>()
+                        .map_err(|_| Error::Usage("--max-connections must be an integer".to_string()))?,
+                );
+            }
             "--json" => parsed.json = true,
             other => return Err(Error::Usage(format!("unknown option {other}"))),
         }
         i += 1;
     }
-    if parsed.state_dir.is_empty() {
+    if !matches!(command, Command::Serve) && parsed.state_dir.is_empty() {
         return Err(Error::Usage("--state-dir is required".to_string()));
     }
     let allows = |allowed: &[&str]| -> Result<()> {
-        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--json", parsed.json)];
+        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--json", parsed.json)];
         for (flag, present) in set {
             if present && !allowed.contains(&flag) {
                 return Err(Error::Usage(format!("{flag} is not valid for this command")));
@@ -131,6 +146,12 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 if value.is_none() {
                     return Err(Error::Usage(format!("untag requires {flag}")));
                 }
+            }
+        }
+        Command::Serve => {
+            allows(&["--site-dir", "--bind", "--max-connections"])?;
+            if parsed.site_dir.is_none() {
+                return Err(Error::Usage("serve requires --site-dir".to_string()));
             }
         }
     }
@@ -234,6 +255,16 @@ pub fn run(argv: &[String]) -> Result<()> {
             }
             println!("removed {}:{}", repository.as_str(), tag.as_str());
         }
+        Command::Serve => {
+            let site_dir = parsed.site_dir.as_deref().expect("validated");
+            crate::serve::run(crate::serve::ServeOptions {
+                site_dir: PathBuf::from(site_dir),
+                bind: parsed.bind.clone().unwrap_or_else(|| "127.0.0.1:0".to_string()),
+                max_connections: parsed
+                    .max_connections
+                    .unwrap_or(crate::serve::DEFAULT_MAX_CONNECTIONS),
+            })?;
+        }
     }
     Ok(())
 }
@@ -268,6 +299,7 @@ pub fn print_help() {
          \x20 adopt --site-dir DIR         rebuild state from a published generation\n\
          \x20 tag --repository NAME --tag TAG --digest DIGEST\n\
          \x20 untag --repository NAME --tag TAG\n\
+         \x20 serve --site-dir DIR        serve the read API ([--bind ADDR] [--max-connections N])\n\
          \n\
          import options:\n\
          \x20 --repository NAME            destination repository (required)\n\
