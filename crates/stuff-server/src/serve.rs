@@ -167,13 +167,17 @@ pub struct FileResponse {
 
 impl FileResponse {
     fn text(status: u16, reason: &'static str, message: &str) -> Self {
+        let mut headers = vec![
+            ("content-type".to_string(), "text/plain".to_string()),
+            ("content-length".to_string(), message.len().to_string()),
+        ];
+        if status == 404 {
+            headers.push(("cache-control".to_string(), "public, max-age=60".to_string()));
+        }
         Self {
             status,
             reason,
-            headers: vec![
-                ("content-type".to_string(), "text/plain".to_string()),
-                ("content-length".to_string(), message.len().to_string()),
-            ],
+            headers,
             body: ResponseBody::Inline(message.as_bytes().to_vec()),
         }
     }

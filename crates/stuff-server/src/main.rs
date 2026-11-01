@@ -55,9 +55,14 @@ fn timed_out(error: &std::io::Error) -> bool {
 }
 
 fn send_text(stream: &mut TcpStream, status: u16, reason: &str, body: &'static [u8]) {
+    let cache = if status == 404 {
+        "Cache-Control: public, max-age=60\r\n"
+    } else {
+        ""
+    };
     let _ = stream.write_all(
         format!(
-            "HTTP/1.1 {status} {reason}\r\nConnection: close\r\nContent-Length: {}\r\nContent-Type: text/plain\r\n\r\n",
+            "HTTP/1.1 {status} {reason}\r\nConnection: close\r\nContent-Length: {}\r\nContent-Type: text/plain\r\n{cache}\r\n",
             body.len()
         )
         .as_bytes(),

@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-43 · P3 · Worker range requests read R2 twice and query strings bypass the cache
-
-- **Area:** Performance
-- **Where:** `crates/stuff-worker/src/entry.ts:116`, `crates/stuff-worker/src/entry.ts:229-287`, `crates/stuff-worker/src/entry.ts:317`, `crates/stuff-worker/src/entry.ts:333`
-- **Problem:** Every lookup is a full `store.get(key)`; a ranged response then issues a second `store.get(key, {range})` and drops the first body, and pip fetches wheel metadata with Range. A pointer route that misses costs up to three R2 reads. 404s carry no `cache-control`, and both cache keys include the query string, so `?x=<random>` reaches R2 on every request. Read from the code; edge behavior for 404 and range caching is unmeasured.
-- **Recommendation:** Pass the range on the first `get` (or `head` first), drop the query string from cache keys, and give 404s a short `cache-control`.
-- **Fix with:** make-it-fast
-- **Effort:** S
-
 ### STUF-44 · P3 · mynpm leaves npm and pnpm children running and workspaces behind
 
 - **Area:** Concurrency

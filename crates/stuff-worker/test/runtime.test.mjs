@@ -173,6 +173,22 @@ test("pinned generation artifacts use the shared store aliases", async (t) => {
   assert.equal(missingGeneration.status, 404);
 });
 
+test("a ranged artifact request returns only the requested bytes", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seed(mf);
+  const response = await mf.dispatchFetch(
+    "https://pypi.test/generations/g1/wheels/wheelpkg-1.0-py3-none-any.whl",
+    { headers: { range: "bytes=0-4" } },
+  );
+  assert.equal(response.status, 206);
+  assert.equal(response.headers.get("content-range"), "bytes 0-4/11");
+  assert.equal(await response.text(), "wheel");
+  const missing = await mf.dispatchFetch("https://pypi.test/nope");
+  assert.equal(missing.status, 404);
+  assert.match(missing.headers.get("cache-control") ?? "", /max-age=60/);
+});
+
 test("a pinned project page's relative wheel link resolves", async (t) => {
   const mf = worker();
   t.after(() => mf.dispose());
