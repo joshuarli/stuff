@@ -1,7 +1,8 @@
 #![forbid(unsafe_code)]
 
 use crate::error::Error;
-use crate::source::{fetch_bytes, LocalSite, DEFAULT_CARGO_BASE, DEFAULT_NPM_BASE, DEFAULT_PYPI_BASE};
+use crate::source::{fetch_bytes, LocalSite};
+use stuff_catalog::{DEFAULT_CARGO_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_PYPI_ORIGIN};
 
 pub struct RegistrySources {
     pub cargo_base: String,
@@ -19,17 +20,17 @@ impl RegistrySources {
                 .cargo_base
                 .clone()
                 .or_else(|| std::env::var("STUFF_CARGO_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_CARGO_BASE.to_string()),
+                .unwrap_or_else(|| DEFAULT_CARGO_ORIGIN.to_string()),
             npm_base: parsed
                 .npm_base
                 .clone()
                 .or_else(|| std::env::var("STUFF_NPM_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_NPM_BASE.to_string()),
+                .unwrap_or_else(|| DEFAULT_NPM_ORIGIN.to_string()),
             pypi_base: parsed
                 .pypi_base
                 .clone()
                 .or_else(|| std::env::var("STUFF_PYPI_BASE").ok())
-                .unwrap_or_else(|| DEFAULT_PYPI_BASE.to_string()),
+                .unwrap_or_else(|| DEFAULT_PYPI_ORIGIN.to_string()),
             cargo_local: resolve_local(parsed.cargo_dir.as_deref())?,
             npm_local: resolve_local(parsed.npm_dir.as_deref())?,
             pypi_local: resolve_local(parsed.pypi_dir.as_deref())?,
@@ -809,7 +810,7 @@ mod tests {
         std::fs::write(gen_dir.join("catalog.json"), stuff_catalog::render_catalog_json(&catalog)).unwrap();
         std::fs::write(
             gen_dir.join("llms.txt"),
-            stuff_catalog::render_llms_txt(&catalog, DEFAULT_CARGO_BASE),
+            stuff_catalog::render_llms_txt(&catalog, DEFAULT_CARGO_ORIGIN),
         )
         .unwrap();
         (catalog, site, gen_dir)

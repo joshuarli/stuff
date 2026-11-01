@@ -497,7 +497,7 @@ fn handle_connection(mut stream: std::net::TcpStream, mirror_dir: &Path, request
 }
 
 fn check_client_version(client: &Manager, target: &Target, cwd: &str, env: &HashMap<String, String>) -> Result<String> {
-    let expected = if *client == Manager::Npm { crate::resolve::NPM_VERSION } else { crate::resolve::PNPM_VERSION };
+    let expected = client.pinned_version();
     let node_out = run_process(
         "node",
         &["--version".to_string()],
@@ -715,7 +715,7 @@ fn assert_snapshot_matches_project(project: &ProjectRecord, target: &Target) -> 
             project.id
         )));
     }
-    let expected_pin = format!("{}@{}", project.manager().as_str(), if project.manager() == Manager::Npm { crate::resolve::NPM_VERSION } else { crate::resolve::PNPM_VERSION });
+    let expected_pin = format!("{}@{}", project.manager().as_str(), project.manager().pinned_version());
     if let Some(ref commit_pin) = project.package_manager_pin {
         let base = commit_pin.split('+').next().unwrap_or("");
         if base != expected_pin {

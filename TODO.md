@@ -10,15 +10,6 @@ Next: 50
 - **Fix with:** security
 - **Effort:** S
 
-### STUF-47 · P4 · Tool and origin pins live in several places
-
-- **Area:** Config
-- **Where:** `crates/mynpm/src/resolve.rs:13-14`, `crates/mynpm/src/resolve.rs:203`, `crates/mynpm/src/resolve.rs:316`, `crates/mynpm/src/resolve.rs:335`, `crates/mynpm/src/validate.rs:469`, `crates/mynpm/src/validate.rs:687`, `deploy/mypypi-linux.Dockerfile:4`, `crates/mycrates/rust-toolchain.toml`, `crates/stuff/src/source.rs:10-12`, `crates/stuff-catalog/src/llms.rs:5`
-- **Problem:** Five call sites repeat the npm-or-pnpm version choice. uv is 0.13.2 in the Linux build container and 0.13.5 elsewhere, and no code checks it, so Linux wheels build under a different resolver than macOS. `crates/mycrates/rust-toolchain.toml` duplicates the workspace pin. The CLI and `stuff-catalog` each define the three default origins, though the CLI depends on `stuff-catalog`.
-- **Recommendation:** Add `Manager::pinned_version()`, bump the Dockerfile uv to match, delete the mycrates toolchain copy, and have the CLI use the catalog constants.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### STUF-48 · P4 · Dead code and no-op statements across the registries
 
 - **Area:** Dead code

@@ -37,6 +37,13 @@ impl Manager {
             Manager::Pnpm => "pnpm",
         }
     }
+
+    pub fn pinned_version(&self) -> &'static str {
+        match self {
+            Manager::Npm => "12.2.1",
+            Manager::Pnpm => "12.15.0",
+        }
+    }
 }
 
 impl std::fmt::Display for Manager {
