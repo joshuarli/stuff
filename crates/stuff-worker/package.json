@@ -4,7 +4,6 @@
   "type": "module",
   "scripts": {
     "build:wasm": "cargo build --target wasm32-unknown-unknown --release -p stuff-worker && wasm-bindgen --target web --out-dir build/wasm ../../target/wasm32-unknown-unknown/release/stuff_worker.wasm",
-    "build:worker": "wrangler deploy --dry-run --outdir build/worker",
     "test:runtime": "node --test test/runtime.test.mjs"
   },
   "devDependencies": {

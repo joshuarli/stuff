@@ -60,7 +60,12 @@ async function seed(mf, { pypiCatalog } = {}) {
 function worker() {
   return new Miniflare({
     modules: true,
-    scriptPath: fileURLToPath(new URL("../build/worker/entry.js", import.meta.url)),
+    scriptPath: fileURLToPath(
+      new URL(
+        "../.cloudflare/output/v0/workers/default/bundle/entry.js",
+        import.meta.url,
+      ),
+    ),
     compatibilityDate: "2025-07-18",
     modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
     r2Buckets: ["MYCRATES", "MYNPM", "PYPI"],

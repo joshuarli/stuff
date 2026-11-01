@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -37,18 +37,20 @@ worker-build: ## Compile the worker wasm glue into crates/stuff-worker/build
 worker-check: ## Validate the worker build and deploy plan without credentials
 	cd $(WORKER_DIR) && cf deploy --dry-run
 
-worker-test: ## Build the worker bundle and exercise it under the workerd runtime
-	cd $(WORKER_DIR) && npm run build:worker && npm run test:runtime
+worker-bundle: ## Build the Cloudflare worker bundle once for test and deploy
+	cd $(WORKER_DIR) && cf build --mode production
 
-worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
-	cd $(WORKER_DIR) && cf deploy
+worker-test: worker-bundle ## Exercise the worker bundle under the workerd runtime
+	cd $(WORKER_DIR) && npm run test:runtime
+
+worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
+	cd $(WORKER_DIR) && cf deploy --prebuilt --mode production
 
 DEPLOY_JOBS ?= 3
 
 deploy: ## Test and deploy the worker, republish all three registries, then check the live site
 	cf auth whoami
-	$(MAKE) worker-test
-	$(MAKE) worker-deploy
+	$(MAKE) worker-test worker-deploy
 	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
 	$(MAKE) smoke-deployed
 
