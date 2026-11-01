@@ -5,16 +5,31 @@ use sha2::{Digest, Sha256};
 
 pub const FINGERPRINT_GENERATION: &str = "fingerprint";
 
+fn fingerprint_of(catalog_json: &str, html: &str, llms_txt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(catalog_json.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(html.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(llms_txt.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
 pub fn catalog_fingerprint(catalog: &Catalog, origin: &str) -> String {
     let mut copy = catalog.clone();
     copy.generation = FINGERPRINT_GENERATION.to_string();
-    let mut hasher = Sha256::new();
-    hasher.update(render_catalog_json(&copy).as_bytes());
-    hasher.update(b"\0");
-    hasher.update(render_html(&copy).as_bytes());
-    hasher.update(b"\0");
-    hasher.update(render_llms_txt(&copy, origin).as_bytes());
-    format!("{:x}", hasher.finalize())
+    fingerprint_of(
+        &render_catalog_json(&copy),
+        &render_html(&copy),
+        &render_llms_txt(&copy, origin),
+    )
+}
+
+/// The fingerprint a generation was sealed with, rebuilt from the catalog
+/// files stored in it, so it stays checkable after the renderer changes.
+pub fn stored_catalog_fingerprint(generation: &str, catalog_json: &str, html: &str, llms_txt: &str) -> String {
+    let unbind = |text: &str| text.replace(generation, FINGERPRINT_GENERATION);
+    fingerprint_of(&unbind(catalog_json), &unbind(html), &unbind(llms_txt))
 }
 
 #[cfg(test)]
@@ -35,6 +50,18 @@ mod tests {
             }],
         )
         .unwrap()
+    }
+
+    #[test]
+    fn stored_files_reproduce_the_sealed_fingerprint() {
+        let catalog = catalog("1.0.0");
+        let stored = stored_catalog_fingerprint(
+            &catalog.generation,
+            &render_catalog_json(&catalog),
+            &render_html(&catalog),
+            &render_llms_txt(&catalog, DEFAULT_CARGO_ORIGIN),
+        );
+        assert_eq!(stored, catalog_fingerprint(&catalog, DEFAULT_CARGO_ORIGIN));
     }
 
     #[test]

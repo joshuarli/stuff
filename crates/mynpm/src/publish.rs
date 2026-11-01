@@ -29,12 +29,19 @@ fn is_hex64(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
+#[derive(Clone, Copy)]
+enum CatalogSeal<'a> {
+    Unsealed,
+    Current,
+    Stored(&'a str),
+}
+
 fn generation_payload(
     public_base_url: &str,
     artifacts: &[ArtifactRecord],
     packuments: &[PackumentFile],
     renderer: u32,
-    sealed_catalog: bool,
+    catalog_seal: CatalogSeal<'_>,
 ) -> Result<deser_value::Value> {
     let mut artifact_entries = Vec::new();
     for record in artifacts {
@@ -78,24 +85,28 @@ fn generation_payload(
         "publicationLayout".to_string(),
         deser_value::Value::from("current-dash-tarballs-v1".to_string()),
     );
-    if sealed_catalog {
-        let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
-            .map_err(Error::Operation)?;
-        let origin = if renderer >= 7 {
-            public_base_url
-        } else {
-            stuff_catalog::DEFAULT_NPM_ORIGIN
-        };
-        payload.insert(
-            "catalogFingerprint".to_string(),
-            deser_value::Value::from(stuff_catalog::catalog_fingerprint(&catalog, origin)),
-        );
+    let fingerprint = match catalog_seal {
+        CatalogSeal::Unsealed => None,
+        CatalogSeal::Stored(fingerprint) => Some(fingerprint.to_string()),
+        CatalogSeal::Current => {
+            let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, artifacts, packuments)
+                .map_err(Error::Operation)?;
+            let origin = if renderer >= 7 {
+                public_base_url
+            } else {
+                stuff_catalog::DEFAULT_NPM_ORIGIN
+            };
+            Some(stuff_catalog::catalog_fingerprint(&catalog, origin))
+        }
+    };
+    if let Some(fingerprint) = fingerprint {
+        payload.insert("catalogFingerprint".to_string(), deser_value::Value::from(fingerprint));
     }
     Ok(deser_value::Value::from(payload))
 }
 
 pub fn generation_id_for(public_base_url: &str, artifacts: &[ArtifactRecord], packuments: &[PackumentFile]) -> Result<String> {
-    generation_id_for_renderer(public_base_url, artifacts, packuments, RENDERER_VERSION, true)
+    generation_id_for_renderer(public_base_url, artifacts, packuments, RENDERER_VERSION, CatalogSeal::Current)
 }
 
 fn generation_id_for_renderer(
@@ -103,9 +114,9 @@ fn generation_id_for_renderer(
     artifacts: &[ArtifactRecord],
     packuments: &[PackumentFile],
     renderer: u32,
-    sealed_catalog: bool,
+    catalog_seal: CatalogSeal<'_>,
 ) -> Result<String> {
-    let payload = generation_payload(public_base_url, artifacts, packuments, renderer, sealed_catalog)?;
+    let payload = generation_payload(public_base_url, artifacts, packuments, renderer, catalog_seal)?;
     let text = canonical_json(&payload)?;
     let mut hasher = Sha256::new();
     hasher.update(text.as_bytes());
@@ -335,6 +346,16 @@ enum Seal {
     Adopted,
 }
 
+fn stored_catalog_fingerprint(generation_dir: &Path, id: &str) -> Option<String> {
+    let read = |name: &str| String::from_utf8(read_regular_file(&generation_dir.join(name)).ok()?).ok();
+    Some(stuff_catalog::stored_catalog_fingerprint(
+        id,
+        &read("catalog.json")?,
+        &read("index.html")?,
+        &read("llms.txt")?,
+    ))
+}
+
 fn validate_generation(
     generations_dir: &Path,
     id: &str,
@@ -375,13 +396,20 @@ fn validate_generation(
         Some(manifest.renderer_version),
     )
         .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
-    let computed = generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version, true)
-        .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?;
+    let corrupt_render = || Error::Corrupt(format!("could not render generation packuments: {id}"));
+    let identity_for = |seal: CatalogSeal<'_>| {
+        generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version, seal)
+    };
+    let sealed_by_current_renderer = identity_for(CatalogSeal::Current).map_err(|_| corrupt_render())? == id;
     let sealed_before_catalog = seal == Seal::Adopted
-        && generation_id_for_renderer(&manifest.public_base_url, &manifest.artifacts, &files, manifest.renderer_version, false)
-            .map_err(|_| Error::Corrupt(format!("could not render generation packuments: {id}")))?
-            == id;
-    if !(computed == id || sealed_before_catalog) || manifest.generation_id != id {
+        && identity_for(CatalogSeal::Unsealed).map_err(|_| corrupt_render())? == id;
+    let sealed_by_older_renderer = !sealed_by_current_renderer
+        && !sealed_before_catalog
+        && match stored_catalog_fingerprint(&generation_dir, id) {
+            Some(fingerprint) => identity_for(CatalogSeal::Stored(&fingerprint)).map_err(|_| corrupt_render())? == id,
+            None => false,
+        };
+    if !(sealed_by_current_renderer || sealed_by_older_renderer || sealed_before_catalog) || manifest.generation_id != id {
         return Err(Error::Corrupt(format!("generation identity does not match its contents: {id}")));
     }
     let mut digests: Vec<String> = manifest.artifacts.iter().map(|r| r.artifact.sha512.clone()).collect();
@@ -425,7 +453,7 @@ fn validate_generation(
             )));
         }
     }
-    if manifest.renderer_version >= 4 && seal == Seal::Current {
+    if manifest.renderer_version >= 4 && seal == Seal::Current && sealed_by_current_renderer {
         let catalog = catalog_for(id, &manifest.artifacts, &files)
             .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
         let expected_json = stuff_catalog::render_catalog_json(&catalog);
@@ -439,7 +467,7 @@ fn validate_generation(
             return Err(Error::Corrupt(format!("generation catalog page does not match its manifest: {id}")));
         }
     }
-    if manifest.renderer_version >= 5 && seal == Seal::Current {
+    if manifest.renderer_version >= 5 && seal == Seal::Current && sealed_by_current_renderer {
         let catalog = catalog_for(id, &manifest.artifacts, &files)
             .map_err(|_| Error::Corrupt(format!("could not render generation catalog: {id}")))?;
         let origin = if manifest.renderer_version >= 7 {
@@ -1156,7 +1184,7 @@ mod tests {
             Some(5),
         )
         .unwrap();
-        let id = generation_id_for_renderer(base, std::slice::from_ref(record), &files, 5, false).unwrap();
+        let id = generation_id_for_renderer(base, std::slice::from_ref(record), &files, 5, CatalogSeal::Unsealed).unwrap();
         let dir = mirror_root.join("generations").join(&id);
         for file in &files {
             let path = dir.join(&file.path);
@@ -1205,6 +1233,76 @@ mod tests {
             std::fs::read(generations.join(&summary.generation_id).join("flatdemo")).unwrap()
         );
         assert!(adopt_site(dir.path()).unwrap().no_op);
+    }
+
+    fn write_generation_sealed_by_an_older_catalog_renderer(
+        mirror_root: &Path,
+        record: &ArtifactRecord,
+        base: &str,
+    ) -> String {
+        let files = render_packument_files(
+            &[crate::inventory::artifact_to_value(record).unwrap()],
+            &[],
+            base,
+            None,
+        )
+        .unwrap();
+        let catalog_files = [
+            ("catalog.json", "catalog from an older renderer"),
+            ("index.html", "landing page from an older renderer"),
+            ("llms.txt", "llms from an older renderer"),
+        ];
+        let fingerprint = stuff_catalog::stored_catalog_fingerprint(
+            "unused",
+            catalog_files[0].1,
+            catalog_files[1].1,
+            catalog_files[2].1,
+        );
+        let id = generation_id_for_renderer(base, std::slice::from_ref(record), &files, RENDERER_VERSION, CatalogSeal::Stored(&fingerprint)).unwrap();
+        let dir = mirror_root.join("generations").join(&id);
+        for file in &files {
+            let path = dir.join(&file.path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, &file.bytes).unwrap();
+        }
+        for (name, contents) in catalog_files {
+            std::fs::write(dir.join(name), contents).unwrap();
+        }
+        let digest = &record.artifact.sha512;
+        for tarballs in [dir.join("tarballs"), dir.join("-").join("tarballs")] {
+            std::fs::create_dir_all(&tarballs).unwrap();
+            std::fs::copy(
+                mirror_root.join("tarballs").join(format!("{digest}.tgz")),
+                tarballs.join(format!("{digest}.tgz")),
+            )
+            .unwrap();
+        }
+        let manifest = manifest_value(base, &id, std::slice::from_ref(record), &[]).unwrap();
+        std::fs::write(dir.join("manifest.json"), canonical_json(&manifest).unwrap()).unwrap();
+        std::os::unix::fs::symlink(format!("generations/{id}"), mirror_root.join("current")).unwrap();
+        id
+    }
+
+    #[test]
+    fn a_generation_sealed_by_an_older_catalog_renderer_stays_readable() {
+        let (record, digest) = fixture_record(b"fake-npm-tarball");
+        let dir = tempfile::tempdir().unwrap();
+        let mirror_root = dir.path().join("mirror");
+        std::fs::create_dir_all(mirror_root.join("tarballs")).unwrap();
+        std::fs::create_dir_all(mirror_root.join("generations")).unwrap();
+        std::fs::write(mirror_root.join("tarballs").join(format!("{digest}.tgz")), b"fake-npm-tarball").unwrap();
+        let id = write_generation_sealed_by_an_older_catalog_renderer(&mirror_root, &record, "https://npm.example.test/");
+        let generations = mirror_root.join("generations");
+        for seal in [Seal::Current, Seal::Adopted] {
+            assert!(validate_generation(&generations, &id, &mirror_root, seal).unwrap().is_some());
+        }
+        assert!(read_current(&mirror_root, &generations).is_ok());
+
+        std::fs::write(generations.join(&id).join("index.html"), "tampered").unwrap();
+        assert!(matches!(
+            validate_generation(&generations, &id, &mirror_root, Seal::Current),
+            Err(Error::Corrupt(_))
+        ));
     }
 
     #[test]

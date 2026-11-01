@@ -63,6 +63,9 @@ it publishable:
   catalog fingerprints joined the id (the id of a renderer 3 to 5 generation without
   `catalogFingerprint`) is accepted; its catalog, landing page, and `llms.txt` are not
   compared because the catalog renderer has changed since.
+  A generation sealed under an older catalog renderer stays valid: its seal is checked
+  against the catalog, landing page, and `llms.txt` stored in the generation instead of a
+  fresh render, so a catalog renderer change never strands published generations.
 - It republishes the same records under the current renderer and identity, switching
   `current` to the new generation. The pulled generation stays in place. Renderer 1 and 2
   generations are refused.
