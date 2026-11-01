@@ -304,9 +304,12 @@ credentials instead of minting.
 
 When `$STUFF_STATE_HOME` is missing (new machine, lost disk) the next publish
 would replace the live registry with the caller's subset. Rebuild the state
-from the buckets first. Pulling only reads the bucket (`cf` authenticated);
-each object is checked against the listing ETag and only the current
-generation plus the shared stores are fetched:
+from the buckets first. Pulling only reads the bucket; each object is checked
+against the listing ETag and only the current generation plus the shared
+stores are fetched. With `R2_S3_*` (or credentials minted through the
+authenticated `cf` CLI) the pull lists through the S3 API and downloads
+`R2_PULL_JOBS` objects in parallel; set `R2_PULL_CF_ONLY=1` to force the
+paced `cf` transport:
 
 ```sh
 H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}

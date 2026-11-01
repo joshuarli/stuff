@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import hashlib
 import importlib.util
 import json
 import os
 import pathlib
+import sys
 import tempfile
 import unittest
 
@@ -114,6 +116,119 @@ class ListingTests(unittest.TestCase):
         os.environ["FAKE_CF_IGNORE_CURSOR"] = "1"
         with self.assertRaises(SystemExit):
             pull.list_all("bucket")
+
+
+HELPER = pathlib.Path(__file__).with_name("test-r2-put.py")
+helper_spec = importlib.util.spec_from_file_location("test_r2_put_helper", HELPER)
+helper = importlib.util.module_from_spec(helper_spec)
+helper_spec.loader.exec_module(helper)
+FakeS3Server = helper.FakeS3Server
+
+S3_ENV = (
+    "PATH",
+    "CF_LOCAL_STATE",
+    "R2_PULL_CF_ONLY",
+    "R2_LIST_PAGE",
+    "R2_S3_ENDPOINT",
+    "R2_S3_ACCESS_KEY_ID",
+    "R2_S3_SECRET_ACCESS_KEY",
+    "R2_S3_SESSION_TOKEN",
+)
+
+
+class S3PullTests(unittest.TestCase):
+    def setUp(self):
+        self.saved = {name: os.environ.get(name) for name in S3_ENV}
+        self.work = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.work.name)
+        self.server = FakeS3Server()
+        os.environ["R2_S3_ENDPOINT"] = self.server.endpoint
+        os.environ["R2_S3_ACCESS_KEY_ID"] = "key"
+        os.environ["R2_S3_SECRET_ACCESS_KEY"] = "secret"
+        os.environ.pop("CF_LOCAL_STATE", None)
+        os.environ.pop("R2_PULL_CF_ONLY", None)
+        os.environ.pop("R2_S3_SESSION_TOKEN", None)
+        self.saved_page = pull.PAGE
+        self.saved_pacer = pull.PACER
+        pull.PACER = pull.Pacer(0)
+
+    def tearDown(self):
+        self.server.close()
+        pull.PAGE = self.saved_page
+        pull.PACER = self.saved_pacer
+        for name, value in self.saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+        self.work.cleanup()
+
+    def test_listing_uses_paginated_s3(self):
+        pull.PAGE = 2
+        keys = ["generations/g/a", "generations/g/b", "generations/g/c"]
+        for key in keys:
+            self.server.objects[("bucket", key)] = (key.encode(), "text/plain")
+        listed = pull.list_all("bucket")
+        self.assertEqual([o["key"] for o in listed], keys)
+        self.assertEqual(listed[0]["size"], len(keys[0]))
+        self.assertEqual(listed[0]["etag"], hashlib.md5(keys[0].encode()).hexdigest())
+
+    def test_download_uses_s3_and_checks_the_etag(self):
+        body = b"s3 pulled bytes"
+        self.server.objects[("bucket", "blobs/a")] = (body, "text/plain")
+        dest = self.root / "dest"
+        dest.mkdir()
+        etag = hashlib.md5(body).hexdigest()
+        pull.download("bucket", str(dest), {"key": "blobs/a", "size": len(body), "etag": etag})
+        self.assertEqual((dest / "blobs" / "a").read_bytes(), body)
+        self.assertFalse((dest / "blobs" / "a.part").exists())
+
+    def test_main_pulls_the_current_generation_through_s3(self):
+        objects = {
+            "current": b"g",
+            "generations/g/catalog.json": b'{"gen":1}',
+            "generations/old/catalog.json": b'{"gen":0}',
+            "blobs/0000.crate": b"crate bytes",
+        }
+        for key, body in objects.items():
+            self.server.objects[("bucket", key)] = (body, "text/plain")
+        dest = self.root / "dest"
+        saved_argv = sys.argv
+        sys.argv = ["r2-pull.py", "bucket", str(dest)]
+        try:
+            pull.main()
+        finally:
+            sys.argv = saved_argv
+        self.assertEqual((dest / "current").readlink().as_posix(), "generations/g")
+        self.assertEqual(
+            (dest / "generations" / "g" / "catalog.json").read_bytes(),
+            objects["generations/g/catalog.json"],
+        )
+        self.assertFalse((dest / "generations" / "old").exists())
+        self.assertEqual((dest / "blobs" / "0000.crate").read_bytes(), objects["blobs/0000.crate"])
+
+    def test_mints_credentials_from_cf_when_they_are_absent(self):
+        for name in ("R2_S3_ENDPOINT", "R2_S3_ACCESS_KEY_ID", "R2_S3_SECRET_ACCESS_KEY"):
+            os.environ.pop(name, None)
+        bin_dir = self.root / "bin"
+        bin_dir.mkdir()
+        cf = bin_dir / "cf"
+        cf.write_text(
+            "#!/bin/sh\n"
+            "if [ \"$1 $2\" = 'auth whoami' ]; then\n"
+            "  echo '{\"accounts\":[{\"id\":\"acct\"}]}'\n"
+            "elif [ \"$1 $2 $3\" = 'accounts tokens list' ]; then\n"
+            "  echo '{\"result\":[{\"id\":\"parent\",\"status\":\"active\",\"policies\":[]}]}'\n"
+            "else\n"
+            "  echo '{\"accessKeyId\":\"minted\",\"secretAccessKey\":\"minted-secret\","
+            "\"sessionToken\":\"minted-token\"}'\n"
+            "fi\n"
+        )
+        cf.chmod(0o755)
+        os.environ["PATH"] = f"{bin_dir}:{self.saved['PATH']}"
+        self.assertTrue(pull.enable_s3("bucket"))
+        self.assertEqual(os.environ["R2_S3_ACCESS_KEY_ID"], "minted")
+        self.assertEqual(os.environ["R2_S3_SESSION_TOKEN"], "minted-token")
 
 
 if __name__ == "__main__":

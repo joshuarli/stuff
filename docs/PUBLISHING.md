@@ -89,6 +89,9 @@ S3 promotion verifies the uploaded generation and moves `current` with `If-Match
 The wrapper adopts automatically until the mycrates state carries an
 `.adopt-complete` marker. It pulls the current generation and the shared
 stores, then rebuilds the local publication state before running the helper.
+Adoption uses the S3 API with parallel `R2_PULL_JOBS` downloads when
+`R2_S3_*` is set, and mints short-lived bucket credentials otherwise; set
+`R2_PULL_CF_ONLY=1` to fall back to the paced `cf` API.
 
 For an absent or empty state, adoption runs `mycrates init`, `mycrates adopt`,
 and `mycrates verify` in a sibling staging directory next to the state. It
