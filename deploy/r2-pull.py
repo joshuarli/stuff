@@ -31,6 +31,7 @@ GENERATION_ID = re.compile(r"[A-Za-z0-9_-]+")
 
 def list_all(bucket):
     objects = []
+    seen = set()
     after = None
     while True:
         args = ["list", "--per-page", str(PAGE)]
@@ -40,8 +41,10 @@ def list_all(bucket):
         if done.returncode != 0:
             fail(f"listing failed: {done.stderr.strip()}")
         page = json.loads(done.stdout)
-        if page and after and page[0]["key"] <= after:
-            fail(f"listing did not advance past {after}")
+        repeated = next((o["key"] for o in page if o["key"] in seen), None)
+        if repeated is not None:
+            fail(f"listing repeated {repeated} after {after}")
+        seen.update(o["key"] for o in page)
         objects.extend(page)
         if len(page) < PAGE:
             return objects
