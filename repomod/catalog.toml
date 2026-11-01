@@ -79,7 +79,7 @@ jaq = ["tool", "rust", "shell", "fork"]
 # miniserde = ["library"]
 # musl = ["system", "c"]
 node-build = ["build", "python"]
-ntpd-rs = ["tool", "rust", "fork"]
+# ntpd-rs = ["tool", "rust", "fork"]
 ptytest = ["library", "crates-io", "rust"]
 python-build = ["build", "python", "rust"]
 rawzip = ["library", "rust", "fork"]
@@ -96,9 +96,9 @@ zzz = ["tool", "linux"]
 ignore = ["mdtool:R005"]
 ignore_reason = "The macos-native README names Chromium source paths that live in the Chromium checkout."
 
-[overrides."laputa-systems/ntpd-rs"]
-ignore = ["rust-toolchain"]
-ignore_reason = "Fork pinned to the stable channel through a symlinked rust-toolchain.toml that its release job and Dockerfile read."
+#[overrides."laputa-systems/ntpd-rs"]
+#ignore = ["rust-toolchain"]
+#ignore_reason = "Fork pinned to the stable channel through a symlinked rust-toolchain.toml that its release job and Dockerfile read."
 
 [overrides."laputa-systems/bbtree"]
 ignore = ["rust-toolchain"]
