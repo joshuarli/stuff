@@ -1798,6 +1798,7 @@ mod tests {
     struct MultiRegistry {
         tarballs: BTreeMap<String, Vec<u8>>,
         delay: Option<Duration>,
+        fail_baddemo_after: Option<PathBuf>,
     }
 
     impl Exchange for MultiRegistry {
@@ -1815,6 +1816,12 @@ mod tests {
                     std::thread::sleep(delay);
                 }
                 if name == "baddemo" {
+                    if let Some(promoted) = &self.fail_baddemo_after {
+                        let deadline = Instant::now() + Duration::from_secs(10);
+                        while !promoted.is_file() && Instant::now() < deadline {
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
+                    }
                     return Ok(FetchedResponse { status: 500, location: None, body: Vec::new() });
                 }
                 return Ok(FetchedResponse {
@@ -1843,6 +1850,9 @@ mod tests {
                 ("baddemo".to_string(), bad.clone()),
             ]),
             delay: None,
+            fail_baddemo_after: Some(
+                state.join("objects").join("sha512").join(format!("{}.tgz", digest_of(&good))),
+            ),
         };
         let inventory = two_package_inventory(&good, &bad);
         crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
@@ -1869,6 +1879,7 @@ mod tests {
         let exchange = MultiRegistry {
             tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
             delay: Some(Duration::from_millis(600)),
+            fail_baddemo_after: None,
         };
         let inventory = fixture_inventory("flatdemo", "1.2.3", Some(&integrity_of(&good)));
         crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
@@ -1893,6 +1904,7 @@ mod tests {
         let exchange = MultiRegistry {
             tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
             delay: None,
+            fail_baddemo_after: None,
         };
         let inventory = fixture_inventory("flatdemo", "1.2.3", Some(&integrity_of(&good)));
         crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
