@@ -84,6 +84,7 @@ test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAI
 test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and promotion without network access
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
 	deploy/test-r2-pull.sh
+	deploy/test-prune-generations.sh
 	python3 deploy/test-r2-pull-listing.py
 	python3 deploy/test-r2-multipart.py
 	python3 deploy/test-r2-plan.py

@@ -51,29 +51,14 @@ SITE_RESTORED=""
 MYCRATES_BIN=$STUFF_DIR/target/debug/mycrates
 SERVER_BIN=$STUFF_DIR/target/debug/stuff-server
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
+PRUNE=$STUFF_DIR/deploy/prune-generations.sh
 LOCAL_API=http://127.0.0.1:$PUBLISH_PORT
 LOCAL_SITE=http://127.0.0.1:$STATIC_PORT
-
-prune_old_generations() {
-  current=$(readlink "$SITE_DIR/current" 2>/dev/null || true)
-  current=${current##*/}
-  [ -n "$current" ] || return 0
-  for gen in "$SITE_DIR"/generations/*; do
-    [ -d "$gen" ] || continue
-    [ "${gen##*/}" = "$current" ] && continue
-    rm -rf "$gen"
-  done
-  for manifest in "$SITE_DIR"/manifests/*.json; do
-    [ -e "$manifest" ] || continue
-    [ "${manifest##*/}" = "$current.json" ] && continue
-    rm -f "$manifest"
-  done
-}
 
 restore_public_site() {
   "$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
   "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
-  prune_old_generations
+  "$PRUNE" "$SITE_DIR"
 }
 
 cleanup() {

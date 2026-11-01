@@ -43,11 +43,13 @@ trap 'release_publish_lock' EXIT INT TERM HUP
 
 MYNPM_BIN=$STUFF_DIR/target/debug/mynpm
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
+PRUNE=$STUFF_DIR/deploy/prune-generations.sh
 
 if [ -n "${REPUBLISH:-}" ]; then
   cargo build -p mynpm --manifest-path "$STUFF_DIR/Cargo.toml"
   "$MYNPM_BIN" adopt --site-dir "$SITE_DIR"
   "$R2_SYNC" "$SITE_DIR/mirror" "$BUCKET"
+  "$PRUNE" "$SITE_DIR/mirror"
   exit 0
 fi
 
@@ -68,3 +70,4 @@ done
 "$MYNPM_BIN" --config "$CONFIG_FILE" --state-dir "$STATE_DIR" publish --site-dir "$SITE_DIR"
 # mynpm publish nests the servable tree under mirror/ (registry layout).
 "$R2_SYNC" "$SITE_DIR/mirror" "$BUCKET"
+"$PRUNE" "$SITE_DIR/mirror"

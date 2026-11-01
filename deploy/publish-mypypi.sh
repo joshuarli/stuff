@@ -44,11 +44,13 @@ trap 'release_publish_lock' EXIT INT TERM HUP
 
 MYPYPI_BIN=$STUFF_DIR/target/debug/mypypi
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
+PRUNE=$STUFF_DIR/deploy/prune-generations.sh
 
 if [ -n "${REPUBLISH:-}" ]; then
   cargo build -p mypypi --manifest-path "$STUFF_DIR/Cargo.toml"
   "$MYPYPI_BIN" republish --output "$SITE_DIR" --public-url "$PUBLIC_URL"
   "$R2_SYNC" "$SITE_DIR" "$BUCKET"
+  "$PRUNE" "$SITE_DIR"
   exit 0
 fi
 
@@ -104,3 +106,4 @@ M="--catalog $CATALOG_FILE --config $CONFIG_FILE --state-dir $STATE_DIR"
 "$MYPYPI_BIN" $M --output "$SITE_DIR" --platform "$PLATFORM" validate
 "$MYPYPI_BIN" $M --output "$SITE_DIR" --platform "$PLATFORM" publish
 "$R2_SYNC" "$SITE_DIR" "$BUCKET"
+"$PRUNE" "$SITE_DIR"
