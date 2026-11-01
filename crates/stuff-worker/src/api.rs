@@ -280,7 +280,10 @@ pub struct UnifiedJson {
 
 pub fn render_unified_index_json(catalogs_json: &str) -> String {
     match parse_catalogs_json(catalogs_json) {
-        Ok(catalogs) => unified_json("html", stuff_catalog::render_unified(&catalogs)),
+        Ok(parsed) => unified_json(
+            "html",
+            stuff_catalog::render_unified_with_notices(&parsed.catalogs, &parsed.notices),
+        ),
         Err(error) => to_json(&error, "error"),
     }
 }
@@ -295,9 +298,9 @@ pub fn render_unified_llms_txt_json(
         Err(message) => return unified_error(message),
     };
     match parse_catalogs_json(catalogs_json) {
-        Ok(catalogs) => unified_json(
+        Ok(parsed) => unified_json(
             "markdown",
-            stuff_catalog::render_unified_llms_txt(&catalogs, &origins),
+            stuff_catalog::render_unified_llms_txt_with_notices(&parsed.catalogs, &origins, &parsed.notices),
         ),
         Err(error) => to_json(&error, "error"),
     }
@@ -325,7 +328,24 @@ fn unified_error(message: String) -> String {
     )
 }
 
-fn parse_catalogs_json(catalogs_json: &str) -> Result<Vec<stuff_catalog::Catalog>, UnifiedJson> {
+struct ParsedCatalogs {
+    catalogs: Vec<stuff_catalog::Catalog>,
+    notices: Vec<String>,
+}
+
+fn registry_name(catalog_text: &str) -> String {
+    let registry = deser_json::from_str::<deser_value::Value>(catalog_text)
+        .ok()
+        .and_then(|value| value.as_map().and_then(|map| map.get("registry")).and_then(|r| r.as_str().map(str::to_string)));
+    match registry.as_deref() {
+        Some("cargo") => "Cargo".to_string(),
+        Some("npm") => "npm".to_string(),
+        Some("pypi") => "PyPI".to_string(),
+        _ => "A registry".to_string(),
+    }
+}
+
+fn parse_catalogs_json(catalogs_json: &str) -> Result<ParsedCatalogs, UnifiedJson> {
     let parsed: deser_value::Value = deser_json::from_str(catalogs_json)
         .map_err(|e| UnifiedJson {
             kind: "error".to_string(),
@@ -338,20 +358,30 @@ fn parse_catalogs_json(catalogs_json: &str) -> Result<Vec<stuff_catalog::Catalog
         message: Some("catalogs must be an array".to_string()),
     })?;
     let mut catalogs = Vec::with_capacity(seq.len());
+    let mut notices = Vec::new();
     for item in seq.iter() {
         let text = item.as_str().ok_or_else(|| UnifiedJson {
             kind: "error".to_string(),
             body: None,
             message: Some("catalogs must be an array of JSON strings".to_string()),
         })?;
-        catalogs.push(stuff_catalog::parse_catalog_json(text).map_err(|e| UnifiedJson {
+        match stuff_catalog::parse_catalog_json(text) {
+            Ok(catalog) => catalogs.push(catalog),
+            Err(reason) => notices.push(format!(
+                "{} is not listed because its catalog could not be read: {reason}.",
+                registry_name(text)
+            )),
+        }
+    }
+    if catalogs.is_empty() {
+        return Err(UnifiedJson {
             kind: "error".to_string(),
             body: None,
-            message: Some(format!("catalog: {e}")),
-        })?);
+            message: Some(format!("no catalog could be read: {}", notices.join(" "))),
+        });
     }
     catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
-    Ok(catalogs)
+    Ok(ParsedCatalogs { catalogs, notices })
 }
 
 fn unified_origins(
@@ -922,6 +952,47 @@ mod tests {
         let bad: UnifiedJson =
             deser_json::from_str(&render_unified_index_json("not json")).expect("parses");
         assert_eq!(bad.kind, "error");
+    }
+
+    const CARGO_V1: &str = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
+    const PYPI_FROM_THE_FUTURE: &str = r#"{"schema_version":99,"registry":"pypi","generation":"c","packages":[]}"#;
+
+    fn catalogs_input(parts: &[&str]) -> String {
+        format!(
+            "[{}]",
+            parts.iter().map(|p| deser_json::to_string(p).unwrap()).collect::<Vec<_>>().join(",")
+        )
+    }
+
+    #[test]
+    fn unified_render_skips_a_catalog_it_cannot_read_and_says_so() {
+        let input = catalogs_input(&[CARGO_V1, PYPI_FROM_THE_FUTURE]);
+        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        assert_eq!(page.kind, "html");
+        let body = page.body.expect("html body");
+        assert!(body.contains("h12tiny"));
+        assert!(body.contains("PyPI is not listed because its catalog could not be read: unsupported catalog schema_version: 99."));
+
+        let llms: UnifiedJson = deser_json::from_str(&render_unified_llms_txt_json(&input, ROUTES, "https://stuff.example.test")).expect("parses");
+        assert_eq!(llms.kind, "markdown");
+        let text = llms.body.expect("markdown body");
+        assert!(text.contains("h12tiny"));
+        assert!(text.contains("> Note: PyPI is not listed because its catalog could not be read"));
+    }
+
+    #[test]
+    fn unified_render_names_the_registry_even_when_the_catalog_is_not_json() {
+        let input = catalogs_input(&[CARGO_V1, "not a catalog"]);
+        let body = deser_json::from_str::<UnifiedJson>(&render_unified_index_json(&input)).unwrap().body.unwrap();
+        assert!(body.contains("A registry is not listed because its catalog could not be read"));
+    }
+
+    #[test]
+    fn unified_render_still_fails_when_no_catalog_is_readable() {
+        let input = catalogs_input(&[PYPI_FROM_THE_FUTURE]);
+        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        assert_eq!(page.kind, "error");
+        assert!(page.message.expect("message").contains("no catalog could be read"));
     }
 
     #[test]

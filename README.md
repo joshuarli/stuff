@@ -155,6 +155,10 @@ with the same Rust catalog code from the three current snapshots (cached
 60 s at the edge). The machine-readable packuments, sparse indexes,
 `/simple/` pages, and per-registry `llms.txt` files are unchanged; the
 aggregate host also serves the combined inventory at `/llms.txt`.
+If one registry's catalog cannot be read, for example because it uses a newer
+schema than the deployed Worker understands, the aggregate page and
+`/llms.txt` list the other registries and say which one is missing. They only
+fail when no catalog is readable. `stuff render` stays strict and fails.
 
 ## Deploy
 

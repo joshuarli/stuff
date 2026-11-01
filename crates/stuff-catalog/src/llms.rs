@@ -186,6 +186,10 @@ pub fn render_llms_txt(catalog: &Catalog, origin: &str) -> String {
 }
 
 pub fn render_unified_llms_txt(catalogs: &[Catalog], origins: &CatalogOrigins) -> String {
+    render_unified_llms_txt_with_notices(catalogs, origins, &[])
+}
+
+pub fn render_unified_llms_txt_with_notices(catalogs: &[Catalog], origins: &CatalogOrigins, notices: &[String]) -> String {
     let total_packages: usize = catalogs.iter().map(|c| c.package_count()).sum();
     let total_versions: usize = catalogs.iter().map(|c| c.version_count()).sum();
     let mut sorted: Vec<&Catalog> = catalogs.iter().collect();
@@ -202,6 +206,11 @@ pub fn render_unified_llms_txt(catalogs: &[Catalog], origins: &CatalogOrigins) -
     out.push_str(" registries. Aggregate browser: ");
     out.push_str(origins.unified.trim_end_matches('/'));
     out.push_str("/ .\n");
+    for notice in notices {
+        out.push_str("> Note: ");
+        out.push_str(notice);
+        out.push('\n');
+    }
     out.push_str("\n## Registries\n\n");
     for catalog in &sorted {
         out.push_str("- ");
@@ -391,5 +400,17 @@ mod tests {
         assert!(text.contains("- npm: https://npm.example.test/llms.txt"));
         assert!(text.contains("- PyPI: https://pypi.example.test/llms.txt"));
         assert!(!text.contains("17166969.xyz"));
+    }
+
+    #[test]
+    fn unified_llms_txt_lists_notices_for_unreadable_registries() {
+        let cargo = cargo_catalog("g", vec![]).unwrap();
+        let text = render_unified_llms_txt_with_notices(
+            &[cargo],
+            &CatalogOrigins::default(),
+            &["PyPI is not listed because its catalog could not be read.".to_string()],
+        );
+        assert!(text.contains("> Note: PyPI is not listed because its catalog could not be read.\n"));
+        assert!(!render_unified_llms_txt(&[cargo_catalog("g", vec![]).unwrap()], &CatalogOrigins::default()).contains("> Note:"));
     }
 }

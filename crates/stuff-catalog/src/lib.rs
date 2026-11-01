@@ -8,10 +8,10 @@ pub mod model;
 pub mod version;
 
 pub use diff::{CatalogDiff, PackageDiff, PackageRef, diff_catalogs};
-pub use html::{render_html, render_unified};
+pub use html::{render_html, render_unified, render_unified_with_notices};
 pub use identity::{FINGERPRINT_GENERATION, catalog_fingerprint, stored_catalog_fingerprint};
 pub use llms::{
-    render_llms_txt, render_unified_llms_txt, CatalogOrigins, DEFAULT_CARGO_ORIGIN,
+    render_llms_txt, render_unified_llms_txt, render_unified_llms_txt_with_notices, CatalogOrigins, DEFAULT_CARGO_ORIGIN,
     DEFAULT_NPM_ORIGIN, DEFAULT_PYPI_ORIGIN, DEFAULT_UNIFIED_ORIGIN,
 };
 pub use model::{

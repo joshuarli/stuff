@@ -35,6 +35,7 @@ header { padding: 2rem 0 4rem; font-weight: 600; letter-spacing: -0.01em; }
 h1 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.5rem; max-width: 30rem; }
 h2 { font-size: 0.9375rem; font-weight: 600; margin: 2.5rem 0 0.5rem; }
 .lede { margin: 0 0 3rem; color: var(--mute); }
+.notice { margin: -1.5rem 0 1.5rem; color: var(--void); }
 input[type="search"]:not([hidden]) { display: block; width: 100%; margin: 0 0 1.5rem; padding: 0.6rem 0.8rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; }
 input[type="search"]::placeholder { color: var(--mute); }
 .registries { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; margin: 0 0 3.5rem; padding: 0; list-style: none; }
@@ -301,9 +302,16 @@ pub fn render_html(catalog: &Catalog) -> String {
 }
 
 pub fn render_unified(catalogs: &[Catalog]) -> String {
+    render_unified_with_notices(catalogs, &[])
+}
+
+pub fn render_unified_with_notices(catalogs: &[Catalog], notices: &[String]) -> String {
     let mut out = String::from("<header>stuff</header>\n<main>\n<div class=\"index\">\n");
     out.push_str("<h1>Cargo, npm and PyPI packages, served as static files.</h1>\n");
     out.push_str("<p class=\"lede\">Each publish creates a new generation. The current one is live.</p>\n");
+    for notice in notices {
+        out.push_str(&format!("<p class=\"notice\" role=\"status\">{}</p>\n", escape_html(notice)));
+    }
     out.push_str("<ul class=\"registries\">\n");
     for catalog in catalogs {
         out.push_str(&format!(
@@ -401,6 +409,18 @@ mod tests {
     fn the_inline_search_script_cannot_close_its_own_tag() {
         assert!(!SEARCH_JS.is_empty());
         assert!(!SEARCH_JS.to_ascii_lowercase().contains("</script"));
+    }
+
+    #[test]
+    fn unified_page_shows_notices_for_registries_it_could_not_read() {
+        let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
+        let html = render_unified_with_notices(
+            std::slice::from_ref(&catalog),
+            &["PyPI is not listed <because> its catalog could not be read.".to_string()],
+        );
+        assert!(html.contains("<p class=\"notice\" role=\"status\">PyPI is not listed &lt;because&gt; its catalog could not be read.</p>"));
+        assert!(html.contains("h12tiny"));
+        assert!(!render_unified(std::slice::from_ref(&catalog)).contains("class=\"notice\""));
     }
 
     #[test]

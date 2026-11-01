@@ -34,11 +34,11 @@ function catalog(registry, name) {
   });
 }
 
-async function seed(mf) {
+async function seed(mf, { pypiCatalog } = {}) {
   const catalogs = {
     MYCRATES: catalog("cargo", "crate"),
     MYNPM: catalog("npm", "package"),
-    PYPI: catalog("pypi", "wheelpkg"),
+    PYPI: pypiCatalog ?? catalog("pypi", "wheelpkg"),
   };
   for (const [binding, text] of Object.entries(catalogs)) {
     const bucket = await mf.getR2Bucket(binding);
@@ -81,6 +81,23 @@ test("cold HEAD for the unified page uses a GET cache key", async (t) => {
   const get = await mf.dispatchFetch("https://stuff.test/");
   assert.equal(get.status, 200);
   assert.match(await get.text(), /stuff/);
+});
+
+test("a registry on a newer catalog schema is reported, not fatal", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  const newer = JSON.stringify({ schema_version: 99, registry: "pypi", generation: "g1", packages: [] });
+  await seed(mf, { pypiCatalog: newer });
+
+  const page = await mf.dispatchFetch("https://stuff.test/");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /PyPI is not listed because its catalog could not be read: unsupported catalog schema_version: 99\./);
+  assert.ok(html.includes("crate") && html.includes("package"));
+
+  const llms = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  assert.equal(llms.status, 200);
+  assert.match(await llms.text(), /> Note: PyPI is not listed because its catalog could not be read/);
 });
 
 test("unified llms.txt advertises the configured hosts", async (t) => {
