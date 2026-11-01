@@ -18,7 +18,9 @@ lockfile path, targets, roots, packages including platform and optional flags,
 aliases, pin, and a digest of the project snapshot), so an unchanged lockfile
 leaves the inventory byte-identical, while a changed one is recorded as an
 additional import under the same project id and already hosted versions stay.
-`fetch` reuses verified artifacts.
+`fetch` reuses verified artifacts. An artifact is promoted as soon as it verifies,
+so a later package failure or the time limit keeps the finished downloads for the
+next run instead of discarding them.
 
 ## Metadata-only versions
 

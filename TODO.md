@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-34 · P2 · mynpm fetch discards every staged download on one failure or a late deadline
-
-- **Area:** Operability
-- **Where:** `crates/mynpm/src/acquire.rs:1307-1369`, `crates/mynpm/src/limits.rs:9-12`
-- **Problem:** Workers stage tarballs and keep results in memory; `promote_artifact` and `update_inventory` run only after every worker finishes. The first worker error, or `Instant::now() >= deadline` after all tasks succeeded, removes the staging directory and returns, so nothing downloaded in that run is kept. A fleet fetch (six targets, up to the 10 GiB budget) that hits one bad package or finishes after the one-hour limit re-downloads everything, and a fleet that needs more than an hour can never complete. mycrates' fetch keeps finished crates across a failed run; mynpm does not.
-- **Recommendation:** Promote each artifact as soon as it verifies, record inventory updates on every exit path, and check the deadline only before starting a task.
-- **Fix with:** durable-state
-- **Effort:** M
-
 ### STUF-35 · P3 · Generation activation, locking, and staging recovery are reimplemented per registry
 
 - **Area:** Architecture

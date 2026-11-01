@@ -825,9 +825,7 @@ fn check_deadline(deadline: Instant) -> Result<()> {
 fn fetch_metadata(
     task: &PackageTask,
     ctx: &AcquisitionContext,
-    deadline: Instant,
 ) -> Result<(deser_value::Value, deser_value::Value, String)> {
-    check_deadline(deadline)?;
     let base = task.upstream_registry.trim_end_matches('/');
     let url = format!("{}/{}", base, package_route(&task.name));
     let (body, _) = transfer(&url, limits::METADATA_BYTES, &ctx.expected_host, ctx.exchange, ctx.budget)?;
@@ -931,9 +929,7 @@ fn download_stage(
     tarball_url: &str,
     expected_claims: &BTreeMap<String, String>,
     ctx: &AcquisitionContext,
-    deadline: Instant,
 ) -> Result<(String, BTreeMap<String, String>, u64)> {
-    check_deadline(deadline)?;
     let (body, _) = transfer(tarball_url, limits::TARBALL_BYTES, &ctx.expected_host, ctx.exchange, ctx.budget)?;
     if body.is_empty() {
         return Err(Error::Operation(format!(
@@ -994,7 +990,7 @@ fn download_stage(
     Ok((digest, digests, body.len() as u64))
 }
 
-fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instant) -> Result<PackageResult> {
+fn acquire_package(task: PackageTask, ctx: &AcquisitionContext) -> Result<PackageResult> {
     assert_safe_object_dirs(&ctx.state_directory, false)?;
     if let Some(record) = task.artifact_record.clone() {
         let (mut expected, legacy) = merge_claims(&task.records, &record.metadata)
@@ -1043,7 +1039,7 @@ fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instan
             .to_string();
         let stage_path = ctx.staging_directory.join(format!("{}.part", unique_name()));
         let (digest, _, byte_count) =
-            download_stage(&stage_path, &task, &record.metadata, &tarball_url, &expected, ctx, deadline)?;
+            download_stage(&stage_path, &task, &record.metadata, &tarball_url, &expected, ctx)?;
         if digest != record.artifact.sha512 {
             let _ = std::fs::remove_file(&stage_path);
             return Err(Error::Conflict(format!(
@@ -1067,7 +1063,7 @@ fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instan
         });
     }
 
-    let (packument, metadata, tarball_url) = fetch_metadata(&task, ctx, deadline)?;
+    let (packument, metadata, tarball_url) = fetch_metadata(&task, ctx)?;
     validate_platform_claims(&task.records, &metadata).map_err(|e| {
         Error::Conflict(format!("upstream package metadata conflicts for {}@{}: {e}", task.name, task.version))
     })?;
@@ -1112,7 +1108,7 @@ fn acquire_package(task: PackageTask, ctx: &AcquisitionContext, deadline: Instan
     }
     let stage_path = ctx.staging_directory.join(format!("{}.part", unique_name()));
     let (digest, digests, byte_count) =
-        download_stage(&stage_path, &task, &metadata, &tarball_url, &expected_claims, ctx, deadline)?;
+        download_stage(&stage_path, &task, &metadata, &tarball_url, &expected_claims, ctx)?;
     Ok(PackageResult {
         artifact_integrity: format!("sha512-{}", base64_engine_encode(&hex_decode(&digest))),
         artifact_shasum: if expected_claims.contains_key("sha1") {
@@ -1259,6 +1255,20 @@ pub fn fetch_inventory(
     config: &Config,
     exchange: &dyn Exchange,
 ) -> Result<FetchSummary> {
+    fetch_inventory_until(
+        state_dir,
+        config,
+        exchange,
+        Instant::now() + Duration::from_millis(limits::FETCH_MILLISECONDS),
+    )
+}
+
+fn fetch_inventory_until(
+    state_dir: &Path,
+    config: &Config,
+    exchange: &dyn Exchange,
+    deadline: Instant,
+) -> Result<FetchSummary> {
     let inventory = load_inventory(state_dir)?;
     let plan = plan_inventory(&inventory, config)
         .map_err(|e| Error::Input(format!("inventory contains an invalid package: {e}")))?;
@@ -1284,7 +1294,6 @@ pub fn fetch_inventory(
         .unwrap_or("")
         .to_string();
     let budget = Mutex::new(FetchByteBudget::new());
-    let deadline = Instant::now() + Duration::from_millis(limits::FETCH_MILLISECONDS);
     let stubs = fetch_metadata_only(&pending, &config.upstream_registry, &expected_host, exchange, &budget, deadline)?;
     if tasks.is_empty() {
         update_inventory(state_dir, |current| record_metadata_only(current, &stubs))?;
@@ -1304,7 +1313,7 @@ pub fn fetch_inventory(
     std::fs::create_dir_all(&staging_dir).map_err(|e| {
         Error::Operation(format!("could not create private staging directory under {}: {e}", staging_root.display()))
     })?;
-    let result: Result<Vec<PackageResult>> = std::thread::scope(|scope| {
+    let result: Result<(Vec<PackageResult>, Option<Error>)> = std::thread::scope(|scope| {
         let queue = std::sync::Arc::new(Mutex::new(tasks.into_iter().collect::<VecDeque<_>>()));
         let results: std::sync::Arc<Mutex<Vec<PackageResult>>> = std::sync::Arc::new(Mutex::new(Vec::new()));
         let first_error: std::sync::Arc<Mutex<Option<Error>>> = std::sync::Arc::new(Mutex::new(None));
@@ -1328,7 +1337,19 @@ pub fn fetch_inventory(
                     }
                     let task = queue.lock().map(|mut q| q.pop_front()).unwrap_or(None);
                     let Some(task) = task else { break };
-                    match acquire_package(task, &ctx, deadline) {
+                    if let Err(error) = check_deadline(deadline) {
+                        first_error.lock().map(|mut g| {
+                            if g.is_none() {
+                                *g = Some(error);
+                            }
+                        }).ok();
+                        break;
+                    }
+                    let outcome = acquire_package(task, &ctx).and_then(|mut result| {
+                        promote_artifact(&mut result, state_dir)?;
+                        Ok(result)
+                    });
+                    match outcome {
                         Ok(result) => {
                             results.lock().map(|mut r| r.push(result)).ok();
                         }
@@ -1347,42 +1368,25 @@ pub fn fetch_inventory(
         for handle in handles {
             handle.join().map_err(|_| Error::Operation("fetch worker failed".to_string()))?;
         }
-        if let Some(error) = first_error.lock().map(|mut g| g.take()).unwrap_or(None) {
+        let results = results.lock().map(|mut r| std::mem::take(&mut *r)).unwrap_or_default();
+        let error = first_error.lock().map(|mut g| g.take()).unwrap_or(None);
+        Ok((results, error))
+    });
+    let (results, worker_error) = match result {
+        Ok(value) => value,
+        Err(error) => {
+            let _ = std::fs::remove_dir_all(&staging_dir);
             return Err(error);
         }
-        Ok(results.lock().map(|mut r| std::mem::take(&mut *r)).unwrap_or_default())
-    });
-    let mut results = result.inspect_err(|_| {
-        let _ = std::fs::remove_dir_all(&staging_dir);
-    })?;
-    if Instant::now() >= deadline {
-        let _ = std::fs::remove_dir_all(&staging_dir);
-        return Err(Error::Operation(format!(
-            "fetch exceeded the {} operation limit",
-            limits::format_duration(limits::FETCH_MILLISECONDS)
-        )));
-    }
-    let promote_outcome = (|| -> Result<()> {
-        for result in results.iter_mut() {
-            promote_artifact(result, state_dir)?;
-        }
-        if !results.is_empty() {
-            let objects = state_dir.join("objects").join("sha512");
-            stuff_store::sync_dir(&objects)?;
-        }
-        Ok(())
-    })();
+    };
     let _ = std::fs::remove_dir_all(&staging_dir);
-    promote_outcome?;
+    record_fetch_results(state_dir, &results, &stubs)?;
+    if let Some(error) = worker_error {
+        return Err(error);
+    }
     let downloaded = budget.lock().map(|b| limits::FETCH_BYTES - b.remaining()).unwrap_or(0);
     let reused = results.iter().filter(|r| r.reused).count();
     let verified = results.len();
-    let state_path = state_dir.to_path_buf();
-    update_inventory(&state_path, |current| {
-        let values = results.iter().map(artifact_value).collect::<Result<Vec<_>>>()?;
-        let recorded = record_verified_artifacts(current, &values)?;
-        record_metadata_only(&recorded, &stubs)
-    })?;
     Ok(FetchSummary {
         downloaded_bytes: downloaded,
         verified_count: verified,
@@ -1390,6 +1394,26 @@ pub fn fetch_inventory(
         metadata_only_count,
         metadata_only_recorded: stubs.len(),
     })
+}
+
+fn record_fetch_results(
+    state_dir: &Path,
+    results: &[PackageResult],
+    stubs: &[MetadataOnlyRecord],
+) -> Result<()> {
+    if results.is_empty() && stubs.is_empty() {
+        return Ok(());
+    }
+    if !results.is_empty() {
+        let objects = state_dir.join("objects").join("sha512");
+        stuff_store::sync_dir(&objects)?;
+    }
+    let values = results.iter().map(artifact_value).collect::<Result<Vec<_>>>()?;
+    update_inventory(state_dir, |current| {
+        let recorded = record_verified_artifacts(current, &values)?;
+        record_metadata_only(&recorded, stubs)
+    })?;
+    Ok(())
 }
 
 fn artifact_value(result: &PackageResult) -> Result<deser_value::Value> {
@@ -1674,11 +1698,15 @@ mod tests {
     }
 
     fn fixture_tarball() -> Vec<u8> {
-        let manifest = br#"{"name":"flatdemo","version":"1.2.3"}"#;
+        tarball_for("flatdemo", "1.2.3")
+    }
+
+    fn tarball_for(name: &str, version: &str) -> Vec<u8> {
+        let manifest = format!(r#"{{"name":"{name}","version":"{version}"}}"#);
         let mut data = Vec::new();
-        for (name, contents) in [("package/package.json", &manifest[..]), ("package/index.js", b"module.exports=1;" as &[u8])] {
+        for (entry, contents) in [("package/package.json", manifest.as_bytes()), ("package/index.js", b"module.exports=1;" as &[u8])] {
             let mut header = vec![0u8; 512];
-            header[..name.len()].copy_from_slice(name.as_bytes());
+            header[..entry.len()].copy_from_slice(entry.as_bytes());
             header[100..108].copy_from_slice(b"0000644\0");
             header[136..148].copy_from_slice(b"00000000000\0");
             header[148..156].copy_from_slice(b"        ");
@@ -1732,5 +1760,145 @@ mod tests {
         assert_eq!(verified.metadata_only_count, 0);
         let summary2 = fetch_inventory(&state, &config, &exchange).unwrap();
         assert_eq!(summary2.reused_count, 1);
+    }
+
+    fn integrity_of(bytes: &[u8]) -> String {
+        format!("sha512-{}", base64_engine_encode(&Sha512::digest(bytes)))
+    }
+
+    fn digest_of(bytes: &[u8]) -> String {
+        format!("{:x}", Sha512::digest(bytes))
+    }
+
+    fn download_config() -> Config {
+        fixture_config(vec![Target::Darwin(crate::config::DarwinTarget {
+            id: "t1".to_string(),
+            cpu: "arm64".to_string(),
+            node: "26.12.0".to_string(),
+        })])
+    }
+
+    fn two_package_inventory(good: &[u8], bad: &[u8]) -> Inventory {
+        let mut inv = fixture_inventory(
+            "flatdemo",
+            "1.2.3",
+            Some(&integrity_of(good)),
+        );
+        inv.projects[0].packages[0].resolved =
+            Some("https://registry.npmjs.org/flatdemo/-/flatdemo-1.2.3.tgz".to_string());
+        let mut package = inv.projects[0].packages[0].clone();
+        package.key = "node_modules/baddemo".to_string();
+        package.name = "baddemo".to_string();
+        package.integrity = Some(integrity_of(bad));
+        package.resolved = Some("https://registry.npmjs.org/baddemo/-/baddemo-1.2.3.tgz".to_string());
+        inv.projects[0].packages.push(package);
+        inv
+    }
+
+    struct MultiRegistry {
+        tarballs: BTreeMap<String, Vec<u8>>,
+        delay: Option<Duration>,
+    }
+
+    impl Exchange for MultiRegistry {
+        fn fetch(&self, url: &url::Url) -> Result<FetchedResponse> {
+            let path = url.path().trim_start_matches('/');
+            let (name, file) = match path.split_once("/-/") {
+                Some((name, file)) => (name, Some(file)),
+                None => (path, None),
+            };
+            let Some(tarball) = self.tarballs.get(name) else {
+                return Err(Error::Operation(format!("unexpected upstream request {url}")));
+            };
+            if file.is_some() {
+                if let Some(delay) = self.delay {
+                    std::thread::sleep(delay);
+                }
+                if name == "baddemo" {
+                    return Ok(FetchedResponse { status: 500, location: None, body: Vec::new() });
+                }
+                return Ok(FetchedResponse {
+                    status: 200,
+                    location: None,
+                    body: tarball.clone(),
+                });
+            }
+            let integrity = integrity_of(tarball);
+            let body = format!(
+                "{{\"name\":\"{name}\",\"versions\":{{\"1.2.3\":{{\"name\":\"{name}\",\"version\":\"1.2.3\",\"dist\":{{\"tarball\":\"https://registry.npmjs.org/{name}/-/{name}-1.2.3.tgz\",\"integrity\":\"{integrity}\"}}}}}}}}"
+            );
+            Ok(FetchedResponse { status: 200, location: None, body: body.into_bytes() })
+        }
+    }
+
+    #[test]
+    fn keeps_verified_artifacts_when_another_package_fails() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = dir.path().join("state");
+        let good = tarball_for("flatdemo", "1.2.3");
+        let bad = tarball_for("baddemo", "1.2.3");
+        let exchange = MultiRegistry {
+            tarballs: BTreeMap::from([
+                ("flatdemo".to_string(), good.clone()),
+                ("baddemo".to_string(), bad.clone()),
+            ]),
+            delay: None,
+        };
+        let inventory = two_package_inventory(&good, &bad);
+        crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
+        let err = fetch_inventory(&state, &download_config(), &exchange).unwrap_err();
+        assert!(matches!(err, Error::Operation(_)), "{err}");
+        assert!(
+            state
+                .join("objects")
+                .join("sha512")
+                .join(format!("{}.tgz", digest_of(&good)))
+                .is_file()
+        );
+        let recorded = load_inventory(&state).unwrap();
+        assert!(recorded.artifacts.iter().any(|a| a.name == "flatdemo"));
+        assert!(!recorded.artifacts.iter().any(|a| a.name == "baddemo"));
+        assert_eq!(std::fs::read_dir(state.join("tmp")).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn a_task_started_before_the_deadline_finishes_and_is_recorded() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = dir.path().join("state");
+        let good = tarball_for("flatdemo", "1.2.3");
+        let exchange = MultiRegistry {
+            tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
+            delay: Some(Duration::from_millis(600)),
+        };
+        let inventory = fixture_inventory("flatdemo", "1.2.3", Some(&integrity_of(&good)));
+        crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
+        let deadline = Instant::now() + Duration::from_millis(300);
+        let summary = fetch_inventory_until(&state, &download_config(), &exchange, deadline).unwrap();
+        assert_eq!(summary.verified_count, 1);
+        assert!(
+            state
+                .join("objects")
+                .join("sha512")
+                .join(format!("{}.tgz", digest_of(&good)))
+                .is_file()
+        );
+        assert_eq!(load_inventory(&state).unwrap().artifacts.len(), 1);
+    }
+
+    #[test]
+    fn a_deadline_before_start_downloads_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = dir.path().join("state");
+        let good = tarball_for("flatdemo", "1.2.3");
+        let exchange = MultiRegistry {
+            tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
+            delay: None,
+        };
+        let inventory = fixture_inventory("flatdemo", "1.2.3", Some(&integrity_of(&good)));
+        crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
+        let err = fetch_inventory_until(&state, &download_config(), &exchange, Instant::now()).unwrap_err();
+        assert!(matches!(err, Error::Cancelled(_)), "{err}");
+        assert!(!state.join("objects").join("sha512").exists());
+        assert!(load_inventory(&state).unwrap().artifacts.is_empty());
     }
 }
