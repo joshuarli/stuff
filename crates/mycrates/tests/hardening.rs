@@ -578,11 +578,11 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 400"), "expected 400, got {resp:?}");
         assert!(resp.contains("empty json"));
     }
 
-    // 2. Corrupt gzip payload in crate tarball -> 400
+    // 2. Corrupt gzip payload in crate tarball -> 422
     {
         let json = deser_json::to_string(&deser_value::value!({
             "name": "corrupt-gz",
@@ -605,10 +605,10 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 422"), "expected 422, got {resp:?}");
     }
 
-    // 3. Name mismatch between JSON metadata and Cargo.toml -> 400
+    // 3. Name mismatch between JSON metadata and Cargo.toml -> 422
     {
         let crate_bytes = make_test_crate("real-name", "1.0.0");
         let json = deser_json::to_string(&deser_value::value!({
@@ -631,7 +631,7 @@ fn malformed_upload_corpus() {
 
         let mut resp = String::new();
         stream.read_to_string(&mut resp).unwrap();
-        assert!(resp.starts_with("HTTP/1.1 400"));
+        assert!(resp.starts_with("HTTP/1.1 422"), "expected 422, got {resp:?}");
         assert!(resp.contains("wrong prefix") || resp.contains("name/version mismatch"));
     }
 }

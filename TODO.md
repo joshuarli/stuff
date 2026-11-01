@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-37 · P3 · mycrates serve-publish drops connections silently and reports server faults as 400
-
-- **Area:** Errors
-- **Where:** `crates/mycrates/src/serve.rs:275-278`, `crates/mycrates/src/serve.rs:310-327`, `crates/mycrates/src/serve.rs:349-353`, `crates/mycrates/src/serve.rs:389-391`, `crates/mycrates/src/serve.rs:507`
-- **Problem:** `?` on `lock_exclusive`, `ingest_staged_file`, and `parse_packaged_manifest` returns from `handle_connection`, and `run_server` discards the error with `let _ =`, so Cargo gets an empty reply (a manifest with a `path` dependency that passes the archive scan is one trigger). Every other branch maps `Operation`, `Integrity`, and `Input` alike to 400, including disk-full, and the server logs nothing. The blob is ingested before the name and index checks, so a rejected upload leaves an orphan blob in `state/blobs` that nothing removes.
-- **Recommendation:** Add one `Error`-to-status mapping (Input 400, Integrity 422, Conflict 409, Limit 413, Network 502, Operation 500), convert every `Err` into a response with a stderr line, and validate name, version, and manifest before ingest.
-- **Fix with:** error-model
-- **Effort:** S
-
 ### STUF-38 · P3 · mycrates serve-publish reuses fetch limits, so four idle sockets block publishing
 
 - **Area:** Security

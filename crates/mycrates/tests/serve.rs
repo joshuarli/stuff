@@ -26,6 +26,24 @@ fn make_test_crate(name: &str, ver: &str) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
+fn make_test_crate_with_path_dependency(name: &str, ver: &str) -> Vec<u8> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    let mut tar = Builder::new(&mut encoder);
+    let cargo_toml = format!(
+        "[package]\nname = \"{}\"\nversion = \"{}\"\nedition = \"2021\"\n\n[dependencies]\nfoo = {{ path = \"../foo\" }}\n",
+        name, ver
+    );
+    let mut header = tar::Header::new_gnu();
+    let path = format!("{}-{}/Cargo.toml", name, ver);
+    header.set_path(&path).unwrap();
+    header.set_size(cargo_toml.len() as u64);
+    header.set_mode(0o644);
+    header.set_cksum();
+    tar.append(&header, cargo_toml.as_bytes()).unwrap();
+    let _ = tar.into_inner().unwrap();
+    encoder.finish().unwrap()
+}
+
 fn build_wire_payload(body_json: &str, crate_bytes: &[u8]) -> Vec<u8> {
     let mut payload = Vec::new();
     let json_bytes = body_json.as_bytes();
@@ -185,6 +203,62 @@ fn serve_framing_and_auth() {
         assert!(resp2.starts_with("HTTP/1.1 200"));
         assert!(resp2.contains("ok"));
     }
+}
+
+#[test]
+fn a_rejected_manifest_gets_a_response_and_leaves_no_blob() {
+    let dir = tempdir().unwrap();
+    let state_dir = dir.path().join("state");
+    let site_dir = dir.path().join("site");
+    let token = "reject-token";
+    let server = fixture::TestServer::start(
+        state_dir.clone(),
+        site_dir.clone(),
+        "",
+        Some(token.to_string()),
+        true,
+    );
+
+    let crate_bytes = make_test_crate_with_path_dependency("path-dep-pkg", "1.0.0");
+    let json = deser_json::to_string(&deser_value::value!({
+        "name": "path-dep-pkg",
+        "vers": "1.0.0",
+        "deps": [],
+        "features": {},
+        "authors": [],
+        "description": "test crate",
+        "documentation": null,
+        "homepage": null,
+        "readme": null,
+        "keywords": [],
+        "categories": [],
+        "license": "MIT",
+        "license_file": null,
+        "repository": null,
+        "badges": {},
+        "links": null
+    }))
+    .unwrap();
+    let payload = build_wire_payload(&json, &crate_bytes);
+
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", server.port)).unwrap();
+    let req = format!(
+        "PUT /api/v1/crates/new HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        payload.len()
+    );
+    stream.write_all(req.as_bytes()).unwrap();
+    stream.write_all(&payload).unwrap();
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).unwrap();
+
+    assert!(resp.starts_with("HTTP/1.1 422"), "expected a rejection, got: {resp:?}");
+    assert!(resp.contains("path source"), "{resp}");
+    let blobs = state_dir.join("blobs");
+    let leaked = match std::fs::read_dir(&blobs) {
+        Ok(entries) => entries.count(),
+        Err(_) => 0,
+    };
+    assert_eq!(leaked, 0, "rejected publication left a blob in {}", blobs.display());
 }
 
 #[test]

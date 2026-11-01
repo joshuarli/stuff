@@ -154,10 +154,28 @@ fn send_error(stream: &TcpStream, status: u16, detail: &str) {
         411 => "Length Required",
         408 => "Request Timeout",
         413 => "Payload Too Large",
+        422 => "Unprocessable Entity",
+        502 => "Bad Gateway",
         503 => "Service Unavailable",
         _ => "Internal Server Error",
     };
     send_json_response(stream, status, reason, &body);
+}
+
+fn status_for(error: &Error) -> u16 {
+    match error {
+        Error::Input(_) => 400,
+        Error::Integrity(_) => 422,
+        Error::Conflict(_) => 409,
+        Error::Limit(_) => 413,
+        Error::Network(_) => 502,
+        Error::Operation(_) => 500,
+    }
+}
+
+fn send_failure(stream: &TcpStream, method: &str, path: &str, error: &Error) {
+    eprintln!("serve-publish: {method} {path}: {error}");
+    send_error(stream, status_for(error), &error.to_string());
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -268,12 +286,8 @@ pub fn handle_publish_request<R: Read>(
             &staging_dir,
         ) {
             Ok(d) => d,
-            Err(Error::Limit(msg)) => {
-                send_error(stream, 413, &msg);
-                return Ok(());
-            }
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
@@ -289,7 +303,7 @@ pub fn handle_publish_request<R: Read>(
         let staged_file = match decoded.open() {
             Ok(f) => f,
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
@@ -303,35 +317,52 @@ pub fn handle_publish_request<R: Read>(
             &scan_limits,
         ) {
             Ok(s) => s,
-            Err(Error::Limit(msg)) => {
-                send_error(stream, 413, &msg);
-                return Ok(());
-            }
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
 
-        let _guard = store.lock_exclusive()?;
+        let _guard = match store.lock_exclusive() {
+            Ok(guard) => guard,
+            Err(e) => {
+                send_failure(stream, method, path, &e);
+                return Ok(());
+            }
+        };
 
-        let blob_sha = store.ingest_staged_file(&decoded.crate_bytes_path, &decoded.crate_sha256)?;
-        if blob_sha != scan_res.checksum {
-            send_error(stream, 400, "checksum mismatch");
+        if decoded.crate_sha256 != scan_res.checksum {
+            send_failure(stream, method, path, &Error::Integrity("checksum mismatch".to_string()));
             return Ok(());
         }
-
         let mut body = decoded.body;
-        body.checksum = blob_sha.clone();
-
-        let packaged = parse_packaged_manifest(&scan_res.cargo_toml)?;
+        body.checksum = decoded.crate_sha256.clone();
+        let packaged = match parse_packaged_manifest(&scan_res.cargo_toml) {
+            Ok(packaged) => packaged,
+            Err(e) => {
+                send_failure(stream, method, path, &e);
+                return Ok(());
+            }
+        };
         let index_entry = match publish_to_index_with_manifest(&body, Some(&packaged)) {
             Ok(entry) => entry,
             Err(e) => {
-                send_error(stream, 400, &e.to_string());
+                send_failure(stream, method, path, &e);
                 return Ok(());
             }
         };
+
+        let blob_sha = match store.ingest_staged_file(&decoded.crate_bytes_path, &decoded.crate_sha256) {
+            Ok(blob_sha) => blob_sha,
+            Err(e) => {
+                send_failure(stream, method, path, &e);
+                return Ok(());
+            }
+        };
+        if blob_sha != body.checksum {
+            send_failure(stream, method, path, &Error::Integrity("checksum mismatch".to_string()));
+            return Ok(());
+        }
 
         let record = NativeRecord {
             name: body.name.clone(),
@@ -341,20 +372,13 @@ pub fn handle_publish_request<R: Read>(
             entry: index_entry,
         };
 
-        match store.put_native_record(&record) {
-            Ok(_) => {}
-            Err(Error::Conflict(msg)) => {
-                send_error(stream, 409, &msg);
-                return Ok(());
-            }
-            Err(e) => {
-                send_error(stream, 400, &e.to_string());
-                return Ok(());
-            }
+        if let Err(e) = store.put_native_record(&record) {
+            send_failure(stream, method, path, &e);
+            return Ok(());
         }
 
         if let Err(e) = publisher.publish() {
-            send_error(stream, 500, &e.to_string());
+            send_failure(stream, method, path, &e);
             return Ok(());
         }
 
@@ -372,11 +396,17 @@ pub fn handle_publish_request<R: Read>(
             let crate_name = parts[3];
             let crate_version = parts[4];
 
-            let _guard = store.lock_exclusive()?;
+            let _guard = match store.lock_exclusive() {
+                Ok(guard) => guard,
+                Err(e) => {
+                    send_failure(stream, method, path, &e);
+                    return Ok(());
+                }
+            };
             match store.set_native_yank(crate_name, crate_version, is_yank) {
                 Ok(_) => {
                     if let Err(e) = publisher.publish() {
-                        send_error(stream, 500, &e.to_string());
+                        send_failure(stream, method, path, &e);
                         return Ok(());
                     }
                     send_json_response(stream, 200, "OK", "{\"ok\":true}");
@@ -387,7 +417,7 @@ pub fn handle_publish_request<R: Read>(
                     return Ok(());
                 }
                 Err(e) => {
-                    send_error(stream, 400, &e.to_string());
+                    send_failure(stream, method, path, &e);
                     return Ok(());
                 }
             }
@@ -504,7 +534,9 @@ pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
                 let cfg_clone = cfg.clone();
                 std::thread::spawn(move || {
                     let _guard = guard;
-                    let _ = handle_connection(stream, &cfg_clone);
+                    if let Err(e) = handle_connection(stream, &cfg_clone) {
+                        eprintln!("serve-publish: connection failed: {e}");
+                    }
                 });
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -515,4 +547,24 @@ pub fn run_server(cfg: ServeConfig, stop: Arc<AtomicBool>) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failure_categories_map_to_statuses() {
+        let cases = [
+            (Error::Input(String::new()), 400),
+            (Error::Integrity(String::new()), 422),
+            (Error::Conflict(String::new()), 409),
+            (Error::Limit(String::new()), 413),
+            (Error::Network(String::new()), 502),
+            (Error::Operation(String::new()), 500),
+        ];
+        for (error, status) in cases {
+            assert_eq!(status_for(&error), status, "{error}");
+        }
+    }
 }
