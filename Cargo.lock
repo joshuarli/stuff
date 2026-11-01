@@ -789,6 +789,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "myoci"
+version = "0.1.0"
+dependencies = [
+ "deser-json",
+ "deser-value",
+ "stuff-oci",
+ "stuff-store",
+ "tempfile",
+]
+
+[[package]]
 name = "mypypi"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,128 @@
+#![forbid(unsafe_code)]
+
+use crate::error::{Error, Result};
+use crate::state::State;
+use std::collections::BTreeSet;
+use std::path::Path;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Inspection {
+    pub tags: Vec<String>,
+    pub manifests: Vec<String>,
+    pub blobs: Vec<String>,
+    pub referrers: Vec<String>,
+}
+
+impl Inspection {
+    pub fn render_json(&self) -> String {
+        let mut out = String::from("{\n");
+        out.push_str(&format!("  \"tags\": {},\n", render_array(&self.tags)));
+        out.push_str(&format!("  \"manifests\": {},\n", render_array(&self.manifests)));
+        out.push_str(&format!("  \"blobs\": {},\n", render_array(&self.blobs)));
+        out.push_str(&format!("  \"referrers\": {}\n", render_array(&self.referrers)));
+        out.push_str("}\n");
+        out
+    }
+}
+
+fn render_array(values: &[String]) -> String {
+    let values: Vec<String> = values.iter().map(|value| quoted(value)).collect();
+    format!("[{}]", values.join(", "))
+}
+
+fn quoted(value: &str) -> String {
+    let mut out = String::with_capacity(value.len() + 2);
+    out.push('"');
+    for c in value.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+pub fn inspect(state: &State) -> Result<Inspection> {
+    let mut tags = BTreeSet::new();
+    let mut manifests = BTreeSet::new();
+    let mut referrers = BTreeSet::new();
+    for (repository, path) in state.repository_files()? {
+        let text = std::fs::read_to_string(&path)
+            .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
+        let view = stuff_oci::parse_repository_json(&repository, &text)
+            .map_err(|error| Error::Integrity(error.to_string()))?;
+        for tag in view.tags.keys() {
+            tags.insert(tag.as_str().to_string());
+        }
+        for digest in view.manifests.keys() {
+            manifests.insert(digest.as_str().to_string());
+        }
+        collect_referrer_subjects(&state.referrers_dir(&repository), &mut referrers)?;
+    }
+    let blobs = state
+        .read_blobs()?
+        .iter()
+        .map(|digest| digest.as_str().to_string())
+        .collect();
+    Ok(Inspection {
+        tags: tags.into_iter().collect(),
+        manifests: manifests.into_iter().collect(),
+        blobs,
+        referrers: referrers.into_iter().collect(),
+    })
+}
+
+fn collect_referrer_subjects(dir: &Path, out: &mut BTreeSet<String>) -> Result<()> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(Error::Operation(format!("could not read {}: {error}", dir.display())));
+        }
+    };
+    for entry in entries {
+        let entry = entry
+            .map_err(|e| Error::Operation(format!("could not read {}: {e}", dir.display())))?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        let Some(hex) = name.strip_suffix(".json") else { continue };
+        if hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+            out.insert(format!("sha256:{hex}"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::import::import_layout;
+    use stuff_oci::{RepositoryName, Tag};
+
+    #[test]
+    fn reports_the_imported_fixture() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = State::new(dir.path().to_path_buf());
+        let layout = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/oci/layout");
+        let repository = RepositoryName::parse("example/app").unwrap();
+        import_layout(&state, &layout, &repository, Some(&Tag::parse("stable").unwrap())).unwrap();
+        let inspection = inspect(&state).unwrap();
+        assert_eq!(inspection.tags, ["stable"]);
+        assert_eq!(inspection.manifests.len(), 4);
+        assert_eq!(inspection.blobs.len(), 6);
+        assert_eq!(
+            inspection.referrers,
+            ["sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4"]
+        );
+        let json = inspection.render_json();
+        assert!(json.contains("\"tags\": [\"stable\"]"));
+        assert!(json.contains("\"manifests\": ["));
+    }
+}
