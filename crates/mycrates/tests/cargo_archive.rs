@@ -378,7 +378,9 @@ fn locked_fetch_failure_maps_to_network() {
     fs::write(proj_dir.join("Cargo.lock"), &lock_content).unwrap();
     fs::write(proj_dir.join("src/lib.rs"), "pub fn probe() {}\n").unwrap();
 
-    let err = validate_project(&state_dir, &pins_path, "http://127.0.0.1:1/mirror/", Some(&proj_dir)).unwrap_err();
+    let site_dir = dir.path().join("site");
+    let empty_mirror = TestServer::start(dir.path().join("mirror-state"), site_dir, "", None, false);
+    let err = validate_project(&state_dir, &pins_path, &empty_mirror.mirror_index_url(), Some(&proj_dir)).unwrap_err();
     assert!(matches!(err, Error::Network(_)), "{err}");
 }
 
