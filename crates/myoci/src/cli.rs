@@ -45,6 +45,8 @@ pub struct Parsed {
     pub push_token_file: Option<String>,
     pub push_secret_file: Option<String>,
     pub writer_url: Option<String>,
+    pub r2_bucket: Option<String>,
+    pub deploy_dir: Option<String>,
     pub json: bool,
 }
 
@@ -86,6 +88,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         push_token_file: None,
         push_secret_file: None,
         writer_url: None,
+        r2_bucket: None,
+        deploy_dir: None,
         json: false,
     };
     let mut i = 1;
@@ -125,6 +129,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 parsed.push_secret_file = Some(take(argv, &mut i, "--push-secret-file")?)
             }
             "--writer-url" => parsed.writer_url = Some(take(argv, &mut i, "--writer-url")?),
+            "--r2-bucket" => parsed.r2_bucket = Some(take(argv, &mut i, "--r2-bucket")?),
+            "--deploy-dir" => parsed.deploy_dir = Some(take(argv, &mut i, "--deploy-dir")?),
             "--json" => parsed.json = true,
             other => return Err(Error::Usage(format!("unknown option {other}"))),
         }
@@ -134,7 +140,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         return Err(Error::Usage("--state-dir is required".to_string()));
     }
     let allows = |allowed: &[&str]| -> Result<()> {
-        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--push", parsed.push), ("--push-token-file", parsed.push_token_file.is_some()), ("--push-secret-file", parsed.push_secret_file.is_some()), ("--writer-url", parsed.writer_url.is_some()), ("--json", parsed.json)];
+        let set = [("--layout", parsed.layout.is_some()), ("--from", parsed.from.is_some()), ("--repository", parsed.repository.is_some()), ("--tag", parsed.tag.is_some()), ("--digest", parsed.digest.is_some()), ("--site-dir", parsed.site_dir.is_some()), ("--public-url", parsed.public_url.is_some()), ("--bind", parsed.bind.is_some()), ("--max-connections", parsed.max_connections.is_some()), ("--base-url", parsed.base_url.is_some()), ("--runs", parsed.runs.is_some()), ("--label", parsed.label.is_some()), ("--output", parsed.output.is_some()), ("--push", parsed.push), ("--push-token-file", parsed.push_token_file.is_some()), ("--push-secret-file", parsed.push_secret_file.is_some()), ("--writer-url", parsed.writer_url.is_some()), ("--r2-bucket", parsed.r2_bucket.is_some()), ("--deploy-dir", parsed.deploy_dir.is_some()), ("--json", parsed.json)];
         for (flag, present) in set {
             if present && !allowed.contains(&flag) {
                 return Err(Error::Usage(format!("{flag} is not valid for this command")));
@@ -217,7 +223,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
             }
         }
         Command::Writer => {
-            allows(&["--bind", "--max-connections", "--push-secret-file"])?;
+            allows(&["--bind", "--max-connections", "--push-secret-file", "--r2-bucket", "--deploy-dir"])?;
             if !parsed.push_secret_file.is_some() && std::env::var("STUFF_OCI_PUSH_SECRET").is_err() {
                 return Err(Error::Usage(
                     "writer requires --push-secret-file or STUFF_OCI_PUSH_SECRET".to_string(),
@@ -380,6 +386,15 @@ pub fn run(argv: &[String]) -> Result<()> {
                 max_connections: parsed
                     .max_connections
                     .unwrap_or(crate::writer::DEFAULT_MAX_CONNECTIONS),
+                sink: match parsed.r2_bucket.clone() {
+                    Some(bucket) => crate::writer::WriterSink::R2 {
+                        bucket,
+                        deploy_dir: PathBuf::from(
+                            parsed.deploy_dir.as_deref().unwrap_or("deploy"),
+                        ),
+                    },
+                    None => crate::writer::WriterSink::Local,
+                },
             })?;
         }
         Command::Bench => {

@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-pull test-oci-push test-oci-publish oci-bench fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -142,6 +142,9 @@ test-oci-pull: ## Serve the fixture locally and pull it with curl, Docker, and O
 
 test-oci-push: ## Push a two-platform image through the front and writer
 	deploy/test-oci-push.sh
+
+test-r2-multipart: ## Send a 1 GiB blob through the writer's R2 sink (live S3 credentials)
+	deploy/test-r2-multipart.sh
 
 FLEET_OUT ?= .work/fleet
 

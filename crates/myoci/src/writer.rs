@@ -18,11 +18,18 @@ const MAX_UPLOAD_BYTES: u64 = 20 * 1024 * 1024 * 1024;
 pub const DEFAULT_MAX_CONNECTIONS: usize = 16;
 
 #[derive(Debug, Clone)]
+pub enum WriterSink {
+    Local,
+    R2 { bucket: String, deploy_dir: std::path::PathBuf },
+}
+
+#[derive(Debug, Clone)]
 pub struct WriterOptions {
     pub bind: String,
     pub state: State,
     pub secret: Vec<u8>,
     pub max_connections: usize,
+    pub sink: WriterSink,
 }
 
 pub fn run(options: WriterOptions) -> Result<()> {
@@ -149,7 +156,7 @@ fn handle_connection(mut stream: TcpStream, options: &WriterOptions) {
             }
         },
         WriteMethod::UploadPut { digest, .. } => match append_body(&mut stream, &headers, &body, &temp) {
-            Ok(_) => match verify_and_store(&options.state, &temp, &digest) {
+            Ok(_) => match verify_and_store(&options.state, &temp, &digest, &options.sink) {
                 Ok(()) => {
                     let _ = std::fs::remove_file(&temp);
                     let location = format!("/v2/{}/blobs/{}", request.repository.as_str(), digest.as_str());
@@ -240,6 +247,7 @@ fn verify_and_store(
     state: &State,
     temp: &Path,
     digest: &Digest,
+    sink: &WriterSink,
 ) -> std::result::Result<(), OciError> {
     let hash = stuff_store::stream_file_hash(temp, stuff_store::HashAlg::Sha256)
         .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, error.to_string()))?;
@@ -248,9 +256,64 @@ fn verify_and_store(
             "uploaded blob hashes to sha256:{hash}"
         )));
     }
-    state
-        .store_blob(temp, digest)
-        .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, error.to_string()))
+    match sink {
+        WriterSink::Local => state
+            .store_blob(temp, digest)
+            .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, error.to_string())),
+        WriterSink::R2 { bucket, deploy_dir } => upload_r2(state, temp, digest, bucket, deploy_dir),
+    }
+}
+
+fn upload_r2(
+    state: &State,
+    temp: &Path,
+    digest: &Digest,
+    bucket: &str,
+    deploy_dir: &Path,
+) -> std::result::Result<(), OciError> {
+    let size = std::fs::metadata(temp)
+        .map_err(|error| OciError::new(ErrorCode::BlobUploadInvalid, error.to_string()))?
+        .len();
+    let key = format!("sha256/{}", digest.hex());
+    let single_max = std::env::var("R2_SINGLE_PUT_MAX")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(300 * 1024 * 1024);
+    let fail = |detail: String| OciError::new(ErrorCode::BlobUploadInvalid, detail);
+    if size > single_max {
+        let status = std::process::Command::new("python3")
+            .arg(deploy_dir.join("r2-multipart.py"))
+            .arg(temp)
+            .arg(bucket)
+            .arg(&key)
+            .arg("application/octet-stream")
+            .status()
+            .map_err(|error| fail(format!("could not run r2-multipart.py: {error}")))?;
+        if !status.success() {
+            return Err(fail("R2 multipart upload failed".to_string()));
+        }
+        return Ok(());
+    }
+    let stage = state.uploads_dir().join(format!(".r2-{}", digest.hex()));
+    let _ = std::fs::remove_dir_all(&stage);
+    std::fs::create_dir_all(stage.join("sha256"))
+        .map_err(|error| fail(format!("could not create R2 staging: {error}")))?;
+    let staged = stage.join(&key);
+    std::fs::copy(temp, &staged).map_err(|error| fail(format!("could not stage blob: {error}")))?;
+    let keys = stage.join("keys");
+    std::fs::write(&keys, format!("{key}\n")).map_err(|error| fail(format!("could not write keys: {error}")))?;
+    let status = std::process::Command::new("python3")
+        .arg(deploy_dir.join("r2-put.py"))
+        .arg(&stage)
+        .arg(bucket)
+        .arg(&keys)
+        .status()
+        .map_err(|error| fail(format!("could not run r2-put.py: {error}")))?;
+    let _ = std::fs::remove_dir_all(&stage);
+    if !status.success() {
+        return Err(fail("R2 blob upload failed".to_string()));
+    }
+    Ok(())
 }
 
 fn now() -> u64 {
