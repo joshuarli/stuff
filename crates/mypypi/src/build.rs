@@ -18,7 +18,7 @@ const BINARY_SUFFIXES: &[&str] = &[".so", ".dylib", ".pyd", ".dll", ".exe"];
 const SDIST_EXPANDED_LIMIT: u64 = 1024 * 1024 * 1024;
 const HEAD_BYTES: usize = 1024 * 1024;
 
-pub const UV_VERSION: &str = "0.13.2";
+pub const UV_VERSION: &str = include_str!("../../../deploy/uv-version").trim_ascii();
 
 fn uv_version_in(output: &str) -> Option<&str> {
     output.split_whitespace().nth(1).filter(|version| !version.is_empty())
@@ -893,7 +893,8 @@ mod tests {
 
     #[test]
     fn reads_the_uv_version() {
-        assert_eq!(uv_version_in("uv 0.13.2 (63f83b1a2 2026-10-19 aarch64-apple-darwin)"), Some("0.13.2"));
+        let output = format!("uv {UV_VERSION} (63f83b1a2 2026-10-19 aarch64-apple-darwin)");
+        assert_eq!(uv_version_in(&output), Some(UV_VERSION));
         assert_eq!(uv_version_in(""), None);
         assert_eq!(uv_version_in("uv"), None);
     }

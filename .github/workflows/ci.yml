@@ -49,9 +49,11 @@ jobs:
         with:
           version: 12.15.0
           run_install: false
+      - name: read the uv pin
+        run: echo "UV_VERSION=$(cat deploy/uv-version)" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
-          version: 0.13.5
+          version: ${{ env.UV_VERSION }}
       - run: uv python install 3.15
       - name: select the pinned interpreter
         run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
@@ -67,9 +69,11 @@ jobs:
           persist-credentials: false
       - name: setup rust
         run: rustup show
+      - name: read the uv pin
+        run: echo "UV_VERSION=$(cat deploy/uv-version)" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
-          version: 0.13.5
+          version: ${{ env.UV_VERSION }}
       - run: uv python install 3.15
       - name: select the pinned interpreter
         run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
