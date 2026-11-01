@@ -170,7 +170,7 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
       : cached;
   }
   const texts = await Promise.all(
-    ["MYCRATES", "MYNPM", "PYPI"].map((binding) => catalogText(env, binding)),
+    ["MYCRATES", "MYNPM", "PYPI", "OCI"].map((binding) => catalogText(env, binding)),
   );
   if (texts.some((text) => text === null)) {
     return new Response("unified catalog not ready", {
@@ -369,7 +369,10 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
     if (
       typeof ociHost === "string" &&
       ociHost !== "" &&
-      url.hostname === ociHost
+      url.hostname === ociHost &&
+      (url.pathname === "/v2" ||
+        url.pathname === "/v2/" ||
+        url.pathname.startsWith("/v2/"))
     ) {
       return ociFetch(req, env, url);
     }

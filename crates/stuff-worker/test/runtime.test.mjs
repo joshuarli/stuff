@@ -22,6 +22,7 @@ const ROUTES = JSON.stringify([
   { host: "crates.test", bucket_binding: "MYCRATES", key_prefix: "" },
   { host: "npm.test", bucket_binding: "MYNPM", key_prefix: "" },
   { host: "pypi.test", bucket_binding: "PYPI", key_prefix: "" },
+  { host: "oci.test", bucket_binding: "OCI", key_prefix: "" },
 ]);
 
 test("the uploaded module graph resolves from the main module name", () => {
@@ -65,6 +66,7 @@ async function seed(mf, { pypiCatalog } = {}) {
     MYCRATES: catalog("cargo", "crate"),
     MYNPM: catalog("npm", "package"),
     PYPI: pypiCatalog ?? catalog("pypi", "wheelpkg"),
+    OCI: catalog("oci", "example/app"),
   };
   for (const [binding, text] of Object.entries(catalogs)) {
     const bucket = await mf.getR2Bucket(binding);
@@ -139,10 +141,28 @@ test("unified llms.txt advertises the configured hosts", async (t) => {
   assert.equal(response.status, 200);
   const text = await response.text();
   assert.match(text, /Aggregate browser: https:\/\/stuff\.test\/ /);
-  for (const origin of ["https://crates.test", "https://npm.test", "https://pypi.test"]) {
+  for (const origin of ["https://crates.test", "https://npm.test", "https://pypi.test", "https://oci.test"]) {
     assert.ok(text.includes(`${origin}/llms.txt`), `${origin}/llms.txt`);
   }
   assert.ok(!text.includes("17166969.xyz"));
+});
+
+test("the unified page and llms.txt include OCI", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seed(mf);
+  const page = await mf.dispatchFetch("https://stuff.test/");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes("example/app"), "unified page lists the OCI repository");
+  assert.ok(html.includes("OCI"), "unified page names the OCI registry");
+  const llms = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  const text = await llms.text();
+  assert.ok(text.includes("OCI registry"), "unified llms names the OCI registry");
+  assert.ok(text.includes("- OCI: https://oci.test/llms.txt"), "unified llms links OCI");
+  const catalog = await mf.dispatchFetch("https://oci.test/current/catalog.json");
+  assert.equal(catalog.status, 200);
+  assert.match(await catalog.text(), /"registry":"oci"/);
 });
 
 test("root pages link to objects that resolve", async (t) => {
