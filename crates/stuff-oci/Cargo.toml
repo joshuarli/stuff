@@ -1,0 +1,17 @@
+[package]
+name = "stuff-oci"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "OCI Distribution protocol core"
+repository = "https://github.com/joshuarli/stuff"
+
+[lib]
+name = "stuff_oci"
+path = "src/lib.rs"
+
+[dependencies]
+deser-json = "0.10"
+deser-value = "0.10"
+sha2 = "0.10"

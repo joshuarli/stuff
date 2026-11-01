@@ -37,6 +37,7 @@ members = [
   "crates/stuff-store",
   "crates/stuff-cargo-shard",
   "crates/stuff-http",
+  "crates/stuff-oci",
   "crates/stuff-server",
   "crates/stuff-worker",
   "crates/stuff-catalog",

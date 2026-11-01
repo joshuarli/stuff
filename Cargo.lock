@@ -1329,6 +1329,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "stuff-oci"
+version = "0.1.0"
+dependencies = [
+ "deser-json",
+ "deser-value",
+ "sha2",
+]
+
+[[package]]
 name = "stuff-server"
 version = "0.1.0"
 dependencies = [
