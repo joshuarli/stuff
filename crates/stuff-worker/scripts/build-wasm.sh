@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+cd "$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+target_dir=${CARGO_TARGET_DIR:-../../target}
+
+command -v wasm-bindgen >/dev/null || {
+  echo "wasm-bindgen is required" >&2
+  exit 1
+}
+command -v wasm-opt >/dev/null || {
+  echo "wasm-opt from Binaryen is required" >&2
+  exit 1
+}
+
+cargo build --target wasm32-unknown-unknown --profile wasm-release -p stuff-worker
+wasm-bindgen --target web --out-dir build/wasm "$target_dir/wasm32-unknown-unknown/wasm-release/stuff_worker.wasm"
+wasm-opt -O3 --strip-debug --strip-producers build/wasm/stuff_worker_bg.wasm -o build/wasm/stuff_worker_bg.opt.wasm
+mv build/wasm/stuff_worker_bg.opt.wasm build/wasm/stuff_worker_bg.wasm
