@@ -9,10 +9,11 @@
 - **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation. M2 — `linux-musl-toolchain` replaces `rust-musl-image` and enforces the lock with a deterministic fixer (8e5e209). M3 — canonical `docker/musl/Dockerfile`, its `rust-toolchain.toml`, and `repomod musl build` (cd1f16f). A local `linux/amd64` build completed within the time box; its OCI layout digest was `sha256:f3d9149eb4f54d7e1b49fddaf8d81ddede0545ee9cb41bae34209bf6fb1d1bc6`, and the smoke test printed clang 23.1.0-rc2 and mold 3.0.0 and found `/usr/local/bin/musl-cargo`. The local image and OCI output were removed after the proof. M4 — shared `static_elf.py`, `docker/musl/verify-static-elf`, and workflow enforcement with the image-mode trace (c04ade5). On `linux/amd64`, the static artifact passed, the dynamic artifact failed on `PT_INTERP`, the good trace passed, and the rustup self-contained trace failed. The local image was removed after the proof.
 - **Close checks:** `make test` is 595 passed and 1 skipped; `ruff` and `ty` pass. The fleet dry-run is 118 error findings across 15 repositories, 0 operational, 105 fixable, in 0.303 s. `mdtool check --untracked campaign-oci.md` exits 0 with 6 R001 warnings for paths that belong to other repositories. `ultrareview` is not installed, so the close used the repository checks and a manual `ca099ce..HEAD` diff review. The closeout lifecycle ran `codex-campaign-closeout.py begin`, pruned stale worktree registrations, and cleared the marker; the campaign left no worktrees, containers, images, or scratch behind.
 - **Rollout (post-close):** `repomod fix --rule linux-musl-toolchain` opened 11 PRs; 9 merged automatically or by admin after their real checks passed (`ish`, `diff-pretty`, `e`, `fastermod`, `fdu`, `git-build`, `rustybench`, `srv`, `vault`). Three follow-up PRs were opened for the remaining fixable repos; `node-build` and `zzz` merged, and `tansu` is open. `fz` and `tansu` have pending reruns, and `tm` is blocked by the known `missing tmux 3.8 reference` failure. `clang23` was added to the lock and `node-build` now uses it. The local fleet after the rollout is 49 findings in 6 repositories, 0 operational, 42 fixable; the merged remote state is lower. `zzz` is merged remotely but its canonical checkout is still on `all-green/zzz`, so the local fleet lint still reports its 3 findings until it returns to `master`.
+- **Published image:** `ghcr.io/joshuarli/musl-toolchain:1.2.6-alpine3.24.2`, index digest `sha256:b024a1f888fb845e0a9c4f140d08448832ed1735f5202fd3eefd0ce4b2a41021`; `[image].reference` and `[image].digest` now record it. The index contains `linux/amd64` and `linux/arm64` manifests, and `pins refresh --check --only musl` remains green.
 - **Environment note:** `pins refresh --check --only musl` exits 0 again after the Docker Hub rate limit cleared. Manual findings remain on `chromium-build` (4 adapter-lock items), `fdu` (rustup 1.29.0), and `tansu` (the unverified rustup installer); these are not deterministic fixer edits.
 - **Fleet dry-run (M2, unchanged at close):** 118 error findings across 15 repositories, 0 operational, 105 fixable. Counts: `ish` 10, `tansu` 25, `chromium-build` 4, `diff-pretty` 9, `e` 9, `fastermod` 6, `fdu` 2, `fz` 10, `git-build` 1, `node-build` 6, `rustybench` 9, `srv` 6, `tm` 6, `vault` 12, `zzz` 3. `fdu` reports the stale `python3` and rustup 1.29.0; `tansu` reports both musl Dockerfiles. `node-build`'s `clang` token has no version in the live Alpine index, so its package findings stay manual instead of inventing one. `python-build` is clean, and skipped or builder-free repositories return no findings.
 - **Red:** the campaign's own checks are green. The local fleet still reports 49 findings; the merged remote state is lower. The remainder is the open fz/tansu/tm PRs and the manual adapter and rustup findings, not the original 118-item migration backlog.
-- **Next:** closed. Remaining work is the fz/tansu reruns, the tm CI fix, the manual adapter and rustup findings, image publication, and consumer migration.
+- **Next:** closed. Remaining work is the fz/tansu reruns, the tm CI fix, the manual adapter and rustup findings, and consumer migration.
 - **Resume:** "Campaign closed. Execute the **Needs environment** items with the owner's authority."
 
 ## Charter
@@ -110,7 +111,7 @@ Verified on 2026-11-01 at `0fc287f`, after `uv run repomod sync`. The catalog ha
 ### Environment facts
 
 - Docker 29.8.2 with buildx 0.22.0; both `linux/amd64` and `linux/arm64` builders are available. A trivial Alpine OCI build completed locally in 1.9 s.
-- No registry login is configured and the active `gh` token has no `write:packages` scope. Publishing the canonical image is a **Needs environment** step.
+- The canonical image was published on 2026-11-01 after the token gained `write:packages`; its index digest is recorded in **Status** and `[image]`.
 - The `zzz` checkout is on `all-green/zzz`, not its default branch; `sync` fetched but did not switch it. An owner-run fixer will skip it until it is back on the default branch.
 - `ultrareview` is not installed on this host; `mdtool` is. M5 uses the repository checks and a manual diff review and records the missing review tool.
 
@@ -372,14 +373,14 @@ The fleet lint is expected to exit 1 until the owner-run rollout; its JSON is th
 
 These items do not hold the campaign open. Run them on the owner's authority and record the result in **Status**.
 
-1. **Publish the canonical image.** No registry login and no `write:packages` scope are available here.
+1. **Publish the canonical image.** Done on 2026-11-01: `ghcr.io/joshuarli/musl-toolchain:1.2.6-alpine3.24.2`, index digest `sha256:b024a1f888fb845e0a9c4f140d08448832ed1735f5202fd3eefd0ce4b2a41021`. The commands below are the reproducible record.
    ```sh
    docker buildx build --platform linux/amd64,linux/arm64 \
      --push -t ghcr.io/<owner>/musl-toolchain:<version> \
      -f docker/musl/Dockerfile docker/musl
    docker buildx imagetools inspect ghcr.io/<owner>/musl-toolchain:<version>
    ```
-   Record the index digest as `[image].reference` and `[image].digest` in `musl-toolchain.toml`, then run `repomod pins refresh --check` and the image-mode fixtures.
+   Record the repository as `[image].reference` and the index digest as `[image].digest` in `musl-toolchain.toml`, then run `repomod pins refresh --check` and the image-mode fixtures. Both are green.
 
 2. **Heavy builds on Linux.** These are the bespoke builders' own documented commands; do not run them on this macOS host.
    - `python-build`: `python3 build.py doctor`, then `fetch`, `build`, and `qualify` for `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl`.
