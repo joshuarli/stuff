@@ -93,10 +93,11 @@ function worker() {
       { type: "ESModule", include: ["**/*.js"] },
       { type: "CompiledWasm", include: ["**/*.wasm"] },
     ],
-    r2Buckets: ["MYCRATES", "MYNPM", "PYPI"],
+    r2Buckets: ["MYCRATES", "MYNPM", "PYPI", "OCI", "OCI_BLOBS"],
     bindings: {
       STUFF_ROUTES: ROUTES,
       STUFF_UNIFIED_HOST: "stuff.test",
+      STUFF_OCI_HOST: "oci.test",
     },
   });
 }
@@ -349,4 +350,192 @@ test("native server and worker agree on routes and cache kinds", async (t) => {
       `cache-control for ${path}`,
     );
   }
+});
+
+const OCI_FIXTURE = fileURLToPath(
+  new URL("../../../tests/fixtures/oci/layout", import.meta.url),
+);
+const OCI_INDEX = "sha256:04237663eeeaf2ee4f6dec1a5d23c8a7c1bc70275cbfa205e6f35377603c6388";
+const OCI_ARM64 = "sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4";
+const OCI_AMD64 = "sha256:d4ae9ea60e8f1f455de9959f23d711014d5f97e9d85ce82a6ecc769a61d1c65c";
+const OCI_REFERRER = "sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab8683467f1f264f25";
+const OCI_LAYER = "sha256:882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
+const OCI_REFERRER_TYPE = "application/vnd.stuff.sbom.v1+json";
+
+function ociDescriptor(mediaType, digest, size, extra = {}) {
+  return { mediaType, digest, size, ...extra };
+}
+
+async function seedOci(mf) {
+  const blobDir = join(OCI_FIXTURE, "blobs", "sha256");
+  const meta = await mf.getR2Bucket("OCI");
+  const blobs = await mf.getR2Bucket("OCI_BLOBS");
+  await meta.put("current", "g1");
+  const index = ociDescriptor("application/vnd.oci.image.index.v1+json", OCI_INDEX, 491);
+  const arm64 = ociDescriptor("application/vnd.oci.image.manifest.v1+json", OCI_ARM64, 401);
+  const amd64 = ociDescriptor("application/vnd.oci.image.manifest.v1+json", OCI_AMD64, 401);
+  const referrer = ociDescriptor("application/vnd.oci.image.manifest.v1+json", OCI_REFERRER, 671, {
+    artifactType: OCI_REFERRER_TYPE,
+    annotations: { "org.opencontainers.image.created": "2026-11-01T00:00:00Z" },
+  });
+  const repository = JSON.stringify({
+    schemaVersion: 1,
+    repository: "example/app",
+    tags: { stable: index, beta: arm64 },
+    manifests: [index, arm64, amd64, referrer],
+  });
+  await meta.put("generations/g1/repositories/example/app/repository.json", repository);
+  await meta.put(
+    "generations/g1/repositories/example/app/referrers/sha256/576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4.json",
+    JSON.stringify({
+      schemaVersion: 2,
+      mediaType: "application/vnd.oci.image.index.v1+json",
+      manifests: [referrer],
+    }),
+  );
+  for (const digest of [OCI_INDEX, OCI_ARM64, OCI_AMD64, OCI_REFERRER]) {
+    await meta.put(
+      `oci/manifests/sha256/${digest.slice("sha256:".length)}`,
+      readFileSync(join(blobDir, digest.slice("sha256:".length))),
+    );
+  }
+  for (const digest of [
+    "120ab4e8b5d4dfbdda6b6ccd16c9e4320530c08b35463b414e411fb76d9e30c9",
+    "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55",
+    "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "6615b2d5776183ba25e1bfa8e789346fe3a65066e808ac5b6beb5710bb94d10e",
+    "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f",
+    "bf2585f7b79b5ba8a5d7f256f7c2ce5a537ebc1c0d9e043ca90c461f2183f718",
+  ]) {
+    await blobs.put(`sha256/${digest}`, readFileSync(join(blobDir, digest)));
+  }
+}
+
+test("oci ping and manifest reads ignore Accept and pin the stored type", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+
+  const ping = await mf.dispatchFetch("https://oci.test/v2/");
+  assert.equal(ping.status, 200);
+  assert.equal(ping.headers.get("docker-distribution-api-version"), "registry/2.0");
+  assert.equal(await ping.text(), "{}");
+
+  const byTag = await mf.dispatchFetch("https://oci.test/v2/example/app/manifests/stable", {
+    headers: { accept: "application/vnd.docker.distribution.manifest.list.v2+json" },
+  });
+  assert.equal(byTag.status, 200);
+  assert.equal(byTag.headers.get("content-type"), "application/vnd.oci.image.index.v1+json");
+  assert.equal(byTag.headers.get("docker-content-digest"), OCI_INDEX);
+  assert.equal(byTag.headers.get("cache-control"), "public, max-age=60, stale-if-error=0");
+  assert.equal((await byTag.arrayBuffer()).byteLength, 491);
+
+  const byDigest = await mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`);
+  assert.equal(byDigest.status, 200);
+  assert.match(byDigest.headers.get("cache-control"), /immutable/);
+  const head = await mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`, {
+    method: "HEAD",
+  });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), "");
+  assert.equal(head.headers.get("content-length"), "491");
+});
+
+test("oci blob reads support HEAD and a single range", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+  const base = `https://oci.test/v2/example/app/blobs/${OCI_LAYER}`;
+
+  const full = await mf.dispatchFetch(base);
+  assert.equal(full.status, 200);
+  assert.equal(full.headers.get("docker-content-digest"), OCI_LAYER);
+  assert.equal((await full.arrayBuffer()).byteLength, 117);
+
+  const head = await mf.dispatchFetch(base, { method: "HEAD" });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get("content-length"), "117");
+  assert.equal(await head.text(), "");
+
+  const ranged = await mf.dispatchFetch(base, { headers: { range: "bytes=0-9" } });
+  assert.equal(ranged.status, 206);
+  assert.equal(ranged.headers.get("content-range"), "bytes 0-9/117");
+  const bytes = Buffer.from(await ranged.arrayBuffer());
+  assert.deepEqual(
+    bytes,
+    readFileSync(join(OCI_FIXTURE, "blobs", "sha256", OCI_LAYER.slice("sha256:".length))).subarray(0, 10),
+  );
+
+  const missing = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/blobs/sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  );
+  assert.equal(missing.status, 404);
+  assert.match(await missing.text(), /BLOB_UNKNOWN/);
+});
+
+test("oci tags paginate and referrers honor artifactType", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+
+  const page1 = await mf.dispatchFetch("https://oci.test/v2/example/app/tags/list?n=1");
+  assert.equal(page1.status, 200);
+  assert.deepEqual(await page1.json(), { name: "example/app", tags: ["beta"] });
+  assert.equal(
+    page1.headers.get("link"),
+    '</v2/example/app/tags/list?n=1&last=beta>; rel="next"',
+  );
+  const page2 = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/tags/list?n=1&last=beta",
+  );
+  assert.deepEqual(await page2.json(), { name: "example/app", tags: ["stable"] });
+  assert.equal(page2.headers.get("link"), null);
+
+  const all = await mf.dispatchFetch(`https://oci.test/v2/example/app/referrers/${OCI_ARM64}`);
+  assert.equal(all.status, 200);
+  const allBody = await all.json();
+  assert.equal(allBody.manifests.length, 1);
+  assert.equal(allBody.manifests[0].digest, OCI_REFERRER);
+
+  const filtered = await mf.dispatchFetch(
+    `https://oci.test/v2/example/app/referrers/${OCI_ARM64}?artifactType=${encodeURIComponent(OCI_REFERRER_TYPE)}`,
+  );
+  assert.equal(filtered.headers.get("oci-filters-applied"), "artifactType");
+  assert.equal((await filtered.json()).manifests.length, 1);
+
+  const unknown = await mf.dispatchFetch(
+    `https://oci.test/v2/example/app/referrers/${OCI_ARM64}?artifactType=${encodeURIComponent("application/vnd.example.unknown")}`,
+  );
+  assert.deepEqual((await unknown.json()).manifests, []);
+});
+
+test("oci errors are OCI JSON with the expected status", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+
+  const unknownManifest = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/manifests/nope",
+  );
+  assert.equal(unknownManifest.status, 404);
+  assert.match(await unknownManifest.text(), /MANIFEST_UNKNOWN/);
+
+  const unknownRepository = await mf.dispatchFetch("https://oci.test/v2/other/repo/tags/list");
+  assert.equal(unknownRepository.status, 404);
+  assert.match(await unknownRepository.text(), /NAME_UNKNOWN/);
+
+  const badName = await mf.dispatchFetch("https://oci.test/v2/Example/app/manifests/stable");
+  assert.equal(badName.status, 400);
+  assert.match(await badName.text(), /NAME_INVALID/);
+
+  const badDigest = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/sha256:00");
+  assert.equal(badDigest.status, 400);
+  assert.match(await badDigest.text(), /DIGEST_INVALID/);
+
+  const write = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/uploads/", {
+    method: "POST",
+  });
+  assert.equal(write.status, 405);
+  assert.equal(write.headers.get("allow"), "GET, HEAD");
+  assert.match(await write.text(), /UNSUPPORTED/);
 });

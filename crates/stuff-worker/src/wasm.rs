@@ -6,6 +6,60 @@ pub fn generation_id_valid(text: &str) -> bool {
 }
 
 #[wasm_bindgen]
+pub fn oci_request_json(method: &str, raw_target: &str) -> String {
+    crate::oci::oci_request_json(method, raw_target)
+}
+
+#[wasm_bindgen]
+pub fn oci_ping_json() -> String {
+    crate::oci::oci_ping_json()
+}
+
+#[wasm_bindgen]
+pub fn oci_manifest_json(repository: &str, repository_text: &str, reference: &str, head: bool) -> String {
+    crate::oci::oci_manifest_json(repository, repository_text, reference, head)
+}
+
+#[wasm_bindgen]
+pub fn oci_tags_json(repository: &str, repository_text: &str, n: Option<usize>, last: Option<String>) -> String {
+    crate::oci::oci_tags_json(repository, repository_text, n, last.as_deref())
+}
+
+#[wasm_bindgen]
+pub fn oci_referrers_json(
+    repository: &str,
+    subject: &str,
+    referrers_text: &str,
+    artifact_type: Option<String>,
+    n: Option<usize>,
+    last: Option<String>,
+) -> String {
+    crate::oci::oci_referrers_json(
+        repository,
+        subject,
+        referrers_text,
+        artifact_type.as_deref(),
+        n,
+        last.as_deref(),
+    )
+}
+
+#[wasm_bindgen]
+pub fn oci_blob_json(method: &str, digest: &str, size: u64, headers_json: &str) -> String {
+    crate::oci::oci_blob_json(method, digest, size, headers_json)
+}
+
+#[wasm_bindgen]
+pub fn oci_method_not_allowed_json() -> String {
+    crate::oci::oci_method_not_allowed_json()
+}
+
+#[wasm_bindgen]
+pub fn oci_error_json(code: &str, detail: &str) -> String {
+    crate::oci::oci_error_json(code, detail)
+}
+
+#[wasm_bindgen]
 pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
     crate::api::map_asset_json(routes_json, host, raw_path)
 }

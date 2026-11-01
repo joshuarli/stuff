@@ -3,6 +3,14 @@ import {
   initSync,
   map_asset_json,
   generation_id_valid,
+  oci_blob_json,
+  oci_error_json,
+  oci_manifest_json,
+  oci_method_not_allowed_json,
+  oci_ping_json,
+  oci_referrers_json,
+  oci_request_json,
+  oci_tags_json,
   plan_object_response_json,
   render_unified_index_json,
   render_unified_llms_txt_json,
@@ -32,6 +40,7 @@ interface R2BucketLike {
 interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
+  readonly STUFF_OCI_HOST?: string;
   readonly [binding: string]: R2BucketLike | string | undefined;
 }
 
@@ -85,6 +94,34 @@ interface ResponsePlan {
 interface UnifiedRendered {
   kind: "html" | "markdown" | "error";
   body?: string;
+  message?: string;
+}
+
+interface OciRequest {
+  kind: string;
+  repository?: string;
+  reference?: string;
+  digest?: string;
+  subject?: string;
+  artifact_type?: string;
+  n?: number;
+  last?: string;
+  head: boolean;
+  status?: number;
+  body?: string;
+  message?: string;
+}
+
+interface OciPlan {
+  kind: string;
+  status: number;
+  headers: Record<string, string>;
+  body?: string;
+  bucket?: string;
+  key?: string;
+  range_start?: number;
+  range_length?: number;
+  head: boolean;
   message?: string;
 }
 
@@ -166,13 +203,179 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
     : response;
 }
 
+function ociPlanResponse(plan: OciPlan): Response {
+  if (plan.kind !== "plan") {
+    throw new Error(plan.message ?? "oci plan");
+  }
+  return new Response(plan.body ?? null, {
+    status: plan.status,
+    headers: new Headers(plan.headers),
+  });
+}
+
+async function sendOciPlan(
+  plan: OciPlan,
+  store: R2BucketLike,
+  key: string,
+): Promise<Response> {
+  if (plan.kind !== "plan") {
+    throw new Error(plan.message ?? "oci plan");
+  }
+  const headers = new Headers(plan.headers);
+  if (plan.body !== undefined) {
+    return new Response(plan.body, { status: plan.status, headers });
+  }
+  if (plan.status === 304 || plan.status === 416 || plan.head) {
+    return new Response(null, { status: plan.status, headers });
+  }
+  if (plan.range_start !== undefined && plan.range_length !== undefined) {
+    const ranged = await store.get(key, {
+      range: { offset: plan.range_start, length: plan.range_length },
+    });
+    if (ranged === null) {
+      throw new Error("oci object vanished");
+    }
+    return new Response(ranged.body, { status: plan.status, headers });
+  }
+  const object = await store.get(key);
+  if (object === null) {
+    throw new Error("oci object vanished");
+  }
+  return new Response(object.body, { status: plan.status, headers });
+}
+
+async function ociFetch(req: Request, env: WorkerEnv, url: URL): Promise<Response> {
+  const parsed = JSON.parse(
+    oci_request_json(req.method, `${url.pathname}${url.search}`),
+  ) as OciRequest;
+  if (parsed.kind === "method_not_allowed") {
+    return ociPlanResponse(JSON.parse(oci_method_not_allowed_json()) as OciPlan);
+  }
+  if (parsed.kind === "not_found") {
+    return ociPlanResponse(
+      JSON.parse(oci_error_json("NAME_UNKNOWN", "unknown path")) as OciPlan,
+    );
+  }
+  if (parsed.kind === "error") {
+    const body = parsed.body ?? "";
+    return new Response(body, {
+      status: parsed.status ?? 400,
+      headers: {
+        "content-type": "application/json",
+        "content-length": String(body.length),
+        "cache-control": "no-store",
+      },
+    });
+  }
+  if (parsed.kind === "ping") {
+    return ociPlanResponse(JSON.parse(oci_ping_json()) as OciPlan);
+  }
+  if (parsed.kind === "blob") {
+    const digest = parsed.digest ?? "";
+    if (!digest.startsWith("sha256:")) {
+      return ociPlanResponse(
+        JSON.parse(oci_error_json("DIGEST_INVALID", digest)) as OciPlan,
+      );
+    }
+    const store = bucket(env, "OCI_BLOBS");
+    const key = `sha256/${digest.slice("sha256:".length)}`;
+    const object = await store.head(key);
+    if (object === null) {
+      return ociPlanResponse(
+        JSON.parse(oci_error_json("BLOB_UNKNOWN", digest)) as OciPlan,
+      );
+    }
+    const plan = JSON.parse(
+      oci_blob_json(
+        req.method,
+        digest,
+        BigInt(object.size),
+        JSON.stringify({ range: req.headers.get("range") }),
+      ),
+    ) as OciPlan;
+    return sendOciPlan(plan, store, key);
+  }
+  const repository = parsed.repository ?? "";
+  const meta = bucket(env, "OCI");
+  const pointer = await meta.get("current");
+  if (pointer === null) {
+    return ociPlanResponse(
+      JSON.parse(oci_error_json("NAME_UNKNOWN", repository)) as OciPlan,
+    );
+  }
+  const generation = (await pointer.text()).trim();
+  if (!generation_id_valid(generation)) {
+    throw new Error("invalid oci generation pointer");
+  }
+  const repositoryKey = `generations/${generation}/repositories/${repository}/repository.json`;
+  const repositoryObject = await meta.get(repositoryKey);
+  if (repositoryObject === null) {
+    return ociPlanResponse(
+      JSON.parse(oci_error_json("NAME_UNKNOWN", repository)) as OciPlan,
+    );
+  }
+  const repositoryText = await repositoryObject.text();
+  if (parsed.kind === "tags") {
+    const plan = JSON.parse(
+      oci_tags_json(repository, repositoryText, parsed.n, parsed.last),
+    ) as OciPlan;
+    return ociPlanResponse(plan);
+  }
+  if (parsed.kind === "referrers") {
+    const subject = parsed.subject ?? "";
+    const referrersKey = `generations/${generation}/repositories/${repository}/referrers/sha256/${subject.slice("sha256:".length)}.json`;
+    const referrersObject = await meta.get(referrersKey);
+    const referrersText = referrersObject === null ? "" : await referrersObject.text();
+    const plan = JSON.parse(
+      oci_referrers_json(
+        repository,
+        subject,
+        referrersText,
+        parsed.artifact_type,
+        parsed.n,
+        parsed.last,
+      ),
+    ) as OciPlan;
+    return ociPlanResponse(plan);
+  }
+  if (parsed.kind === "manifest") {
+    const reference = parsed.reference ?? "";
+    const plan = JSON.parse(
+      oci_manifest_json(repository, repositoryText, reference, parsed.head),
+    ) as OciPlan;
+    if (plan.kind !== "plan" || plan.body !== undefined) {
+      return ociPlanResponse(plan);
+    }
+    const key = plan.key ?? "";
+    const object = parsed.head ? await meta.head(key) : await meta.get(key);
+    if (object === null) {
+      return ociPlanResponse(
+        JSON.parse(oci_error_json("MANIFEST_UNKNOWN", reference)) as OciPlan,
+      );
+    }
+    const headers = new Headers(plan.headers);
+    return parsed.head
+      ? new Response(null, { status: plan.status, headers })
+      : new Response(object.body, { status: plan.status, headers });
+  }
+  throw new Error(`unknown oci request: ${parsed.kind}`);
+}
+
 export class Registry extends WorkerEntrypoint<WorkerEnv> {
   async fetch(req: Request): Promise<Response> {
     const env = this.env;
+    const url = new URL(req.url);
+    const ociHost = env.STUFF_OCI_HOST;
+    if (
+      typeof ociHost === "string" &&
+      ociHost !== "" &&
+      url.hostname === ociHost
+    ) {
+      return ociFetch(req, env, url);
+    }
     if (req.method !== "GET" && req.method !== "HEAD") {
       return new Response("method not allowed", { status: 405 });
     }
-    const url = new URL(req.url);
     const unifiedHost = env.STUFF_UNIFIED_HOST;
     if (
       typeof unifiedHost === "string" &&

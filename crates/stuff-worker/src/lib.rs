@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod map;
+pub mod oci;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;

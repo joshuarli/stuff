@@ -26,10 +26,12 @@ export default defineConfig(({ mode }) => ({
 			"npm.17166969.xyz",
 			"pypi.17166969.xyz",
 			"stuff.17166969.xyz",
+			"oci.17166969.xyz",
 		],
 		env: {
 			STUFF_ROUTES: bindings.text("[{\"host\":\"crates.17166969.xyz\",\"bucket_binding\":\"MYCRATES\",\"key_prefix\":\"\"},{\"host\":\"npm.17166969.xyz\",\"bucket_binding\":\"MYNPM\",\"key_prefix\":\"\"},{\"host\":\"pypi.17166969.xyz\",\"bucket_binding\":\"PYPI\",\"key_prefix\":\"\"}]"),
 			STUFF_UNIFIED_HOST: bindings.text("stuff.17166969.xyz"),
+			STUFF_OCI_HOST: bindings.text("oci.17166969.xyz"),
 			MYCRATES: bindings.r2({
 				name: "stuff-mycrates",
 			}),
@@ -38,6 +40,12 @@ export default defineConfig(({ mode }) => ({
 			}),
 			PYPI: bindings.r2({
 				name: "stuff-mypypi",
+			}),
+			OCI: bindings.r2({
+				name: "stuff-oci",
+			}),
+			OCI_BLOBS: bindings.r2({
+				name: "stuff-oci-blobs",
 			}),
 		},
 		// The Vite plugin treats an exports.default entrypoint as a named export

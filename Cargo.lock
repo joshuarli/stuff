@@ -1381,6 +1381,7 @@ dependencies = [
  "deser-value",
  "stuff-catalog",
  "stuff-http",
+ "stuff-oci",
  "stuff-store",
  "wasm-bindgen",
 ]

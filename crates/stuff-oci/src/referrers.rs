@@ -2,8 +2,9 @@
 
 use crate::digest::Digest;
 use crate::json;
-use crate::manifest::{Descriptor, Image};
+use crate::manifest::{Descriptor, Image, parse_descriptor};
 use crate::media;
+use crate::error::Error;
 
 pub fn referrer_descriptor(image: &Image, digest: Digest, size: u64) -> Option<Descriptor> {
     image.subject()?;
@@ -38,6 +39,31 @@ pub fn render_referrers(descriptors: &[Descriptor]) -> String {
     out
 }
 
+pub fn parse_referrers(text: &str) -> Result<Vec<Descriptor>, Error> {
+    let value = json::parse(text, "referrers")?;
+    let map = value
+        .as_map()
+        .ok_or_else(|| Error::manifest_invalid("referrers must be an object"))?;
+    let schema = map
+        .get("schemaVersion")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+    if schema != 2 {
+        return Err(Error::manifest_invalid(format!(
+            "unsupported referrers schemaVersion {schema}"
+        )));
+    }
+    let manifests = map
+        .get("manifests")
+        .and_then(|value| value.as_seq())
+        .ok_or_else(|| Error::manifest_invalid("referrers.manifests must be an array"))?;
+    let mut descriptors = Vec::with_capacity(manifests.len());
+    for (i, item) in manifests.iter().enumerate() {
+        descriptors.push(parse_descriptor(item, &format!("referrers.manifests[{i}]"))?);
+    }
+    Ok(descriptors)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,6 +91,14 @@ mod tests {
         assert!(rendered.starts_with("{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"manifests\":["));
         assert!(rendered.contains("\"artifactType\":\"application/vnd.stuff.sbom.v1+json\""));
         assert_eq!(sbom.annotations["org.opencontainers.image.created"], "2026-11-01T00:00:00Z");
+    }
+
+    #[test]
+    fn renders_and_parses_the_same_referrers() {
+        let (_, descriptor) = image_with_subject();
+        let parsed = parse_referrers(&render_referrers(std::slice::from_ref(&descriptor))).unwrap();
+        assert_eq!(parsed, vec![descriptor]);
+        assert!(parse_referrers("{}").is_err());
     }
 
     #[test]

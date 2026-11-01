@@ -20,7 +20,7 @@ pub use media::{
     OCI_MANIFEST,
 };
 pub use reference::{Reference, RepositoryName, Tag, MAX_REPOSITORY_NAME, MAX_TAG};
-pub use referrers::{filter_referrers, referrer_descriptor, render_referrers};
+pub use referrers::{filter_referrers, parse_referrers, referrer_descriptor, render_referrers};
 pub use request::{parse_request, Method, Pagination, Parsed, Request};
 pub use response::{
     plan_blob, plan_error, plan_manifest, plan_method_not_allowed, plan_ping, plan_referrers,
