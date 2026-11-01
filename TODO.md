@@ -1,25 +1,24 @@
 Prefix: STUF
-Next: 55
-
-### STUF-52 · OCI A11 decides the deployed 307 blob path
-
-- **Area:** Performance
-- **Where:** `crates/stuff-worker/entry.ts:549`, `docs/oci-benchmarks.md`, `deploy/test-oci-redirect.sh`
-- **Problem:** The conditional `307` path is implemented and locally proven when `STUFF_OCI_BLOB_ORIGIN` is set, but the O2 gate needs the deployed warm-p95 and full-pull comparison. The loopback matrix cannot settle whether direct CDN blobs beat the Worker path by 10% with non-overlapping p95 over five interleaved runs.
-- **Recommendation:** Run `deploy/oci-bench.sh` against the deployed Worker with and without `STUFF_OCI_BLOB_ORIGIN` and the blob cache rule; adopt the redirect if O2 passes, otherwise close A11 with the recorded numbers and remove the conditional path.
-- **Blocked:** Needs the Cache Rule for `oci-blobs.17166969.xyz/sha256/*` and a representative image on the deployed registry; the buckets, Worker, and blob domain now exist. Unblock: run the baseline matrix without `STUFF_OCI_BLOB_ORIGIN` and the rule, then create the rule, set the origin, and run it again.
-- **Fix with:** make-it-fast
-- **Effort:** M
+Next: 56
 
 ### STUF-53 · Provision and verify the live OCI registry
 
 - **Area:** Operations
 - **Where:** `docs/PUBLISHING.md`, `docs/oci-design.md` (Needs environment)
-- **Problem:** The `stuff-oci` and `stuff-oci-blobs` buckets exist, `oci-blobs.17166969.xyz` is active on the blob bucket, the Worker is deployed with the OCI bindings and the `STUFF_OCI_PUSH_TOKEN` and `STUFF_OCI_PUSH_SECRET` secrets, and `example/app:stable` (generation `3789424fc0854a037de2fc87`, the fixture layout) is published; anonymous reads of tags, the index, a blob, and referrers match the pinned digests. A push with the right token returns Worker error 1101 ("OCI push writer is not configured") because there is no writer host or `STUFF_OCI_WRITER_ORIGIN`. Live conformance, Docker/ORAS interop, and the 1 GiB push/pull remain unrun.
-- **Recommendation:** Start `deploy/myoci-writer.sh` with TLS on a host, move `~/.local/state/stuff/oci/{push-secret,r2-writer.env}` there, set `STUFF_OCI_WRITER_ORIGIN` on the Worker, then run `make smoke-deployed`, the live conformance commands, Docker/ORAS pulls and pushes, and the 1 GiB push/pull.
+- **Problem:** The `stuff-oci` and `stuff-oci-blobs` buckets exist, `oci-blobs.17166969.xyz` is active with its Cache Rule, the Worker is deployed with the OCI bindings, the push token and secret, and the blob redirect, and `example/app:stable` and `example/bench:stable` are published. Live smoke, the pinned read conformance suite, and Docker and ORAS pulls pass. A push with the right token returns Worker error 1101 ("OCI push writer is not configured") because there is no writer host or `STUFF_OCI_WRITER_ORIGIN`, so push conformance, Docker/ORAS pushes, and the 1 GiB push/pull remain unrun.
+- **Recommendation:** Start `deploy/myoci-writer.sh` with TLS on a server, move `~/.local/state/stuff/oci/{push-secret,r2-writer.env}` there, set `STUFF_OCI_WRITER_ORIGIN` on the Worker, then run `deploy/oci-conformance.sh --push` against it, Docker and ORAS pushes, and the 1 GiB push/pull.
 - **Blocked:** The writer host. Unblock: choose the host.
 - **Fix with:** stuff-registries
 - **Effort:** M
+
+### STUF-55 · P3 · `deploy/publish oci` fails on layers over 300 MB
+
+- **Area:** Operations
+- **Where:** `deploy/publish:114-122`, `deploy/r2-sync-blobs.sh`
+- **Problem:** The wrapper mints S3 credentials only for `stuff-oci`, in a subshell. `r2-sync-blobs.sh` then needs `R2_S3_*` for `stuff-oci-blobs` to upload a layer over the 300 MB single-PUT cap and stops with `R2_S3_ENDPOINT is not set`. Publishing the 1 GiB benchmark layer worked only after syncing blobs by hand with the writer key and then running `deploy/publish oci --republish`.
+- **Recommendation:** Mint credentials for the blob bucket before the blob sync and for the metadata bucket before the metadata sync, or have `r2-sync-blobs.sh` mint its own as the other syncs do. Cover a layer over 300 MB in the offline publish test.
+- **Fix with:** stuff-registries
+- **Effort:** S
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
