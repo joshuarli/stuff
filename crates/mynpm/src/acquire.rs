@@ -817,7 +817,7 @@ pub struct PackageResult {
 
 fn check_deadline(deadline: Instant) -> Result<()> {
     if Instant::now() >= deadline {
-        return Err(Error::Cancelled("fetch was cancelled".to_string()));
+        return Err(Error::Limit("fetch deadline exceeded".to_string()));
     }
     Ok(())
 }
@@ -1511,10 +1511,10 @@ mod tests {
     }
 
     #[test]
-    fn expired_deadline_cancels_the_fetch() {
+    fn expired_deadline_reports_a_limit() {
         let err = check_deadline(Instant::now()).unwrap_err();
-        assert!(matches!(err, Error::Cancelled(_)), "{err}");
-        assert_eq!(err.exit_code(), 130);
+        assert!(matches!(err, Error::Limit(_)), "{err}");
+        assert_eq!(err.exit_code(), 5);
     }
 
     #[test]
@@ -1897,7 +1897,7 @@ mod tests {
         let inventory = fixture_inventory("flatdemo", "1.2.3", Some(&integrity_of(&good)));
         crate::inventory_store::update_inventory(&state, |_| Ok(inventory.clone())).unwrap();
         let err = fetch_inventory_until(&state, &download_config(), &exchange, Instant::now()).unwrap_err();
-        assert!(matches!(err, Error::Cancelled(_)), "{err}");
+        assert!(matches!(err, Error::Limit(_)), "{err}");
         assert!(!state.join("objects").join("sha512").exists());
         assert!(load_inventory(&state).unwrap().artifacts.is_empty());
     }

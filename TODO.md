@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-44 · P3 · mynpm leaves npm and pnpm children running and workspaces behind
-
-- **Area:** Concurrency
-- **Where:** `crates/mynpm/src/process.rs:130-136`, `crates/mynpm/src/process.rs:178-199`, `crates/mynpm/src/error.rs:84`, `crates/mynpm/src/validate.rs:1994`, `crates/mynpm/src/validate.rs:2037-2040`, `crates/mynpm/src/validate.rs:2176`
-- **Problem:** Children run in their own process group and mynpm installs no signal handling, so Ctrl-C stops mynpm but leaves `npm ci` or `pnpm install` running and the `mynpm-validate-*` workspace on disk; nothing sweeps old workspaces. `Error::Cancelled` (exit 130) has one producer, the fetch deadline, so a timeout reports the interrupt code. On output overflow, `run_process` joins the reader threads before killing the child, so the join blocks until the child exits on its own and the timeout no longer bounds it. The validate `TMPDIR` is derived from the process's `current_dir()/.work/tmp` while the workspace uses `options.cwd`.
-- **Recommendation:** Kill the group before joining readers, rename the deadline error to a limit error with its own code, sweep stale validate workspaces at start, and derive the child `TMPDIR` from the workspace root.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
 - **Area:** Security
