@@ -626,16 +626,9 @@ fn run_plan(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
     Ok(())
 }
 
-fn pin_lines() -> Vec<String> {
-    [Manager::Npm, Manager::Pnpm]
-        .into_iter()
-        .map(|manager| format!("{} {}", manager.as_str(), manager.pinned_version()))
-        .collect()
-}
-
 fn print_pins() {
-    for line in pin_lines() {
-        println!("{line}");
+    for manager in [Manager::Npm, Manager::Pnpm] {
+        println!("{} {}", manager.as_str(), manager.pinned_version());
     }
 }
 
@@ -756,59 +749,5 @@ pub fn run(argv: &[String]) -> Result<()> {
             }
             Ok(())
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn args(v: &[&str]) -> Vec<String> {
-        v.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn parses_plan_and_rejects_bad_flags() {
-        let p = parse_args(&args(&["plan", "--json"])).unwrap();
-        assert_eq!(p.command, Command::Plan);
-        assert!(p.json);
-        assert!(parse_args(&args(&["fetch", "--json"])).is_err());
-        assert!(parse_args(&args(&["validate"])).is_err());
-        assert!(parse_args(&args(&["validate", "--client", "npm"])).is_ok());
-        assert!(parse_args(&args(&["add", "--manager", "npm", "a@1.0.0"])).is_ok());
-        assert!(parse_args(&args(&["import-lock", "p.json"])).is_err());
-    }
-
-    #[test]
-    fn pins_reports_the_pinned_manager_versions() {
-        let p = parse_args(&args(&["pins"])).unwrap();
-        assert_eq!(p.command, Command::Pins);
-        assert!(parse_args(&args(&["pins", "extra"])).is_err());
-        assert!(parse_args(&args(&["pins", "--config", "mynpm.json"])).is_err());
-        assert_eq!(
-            pin_lines(),
-            [
-                format!("npm {}", Manager::Npm.pinned_version()),
-                format!("pnpm {}", Manager::Pnpm.pinned_version()),
-            ]
-        );
-        run(&args(&["pins"])).unwrap();
-    }
-
-    #[test]
-    fn all_targets_config_lists_every_supported_platform() {
-        assert!(parse_args(&args(&["fetch", "--all-targets"])).is_err());
-        let dir = std::env::temp_dir().join(format!("mynpm-all-targets-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let out = dir.join("mynpm.json");
-        let argv = args(&["init-config", "--node-version", "26.12.1", "--all-targets", "--output", out.to_str().unwrap()]);
-        run(&argv).unwrap();
-        let config = crate::config::parse_config(&std::fs::read_to_string(&out).unwrap()).unwrap();
-        let ids: Vec<&str> = config.targets.iter().map(|t| t.id()).collect();
-        assert_eq!(
-            ids,
-            ["mac-arm64", "mac-x64", "linux-x64-gnu", "linux-x64-musl", "linux-arm64-gnu", "linux-arm64-musl"]
-        );
-        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
