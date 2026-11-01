@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 
 const DIAGNOSTIC_LIMIT: usize = 16 * 1024;
 const KILL_GRACE: Duration = Duration::from_secs(5);
+const READER_GRACE: Duration = Duration::from_secs(1);
 
 #[derive(Debug, Clone, Copy)]
 pub enum StdoutMode {
@@ -80,6 +81,17 @@ fn drain_available(
     Ok(())
 }
 
+fn await_readers(done: &mpsc::Receiver<()>) -> bool {
+    let deadline = Instant::now() + READER_GRACE;
+    for _ in 0..2 {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() || done.recv_timeout(remaining).is_err() {
+            return false;
+        }
+    }
+    true
+}
+
 #[allow(clippy::too_many_arguments)]
 fn wait_for_exit(
     child: &mut std::process::Child,
@@ -144,6 +156,8 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
     let mut stderr_pipe = child.stderr.take();
     let (tx_out, rx_out) = mpsc::channel::<Vec<u8>>();
     let (tx_err, rx_err) = mpsc::channel::<Vec<u8>>();
+    let (tx_done, rx_done) = mpsc::channel::<()>();
+    let out_done = tx_done.clone();
     let out_handle = std::thread::spawn(move || {
         let mut buf = [0u8; 8192];
         if let Some(pipe) = stdout_pipe.as_mut() {
@@ -159,6 +173,7 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
                 }
             }
         }
+        let _ = out_done.send(());
     });
     let err_handle = std::thread::spawn(move || {
         let mut buf = [0u8; 8192];
@@ -175,34 +190,36 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
                 }
             }
         }
+        let _ = tx_done.send(());
     });
 
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
     let mode = options.stdout_mode;
-    let overflow = (|| -> Result<(bool, Option<i32>)> {
-        let (timed_out, exit_code) = wait_for_exit(&mut child, &rx_out, &rx_err, &mut stdout, &mut stderr, pid, command, deadline, mode)?;
-        while let Ok(chunk) = rx_out.try_recv() {
-            append_tail(&mut stdout, &chunk, mode, command)?;
-        }
-        while let Ok(chunk) = rx_err.try_recv() {
-            append_tail(&mut stderr, &chunk, StdoutMode::Tail(DIAGNOSTIC_LIMIT), command)?;
-        }
-        Ok((timed_out, exit_code))
-    })();
-    let (timed_out, exit_code) = match overflow {
+    let (timed_out, exit_code) = match wait_for_exit(&mut child, &rx_out, &rx_err, &mut stdout, &mut stderr, pid, command, deadline, mode) {
         Ok(values) => values,
         Err(e) => {
             signal_group(pid, "-KILL");
             let _ = child.kill();
             let _ = child.wait();
-            let _ = out_handle.join();
-            let _ = err_handle.join();
+            if await_readers(&rx_done) {
+                let _ = out_handle.join();
+                let _ = err_handle.join();
+            }
             return Err(e);
         }
     };
-    let _ = out_handle.join();
-    let _ = err_handle.join();
+    let readers_done = await_readers(&rx_done);
+    while let Ok(chunk) = rx_out.try_recv() {
+        append_tail(&mut stdout, &chunk, mode, command)?;
+    }
+    while let Ok(chunk) = rx_err.try_recv() {
+        append_tail(&mut stderr, &chunk, StdoutMode::Tail(DIAGNOSTIC_LIMIT), command)?;
+    }
+    if readers_done {
+        let _ = out_handle.join();
+        let _ = err_handle.join();
+    }
 
     if timed_out {
         return Err(Error::Operation(format!(
