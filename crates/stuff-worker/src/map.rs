@@ -68,13 +68,7 @@ pub fn object_key_for(key_prefix: &str, generation_id: &str, rel_path: &str) -> 
 
 pub fn parse_pointer(bytes: &[u8]) -> Option<String> {
     let text = std::str::from_utf8(bytes).ok()?.trim();
-    if text.is_empty() || text.len() > 128 {
-        return None;
-    }
-    if !text.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
-        return None;
-    }
-    Some(text.to_string())
+    stuff_store::parse_generation_id(text).map(str::to_string)
 }
 
 pub fn map_asset(config: &WorkerConfig, host: &str, raw_path: &str) -> MappedAsset {

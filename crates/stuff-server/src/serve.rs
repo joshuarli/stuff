@@ -53,6 +53,7 @@ fn current_generation_dir(route: &Route) -> Option<PathBuf> {
     if generations.as_os_str() != "generations" || components.next().is_some() {
         return None;
     }
+    stuff_store::parse_generation_id(generation.as_os_str().to_str()?)?;
     Some(route.site_dir.join(generations).join(generation))
 }
 

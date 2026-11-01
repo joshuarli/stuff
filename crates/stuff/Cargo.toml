@@ -24,6 +24,7 @@ h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", feat
 sha2 = "0.10"
 stuff-cargo-shard = { version = "0.1.0", path = "../stuff-cargo-shard" }
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
+stuff-store = { version = "0.1.0", path = "../stuff-store" }
 url = "2.5"
 
 [dev-dependencies]

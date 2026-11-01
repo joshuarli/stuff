@@ -1,6 +1,11 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+pub fn generation_id_valid(text: &str) -> bool {
+    stuff_store::parse_generation_id(text).is_some()
+}
+
+#[wasm_bindgen]
 pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
     crate::api::map_asset_json(routes_json, host, raw_path)
 }

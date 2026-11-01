@@ -207,13 +207,7 @@ pub fn resolve_direct_alias_json(key_prefix: &str, key: &str) -> String {
         .strip_prefix(&base)
         .and_then(|rest| rest.strip_prefix("generations/"))
         .and_then(|rest| rest.split_once('/'))
-        .filter(|(generation, _)| {
-            !generation.is_empty()
-                && generation.len() <= 128
-                && generation
-                    .bytes()
-                    .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
-        })
+        .filter(|(generation, _)| stuff_store::parse_generation_id(generation).is_some())
         .and_then(|(generation, rel_path)| {
             alias_key_for(key_prefix, rel_path).map(|alias_key| (generation, alias_key))
         });

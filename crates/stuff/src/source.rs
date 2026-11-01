@@ -186,9 +186,8 @@ fn current_generation_id(site: &Path) -> Result<String> {
     let id = target_str
         .strip_prefix("generations/")
         .ok_or_else(|| Error::usage(format!("current link points outside generations: {target_str}")))?;
-    if id.is_empty() || id.contains('/') || id.contains('\0') {
-        return Err(Error::usage(format!("current link has an unsafe generation target: {target_str}")));
-    }
+    stuff_store::parse_generation_id(id)
+        .ok_or_else(|| Error::usage(format!("current link has an unsafe generation target: {target_str}")))?;
     Ok(id.to_string())
 }
 

@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   initSync,
   map_asset_json,
+  generation_id_valid,
   plan_object_response_json,
   render_unified_index_json,
   render_unified_llms_txt_json,
@@ -101,7 +102,7 @@ async function catalogText(env: WorkerEnv, binding: string): Promise<string | nu
     return null;
   }
   const id = (await pointer.text()).trim();
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+  if (!generation_id_valid(id)) {
     return null;
   }
   const object = await store.get(`generations/${id}/catalog.json`);
