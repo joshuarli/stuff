@@ -123,7 +123,7 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
   const wantMarkdown = url.pathname === "/llms.txt";
   const rendered = JSON.parse(
     wantMarkdown
-      ? render_unified_llms_txt_json(JSON.stringify(parts))
+      ? render_unified_llms_txt_json(JSON.stringify(parts), env.STUFF_ROUTES, url.origin)
       : render_unified_index_json(JSON.stringify(parts)),
   ) as UnifiedRendered;
   const wantKind = wantMarkdown ? "markdown" : "html";

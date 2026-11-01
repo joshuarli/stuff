@@ -279,77 +279,31 @@ pub struct UnifiedJson {
 }
 
 pub fn render_unified_index_json(catalogs_json: &str) -> String {
-    render_unified_json(catalogs_json, UnifiedBody::Html)
-}
-
-pub fn render_unified_llms_txt_json(catalogs_json: &str) -> String {
-    render_unified_json(catalogs_json, UnifiedBody::Markdown)
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum UnifiedBody {
-    Html,
-    Markdown,
-}
-
-fn render_unified_json(catalogs_json: &str, body: UnifiedBody) -> String {
-    let parsed: deser_value::Value = match deser_json::from_str(catalogs_json) {
-        Ok(v) => v,
-        Err(e) => {
-            return to_json(
-                &UnifiedJson {
-                    kind: "error".to_string(),
-                    body: None,
-                    message: Some(format!("catalogs: {e}")),
-                },
-                "error",
-            );
-        }
-    };
-    let Some(seq) = parsed.as_seq() else {
-        return to_json(
-            &UnifiedJson {
-                kind: "error".to_string(),
-                body: None,
-                message: Some("catalogs must be an array".to_string()),
-            },
-            "error",
-        );
-    };
-    let mut catalogs = Vec::with_capacity(seq.len());
-    for item in seq.iter() {
-        let Some(text) = item.as_str() else {
-            return to_json(
-                &UnifiedJson {
-                    kind: "error".to_string(),
-                    body: None,
-                    message: Some("catalogs must be an array of JSON strings".to_string()),
-                },
-                "error",
-            );
-        };
-        match stuff_catalog::parse_catalog_json(text) {
-            Ok(catalog) => catalogs.push(catalog),
-            Err(e) => {
-                return to_json(
-                    &UnifiedJson {
-                        kind: "error".to_string(),
-                        body: None,
-                        message: Some(format!("catalog: {e}")),
-                    },
-                    "error",
-                );
-            }
-        }
+    match parse_catalogs_json(catalogs_json) {
+        Ok(catalogs) => unified_json("html", stuff_catalog::render_unified(&catalogs)),
+        Err(error) => to_json(&error, "error"),
     }
-    catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
-    let (kind, body) = match body {
-        UnifiedBody::Html => ("html", stuff_catalog::render_unified(&catalogs)),
-        UnifiedBody::Markdown => (
-            "markdown",
-            stuff_catalog::render_unified_llms_txt(&catalogs, &stuff_catalog::CatalogOrigins::default()),
-        ),
+}
+
+pub fn render_unified_llms_txt_json(
+    catalogs_json: &str,
+    routes_json: &str,
+    request_origin: &str,
+) -> String {
+    let origins = match unified_origins(routes_json, request_origin) {
+        Ok(origins) => origins,
+        Err(message) => return unified_error(message),
     };
+    match parse_catalogs_json(catalogs_json) {
+        Ok(catalogs) => unified_json(
+            "markdown",
+            stuff_catalog::render_unified_llms_txt(&catalogs, &origins),
+        ),
+        Err(error) => to_json(&error, "error"),
+    }
+}
+
+fn unified_json(kind: &str, body: String) -> String {
     to_json(
         &UnifiedJson {
             kind: kind.to_string(),
@@ -358,6 +312,80 @@ fn render_unified_json(catalogs_json: &str, body: UnifiedBody) -> String {
         },
         "error",
     )
+}
+
+fn unified_error(message: String) -> String {
+    to_json(
+        &UnifiedJson {
+            kind: "error".to_string(),
+            body: None,
+            message: Some(message),
+        },
+        "error",
+    )
+}
+
+fn parse_catalogs_json(catalogs_json: &str) -> Result<Vec<stuff_catalog::Catalog>, UnifiedJson> {
+    let parsed: deser_value::Value = deser_json::from_str(catalogs_json)
+        .map_err(|e| UnifiedJson {
+            kind: "error".to_string(),
+            body: None,
+            message: Some(format!("catalogs: {e}")),
+        })?;
+    let seq = parsed.as_seq().ok_or_else(|| UnifiedJson {
+        kind: "error".to_string(),
+        body: None,
+        message: Some("catalogs must be an array".to_string()),
+    })?;
+    let mut catalogs = Vec::with_capacity(seq.len());
+    for item in seq.iter() {
+        let text = item.as_str().ok_or_else(|| UnifiedJson {
+            kind: "error".to_string(),
+            body: None,
+            message: Some("catalogs must be an array of JSON strings".to_string()),
+        })?;
+        catalogs.push(stuff_catalog::parse_catalog_json(text).map_err(|e| UnifiedJson {
+            kind: "error".to_string(),
+            body: None,
+            message: Some(format!("catalog: {e}")),
+        })?);
+    }
+    catalogs.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
+    Ok(catalogs)
+}
+
+fn unified_origins(
+    routes_json: &str,
+    request_origin: &str,
+) -> Result<stuff_catalog::CatalogOrigins, String> {
+    let config = parse_routes(routes_json)?;
+    let (scheme, request_host) = request_origin
+        .split_once("://")
+        .ok_or_else(|| format!("request origin: {request_origin}"))?;
+    let origin = |binding: &str| -> Result<String, String> {
+        let route = config
+            .routes
+            .iter()
+            .find(|route| route.bucket_binding == binding)
+            .ok_or_else(|| format!("STUFF_ROUTES: no route for {binding}"))?;
+        let host = if route.host.is_empty() {
+            request_host
+        } else {
+            route.host.as_str()
+        };
+        let prefix = route.url_prefix.trim_matches('/');
+        Ok(if prefix.is_empty() {
+            format!("{scheme}://{host}")
+        } else {
+            format!("{scheme}://{host}/{prefix}")
+        })
+    };
+    Ok(stuff_catalog::CatalogOrigins::new(
+        origin("MYCRATES")?,
+        origin("MYNPM")?,
+        origin("PYPI")?,
+        request_origin,
+    ))
 }
 
 #[derive(Debug, Clone, Default, deser::Deserialize)]
@@ -901,17 +929,59 @@ mod tests {
         let cargo = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
         let npm = r#"{"schema_version":1,"registry":"npm","generation":"b","packages":[{"name":"@mine/utils","source":null,"latest":"1.3.0","versions":[{"version":"1.3.0","yanked":false}]}]}"#;
         let input = format!("[{},{}]", deser_json::to_string(&cargo).unwrap(), deser_json::to_string(&npm).unwrap());
-        let parsed: UnifiedJson =
-            deser_json::from_str(&render_unified_llms_txt_json(&input)).expect("parses");
+        let parsed: UnifiedJson = deser_json::from_str(&render_unified_llms_txt_json(
+            &input,
+            ROUTES,
+            "https://stuff.test",
+        ))
+        .expect("parses");
         assert_eq!(parsed.kind, "markdown");
         let body = parsed.body.expect("markdown body");
         assert!(body.starts_with("# stuff registries\n"));
         assert!(body.contains("h12tiny"));
         assert!(body.contains("@mine/utils"));
 
-        let bad: UnifiedJson =
-            deser_json::from_str(&render_unified_llms_txt_json("not json")).expect("parses");
+        let bad: UnifiedJson = deser_json::from_str(&render_unified_llms_txt_json(
+            "not json",
+            ROUTES,
+            "https://stuff.test",
+        ))
+        .expect("parses");
         assert_eq!(bad.kind, "error");
+    }
+
+    #[test]
+    fn unified_llms_txt_uses_the_configured_hosts() {
+        const HOST_ROUTES: &str = r#"[{"host":"crates.example.test","bucket_binding":"MYCRATES"},{"host":"npm.example.test","bucket_binding":"MYNPM"},{"url_prefix":"pypi","bucket_binding":"PYPI"}]"#;
+        let cargo = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
+        let npm = r#"{"schema_version":1,"registry":"npm","generation":"b","packages":[{"name":"@mine/utils","source":null,"latest":"1.3.0","versions":[{"version":"1.3.0","yanked":false}]}]}"#;
+        let input = format!("[{},{}]", deser_json::to_string(&cargo).unwrap(), deser_json::to_string(&npm).unwrap());
+        let parsed: UnifiedJson = deser_json::from_str(&render_unified_llms_txt_json(
+            &input,
+            HOST_ROUTES,
+            "https://stuff.example.test",
+        ))
+        .expect("parses");
+        let body = parsed.body.expect("markdown body");
+        assert!(body.contains("Aggregate browser: https://stuff.example.test/ ."));
+        assert!(body.contains("Cargo registry (https://crates.example.test)"));
+        assert!(body.contains("npm registry (https://npm.example.test)"));
+        assert!(body.contains("- Cargo: https://crates.example.test/llms.txt"));
+        assert!(body.contains("- npm: https://npm.example.test/llms.txt"));
+        assert!(body.contains("- PyPI: https://stuff.example.test/pypi/llms.txt"));
+        assert!(!body.contains("17166969.xyz"));
+    }
+
+    #[test]
+    fn unified_llms_txt_rejects_unrouted_registries() {
+        let parsed: UnifiedJson = deser_json::from_str(&render_unified_llms_txt_json(
+            "[]",
+            r#"[{"host":"crates.example.test","bucket_binding":"MYCRATES"}]"#,
+            "https://stuff.example.test",
+        ))
+        .expect("parses");
+        assert_eq!(parsed.kind, "error");
+        assert!(parsed.message.unwrap().contains("MYNPM"));
     }
 
     #[test]

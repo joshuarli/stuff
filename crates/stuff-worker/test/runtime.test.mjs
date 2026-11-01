@@ -83,6 +83,20 @@ test("cold HEAD for the unified page uses a GET cache key", async (t) => {
   assert.match(await get.text(), /stuff/);
 });
 
+test("unified llms.txt advertises the configured hosts", async (t) => {
+  const mf = worker();
+  t.after(() => mf.dispose());
+  await seed(mf);
+  const response = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  assert.equal(response.status, 200);
+  const text = await response.text();
+  assert.match(text, /Aggregate browser: https:\/\/stuff\.test\/ /);
+  for (const origin of ["https://crates.test", "https://npm.test", "https://pypi.test"]) {
+    assert.ok(text.includes(`${origin}/llms.txt`), `${origin}/llms.txt`);
+  }
+  assert.ok(!text.includes("17166969.xyz"));
+});
+
 test("root pages link to objects that resolve", async (t) => {
   const mf = worker();
   t.after(() => mf.dispose());

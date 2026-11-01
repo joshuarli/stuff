@@ -16,12 +16,17 @@ pub struct CatalogOrigins {
 }
 
 impl CatalogOrigins {
-    pub fn new(cargo: impl Into<String>, npm: impl Into<String>, pypi: impl Into<String>) -> Self {
+    pub fn new(
+        cargo: impl Into<String>,
+        npm: impl Into<String>,
+        pypi: impl Into<String>,
+        unified: impl Into<String>,
+    ) -> Self {
         Self {
             cargo: trim_origin(cargo.into()),
             npm: trim_origin(npm.into()),
             pypi: trim_origin(pypi.into()),
-            unified: DEFAULT_UNIFIED_ORIGIN.to_string(),
+            unified: trim_origin(unified.into()),
         }
     }
 
@@ -40,6 +45,7 @@ impl Default for CatalogOrigins {
             DEFAULT_CARGO_ORIGIN,
             DEFAULT_NPM_ORIGIN,
             DEFAULT_PYPI_ORIGIN,
+            DEFAULT_UNIFIED_ORIGIN,
         )
     }
 }
@@ -372,12 +378,12 @@ mod tests {
             &std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let mut origins = CatalogOrigins::new(
+        let origins = CatalogOrigins::new(
             "https://cargo.example.test",
             "https://npm.example.test",
             "https://pypi.example.test",
+            "https://stuff.example.test",
         );
-        origins.unified = "https://stuff.example.test".to_string();
         let text = render_unified_llms_txt(&[npm, cargo], &origins);
         assert!(text.contains("Aggregate browser: https://stuff.example.test/ ."));
         assert!(text.contains("Cargo registry (https://cargo.example.test)"));
