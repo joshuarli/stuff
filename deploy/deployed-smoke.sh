@@ -45,4 +45,11 @@ else
   echo "skip: pypi registry is empty"
 fi
 
+if [ -n "${STUFF_OCI_BASE:-}" ]; then
+  echo "--- stuff doctor --registry oci --oci-base $STUFF_OCI_BASE"
+  target/debug/stuff doctor --registry oci --oci-base "$STUFF_OCI_BASE" || fail "OCI doctor failed"
+else
+  echo "skip: OCI registry is not provisioned (set STUFF_OCI_BASE)"
+fi
+
 echo "OK: deployed registries answer through HTTP and their package managers"

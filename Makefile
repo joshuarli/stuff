@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-oci-conformance-fixture test-oci-conformance test-oci-pull fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-pull test-oci-publish fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -47,11 +47,12 @@ worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 	cd $(WORKER_DIR) && cf deploy --prebuilt --mode production
 
 DEPLOY_JOBS ?= 3
+OCI_DEPLOY ?=
 
-deploy: ## Test and deploy the worker, republish all three registries, then check the live site
+deploy: ## Test and deploy the worker, republish registries, then check the live site
 	@cf auth whoami >/dev/null
 	$(MAKE) worker-test worker-deploy
-	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi
+	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi $(if $(OCI_DEPLOY),republish-oci)
 	$(MAKE) smoke-deployed
 
 republish-mycrates: ## Republish the mycrates site from state
@@ -62,6 +63,9 @@ republish-mynpm: ## Republish the mynpm site from state
 
 republish-mypypi: ## Republish the mypypi site from state
 	deploy/publish mypypi --republish
+
+republish-oci: ## Republish the OCI site from state
+	deploy/publish oci --republish
 
 SITE_DIR ?= .work/site
 BUCKET ?=
@@ -108,6 +112,13 @@ test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and prom
 	python3 deploy/test-r2-promote.py
 	python3 deploy/test-r2-put.py
 	python3 deploy/test-r2-temp-credentials.py
+	python3 deploy/test-r2-gc-blobs.py
+
+test-oci-publish: ## Check OCI publication, blob sync, blob GC, rollback, and adoption offline
+	deploy/test-oci-publish.sh
+
+test-r2-gc-blobs: ## Check OCI blob GC against a fake S3 endpoint
+	python3 deploy/test-r2-gc-blobs.py
 
 test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... and R2_S3_*)
 	python3 deploy/test-r2-multipart-live.py

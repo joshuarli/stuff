@@ -15,6 +15,8 @@ PYPI_STATE="$WORK/pypi-state"
 PYPI_OUT="$WORK/pypi-site"
 NPM_STATE="$WORK/npm-state"
 NPM_SITE="$WORK/npm-site"
+OCI_STATE="$WORK/oci-state"
+OCI_SITE="$WORK/oci-site"
 
 if command -v sha256sum >/dev/null 2>&1; then
   hash_file() { sha256sum "$1" | cut -d' ' -f1; }
@@ -26,7 +28,7 @@ snapshot() {
   out=$1
   only=${2:-}
   : > "$out"
-  for d in "$CRATES_SITE" "$PYPI_OUT" "$NPM_SITE"; do
+  for d in "$CRATES_SITE" "$PYPI_OUT" "$NPM_SITE" "$OCI_SITE"; do
     [ -e "$d" ] || continue
     case $d in
       *"$only"*) ;;
@@ -129,5 +131,34 @@ if cmp -s "$WORK/after-npm.txt" "$WORK/after-npm-again.txt"; then
   echo "determinism: npm republish is a noop"
 else
   echo "FAIL: npm republish changed output"; exit 1
+fi
+
+snapshot "$WORK/before-oci-crates.txt" "crates-site"
+snapshot "$WORK/before-oci-pypi.txt" "pypi-site"
+snapshot "$WORK/before-oci-npm.txt" "npm-site"
+(cd "$ROOT" && cargo run -q -p myoci -- init --state-dir "$OCI_STATE" >/dev/null)
+(cd "$ROOT" && cargo run -q -p myoci -- import --state-dir "$OCI_STATE" --layout tests/fixtures/oci/layout --repository example/app >/dev/null)
+(cd "$ROOT" && cargo run -q -p myoci -- publish --state-dir "$OCI_STATE" --site-dir "$OCI_SITE" >/dev/null)
+snapshot "$WORK/after-oci-crates.txt" "crates-site"
+snapshot "$WORK/after-oci-pypi.txt" "pypi-site"
+snapshot "$WORK/after-oci-npm.txt" "npm-site"
+if cmp -s "$WORK/before-oci-crates.txt" "$WORK/after-oci-crates.txt" \
+  && cmp -s "$WORK/before-oci-pypi.txt" "$WORK/after-oci-pypi.txt" \
+  && cmp -s "$WORK/before-oci-npm.txt" "$WORK/after-oci-npm.txt"; then
+  echo "crosstalk: oci publish left the other registries untouched"
+else
+  echo "FAIL: oci publish changed another registry"; exit 1
+fi
+OCI_GEN_1=$(readlink "$OCI_SITE/current")
+(cd "$ROOT" && cargo run -q -p myoci -- publish --state-dir "$OCI_STATE" --site-dir "$OCI_SITE" >/dev/null)
+OCI_GEN_2=$(readlink "$OCI_SITE/current")
+[ "$OCI_GEN_1" = "$OCI_GEN_2" ] || { echo "FAIL: oci republish changed generation"; exit 1; }
+snapshot "$WORK/after-oci-site.txt" "oci-site"
+(cd "$ROOT" && cargo run -q -p myoci -- publish --state-dir "$OCI_STATE" --site-dir "$OCI_SITE" >/dev/null)
+snapshot "$WORK/after-oci-again.txt" "oci-site"
+if cmp -s "$WORK/after-oci-site.txt" "$WORK/after-oci-again.txt"; then
+  echo "determinism: oci republish is a noop"
+else
+  echo "FAIL: oci republish changed output"; exit 1
 fi
 echo "OK: single-registry publishes leave other generations untouched"

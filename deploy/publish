@@ -1,9 +1,10 @@
 #!/bin/sh
 # Publish one registry from the source repository that owns its packages.
-# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
+# Usage: publish mycrates|mynpm|mypypi|oci [--promote=cf|s3] [--republish]
 #   mycrates: CRATES="name-a name-b" publish mycrates
 #   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
 #   mypypi:   PACKAGES="name==version" publish mypypi
+#   oci:      OCI_IMAGES="repo=ref" publish oci  (or OCI_LAYOUT/OCI_REPOSITORY)
 #
 # The wrapper checks cf auth, adopts the live publication until the local
 # state carries a completion marker, and then runs the matching publish
@@ -24,10 +25,12 @@ ADOPT_STAGE=""
 
 usage() {
   cat >&2 <<'EOF'
-usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
+usage: publish mycrates|mynpm|mypypi|oci [--promote=cf|s3] [--republish]
   mycrates: CRATES="name-a name-b" publish mycrates
   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
   mypypi:   PACKAGES="name==version" publish mypypi
+  oci:      OCI_IMAGES="repo=ref ..." publish oci
+            OCI_LAYOUT=DIR OCI_REPOSITORY=NAME [OCI_TAG=TAG] publish oci
 EOF
 }
 
@@ -62,7 +65,7 @@ case $REGISTRY in
     usage
     exit 0
     ;;
-  mycrates | mynpm | mypypi) ;;
+  mycrates | mynpm | mypypi | oci) ;;
   *) usage; exit 2 ;;
 esac
 shift
@@ -180,6 +183,54 @@ adopt_mypypi() {
   record_promoted_generation stuff-mypypi "$(adopted_generation "$SITE_DIR")"
 }
 
+adopt_oci() {
+  echo "publish: no OCI publication at $SITE_DIR; adopting the live publication" >&2
+  cargo build -q -p myoci --manifest-path "$STUFF_DIR/Cargo.toml"
+  BIN=$STUFF_DIR/target/debug/myoci
+  META_BUCKET=${BUCKET_META:-stuff-oci}
+  BLOBS_BUCKET=${BUCKET_BLOBS:-stuff-oci-blobs}
+  mkdir -p "$(dirname "$SITE_DIR")" "$(dirname "$STATE_DIR")"
+  ADOPT_STAGE=$(mktemp -d "$(dirname "$SITE_DIR")/oci-site-adopt.XXXXXX")
+  python3 "$STUFF_DIR/deploy/r2-pull.py" "$META_BUCKET" "$ADOPT_STAGE/meta"
+  GEN=$(basename "$(readlink "$ADOPT_STAGE/meta/current")")
+  mkdir -p "$ADOPT_STAGE/meta/blobs/sha256"
+  python3 - "$ADOPT_STAGE/meta/generations/$GEN/blobs.json" <<'PY' > "$ADOPT_STAGE/hexes"
+import json
+import sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    document = json.load(f)
+for digest in document["blobs"]:
+    print(digest.split(":", 1)[1])
+PY
+  while read -r hex; do
+    [ -n "$hex" ] || continue
+    if [ -n "${CF_LOCAL_STATE:-}" ]; then
+      cf r2 objects get "sha256/$hex" --bucket-name "$BLOBS_BUCKET" \
+        --local --persist-to "$CF_LOCAL_STATE" > "$ADOPT_STAGE/meta/blobs/sha256/$hex"
+    else
+      cf r2 objects get "sha256/$hex" --bucket-name "$BLOBS_BUCKET" \
+        > "$ADOPT_STAGE/meta/blobs/sha256/$hex"
+    fi
+  done < "$ADOPT_STAGE/hexes"
+  if [ -d "$STATE_DIR" ] && [ -n "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; then
+    echo "publish: $STATE_DIR has no site but holds state; extending it in place" >&2
+    "$BIN" adopt --state-dir "$STATE_DIR" --site-dir "$ADOPT_STAGE/meta"
+    "$BIN" verify --state-dir "$STATE_DIR"
+  else
+    ADOPT_STATE_STAGE=$(mktemp -d "$(dirname "$STATE_DIR")/.state-adopt.XXXXXX")
+    "$BIN" adopt --state-dir "$ADOPT_STATE_STAGE" --site-dir "$ADOPT_STAGE/meta"
+    "$BIN" verify --state-dir "$ADOPT_STATE_STAGE"
+    [ ! -d "$STATE_DIR" ] || rmdir "$STATE_DIR"
+    mv "$ADOPT_STATE_STAGE" "$STATE_DIR"
+    ADOPT_STATE_STAGE=""
+  fi
+  [ ! -d "$SITE_DIR" ] || rmdir "$SITE_DIR"
+  mv "$ADOPT_STAGE/meta" "$SITE_DIR"
+  rm -rf "$ADOPT_STAGE"
+  ADOPT_STAGE=""
+  record_promoted_generation stuff-oci "$GEN"
+}
+
 case $REGISTRY in
   mycrates)
     [ -n "$REPUBLISH" ] || [ -n "${CRATES:-}" ] || fail "CRATES is empty"
@@ -217,5 +268,19 @@ case $REGISTRY in
     fi
     export SITE_DIR PUBLIC_URL
     "$STUFF_DIR/deploy/publish-mypypi.sh"
+    ;;
+  oci)
+    [ -n "$REPUBLISH" ] || [ -n "${OCI_IMAGES:-}" ] || [ -n "${OCI_LAYOUT:-}" ] || fail "OCI_IMAGES or OCI_LAYOUT is empty"
+    STATE_DIR=${STATE_DIR:-$H/oci/state}
+    SITE_DIR=${SITE_DIR:-$H/oci/site}
+    PUBLIC_URL=${PUBLIC_URL:-https://oci.17166969.xyz}
+    if [ ! -e "$SITE_DIR/current" ]; then
+      if [ -d "$SITE_DIR" ] && [ -n "$(ls -A "$SITE_DIR" 2>/dev/null)" ]; then
+        fail "$SITE_DIR exists without current; refusing to overwrite it"
+      fi
+      adopt_locked adopt_oci
+    fi
+    export STATE_DIR SITE_DIR PUBLIC_URL
+    "$STUFF_DIR/deploy/publish-myoci.sh"
     ;;
 esac
