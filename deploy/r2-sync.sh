@@ -2,7 +2,7 @@
 # Sync one published site directory to an R2 bucket, incrementally, then
 # promote the generation atomically.
 # Usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run]
-#        [--promote=cf|s3]
+#        [--promote=cf|s3] [--allow-drops]
 # Env: CF_LOCAL_STATE sets a local simulation dir (appends --local).
 #      R2_PARENT_ACCESS_KEY_ID, R2_ACCOUNT_ID, and R2_TEMP_CREDENTIALS_TTL
 #      tune the temporary credentials minted when R2_S3_* is not set.
@@ -33,6 +33,12 @@
 # (promoted-generation next to the registry's publish lock) is expected, so a
 # site built from state another publisher has since superseded is refused.
 # Roll back with deploy/r2-rollback.sh.
+#
+# Before uploading anything, deploy/r2-catalog-guard.py compares the new
+# generation's catalog.json with the live one and refuses the sync when any
+# version the live catalog serves is missing from the new one, even when the
+# recorded base generation matches. --allow-drops (or R2_ALLOW_DROPS=1) is
+# the explicit way to remove versions.
 #
 # --dry-run lists the bucket (read-only), prints how many objects and bytes
 # would be uploaded, how many are skipped, and any conflicts, then exits
@@ -65,6 +71,7 @@ EXPECTED=""
 REPAIR=""
 DRY_RUN=""
 PROMOTE=""
+ALLOW_DROPS=${R2_ALLOW_DROPS:-}
 while [ $# -gt 0 ]; do
   case $1 in
     --expected)
@@ -84,8 +91,12 @@ while [ $# -gt 0 ]; do
       PROMOTE=${1#--promote=}
       shift
       ;;
+    --allow-drops)
+      ALLOW_DROPS=1
+      shift
+      ;;
     *)
-      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3]"
+      echo "FAIL: usage: r2-sync.sh SITE_DIR BUCKET_NAME [--expected ACTIVE_GEN] [--repair] [--dry-run] [--promote=cf|s3] [--allow-drops]"
       exit 1
       ;;
   esac
@@ -147,6 +158,8 @@ GEN_ID=${GEN_TARGET#generations/}
 case $GEN_ID in
   *[!A-Za-z0-9_-]* | "") echo "FAIL: bad generation id: $GEN_ID"; exit 1 ;;
 esac
+
+python3 "$SCRIPT_DIR/r2-catalog-guard.py" "$SITE_DIR" "$BUCKET" "$GEN_ID" ${ALLOW_DROPS:+--allow-drops}
 
 echo "note: generation alias paths resolve server-side (see worker alias_key); skipping their upload"
 find "$SITE_DIR" -type l ! -path "$SITE_DIR/.*" | sort | while IFS= read -r f; do

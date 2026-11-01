@@ -15,7 +15,13 @@ SITE=$WORK/site
 export CF_LOCAL_STATE="$WORK/state"
 export STUFF_STATE_HOME="$WORK/home-a"
 mkdir -p "$SITE/generations/g1" "$SITE/tarballs" "$SITE/generations/g1/tarballs" "$SITE/generations/g1/-/tarballs"
-echo '{}' > "$SITE/generations/g1/catalog.json"
+catalog() {
+  printf '{"schema_version":3,"registry":"cargo","generation":"%s","packages":[%s]}\n' "$1" "$2"
+}
+PKG_A='{"name":"a","source":"native","latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}'
+PKG_A_YANKED='{"name":"a","source":"native","latest":"1.0.0","versions":[{"version":"1.0.0","yanked":true}]}'
+PKG_B='{"name":"b","source":"upstream","latest":"2.0.0","versions":[{"version":"2.0.0","yanked":false}]}'
+catalog g1 "$PKG_A" > "$SITE/generations/g1/catalog.json"
 printf 'alias\n' > "$SITE/generations/g1/tarballs/alias.tgz"
 printf 'alias\n' > "$SITE/generations/g1/-/tarballs/alias.tgz"
 ln -s generations/g1 "$SITE/current"
@@ -122,6 +128,28 @@ grep -q 'no manifests/g3.json' "$WORK/rollback.log" || { echo "FAIL: rollback fa
 check "$(grep -o 'verified current is [A-Za-z0-9_-]*' "$WORK/rollback-ok.log" | tail -n 1)" "verified current is g1" "rollback left current untouched"
 "$HERE/r2-rollback.sh" t g4 > "$WORK/rollback-g4.log"
 check "$(cat "$STUFF_STATE_HOME/t/promoted-generation")" "g4" "rollback recorded its promotion"
+
+# A generation that drops a version the live catalog serves is refused before any upload.
+cp -a "$SITE/generations/g4" "$SITE/generations/g7"
+catalog g7 "$PKG_B" > "$SITE/generations/g7/catalog.json"
+ln -sfn generations/g7 "$SITE/current"
+if "$HERE/r2-sync.sh" "$SITE" t > "$WORK/drop.log" 2>&1; then
+  echo "FAIL: a generation dropping a live version was promoted"
+  exit 1
+fi
+grep -q 'drops 1 versions served by live generation g4' "$WORK/drop.log" || { echo "FAIL: dropped version count was not reported"; exit 1; }
+grep -q '  a 1.0.0 (native)' "$WORK/drop.log" || { echo "FAIL: dropped version was not named"; exit 1; }
+check "$(grep -c '^put ' "$WORK/drop.log" || true)" "0" "refused sync uploaded nothing"
+check "$(cat "$STUFF_STATE_HOME/t/promoted-generation")" "g4" "refused sync kept its record"
+"$HERE/r2-sync.sh" "$SITE" t --allow-drops > "$WORK/allow-drop.log"
+grep -q 'verified current is g7' "$WORK/allow-drop.log" || { echo "FAIL: --allow-drops did not promote"; exit 1; }
+
+# Adding versions and yanking one keeps every live version, so it promotes.
+cp -a "$SITE/generations/g7" "$SITE/generations/g8"
+catalog g8 "$PKG_A_YANKED,$PKG_B" > "$SITE/generations/g8/catalog.json"
+ln -sfn generations/g8 "$SITE/current"
+"$HERE/r2-sync.sh" "$SITE" t > "$WORK/superset.log"
+grep -q 'verified current is g8' "$WORK/superset.log" || { echo "FAIL: a superset catalog was refused"; exit 1; }
 
 BIG=$WORK/big
 mkdir -p "$BIG"

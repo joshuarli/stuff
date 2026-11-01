@@ -1,17 +1,21 @@
 #!/bin/sh
 # Publish one registry from the source repository that owns its packages.
-# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
+# Usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish] [--allow-drops]
 #   mycrates: CRATES="name-a name-b" publish mycrates
 #   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
 #   mypypi:   PACKAGES="name==version" publish mypypi
 #
 # The wrapper checks cf auth, adopts the live publication until the local
 # state carries a completion marker, and then runs the matching publish
-# helper. Promotion defaults to cf, which is safe for a single publisher and
+# helper. For mycrates it also adopts again, extending the state in place,
+# whenever the live generation is not the one this machine last promoted or
+# adopted, so another publisher's records are never left out. Promotion defaults to cf, which is safe for a single publisher and
 # needs no R2 S3 credentials.
 # --promote=s3 keeps the conditional 412 guard for concurrent publishers.
 # --republish adds no packages: it renders the live publication again under
 # the current renderer and promotes it, so no package inputs are needed.
+# --allow-drops lets the new generation remove versions the live catalog
+# serves; without it r2-sync.sh refuses such a promotion.
 set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 STUFF_DIR=${STUFF_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
@@ -24,7 +28,7 @@ ADOPT_STAGE=""
 
 usage() {
   cat >&2 <<'EOF'
-usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish]
+usage: publish mycrates|mynpm|mypypi [--promote=cf|s3] [--republish] [--allow-drops]
   mycrates: CRATES="name-a name-b" publish mycrates
   mynpm:    LOCKFILE=pnpm-lock.yaml PROJECT=project publish mynpm
   mypypi:   PACKAGES="name==version" publish mypypi
@@ -78,6 +82,10 @@ while [ $# -gt 0 ]; do
       PROMOTE=${1#--promote=}
       shift
       ;;
+    --allow-drops)
+      export R2_ALLOW_DROPS=1
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -114,6 +122,10 @@ adopted_generation() {
   printf '%s\n' "${target#generations/}"
 }
 
+live_generation() {
+  cf r2 objects get current --text --bucket-name "$1" | tr -d '[:space:]'
+}
+
 adopt_locked() {
   acquire_publish_lock "$(bucket_lock_path "stuff-$REGISTRY")"
   "$@"
@@ -132,7 +144,7 @@ adopt_mycrates() {
   ADOPT_PULL=$(mktemp -d "$H/mycrates-adopt.XXXXXX")
   python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mycrates "$ADOPT_PULL"
   if [ -d "$STATE_DIR" ] && [ -n "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; then
-    echo "publish: $STATE_DIR has no adoption marker; extending it in place" >&2
+    echo "publish: extending $STATE_DIR in place with the live publication" >&2
     "$BIN" init --state-dir "$STATE_DIR" --site-dir "$ADOPT_PULL/site"
     "$BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
     "$BIN" adopt --from-site "$ADOPT_PULL" --state-dir "$STATE_DIR"
@@ -188,6 +200,13 @@ case $REGISTRY in
     PUBLIC_URL=${PUBLIC_URL:-https://crates.17166969.xyz}
     if [ ! -f "$STATE_DIR/.adopt-complete" ]; then
       adopt_locked adopt_mycrates
+    else
+      LIVE_GENERATION=$(live_generation stuff-mycrates)
+      RECORDED_GENERATION=$(cat "$(promoted_generation_path stuff-mycrates)" 2>/dev/null || true)
+      if [ -n "$LIVE_GENERATION" ] && [ "$LIVE_GENERATION" != "$RECORDED_GENERATION" ]; then
+        echo "publish: live mycrates is on $LIVE_GENERATION, not ${RECORDED_GENERATION:-an unrecorded generation}" >&2
+        adopt_locked adopt_mycrates
+      fi
     fi
     export STATE_DIR SITE_DIR PUBLIC_URL
     "$STUFF_DIR/deploy/publish-mycrates.sh"
