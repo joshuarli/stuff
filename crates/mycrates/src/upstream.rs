@@ -64,7 +64,9 @@ impl UpstreamClient {
             let mut body = Vec::new();
             {
                 let body_reader = resp.body_mut();
-                let _ = body_reader.set_read_timeout(Some(timeout));
+                body_reader
+                    .set_read_timeout(Some(timeout))
+                    .map_err(|e| Error::Network(format!("could not set read timeout: {e}")))?;
                 let mut buf = [0u8; 65536];
                 loop {
                     let n = body_reader
@@ -208,7 +210,9 @@ impl UpstreamClient {
             final_url = current.clone();
             {
                 let body_reader = resp.body_mut();
-                let _ = body_reader.set_read_timeout(Some(timeout));
+                body_reader
+                    .set_read_timeout(Some(timeout))
+                    .map_err(|e| Error::Network(format!("could not set read timeout: {e}")))?;
                 let mut buf = [0u8; 65536];
                 loop {
                     let n = body_reader

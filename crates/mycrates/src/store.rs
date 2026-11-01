@@ -1,10 +1,12 @@
 use crate::error::{Error, Result};
 use crate::model::{CrateName, IndexEntry, Version};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use stuff_store::{stream_file_hash, sync_dir, write_file_durable, FileLock, HashAlg, LockError};
 
@@ -16,9 +18,12 @@ pub struct StoreLockGuard {
     _lock: FileLock,
 }
 
+type CollisionIndex = Arc<Mutex<HashMap<PathBuf, HashMap<String, Vec<PathBuf>>>>>;
+
 #[derive(Debug, Clone)]
 pub struct Store {
     pub state_dir: PathBuf,
+    collision_index: CollisionIndex,
 }
 
 #[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
@@ -48,7 +53,10 @@ fn lock_error(e: LockError) -> Error {
 
 impl Store {
     pub fn new(state_dir: PathBuf) -> Self {
-        Self { state_dir }
+        Self {
+            state_dir,
+            collision_index: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     pub fn blobs_dir(&self) -> PathBuf {
@@ -147,20 +155,38 @@ impl Store {
             return Ok(());
         }
         let norm = name.norm_key();
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            if !entry.file_type()?.is_dir() {
-                continue;
+        let matching = {
+            let mut index = self.collision_index.lock().unwrap_or_else(|p| p.into_inner());
+            if !index.contains_key(dir) {
+                let mut by_norm: HashMap<String, Vec<PathBuf>> = HashMap::new();
+                for entry in fs::read_dir(dir)? {
+                    let entry = entry?;
+                    if !entry.file_type()?.is_dir() {
+                        continue;
+                    }
+                    let dir_norm = entry
+                        .file_name()
+                        .to_string_lossy()
+                        .to_lowercase()
+                        .replace('_', "-");
+                    by_norm.entry(dir_norm).or_default().push(entry.path());
+                }
+                index.insert(dir.to_path_buf(), by_norm);
             }
-            let crate_dir = entry.path();
-            let dir_name = entry.file_name().to_string_lossy().to_string();
-            let dir_norm = dir_name.to_lowercase().replace('_', "-");
-            if dir_norm != norm {
-                continue;
-            }
+            index
+                .get(dir)
+                .and_then(|by_norm| by_norm.get(&norm))
+                .cloned()
+                .unwrap_or_default()
+        };
+        for crate_dir in matching {
+            let dir_name = crate_dir
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
             match canonical_names_in(&crate_dir)? {
                 None => {
-                    if dir_name != name.lower() && dir_norm == norm {
+                    if dir_name != name.lower() {
                         let existing = canonical_fallback(&crate_dir);
                         return Err(Error::Conflict(format!(
                             "crate name collision: '{}' conflicts with existing '{}'",
@@ -183,6 +209,16 @@ impl Store {
             }
         }
         Ok(())
+    }
+
+    fn remember_crate_dir(&self, dir: &Path, name: &CrateName, crate_dir: &Path) {
+        let mut index = self.collision_index.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(by_norm) = index.get_mut(dir) {
+            let entries = by_norm.entry(name.norm_key()).or_default();
+            if !entries.iter().any(|path| path == crate_dir) {
+                entries.push(crate_dir.to_path_buf());
+            }
+        }
     }
 
     pub fn ingest_staged_file(&self, path: &Path, expected_sha256: &str) -> Result<String> {
@@ -285,6 +321,7 @@ impl Store {
 
         let crate_dir = self.native_dir().join(name.lower());
         fs::create_dir_all(&crate_dir)?;
+        self.remember_crate_dir(&self.native_dir(), &name, &crate_dir);
 
         let uniq = ver.uniqueness_key();
         for existing_path in self.native_version_files(&crate_dir)? {
@@ -355,6 +392,7 @@ impl Store {
 
         let crate_dir = self.upstream_dir().join(name.lower());
         fs::create_dir_all(&crate_dir)?;
+        self.remember_crate_dir(&self.upstream_dir(), &name, &crate_dir);
 
         let uniq = ver.uniqueness_key();
         for existing_path in self.upstream_version_files(&crate_dir)? {

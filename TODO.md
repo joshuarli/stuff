@@ -1,15 +1,6 @@
 Prefix: STUF
 Next: 50
 
-### STUF-39 · P3 · mycrates fetch holds the exclusive store lock across network I/O
-
-- **Area:** Concurrency
-- **Where:** `crates/mycrates/src/acquire.rs:70`, `crates/mycrates/src/acquire.rs:147-172`, `crates/mycrates/src/upstream.rs:67`, `crates/mycrates/src/upstream.rs:211`, `crates/mycrates/src/store.rs:147-192`
-- **Problem:** `fetch` takes `lock_exclusive` before planning and holds it up to `fetch_timeout_secs` (default 3600), so `serve-publish` and `publish` block with no timeout. The deadline is checked only between items and the per-read timeout is set with `let _ = set_read_timeout(...)`, so one slow download can outlast the limit. The `shared` mutex is held through ingest and record write, serializing every worker's disk work, and `check_collision_in` scans the whole record directory per write (O(N²) for N crates).
-- **Recommendation:** Download unlocked into staging, take the lock only to ingest and write records, release `shared` before ingest, propagate the read-timeout error, and index the collision check by normalized name.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### STUF-40 · P3 · Each publish re-hashes the whole artifact store
 
 - **Area:** Performance

@@ -67,7 +67,6 @@ pub struct FetchSummary {
 
 pub fn fetch(state_dir: &Path, config: &Config) -> Result<FetchSummary> {
     let store = Store::new(state_dir.to_path_buf());
-    let _guard = store.lock_exclusive()?;
 
     let items = plan(state_dir)?;
     if items.is_empty() {
@@ -144,16 +143,13 @@ fn fetch_item(
     let staged = client.download_crate(&dl_url, &item.checksum, &item.name, &item.version)?;
     let byte_len = staged.as_file().metadata().map(|m| m.len()).unwrap_or(0);
 
-    let mut state = shared.lock().unwrap_or_else(|p| p.into_inner());
-    if byte_len > state.bytes_budget {
-        return Err(Error::Limit("fetch byte budget exceeded".to_string()));
-    }
-    state.bytes_budget -= byte_len;
-    state.summary.total_bytes += byte_len;
-
-    let ingested_sha = store.ingest_staged_file(staged.path(), &item.checksum)?;
-    if ingested_sha != item.checksum {
-        return Err(Error::Integrity("ingested checksum mismatch".to_string()));
+    {
+        let mut state = shared.lock().unwrap_or_else(|p| p.into_inner());
+        if byte_len > state.bytes_budget {
+            return Err(Error::Limit("fetch byte budget exceeded".to_string()));
+        }
+        state.bytes_budget -= byte_len;
+        state.summary.total_bytes += byte_len;
     }
 
     let now = SystemTime::now()
@@ -167,7 +163,15 @@ fn fetch_item(
         raw_index_line: raw_line,
         acquired_at: now,
     };
-    store.put_upstream_record(&record)?;
+    {
+        let _guard = store.lock_exclusive()?;
+        let ingested_sha = store.ingest_staged_file(staged.path(), &item.checksum)?;
+        if ingested_sha != item.checksum {
+            return Err(Error::Integrity("ingested checksum mismatch".to_string()));
+        }
+        store.put_upstream_record(&record)?;
+    }
+    let mut state = shared.lock().unwrap_or_else(|p| p.into_inner());
     state.summary.fetched_count += 1;
     Ok(())
 }
