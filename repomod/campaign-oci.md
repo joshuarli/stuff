@@ -4,12 +4,12 @@
 
 **Goal:** make every musl Linux build input controlled by one approved lock, one refresh path, and one enforcing rule, then consolidate the conventional Rust builders onto a shared OCI image.
 
-**Preflight:** ready. Owner decisions D1-D4 were answered on 2026-11-01. The campaign has not started.
+**Preflight:** ready. Owner decisions D1-D4 were answered on 2026-11-01. Execution started on 2026-11-01.
 
-- **Accepted slices:** none.
+- **Accepted slices:** M1 — `musl-toolchain.toml` and `repomod pins refresh [--check] [--only]` (b53864d). Seeded from live sources on 2026-11-01: upstream musl 1.2.6 (2026-03-20), stable Alpine 3.24.2 with musl 1.2.6-r3, edge with musl 1.2.6-r6. `pins refresh --check --only musl` exits 0 and reports `alpine:3.24` at 3.24.3 as an unapproved observation.
 - **Red:** the campaign's own checks are green. The fleet is green only under the old `rust-musl-image` rule, which is blind to the findings in **Baseline**. Do not read that green as evidence of compliance.
-- **Next:** M1.
-- **Resume:** "Execute `campaign-oci.md` from M1. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
+- **Next:** M2.
+- **Resume:** "Execute `campaign-oci.md` from M2. Stop only at the hard stops in the Charter. Rewrite this block after each accepted slice."
 
 ## Charter
 
