@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 56
+Next: 57
 
 ### STUF-53 · Provision and verify the live OCI registry
 
@@ -18,6 +18,15 @@ Next: 56
 - **Problem:** The wrapper mints S3 credentials only for `stuff-oci`, in a subshell. `r2-sync-blobs.sh` then needs `R2_S3_*` for `stuff-oci-blobs` to upload a layer over the 300 MB single-PUT cap and stops with `R2_S3_ENDPOINT is not set`. Publishing the 1 GiB benchmark layer worked only after syncing blobs by hand with the writer key and then running `deploy/publish oci --republish`.
 - **Recommendation:** Mint credentials for the blob bucket before the blob sync and for the metadata bucket before the metadata sync, or have `r2-sync-blobs.sh` mint its own as the other syncs do. Cover a layer over 300 MB in the offline publish test.
 - **Fix with:** stuff-registries
+- **Effort:** S
+
+### STUF-56 · P4 · Two integrity checks have no test that isolates them
+
+- **Area:** Quality
+- **Where:** `crates/myoci/src/verify.rs:32-39`, `crates/stuff-server/src/serve.rs:230`
+- **Problem:** The test renovation found mutants that no test kills. Disabling the manifest digest check or the manifest size check in `myoci verify` changes no result, because a later check rejects the same tampering. Disabling the `canon.starts_with(&route.canonical_site_dir)` check in `stuff-server` changes no result, because `has_symlink_component` rejects first. Each is either dead defense in depth or a check whose own failure no fixture reaches.
+- **Recommendation:** For each, build the fixture that reaches only that check (a manifest whose bytes and descriptor disagree but whose later graph checks pass; a path that canonicalizes outside the site without a symlink component) and keep the check with its test, or delete the check if no such input exists.
+- **Fix with:** test-audit
 - **Effort:** S
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
