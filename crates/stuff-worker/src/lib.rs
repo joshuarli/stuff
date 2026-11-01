@@ -3,6 +3,7 @@
 pub mod api;
 pub mod map;
 pub mod oci;
+pub mod oci_push;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;

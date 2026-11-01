@@ -60,6 +60,73 @@ pub fn oci_error_json(code: &str, detail: &str) -> String {
 }
 
 #[wasm_bindgen]
+pub fn oci_auth_challenge_json() -> String {
+    crate::oci::oci_auth_challenge_json()
+}
+
+#[wasm_bindgen]
+pub fn oci_manifest_put_json(repository: &str, digest: &str) -> String {
+    crate::oci::oci_manifest_put_json(repository, digest)
+}
+
+#[wasm_bindgen]
+pub fn oci_write_request_json(method: &str, target: &str) -> String {
+    crate::oci_push::oci_write_request_json(method, target)
+}
+
+#[wasm_bindgen]
+pub fn oci_auth_check(header: &str, token: &str) -> bool {
+    crate::oci_push::oci_auth_check(header, token)
+}
+
+#[wasm_bindgen]
+pub fn oci_session_json(
+    repository: &str,
+    writer_origin: &str,
+    secret: &str,
+    now: u64,
+    upload_id: &str,
+) -> String {
+    crate::oci_push::oci_session_json(repository, writer_origin, secret, now, upload_id)
+}
+
+#[wasm_bindgen]
+pub fn oci_mount_json(repository: &str, digest: &str) -> String {
+    crate::oci_push::oci_mount_json(repository, digest)
+}
+
+#[wasm_bindgen]
+pub fn oci_manifest_refs_json(body: &str) -> String {
+    crate::oci_push::oci_manifest_refs_json(body)
+}
+
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn oci_generation_json(
+    repository: &str,
+    repositories_json: &str,
+    blobs_text: &str,
+    referrers_json: &str,
+    manifest_body: &str,
+    reference: &str,
+    available_blobs_json: &str,
+    available_manifests_json: &str,
+    public_url: &str,
+) -> String {
+    crate::oci_push::oci_generation_json(
+        repository,
+        repositories_json,
+        blobs_text,
+        referrers_json,
+        manifest_body,
+        reference,
+        available_blobs_json,
+        available_manifests_json,
+        public_url,
+    )
+}
+
+#[wasm_bindgen]
 pub fn map_asset_json(routes_json: &str, host: &str, raw_path: &str) -> String {
     crate::api::map_asset_json(routes_json, host, raw_path)
 }

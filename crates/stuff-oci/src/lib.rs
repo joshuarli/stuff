@@ -2,6 +2,7 @@
 
 mod digest;
 mod error;
+mod generation;
 mod json;
 mod manifest;
 mod media;
@@ -14,6 +15,7 @@ mod view;
 
 pub use digest::Digest;
 pub use error::{Error, ErrorCode};
+pub use generation::{generation_id, GENERATION_ID_LEN, GENERATION_SCHEMA as GENERATION_ID_SCHEMA};
 pub use manifest::{validate_manifest_push, Image, Index, Manifest, Platform, MAX_MANIFEST_BYTES};
 pub use media::{
     is_foreign_layer, is_index, is_manifest, is_manifest_or_index, DOCKER_CONFIG, DOCKER_LAYER_GZIP,

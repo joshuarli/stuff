@@ -3,14 +3,22 @@ import {
   initSync,
   map_asset_json,
   generation_id_valid,
+  oci_auth_challenge_json,
+  oci_auth_check,
   oci_blob_json,
   oci_error_json,
+  oci_generation_json,
   oci_manifest_json,
+  oci_manifest_put_json,
+  oci_manifest_refs_json,
   oci_method_not_allowed_json,
+  oci_mount_json,
   oci_ping_json,
   oci_referrers_json,
   oci_request_json,
+  oci_session_json,
   oci_tags_json,
+  oci_write_request_json,
   plan_object_response_json,
   render_unified_index_json,
   render_unified_llms_txt_json,
@@ -25,6 +33,7 @@ initSync({ module: wasmModule });
 interface R2ObjectLike {
   readonly size: number;
   readonly httpEtag: string;
+  readonly etag: string;
   readonly body: ReadableStream | null;
   text(): Promise<string>;
 }
@@ -35,6 +44,12 @@ interface R2BucketLike {
     options?: { range: { offset: number; length: number } },
   ): Promise<R2ObjectLike | null>;
   head(key: string): Promise<R2ObjectLike | null>;
+  put(
+    key: string,
+    value: string | Uint8Array,
+    options?: { onlyIf?: { etagMatches?: string } },
+  ): Promise<R2ObjectLike>;
+  list(options?: { prefix?: string }): Promise<{ objects: { key: string }[] }>;
 }
 
 interface WorkerEnv {
@@ -42,6 +57,9 @@ interface WorkerEnv {
   readonly STUFF_UNIFIED_HOST?: string;
   readonly STUFF_OCI_HOST?: string;
   readonly STUFF_OCI_BLOB_ORIGIN?: string;
+  readonly STUFF_OCI_PUSH_TOKEN?: string;
+  readonly STUFF_OCI_PUSH_SECRET?: string;
+  readonly STUFF_OCI_WRITER_ORIGIN?: string;
   readonly [binding: string]: R2BucketLike | string | undefined;
 }
 
@@ -124,6 +142,32 @@ interface OciPlan {
   range_length?: number;
   head: boolean;
   message?: string;
+}
+
+interface OciWrite {
+  kind: string;
+  repository?: string;
+  method?: string;
+  reference?: string;
+  digest?: string;
+  mount?: string;
+  status?: number;
+  body?: string;
+}
+
+interface OciGenerationFile {
+  key: string;
+  text: string;
+}
+
+interface OciGeneration {
+  kind: string;
+  generation?: string;
+  digest?: string;
+  manifest_key?: string;
+  files?: OciGenerationFile[];
+  status?: number;
+  body?: string;
 }
 
 function bucket(env: WorkerEnv, binding: string): R2BucketLike {
@@ -245,7 +289,231 @@ async function sendOciPlan(
   return new Response(object.body, { status: plan.status, headers });
 }
 
+function writeErrorPlan(status: number | undefined, body: string | undefined): OciPlan {
+  const text = body ?? "";
+  return {
+    kind: "plan",
+    status: status ?? 400,
+    headers: {
+      "content-type": "application/json",
+      "cache-control": "no-store",
+      "content-length": String(text.length),
+    },
+    body: text,
+    head: false,
+  };
+}
+
+async function ociPushManifest(
+  req: Request,
+  env: WorkerEnv,
+  url: URL,
+  meta: R2BucketLike,
+  repository: string,
+  reference: string,
+): Promise<Response> {
+  const length = Number(req.headers.get("content-length") ?? "0");
+  if (!Number.isFinite(length) || length > 4 * 1024 * 1024) {
+    return ociPlanResponse(
+      writeErrorPlan(
+        400,
+        JSON.stringify({
+          errors: [{ code: "SIZE_INVALID", message: "manifest body is too large" }],
+        }),
+      ),
+    );
+  }
+  const body = await req.text();
+  const refs = JSON.parse(oci_manifest_refs_json(body)) as {
+    kind: string;
+    digest?: string;
+    blobs?: string[];
+    children?: string[];
+    status?: number;
+    body?: string;
+  };
+  if (refs.kind !== "refs") {
+    return ociPlanResponse(writeErrorPlan(refs.status, refs.body));
+  }
+  const blobs = bucket(env, "OCI_BLOBS");
+  const availableBlobs: string[] = [];
+  for (const digest of refs.blobs ?? []) {
+    if (digest.startsWith("sha256:")) {
+      const object = await blobs.head(`sha256/${digest.slice("sha256:".length)}`);
+      if (object === null) {
+        return ociPlanResponse(
+          JSON.parse(oci_error_json("MANIFEST_BLOB_UNKNOWN", digest)) as OciPlan,
+        );
+      }
+    }
+    availableBlobs.push(digest);
+  }
+  const availableChildren: string[] = [];
+  for (const digest of refs.children ?? []) {
+    if (digest.startsWith("sha256:")) {
+      const object = await meta.head(`oci/manifests/sha256/${digest.slice("sha256:".length)}`);
+      if (object === null) {
+        return ociPlanResponse(
+          JSON.parse(oci_error_json("MANIFEST_BLOB_UNKNOWN", digest)) as OciPlan,
+        );
+      }
+    }
+    availableChildren.push(digest);
+  }
+  const publicUrl = `${url.protocol}//${url.host}`;
+  const encoder = new TextEncoder();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const pointer = await meta.get("current");
+    const base = pointer === null ? "" : (await pointer.text()).trim();
+    const repositories: { name: string; text: string }[] = [];
+    let blobsText = "";
+    const referrers: { subject: string; text: string }[] = [];
+    if (base !== "" && generation_id_valid(base)) {
+      const prefix = `generations/${base}/repositories/`;
+      const listed = await meta.list({ prefix });
+      for (const object of listed.objects) {
+        if (!object.key.endsWith("/repository.json")) {
+          continue;
+        }
+        const name = object.key.slice(prefix.length, -"/repository.json".length);
+        const stored = await meta.get(object.key);
+        if (stored !== null) {
+          repositories.push({ name, text: await stored.text() });
+        }
+      }
+      const storedBlobs = await meta.get(`generations/${base}/blobs.json`);
+      if (storedBlobs !== null) {
+        blobsText = await storedBlobs.text();
+      }
+      const referrerPrefix = `generations/${base}/repositories/${repository}/referrers/sha256/`;
+      const listedReferrers = await meta.list({ prefix: referrerPrefix });
+      for (const object of listedReferrers.objects) {
+        if (!object.key.endsWith(".json")) {
+          continue;
+        }
+        const subject = object.key.slice(referrerPrefix.length, -".json".length);
+        const stored = await meta.get(object.key);
+        if (stored !== null) {
+          referrers.push({ subject: `sha256:${subject}`, text: await stored.text() });
+        }
+      }
+    }
+    const planned = JSON.parse(
+      oci_generation_json(
+        repository,
+        JSON.stringify(repositories),
+        blobsText,
+        JSON.stringify(referrers),
+        body,
+        reference,
+        JSON.stringify(availableBlobs),
+        JSON.stringify(availableChildren),
+        publicUrl,
+      ),
+    ) as OciGeneration;
+    if (planned.kind !== "ok" || !planned.generation || !planned.digest || !planned.manifest_key) {
+      return ociPlanResponse(writeErrorPlan(planned.status, planned.body));
+    }
+    const generation = planned.generation;
+    const objects: { key: string; size: number; etag: string }[] = [];
+    const manifestObject = await meta.put(planned.manifest_key, body);
+    objects.push({ key: planned.manifest_key, size: encoder.encode(body).length, etag: manifestObject.etag });
+    for (const file of planned.files ?? []) {
+      const key = `generations/${generation}/${file.key}`;
+      const value = encoder.encode(file.text);
+      const stored = await meta.put(key, value);
+      objects.push({ key, size: value.length, etag: stored.etag });
+    }
+    await meta.put(
+      `manifests/${generation}.json`,
+      JSON.stringify({ schemaVersion: 1, objects }),
+    );
+    try {
+      if (pointer !== null) {
+        await meta.put("current", generation, {
+          onlyIf: { etagMatches: pointer.etag },
+        });
+      } else {
+        await meta.put("current", generation);
+      }
+      return ociPlanResponse(
+        JSON.parse(oci_manifest_put_json(repository, planned.digest)) as OciPlan,
+      );
+    } catch {
+      continue;
+    }
+  }
+  return ociPlanResponse(
+    JSON.parse(oci_error_json("CONFLICT", "could not activate the generation")) as OciPlan,
+  );
+}
+
+async function ociPush(req: Request, env: WorkerEnv, url: URL): Promise<Response> {
+  const parsed = JSON.parse(
+    oci_write_request_json(req.method, `${url.pathname}${url.search}`),
+  ) as OciWrite;
+  if (parsed.kind === "error") {
+    return ociPlanResponse(writeErrorPlan(parsed.status, parsed.body));
+  }
+  if (parsed.kind === "unsupported") {
+    return ociPlanResponse(JSON.parse(oci_method_not_allowed_json()) as OciPlan);
+  }
+  if (parsed.kind !== "write") {
+    return ociPlanResponse(
+      JSON.parse(oci_error_json("NAME_UNKNOWN", "unknown path")) as OciPlan,
+    );
+  }
+  const token = env.STUFF_OCI_PUSH_TOKEN ?? "";
+  const authorization = req.headers.get("authorization") ?? "";
+  if (token === "" || !oci_auth_check(authorization, token)) {
+    return ociPlanResponse(JSON.parse(oci_auth_challenge_json()) as OciPlan);
+  }
+  const repository = parsed.repository ?? "";
+  if (parsed.method === "start" || parsed.method === "mount") {
+    if (parsed.method === "mount" && parsed.mount?.startsWith("sha256:")) {
+      const object = await bucket(env, "OCI_BLOBS").head(
+        `sha256/${parsed.mount.slice("sha256:".length)}`,
+      );
+      if (object !== null) {
+        return ociPlanResponse(
+          JSON.parse(oci_mount_json(repository, parsed.mount)) as OciPlan,
+        );
+      }
+    }
+    const writer = env.STUFF_OCI_WRITER_ORIGIN ?? "";
+    const secret = env.STUFF_OCI_PUSH_SECRET ?? "";
+    if (writer === "" || secret === "") {
+      throw new Error("OCI push writer is not configured");
+    }
+    const uploadId = crypto.randomUUID().replace(/-/g, "");
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    return ociPlanResponse(
+      JSON.parse(oci_session_json(repository, writer, secret, now, uploadId)) as OciPlan,
+    );
+  }
+  if (parsed.method === "manifest_put") {
+    return ociPushManifest(
+      req,
+      env,
+      url,
+      bucket(env, "OCI"),
+      repository,
+      parsed.reference ?? "",
+    );
+  }
+  return ociPlanResponse(
+    JSON.parse(oci_error_json("BLOB_UNKNOWN", "upload sessions live on the writer")) as OciPlan,
+  );
+}
+
 async function ociFetch(req: Request, env: WorkerEnv, url: URL): Promise<Response> {
+  if (
+    req.method !== "GET" &&
+    req.method !== "HEAD" &&
+    (env.STUFF_OCI_PUSH_TOKEN ?? "") !== ""
+  ) {
+    return ociPush(req, env, url);
+  }
   const parsed = JSON.parse(
     oci_request_json(req.method, `${url.pathname}${url.search}`),
   ) as OciRequest;

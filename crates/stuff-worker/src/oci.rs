@@ -123,7 +123,7 @@ pub fn oci_request_json(method: &str, raw_target: &str) -> String {
     }
 }
 
-fn plan_to_json(plan: ResponsePlan, bucket: Option<&str>, key: Option<String>, head: bool) -> String {
+pub(crate) fn plan_to_json(plan: ResponsePlan, bucket: Option<&str>, key: Option<String>, head: bool) -> String {
     let headers: BTreeMap<String, String> = plan.headers.into_iter().collect();
     let (body, range_start, range_length) = match plan.body {
         Body::Empty => (None, None, None),
@@ -340,12 +340,32 @@ pub fn oci_method_not_allowed_json() -> String {
     plan_to_json(plan_method_not_allowed(), None, None, false)
 }
 
+pub fn oci_auth_challenge_json() -> String {
+    plan_to_json(stuff_oci::plan_auth_required(), None, None, false)
+}
+
+pub fn oci_manifest_put_json(repository: &str, digest: &str) -> String {
+    match (RepositoryName::parse(repository), Digest::parse(digest)) {
+        (Ok(repository), Ok(digest)) => {
+            let location = format!("/v2/{}/manifests/{}", repository.as_str(), digest.as_str());
+            plan_to_json(stuff_oci::plan_manifest_put(&location, &digest), None, None, false)
+        }
+        (Err(error), _) | (_, Err(error)) => plan_to_json(plan_error(&error), None, None, false),
+    }
+}
+
 pub fn oci_error_json(code: &str, detail: &str) -> String {
     let error = match code {
         "BLOB_UNKNOWN" => stuff_oci::Error::blob_unknown(detail),
         "MANIFEST_UNKNOWN" => stuff_oci::Error::manifest_unknown(detail),
+        "MANIFEST_BLOB_UNKNOWN" => stuff_oci::Error::new(
+            stuff_oci::ErrorCode::ManifestBlobUnknown,
+            "manifest references a missing blob",
+        )
+        .with_detail(detail),
         "NAME_UNKNOWN" => stuff_oci::Error::name_unknown(detail),
         "UNSUPPORTED" => stuff_oci::Error::unsupported(detail),
+        "CONFLICT" => stuff_oci::Error::new(stuff_oci::ErrorCode::Conflict, detail),
         other => stuff_oci::Error::new(stuff_oci::ErrorCode::NameUnknown, other).with_detail(detail),
     };
     plan_to_json(plan_error(&error), None, None, false)

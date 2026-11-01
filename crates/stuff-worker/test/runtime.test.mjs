@@ -576,3 +576,178 @@ test("oci blobs redirect to the configured blob origin", async (t) => {
     assert.equal(response.headers.get("docker-content-digest"), OCI_LAYER, method);
   }
 });
+
+function pushWorker() {
+  return worker({
+    STUFF_OCI_PUSH_TOKEN: "token",
+    STUFF_OCI_PUSH_SECRET: "secret",
+    STUFF_OCI_WRITER_ORIGIN: "https://writer.test",
+  });
+}
+
+const AUTH = {
+  authorization: `Basic ${Buffer.from("stuff:token").toString("base64")}`,
+};
+
+function pushedManifest() {
+  const blobDir = join(OCI_FIXTURE, "blobs", "sha256");
+  const manifest = JSON.parse(readFileSync(join(blobDir, OCI_ARM64.slice("sha256:".length)), "utf8"));
+  manifest.annotations = { "org.opencontainers.image.title": "pushed" };
+  return JSON.stringify(manifest);
+}
+
+function pushedIndex() {
+  const blobDir = join(OCI_FIXTURE, "blobs", "sha256");
+  const index = JSON.parse(readFileSync(join(blobDir, OCI_INDEX.slice("sha256:".length)), "utf8"));
+  index.annotations = { "org.opencontainers.image.title": "pushed-index" };
+  return JSON.stringify(index);
+}
+
+test("oci push authenticates, issues writer sessions, and mounts", async (t) => {
+  const mf = pushWorker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+
+  const unauthenticated = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/blobs/uploads/",
+    { method: "POST" },
+  );
+  assert.equal(unauthenticated.status, 401);
+  assert.equal(
+    unauthenticated.headers.get("www-authenticate"),
+    'Basic realm="stuff-oci"',
+  );
+
+  const started = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/uploads/", {
+    method: "POST",
+    headers: AUTH,
+  });
+  assert.equal(started.status, 202);
+  const location = started.headers.get("location") ?? "";
+  assert.match(location, /^https:\/\/writer\.test\/v2\/example\/app\/blobs\/uploads\/[0-9a-f]+\?session=/);
+  assert.ok(started.headers.get("docker-upload-uuid"));
+
+  const mounted = await mf.dispatchFetch(
+    `https://oci.test/v2/example/app/blobs/uploads/?mount=${OCI_LAYER}&from=example/app`,
+    { method: "POST", headers: AUTH },
+  );
+  assert.equal(mounted.status, 201);
+  assert.equal(mounted.headers.get("docker-content-digest"), OCI_LAYER);
+
+  const missed = await mf.dispatchFetch(
+    `https://oci.test/v2/example/app/blobs/uploads/?mount=sha256:${"1".repeat(64)}&from=example/app`,
+    { method: "POST", headers: AUTH },
+  );
+  assert.equal(missed.status, 202);
+});
+
+test("oci push finalizes manifests and flips current", async (t) => {
+  const mf = pushWorker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+  const meta = await mf.getR2Bucket("OCI");
+  const before = (await (await meta.get("current")).text()).trim();
+
+  const body = pushedManifest();
+  const pushed = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/manifests/pushed",
+    {
+      method: "PUT",
+      headers: {
+        ...AUTH,
+        "content-type": "application/vnd.oci.image.manifest.v1+json",
+      },
+      body,
+    },
+  );
+  assert.equal(pushed.status, 201);
+  const digest = pushed.headers.get("docker-content-digest");
+  assert.match(digest ?? "", /^sha256:[0-9a-f]{64}$/);
+  const current = (await (await meta.get("current")).text()).trim();
+  assert.notEqual(current, before);
+  assert.equal(current.length, 24);
+  assert.ok(await meta.head(`generations/${current}/repositories/example/app/repository.json`));
+  assert.ok(await meta.head(`manifests/${current}.json`));
+
+  const read = await mf.dispatchFetch("https://oci.test/v2/example/app/manifests/pushed");
+  assert.equal(read.status, 200);
+  assert.equal(await read.text(), body);
+
+  const index = pushedIndex();
+  const indexed = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/manifests/pushed-index",
+    {
+      method: "PUT",
+      headers: {
+        ...AUTH,
+        "content-type": "application/vnd.oci.image.index.v1+json",
+      },
+      body: index,
+    },
+  );
+  assert.equal(indexed.status, 201);
+  const indexRead = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/manifests/pushed-index",
+  );
+  assert.equal(indexRead.status, 200);
+  assert.equal(await indexRead.text(), index);
+});
+
+test("oci push rejects a missing blob and leaves current unchanged", async (t) => {
+  const mf = pushWorker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+  const meta = await mf.getR2Bucket("OCI");
+  const before = (await (await meta.get("current")).text()).trim();
+  const missing = JSON.stringify({
+    schemaVersion: 2,
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    config: {
+      mediaType: "application/vnd.oci.image.config.v1+json",
+      digest: `sha256:${"1".repeat(64)}`,
+      size: 2,
+    },
+    layers: [],
+  });
+  const response = await mf.dispatchFetch(
+    "https://oci.test/v2/example/app/manifests/missing",
+    {
+      method: "PUT",
+      headers: {
+        ...AUTH,
+        "content-type": "application/vnd.oci.image.manifest.v1+json",
+      },
+      body: missing,
+    },
+  );
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /MANIFEST_BLOB_UNKNOWN/);
+  const after = (await (await meta.get("current")).text()).trim();
+  assert.equal(after, before);
+});
+
+test("oci push retries a concurrent current flip", async (t) => {
+  const mf = pushWorker();
+  t.after(() => mf.dispose());
+  await seedOci(mf);
+  const put = (tag, body) =>
+    mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${tag}`, {
+      method: "PUT",
+      headers: {
+        ...AUTH,
+        "content-type": "application/vnd.oci.image.manifest.v1+json",
+      },
+      body,
+    });
+  const first = pushedManifest().replace("pushed", "concurrent-a");
+  const second = pushedManifest().replace("pushed", "concurrent-b");
+  const [a, b] = await Promise.all([put("concurrent-a", first), put("concurrent-b", second)]);
+  assert.equal(a.status, 201);
+  assert.equal(b.status, 201);
+  const meta = await mf.getR2Bucket("OCI");
+  const current = (await (await meta.get("current")).text()).trim();
+  const repository = await (await meta.get(
+    `generations/${current}/repositories/example/app/repository.json`,
+  )).text();
+  assert.match(repository, /concurrent-a|concurrent-b/);
+});

@@ -14,7 +14,6 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub const DEFAULT_PUBLIC_URL: &str = "https://oci.17166969.xyz";
-pub const GENERATION_SCHEMA: &[u8] = b"stuff-oci-generation-v1\0";
 pub const LOCK_WAIT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,25 +175,13 @@ fn render_generation(
         "blobs.json".to_string(),
         render_blobs_json(&state.read_blobs()?).into_bytes(),
     );
-    let generation = generation_id(&files);
+    let generation = stuff_oci::generation_id(&files);
     let catalog = oci_catalog(&generation, inputs)
         .map_err(|error| Error::Integrity(format!("catalog: {error}")))?;
     files.insert("catalog.json".to_string(), render_catalog_json(&catalog).into_bytes());
     files.insert("index.html".to_string(), render_html(&catalog).into_bytes());
     files.insert("llms.txt".to_string(), render_llms_txt(&catalog, public_url).into_bytes());
     Ok((generation, files))
-}
-
-pub fn generation_id(files: &BTreeMap<String, Vec<u8>>) -> String {
-    let mut payload = GENERATION_SCHEMA.to_vec();
-    for (relative, bytes) in files {
-        payload.extend_from_slice(relative.as_bytes());
-        payload.push(0);
-        payload.extend_from_slice(&(bytes.len() as u64).to_be_bytes());
-        payload.extend_from_slice(bytes);
-    }
-    let digest = Digest::from_bytes(&payload);
-    digest.hex()[..24].to_string()
 }
 
 fn write_shared(
