@@ -113,6 +113,8 @@ Pinact checker, approved catalog, and fix-plan flow.
 fetches and compares without writing, prints the files that would change, and exits 1 on
 drift; a failed fetch or malformed source exits 2 and writes nothing. Pin bumps that select
 a new toolchain version, such as LLVM, mold, or rustup, are manual, checksum-verified edits.
+`repomod lint --rule linux-musl-toolchain` enforces the lock across the conventional Rust
+builders, tansu, and the bespoke musl builder adapters.
 
 ```sh
 uv run repomod pins refresh

@@ -1,0 +1,41 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+      - run: cargo build --release --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v8
+        with:
+          name: dist
+          path: target/${{ matrix.target }}/release/demo
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+      - run: zip demo.zip demo
+      - run: |
+          gh release create "$RELEASE_TAG" \
+            --target "${GITHUB_SHA}" \
+            --prerelease \
+            --verify-tag \
+            demo.zip SHA256SUMS
+        env:
+          RELEASE_TAG: release-${{ github.sha }}

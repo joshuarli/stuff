@@ -115,4 +115,6 @@ versions and checksums. The stable channel approves one immutable patch, so the 
 `alpine:<branch>` release is reported as an observation and never written. The owner reviews
 that observation, updates `image` and `index_digest`, and builds the image before a newer
 patch becomes approved. See [policy development](policy-development.md) for the checks the
-lock enforces.
+lock enforces. The `linux-musl-toolchain` rule enforces the lock across conventional
+builders, tansu, and the bespoke adapters; its fixer repairs only deterministic base-digest
+and package-version edits.

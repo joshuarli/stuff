@@ -1,0 +1,107 @@
+version = 1
+
+[upstream]
+version = "1.2.6"
+released = "2026-03-20"
+
+[channels.stable]
+branch = "3.24"
+image = "alpine:3.24.2"
+index_digest = "sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
+release = "3.24.2"
+
+[channels.stable.manifests]
+amd64 = "sha256:d56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395"
+arm64 = "sha256:260479a1cfaf304c4c20da7f8405d3ce313513dcd534bb743257bdd2fe0f3e2d"
+
+[channels.stable.packages.x86_64]
+bash = "5.3.9-r1"
+make = "4.4.1-r4"
+mold = "2.39.1-r0"
+musl = "1.2.6-r3"
+musl-dev = "1.2.6-r3"
+
+[channels.stable.packages.aarch64]
+bash = "5.3.9-r1"
+make = "4.4.1-r4"
+mold = "2.39.1-r0"
+musl = "1.2.6-r3"
+musl-dev = "1.2.6-r3"
+
+[channels.edge]
+branch = "edge"
+image = "alpine:edge"
+index_digest = "sha256:020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000"
+release = "3.25.0_alpha20260805"
+
+[channels.edge.manifests]
+amd64 = "sha256:266f29255458134745f2bf588cb23ed1ed1768b96ff2580a05d70a8aba59e145"
+arm64 = "sha256:42d86a3173522de4786cfba0b5d631dbadb3d03a86d218dafb070dafd9809c7e"
+
+[channels.edge.packages.x86_64]
+bash = "5.3.9-r2"
+clang22 = "22.1.8-r1"
+musl = "1.2.6-r6"
+musl-dev = "1.2.6-r6"
+
+[channels.edge.packages.aarch64]
+bash = "5.3.9-r2"
+clang22 = "22.1.8-r1"
+musl = "1.2.6-r6"
+musl-dev = "1.2.6-r6"
+
+[toolchain]
+llvm_version = "23.1.0-rc2"
+llvm_release = "6eb5fb9"
+mold_version = "3.0.0"
+mold_release = "cfb4aab"
+rustup_version = "1.29.1"
+
+[toolchain.archives.llvm.x86_64]
+url = "https://static.rust-lang.org/llvm-musl-23.1.0-rc2-6eb5fb9-x86_64.tar.xz"
+sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+[toolchain.archives.llvm.aarch64]
+url = "https://static.rust-lang.org/llvm-musl-23.1.0-rc2-6eb5fb9-aarch64.tar.xz"
+sha256 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+[toolchain.archives.mold.x86_64]
+url = "https://static.rust-lang.org/mold-musl-3.0.0-cfb4aab-x86_64.tar.gz"
+sha256 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+
+[toolchain.archives.mold.aarch64]
+url = "https://static.rust-lang.org/mold-musl-3.0.0-cfb4aab-aarch64.tar.gz"
+sha256 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+
+[toolchain.archives.rustup.x86_64]
+url = "https://static.rust-lang.org/rustup/archive/1.29.1/x86_64-unknown-linux-musl/rustup-init"
+sha256 = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+
+[toolchain.archives.rustup.aarch64]
+url = "https://static.rust-lang.org/rustup/archive/1.29.1/aarch64-unknown-linux-musl/rustup-init"
+sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+
+[adapters."laputa-systems/python-build"]
+kind = "python-build"
+channel = "edge"
+lock = "bootstrap.lock.json"
+
+[adapters."laputa-systems/chromium-build"]
+kind = "chromium-build"
+channel = "stable"
+lock = "config/packages.amd64.lock"
+
+[adapters."laputa-systems/node-build"]
+kind = "node-build"
+channel = "edge"
+workflow = ".github/workflows/build.yml"
+
+[adapters."laputa-systems/git-build"]
+kind = "git-build"
+channel = "stable"
+dockerfile = "Dockerfile"
+
+[adapters."laputa-systems/zzz"]
+kind = "zzz"
+zig_version = "0.16.0"
+zig_archive_sha256 = "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00"

@@ -13,6 +13,7 @@ from repomod.rules.languages import language_rules
 from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.mirrored_docs import mirrored_docs_rules
+from repomod.rules.musl_toolchain import musl_toolchain_rules
 from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.registry_sources import registry_sources_rules
 from repomod.rules.release import release_rules
@@ -48,6 +49,7 @@ def rules() -> tuple[Rule, ...]:
         *runner_rules(),
         *mdtool_rules(),
         *mirrored_docs_rules(),
+        *musl_toolchain_rules(),
         *python_standard_rules(),
         *template_rules(),
         *typescript_standard_rules(),

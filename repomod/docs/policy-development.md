@@ -172,6 +172,51 @@ build the canonical image, and run its smoke test. The package table covers ever
 conventional builders, tansu, and `git-build` install directly; add a package only when a
 real builder uses it, with its live index version.
 
+`linux-musl-toolchain` enforces the lock at error severity. It applies to every repository,
+returns no findings when no musl builder exists, and skips `fork`, `private-tool`, and
+`macos` repositories. It scans regular `Dockerfile`, `Dockerfile.*`, `*.Dockerfile`, and
+`docker/*.Dockerfile` files outside build, vendor, and fixture trees, plus builders named by
+release or CI workflows that build a Linux musl target. A Dockerfile is in scope when its raw
+text mentions musl or when its referencing workflow step mentions musl or the file does.
+
+For every in-scope Dockerfile, each Alpine base must carry the approved channel digest
+(the index digest, or the per-architecture manifest for a `--platform` stage), and an
+adapter-listed builder uses its configured channel. `ARG` defaults are resolved, so a build
+argument that controls a base image or package version must carry an approved default.
+Every `apk add` package must be an exact `name=version`; `musl` and `musl-dev` must equal the
+channel, other packages must equal the lock when it records them, and an unrecorded package
+requires an exact pin plus a manual finding to add it to the table. Architecture-specific
+versions require an architecture-conditional argument. A non-approved `--repository` or a
+direct `.apk` URL is a finding. Musl builders must not use `apt-get`, a Debian or Ubuntu
+final stage, or an `unknown-linux-gnu` target; `chromium-build` may keep its digest-pinned
+Debian compiler-host stage and its documented `x86_64-unknown-linux-gnu` compiler-layout
+symlink. Remote installers must be versioned archives with SHA256 verification. A binary
+prerelease that builds Linux musl targets on `ubuntu-*` must use a container or Docker; the
+`zzz` adapter is exempt once its Zig archive is checksum-pinned.
+
+The full Rust release-builder contract applies when a Rust repository has a binary
+prerelease contract. It keeps the versioned rustup and `llvm-prebuilt-musl` archives with
+checksums, both musl targets, `rust-src`, `musl-cargo`, the CRT stubs, and `libutil.a`, and
+requires the root Makefile's `release` or `dist` recipe to build std with `-Z build-std=std`
+and `-Z build-std-features=`. The LLVM, mold, and rustup versions in `ARG` defaults or
+literal archive URLs must equal the lock. A Rust builder without that contract, such as a
+CI check image or benchmark image, is checked only for its base digest and package pins.
+
+Each adapter has its own check. `python-build` validates the `bootstrap.lock.json` release,
+index and image digests, and both architectures' musl and musl-dev closure entries.
+`chromium-build` validates the selected package lock, the Dockerfile's direct `musl-dev`
+pin, the Alpine `BASE_IMAGE` digest, and the pinning of its compiler-host stage.
+`node-build` validates `ALPINE_AMD64` and the workflow's `apk add` versions. `git-build`
+requires exact package pins. `zzz` requires the approved Zig version and a verified archive
+checksum. Adapter mismatches are manual findings that name the repository's own refresh
+command; none of them rewrites a generated lock.
+
+The fixer rewrites the base digest and exact package versions in conventional builders and
+tansu, preserving formatting, comments, and multi-stage structure. It only edits packages when
+every package in the file has an approved version. It may rewrite the `node-build` workflow's
+`apk add` line when every package there is approved, and it adds the approved checksum to the
+`zzz` download. Bespoke lock mismatches stay manual.
+
 `github-protection` requires zero approving reviews on protected branches so owner-only
 automation never waits on reviews. Repositories without branch protection are skipped.
 It has no fixer; change protection with explicit API calls.

@@ -10,7 +10,6 @@ from repomod.rules.binary_release import (
     _binary_release_standard_findings,
     _binary_release_static_findings,
     _binary_release_static_fix,
-    _rust_musl_image_findings,
 )
 from repomod.types import RepoId, Repository
 
@@ -93,23 +92,6 @@ def write_rust_executable(root: Path) -> None:
     source = root / "src" / "main.rs"
     source.parent.mkdir(exist_ok=True)
     source.write_text("fn main() {}\n", encoding="utf-8")
-
-
-def write_musl_dockerfile(root: Path) -> None:
-    (root / "Dockerfile").write_text(
-        "FROM alpine:3.24.1\n"
-        "RUN wget -O /tmp/rustup-init "
-        "https://static.rust-lang.org/rustup/archive/1.29.1/x86_64-unknown-linux-musl/rustup-init "
-        "&& echo abc | sha256sum -c -\n"
-        "RUN wget -O /tmp/llvm.tar.xz https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/x.tar.xz "
-        "&& echo def | sha256sum -c -\n"
-        "RUN rustup toolchain install nightly --target x86_64-unknown-linux-musl "
-        "--target aarch64-unknown-linux-musl --component rust-src\n"
-        "RUN cat > /usr/local/bin/musl-cargo <<'EOF'\n"
-        "RUN for obj in crtbegin.o crtend.o; do echo $obj; done\n"
-        "RUN ar rcs /usr/lib/libutil.a\n",
-        encoding="utf-8",
-    )
 
 
 @pytest.mark.parametrize(
@@ -570,42 +552,6 @@ def test_standard_rule_skips_forks_and_private_tools(tmp_path: Path) -> None:
 
     assert _binary_release_standard_findings(tmp_path, fork) == []
     assert _binary_release_standard_findings(tmp_path, private) == []
-
-
-def test_musl_image_accepts_ish_contract(tmp_path: Path) -> None:
-    write_rust_executable(tmp_path)
-    write_musl_dockerfile(tmp_path)
-    repository = Repository(RepoId("acme", "demo"), ("tool",))
-
-    assert _rust_musl_image_findings(tmp_path, repository) == []
-
-
-def test_musl_image_rejects_glibc_builder(tmp_path: Path) -> None:
-    write_rust_executable(tmp_path)
-    (tmp_path / "Dockerfile").write_text(
-        "FROM debian:12\n"
-        "RUN apt-get install -y gcc\n"
-        "RUN cargo build --release --target x86_64-unknown-linux-gnu\n",
-        encoding="utf-8",
-    )
-    repository = Repository(RepoId("acme", "demo"), ("tool",))
-
-    findings = _rust_musl_image_findings(tmp_path, repository)
-    messages = [finding.message for finding in findings]
-
-    assert any("Alpine" in message for message in messages)
-    assert any("glibc" in message for message in messages)
-    assert any("musl-cargo" in message for message in messages)
-
-
-def test_musl_image_skips_missing_dockerfile_and_non_rust(tmp_path: Path) -> None:
-    repository = Repository(RepoId("acme", "demo"), ("tool",))
-
-    assert _rust_musl_image_findings(tmp_path, repository) == []
-
-    (tmp_path / "Dockerfile").write_text("FROM alpine:3.24.1\n", encoding="utf-8")
-
-    assert _rust_musl_image_findings(tmp_path, repository) == []
 
 
 @pytest.mark.parametrize("tag", ["extension", "build"])

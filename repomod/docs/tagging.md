@@ -64,8 +64,11 @@ A workflow in those repositories that does establish the binary contract still r
 `tool` role and allows only `fork`, platform, and language tags beside it, so `extension` or
 `build` on such a repository is reported. The
 `binary-release-standard` rule checks the target matrix and ish format for non-fork
-tools. The `rust-musl-image` rule checks the Alpine musl static builder image behind
-Rust tool releases against the ish Dockerfile.
+tools. The `linux-musl-toolchain` rule checks every musl builder against
+`musl-toolchain.toml`: the Alpine base digest, exact direct package versions, checksummed
+toolchain archives, the Rust release-builder contract, and the bespoke builder adapters. It
+applies to every repository and returns no findings when no musl builder exists. `fork`,
+`private-tool`, and `macos` repositories are skipped.
 
 `binary-release-static` also checks fork workflows that publish tool prereleases. It checks
 downloaded Linux ELF binaries before packaging and publication. The smoke rejects ELF interpreters

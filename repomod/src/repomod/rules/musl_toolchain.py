@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 import subprocess
 import tarfile
@@ -13,6 +14,10 @@ from pathlib import Path
 from typing import Any, cast
 
 from repomod.catalog import atomic_write
+from repomod.io import read_json_object
+from repomod.rules.binary_release import _release_kind, has_binary_release_contract
+from repomod.rules.workflows import read_workflow_sources
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _ARCHIVE_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -119,6 +124,15 @@ def _exact_keys(value: dict[str, Any], keys: set[str], key: str) -> None:
     if missing:
         raise ValueError(f"{key} is missing required keys: {', '.join(missing)}")
     unknown = sorted(set(value) - keys)
+    if unknown:
+        raise ValueError(f"{key} has unknown keys: {', '.join(unknown)}")
+
+
+def _schema_keys(value: dict[str, Any], required: set[str], optional: set[str], key: str) -> None:
+    missing = sorted(required - set(value))
+    if missing:
+        raise ValueError(f"{key} is missing required keys: {', '.join(missing)}")
+    unknown = sorted(set(value) - required - optional)
     if unknown:
         raise ValueError(f"{key} has unknown keys: {', '.join(unknown)}")
 
@@ -295,7 +309,12 @@ def _parse_musl_toolchain(source: str) -> MuslToolchain:
         document = tomllib.loads(source)
     except tomllib.TOMLDecodeError as error:
         raise ValueError(f"musl-toolchain.toml is invalid TOML: {error}") from error
-    _exact_keys(document, {"version", "upstream", "channels", "toolchain", "adapters"}, "musl-toolchain.toml")
+    _schema_keys(
+        document,
+        {"version", "upstream", "channels", "toolchain", "adapters"},
+        {"image"},
+        "musl-toolchain.toml",
+    )
     if type(document["version"]) is not int or document["version"] != 1:
         raise ValueError("musl-toolchain.toml version must be 1")
     upstream = _object(document["upstream"], "upstream")
@@ -629,3 +648,1251 @@ def refresh_musl_toolchain(path: Path | None = None) -> bool:
         return False
     atomic_write(target, source)
     return True
+
+
+_RULE_ID = "linux-musl-toolchain"
+_IGNORED_DIRECTORIES = frozenset(
+    {
+        ".git",
+        ".work",
+        ".venv",
+        "build",
+        "dist",
+        "node_modules",
+        "target",
+        "testdata",
+        "vendor",
+    }
+)
+_DOCKERFILE_NAME = re.compile(r"(?:Dockerfile(?:\..+)?|.+\.Dockerfile)\Z")
+_MUSL_TRIPLE = re.compile(r"\b(?:x86_64|aarch64)(?:-unknown)?-linux-musl\b")
+_VERSION_TAG = re.compile(r"\d+\.\d+(?:\.\d+)?\Z")
+_FROM = re.compile(
+    r"^\s*FROM\s+(?P<options>(?:--\S+\s+)*)(?P<image>\S+)(?:\s+AS\s+(?P<alias>\S+))?\s*$",
+    re.IGNORECASE,
+)
+_ARG = re.compile(r"^\s*ARG\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:=(?P<value>.*))?\s*$", re.IGNORECASE)
+_RUN = re.compile(r"^\s*RUN\b", re.IGNORECASE)
+_VARIABLE = re.compile(r"\$\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|\$(?P<bare>[A-Za-z_][A-Za-z0-9_]*)")
+_DOCKER_REFERENCE = re.compile(
+    r"(?:--file|(?<!\S)-f)[= ](?P<flag>[^\s'\"\\]+)"
+    r"|(?m:^\s*file:\s*(?P<file>[^\s'\"#]+))"
+)
+_APK_URL = re.compile(r"https?://\S+\.apk\b")
+_ZIG_URL = re.compile(r"https://ziglang\.org/download/(?P<version>[0-9][^/\s\"']*)/zig-[^\s\"']+\.tar\.xz")
+_CHECKSUM_VERIFIED = ("sha256sum -c", "add --checksum=", "add --checksum ")
+
+
+@dataclass(frozen=True, slots=True)
+class _LogicalLine:
+    text: str
+    offsets: tuple[int, ...]
+    line: int
+
+    def span(self, start: int, end: int) -> tuple[int, int] | None:
+        if start >= end:
+            return None
+        offsets = self.offsets[start:end]
+        if not offsets or offsets[-1] - offsets[0] != end - start - 1:
+            return None
+        return offsets[0], offsets[-1] + 1
+
+
+@dataclass(frozen=True, slots=True)
+class _Stage:
+    image: str
+    tag: str | None
+    digest: str | None
+    platform: str | None
+    channel: str | None
+    exempt: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _Token:
+    text: str
+    start: int
+    end: int
+    separator: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _Package:
+    name: str
+    version: str | None
+    start: int
+    end: int
+    raw: str
+
+
+@dataclass(frozen=True, slots=True)
+class _ApkCommand:
+    packages: tuple[_Package, ...]
+    repositories: tuple[str, ...]
+
+
+def _logical_lines(source: str) -> list[_LogicalLine]:
+    lines = source.splitlines(keepends=True)
+    result: list[_LogicalLine] = []
+    characters: list[str] = []
+    offsets: list[int] = []
+    start_line = 0
+    offset = 0
+
+    def flush() -> None:
+        nonlocal start_line
+        text = "".join(characters)
+        if text.strip() and not text.lstrip().startswith("#"):
+            result.append(_LogicalLine(text, tuple(offsets), start_line))
+        characters.clear()
+        offsets.clear()
+        start_line = 0
+
+    for index, raw in enumerate(lines):
+        content = raw.rstrip("\r\n")
+        line_offset = offset
+        offset += len(raw)
+        if not characters:
+            if not content.strip() or content.lstrip().startswith("#"):
+                continue
+            start_line = index + 1
+        trimmed = content.rstrip()
+        continuation = trimmed.endswith("\\")
+        if continuation:
+            content = trimmed[:-1]
+        characters.extend(content)
+        offsets.extend(range(line_offset, line_offset + len(content)))
+        if continuation:
+            characters.append(" ")
+            offsets.append(line_offset + max(0, len(content) - 1))
+            continue
+        flush()
+    flush()
+    return result
+
+
+def _expand(value: str, arguments: dict[str, str]) -> str:
+    def replacement(match: re.Match[str]) -> str:
+        name = match.group("braced") or match.group("bare")
+        return arguments.get(name, match.group(0))
+
+    return _VARIABLE.sub(replacement, value)
+
+
+def _arg_values(lines: list[_LogicalLine]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in lines:
+        match = _ARG.fullmatch(line.text)
+        if match is None:
+            continue
+        raw = (match.group("value") or "").strip()
+        if raw[:1] in {'"', "'"} and raw[-1:] == raw[:1]:
+            raw = raw[1:-1]
+        if raw:
+            values[match.group("name")] = _expand(raw, values)
+    return values
+
+
+def _shell_tokens(text: str) -> list[_Token]:
+    tokens: list[_Token] = []
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character.isspace():
+            index += 1
+            continue
+        if text.startswith(("&&", "||"), index):
+            tokens.append(_Token(text[index : index + 2], index, index + 2, True))
+            index += 2
+            continue
+        if character in ";&|()":
+            tokens.append(_Token(character, index, index + 1, True))
+            index += 1
+            continue
+        start = index
+        value: list[str] = []
+        while index < len(text) and not text[index].isspace() and text[index] not in ";&|()":
+            character = text[index]
+            if character in {'"', "'"}:
+                quote = character
+                index += 1
+                while index < len(text) and text[index] != quote:
+                    if quote == '"' and text[index] == "\\" and index + 1 < len(text):
+                        value.append(text[index + 1])
+                        index += 2
+                        continue
+                    value.append(text[index])
+                    index += 1
+                index += 1
+                continue
+            if character == "\\" and index + 1 < len(text):
+                value.append(text[index + 1])
+                index += 2
+                continue
+            value.append(character)
+            index += 1
+        tokens.append(_Token("".join(value), start, index, False))
+    return tokens
+
+
+def _apk_commands(text: str) -> list[_ApkCommand]:
+    tokens = _shell_tokens(text)
+    commands: list[_ApkCommand] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token.separator or token.text != "apk":
+            index += 1
+            continue
+        if index > 0 and not tokens[index - 1].separator and index != 0:
+            index += 1
+            continue
+        if index + 1 >= len(tokens) or tokens[index + 1].text != "add":
+            index += 1
+            continue
+        cursor = index + 2
+        packages: list[_Package] = []
+        repositories: list[str] = []
+        while cursor < len(tokens) and not tokens[cursor].separator:
+            current = tokens[cursor]
+            if current.text in {"--virtual", "-t"}:
+                cursor += 2
+                continue
+            if current.text == "--repository":
+                if cursor + 1 < len(tokens) and not tokens[cursor + 1].separator:
+                    repositories.append(tokens[cursor + 1].text)
+                cursor += 2
+                continue
+            if current.text.startswith("-"):
+                cursor += 1
+                continue
+            name, separator, version = current.text.partition("=")
+            packages.append(
+                _Package(
+                    name=name,
+                    version=version if separator else None,
+                    start=current.start,
+                    end=current.end,
+                    raw=current.text,
+                )
+            )
+            cursor += 1
+        commands.append(_ApkCommand(tuple(packages), tuple(repositories)))
+        index = cursor
+    return commands
+
+
+def _split_image(image: str) -> tuple[str, str | None, str | None]:
+    name, separator, digest = image.partition("@")
+    tag = None
+    last = name.rsplit("/", 1)[-1]
+    if ":" in last:
+        name, _, tag = name.rpartition(":")
+    return name, tag, digest if separator else None
+
+
+def _repository_name(repo: str) -> str:
+    return repo.rsplit("/", 1)[-1].casefold()
+
+
+def _platform_arch(platform: str | None) -> str | None:
+    if platform is None or platform.startswith("$"):
+        return None
+    for part in reversed([value for value in platform.split("/") if value]):
+        if part in {"amd64", "arm64"}:
+            return part
+        if part == "x86_64":
+            return "amd64"
+        if part == "aarch64":
+            return "arm64"
+    return None
+
+
+def _version_matches(tag: str, version: str, release: str) -> bool:
+    return tag in {version, f"{version}-{release}"}
+
+
+def _channel_from_tag(lock: MuslToolchain, tag: str | None) -> str | None:
+    if tag == "edge":
+        return "edge"
+    if (
+        tag is not None
+        and _VERSION_TAG.fullmatch(tag) is not None
+        and tag.split(".", 2)[0:2] == lock.channels["stable"].branch.split(".", 1)
+    ):
+        return "stable"
+    return None
+
+
+def _channel_from_digest(lock: MuslToolchain, digest: str, arch: str | None) -> str | None:
+    for name, channel in lock.channels.items():
+        expected = channel.manifests[arch] if arch is not None else channel.index_digest
+        if digest == expected:
+            return name
+    return None
+
+
+def _approved_digest(lock: MuslToolchain, channel: str, arch: str | None) -> str:
+    value = lock.channel(channel)
+    return value.manifests[arch] if arch is not None else value.index_digest
+
+
+@dataclass(slots=True)
+class _Analysis:
+    findings: list[Finding]
+    edits: list[tuple[int, int, str]]
+
+
+def _failure(
+    repository: Repository,
+    path: str,
+    message: str,
+    line: int | None = None,
+    fixable: bool = False,
+) -> Finding:
+    return violation(repository, _RULE_ID, path, message, fixable=fixable, line=line)
+
+
+def _stage_check(
+    repository: Repository,
+    lock: MuslToolchain,
+    path: str,
+    line: _LogicalLine,
+    match: re.Match[str],
+    arguments: dict[str, str],
+    adapter: Adapter | None,
+) -> tuple[_Stage, list[Finding], list[tuple[int, int, str]]]:
+    findings: list[Finding] = []
+    edits: list[tuple[int, int, str]] = []
+    options = match.group("options") or ""
+    platform_match = re.search(r"--platform=(\S+)", options)
+    platform = platform_match.group(1) if platform_match is not None else None
+    image = _expand(match.group("image"), arguments)
+    image_span = line.span(match.start("image"), match.end("image"))
+    if "$" in image:
+        findings.append(_failure(repository, path, "base image uses an unresolved build argument", line.line))
+        return _Stage(image, None, None, platform, None, False), findings, edits
+    repo, tag, digest = _split_image(image)
+    if lock.image is not None and repo.casefold() == lock.image.reference.casefold():
+        if digest != lock.image.digest:
+            findings.append(
+                _failure(
+                    repository,
+                    path,
+                    f"canonical builder image must use the approved digest {lock.image.digest}",
+                    line.line,
+                    fixable=image_span is not None,
+                )
+            )
+            if image_span is not None:
+                edits.append((image_span[0], image_span[1], f"{lock.image.reference}@{lock.image.digest}"))
+        return _Stage(image, tag, digest, platform, None, True), findings, edits
+    name = _repository_name(repo)
+    if name != "alpine":
+        if name in {"debian", "ubuntu"} and (digest is None or _SHA256.fullmatch(digest) is None):
+            findings.append(
+                _failure(repository, path, "Debian or Ubuntu host image must be digest-pinned", line.line)
+            )
+        return _Stage(image, tag, digest, platform, None, False), findings, edits
+    arch = _platform_arch(platform)
+    adapter_channel = adapter.channel if adapter is not None else None
+    channel = adapter_channel or _channel_from_tag(lock, tag)
+    if digest is not None and _SHA256.fullmatch(digest) is None:
+        findings.append(_failure(repository, path, f"base digest is not a sha256 digest: {digest}", line.line))
+        return _Stage(image, tag, digest, platform, channel, False), findings, edits
+    if channel is None and digest is not None:
+        channel = _channel_from_digest(lock, digest, arch)
+    if channel is None:
+        findings.append(
+            _failure(
+                repository,
+                path,
+                "Alpine base digest does not match an approved stable or edge digest",
+                line.line,
+            )
+        )
+        return _Stage(image, tag, digest, platform, None, False), findings, edits
+    expected = _approved_digest(lock, channel, arch)
+    if digest != expected:
+        findings.append(
+            _failure(
+                repository,
+                path,
+                f"Alpine base must use the approved {channel} digest {expected}",
+                line.line,
+                fixable=image_span is not None,
+            )
+        )
+        if image_span is not None:
+            reference = lock.channel(channel).image.partition("@")[0]
+            edits.append((image_span[0], image_span[1], f"{reference}@{expected}"))
+    return _Stage(image, tag, digest, platform, channel, False), findings, edits
+
+
+def _package_finding(
+    repository: Repository,
+    lock: MuslToolchain,
+    path: str,
+    line: int,
+    package: _Package,
+    channel: str | None,
+    require_table: bool,
+    live: bool,
+) -> tuple[Finding | None, str | None]:
+    if channel is None:
+        if package.version is None:
+            return (
+                _failure(repository, path, f"package {package.name} must be pinned as name=version", line),
+                None,
+            )
+        return None, None
+    versions = {
+        arch: lock.channel(channel).packages[arch].get(package.name) for arch in _ARCHES
+    }
+    if all(version is None for version in versions.values()):
+        if not require_table:
+            if package.version is None:
+                return (
+                    _failure(repository, path, f"package {package.name} must be pinned as name=version", line),
+                    None,
+                )
+            return None, None
+        return (
+            _failure(
+                repository,
+                path,
+                f"package {package.name} is not in musl-toolchain.toml; add its approved version",
+                line,
+            ),
+            None,
+        )
+    if versions["x86_64"] != versions["aarch64"]:
+        if "$" in package.raw and package.version in versions.values():
+            return None, None
+        return (
+            _failure(
+                repository,
+                path,
+                f"package {package.name} has different approved versions per architecture; "
+                "use an architecture-conditional ARG",
+                line,
+            ),
+            None,
+        )
+    expected = versions["x86_64"]
+    assert expected is not None
+    if package.version is None:
+        return (
+            _failure(
+                repository,
+                path,
+                f"package {package.name} must be pinned as {package.name}={expected}",
+                line,
+                fixable=live,
+            ),
+            expected,
+        )
+    if package.version != expected:
+        return (
+            _failure(
+                repository,
+                path,
+                f"package {package.name}={package.version} is stale; use {package.name}={expected}",
+                line,
+                fixable=live,
+            ),
+            expected,
+        )
+    return None, expected
+
+
+def _analyze_dockerfile(
+    repository: Repository,
+    lock: MuslToolchain,
+    root: Path,
+    path: Path,
+    adapter: Adapter | None,
+    require_table: bool,
+) -> _Analysis:
+    relative = path.relative_to(root).as_posix()
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return _Analysis([operational(repository, _RULE_ID, relative, f"cannot read Dockerfile: {error}")], [])
+    lines = _logical_lines(source)
+    arguments = _arg_values(lines)
+    findings: list[Finding] = []
+    edits: list[tuple[int, int, str]] = []
+    package_edits: list[tuple[int, int, str]] = []
+    stage: _Stage | None = None
+    packages: list[tuple[_Stage | None, _Package, _LogicalLine, int]] = []
+    for line in lines:
+        from_match = _FROM.fullmatch(line.text)
+        if from_match is not None:
+            stage, stage_findings, stage_edits = _stage_check(
+                repository, lock, relative, line, from_match, arguments, adapter
+            )
+            findings.extend(stage_findings)
+            edits.extend(stage_edits)
+            continue
+        run_match = _RUN.match(line.text)
+        if run_match is None:
+            continue
+        run_text = line.text[run_match.end() :]
+        for command in _apk_commands(run_text):
+            findings.extend(
+                _failure(
+                    repository,
+                    relative,
+                    f"apk add uses a non-approved repository: {repository_url}",
+                    line.line,
+                )
+                for repository_url in command.repositories
+            )
+            packages.extend((stage, package, line, run_match.end()) for package in command.packages)
+        if _APK_URL.search(run_text) is not None:
+            findings.append(
+                _failure(repository, relative, "musl builder must not install a direct .apk URL", line.line)
+            )
+    resolved_packages: list[tuple[_Stage, _Package, _LogicalLine]] = []
+    file_fixable = True
+    for package_stage, package, line, offset in packages:
+        if package_stage is None or package_stage.exempt:
+            continue
+        expanded = _expand(package.raw, arguments)
+        if "$" in expanded:
+            findings.append(
+                _failure(
+                    repository,
+                    relative,
+                    f"apk package token {package.raw} uses an unresolved build argument",
+                    line.line,
+                )
+            )
+            file_fixable = False
+            continue
+        name, separator, version = expanded.partition("=")
+        resolved = _Package(
+            name=name,
+            version=version if separator else None,
+            start=offset + package.start,
+            end=offset + package.end,
+            raw=expanded,
+        )
+        channel = package_stage.channel
+        if channel is None:
+            if resolved.version is None:
+                file_fixable = False
+        else:
+            versions = {
+                arch: lock.channel(channel).packages[arch].get(name) for arch in _ARCHES
+            }
+            if all(value is None for value in versions.values()):
+                if require_table or resolved.version is None:
+                    file_fixable = False
+            elif versions["x86_64"] != versions["aarch64"] and not (
+                "$" in package.raw and resolved.version in versions.values()
+            ):
+                file_fixable = False
+        resolved_packages.append((package_stage, resolved, line))
+    for package_stage, resolved, line in resolved_packages:
+        finding, expected = _package_finding(
+            repository,
+            lock,
+            relative,
+            line.line,
+            resolved,
+            package_stage.channel,
+            require_table,
+            live=file_fixable,
+        )
+        if finding is not None:
+            findings.append(finding)
+        if expected is not None and package_stage.channel is not None:
+            span = line.span(resolved.start, resolved.end)
+            if span is not None:
+                package_edits.append((span[0], span[1], f"{resolved.name}={expected}"))
+    if file_fixable:
+        edits.extend(package_edits)
+    lowered = source.casefold()
+    if "apt-get" in lowered:
+        findings.append(_failure(repository, relative, "musl builder must not use apt-get"))
+    gnu_source = source
+    if adapter is not None and adapter.kind == "chromium-build":
+        gnu_source = gnu_source.replace("x86_64-unknown-linux-gnu", "")
+    if "unknown-linux-gnu" in gnu_source:
+        findings.append(_failure(repository, relative, "musl builder must not build unknown-linux-gnu targets"))
+    checksum_verified = any(marker in lowered for marker in _CHECKSUM_VERIFIED)
+    if "sh.rustup.rs" in source or "rustup/dist/" in source:
+        findings.append(
+            _failure(
+                repository,
+                relative,
+                "musl builder must install rustup from the versioned archive URL, not an unverified installer",
+            )
+        )
+    elif not checksum_verified and any(
+        marker in source for marker in ("rustup/archive/", "llvm-prebuilt-musl", "mold-musl")
+    ):
+        findings.append(
+            _failure(repository, relative, "musl builder must verify every remote toolchain archive with sha256")
+        )
+    return _Analysis(findings, edits)
+
+
+def _without_comments(source: str) -> str:
+    return "\n".join("" if line.lstrip().startswith("#") else line for line in source.splitlines())
+
+
+def _relative_path_from_reference(root: Path, value: str) -> Path | None:
+    candidate = Path(value.strip().strip("'\""))
+    if candidate.is_absolute():
+        path = candidate
+    else:
+        path = root / candidate
+    try:
+        resolved = path.resolve(strict=False)
+        if not resolved.is_relative_to(root.resolve()):
+            return None
+    except (OSError, ValueError):
+        return None
+    if path.is_symlink() or not path.is_file():
+        return None
+    return path
+
+
+def _yaml_step(source: str, position: int) -> str:
+    lines = source.splitlines()
+    starts = [0]
+    for line in lines:
+        starts.append(starts[-1] + len(line) + 1)
+    index = max(0, next((i for i, start in enumerate(starts) if start > position), len(lines)) - 1)
+    indent = len(lines[index]) - len(lines[index].lstrip())
+    start = index
+    while start > 0:
+        previous = lines[start - 1]
+        previous_indent = len(previous) - len(previous.lstrip())
+        if previous.lstrip().startswith("- ") and previous_indent <= indent:
+            start -= 1
+            break
+        start -= 1
+    end = len(lines)
+    for cursor in range(start + 1, len(lines)):
+        line = lines[cursor]
+        line_indent = len(line) - len(line.lstrip())
+        if line.lstrip().startswith("- ") and line_indent < indent:
+            end = cursor
+            break
+    return "\n".join(lines[start:end])
+
+
+def _workflow_references(root: Path, workflows: list[tuple[str, str]]) -> set[Path]:
+    references: set[Path] = set()
+    for _, source in workflows:
+        if _MUSL_TRIPLE.search(source) is None:
+            continue
+        for match in _DOCKER_REFERENCE.finditer(source):
+            value = match.group("flag") or match.group("file")
+            if value is None:
+                continue
+            path = _relative_path_from_reference(root, value)
+            if path is None:
+                continue
+            try:
+                mentions_musl = "musl" in path.read_text(encoding="utf-8").casefold()
+            except (OSError, UnicodeError):
+                mentions_musl = True
+            if mentions_musl or "musl" in _yaml_step(source, match.start()).casefold():
+                references.add(path)
+    return references
+
+
+def _candidate_dockerfiles(root: Path, references: set[Path]) -> list[Path]:
+    candidates: set[Path] = set()
+    for directory, names, filenames in os.walk(root, followlinks=False):
+        current = Path(directory)
+        relative = current.relative_to(root)
+        names[:] = sorted(
+            name
+            for name in names
+            if name not in _IGNORED_DIRECTORIES
+            and not (current / name).is_symlink()
+            and not (relative == Path("tests") and name == "fixtures")
+        )
+        for filename in filenames:
+            path = current / filename
+            if path.is_symlink() or not path.is_file():
+                continue
+            if _DOCKERFILE_NAME.fullmatch(filename) is not None:
+                candidates.add(path)
+    candidates.update(references)
+    return sorted(candidates, key=lambda path: path.relative_to(root).as_posix().casefold())
+
+
+def _release_recipe(root: Path) -> str | None:
+    for name in ("GNUmakefile", "makefile", "Makefile"):
+        path = root / name
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError):
+            return None
+        recipe: list[str] = []
+        for index, line in enumerate(lines):
+            if re.match(r"^(?:release|dist)(?:[-A-Za-z0-9_]*)?\s*:", line) is None:
+                continue
+            for following in lines[index + 1 :]:
+                if following and not following[0].isspace():
+                    break
+                recipe.append(following)
+        return "\n".join(recipe) if recipe else None
+    return None
+
+
+def _rust_contract_findings(
+    root: Path,
+    repository: Repository,
+    lock: MuslToolchain,
+    container: Path | None,
+) -> list[Finding]:
+    if container is None:
+        return []
+    relative = container.relative_to(root).as_posix()
+    try:
+        source = container.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [operational(repository, _RULE_ID, relative, f"cannot read Dockerfile: {error}")]
+    arguments = _arg_values(_logical_lines(source))
+    expanded = _expand(source, arguments)
+    findings: list[Finding] = []
+    checksum_verified = any(marker in source.casefold() for marker in _CHECKSUM_VERIFIED)
+    versions = set(re.findall(r"rustup/archive/([^/\s\"'\\]+)/", expanded))
+    findings.extend(
+        _failure(
+            repository,
+            relative,
+            f"rustup archive {version} is not approved {lock.toolchain.rustup_version}",
+        )
+        for version in sorted(versions)
+        if version != lock.toolchain.rustup_version
+    )
+    if "llvm-prebuilt-musl" not in source:
+        findings.append(
+            _failure(repository, relative, "Rust builder must install the musl-linked LLVM prebuilt")
+        )
+    llvm_version = arguments.get("LLVM_VERSION")
+    if llvm_version is not None and llvm_version != lock.toolchain.llvm_version:
+        findings.append(
+            _failure(
+                repository,
+                relative,
+                f"LLVM version {llvm_version} is not approved {lock.toolchain.llvm_version}",
+            )
+        )
+    llvm_release = arguments.get("LLVM_RELEASE_SHA")
+    if llvm_release is not None and llvm_release != lock.toolchain.llvm_release:
+        findings.append(
+            _failure(
+                repository,
+                relative,
+                f"LLVM release {llvm_release} is not approved {lock.toolchain.llvm_release}",
+            )
+        )
+    findings.extend(
+        _failure(repository, relative, "LLVM archive URL is not the approved release")
+        for match in re.finditer(r"llvm-musl-([0-9A-Za-z._-]+)", expanded)
+        if not _version_matches(match.group(1), lock.toolchain.llvm_version, lock.toolchain.llvm_release)
+    )
+    mold_version = arguments.get("MOLD_VERSION")
+    if mold_version is not None and mold_version != lock.toolchain.mold_version:
+        findings.append(
+            _failure(repository, relative, f"mold version {mold_version} is not approved {lock.toolchain.mold_version}")
+        )
+    mold_release = arguments.get("MOLD_RELEASE_SHA")
+    if mold_release is not None and mold_release != lock.toolchain.mold_release:
+        findings.append(
+            _failure(repository, relative, f"mold release {mold_release} is not approved {lock.toolchain.mold_release}")
+        )
+    findings.extend(
+        _failure(repository, relative, "mold archive URL is not the approved release")
+        for match in re.finditer(r"mold-musl-([0-9A-Za-z._-]+)", expanded)
+        if not _version_matches(match.group(1), lock.toolchain.mold_version, lock.toolchain.mold_release)
+    )
+    findings.extend(
+        _failure(repository, relative, f"Rust builder must install the {target} target")
+        for target in ("x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl")
+        if target not in source
+    )
+    findings.extend(
+        _failure(repository, relative, message)
+        for marker, message in (
+            ("rust-src", "Rust builder must include the rust-src component"),
+            ("musl-cargo", "Rust builder must provide the musl-cargo linker wrapper"),
+            ("crtbegin", "Rust builder must provide musl CRT startup stubs"),
+            ("libutil.a", "Rust builder must stub libutil.a from musl libc"),
+        )
+        if marker not in source
+    )
+    if not checksum_verified:
+        findings.append(
+            _failure(repository, relative, "Rust builder must verify remote toolchain archives with sha256")
+        )
+    recipe = _release_recipe(root)
+    if recipe is None:
+        findings.append(
+            _failure(repository, relative, "root Makefile must define a release or dist recipe for musl builds")
+        )
+    elif "-Z build-std=std" not in recipe or "-Z build-std-features=" not in recipe:
+        findings.append(
+            _failure(
+                repository,
+                relative,
+                "root Makefile release recipe must build std with -Z build-std=std and -Z build-std-features=",
+            )
+        )
+    return findings
+
+
+def _read_adapter_file(root: Path, relative: str, repository: Repository) -> tuple[str | None, Finding | None]:
+    path = root / relative
+    if path.is_symlink() or not path.is_file():
+        return None, operational(repository, _RULE_ID, relative, "adapter file is missing or not a regular file")
+    try:
+        return path.read_text(encoding="utf-8"), None
+    except (OSError, UnicodeError) as error:
+        return None, operational(repository, _RULE_ID, relative, f"cannot read adapter file: {error}")
+
+
+def _adapter_with_lock_findings(
+    root: Path, repository: Repository, lock: MuslToolchain, adapter: Adapter
+) -> list[Finding]:
+    if adapter.lock is None:
+        return [operational(repository, _RULE_ID, None, "adapter has no lock path")]
+    document, error = read_json_object(root / adapter.lock)
+    if document is None:
+        return [
+            operational(
+                repository,
+                _RULE_ID,
+                adapter.lock,
+                f"cannot read adapter lock: {error}",
+            )
+        ]
+    channel = lock.channel(adapter.channel or "")
+    findings: list[Finding] = []
+    if adapter.kind == "python-build":
+        linux = document.get("linux_toolchain")
+        if not isinstance(linux, dict):
+            return [_failure(repository, adapter.lock, "bootstrap lock has no linux_toolchain table")]
+        if linux.get("release") != channel.release:
+            findings.append(
+                _failure(
+                    repository,
+                    adapter.lock,
+                    f"linux toolchain release {linux.get('release')} is not approved {channel.release}; "
+                    "run the repository's bootstrap refresh",
+                )
+            )
+        if linux.get("image_index_digest") != channel.index_digest:
+            findings.append(
+                _failure(
+                    repository,
+                    adapter.lock,
+                    "linux toolchain index digest is not approved; run the repository's bootstrap refresh",
+                )
+            )
+        images = linux.get("images")
+        images = images if isinstance(images, dict) else {}
+        for manifest_arch in _MANIFEST_ARCHES:
+            entry = images.get(manifest_arch)
+            digest = entry.get("digest") if isinstance(entry, dict) else None
+            if digest != channel.manifests[manifest_arch]:
+                findings.append(
+                    _failure(
+                        repository,
+                        adapter.lock,
+                        f"linux {manifest_arch} image digest is not approved; run the repository's bootstrap refresh",
+                    )
+                )
+        closure = linux.get("apk_closure")
+        closure = closure if isinstance(closure, dict) else {}
+        for arch in _ARCHES:
+            entries = closure.get(arch)
+            entries = entries if isinstance(entries, list) else []
+            versions = {
+                entry.get("name"): entry.get("version")
+                for entry in entries
+                if isinstance(entry, dict)
+            }
+            expected = channel.packages[arch]["musl"]
+            findings.extend(
+                _failure(
+                    repository,
+                    adapter.lock,
+                    f"{arch} closure {name} must be {expected}; run the repository's bootstrap refresh",
+                )
+                for name in ("musl", "musl-dev")
+                if versions.get(name) != expected
+            )
+        return findings
+    if adapter.kind == "chromium-build":
+        if document.get("base_release") != channel.release:
+            findings.append(
+                _failure(
+                    repository,
+                    adapter.lock,
+                    f"package lock base_release {document.get('base_release')} is not approved "
+                    f"{channel.release}; run update-lock",
+                )
+            )
+        world = document.get("world")
+        expected = channel.packages["x86_64"]["musl-dev"]
+        entries = world if isinstance(world, list) else []
+        versions = {
+            entry.partition("=")[0]: entry.partition("=")[2]
+            for entry in entries
+            if isinstance(entry, str) and "=" in entry
+        }
+        if versions.get("musl-dev") != expected:
+            findings.append(
+                _failure(
+                    repository,
+                    adapter.lock,
+                    f"package lock musl-dev must be {expected}; run update-lock",
+                )
+            )
+        source, error = _read_adapter_file(root, "Dockerfile", repository)
+        if source is None:
+            return findings + ([error] if error is not None else [])
+        arguments = _arg_values(_logical_lines(source))
+        base = _expand(arguments.get("BASE_IMAGE", ""), arguments)
+        _, _, digest = _split_image(base)
+        approved = {channel.index_digest, *channel.manifests.values()}
+        if digest not in approved:
+            findings.append(
+                _failure(repository, "Dockerfile", "BASE_IMAGE digest is not approved; run update-lock")
+            )
+        for line in _logical_lines(source):
+            match = _FROM.fullmatch(line.text)
+            if match is None:
+                continue
+            image = _expand(match.group("image"), arguments)
+            repo, _, digest = _split_image(image)
+            if _repository_name(repo) in {"debian", "ubuntu"} and digest is None:
+                findings.append(
+                    _failure(repository, "Dockerfile", "compiler host image must be digest-pinned", line.line)
+                )
+        direct: dict[str, str | None] = {}
+        for line in _logical_lines(source):
+            run_match = _RUN.match(line.text)
+            if run_match is None:
+                continue
+            for command in _apk_commands(line.text[run_match.end() :]):
+                for package in command.packages:
+                    direct[package.name] = package.version
+        if direct.get("musl-dev") != expected:
+            findings.append(
+                _failure(
+                    repository,
+                    "Dockerfile",
+                    f"Dockerfile musl-dev must be {expected}; run update-lock",
+                )
+            )
+        if "apt-get" in source.casefold():
+            findings.append(_failure(repository, "Dockerfile", "musl builder must not use apt-get"))
+        if "unknown-linux-gnu" in source.replace("x86_64-unknown-linux-gnu", ""):
+            findings.append(
+                _failure(repository, "Dockerfile", "musl builder must not build unknown-linux-gnu targets")
+            )
+        return findings
+    return []
+
+
+def _workflow_apk_packages(line: str) -> list[_Package]:
+    match = re.search(r"\bapk\s+add\b", line)
+    if match is None:
+        return []
+    commands = _apk_commands(line[match.start() :])
+    return [package for command in commands for package in command.packages]
+
+
+def _adapter_workflow_findings(
+    root: Path, repository: Repository, lock: MuslToolchain, adapter: Adapter
+) -> list[Finding]:
+    if adapter.kind == "node-build":
+        if adapter.workflow is None:
+            return []
+        source, error = _read_adapter_file(root, adapter.workflow, repository)
+        if source is None:
+            return [error] if error is not None else []
+        channel = lock.channel(adapter.channel or "")
+        findings: list[Finding] = []
+        image = re.search(r"(?m)^\s*ALPINE_AMD64:\s*(?P<image>\S+)\s*$", source)
+        _, _, digest = _split_image(image.group("image")) if image is not None else ("", None, None)
+        approved = {channel.index_digest, *channel.manifests.values()}
+        if digest not in approved:
+            findings.append(
+                _failure(repository, adapter.workflow, "ALPINE_AMD64 digest is not the approved edge digest")
+            )
+        apk_lines = []
+        for index, line in enumerate(source.splitlines(), start=1):
+            packages = _workflow_apk_packages(line)
+            if packages:
+                apk_lines.append((index, packages))
+        all_packages = [package for _, packages in apk_lines for package in packages]
+        file_fixable = bool(all_packages) and all(
+            channel.packages["x86_64"].get(package.name) is not None for package in all_packages
+        )
+        for index, packages in apk_lines:
+            for package in packages:
+                finding, _ = _package_finding(
+                    repository,
+                    lock,
+                    adapter.workflow,
+                    index,
+                    package,
+                    adapter.channel,
+                    require_table=True,
+                    live=file_fixable,
+                )
+                if finding is not None:
+                    findings.append(finding)
+        return findings
+    if adapter.kind == "zzz":
+        findings = []
+        checksum = adapter.zig_archive_sha256
+        for relative, source in read_workflow_sources(root, repository)[0]:
+            urls = list(_ZIG_URL.finditer(source))
+            if not urls:
+                continue
+            findings.extend(
+                _failure(
+                    repository,
+                    relative,
+                    f"Zig archive {match.group('version')} is not approved {adapter.zig_version}",
+                )
+                for match in urls
+                if match.group("version") != adapter.zig_version
+            )
+            if checksum is not None and checksum not in source:
+                findings.append(
+                    _failure(
+                        repository,
+                        relative,
+                        "Zig archive download must verify the approved sha256 checksum",
+                        fixable=True,
+                    )
+                )
+        return findings
+    return []
+
+
+def _host_musl_build_findings(
+    root: Path,
+    repository: Repository,
+    lock: MuslToolchain,
+    workflows: list[tuple[str, str]],
+) -> list[Finding]:
+    findings: list[Finding] = []
+    adapter = lock.adapters.get(str(repository.id))
+    zzz_pinned = adapter is not None and adapter.kind == "zzz" and adapter.zig_archive_sha256 is not None
+    for relative, source in workflows:
+        clean = _without_comments(source)
+        if _release_kind(root, clean) != "binary":
+            continue
+        if _MUSL_TRIPLE.search(clean) is None:
+            continue
+        if re.search(r"(?m)^\s*runs-on:\s*ubuntu-", clean) is None:
+            continue
+        if any(
+            marker in clean
+            for marker in (
+                "container:",
+                "docker build",
+                "docker run",
+                "docker/build-push-action",
+                "docker/setup-buildx-action",
+                "DOCKER_PLATFORM",
+            )
+        ):
+            continue
+        if zzz_pinned:
+            continue
+        findings.append(
+            _failure(
+                repository,
+                relative,
+                "binary prerelease must build Linux musl targets in a container or through Docker",
+            )
+        )
+    return findings
+
+
+def _dockerfile_in_scope(path: Path, references: set[Path]) -> bool:
+    if path in references:
+        return True
+    try:
+        return "musl" in path.read_text(encoding="utf-8").casefold()
+    except (OSError, UnicodeError):
+        return True
+
+
+def _linux_musl_toolchain_findings(root: Path, repository: Repository) -> list[Finding]:
+    if set(repository.tags) & {"fork", "private-tool", "macos"}:
+        return []
+    try:
+        lock = load_musl_toolchain()
+    except (OSError, ValueError) as error:
+        return [operational(repository, _RULE_ID, "musl-toolchain.toml", str(error))]
+    workflows, problems = read_workflow_sources(root, repository)
+    findings = [operational(repository, _RULE_ID, path, message) for path, message in problems]
+    adapter = lock.adapters.get(str(repository.id))
+    if adapter is not None and adapter.kind in {"python-build", "chromium-build"}:
+        findings.extend(_adapter_with_lock_findings(root, repository, lock, adapter))
+        return findings
+    references = _workflow_references(root, workflows)
+    dockerfiles = [
+        path
+        for path in _candidate_dockerfiles(root, references)
+        if _dockerfile_in_scope(path, references)
+    ]
+    require_table = adapter is None or adapter.kind != "git-build"
+    for path in dockerfiles:
+        analysis = _analyze_dockerfile(repository, lock, root, path, adapter, require_table)
+        findings.extend(analysis.findings)
+    if has_binary_release_contract(root, repository) and (root / "Cargo.toml").is_file():
+        root_dockerfile = next(
+            (path for path in dockerfiles if path == root / "Dockerfile"),
+            dockerfiles[0] if dockerfiles else None,
+        )
+        findings.extend(_rust_contract_findings(root, repository, lock, root_dockerfile))
+    findings.extend(_adapter_workflow_findings(root, repository, lock, adapter) if adapter is not None else [])
+    findings.extend(_host_musl_build_findings(root, repository, lock, workflows))
+    unique: list[Finding] = []
+    seen: set[tuple[str | None, str, str]] = set()
+    for finding in findings:
+        key = (finding.file, finding.message, finding.kind)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(finding)
+    return unique
+
+
+def _fixable_dockerfile(path: Path, root: Path) -> bool:
+    name = path.name
+    if name == "Dockerfile" or name.startswith("Dockerfile."):
+        return path.parent == root
+    return name.endswith(".Dockerfile")
+
+
+def _apply_edits(source: str, edits: list[tuple[int, int, str]]) -> str:
+    for start, end, replacement in sorted(edits, key=lambda edit: edit[0], reverse=True):
+        source = source[:start] + replacement + source[end:]
+    return source
+
+
+def _fixed_node_workflow(source: str, lock: MuslToolchain, channel: str) -> str:
+    lines = source.splitlines(keepends=True)
+    apk_lines: list[tuple[int, int, list[_Package]]] = []
+    for index, line in enumerate(lines):
+        match = re.search(r"\bapk\s+add\b", line)
+        if match is None:
+            continue
+        packages = _workflow_apk_packages(line)
+        if packages:
+            apk_lines.append((index, match.start(), packages))
+    if not apk_lines:
+        return source
+    versions = lock.channel(channel).packages["x86_64"]
+    if any(versions.get(package.name) is None for _, _, packages in apk_lines for package in packages):
+        return source
+    for index, offset, packages in apk_lines:
+        line = lines[index]
+        for package in sorted(packages, key=lambda item: item.start, reverse=True):
+            expected = versions[package.name]
+            line = f"{line[: offset + package.start]}{package.name}={expected}{line[offset + package.end :]}"
+        lines[index] = line
+    return "".join(lines)
+
+
+def _fixed_zig_workflow(source: str, checksum: str) -> str:
+    pattern = re.compile(
+        r"(?m)^(?P<indent>\s*(?:run:\s*)?)curl\s+-fsSL\s+(?P<url>https://ziglang\.org/download/\S+\.tar\.xz)"
+        r"\s*\|\s*tar\s+xJ\s*$"
+    )
+    return pattern.sub(
+        lambda match: (
+            f"{match.group('indent')}curl -fsSL -o zig.tar.xz {match.group('url')} "
+            f'&& echo "{checksum}  zig.tar.xz" | sha256sum -c - && tar xJf zig.tar.xz'
+        ),
+        source,
+    )
+
+
+def _linux_musl_toolchain_fix(root: Path, repository: Repository) -> dict[str, str]:
+    if set(repository.tags) & {"fork", "private-tool", "macos"}:
+        return {}
+    try:
+        lock = load_musl_toolchain()
+    except (OSError, ValueError):
+        return {}
+    adapter = lock.adapters.get(str(repository.id))
+    if adapter is not None and adapter.kind in {"python-build", "chromium-build"}:
+        return {}
+    workflows, _ = read_workflow_sources(root, repository)
+    references = _workflow_references(root, workflows)
+    dockerfiles = _candidate_dockerfiles(root, references)
+    require_table = adapter is None or adapter.kind != "git-build"
+    plan: dict[str, str] = {}
+    for path in dockerfiles:
+        if not _fixable_dockerfile(path, root):
+            continue
+        if not _dockerfile_in_scope(path, references):
+            continue
+        analysis = _analyze_dockerfile(repository, lock, root, path, adapter, require_table)
+        if not analysis.edits:
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        fixed = _apply_edits(source, analysis.edits)
+        if fixed != source:
+            plan[path.relative_to(root).as_posix()] = fixed
+    if adapter is not None and adapter.kind == "node-build" and adapter.workflow is not None:
+        source, error = _read_adapter_file(root, adapter.workflow, repository)
+        if source is not None and error is None:
+            fixed = _fixed_node_workflow(source, lock, adapter.channel or "")
+            if fixed != source:
+                plan[adapter.workflow] = fixed
+    if adapter is not None and adapter.kind == "zzz" and adapter.zig_archive_sha256 is not None:
+        for relative, source in workflows:
+            if _ZIG_URL.search(source) is None or adapter.zig_archive_sha256 in source:
+                continue
+            fixed = _fixed_zig_workflow(source, adapter.zig_archive_sha256)
+            if fixed != source:
+                plan[relative] = fixed
+    return plan
+
+
+def musl_toolchain_rules() -> tuple[Rule, ...]:
+    return (
+        Rule(
+            _RULE_ID,
+            "Check every musl build input against the approved toolchain lock",
+            TagPredicate(),
+            _linux_musl_toolchain_findings,
+            _linux_musl_toolchain_fix,
+            "fix(musl): align builders with the approved toolchain lock",
+            (
+                "Dockerfile",
+                "Dockerfile.*",
+                "*.Dockerfile",
+                "docker/*.Dockerfile",
+                ".github/workflows/*.yml",
+                ".github/workflows/*.yaml",
+            ),
+        ),
+    )
