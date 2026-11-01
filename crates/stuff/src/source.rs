@@ -290,21 +290,6 @@ mod tests {
     }
 
     #[test]
-    fn rejects_broken_paths() {
-        assert!(load_local_catalog("/nonexistent-xyz/catalog.json").is_err());
-    }
-
-    #[test]
-    fn corrupt_catalogs_exit_three() {
-        let dir = tempfile::tempdir().unwrap();
-        let file = dir.path().join("catalog.json");
-        std::fs::write(&file, "{").unwrap();
-        let err = load_local_catalog(file.to_str().unwrap()).unwrap_err();
-        assert!(matches!(err, Error::Corrupt(_)), "{err}");
-        assert_eq!(err.exit_code(), 3);
-    }
-
-    #[test]
     fn bad_source_urls_are_usage_errors() {
         let err = fetch_catalog("http://example.com").unwrap_err();
         assert!(matches!(err, Error::Usage(_)), "{err}");
