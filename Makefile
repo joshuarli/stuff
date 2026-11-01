@@ -1,4 +1,4 @@
-.PHONY: help build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
+.PHONY: help deploy build test clippy smoke smoke-deployed pipecheck worker-build worker-check worker-deploy worker-test sync serve test-sync test-publish-lock test-r2 test-r2-live fleet-ingest
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -35,6 +35,11 @@ worker-test: ## Build the worker bundle and exercise it under the workerd runtim
 
 worker-deploy: ## Deploy the worker, provision R2 buckets, attach custom domains
 	cd $(WORKER_DIR) && cf deploy
+
+deploy: ## Check cf auth, test the worker under workerd, then deploy it
+	cf auth whoami
+	$(MAKE) worker-test
+	$(MAKE) worker-deploy
 
 SITE_DIR ?= .work/site
 BUCKET ?=
