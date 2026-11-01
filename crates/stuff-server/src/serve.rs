@@ -471,6 +471,24 @@ mod tests {
     }
 
     #[test]
+    fn a_site_directory_retargeted_after_startup_is_refused() {
+        let (tmp, real) = test_route();
+        let link = tmp.path().join("site-link");
+        std::os::unix::fs::symlink(&real.site_dir, &link).unwrap();
+        let elsewhere = tmp.path().join("elsewhere");
+        fs::create_dir_all(&elsewhere).unwrap();
+        let through_link = |canonical_site_dir: std::path::PathBuf| Route {
+            prefix: String::new(),
+            site_dir: link.clone(),
+            canonical_site_dir,
+        };
+        let started_here = through_link(fs::canonicalize(&real.site_dir).unwrap());
+        assert_eq!(respond(&started_here, "/current/registry/config.json", "GET", &[]).status, 200);
+        let started_elsewhere = through_link(fs::canonicalize(&elsewhere).unwrap());
+        assert_eq!(respond(&started_elsewhere, "/current/registry/config.json", "GET", &[]).status, 404);
+    }
+
+    #[test]
     fn wheels_resolve_to_the_shared_store_through_current_and_generations() {
         let (_tmp, route) = test_route();
         fs::create_dir_all(route.site_dir.join("wheels")).unwrap();
