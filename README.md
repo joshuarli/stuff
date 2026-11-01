@@ -33,7 +33,8 @@ oras manifest fetch oci.17166969.xyz/example/app:stable
 ```
 
 Pushes need the registry token and are documented in
-[docs/PUBLISHING.md](docs/PUBLISHING.md).
+[docs/PUBLISHING.md](docs/PUBLISHING.md); the protocol and storage design is
+in [docs/oci-design.md](docs/oci-design.md).
 
 Per-registry usage: [mycrates](crates/mycrates/README.md),
 [mynpm](crates/mynpm/README.md), [mypypi](crates/mypypi/README.md),

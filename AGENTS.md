@@ -19,7 +19,8 @@ for repair.
   request parsing, response plans, upload sessions, and OCI errors.
 - `crates/myoci`: OCI registry CLI and native server: import, inspect, publish,
   verify, adopt, tag, `serve`, `writer`, and `bench`; layout in
-  [crates/myoci/README.md](crates/myoci/README.md).
+  [crates/myoci/README.md](crates/myoci/README.md), design in
+  [docs/oci-design.md](docs/oci-design.md).
 - `crates/h12tiny-*`: HTTP/TLS client used by every registry CLI and `stuff`,
   imported with history from upstream `dcdf4f2`, manifests inlined. Keep
   `src/` byte-identical to upstream.

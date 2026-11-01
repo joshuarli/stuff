@@ -45,6 +45,9 @@ To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --
 
 ## Publish the OCI registry
 
+The protocol, storage, and activation design is in
+[oci-design.md](oci-design.md).
+
 `deploy/publish oci` imports every image into `$STUFF_STATE_HOME/oci/state`,
 renders one OCI generation, syncs blobs before metadata, and flips `current`.
 The metadata bucket is `stuff-oci`; blob bytes live in `stuff-oci-blobs`

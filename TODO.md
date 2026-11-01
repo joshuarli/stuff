@@ -14,7 +14,7 @@ Next: 54
 ### STUF-53 · Provision and verify the live OCI registry
 
 - **Area:** Operations
-- **Where:** `docs/PUBLISHING.md`, `campaign-oci.md` (Needs environment)
+- **Where:** `docs/PUBLISHING.md`, `docs/oci-design.md` (Needs environment)
 - **Problem:** The OCI campaign is locally green, but `stuff-oci`/`stuff-oci-blobs`, the `oci` and `oci-blobs` custom domains, Worker bindings and secrets, and the writer host are not provisioned. The one live writer proof used a temporary bucket and minted credentials; production publication, live read/push conformance, and Docker/ORAS interop remain unrun.
 - **Recommendation:** Create the buckets and domains, set the Worker secrets, start `deploy/myoci-writer.sh` with TLS, run `deploy/publish oci`, then run `make deploy`, `make smoke-deployed`, the live conformance commands, and the 1 GiB push/pull.
 - **Blocked:** Owner-provisioned Cloudflare resources and writer host. Unblock: provision them, then run the deployment checklist.
