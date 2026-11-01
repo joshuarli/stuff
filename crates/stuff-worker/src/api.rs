@@ -1021,7 +1021,7 @@ mod tests {
         assert!(body.contains("npm registry (https://npm.example.test)"));
         assert!(body.contains("- Cargo: https://crates.example.test/llms.txt"));
         assert!(body.contains("- npm: https://npm.example.test/llms.txt"));
-        assert!(body.contains("- PyPI: https://stuff.example.test/pypi/llms.txt"));
+        assert!(!body.contains("- PyPI: https://stuff.example.test/pypi/llms.txt"));
         assert!(!body.contains("17166969.xyz"));
     }
 
