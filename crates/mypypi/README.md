@@ -55,10 +55,29 @@ per-platform commands. The container mounts the same
 
 ## Build environment
 
-`add`, `build`, and `validate` require `uv` 0.13.2 (pinned in
+`add`, `build`, and `validate` require `uv` 0.13.6 (pinned in
 `deploy/uv-version`), the version installed in the Linux build container;
 another version on `PATH` fails the command before it reads or writes the
 catalog or state, instead of resolving dependencies differently per platform.
+
+Native wheels are repaired with `auditwheel` on Linux and `delocate` on
+macOS. Their versions are pinned in `deploy/mypypi-repair-versions`, and
+`deploy/provision-mypypi-repair.sh` installs the matching tool into the build
+interpreter. The Linux container installs it from that same pin.
+
+```sh
+PYTHON=$(uv python find 3.15) deploy/provision-mypypi-repair.sh
+```
+
+`deploy/mypypi-linux.Dockerfile` builds on the digest-pinned
+`manylinux_2_28` images named in `deploy/manylinux_2_28-amd64` and
+`deploy/manylinux_2_28-arm64`, so Linux compilations link against glibc 2.28
+instead of the host's newer glibc. The image also pins its CPython patch in
+`deploy/mypypi-linux-python-version`. `deploy/test-mypypi-native.sh` builds a C
+and C++ sdist through build, repair, validation, publication, and
+installation, then checks the wheel's platform tag and its glibc or macOS
+deployment floor. Linux hosts run it through `make test-mypypi-linux-native`
+inside the pinned image; a newer host glibc cannot produce the 2.28 floor.
 
 Build subprocesses get an allowlisted environment and run with a scratch
 `HOME`, `CARGO_HOME`, and `RUSTUP_HOME`. The scratch homes link to the

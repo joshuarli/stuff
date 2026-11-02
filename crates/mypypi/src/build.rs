@@ -466,7 +466,20 @@ fn build_inner(
         Ok(p) => p,
         Err(e) => return Err(ctx(e)),
     };
-    let suspicious = likely_binary(&source_path, opts.likely_binary_ignore).map_err(ctx)?;
+    build_source_file(package, target, &source_path, destination, stage, prebuild_cwd, opts)
+}
+
+fn build_source_file(
+    package: &PackageVersion,
+    target: &Target,
+    source_path: &Path,
+    destination: &Path,
+    stage: &Path,
+    prebuild_cwd: &Path,
+    opts: &BuildOptions<'_>,
+) -> Result<PathBuf> {
+    let ctx = |e: Error| e.with_package(package).with_target(&target.python_version.to_string(), &target.platform);
+    let suspicious = likely_binary(source_path, opts.likely_binary_ignore).map_err(ctx)?;
     let output = stage.join("wheels");
     std::fs::create_dir(&output).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
     let build_temp = stage.join("tmp");
@@ -1003,6 +1016,72 @@ mod tests {
             env.get("RUSTUP_HOME").map(String::as_str),
             Some(home.join(".rustup").to_str().unwrap())
         );
+    }
+
+    #[test]
+    #[ignore = "requires uv, a native compiler, and repair tooling; run by deploy/test-mypypi-native.sh"]
+    fn native_sdist_builds_a_repaired_extension_wheel() {
+        let state = PathBuf::from(std::env::var_os("MYPYPI_NATIVE_STATE").expect(
+            "MYPYPI_NATIVE_STATE must name the state directory that should receive the built wheel",
+        ));
+        let wheels = state.join("wheels");
+        std::fs::create_dir_all(&wheels).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("native_probe-0.1.0.tar.gz");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/mypypi/native-sdist");
+        let names = ["pyproject.toml", "PKG-INFO", "backend.py", "src/native_probe.c", "src/native_probe_cpp.cpp"];
+        let contents: Vec<Vec<u8>> = names
+            .iter()
+            .map(|name| std::fs::read(fixture.join(name)).unwrap())
+            .collect();
+        let prefixed: Vec<String> = names
+            .iter()
+            .map(|name| format!("native_probe-0.1.0/{name}"))
+            .collect();
+        let entries: Vec<(&str, &[u8])> = prefixed
+            .iter()
+            .map(String::as_str)
+            .zip(contents.iter().map(Vec::as_slice))
+            .collect();
+        write_sdist(&sdist, &entries);
+
+        let platform = crate::platforms::current_platform().unwrap();
+        let target = Target::new("3.15", &platform).unwrap();
+        let package = PackageVersion::parse("native-probe", "0.1.0").unwrap();
+        let options = BuildOptions {
+            index_url: "https://pypi.org/simple",
+            likely_binary_ignore: &[],
+            custom_prebuild: &[],
+            linux_repair_policy: "manylinux_2_28",
+            build_constraints: None,
+            require_build_hashes: false,
+            env: None,
+            prebuild_cwd: Some(dir.path()),
+        };
+        let wheel = build_source_file(
+            &package,
+            &target,
+            &sdist,
+            &wheels,
+            dir.path(),
+            dir.path(),
+            &options,
+        )
+        .unwrap();
+        let name = wheel.file_name().unwrap().to_str().unwrap();
+        assert!(name.starts_with("native_probe-0.1.0-cp315-cp315-"), "{name}");
+        if platform.starts_with("linux") {
+            assert!(name.contains("-manylinux_2_28_"), "{name}");
+        } else {
+            assert!(name.contains("-macosx_15_0_"), "{name}");
+        }
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(&wheel).unwrap()).unwrap();
+        let members: Vec<String> = (0..archive.len())
+            .map(|index| archive.by_index(index).unwrap().name().to_string())
+            .collect();
+        assert!(members.iter().any(|member| member.starts_with("native_probe.cpython-315")), "{members:?}");
+        assert!(members.iter().any(|member| member.starts_with("native_probe_cpp.cpython-315")), "{members:?}");
     }
 
     #[test]

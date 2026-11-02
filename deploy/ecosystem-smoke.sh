@@ -4,7 +4,8 @@
 # installation from the published sites works.
 #
 # Requirements: node with npm at the version reported by `mynpm pins`, uv with
-# CPython 3.15, network access.
+# CPython 3.15, native repair tooling from deploy/provision-mypypi-repair.sh,
+# network access.
 # Usage: deploy/ecosystem-smoke.sh [WORKDIR]
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -94,5 +95,11 @@ uv venv -q --python 3.15 "$PYPI_WORK/.venv" || fail "uv venv"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv pip install -q --python 3.15 --index-url "file://$PYPI_WORK/out/current/simple/" --only-binary :all: "six==1.16.0" || fail "uv pip install from published index"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv run -q --python 3.15 --no-sync --project "$PYPI_WORK" python -c "import six, sys; assert six.__version__ == '1.16.0', six.__version__; print('six', six.__version__)" || fail "import six"
 (cd "$ROOT" && cargo test -q -p mypypi --lib rust_sdist_build_finds_the_host_toolchain -- --ignored) || fail "mypypi Rust sdist build"
+if [ "$(uname -s)" = "Darwin" ] \
+  || [ "$(ldd --version 2>/dev/null | head -1 | awk '{print $NF}')" = "2.28" ]; then
+  "$ROOT/deploy/test-mypypi-native.sh" "$WORK/mypypi-native" || fail "mypypi native wheel conformance"
+else
+  echo "skip: native Linux wheel conformance needs the manylinux 2.28 image (make test-mypypi-linux-native)"
+fi
 echo "smoke: mypypi uv flow green"
 echo "OK: ecosystem smoke green"

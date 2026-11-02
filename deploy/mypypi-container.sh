@@ -18,7 +18,8 @@ STATE_DIR=${STATE_DIR:-$STUFF_STATE_HOME/mypypi/state}
 SITE_DIR=${SITE_DIR:-$STUFF_STATE_HOME/mypypi/site}
 CATALOG_FILE=${CATALOG_FILE:-$STUFF_STATE_HOME/mypypi/packages.toml}
 CONFIG_FILE=${CONFIG_FILE:-$STUFF_STATE_HOME/mypypi/pyproject.toml}
-IMAGE=stuff-mypypi:$ARCH
+IMAGE=stuff-mypypi:manylinux_2_28-$ARCH
+BASE_IMAGE=$(tr -d '[:space:]' < "$ROOT/deploy/manylinux_2_28-$ARCH")
 absolute_path() {
   case "$1" in
     /*) printf '%s\n' "$1" ;;
@@ -65,7 +66,7 @@ for path in $MOUNT_PATHS; do
 done
 
 if [ -n "${IMAGE_REBUILD:-}" ] || ! docker image inspect "$IMAGE" > /dev/null 2>&1; then
-  docker build --platform "linux/$ARCH" -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
+  docker build --platform "linux/$ARCH" --build-arg MANYLINUX_IMAGE="$BASE_IMAGE" -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
 fi
 NAME=stuff-mypypi-$ARCH-$$
 HOME_DIR=$ROOT/.work/tmp/mypypi-home-$ARCH

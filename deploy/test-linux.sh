@@ -13,9 +13,10 @@ case "${ARCH:-$(uname -m)}" in
   x86_64|amd64) ARCH=amd64 ;;
   *) echo "FAIL: unsupported architecture $(uname -m)" >&2; exit 1 ;;
 esac
-IMAGE=stuff-linux:$ARCH
+IMAGE=stuff-linux:manylinux_2_28-$ARCH
+BASE_IMAGE=$(tr -d '[:space:]' < "$ROOT/deploy/manylinux_2_28-$ARCH")
 if [ -n "${IMAGE_REBUILD:-}" ] || ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  docker build --platform "linux/$ARCH" -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
+  docker build --platform "linux/$ARCH" --build-arg MANYLINUX_IMAGE="$BASE_IMAGE" -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
 fi
 WORK=$ROOT/.work/linux
 CONTAINER_WORK=/work/.work/linux

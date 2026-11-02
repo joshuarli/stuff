@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -12,12 +12,18 @@ test: ## Run the full workspace test suite
 clippy: ## Lint the workspace (denies warnings)
 	cargo clippy --locked --all-targets -- -D warnings
 
-smoke: ## Drive the registry binaries with real npm/uv toolchains (needs Node 26, pinned npm, uv + CPython 3.15, network)
+smoke: ## Drive the registry binaries with real npm/uv toolchains (needs Node 26, pinned npm, uv + CPython 3.15, repair tooling, network)
 	deploy/ecosystem-smoke.sh
 
 smoke-deployed: ## Read-only live check of the deployed registries (needs built stuff binary, network)
 	cargo build -p stuff
 	deploy/deployed-smoke.sh
+
+test-mypypi-native: ## Build, repair, validate, publish, and install a native C/C++ sdist (needs repair tooling)
+	deploy/test-mypypi-native.sh
+
+test-mypypi-linux-native: ## Run the native wheel conformance inside the pinned manylinux 2.28 image
+	deploy/test-linux.sh sh -c 'MYPYPI_EXPECT_MANYLINUX=2.28 exec deploy/test-mypypi-native.sh'
 
 pipecheck: ## Prove one registry's publication never touches another's output
 	deploy/check-pipeline-independence.sh

@@ -1,20 +1,26 @@
 #!/bin/sh
 # Run the OCI writer from the repo's pinned Linux build image.
-# Env: MYOCI_WRITER_PORT (5000), MYOCI_WRITER_IMAGE (stuff-myoci-writer:2026-11-01),
+# Env: MYOCI_WRITER_PORT (5000), MYOCI_WRITER_IMAGE (stuff-myoci-writer:2026-11-01-manylinux_2_28),
 #      MYOCI_WRITER_SECRET (host path to the shared HMAC secret),
 #      MYOCI_WRITER_STATE (host state dir), R2_S3_* (passed through).
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PORT=${MYOCI_WRITER_PORT:-5000}
-IMAGE=${MYOCI_WRITER_IMAGE:-stuff-myoci-writer:2026-11-01}
+IMAGE=${MYOCI_WRITER_IMAGE:-stuff-myoci-writer:2026-11-01-manylinux_2_28}
 SECRET=${MYOCI_WRITER_SECRET:-$ROOT/.work/oci-writer-secret}
 STATE=${MYOCI_WRITER_STATE:-$ROOT/.work/oci-writer-state}
+case "$(uname -m)" in
+  arm64|aarch64) ARCH=arm64 ;;
+  x86_64|amd64) ARCH=amd64 ;;
+  *) echo "myoci-writer-container: unsupported architecture $(uname -m)" >&2; exit 1 ;;
+esac
+BASE_IMAGE=$(tr -d '[:space:]' < "$ROOT/deploy/manylinux_2_28-$ARCH")
 [ -r "$SECRET" ] || { echo "myoci-writer-container: secret is not readable: $SECRET" >&2; exit 1; }
 mkdir -p "$STATE"
 if [ -n "${IMAGE_REBUILD:-}" ] || ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  docker build -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
+  docker build --platform "linux/$ARCH" --build-arg MANYLINUX_IMAGE="$BASE_IMAGE" -t "$IMAGE" -f "$ROOT/deploy/mypypi-linux.Dockerfile" "$ROOT/deploy"
 fi
-docker run --rm --name stuff-myoci-writer -p "$PORT:5000" \
+docker run --rm --platform "linux/$ARCH" --name stuff-myoci-writer -p "$PORT:5000" \
   -v "$ROOT:/work" -v "$SECRET:/run/secrets/oci-push-secret:ro" -v "$STATE:/state" \
   -w /work -e RUSTUP_TOOLCHAIN=nightly-2026-09-15 \
   -e "CARGO_HOME=/work/.work/linux/cargo-home-writer" \

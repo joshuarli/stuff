@@ -11,6 +11,7 @@
 | Rust nightly | Build the registry binaries | `cargo --version` |
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
+| `auditwheel` or `delocate` | `mypypi` repairs native wheels | `deploy/provision-mypypi-repair.sh` installs the pin |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 | OCI writer host (optional) | Large anonymous `docker push`; reads/writes `stuff-oci-blobs` | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |

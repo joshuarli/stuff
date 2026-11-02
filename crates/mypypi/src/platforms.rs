@@ -468,25 +468,23 @@ pub fn verify_repair_tool(target: &Target, env: &BTreeMap<String, String>) -> Re
     let family = family_of(target.platform.as_str()).map_err(|e| {
         Error::new(Kind::Incompatible, e.detail, Stage::Repair)
     })?;
-    let (distribution, module, options, prerequisites, group) = match family {
+    let (distribution, module, options, prerequisites) = match family {
         Family::Linux => (
             "auditwheel",
             "auditwheel",
             vec!["--plat", "--wheel-dir"],
             vec!["patchelf", "readelf"],
-            "repair-linux",
         ),
         Family::Macos => (
             "delocate",
             "delocate.cmd.delocate_wheel",
             vec!["--wheel-dir"],
             vec!["otool", "install_name_tool"],
-            "repair-macos",
         ),
     };
     let installed = installed_distribution(distribution).ok_or_else(|| {
         Error::dependency(
-            format!("{distribution} is unavailable; provision it with `uv sync --group {group}`"),
+            format!("{distribution} is unavailable; provision it with deploy/provision-mypypi-repair.sh"),
             Stage::Repair,
         )
     })?;

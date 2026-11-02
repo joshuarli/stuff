@@ -28,9 +28,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # x86_64 Linux, ARM64 Linux, and ARM64 macOS: each runner builds,
-        # validates, and installs the host platform's native wheels.
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
+        # x86_64 Linux, ARM64 Linux, ARM64 macOS, and Intel macOS: each runner
+        # builds, validates, and installs the host platform's wheels. The
+        # dedicated mypypi-linux-native job covers the manylinux 2.28 baseline.
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26, macos-26-intel]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -57,8 +58,25 @@ jobs:
       - run: uv python install 3.15
       - name: select the pinned interpreter
         run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
+      - name: install native wheel repair tooling
+        if: runner.os == 'macOS'
+        run: deploy/provision-mypypi-repair.sh
       - name: registry flows with real package managers
         run: deploy/ecosystem-smoke.sh
+
+  mypypi-linux-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: build and publish native wheels on the manylinux 2.28 baseline
+        run: make test-mypypi-linux-native
 
   pipeline-independence:
     runs-on: ubuntu-24.04
