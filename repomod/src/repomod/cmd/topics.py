@@ -9,8 +9,8 @@ from . import common
 
 
 def _topics(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
     results = topics_many(repositories, apply=args.operation == "apply", jobs=args.workers)
     failed = False
     for name, changed, additions, removals, error in results:

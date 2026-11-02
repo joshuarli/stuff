@@ -87,7 +87,7 @@ def test_discover_cli_reports_uncatalogued_and_missing(tmp_path: Path, monkeypat
         '[repos."acme"]\nkeep = ["tool"]\ngone = ["tool"]\n',
     )
     catalog_value = load_catalog(path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog_value)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog_value)
     monkeypatch.setattr(
         "repomod.github.discover", lambda owners: ["acme/keep", "acme/new"]
     )
@@ -108,7 +108,7 @@ def test_discover_cli_matches_exactly_and_supports_json(tmp_path: Path, monkeypa
         '[repos."acme"]\nkeep = ["tool"]\n',
     )
     catalog_value = load_catalog(path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog_value)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog_value)
     monkeypatch.setattr("repomod.github.discover", lambda owners: ["ACME/keep"])
     args = argparse.Namespace(owner=[], json=False)
 
@@ -131,7 +131,7 @@ def test_discover_cli_validates_and_deduplicates_owners(tmp_path: Path, monkeypa
         '[repos."acme"]\nkeep = ["tool"]\n',
     )
     monkeypatch.setattr(
-        "repomod.cmd.common._catalog", lambda: load_catalog(path, {"HOME": str(tmp_path)})
+        "repomod.cmd.common.default_catalog", lambda: load_catalog(path, {"HOME": str(tmp_path)})
     )
     seen: list[tuple[str, ...]] = []
     monkeypatch.setattr(

@@ -279,7 +279,7 @@ def test_gc_is_registered_in_cli_parser(
         catalog.root / "stale",
         origin="https://github.com/acme/stale.git",
     )
-    monkeypatch.setattr(cmd_common, "_catalog", lambda: catalog)
+    monkeypatch.setattr(cmd_common, "default_catalog", lambda: catalog)
     assert gc_cmd._gc(args) == 0
     out = capsys.readouterr().out
     assert "stale: planned:" in out

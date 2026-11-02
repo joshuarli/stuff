@@ -367,7 +367,7 @@ def test_pinact_rule_uses_real_launcher_for_security_and_fixing(
         "personal",
         (lint_repository, fix_repository),
     )
-    monkeypatch.setattr(cmd_common, "_catalog", lambda: catalog)
+    monkeypatch.setattr(cmd_common, "default_catalog", lambda: catalog)
 
     lint_root = workspace / "acme" / "lint-demo"
     write_workflow(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 
 from repomod import catalog as catalog_module
 from repomod import github
@@ -9,7 +10,7 @@ from . import common
 
 
 def _discover(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
+    catalog = common.default_catalog()
     if args.owner:
         seen: dict[str, str] = {}
         for owner in args.owner:
@@ -33,11 +34,22 @@ def _discover(args: argparse.Namespace) -> int:
         (name for key, name in catalogued.items() if key not in discovered),
         key=str.casefold,
     )
-    if args.json:
-        common._print_json(
-            {"owners": owner_names, "uncatalogued": uncatalogued, "missing": missing}
+    render_discover(owner_names, uncatalogued, missing, as_json=args.json)
+    return 0
+
+
+def render_discover(
+    owners: Sequence[str],
+    uncatalogued: Sequence[str],
+    missing: Sequence[str],
+    *,
+    as_json: bool,
+) -> None:
+    if as_json:
+        common.print_json(
+            {"owners": list(owners), "uncatalogued": list(uncatalogued), "missing": list(missing)}
         )
-        return 0
+        return
     if uncatalogued:
         print(f"uncatalogued ({len(uncatalogued)}):")
         for name in uncatalogued:
@@ -50,4 +62,3 @@ def _discover(args: argparse.Namespace) -> int:
             print(f"  {name}")
     elif not uncatalogued:
         print("catalog matches GitHub")
-    return 0

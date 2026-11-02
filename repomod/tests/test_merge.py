@@ -23,7 +23,7 @@ def catalog(tmp_path, monkeypatch) -> None:
         encoding="utf-8",
     )
     loaded = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: loaded)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: loaded)
 
 
 def use_listing(monkeypatch: pytest.MonkeyPatch, requests) -> None:

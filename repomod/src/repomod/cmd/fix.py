@@ -17,8 +17,8 @@ from . import common
 def _fix(args: argparse.Namespace) -> int:
     if args.workers < 1:
         raise ValueError("--workers must be at least one")
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
     policy.validate_ignored_rules(repositories)
     available = policy.selected_rules(rule_ids=args.rule)
     fixers = tuple(rule for rule in available if rule.fix is not None)

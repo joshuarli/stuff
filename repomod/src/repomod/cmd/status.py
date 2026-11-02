@@ -82,7 +82,7 @@ def _ci_label(value: CiResult) -> str:
     return label
 
 
-def _checkout_status(
+def checkout_status(
     catalog: Catalog, repository: Repository, checkout: Path | None = None
 ) -> tuple[Path, GitStatus]:
     if checkout is not None:
@@ -115,7 +115,7 @@ def _checkout_status(
         )
 
 
-def _todo_item_count(path: Path) -> int:
+def todo_item_count(path: Path) -> int:
     if not path.is_dir():
         return 0
     todo_path = path / "TODO.md"
@@ -130,8 +130,8 @@ def _todo_item_count(path: Path) -> int:
 def _status_checkout(
     catalog: Catalog, repository: Repository, checkout: Path | None = None
 ) -> tuple[Path, GitStatus, int]:
-    path, local = _checkout_status(catalog, repository, checkout)
-    todo_items = _todo_item_count(path) if local.valid else 0
+    path, local = checkout_status(catalog, repository, checkout)
+    todo_items = todo_item_count(path) if local.valid else 0
     return path, local, todo_items
 
 
@@ -286,7 +286,7 @@ def _status_row_visible(
     return any(_workflow_surfaced(workflow) for workflow in ci.workflows)
 
 
-def _status_text(
+def status_text(
     rows: Sequence[dict[str, object]],
     findings_by_repository: dict[str, list[Finding]],
     ci_by_repository: dict[str, CiResult],
@@ -387,8 +387,8 @@ def _status_text(
 
 
 def _status(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
     overrides = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
     with ThreadPoolExecutor(
         max_workers=min(32, max(1, 2 * len(repositories))), thread_name_prefix="repomod-status"
@@ -523,9 +523,9 @@ def _status(args: argparse.Namespace) -> int:
             or _upstream_behind(row)
         ]
     if args.json:
-        common._print_json(rows)
+        common.print_json(rows)
         return 0
-    _status_text(rows, findings_by_repository, ci)
+    status_text(rows, findings_by_repository, ci)
     if args.details:
         visible = {str(row["repository"]) for row in rows}
         for name in sorted(visible, key=str.casefold):

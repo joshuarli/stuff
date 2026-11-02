@@ -8,7 +8,7 @@ from . import common
 
 
 def _gc(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
+    catalog = common.default_catalog()
     results = gc_repositories(
         catalog, dry_run=args.dry_run, force=args.force, jobs=args.workers
     )

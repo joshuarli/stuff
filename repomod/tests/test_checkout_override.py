@@ -39,7 +39,7 @@ def fleet(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
             Repository(RepoId("acme", "other"), ("python",)),
         ),
     )
-    monkeypatch.setattr(cmd_common, "_catalog", lambda: catalog)
+    monkeypatch.setattr(cmd_common, "default_catalog", lambda: catalog)
     return canonical, worktree
 
 

@@ -8,8 +8,8 @@ from . import common
 
 
 def _lint(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
     findings = policy.lint_repositories(
         catalog,
         repositories,
@@ -18,7 +18,7 @@ def _lint(args: argparse.Namespace) -> int:
         checkouts=common._checkouts(getattr(args, "checkout", None), args.repo, repositories),
     )
     if args.json:
-        common._print_json([policy.finding_dict(finding) for finding in findings])
+        common.print_json([policy.finding_dict(finding) for finding in findings])
     else:
         current: str | None = None
         for finding in findings:

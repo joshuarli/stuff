@@ -15,8 +15,8 @@ from . import common
 def _push(args: argparse.Namespace) -> int:
     if args.workers < 1:
         raise ValueError("--workers must be at least one")
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
 
     def push_one(repository: Repository) -> tuple[str, str, str | None]:
         try:

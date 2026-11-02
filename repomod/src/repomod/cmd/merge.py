@@ -46,8 +46,8 @@ def _merge_repository(
 def _merge(args: argparse.Namespace) -> int:
     if args.workers < 1:
         raise ValueError("--workers must be at least one")
-    catalog = common._catalog()
-    repositories = common._select(catalog, args.repo, args.tag)
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
     print(
         f"Listing repomod pull requests in "
         f"{_plural(len(repositories), 'repository', 'repositories')}...",

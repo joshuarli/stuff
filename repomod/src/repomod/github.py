@@ -462,7 +462,7 @@ def _collect_discover_items(pages: object, owners: set[str], owner_name: str) ->
     return repositories
 
 
-def _discover_owner(owner_name: str, owners: set[str]) -> list[str]:
+def discover_owner(owner_name: str, owners: set[str]) -> list[str]:
     owner_metadata = _gh_json([f"users/{owner_name}"])
     owner_type = owner_metadata.get("type") if isinstance(owner_metadata, dict) else None
     endpoint = "orgs" if owner_type == "Organization" else "users"
@@ -489,12 +489,12 @@ def discover(owner_names: tuple[str, ...]) -> list[str]:
         return []
     owners = {owner.casefold() for owner in owner_names}
     if len(owner_names) == 1:
-        return sorted(set(_discover_owner(owner_names[0], owners)), key=str.casefold)
+        return sorted(set(discover_owner(owner_names[0], owners)), key=str.casefold)
     repositories: list[str] = []
     with ThreadPoolExecutor(
         max_workers=min(MAX_API_WORKERS, len(owner_names)), thread_name_prefix="repomod-discover"
     ) as pool:
-        futures = [pool.submit(_discover_owner, owner, owners) for owner in owner_names]
+        futures = [pool.submit(discover_owner, owner, owners) for owner in owner_names]
         for future in as_completed(futures):
             repositories.extend(future.result())
     return sorted(set(repositories), key=str.casefold)

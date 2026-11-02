@@ -15,7 +15,7 @@ from repomod.catalog import load_catalog
 from repomod.cmd import common as cmd_common
 from repomod.cmd.fix import _fix
 from repomod.cmd.lint import _lint
-from repomod.cmd.status import _local_color, _state_color, _status, _status_text
+from repomod.cmd.status import _local_color, _state_color, _status, status_text
 from repomod.fix import FixOutcome
 from repomod.policy import (
     filter_repositories,
@@ -880,7 +880,7 @@ def test_status_offline_never_calls_remote_metadata(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        "repomod.cmd.common._catalog",
+        "repomod.cmd.common.default_catalog",
         lambda: load_catalog(catalog_path, {"HOME": str(tmp_path)}),
     )
     monkeypatch.setattr(
@@ -929,7 +929,7 @@ def test_fix_cli_reports_failed_outcomes_as_nonzero(
         encoding="utf-8",
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.cmd.fix.sync_repositories", lambda *_, **__: [])
     monkeypatch.setattr(
         "repomod.github.remote_metadata",
@@ -978,7 +978,7 @@ def test_warning_only_lint_is_nonfatal_unless_strict(
 ) -> None:
     repository = repo()
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     finding = Finding("acme/tool", "binary-release-tags", "release.yml", "review release", severity="warning")
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [finding])
     args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
@@ -997,7 +997,7 @@ def test_lint_prints_ignored_rules_with_their_reason(tmp_path: Path, monkeypatch
         ignore_reason="vendored fork",
     )
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
     args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
 
@@ -1294,7 +1294,7 @@ def test_lint_and_status_share_short_format_with_legend(
 ) -> None:
     repository = repo()
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     findings = [
         Finding("acme/tool", "gha-settings", ".github/workflows/ci.yml",
                 "concurrency.group must be 'x'", line=2, column=1, code="G001"),
@@ -1322,7 +1322,7 @@ def test_lint_and_status_share_short_format_with_legend(
         "todo_items": 0,
     }]
     ci = {"acme/tool": CiResult("acme/tool", None, None, "passed", (), workflows=())}
-    _status_text(rows, {"acme/tool": findings}, ci)
+    status_text(rows, {"acme/tool": findings}, ci)
     out = capsys.readouterr().out
     assert ".github/workflows/ci.yml 2:1 G001" in out
     assert ".github/workflows/ci.yml 6:5 G003" in out
@@ -1343,7 +1343,7 @@ def test_lint_and_status_share_short_format_with_legend(
         "lint_operational": 0,
         "todo_items": 0,
     }]
-    _status_text(many_rows, {"acme/tool": many}, ci)
+    status_text(many_rows, {"acme/tool": many}, ci)
     out = capsys.readouterr().out
 
     for index in range(5):
@@ -1355,7 +1355,7 @@ def test_lint_groups_findings_by_repository(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repo(),))
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     findings = [
         Finding("acme/alpha", "gha-settings", "ci.yml", "first repo", code="G001"),
         Finding("acme/alpha", "gha-settings", "other.yml", "first repo again", code="G003"),
@@ -1385,7 +1385,7 @@ def test_fix_groups_outcome_lines_by_repository(
         encoding="utf-8",
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.cmd.fix.sync_repositories", lambda *_, **__: [])
     monkeypatch.setattr(
         "repomod.github.remote_metadata",
@@ -1447,7 +1447,7 @@ def test_fix_syncs_selected_repositories_before_fixing(
         ).stdout.strip()
         return FixOutcome(str(repository.id))
 
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr(
         "repomod.github.remote_metadata",
         lambda _: {
@@ -1467,7 +1467,7 @@ def test_operational_lint_failure_has_distinct_exit_code(    tmp_path: Path, mon
 ) -> None:
     repository = repo()
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     finding = Finding("acme/tool", "repo-integrity", None, "checkout unavailable", kind="operational")
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [finding])
     args = argparse.Namespace(repo=[], tag=[], rule=[], json=True, strict=False)
@@ -1486,7 +1486,7 @@ def test_status_failed_excludes_warning_only_lint_findings(
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
     monkeypatch.setattr(
         "repomod.github.ci_status",
@@ -1495,7 +1495,7 @@ def test_status_failed_excludes_warning_only_lint_findings(
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status._checkout_status",
+        "repomod.cmd.status.checkout_status",
         lambda *_: (
             tmp_path / "tool",
             GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
@@ -1584,7 +1584,7 @@ def test_status_failed_includes_conflicting_prs_and_renders_them(
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
     monkeypatch.setattr(
         "repomod.github.ci_status",
@@ -1602,7 +1602,7 @@ def test_status_failed_includes_conflicting_prs_and_renders_them(
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status._checkout_status",
+        "repomod.cmd.status.checkout_status",
         lambda *_: (
             tmp_path / "tool",
             GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
@@ -1840,7 +1840,7 @@ def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
         ),
     }
 
-    _status_text(rows, {}, ci)
+    status_text(rows, {}, ci)
     out = capsys.readouterr().out
 
     assert "acme/passing" not in out
@@ -1929,7 +1929,7 @@ def test_status_text_renders_upstream_line(tmp_path: Path, capsys) -> None:
         f"acme/{name}": CiResult(f"acme/{name}", None, None, "passed", (), workflows=())
         for name in ("behind", "synced", "broken", "plain")
     }
-    _status_text(rows, {}, ci)
+    status_text(rows, {}, ci)
     out = capsys.readouterr().out
     assert "upstream cli/cli behind 12" in out
     assert "upstream cli/cli unavailable" in out
@@ -1947,7 +1947,7 @@ def test_status_failed_includes_behind_forks(tmp_path: Path, monkeypatch, capsys
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
     monkeypatch.setattr(
         "repomod.github.ci_status",
@@ -1956,7 +1956,7 @@ def test_status_failed_includes_behind_forks(tmp_path: Path, monkeypatch, capsys
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status._checkout_status",
+        "repomod.cmd.status.checkout_status",
         lambda *_: (
             tmp_path / "tool",
             GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
@@ -2007,7 +2007,7 @@ def test_status_details_reports_upstream_errors(tmp_path: Path, monkeypatch, cap
     )
     catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
     repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common._catalog", lambda: catalog)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
     monkeypatch.setattr(
         "repomod.github.ci_status",
@@ -2016,7 +2016,7 @@ def test_status_details_reports_upstream_errors(tmp_path: Path, monkeypatch, cap
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status._checkout_status",
+        "repomod.cmd.status.checkout_status",
         lambda *_: (
             tmp_path / "tool",
             GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),

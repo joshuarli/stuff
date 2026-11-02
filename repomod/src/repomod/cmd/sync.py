@@ -10,7 +10,7 @@ from . import common
 
 
 def _sync(args: argparse.Namespace) -> int:
-    catalog = common._catalog()
+    catalog = common.default_catalog()
     repositories = catalog.repositories
     print(
         f"Fetching GitHub metadata for {len(repositories)} repositories...",

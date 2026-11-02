@@ -155,7 +155,7 @@ def test_sync_command_untracks_archived_repo_from_catalog(
     archived = RemoteRepository(str(repository.id), "main", "unused", True)
     monkeypatch.setattr(
         cmd_common,
-        "_catalog",
+        "default_catalog",
         lambda: load_catalog(
             catalog.path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
         ),
@@ -185,7 +185,7 @@ def test_sync_command_dry_run_plans_untrack_without_mutating(
     archived = RemoteRepository(str(repository.id), "main", "unused", True)
     monkeypatch.setattr(
         cmd_common,
-        "_catalog",
+        "default_catalog",
         lambda: load_catalog(
             catalog.path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
         ),

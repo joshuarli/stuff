@@ -16,7 +16,7 @@ def _catalog_path() -> Path:
     return Path(__file__).resolve().parents[3] / "catalog.toml"
 
 
-def _catalog() -> Catalog:
+def default_catalog() -> Catalog:
     return load_catalog(_catalog_path())
 
 
@@ -29,7 +29,7 @@ def _tags(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(values)
 
 
-def _select(
+def select_repositories(
     catalog: Catalog, repo_values: Sequence[str], tags: Sequence[str]
 ) -> tuple[Repository, ...]:
     selected_tags = _tags(tags)
@@ -50,7 +50,7 @@ def _checkouts(
     return {str(repository.id): validated_checkout(checkout, repository.id)}
 
 
-def _print_json(value: object) -> None:
+def print_json(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
 
 
