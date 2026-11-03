@@ -152,3 +152,15 @@ def test_discover_is_registered_in_cli_parser() -> None:
     assert args.command == "discover"
     assert args.owner == ["acme"]
     assert args.json is True
+
+
+def test_discover_missing_is_limited_to_requested_owners(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\n[repos."beta"]\nother = ["tool"]\n',
+    )
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
+    assert _discover(argparse.Namespace(owner=["acme"], json=True)) == 0
+    assert json.loads(capsys.readouterr().out)["missing"] == []

@@ -24,7 +24,12 @@ def _discover(args: argparse.Namespace) -> int:
             {repo.id.owner for repo in catalog.repositories}, key=str.casefold
         )
     found = github.discover(tuple(owner_names))
-    catalogued = {str(repo.id).casefold(): str(repo.id) for repo in catalog.repositories}
+    selected_owners = {owner.casefold() for owner in owner_names}
+    catalogued = {
+        str(repo.id).casefold(): str(repo.id)
+        for repo in catalog.repositories
+        if repo.id.owner.casefold() in selected_owners
+    }
     discovered = {name.casefold(): name for name in found}
     uncatalogued = sorted(
         (name for key, name in discovered.items() if key not in catalogued),
