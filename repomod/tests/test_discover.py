@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
 import repomod.cli as cli_module
 from repomod import github
-from repomod.catalog import CatalogError, load_catalog
+from repomod.catalog import CatalogError, add_pending, add_repository, load_catalog
 from repomod.cmd.discover import _discover
 
 
@@ -95,10 +96,9 @@ def test_discover_cli_reports_uncatalogued_and_missing(tmp_path: Path, monkeypat
 
     assert _discover(args) == 0
     out = capsys.readouterr().out.splitlines()
-    assert out[0] == "uncatalogued (1):"
+    assert out[0] == "added to pending (1):"
     assert out[1] == "  acme/new"
-    assert out[2] == "missing from GitHub (1):"
-    assert out[3] == "  acme/gone"
+    assert out[2:6] == ["pending review (1):", "  acme/new", "missing from GitHub (1):", "  acme/gone"]
 
 
 def test_discover_cli_matches_exactly_and_supports_json(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -114,14 +114,14 @@ def test_discover_cli_matches_exactly_and_supports_json(tmp_path: Path, monkeypa
 
     assert _discover(args) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "uncatalogued (0): none",
+        "added to pending (0): none",
         "catalog matches GitHub",
     ]
 
     args = argparse.Namespace(owner=["acme"], json=True)
     assert _discover(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"owners": ["acme"], "uncatalogued": [], "missing": []}
+    assert payload == {"owners": ["acme"], "uncatalogued": [], "missing": [], "pending": []}
 
 
 def test_discover_cli_validates_and_deduplicates_owners(tmp_path: Path, monkeypatch) -> None:
@@ -164,3 +164,53 @@ def test_discover_missing_is_limited_to_requested_owners(tmp_path: Path, monkeyp
     monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
     assert _discover(argparse.Namespace(owner=["acme"], json=True)) == 0
     assert json.loads(capsys.readouterr().out)["missing"] == []
+
+
+def test_discover_records_new_repositories_and_skips_ignored(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\n'
+        '[ignored]\n"acme/old" = ["tool"]\n',
+    )
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["ACME/keep", "acme/OLD", "acme/new"])
+    args = argparse.Namespace(owner=[], json=True)
+    assert _discover(args) == 0
+    assert json.loads(capsys.readouterr().out)["uncatalogued"] == ["acme/new"]
+    updated = load_catalog(path)
+    assert [str(repo.id) for repo in updated.repositories] == ["acme/keep"]
+    assert [str(repo) for repo in updated.pending] == ["acme/new"]
+    assert _discover(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["uncatalogued"] == []
+    assert payload["pending"] == ["acme/new"]
+
+
+def test_catalog_rejects_repository_in_multiple_states(tmp_path: Path) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\n[pending]\n"ACME/KEEP" = []\n',
+    )
+    with pytest.raises(CatalogError, match="duplicate repository"):
+        load_catalog(path)
+
+
+def test_concurrent_discovery_keeps_both_updates_and_can_promote(tmp_path: Path) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\n',
+    )
+    current = load_catalog(path)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(add_pending, current, [name]) for name in ("acme/one", "acme/two")]
+        for future in futures:
+            future.result()
+    current = load_catalog(path)
+    assert {str(repo) for repo in current.pending} == {"acme/one", "acme/two"}
+    assert add_repository(current, "acme", "one", ["tool"])
+    current = load_catalog(path)
+    assert {str(repo) for repo in current.pending} == {"acme/two"}
+    assert {str(repo.id) for repo in current.repositories} == {"acme/keep", "acme/one"}

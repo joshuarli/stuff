@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import fcntl
 import os
 import re
 import sys
 import tempfile
 import tomllib
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from functools import wraps
 from pathlib import Path
-from typing import cast
+from typing import Concatenate, cast
 
 from repomod.types import Catalog, RepoId, Repository
 
@@ -93,6 +95,20 @@ class CatalogError(ValueError):
     pass
 
 
+def catalog_write[**P, T](function: Callable[Concatenate[Catalog, P], T]) -> Callable[Concatenate[Catalog, P], T]:
+    @wraps(function)
+    def locked(catalog: Catalog, *args: P.args, **kwargs: P.kwargs) -> T:
+        descriptor = os.open(catalog.path.parent, os.O_RDONLY)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            current = load_catalog(catalog.path, {**os.environ, "REPOMOD_ROOT": str(catalog.root)})
+            return function(current, *args, **kwargs)
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
+    return locked
+
+
 def validate_identifier(value: str, kind: str) -> str:
     if not _IDENTIFIER.fullmatch(value) or value in {".", ".."}:
         raise CatalogError(f"invalid {kind} {value!r}")
@@ -118,8 +134,8 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         parsed = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise CatalogError(f"cannot read catalog {path}: {error}") from error
-    if set(parsed) - {"version", "workspace", "repos", "overrides"}:
-        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides"})
+    if set(parsed) - {"version", "workspace", "repos", "overrides", "pending", "ignored"}:
+        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides", "pending", "ignored"})
         raise CatalogError(f"unknown catalog keys: {', '.join(unknown)}")
     version = parsed.get("version")
     if type(version) is not int or version not in {1, 2, 3}:
@@ -176,10 +192,38 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                 raise CatalogError(f"{repo_id} must have at least one primary tag")
             repositories.append(Repository(repo_id, tuple(tags)))
 
+    pending: list[RepoId] = []
+    ignored: list[Repository] = []
+    for state in ("pending", "ignored"):
+        values = parsed.get(state, {})
+        if not isinstance(values, dict):
+            raise CatalogError(f"[{state}] must be a table")
+        for key, tags in values.items():
+            try:
+                repo_id = RepoId.parse(key)
+            except ValueError as error:
+                raise CatalogError(str(error)) from error
+            validate_identifier(repo_id.owner, "owner")
+            validate_identifier(repo_id.name, "repository")
+            normalized = str(repo_id).casefold()
+            if normalized in ids:
+                raise CatalogError(f"duplicate repository ignoring case: {repo_id}")
+            ids[normalized] = str(repo_id)
+            if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+                raise CatalogError(f"tags for {repo_id} must be an array of strings")
+            if len(tags) != len(set(tags)) or set(tags) - TAGS:
+                raise CatalogError(f"invalid tags for {repo_id}")
+            if state == "pending":
+                if tags:
+                    raise CatalogError(f"pending repository {repo_id} cannot have tags")
+                pending.append(repo_id)
+            else:
+                ignored.append(Repository(repo_id, tuple(tags)))
+
     overrides = parsed.get("overrides", {})
     if not isinstance(overrides, dict):
         raise CatalogError("[overrides] must be a table")
-    repositories_by_id = {str(repo.id).casefold(): repo for repo in repositories}
+    repositories_by_id = {str(repo.id).casefold(): repo for repo in [*repositories, *ignored]}
     for key, raw_override in overrides.items():
         try:
             repo_id = RepoId.parse(key)
@@ -272,8 +316,9 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
             raise CatalogError(f"override for {repo_id} has ignore_reason without ignore")
         else:
             ignore_reason = None
-        index = repositories.index(repo)
-        repositories[index] = Repository(
+        target = repositories if repo in repositories else ignored
+        index = target.index(repo)
+        target[index] = Repository(
             repo.id,
             repo.tags,
             autofix is not False,
@@ -285,7 +330,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     root = _expand_root(workspace["root"], environment)
     _validate_checkout_collisions(root, personal_owner, repositories)
     repositories.sort(key=lambda item: (item.id.owner.casefold(), item.id.name.casefold()))
-    return Catalog(path.resolve(), root, personal_owner, tuple(repositories))
+    return Catalog(path.resolve(), root, personal_owner, tuple(repositories), tuple(pending), tuple(ignored))
 
 
 def _relative_parts(repo: Repository, personal_owner: str) -> tuple[str, ...]:
@@ -356,6 +401,7 @@ def find_repository(catalog: Catalog, value: str | None) -> Repository:
     return matches[0]
 
 
+@catalog_write
 def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> bool:
     validate_identifier(owner, "owner")
     validate_identifier(name, "repository")
@@ -375,6 +421,18 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     repositories = [*catalog.repositories, new_repo]
     _validate_checkout_collisions(catalog.root, catalog.personal_owner, repositories)
     original = catalog.path.read_text(encoding="utf-8")
+    for state, entries in (("pending", catalog.pending), ("ignored", tuple(repo.id for repo in catalog.ignored))):
+        matching = next((item for item in entries if str(item).casefold() == str(repo_id).casefold()), None)
+        if matching is not None:
+            header = re.search(rf"(?m)^\[{state}\][ \t]*$", original)
+            if header is None:
+                raise CatalogError(f"missing [{state}] table")
+            next_header = re.search(r"(?m)^\[", original[header.end():])
+            end = header.end() + next_header.start() if next_header else len(original)
+            entry = re.search(rf'(?m)^"{re.escape(str(matching))}"[ \t]*=.*(?:\n|$)', original[header.end():end])
+            if entry is None:
+                raise CatalogError(f"cannot promote {matching}: entry changed")
+            original = original[:header.end() + entry.start()] + original[header.end() + entry.end():]
     owner_header = f'[repos."{_toml_string(owner)}"]'
     owner_match = re.search(rf"(?m)^{re.escape(owner_header)}\s*$", original)
     tags_value = ", ".join(f'"{_toml_string(tag)}"' for tag in tags)
@@ -395,6 +453,42 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     return True
 
 
+@catalog_write
+def add_pending(catalog: Catalog, names: list[str]) -> list[str]:
+    current = catalog
+    known = {str(repo.id).casefold() for repo in (*current.repositories, *current.ignored)}
+    known.update(str(repo).casefold() for repo in current.pending)
+    added: list[str] = []
+    for name in names:
+        try:
+            repo_id = RepoId.parse(name)
+        except ValueError as error:
+            raise CatalogError(str(error)) from error
+        validate_identifier(repo_id.owner, "owner")
+        validate_identifier(repo_id.name, "repository")
+        if name.casefold() not in known:
+            added.append(name)
+            known.add(name.casefold())
+    if not added:
+        return []
+    original = catalog.path.read_text(encoding="utf-8")
+    entries = "".join(f'"{_toml_string(name)}" = []\n' for name in added)
+    header = re.search(r"(?m)^\[pending\][ \t]*$", original)
+    if header:
+        next_header = re.search(r"(?m)^\[", original[header.end():])
+        insertion = header.end() + next_header.start() if next_header else len(original)
+        updated = original[:insertion].rstrip("\n") + "\n" + entries + original[insertion:]
+    else:
+        updated = original.rstrip() + "\n\n[pending]\n" + entries
+    try:
+        tomllib.loads(updated)
+    except tomllib.TOMLDecodeError as error:
+        raise CatalogError(f"adding pending repositories would make catalog invalid: {error}") from error
+    atomic_write(catalog.path, updated)
+    return added
+
+
+@catalog_write
 def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
     validate_identifier(owner, "owner")
     validate_identifier(name, "repository")
@@ -412,12 +506,19 @@ def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
     )
     if entry is None:
         return False
-    commented = f"{entry.group('indent')}# {entry.group(0).lstrip()}"
+    value = entry.group(0).split("=", 1)[1].strip()
     updated = (
         original[: section_start + entry.start()]
-        + commented
         + original[section_start + entry.end() :]
     )
+    ignored_entry = f'"{_toml_string(owner)}/{_toml_string(name)}" = {value}\n'
+    ignored_header = re.search(r"(?m)^\[ignored\][ \t]*$", updated)
+    if ignored_header:
+        next_header = re.search(r"(?m)^\[", updated[ignored_header.end():])
+        insertion = ignored_header.end() + next_header.start() if next_header else len(updated)
+        updated = updated[:insertion].rstrip("\n") + "\n" + ignored_entry + updated[insertion:]
+    else:
+        updated = updated.rstrip() + "\n\n[ignored]\n" + ignored_entry
     try:
         tomllib.loads(updated)
     except tomllib.TOMLDecodeError as error:

@@ -93,7 +93,7 @@ def test_sync_archived_dry_run_without_checkout_is_skipped(
     assert result.failed is False
     assert "no checkout" in result.message
 
-def test_untrack_archived_repositories_comments_out_catalog(tmp_path: Path) -> None:
+def test_untrack_archived_repositories_moves_to_ignored(tmp_path: Path) -> None:
     catalog, repository = make_catalog(tmp_path)
     name = str(repository.id)
     archived = RemoteRepository(name, "main", "unused", True)
@@ -103,11 +103,23 @@ def test_untrack_archived_repositories_comments_out_catalog(tmp_path: Path) -> N
     )
 
     assert [(result.repository, result.action) for result in untracked] == [(name, "untracked")]
-    assert f"# {repository.id.name} =" in catalog.path.read_text(encoding="utf-8")
     reloaded = load_catalog(
         catalog.path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
     )
     assert name not in {str(repo.id) for repo in reloaded.repositories}
+    assert [(str(repo.id), repo.tags) for repo in reloaded.ignored] == [(name, repository.tags)]
+
+
+def test_untrack_archived_repository_preserves_override(tmp_path: Path) -> None:
+    catalog, repository = make_catalog(tmp_path)
+    with catalog.path.open("a", encoding="utf-8") as output:
+        output.write(f'\n[overrides."{repository.id}"]\nautofix = false\nreason = "kept"\n')
+    name = str(repository.id)
+    archived = RemoteRepository(name, "main", "unused", True)
+    untrack_archived_repositories(catalog, {name: archived}, [SyncResult(name, "removed", "removed")])
+    reloaded = load_catalog(catalog.path)
+    assert reloaded.ignored[0].autofix is False
+    assert reloaded.ignored[0].autofix_reason == "kept"
 
 
 def test_untrack_archived_repositories_skips_blocked_and_active(tmp_path: Path) -> None:

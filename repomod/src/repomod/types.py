@@ -53,6 +53,8 @@ class Catalog:
     root: Path
     personal_owner: str
     repositories: tuple[Repository, ...]
+    pending: tuple[RepoId, ...] = ()
+    ignored: tuple[Repository, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

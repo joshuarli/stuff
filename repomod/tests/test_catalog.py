@@ -273,7 +273,7 @@ def test_add_repository_is_idempotent_and_preserves_catalog_comments(
 
     assert add_repository(catalog, "new-owner", "new-tool", ["tool"])
     updated = path.read_text(encoding="utf-8")
-    assert "# aincrad2 = [\"app\"]" in updated
+    assert '#[overrides."laputa-systems/ntpd-rs"]' in updated
     assert 'root = "~/repos"' in updated
     assert '[repos."new-owner"]\nnew-tool = ["tool"]' in updated
 
@@ -286,7 +286,7 @@ def test_add_repository_is_idempotent_and_preserves_catalog_comments(
     assert updated != before
 
 
-def test_remove_repository_comments_out_entry_and_preserves_rest(
+def test_remove_repository_moves_entry_to_ignored_and_preserves_rest(
     tmp_path: Path,
 ) -> None:
     from repomod.catalog import remove_repository
@@ -301,7 +301,7 @@ def test_remove_repository_comments_out_entry_and_preserves_rest(
     assert remove_repository(catalog, "acme", "tool")
 
     updated = path.read_text(encoding="utf-8")
-    assert "# tool = [\"tool\"]" in updated
+    assert '"acme/tool" = ["tool"]' in updated
     assert "toolbox = [\"tool\"]" in updated
     assert '[repos."other"]\ntool = ["tool"]' in updated
     assert "# keep-comment" in updated

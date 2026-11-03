@@ -6,7 +6,7 @@ repair ledger.
 
 ## State and ownership
 
-`catalog.toml` owns repository identity, policy tags, checkout root, autofix overrides, and
+`catalog.toml` owns repository identity, pending and ignored entries, policy tags, checkout root, autofix overrides, and
 per-repository ignored rule codes. Version 3 adds the `ignore` override for stable lint IDs and `mdtool:CODE` documentation findings,
 with a required non-empty `ignore_reason` string that `repomod lint` prints for selected repositories.
 `REPOMOD_ROOT` overrides the configured root for one process. The catalog does not record branch
@@ -35,7 +35,7 @@ fetches that branch. It fast-forwards only a clean checkout on that branch when 
 move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and
 local commits. A fetch may update the matching remote-tracking ref. GitHub is the source of truth
 for archival: when GitHub reports a catalogued repository as archived, sync removes its local
-checkout instead of cloning or fetching it and comments its entry out of `catalog.toml`, so later
+checkout instead of cloning or fetching it and moves its entry to `[ignored]`, preserving tags and overrides, so later
 runs stop tracking it. Removal and untracking require a verified checkout whose origin
 matches the catalogued repository and refuse dirty, detached, ahead, stashed, or otherwise
 unverifiable checkouts without deleting anything; a checkout that cannot be safely removed stays
