@@ -191,10 +191,25 @@ def test_catalog_rejects_repository_in_multiple_states(tmp_path: Path) -> None:
     path = catalog(
         tmp_path / "catalog.toml",
         'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
-        '[repos."acme"]\nkeep = ["tool"]\n[pending]\n"ACME/KEEP" = []\n',
+        '[repos."acme"]\nkeep = []\n[ignored]\n"ACME/KEEP" = []\n',
     )
     with pytest.raises(CatalogError, match="duplicate repository"):
         load_catalog(path)
+
+
+def test_tags_promote_pending_repository_in_place(tmp_path: Path) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = []\n',
+    )
+    pending = load_catalog(path)
+    assert [str(repo) for repo in pending.pending] == ["acme/keep"]
+    assert pending.repositories == ()
+    path.write_text(path.read_text().replace('keep = []', 'keep = ["tool"]'))
+    promoted = load_catalog(path)
+    assert promoted.pending == ()
+    assert [(str(repo.id), repo.tags) for repo in promoted.repositories] == [("acme/keep", ("tool",))]
 
 
 def test_concurrent_discovery_keeps_both_updates_and_can_promote(tmp_path: Path) -> None:

@@ -134,8 +134,8 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         parsed = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise CatalogError(f"cannot read catalog {path}: {error}") from error
-    if set(parsed) - {"version", "workspace", "repos", "overrides", "pending", "ignored"}:
-        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides", "pending", "ignored"})
+    if set(parsed) - {"version", "workspace", "repos", "overrides", "ignored"}:
+        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides", "ignored"})
         raise CatalogError(f"unknown catalog keys: {', '.join(unknown)}")
     version = parsed.get("version")
     if type(version) is not int or version not in {1, 2, 3}:
@@ -155,6 +155,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     owners: dict[str, str] = {}
     ids: dict[str, str] = {}
     repositories: list[Repository] = []
+    pending: list[RepoId] = []
     for owner, raw_names in raw_repos.items():
         validate_identifier(owner, "owner")
         owner_key = owner.casefold()
@@ -178,8 +179,11 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
             if id_key in ids:
                 raise CatalogError(f"duplicate repository ignoring case: {repo_id}")
             ids[id_key] = str(repo_id)
-            if not isinstance(raw_tags, list) or not raw_tags:
-                raise CatalogError(f"tags for {repo_id} must be a non-empty array")
+            if not isinstance(raw_tags, list):
+                raise CatalogError(f"tags for {repo_id} must be an array")
+            if not raw_tags:
+                pending.append(repo_id)
+                continue
             tags = [tag for tag in raw_tags if isinstance(tag, str)]
             if len(tags) != len(raw_tags):
                 raise CatalogError(f"tags for {repo_id} must be strings")
@@ -192,33 +196,26 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                 raise CatalogError(f"{repo_id} must have at least one primary tag")
             repositories.append(Repository(repo_id, tuple(tags)))
 
-    pending: list[RepoId] = []
     ignored: list[Repository] = []
-    for state in ("pending", "ignored"):
-        values = parsed.get(state, {})
-        if not isinstance(values, dict):
-            raise CatalogError(f"[{state}] must be a table")
-        for key, tags in values.items():
-            try:
-                repo_id = RepoId.parse(key)
-            except ValueError as error:
-                raise CatalogError(str(error)) from error
-            validate_identifier(repo_id.owner, "owner")
-            validate_identifier(repo_id.name, "repository")
-            normalized = str(repo_id).casefold()
-            if normalized in ids:
-                raise CatalogError(f"duplicate repository ignoring case: {repo_id}")
-            ids[normalized] = str(repo_id)
-            if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
-                raise CatalogError(f"tags for {repo_id} must be an array of strings")
-            if len(tags) != len(set(tags)) or set(tags) - TAGS:
-                raise CatalogError(f"invalid tags for {repo_id}")
-            if state == "pending":
-                if tags:
-                    raise CatalogError(f"pending repository {repo_id} cannot have tags")
-                pending.append(repo_id)
-            else:
-                ignored.append(Repository(repo_id, tuple(tags)))
+    values = parsed.get("ignored", {})
+    if not isinstance(values, dict):
+        raise CatalogError("[ignored] must be a table")
+    for key, tags in values.items():
+        try:
+            repo_id = RepoId.parse(key)
+        except ValueError as error:
+            raise CatalogError(str(error)) from error
+        validate_identifier(repo_id.owner, "owner")
+        validate_identifier(repo_id.name, "repository")
+        normalized = str(repo_id).casefold()
+        if normalized in ids:
+            raise CatalogError(f"duplicate repository ignoring case: {repo_id}")
+        ids[normalized] = str(repo_id)
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            raise CatalogError(f"tags for {repo_id} must be an array of strings")
+        if len(tags) != len(set(tags)) or set(tags) - TAGS:
+            raise CatalogError(f"invalid tags for {repo_id}")
+        ignored.append(Repository(repo_id, tuple(tags)))
 
     overrides = parsed.get("overrides", {})
     if not isinstance(overrides, dict):
@@ -415,13 +412,33 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     if any(str(repo.id).casefold() == str(repo_id).casefold() for repo in catalog.repositories):
         return False
     owners = {repo.id.owner.casefold(): repo.id.owner for repo in catalog.repositories}
+    owners.update({repo.owner.casefold(): repo.owner for repo in catalog.pending})
     owner = owners.get(owner.casefold(), owner)
     repo_id = RepoId(owner, name)
     new_repo = Repository(repo_id, tuple(tags))
     repositories = [*catalog.repositories, new_repo]
     _validate_checkout_collisions(catalog.root, catalog.personal_owner, repositories)
     original = catalog.path.read_text(encoding="utf-8")
-    for state, entries in (("pending", catalog.pending), ("ignored", tuple(repo.id for repo in catalog.ignored))):
+    matching_pending = next((item for item in catalog.pending if str(item).casefold() == str(repo_id).casefold()), None)
+    if matching_pending is not None:
+        owner_header = f'[repos."{_toml_string(matching_pending.owner)}"]'
+        header = re.search(rf"(?m)^{re.escape(owner_header)}[ \t]*$", original)
+        if header is None:
+            raise CatalogError(f"missing repository table for {matching_pending}")
+        next_header = re.search(r"(?m)^\[", original[header.end():])
+        end = header.end() + next_header.start() if next_header else len(original)
+        entry = re.search(rf"(?m)^{re.escape(matching_pending.name)}[ \t]*=[ \t]*\[\]", original[header.end():end])
+        if entry is None:
+            raise CatalogError(f"cannot promote {matching_pending}: entry changed")
+        tags_value = ", ".join(f'"{_toml_string(tag)}"' for tag in tags)
+        updated = (
+            original[:header.end() + entry.start()]
+            + f"{matching_pending.name} = [{tags_value}]"
+            + original[header.end() + entry.end():]
+        )
+        atomic_write(catalog.path, updated)
+        return True
+    for state, entries in (("ignored", tuple(repo.id for repo in catalog.ignored)),):
         matching = next((item for item in entries if str(item).casefold() == str(repo_id).casefold()), None)
         if matching is not None:
             header = re.search(rf"(?m)^\[{state}\][ \t]*$", original)
@@ -472,14 +489,22 @@ def add_pending(catalog: Catalog, names: list[str]) -> list[str]:
     if not added:
         return []
     original = catalog.path.read_text(encoding="utf-8")
-    entries = "".join(f'"{_toml_string(name)}" = []\n' for name in added)
-    header = re.search(r"(?m)^\[pending\][ \t]*$", original)
-    if header:
-        next_header = re.search(r"(?m)^\[", original[header.end():])
-        insertion = header.end() + next_header.start() if next_header else len(original)
-        updated = original[:insertion].rstrip("\n") + "\n" + entries + original[insertion:]
-    else:
-        updated = original.rstrip() + "\n\n[pending]\n" + entries
+    updated = original
+    owners = {owner.casefold(): owner for owner in tomllib.loads(original)["repos"]}
+    for repo in current.ignored:
+        owners.setdefault(repo.id.owner.casefold(), repo.id.owner)
+    for name in added:
+        repo_id = RepoId.parse(name)
+        owner = owners.setdefault(repo_id.owner.casefold(), repo_id.owner)
+        owner_header = f'[repos."{_toml_string(owner)}"]'
+        header = re.search(rf"(?m)^{re.escape(owner_header)}[ \t]*$", updated)
+        entry = f"{repo_id.name} = []\n"
+        if header:
+            next_header = re.search(r"(?m)^\[", updated[header.end():])
+            insertion = header.end() + next_header.start() if next_header else len(updated)
+            updated = updated[:insertion].rstrip("\n") + "\n" + entry + updated[insertion:]
+        else:
+            updated = updated.rstrip() + "\n\n" + owner_header + "\n" + entry
     try:
         tomllib.loads(updated)
     except tomllib.TOMLDecodeError as error:

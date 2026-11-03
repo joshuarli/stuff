@@ -12,6 +12,9 @@ with a required non-empty `ignore_reason` string that `repomod lint` prints for 
 `REPOMOD_ROOT` overrides the configured root for one process. The catalog does not record branch
 state or lint results.
 
+An empty tag array in `[repos."owner"]` marks a pending repository. Adding at least one primary
+tag makes it managed. The separate `[ignored]` table excludes repositories from discovery.
+
 Personal-owner checkouts live directly under the root. Other owners use `OWNER/REPO`. The catalog
 rejects symlink path components. repomod checks that a checkout's origin matches its GitHub
 repository. New clones are staged beside their destination and moved into place after validation.

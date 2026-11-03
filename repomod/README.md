@@ -24,7 +24,7 @@ Other owners use `OWNER/REPO`.
 ## Discover and add repositories
 
 `repomod discover` compares active GitHub repositories against `catalog.toml`. It adds new
-repositories to `[pending]` and lists pending repositories and tracked entries missing from GitHub.
+repositories with empty tag arrays and lists pending repositories and tracked entries missing from GitHub.
 It checks every owner in the catalog unless you pass `--owner`. The command writes the catalog.
 
 ```sh
@@ -32,15 +32,17 @@ uv run repomod discover
 uv run repomod discover --owner joshuarli
 ```
 
-Move each wanted repository from `[pending]` to its `[repos."owner"]` section as
-`name = ["tags"]`. Include at least one primary tag. Move unwanted entries to `[ignored]`
+Add tags to a pending entry in its `[repos."owner"]` section to manage it. For example,
+change `example = []` to `example = ["tool"]`. Include at least one primary tag. Move unwanted entries to `[ignored]`
 instead; keep their empty tag array or record tags for later. Ignored repositories are not managed
 or reported as new. See
 [tagging semantics](docs/tagging.md) for tag meanings. Then fetch checkouts:
 
-Both `[pending]` and `[ignored]` use full repository names, for example
-`"joshuarli/example" = []`. Discovery's JSON output includes `pending`, `uncatalogued`
+`[ignored]` uses full repository names, for example `"joshuarli/example" = []`.
+Discovery's JSON output includes `pending`, `uncatalogued`
 (entries added in this run), and `missing`.
+If your catalog has a `[pending]` table from an earlier version, move each entry to its
+owner's `[repos."owner"]` table and remove the `[pending]` table.
 
 ```sh
 uv run repomod sync --dry-run
