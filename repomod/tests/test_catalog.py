@@ -286,7 +286,7 @@ def test_add_repository_is_idempotent_and_preserves_catalog_comments(
     assert updated != before
 
 
-def test_remove_repository_moves_entry_to_ignored_and_preserves_rest(
+def test_remove_repository_marks_entry_ignored_and_preserves_rest(
     tmp_path: Path,
 ) -> None:
     from repomod.catalog import remove_repository
@@ -301,7 +301,7 @@ def test_remove_repository_moves_entry_to_ignored_and_preserves_rest(
     assert remove_repository(catalog, "acme", "tool")
 
     updated = path.read_text(encoding="utf-8")
-    assert '"acme/tool" = ["tool"]' in updated
+    assert 'tool = ["IGNORE", "tool"]' in updated
     assert "toolbox = [\"tool\"]" in updated
     assert '[repos."other"]\ntool = ["tool"]' in updated
     assert "# keep-comment" in updated

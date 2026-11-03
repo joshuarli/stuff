@@ -93,7 +93,7 @@ def test_sync_archived_dry_run_without_checkout_is_skipped(
     assert result.failed is False
     assert "no checkout" in result.message
 
-def test_untrack_archived_repositories_moves_to_ignored(tmp_path: Path) -> None:
+def test_untrack_archived_repositories_marks_ignored(tmp_path: Path) -> None:
     catalog, repository = make_catalog(tmp_path)
     name = str(repository.id)
     archived = RemoteRepository(name, "main", "unused", True)

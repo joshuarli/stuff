@@ -13,7 +13,7 @@ with a required non-empty `ignore_reason` string that `repomod lint` prints for 
 state or lint results.
 
 An empty tag array in `[repos."owner"]` marks a pending repository. Adding at least one primary
-tag makes it managed. The separate `[ignored]` table excludes repositories from discovery.
+tag makes it managed. The `IGNORE` tag excludes a repository from management and discovery.
 
 Personal-owner checkouts live directly under the root. Other owners use `OWNER/REPO`. The catalog
 rejects symlink path components. repomod checks that a checkout's origin matches its GitHub
@@ -38,7 +38,7 @@ fetches that branch. It fast-forwards only a clean checkout on that branch when 
 move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and
 local commits. A fetch may update the matching remote-tracking ref. GitHub is the source of truth
 for archival: when GitHub reports a catalogued repository as archived, sync removes its local
-checkout instead of cloning or fetching it and moves its entry to `[ignored]`, preserving tags and overrides, so later
+checkout instead of cloning or fetching it and adds `IGNORE` to its entry, preserving tags and overrides, so later
 runs stop tracking it. Removal and untracking require a verified checkout whose origin
 matches the catalogued repository and refuse dirty, detached, ahead, stashed, or otherwise
 unverifiable checkouts without deleting anything; a checkout that cannot be safely removed stays

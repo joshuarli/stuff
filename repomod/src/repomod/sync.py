@@ -240,7 +240,7 @@ def untrack_archived_repositories(
                 SyncResult(
                     result.repository,
                     "untracked",
-                    "moved to ignored in catalog.toml (archived on GitHub)",
+                    "marked IGNORE in catalog.toml (archived on GitHub)",
                 )
             )
         else:

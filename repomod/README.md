@@ -33,16 +33,15 @@ uv run repomod discover --owner joshuarli
 ```
 
 Add tags to a pending entry in its `[repos."owner"]` section to manage it. For example,
-change `example = []` to `example = ["tool"]`. Include at least one primary tag. Move unwanted entries to `[ignored]`
-instead; keep their empty tag array or record tags for later. Ignored repositories are not managed
-or reported as new. See
+change `example = []` to `example = ["tool"]`. Include at least one primary tag. Add `"IGNORE"`
+to exclude a repository from management and discovery; other tags can stay for later. See
 [tagging semantics](docs/tagging.md) for tag meanings. Then fetch checkouts:
 
-`[ignored]` uses full repository names, for example `"joshuarli/example" = []`.
 Discovery's JSON output includes `pending`, `uncatalogued`
 (entries added in this run), and `missing`.
 If your catalog has a `[pending]` table from an earlier version, move each entry to its
 owner's `[repos."owner"]` table and remove the `[pending]` table.
+Move entries from an older `[ignored]` table to their owner sections and add `"IGNORE"` to their tags.
 
 ```sh
 uv run repomod sync --dry-run

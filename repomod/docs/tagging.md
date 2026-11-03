@@ -4,6 +4,9 @@ The catalog is a curated policy manifest, not a set of descriptive GitHub topics
 repository entries are managed. Pending and ignored entries are not managed. `topics apply`
 publishes the exact catalog tag set.
 
+`IGNORE` excludes a repository from management and discovery. It is not a GitHub topic.
+Other tags may remain on an ignored repository for later use.
+
 Each repository needs at least one role tag:
 
 - `tool`: command-line program or directly installed executable.

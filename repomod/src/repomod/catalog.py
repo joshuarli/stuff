@@ -44,6 +44,7 @@ LANGUAGE_TAGS = frozenset(
 PUBLISHING_TAGS = frozenset({"crates-io", "pypi", "npm"})
 PLATFORM_TAGS = frozenset({"linux", "macos"})
 TAGS = PRIMARY_TAGS | LANGUAGE_TAGS | PUBLISHING_TAGS | PLATFORM_TAGS | frozenset({"fork"})
+REPOSITORY_IGNORE = "IGNORE"
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]+\Z")
 DEPENDENCY_IGNORE_PREFIX = "audit-upgrades:"
 _DEPENDENCY_IGNORE = re.compile(
@@ -134,8 +135,8 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
         parsed = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise CatalogError(f"cannot read catalog {path}: {error}") from error
-    if set(parsed) - {"version", "workspace", "repos", "overrides", "ignored"}:
-        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides", "ignored"})
+    if set(parsed) - {"version", "workspace", "repos", "overrides"}:
+        unknown = sorted(set(parsed) - {"version", "workspace", "repos", "overrides"})
         raise CatalogError(f"unknown catalog keys: {', '.join(unknown)}")
     version = parsed.get("version")
     if type(version) is not int or version not in {1, 2, 3}:
@@ -156,6 +157,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     ids: dict[str, str] = {}
     repositories: list[Repository] = []
     pending: list[RepoId] = []
+    ignored: list[Repository] = []
     for owner, raw_names in raw_repos.items():
         validate_identifier(owner, "owner")
         owner_key = owner.casefold()
@@ -189,33 +191,15 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                 raise CatalogError(f"tags for {repo_id} must be strings")
             if len(set(tags)) != len(tags):
                 raise CatalogError(f"duplicate tags for {repo_id}")
-            unknown_tags = set(tags) - TAGS
+            unknown_tags = set(tags) - TAGS - {REPOSITORY_IGNORE}
             if unknown_tags:
                 raise CatalogError(f"unknown tags for {repo_id}: {', '.join(sorted(unknown_tags))}")
+            if REPOSITORY_IGNORE in tags:
+                ignored.append(Repository(repo_id, tuple(tag for tag in tags if tag != REPOSITORY_IGNORE)))
+                continue
             if not set(tags) & PRIMARY_TAGS:
                 raise CatalogError(f"{repo_id} must have at least one primary tag")
             repositories.append(Repository(repo_id, tuple(tags)))
-
-    ignored: list[Repository] = []
-    values = parsed.get("ignored", {})
-    if not isinstance(values, dict):
-        raise CatalogError("[ignored] must be a table")
-    for key, tags in values.items():
-        try:
-            repo_id = RepoId.parse(key)
-        except ValueError as error:
-            raise CatalogError(str(error)) from error
-        validate_identifier(repo_id.owner, "owner")
-        validate_identifier(repo_id.name, "repository")
-        normalized = str(repo_id).casefold()
-        if normalized in ids:
-            raise CatalogError(f"duplicate repository ignoring case: {repo_id}")
-        ids[normalized] = str(repo_id)
-        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
-            raise CatalogError(f"tags for {repo_id} must be an array of strings")
-        if len(tags) != len(set(tags)) or set(tags) - TAGS:
-            raise CatalogError(f"invalid tags for {repo_id}")
-        ignored.append(Repository(repo_id, tuple(tags)))
 
     overrides = parsed.get("overrides", {})
     if not isinstance(overrides, dict):
@@ -419,7 +403,8 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
     repositories = [*catalog.repositories, new_repo]
     _validate_checkout_collisions(catalog.root, catalog.personal_owner, repositories)
     original = catalog.path.read_text(encoding="utf-8")
-    matching_pending = next((item for item in catalog.pending if str(item).casefold() == str(repo_id).casefold()), None)
+    inactive = (*catalog.pending, *(repo.id for repo in catalog.ignored))
+    matching_pending = next((item for item in inactive if str(item).casefold() == str(repo_id).casefold()), None)
     if matching_pending is not None:
         owner_header = f'[repos."{_toml_string(matching_pending.owner)}"]'
         header = re.search(rf"(?m)^{re.escape(owner_header)}[ \t]*$", original)
@@ -427,7 +412,10 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
             raise CatalogError(f"missing repository table for {matching_pending}")
         next_header = re.search(r"(?m)^\[", original[header.end():])
         end = header.end() + next_header.start() if next_header else len(original)
-        entry = re.search(rf"(?m)^{re.escape(matching_pending.name)}[ \t]*=[ \t]*\[\]", original[header.end():end])
+        entry = re.search(
+            rf"(?m)^{re.escape(matching_pending.name)}[ \t]*=[ \t]*\[[^\]\n]*\]",
+            original[header.end():end],
+        )
         if entry is None:
             raise CatalogError(f"cannot promote {matching_pending}: entry changed")
         tags_value = ", ".join(f'"{_toml_string(tag)}"' for tag in tags)
@@ -438,18 +426,6 @@ def add_repository(catalog: Catalog, owner: str, name: str, tags: list[str]) -> 
         )
         atomic_write(catalog.path, updated)
         return True
-    for state, entries in (("ignored", tuple(repo.id for repo in catalog.ignored)),):
-        matching = next((item for item in entries if str(item).casefold() == str(repo_id).casefold()), None)
-        if matching is not None:
-            header = re.search(rf"(?m)^\[{state}\][ \t]*$", original)
-            if header is None:
-                raise CatalogError(f"missing [{state}] table")
-            next_header = re.search(r"(?m)^\[", original[header.end():])
-            end = header.end() + next_header.start() if next_header else len(original)
-            entry = re.search(rf'(?m)^"{re.escape(str(matching))}"[ \t]*=.*(?:\n|$)', original[header.end():end])
-            if entry is None:
-                raise CatalogError(f"cannot promote {matching}: entry changed")
-            original = original[:header.end() + entry.start()] + original[header.end() + entry.end():]
     owner_header = f'[repos."{_toml_string(owner)}"]'
     owner_match = re.search(rf"(?m)^{re.escape(owner_header)}\s*$", original)
     tags_value = ", ".join(f'"{_toml_string(tag)}"' for tag in tags)
@@ -517,6 +493,8 @@ def add_pending(catalog: Catalog, names: list[str]) -> list[str]:
 def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
     validate_identifier(owner, "owner")
     validate_identifier(name, "repository")
+    if not any(str(repo.id).casefold() == f"{owner}/{name}".casefold() for repo in catalog.repositories):
+        return False
     original = catalog.path.read_text(encoding="utf-8")
     owner_header = f'[repos."{_toml_string(owner)}"]'
     owner_match = re.search(rf"(?m)^{re.escape(owner_header)}\s*$", original)
@@ -531,19 +509,15 @@ def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
     )
     if entry is None:
         return False
-    value = entry.group(0).split("=", 1)[1].strip()
+    value = entry.group(0)
+    opening = value.find("[")
+    if opening == -1:
+        raise CatalogError(f"cannot ignore {owner}/{name}: tags are not on one line")
     updated = (
         original[: section_start + entry.start()]
+        + value[:opening + 1] + '"IGNORE", ' + value[opening + 1:]
         + original[section_start + entry.end() :]
     )
-    ignored_entry = f'"{_toml_string(owner)}/{_toml_string(name)}" = {value}\n'
-    ignored_header = re.search(r"(?m)^\[ignored\][ \t]*$", updated)
-    if ignored_header:
-        next_header = re.search(r"(?m)^\[", updated[ignored_header.end():])
-        insertion = ignored_header.end() + next_header.start() if next_header else len(updated)
-        updated = updated[:insertion].rstrip("\n") + "\n" + ignored_entry + updated[insertion:]
-    else:
-        updated = updated.rstrip() + "\n\n[ignored]\n" + ignored_entry
     try:
         tomllib.loads(updated)
     except tomllib.TOMLDecodeError as error:

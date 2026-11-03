@@ -11,6 +11,7 @@ import repomod.cli as cli_module
 from repomod import github
 from repomod.catalog import CatalogError, add_pending, add_repository, load_catalog
 from repomod.cmd.discover import _discover
+from repomod.cmd.topics import _topics
 
 
 def catalog(path: Path, text: str) -> Path:
@@ -170,8 +171,7 @@ def test_discover_records_new_repositories_and_skips_ignored(tmp_path: Path, mon
     path = catalog(
         tmp_path / "catalog.toml",
         'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
-        '[repos."acme"]\nkeep = ["tool"]\n'
-        '[ignored]\n"acme/old" = ["tool"]\n',
+        '[repos."acme"]\nkeep = ["tool"]\nold = ["IGNORE", "tool"]\n',
     )
     monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
     monkeypatch.setattr("repomod.github.discover", lambda owners: ["ACME/keep", "acme/OLD", "acme/new"])
@@ -191,9 +191,9 @@ def test_catalog_rejects_repository_in_multiple_states(tmp_path: Path) -> None:
     path = catalog(
         tmp_path / "catalog.toml",
         'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
-        '[repos."acme"]\nkeep = []\n[ignored]\n"ACME/KEEP" = []\n',
+        '[repos."acme"]\nkeep = []\n[repos."ACME"]\nKEEP = ["IGNORE"]\n',
     )
-    with pytest.raises(CatalogError, match="duplicate repository"):
+    with pytest.raises(CatalogError, match="duplicate owner"):
         load_catalog(path)
 
 
@@ -210,6 +210,21 @@ def test_tags_promote_pending_repository_in_place(tmp_path: Path) -> None:
     promoted = load_catalog(path)
     assert promoted.pending == ()
     assert [(str(repo.id), repo.tags) for repo in promoted.repositories] == [("acme/keep", ("tool",))]
+
+
+def test_ignored_repositories_do_not_reach_topics(tmp_path: Path, monkeypatch) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\nold = ["IGNORE", "tool"]\nother = ["IGNORE"]\n',
+    )
+    catalog_value = load_catalog(path)
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog_value)
+    seen = []
+    monkeypatch.setattr("repomod.cmd.topics.topics_many", lambda repos, **kwargs: seen.extend(repos) or [])
+    assert _topics(argparse.Namespace(repo=[], tag=[], operation="apply", workers=1)) == 0
+    assert [(str(repo.id), repo.tags) for repo in seen] == [("acme/keep", ("tool",))]
+    assert {str(repo.id) for repo in catalog_value.ignored} == {"acme/old", "acme/other"}
 
 
 def test_concurrent_discovery_keeps_both_updates_and_can_promote(tmp_path: Path) -> None:
