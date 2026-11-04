@@ -11,19 +11,12 @@ import {
 } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, posix } from "node:path";
-import { Miniflare } from "miniflare";
+import { workerHarness } from "./worker-harness.mjs";
 
 const outputDir = fileURLToPath(
   new URL("../.cloudflare/output/v0/workers/default", import.meta.url),
 );
 const bundleDir = join(outputDir, "bundle");
-
-const ROUTES = JSON.stringify([
-  { host: "crates.test", bucket_binding: "MYCRATES", key_prefix: "" },
-  { host: "npm.test", bucket_binding: "MYNPM", key_prefix: "" },
-  { host: "pypi.test", bucket_binding: "PYPI", key_prefix: "" },
-  { host: "oci.test", bucket_binding: "OCI", key_prefix: "" },
-]);
 
 test("the uploaded module graph resolves from the main module name", () => {
   const { manifest } = JSON.parse(readFileSync(join(outputDir, "worker.config.json"), "utf8"));
@@ -61,7 +54,7 @@ function catalog(registry, name) {
   });
 }
 
-async function seed(mf, { pypiCatalog } = {}) {
+async function seed(server, { pypiCatalog } = {}) {
   const catalogs = {
     MYCRATES: catalog("cargo", "crate"),
     MYNPM: catalog("npm", "package"),
@@ -69,76 +62,59 @@ async function seed(mf, { pypiCatalog } = {}) {
     OCI: catalog("oci", "example/app"),
   };
   for (const [binding, text] of Object.entries(catalogs)) {
-    const bucket = await mf.getR2Bucket(binding);
+    const bucket = (await server.getWorker().getEnv())[binding];
     await bucket.put("current", "g1");
     await bucket.put("generations/g1/catalog.json", text);
     await bucket.put("generations/g1/index.html", '<a href="catalog.json">catalog</a>');
     await bucket.put("generations/g1/llms.txt", "# generation");
   }
-  const pypi = await mf.getR2Bucket("PYPI");
+  const pypi = (await server.getWorker().getEnv())["PYPI"];
   await pypi.put("wheels/wheelpkg-1.0-py3-none-any.whl", "wheel-bytes");
   await pypi.put(
     "generations/g1/simple/wheelpkg/index.html",
     '<a href="../../wheels/wheelpkg-1.0-py3-none-any.whl">wheel</a>',
   );
-  const npm = await mf.getR2Bucket("MYNPM");
+  const npm = (await server.getWorker().getEnv())["MYNPM"];
   await npm.put("tarballs/abc.tgz", "tarball-bytes");
 }
 
-function worker(extraBindings = {}) {
-  return new Miniflare({
-    modules: true,
-    scriptPath: join(bundleDir, "entry.js"),
-    // Miniflare 4.20260730.0 supports compatibility dates through 2026-08-06.
-    compatibilityDate: "2026-08-06",
-    modulesRules: [
-      { type: "ESModule", include: ["**/*.js"] },
-      { type: "CompiledWasm", include: ["**/*.wasm"] },
-    ],
-    r2Buckets: ["MYCRATES", "MYNPM", "PYPI", "OCI", "OCI_BLOBS"],
-    bindings: {
-      STUFF_ROUTES: ROUTES,
-      STUFF_UNIFIED_HOST: "stuff.test",
-      STUFF_OCI_HOST: "oci.test",
-      ...extraBindings,
-    },
-  });
-}
-
 test("cold HEAD for the unified page uses a GET cache key", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const head = await mf.dispatchFetch("https://stuff.test/", { method: "HEAD" });
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const head = await server.getWorker().fetch("https://stuff.test/", { method: "HEAD" });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), "");
-  const get = await mf.dispatchFetch("https://stuff.test/");
+  const get = await server.getWorker().fetch("https://stuff.test/");
   assert.equal(get.status, 200);
   assert.match(await get.text(), /stuff/);
 });
 
 test("a registry on a newer catalog schema is reported, not fatal", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
   const newer = JSON.stringify({ schema_version: 99, registry: "pypi", generation: "g1", packages: [] });
-  await seed(mf, { pypiCatalog: newer });
+  await seed(server, { pypiCatalog: newer });
 
-  const page = await mf.dispatchFetch("https://stuff.test/");
+  const page = await server.getWorker().fetch("https://stuff.test/");
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.match(html, /PyPI is not listed because its catalog could not be read: unsupported catalog schema_version: 99\./);
   assert.ok(html.includes("crate") && html.includes("package"));
 
-  const llms = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  const llms = await server.getWorker().fetch("https://stuff.test/llms.txt");
   assert.equal(llms.status, 200);
   assert.match(await llms.text(), /> Note: PyPI is not listed because its catalog could not be read/);
 });
 
 test("unified llms.txt advertises the configured hosts", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const response = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const response = await server.getWorker().fetch("https://stuff.test/llms.txt");
   assert.equal(response.status, 200);
   const text = await response.text();
   assert.match(text, /Aggregate browser: https:\/\/stuff\.test\/ /);
@@ -149,47 +125,50 @@ test("unified llms.txt advertises the configured hosts", async (t) => {
 });
 
 test("the unified page and llms.txt include OCI", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const page = await mf.dispatchFetch("https://stuff.test/");
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const page = await server.getWorker().fetch("https://stuff.test/");
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.ok(html.includes("example/app"), "unified page lists the OCI repository");
   assert.ok(html.includes("OCI"), "unified page names the OCI registry");
-  const llms = await mf.dispatchFetch("https://stuff.test/llms.txt");
+  const llms = await server.getWorker().fetch("https://stuff.test/llms.txt");
   const text = await llms.text();
   assert.ok(text.includes("OCI registry"), "unified llms names the OCI registry");
   assert.ok(text.includes("- OCI: https://oci.test/llms.txt"), "unified llms links OCI");
-  const catalog = await mf.dispatchFetch("https://oci.test/current/catalog.json");
+  const catalog = await server.getWorker().fetch("https://oci.test/current/catalog.json");
   assert.equal(catalog.status, 200);
   assert.match(await catalog.text(), /"registry":"oci"/);
 });
 
 test("root pages link to objects that resolve", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const page = await mf.dispatchFetch("https://crates.test/");
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const page = await server.getWorker().fetch("https://crates.test/");
   assert.equal(page.status, 200);
   const html = await page.text();
   const links = [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
   assert.ok(links.length > 0);
   for (const href of links) {
     if (href.startsWith("http")) continue;
-    const response = await mf.dispatchFetch(new URL(href, "https://crates.test/"));
+    const response = await server.getWorker().fetch(new URL(href, "https://crates.test/"));
     assert.equal(response.status, 200, `${href} should resolve`);
   }
-  const alias = await mf.dispatchFetch("https://crates.test/catalog.json");
+  const alias = await server.getWorker().fetch("https://crates.test/catalog.json");
   assert.equal(alias.status, 200);
 });
 
 test("the gateway forwards the host to the cached entrypoint", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const cargo = await mf.dispatchFetch("https://crates.test/catalog.json");
-  const npm = await mf.dispatchFetch("https://npm.test/catalog.json");
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const cargo = await server.getWorker().fetch("https://crates.test/catalog.json");
+  const npm = await server.getWorker().fetch("https://npm.test/catalog.json");
   assert.equal(cargo.status, 200);
   assert.equal(npm.status, 200);
   assert.match(await cargo.text(), /"registry":"cargo"/);
@@ -197,51 +176,54 @@ test("the gateway forwards the host to the cached entrypoint", async (t) => {
 });
 
 test("pinned generation artifacts use the shared store aliases", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const wheel = await mf.dispatchFetch(
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const wheel = await server.getWorker().fetch(
     "https://pypi.test/generations/g1/wheels/wheelpkg-1.0-py3-none-any.whl",
   );
   assert.equal(wheel.status, 200);
   assert.equal(await wheel.text(), "wheel-bytes");
-  const tarball = await mf.dispatchFetch(
+  const tarball = await server.getWorker().fetch(
     "https://npm.test/generations/g1/-/tarballs/abc.tgz",
   );
   assert.equal(tarball.status, 200);
   assert.equal(await tarball.text(), "tarball-bytes");
-  const missingGeneration = await mf.dispatchFetch(
+  const missingGeneration = await server.getWorker().fetch(
     "https://pypi.test/generations/g2/wheels/wheelpkg-1.0-py3-none-any.whl",
   );
   assert.equal(missingGeneration.status, 404);
 });
 
 test("a ranged artifact request returns only the requested bytes", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
-  const response = await mf.dispatchFetch(
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const response = await server.getWorker().fetch(
     "https://pypi.test/generations/g1/wheels/wheelpkg-1.0-py3-none-any.whl",
     { headers: { range: "bytes=0-4" } },
   );
   assert.equal(response.status, 206);
   assert.equal(response.headers.get("content-range"), "bytes 0-4/11");
   assert.equal(await response.text(), "wheel");
-  const missing = await mf.dispatchFetch("https://pypi.test/nope");
+  const missing = await server.getWorker().fetch("https://pypi.test/nope");
   assert.equal(missing.status, 404);
   assert.match(missing.headers.get("cache-control") ?? "", /max-age=60/);
 });
 
 test("a pinned project page's relative wheel link resolves", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seed(mf);
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
   const pageUrl = "https://pypi.test/generations/g1/simple/wheelpkg/index.html";
-  const page = await mf.dispatchFetch(pageUrl);
+  const page = await server.getWorker().fetch(pageUrl);
   assert.equal(page.status, 200);
   const html = await page.text();
   const href = html.match(/href="([^"]+)"/)[1];
-  const wheel = await mf.dispatchFetch(new URL(href, pageUrl));
+  const wheel = await server.getWorker().fetch(new URL(href, pageUrl));
   assert.equal(wheel.status, 200);
   assert.equal(await wheel.text(), "wheel-bytes");
 });
@@ -284,8 +266,8 @@ function paritySite() {
   return site;
 }
 
-async function seedParity(mf) {
-  const bucket = await mf.getR2Bucket("MYCRATES");
+async function seedParity(server) {
+  const bucket = (await server.getWorker().getEnv())["MYCRATES"];
   await bucket.put("current", "g1");
   await bucket.put(
     "generations/g1/catalog.json",
@@ -331,12 +313,13 @@ function startServer(site) {
 
 test("native server and worker agree on routes and cache kinds", async (t) => {
   const site = paritySite();
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seedParity(mf);
-  const server = await startServer(site);
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seedParity(server);
+  const nativeServer = await startServer(site);
   t.after(() => {
-    server.child.kill();
+    nativeServer.child.kill();
   });
 
   const paths = [
@@ -362,8 +345,8 @@ test("native server and worker agree on routes and cache kinds", async (t) => {
     "/missing",
   ];
   for (const path of paths) {
-    const native = await fetch(`${server.base}${path}`);
-    const edge = await mf.dispatchFetch(`https://crates.test${path}`);
+    const native = await fetch(`${nativeServer.base}${path}`);
+    const edge = await server.getWorker().fetch(`https://crates.test${path}`);
     assert.equal(native.status, edge.status, `status for ${path}`);
     assert.equal(
       (native.headers.get("cache-control") ?? "").replace(/\s+/g, " "),
@@ -387,10 +370,10 @@ function ociDescriptor(mediaType, digest, size, extra = {}) {
   return { mediaType, digest, size, ...extra };
 }
 
-async function seedOci(mf) {
+async function seedOci(server) {
   const blobDir = join(OCI_FIXTURE, "blobs", "sha256");
-  const meta = await mf.getR2Bucket("OCI");
-  const blobs = await mf.getR2Bucket("OCI_BLOBS");
+  const meta = (await server.getWorker().getEnv())["OCI"];
+  const blobs = (await server.getWorker().getEnv())["OCI_BLOBS"];
   await meta.put("current", "g1");
   const index = ociDescriptor("application/vnd.oci.image.index.v1+json", OCI_INDEX, 491);
   const arm64 = ociDescriptor("application/vnd.oci.image.manifest.v1+json", OCI_ARM64, 401);
@@ -433,16 +416,17 @@ async function seedOci(mf) {
 }
 
 test("oci ping and manifest reads ignore Accept and pin the stored type", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
 
-  const ping = await mf.dispatchFetch("https://oci.test/v2/");
+  const ping = await server.getWorker().fetch("https://oci.test/v2/");
   assert.equal(ping.status, 200);
   assert.equal(ping.headers.get("docker-distribution-api-version"), "registry/2.0");
   assert.equal(await ping.text(), "{}");
 
-  const byTag = await mf.dispatchFetch("https://oci.test/v2/example/app/manifests/stable", {
+  const byTag = await server.getWorker().fetch("https://oci.test/v2/example/app/manifests/stable", {
     headers: { accept: "application/vnd.docker.distribution.manifest.list.v2+json" },
   });
   assert.equal(byTag.status, 200);
@@ -451,10 +435,10 @@ test("oci ping and manifest reads ignore Accept and pin the stored type", async 
   assert.equal(byTag.headers.get("cache-control"), "public, max-age=60, stale-if-error=0");
   assert.equal((await byTag.arrayBuffer()).byteLength, 491);
 
-  const byDigest = await mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`);
+  const byDigest = await server.getWorker().fetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`);
   assert.equal(byDigest.status, 200);
   assert.match(byDigest.headers.get("cache-control"), /immutable/);
-  const head = await mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`, {
+  const head = await server.getWorker().fetch(`https://oci.test/v2/example/app/manifests/${OCI_INDEX}`, {
     method: "HEAD",
   });
   assert.equal(head.status, 200);
@@ -463,22 +447,23 @@ test("oci ping and manifest reads ignore Accept and pin the stored type", async 
 });
 
 test("oci blob reads support HEAD and a single range", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
   const base = `https://oci.test/v2/example/app/blobs/${OCI_LAYER}`;
 
-  const full = await mf.dispatchFetch(base);
+  const full = await server.getWorker().fetch(base);
   assert.equal(full.status, 200);
   assert.equal(full.headers.get("docker-content-digest"), OCI_LAYER);
   assert.equal((await full.arrayBuffer()).byteLength, 117);
 
-  const head = await mf.dispatchFetch(base, { method: "HEAD" });
+  const head = await server.getWorker().fetch(base, { method: "HEAD" });
   assert.equal(head.status, 200);
   assert.equal(head.headers.get("content-length"), "117");
   assert.equal(await head.text(), "");
 
-  const ranged = await mf.dispatchFetch(base, { headers: { range: "bytes=0-9" } });
+  const ranged = await server.getWorker().fetch(base, { headers: { range: "bytes=0-9" } });
   assert.equal(ranged.status, 206);
   assert.equal(ranged.headers.get("content-range"), "bytes 0-9/117");
   const bytes = Buffer.from(await ranged.arrayBuffer());
@@ -487,7 +472,7 @@ test("oci blob reads support HEAD and a single range", async (t) => {
     readFileSync(join(OCI_FIXTURE, "blobs", "sha256", OCI_LAYER.slice("sha256:".length))).subarray(0, 10),
   );
 
-  const missing = await mf.dispatchFetch(
+  const missing = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/blobs/sha256:1111111111111111111111111111111111111111111111111111111111111111",
   );
   assert.equal(missing.status, 404);
@@ -495,64 +480,66 @@ test("oci blob reads support HEAD and a single range", async (t) => {
 });
 
 test("oci tags paginate and referrers honor artifactType", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
 
-  const page1 = await mf.dispatchFetch("https://oci.test/v2/example/app/tags/list?n=1");
+  const page1 = await server.getWorker().fetch("https://oci.test/v2/example/app/tags/list?n=1");
   assert.equal(page1.status, 200);
   assert.deepEqual(await page1.json(), { name: "example/app", tags: ["beta"] });
   assert.equal(
     page1.headers.get("link"),
     '</v2/example/app/tags/list?n=1&last=beta>; rel="next"',
   );
-  const page2 = await mf.dispatchFetch(
+  const page2 = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/tags/list?n=1&last=beta",
   );
   assert.deepEqual(await page2.json(), { name: "example/app", tags: ["stable"] });
   assert.equal(page2.headers.get("link"), null);
 
-  const all = await mf.dispatchFetch(`https://oci.test/v2/example/app/referrers/${OCI_ARM64}`);
+  const all = await server.getWorker().fetch(`https://oci.test/v2/example/app/referrers/${OCI_ARM64}`);
   assert.equal(all.status, 200);
   const allBody = await all.json();
   assert.equal(allBody.manifests.length, 1);
   assert.equal(allBody.manifests[0].digest, OCI_REFERRER);
 
-  const filtered = await mf.dispatchFetch(
+  const filtered = await server.getWorker().fetch(
     `https://oci.test/v2/example/app/referrers/${OCI_ARM64}?artifactType=${encodeURIComponent(OCI_REFERRER_TYPE)}`,
   );
   assert.equal(filtered.headers.get("oci-filters-applied"), "artifactType");
   assert.equal((await filtered.json()).manifests.length, 1);
 
-  const unknown = await mf.dispatchFetch(
+  const unknown = await server.getWorker().fetch(
     `https://oci.test/v2/example/app/referrers/${OCI_ARM64}?artifactType=${encodeURIComponent("application/vnd.example.unknown")}`,
   );
   assert.deepEqual((await unknown.json()).manifests, []);
 });
 
 test("oci errors are OCI JSON with the expected status", async (t) => {
-  const mf = worker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
-  const unknownManifest = await mf.dispatchFetch(
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
+  const unknownManifest = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/manifests/nope",
   );
   assert.equal(unknownManifest.status, 404);
   assert.match(await unknownManifest.text(), /MANIFEST_UNKNOWN/);
 
-  const unknownRepository = await mf.dispatchFetch("https://oci.test/v2/other/repo/tags/list");
+  const unknownRepository = await server.getWorker().fetch("https://oci.test/v2/other/repo/tags/list");
   assert.equal(unknownRepository.status, 404);
   assert.match(await unknownRepository.text(), /NAME_UNKNOWN/);
 
-  const badName = await mf.dispatchFetch("https://oci.test/v2/Example/app/manifests/stable");
+  const badName = await server.getWorker().fetch("https://oci.test/v2/Example/app/manifests/stable");
   assert.equal(badName.status, 400);
   assert.match(await badName.text(), /NAME_INVALID/);
 
-  const badDigest = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/sha256:00");
+  const badDigest = await server.getWorker().fetch("https://oci.test/v2/example/app/blobs/sha256:00");
   assert.equal(badDigest.status, 400);
   assert.match(await badDigest.text(), /DIGEST_INVALID/);
 
-  const write = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/uploads/", {
+  const write = await server.getWorker().fetch("https://oci.test/v2/example/app/blobs/uploads/", {
     method: "POST",
   });
   assert.equal(write.status, 405);
@@ -561,12 +548,13 @@ test("oci errors are OCI JSON with the expected status", async (t) => {
 });
 
 test("oci blobs redirect to the configured blob origin", async (t) => {
-  const mf = worker({ STUFF_OCI_BLOB_ORIGIN: "https://blobs.test/" });
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = workerHarness({ STUFF_OCI_BLOB_ORIGIN: "https://blobs.test/" });
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
   const url = `https://oci.test/v2/example/app/blobs/${OCI_LAYER}`;
   for (const method of ["GET", "HEAD"]) {
-    const response = await mf.dispatchFetch(url, { method, redirect: "manual" });
+    const response = await server.getWorker().fetch(url, { method, redirect: "manual" });
     assert.equal(response.status, 307, method);
     assert.equal(
       response.headers.get("location"),
@@ -578,7 +566,7 @@ test("oci blobs redirect to the configured blob origin", async (t) => {
 });
 
 function pushWorker() {
-  return worker({
+  return workerHarness({
     STUFF_OCI_PUSH_TOKEN: "token",
     STUFF_OCI_PUSH_SECRET: "secret",
     STUFF_OCI_WRITER_ORIGIN: "https://writer.test",
@@ -604,11 +592,12 @@ function pushedIndex() {
 }
 
 test("oci push authenticates, issues writer sessions, and mounts", async (t) => {
-  const mf = pushWorker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
 
-  const unauthenticated = await mf.dispatchFetch(
+  const unauthenticated = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/blobs/uploads/",
     { method: "POST" },
   );
@@ -618,7 +607,7 @@ test("oci push authenticates, issues writer sessions, and mounts", async (t) => 
     'Basic realm="stuff-oci"',
   );
 
-  const started = await mf.dispatchFetch("https://oci.test/v2/example/app/blobs/uploads/", {
+  const started = await server.getWorker().fetch("https://oci.test/v2/example/app/blobs/uploads/", {
     method: "POST",
     headers: AUTH,
   });
@@ -627,14 +616,14 @@ test("oci push authenticates, issues writer sessions, and mounts", async (t) => 
   assert.match(location, /^https:\/\/writer\.test\/v2\/example\/app\/blobs\/uploads\/[0-9a-f]+\?session=/);
   assert.ok(started.headers.get("docker-upload-uuid"));
 
-  const mounted = await mf.dispatchFetch(
+  const mounted = await server.getWorker().fetch(
     `https://oci.test/v2/example/app/blobs/uploads/?mount=${OCI_LAYER}&from=example/app`,
     { method: "POST", headers: AUTH },
   );
   assert.equal(mounted.status, 201);
   assert.equal(mounted.headers.get("docker-content-digest"), OCI_LAYER);
 
-  const missed = await mf.dispatchFetch(
+  const missed = await server.getWorker().fetch(
     `https://oci.test/v2/example/app/blobs/uploads/?mount=sha256:${"1".repeat(64)}&from=example/app`,
     { method: "POST", headers: AUTH },
   );
@@ -642,14 +631,15 @@ test("oci push authenticates, issues writer sessions, and mounts", async (t) => 
 });
 
 test("oci push finalizes manifests and flips current", async (t) => {
-  const mf = pushWorker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
-  const meta = await mf.getR2Bucket("OCI");
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
+  const meta = (await server.getWorker().getEnv())["OCI"];
   const before = (await (await meta.get("current")).text()).trim();
 
   const body = pushedManifest();
-  const pushed = await mf.dispatchFetch(
+  const pushed = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/manifests/pushed",
     {
       method: "PUT",
@@ -669,12 +659,12 @@ test("oci push finalizes manifests and flips current", async (t) => {
   assert.ok(await meta.head(`generations/${current}/repositories/example/app/repository.json`));
   assert.ok(await meta.head(`manifests/${current}.json`));
 
-  const read = await mf.dispatchFetch("https://oci.test/v2/example/app/manifests/pushed");
+  const read = await server.getWorker().fetch("https://oci.test/v2/example/app/manifests/pushed");
   assert.equal(read.status, 200);
   assert.equal(await read.text(), body);
 
   const index = pushedIndex();
-  const indexed = await mf.dispatchFetch(
+  const indexed = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/manifests/pushed-index",
     {
       method: "PUT",
@@ -686,7 +676,7 @@ test("oci push finalizes manifests and flips current", async (t) => {
     },
   );
   assert.equal(indexed.status, 201);
-  const indexRead = await mf.dispatchFetch(
+  const indexRead = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/manifests/pushed-index",
   );
   assert.equal(indexRead.status, 200);
@@ -694,10 +684,11 @@ test("oci push finalizes manifests and flips current", async (t) => {
 });
 
 test("oci push rejects a missing blob and leaves current unchanged", async (t) => {
-  const mf = pushWorker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
-  const meta = await mf.getR2Bucket("OCI");
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
+  const meta = (await server.getWorker().getEnv())["OCI"];
   const before = (await (await meta.get("current")).text()).trim();
   const missing = JSON.stringify({
     schemaVersion: 2,
@@ -709,7 +700,7 @@ test("oci push rejects a missing blob and leaves current unchanged", async (t) =
     },
     layers: [],
   });
-  const response = await mf.dispatchFetch(
+  const response = await server.getWorker().fetch(
     "https://oci.test/v2/example/app/manifests/missing",
     {
       method: "PUT",
@@ -727,11 +718,12 @@ test("oci push rejects a missing blob and leaves current unchanged", async (t) =
 });
 
 test("oci push retries a concurrent current flip", async (t) => {
-  const mf = pushWorker();
-  t.after(() => mf.dispose());
-  await seedOci(mf);
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
   const put = (tag, body) =>
-    mf.dispatchFetch(`https://oci.test/v2/example/app/manifests/${tag}`, {
+    server.getWorker().fetch(`https://oci.test/v2/example/app/manifests/${tag}`, {
       method: "PUT",
       headers: {
         ...AUTH,
@@ -744,7 +736,7 @@ test("oci push retries a concurrent current flip", async (t) => {
   const [a, b] = await Promise.all([put("concurrent-a", first), put("concurrent-b", second)]);
   assert.equal(a.status, 201);
   assert.equal(b.status, 201);
-  const meta = await mf.getR2Bucket("OCI");
+  const meta = (await server.getWorker().getEnv())["OCI"];
   const current = (await (await meta.get("current")).text()).trim();
   const repository = await (await meta.get(
     `generations/${current}/repositories/example/app/repository.json`,

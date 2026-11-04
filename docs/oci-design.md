@@ -193,7 +193,7 @@ authorization, or token service. Writes use one token with no per-repository
 scopes; that boundary returns if a second writer or private images arrive.
 The writer host keeps only the shared HMAC secret and bucket-scoped R2
 credentials. Local publish, sync, GC, and writer tests use `CF_LOCAL_STATE`
-under `.work`; Worker tests use Miniflare with seeded R2 bindings; Docker
+under `.work`; Worker tests use Wrangler's test harness with seeded R2 bindings; Docker
 tests use `127.0.0.1`, which Docker treats as an insecure registry.
 
 ## Non-goals

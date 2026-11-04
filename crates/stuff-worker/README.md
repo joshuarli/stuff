@@ -26,12 +26,12 @@ tsrs -p tsconfig.json --fast # type-check and compile entry.ts into the bundle
 `npm run build:wasm` runs only the wasm step. `npm run typecheck` checks
 the TypeScript without emitting. `npm run dev` starts the Vite dev server that
 `cf dev` discovers through `@cloudflare/vite-plugin`. `cf deploy --prebuilt`
-uploads the spec as-is; it does not rebuild anything, and nothing invokes
-Wrangler. Validate without credentials with `cf deploy --prebuilt --dry-run`.
+uploads the spec as-is without rebuilding it. Validate without credentials
+with `cf deploy --prebuilt --dry-run`.
 
-Vite 8 builds with Rolldown, so the worker toolchain does not install esbuild.
-The repository's `make search-bundle` target uses the same Vite to rebuild
-`crates/stuff-catalog/assets/search.js`.
+Vite 8 builds with Rolldown. Wrangler is a test dependency and brings esbuild;
+the Worker build does not invoke either. `make search-bundle` uses Vite to
+rebuild `crates/stuff-catalog/assets/search.js`.
 
 The wasm step runs:
 
@@ -52,9 +52,10 @@ pins (`=0.2.129`).
 
 ## Test
 
-`make worker-test` builds the bundle and runs it under workerd (Miniflare,
-a development dependency) for cold-HEAD cache, root-link, and pinned
-artifact-alias coverage.
+`make worker-test` builds the bundle and runs it under workerd with Wrangler's
+integration test harness. The tests seed local R2 bindings and use the built
+Worker's compatibility date. They cover cold-HEAD caching, root links, pinned
+artifact aliases, OCI reads, and OCI writes.
 
 CI runs `npm run build` and then `npm run test:runtime` in the same build
 directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that

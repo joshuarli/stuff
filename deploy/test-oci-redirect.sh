@@ -1,6 +1,4 @@
 #!/bin/sh
-# Prove Docker follows the Worker's 307 blob redirect to a separate blob host.
-# Two local servers: Miniflare runs the Worker front, Python serves the blobs.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${1:-"$ROOT/.work/oci-redirect"}
@@ -121,76 +119,64 @@ mkdir -p "$WORK/blobs/sha256"
 for file in "$SITE"/blobs/sha256/*; do
   ln "$file" "$WORK/blobs/sha256/$(basename "$file")" 2>/dev/null || cp "$file" "$WORK/blobs/sha256/$(basename "$file")"
 done
-ln -s "$ROOT/crates/stuff-worker/node_modules" "$WORK/node_modules"
-
-PORTS=$(python3 - <<'PY'
+BLOB=$(python3 - <<'PYPORT'
 import socket
-sockets = []
-ports = []
-for _ in range(2):
-    sock = socket.socket()
+with socket.socket() as sock:
     sock.bind(("127.0.0.1", 0))
-    sockets.append(sock)
-    ports.append(sock.getsockname()[1])
-print(*ports)
-PY
+    print(sock.getsockname()[1])
+PYPORT
 )
-set -- $PORTS
-FRONT=$1
-BLOB=$2
 
 python3 -m http.server "$BLOB" --bind 127.0.0.1 --directory "$WORK/blobs" > "$WORK/blob.log" 2>&1 &
 BLOB_PID=$!
 cat > "$WORK/redirect.mjs" <<'JS'
-import { Miniflare } from "miniflare";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const [port, site, generation, blobOrigin, bundleDir] = process.argv.slice(2);
-const mf = new Miniflare({
-  modules: true,
-  port: Number(port),
-  scriptPath: join(bundleDir, "entry.js"),
-  compatibilityDate: "2026-08-06",
-  modulesRules: [
-    { type: "ESModule", include: ["**/*.js"] },
-    { type: "CompiledWasm", include: ["**/*.wasm"] },
-  ],
-  r2Buckets: ["OCI", "OCI_BLOBS"],
-  bindings: {
-    STUFF_OCI_HOST: "127.0.0.1",
-    STUFF_OCI_BLOB_ORIGIN: blobOrigin,
-    STUFF_ROUTES: "[]",
-  },
+const [site, generation, blobOrigin, harnessPath] = process.argv.slice(2);
+const { workerHarness } = await import(pathToFileURL(harnessPath));
+const server = workerHarness({
+  STUFF_OCI_HOST: "127.0.0.1",
+  STUFF_OCI_BLOB_ORIGIN: blobOrigin,
+  STUFF_ROUTES: "[]",
 });
-const meta = await mf.getR2Bucket("OCI");
-await meta.put("current", generation);
-async function walk(dir, prefix) {
-  for (const name of readdirSync(dir)) {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) {
-      await walk(path, `${prefix}${name}/`);
-    } else {
-      await meta.put(`${prefix}${name}`, readFileSync(path));
+let stop;
+const stopped = new Promise((resolve) => { stop = resolve; });
+for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, stop);
+try {
+  const { url } = await server.listen();
+  const meta = (await server.getWorker().getEnv()).OCI;
+  await meta.put("current", generation);
+  async function walk(dir, prefix) {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) {
+        await walk(path, `${prefix}${name}/`);
+      } else {
+        await meta.put(`${prefix}${name}`, readFileSync(path));
+      }
     }
   }
+  await walk(join(site, "generations", generation), `generations/${generation}/`);
+  await walk(join(site, "oci", "manifests"), "oci/manifests/");
+  console.log(`READY ${url.port}`);
+  await stopped;
+} finally {
+  await server.close();
 }
-await walk(join(site, "generations", generation), `generations/${generation}/`);
-await walk(join(site, "oci", "manifests"), "oci/manifests/");
-console.log("READY");
-await new Promise(() => {});
 JS
 
-BUNDLE=$ROOT/crates/stuff-worker/.cloudflare/output/v0/workers/default/bundle
-node "$WORK/redirect.mjs" "$FRONT" "$SITE" "$GEN" "http://127.0.0.1:$BLOB" "$BUNDLE" > "$WORK/front.log" 2>&1 &
+HARNESS=$ROOT/crates/stuff-worker/test/worker-harness.mjs
+node "$WORK/redirect.mjs" "$SITE" "$GEN" "http://127.0.0.1:$BLOB" "$HARNESS" > "$WORK/front.log" 2>&1 &
 FRONT_PID=$!
-IMAGE=127.0.0.1:$FRONT/$REPO:stable
+IMAGE=
 cleanup() {
   status=$?
   trap - EXIT INT TERM
   kill "$FRONT_PID" "$BLOB_PID" >/dev/null 2>&1 || true
   wait "$FRONT_PID" "$BLOB_PID" 2>/dev/null || true
-  docker image rm -f "$IMAGE" >/dev/null 2>&1 || true
+  [ -z "$IMAGE" ] || docker image rm -f "$IMAGE" >/dev/null 2>&1 || true
   if [ "$status" -eq 0 ] && [ -z "${KEEP:-}" ]; then
     rm -rf "$WORK"
   fi
@@ -199,12 +185,15 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 tries=0
-while ! grep -q READY "$WORK/front.log" 2>/dev/null; do
+while ! rg -q "^READY [0-9]+$" "$WORK/front.log" 2>/dev/null; do
   kill -0 "$FRONT_PID" 2>/dev/null || fail "worker front exited"
   tries=$((tries + 1))
   [ "$tries" -lt 100 ] || fail "worker front did not start"
   sleep 0.1
 done
+
+FRONT=$(rg -o "^READY [0-9]+$" "$WORK/front.log" | cut -d " " -f 2)
+IMAGE=127.0.0.1:$FRONT/$REPO:stable
 
 docker pull -q "$IMAGE" >/dev/null || fail "docker pull through the redirect failed"
 case "$(uname -m)" in
@@ -214,5 +203,5 @@ case "$(uname -m)" in
 esac
 GOT=$(docker image inspect --format '{{.Architecture}}' "$IMAGE")
 [ "$GOT" = "$EXPECT" ] || fail "pulled $GOT, expected $EXPECT"
-grep -q "GET /sha256/$LAYER" "$WORK/blob.log" || fail "the blob host did not see the redirect target"
+rg -q "GET /sha256/$LAYER" "$WORK/blob.log" || fail "the blob host did not see the redirect target"
 echo "OK: Docker followed the 307 to the separate blob host (127.0.0.1:$BLOB)"
