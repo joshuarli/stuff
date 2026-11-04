@@ -119,12 +119,23 @@ def test_tsrs_is_accepted_as_typescript_compiler_and_tsconfig_is_not_a_command(t
     scripts = package["scripts"]
     assert isinstance(scripts, dict)
     scripts["typecheck"] = "tsrs -p tsconfig.json --noEmit"
+    scripts["check"] = "oxlint src && tsrs -p tsconfig.json --noEmit && vitest run"
     make_project(tmp_path, package)
     assert _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript")) == []
 
     scripts["typecheck"] = "echo tsconfig.json --noEmit"
+    scripts["check"] = "echo lint typecheck test"
     (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
     assert any("authoritative type check" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("cloudflare", "typescript")
+    ))
+    assert any("check script run lint and type checking" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("cloudflare", "typescript")
+    ))
+
+    dependencies["tsrs"] = "0.20.1-ts6.0.0"
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    assert any("lower bound of 7.0.0" in item.message for item in _typescript_stack_findings(
         tmp_path, repository("cloudflare", "typescript")
     ))
 

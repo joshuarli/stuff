@@ -289,6 +289,7 @@ apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI
 (React or Solid) or contains JSX sources; a plain Vite bundle of vanilla TypeScript does not.
 Nested package manifests are inspected, and a pnpm workspace coordinator without its own TypeScript
 source or configuration is checked as a package authority rather than a TypeScript package.
+The package check script can call Oxlint and the type checker directly or invoke their scripts.
 
 `rust-deps` notes the fleet's minimal Rust stack. Libraries emit via `log`;
 binaries initialize with `env_logger`. Use `tracing` only when spans are needed,

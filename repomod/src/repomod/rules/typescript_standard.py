@@ -884,6 +884,21 @@ def _typecheck_command(command: str) -> bool:
     return False
 
 
+def _check_runs_lint_and_typecheck(command: str) -> bool:
+    tokens = _shell_commands(command)
+    lint = any(
+        part and (part[0] == "oxlint" or part[:3] == ("pnpm", "exec", "oxlint")
+                  or part[:3] in {("pnpm", "run", "lint"), ("npm", "run", "lint")}
+                  or part[:2] == ("pnpm", "lint"))
+        for part in tokens
+    )
+    typecheck = _typecheck_command(command) or any(
+        part[:3] in {("pnpm", "run", "typecheck"), ("npm", "run", "typecheck")}
+        or part[:2] == ("pnpm", "typecheck") for part in tokens
+    )
+    return lint and typecheck
+
+
 def _typescript_stack_findings(root: Path, repository: Repository) -> list[Finding]:
     manifests = _manifest_paths(root)
     if not manifests:
@@ -951,7 +966,7 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
                 )
             )
         check = scripts.get("check")
-        if not isinstance(check, str) or any(required not in check for required in ("lint", "typecheck")):
+        if not isinstance(check, str) or not _check_runs_lint_and_typecheck(check):
             findings.append(_finding(repository, relative, "make the check script run lint and type checking"))
         if isinstance(scripts.get("test"), str):
             version = dependencies.get("vitest")
