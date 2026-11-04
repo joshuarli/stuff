@@ -1,5 +1,6 @@
 import concurrent.futures
 import json
+import os
 import socket
 import struct
 import threading
@@ -444,6 +445,25 @@ class StartupTest(ScratchTestCase):
         self.assertIn("not found", err)
         code, _, err = cli("serve-publish", "--bind", "0.0.0.0:1", "--state-dir", state)
         self.assertEqual(code, 2)
+
+    def test_a_port_that_is_taken_is_an_operation_failure(self):
+        state, site = init_state(self.tmp)
+        with socket.socket() as taken:
+            taken.bind(("127.0.0.1", 0))
+            taken.listen()
+            previous = os.environ.get("MYCRATES_TOKEN")
+            os.environ["MYCRATES_TOKEN"] = "t"
+            try:
+                code, _, err = cli(
+                    "serve-publish", "--bind", f"127.0.0.1:{taken.getsockname()[1]}", "--state-dir", state, "--site-dir", site
+                )
+            finally:
+                if previous is None:
+                    del os.environ["MYCRATES_TOKEN"]
+                else:
+                    os.environ["MYCRATES_TOKEN"] = previous
+        self.assertEqual(code, 1)
+        self.assertIn("operation:", err)
 
     def test_the_cli_server_serves_a_token_file_secret(self):
         state, site = init_state(self.tmp)

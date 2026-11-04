@@ -127,6 +127,15 @@ class CommandLineTest(ScratchTestCase):
                 self.assertIn(fragment, err)
                 self.assertEqual(out, "")
 
+    def test_operating_system_failures_exit_with_the_operation_status_and_no_traceback(self):
+        state, site = init_state(self.tmp)
+        blocker = self.tmp / "blocker"
+        blocker.write_text("a file where a directory must go")
+        code, _, err = cli("init", "--state-dir", blocker / "state", "--site-dir", site)
+        self.assertEqual(code, 1)
+        self.assertTrue(err.startswith("operation: "), err)
+        self.assertNotIn("Traceback", err)
+
     def test_abbreviated_options_are_not_accepted(self):
         self.assertEqual(cli("publish", "--state", self.tmp)[0], 2)
 

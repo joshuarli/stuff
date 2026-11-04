@@ -191,6 +191,15 @@ class LegacyMigrationTest(ScratchTestCase):
         with self.assertRaisesRegex(InputError, "migrate-state"):
             self.store.put_native_record(NativeRecord(entry(name="beta")))
 
+    def test_adoption_refuses_before_ingesting_anything_into_an_unmigrated_state(self):
+        from mycrates.adopt import adopt_site
+
+        from .support import GOLDEN
+
+        with self.assertRaisesRegex(InputError, "migrate-state"):
+            adopt_site(self.store, GOLDEN / "adopt-publish" / "input-site")
+        self.assertEqual(list(self.store.blobs_dir.iterdir()), [])
+
     def test_migration_preserves_every_field_and_is_idempotent(self):
         summary = migrate_state(self.state)
         self.assertEqual((summary.native, summary.pins), (1, 1))

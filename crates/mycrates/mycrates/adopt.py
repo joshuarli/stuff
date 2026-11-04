@@ -24,6 +24,7 @@ class AdoptSummary:
 
 def adopt_site(store, site_dir):
     site_dir = Path(site_dir)
+    store.assert_current_format()
     generation = _current_generation_dir(site_dir)
     summary = AdoptSummary()
     with store.lock_exclusive():

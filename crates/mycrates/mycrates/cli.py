@@ -6,7 +6,7 @@ from pathlib import Path
 from . import adopt as adopt_module
 from . import acquire, lockfile, migrate, server, validate
 from .config import Config
-from .errors import Error, InputError, IntegrityError
+from .errors import Error, InputError, IntegrityError, OperationError
 from .names import validate_crate_name
 from .pins import PinEntry, Pins, read_pins, write_pins
 from .publish import Publisher
@@ -344,4 +344,7 @@ def main(argv=None):
     except Error as error:
         print(error, file=sys.stderr)
         return error.exit_code
+    except OSError as error:
+        print(OperationError(str(error)), file=sys.stderr)
+        return OperationError.exit_code
     return 0
