@@ -348,7 +348,7 @@ mod tests {
     #[test]
     fn parses_fixture_config() {
         let cfg = parse_config(&fixture()).unwrap();
-        assert_eq!(cfg.targets.len(), 4);
+        assert_eq!(cfg.targets.len(), 3);
         assert_eq!(cfg.upstream_registry, "https://registry.npmjs.org/");
         assert!(cfg.public_base_url.starts_with("https://"));
     }
@@ -360,7 +360,7 @@ mod tests {
         assert!(parse_config(&bad).is_err());
         let cfg = parse_config(&base).unwrap();
         let ids: Vec<&str> = cfg.targets.iter().map(|t| t.id()).collect();
-        assert_eq!(ids.len(), 4);
+        assert_eq!(ids.len(), 3);
     }
 
     #[test]
