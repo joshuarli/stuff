@@ -206,7 +206,7 @@ def _typescript_manifests(
 ) -> list[tuple[Path, dict[str, Any]]]:
     selected = []
     for manifest, package in packages:
-        if "typescript" in _dependency_versions(package) or (
+        if {"typescript", "tsrs"} & _dependency_versions(package).keys() or (
             not (manifest.parent / "tsconfig.json").is_symlink()
             and (manifest.parent / "tsconfig.json").is_file()
         ):
@@ -240,6 +240,17 @@ def _dependency_versions(package: dict[str, Any]) -> dict[str, str]:
                 if isinstance(name, str) and isinstance(version, str)
             )
     return dependencies
+
+
+def _typescript_compiler(package: dict[str, Any]) -> str | None:
+    dependencies = _dependency_versions(package)
+    if "typescript" in dependencies:
+        return dependencies["typescript"]
+    tsrs = dependencies.get("tsrs")
+    if tsrs is None:
+        return None
+    match = re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-ts([0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?)", tsrs)
+    return str(match.group(1)) if match else "invalid tsrs version"
 
 
 def _range_has_minimum(specifier: str, minimum: int) -> bool:
@@ -692,7 +703,7 @@ def _package_typescript_findings(
         for package_root in package_roots:
             manifest = package_root / "package.json"
             package = next((value for path, value in packages if path == manifest), None)
-            specifier = _dependency_versions(package).get("typescript") if package is not None else None
+            specifier = _typescript_compiler(package) if package is not None else None
             if specifier is None:
                 findings.append(
                     _finding(
@@ -705,9 +716,9 @@ def _package_typescript_findings(
                 declarations.append((manifest, specifier))
     else:
         declarations = [
-            (path, _dependency_versions(package).get("typescript"))
+            (path, _typescript_compiler(package))
             for path, package in packages
-            if "typescript" in _dependency_versions(package)
+            if _typescript_compiler(package) is not None
         ]
         if not declarations:
             findings.append(
@@ -863,6 +874,16 @@ def _shell_commands(command: str) -> tuple[tuple[str, ...], ...]:
     return tuple(commands)
 
 
+def _typecheck_command(command: str) -> bool:
+    for tokens in _shell_commands(command):
+        if not tokens:
+            continue
+        executable = 2 if len(tokens) > 2 and tokens[:2] == ("pnpm", "exec") else 0
+        if tokens[executable] in {"tsc", "tsrs"} and "--noEmit" in tokens[executable + 1:]:
+            return True
+    return False
+
+
 def _typescript_stack_findings(root: Path, repository: Repository) -> list[Finding]:
     manifests = _manifest_paths(root)
     if not manifests:
@@ -921,12 +942,12 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
         if not isinstance(scripts.get("lint"), str) or "oxlint" not in scripts["lint"]:
             findings.append(_finding(repository, relative, "define a lint script that runs Oxlint"))
         typecheck = scripts.get("typecheck")
-        if not isinstance(typecheck, str) or "tsc" not in typecheck or "--noEmit" not in typecheck:
+        if not isinstance(typecheck, str) or not _typecheck_command(typecheck):
             findings.append(
                 _finding(
                     repository,
                     relative,
-                    "define typecheck with tsc --noEmit as the authoritative type check",
+                    "define typecheck with tsc or tsrs --noEmit as the authoritative type check",
                 )
             )
         check = scripts.get("check")

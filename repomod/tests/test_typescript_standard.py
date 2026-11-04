@@ -110,6 +110,25 @@ def test_type_range_requires_every_alternative_to_start_at_seven() -> None:
     assert not _range_has_minimum("latest", 7)
 
 
+def test_tsrs_is_accepted_as_typescript_compiler_and_tsconfig_is_not_a_command(tmp_path: Path) -> None:
+    package = package_data()
+    dependencies = package["devDependencies"]
+    assert isinstance(dependencies, dict)
+    dependencies.pop("typescript")
+    dependencies["tsrs"] = "0.20.1-ts7.1.0-beta"
+    scripts = package["scripts"]
+    assert isinstance(scripts, dict)
+    scripts["typecheck"] = "tsrs -p tsconfig.json --noEmit"
+    make_project(tmp_path, package)
+    assert _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript")) == []
+
+    scripts["typecheck"] = "echo tsconfig.json --noEmit"
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    assert any("authoritative type check" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("cloudflare", "typescript")
+    ))
+
+
 def test_node_engine_range_must_include_the_approved_current_release() -> None:
     assert _range_has_version_floor(">=26.12.1", (26, 12, 1))
     assert _range_has_version_floor(">=26.12.1 <27", (26, 12, 1))

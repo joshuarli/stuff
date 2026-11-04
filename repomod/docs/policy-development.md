@@ -282,7 +282,8 @@ Block-style workflow version lists remain manual findings. When a repository has
 
 `typescript-stack` applies to TypeScript repositories. `typescript-tools.toml` records the latest
 stable Node.js and pnpm releases, and `pins refresh` updates those approvals. The rule checks
-runtime pins offline, requires TypeScript 7 or newer, strict type checking, Oxlint, and Vitest, and
+runtime pins offline, requires TypeScript 7 or newer or an exact `tsrs` build of TypeScript 7 or
+newer, strict type checking, Oxlint, and Vitest, and
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
 apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI framework
 (React or Solid) or contains JSX sources; a plain Vite bundle of vanilla TypeScript does not.
