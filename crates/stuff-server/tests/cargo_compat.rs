@@ -1,9 +1,6 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use mycrates::model::IndexEntry;
-use mycrates::publish::Publisher;
-use mycrates::store::{NativeRecord, Store};
-use std::collections::BTreeMap;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
@@ -78,33 +75,34 @@ impl Drop for TestServer {
 #[test]
 fn cargo_installs_from_stuff_server() {
     let dir = TempDir::new().unwrap();
-    let state_dir = dir.path().join("state");
     let site_dir = dir.path().join("site");
     fs::create_dir_all(&site_dir).unwrap();
 
     let server = TestServer::boot(&site_dir);
 
-    let store = Store::new(state_dir.clone());
     let crate_bytes = make_test_crate("alpha", "0.1.0", "pub fn hello() -> &'static str { \"hello from alpha\" }");
-    let sha = store.ingest_blob(&crate_bytes[..]).unwrap();
-    let rec = NativeRecord {
-        entry: IndexEntry {
-            name: "alpha".to_string(),
-            vers: "0.1.0".to_string(),
-            deps: vec![],
-            cksum: sha,
-            features: BTreeMap::new(),
-            yanked: false,
-            links: None,
-            rust_version: None,
-            v: Some(1),
-            extra: BTreeMap::new(),
-        },
-    };
-    store.put_native_record(&rec).unwrap();
-    Publisher::new(&store, site_dir.clone(), server.base_url.clone())
-        .publish()
-        .unwrap();
+    let sha = format!("{:x}", Sha256::digest(&crate_bytes));
+    let blobs = site_dir.join("blobs");
+    fs::create_dir_all(&blobs).unwrap();
+    fs::write(blobs.join(format!("{sha}.crate")), &crate_bytes).unwrap();
+    let registry = site_dir.join("generations/test/registry");
+    fs::create_dir_all(registry.join("al/ph")).unwrap();
+    fs::write(
+        registry.join("config.json"),
+        format!(
+            "{{\"dl\":\"{}/blobs/{{sha256-checksum}}.crate\",\"api\":\"{}\",\"auth-required\":false}}",
+            server.base_url, server.base_url
+        ),
+    )
+    .unwrap();
+    fs::write(
+        registry.join("al/ph/alpha"),
+        format!(
+            "{{\"name\":\"alpha\",\"vers\":\"0.1.0\",\"deps\":[],\"cksum\":\"{sha}\",\"features\":{{}},\"yanked\":false,\"v\":1}}\n"
+        ),
+    )
+    .unwrap();
+    std::os::unix::fs::symlink("generations/test", site_dir.join("current")).unwrap();
 
     let cargo_home = dir.path().join("cargo_home");
     fs::create_dir_all(&cargo_home).unwrap();

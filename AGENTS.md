@@ -2,7 +2,9 @@
 
 Monorepo for four static registries sharing one Rust serving platform.
 
-All first-party registry logic is Rust. External ecosystems are
+First-party registry logic is Rust, except `mycrates`, which is a
+standard-library-only Python 3.11 package (the write path is a loopback
+`http.server`; reads stay static files). External ecosystems are
 orchestrated as subprocesses, never reimplemented: npm/pnpm for Node
 resolution and installs (pinned npm 12.2.1, pnpm 12.15.0), uv/CPython 3.15
 for wheel builds and installs, native toolchains plus auditwheel/delocate
@@ -10,8 +12,10 @@ for repair.
 
 ## Layout
 
-- `crates/mycrates`: Cargo sparse registry + archive; module map in
-  [crates/mycrates/AGENTS.md](crates/mycrates/AGENTS.md).
+- `crates/mycrates`: Cargo sparse registry + archive, Python (`bin/mycrates`,
+  package `mycrates/`, tests in `tests/`); module map in
+  [crates/mycrates/AGENTS.md](crates/mycrates/AGENTS.md), formats in
+  [docs/mycrates-contracts.md](docs/mycrates-contracts.md).
 - `crates/mynpm`: npm archive (Rust binary `mynpm`).
 - `crates/mypypi`: wheel index (Rust binary `mypypi`).
 - `crates/stuff-oci`: OCI Distribution 1.1 protocol core (no I/O, wasm-safe):
@@ -24,14 +28,14 @@ for repair.
 - `crates/h12tiny-*`: HTTP/TLS client used by every registry CLI and `stuff`,
   imported with history from upstream `dcdf4f2`, manifests inlined. Keep
   `src/` byte-identical to upstream.
-- `crates/stuff-store`: generation activation (`Site`, used by mycrates; mynpm
-  and mypypi activate their own), immutable blob sync, durable writes.
+- `crates/stuff-store`: generation activation (`Site`, used by myoci; mynpm and mypypi
+  activate their own), immutable blob sync, durable writes.
 - `crates/stuff-http`: content types, cache policy, path resolution, conditionals, ranges.
 - `crates/stuff-catalog`: normalized catalog rendering, HTML, and `llms.txt`.
   The page search is a vendored MiniSearch in `web/` bundled into the
   committed `assets/search.js`.
-- `crates/stuff-cargo-shard`: Cargo sparse-index shard paths shared by
-  `mycrates` and the `stuff` CLI.
+- `crates/stuff-cargo-shard`: Cargo sparse-index shard paths for the `stuff`
+  CLI.
 - `crates/stuff-server`: native static file server (blocking httparse +
   std sockets; run with `--route PREFIX=DIR`, `--max-connections N`).
 - `crates/stuff-worker`: Cloudflare Worker adapter; build and architecture in
@@ -53,6 +57,8 @@ for repair.
 
 - Rust: `cargo build --workspace`, `cargo test --workspace`,
   `cargo clippy --locked --all-targets -- -D warnings`.
+- mycrates: `make test-mycrates` (`python3 -m unittest discover` from
+  `crates/mycrates`; the Cargo publication proof needs `cargo`).
 - One toolchain for the workspace: `rust-toolchain.toml` (nightly-2026-09-15).
 - Ecosystem smoke (Node 26 + pinned npm, uv + CPython 3.15, network):
   `deploy/ecosystem-smoke.sh`. `TMPDIR="$PWD/.work/tmp"` for campaign commands.
@@ -70,11 +76,12 @@ for repair.
 
 - Apache-2.0 for stuff files; imported crates keep their own license fields.
 - One registry's publication never rebuilds another's output.
-- `#![forbid(unsafe_code)]` in first-party Rust crates; no lifecycle scripts during
+- `#![forbid(unsafe_code)]` in first-party Rust crates; mycrates uses only the
+  Python standard library; no lifecycle scripts during
   acquire/validate; native-target checks stay.
 - npm/pnpm/uv/CPython are orchestration dependencies for resolution,
-  builds and install validation only. The registry application itself
-  is Rust.
+  builds and install validation only. The registry applications
+  themselves are Rust, except mycrates.
 - No universal `Package` abstraction. Cargo/npm/Python semantics stay
   per-ecosystem; only serving/storage/generation code is shared.
 - `tests/fixtures` are the parity corpus for lockfiles, packuments,

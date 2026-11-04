@@ -1,6 +1,6 @@
 # mycrates
 
-Lean, self-hosted Cargo sparse registry and dependency archive.
+Lean, self-hosted Cargo sparse registry and dependency archive, written in standard-library-only Python 3.11.
 
 Eliminates reliance on crates.io for publishing private packages and preserves exact upstream dependencies for reproducible, offline builds.
 
@@ -33,13 +33,23 @@ site/
 
 ## Installation
 
-Build and install `mycrates` from source with the pinned toolchain
-(`rust-toolchain.toml`, nightly-2026-09-15):
+Nothing to build. Python 3.11 or newer runs it from a checkout; `cargo` is needed only for the `cargo publish` step of publishing and for `validate`:
 
 ```sh
-cargo build --release
-cp target/release/mycrates /usr/local/bin/
+ln -s "$PWD/crates/mycrates/bin/mycrates" ~/.local/bin/mycrates
 ```
+
+or `PYTHONPATH=crates/mycrates python3 -m mycrates ...`. Formats are specified in [docs/mycrates-contracts.md](../../docs/mycrates-contracts.md); `make test-mycrates` runs the tests.
+
+### Upgrading a state directory from the Rust tool
+
+The Rust tool kept native records and pins as TOML. Back up the state directory, then convert it once:
+
+```sh
+mycrates migrate-state --state-dir STATE
+```
+
+Every other command refuses a state directory that still holds TOML records. The migrated state publishes the same index bytes, so the generation id does not change.
 
 ## Configuration
 
@@ -131,19 +141,19 @@ mycrates publish
 
 ### Publishing Private Crates
 
-Start the minimal write service:
+Start the temporary write service for a publication:
 
 ```sh
-mycrates serve-publish --bind 127.0.0.1:8080 --token-file /etc/mycrates/token
+mycrates serve-publish --bind 127.0.0.1:8080 --token-file ~/.local/state/stuff/mycrates/token
 ```
 
-`serve-publish` also serves `blobs/` for Cargo verification, so a dependent native crate can download its dependency during `cargo publish`. It accepts up to `limits.serve_connections` connections, admits up to `limits.serve_writes` authenticated writes at once, and bounds each upload by `limits.upload_timeout_secs`.
+`serve-publish` binds loopback addresses only; it refuses any other host. It is the whole local registry for the duration of a publication: besides the write API it serves `current/`, `generations/`, and `blobs/` from the site directory, so Cargo can read the sparse index and a dependent native crate can download its dependency during `cargo publish`. The public registry is the static site on R2 behind the Worker. The server accepts up to `limits.serve_connections` connections, admits up to `limits.serve_writes` authenticated writes at once, and bounds each upload by `limits.upload_timeout_secs`. `deploy/publish-mycrates.sh` runs it for you.
 
-Configure Cargo client credentials and endpoint in `~/.cargo/config.toml`:
+Point Cargo at the registry in `~/.cargo/config.toml`. For a publication, use the loopback address; consumers use the public one:
 
 ```toml
 [registries.mycrates]
-index = "sparse+https://deps.example.net/mycrates/current/registry/"
+index = "sparse+https://crates.17166969.xyz/current/registry/"
 ```
 
 Export the publish authentication token:
@@ -186,14 +196,14 @@ To resolve public dependencies entirely from your self-hosted mirror without ext
 replace-with = "mycrates-mirror"
 
 [source.mycrates-mirror]
-registry = "sparse+https://deps.example.net/mycrates/current/crates-io/"
+registry = "sparse+https://crates.17166969.xyz/current/crates-io/"
 ```
 
 Existing `Cargo.lock` files retain their original `crates.io` source identity and checksums.
 
 ### Yanking Releases
 
-Yank and unyank versions using native Cargo:
+Yank and unyank versions using native Cargo against a local `serve-publish` whose state and site are the publication's, with `CARGO_REGISTRIES_MYCRATES_INDEX` pointing at it; then restore the public base URL, publish, and sync:
 
 ```sh
 cargo yank --registry mycrates --version 0.1.0 my-private-crate
@@ -209,6 +219,8 @@ mycrates validate --project-dir .
 ```
 
 ## Web Server Deployment
+
+The site directory is plain static files, so any static server can host the read path. The write API is not meant to be exposed; it exists for the loopback publication flow above.
 
 ### Nginx
 
@@ -233,14 +245,6 @@ server {
         etag on;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
-
-    # Write API
-    location /mycrates/api/v1/crates/ {
-        proxy_pass http://127.0.0.1:8080/api/v1/crates/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        client_max_body_size 1024M;
-    }
 }
 ```
 
@@ -252,10 +256,6 @@ deps.example.net {
         root * /var/lib/mycrates/site
         file_server
         header Cache-Control "public, max-age=31536000, immutable"
-    }
-
-    handle /mycrates/api/v1/crates/* {
-        reverse_proxy http://127.0.0.1:8080
     }
 
     handle /mycrates/* {
@@ -294,4 +294,4 @@ deps.example.net {
 
 - **Partial Archive Limitation**: An archive populated from a specific project's `Cargo.lock` contains only the exact versions locked by that project. It is not an arbitrary SemVer solver mirror for unpinned versions.
 - **Non-Registry Dependencies**: Git repositories and path dependencies cannot be served via sparse crate indexes; `mycrates import-lock` and `doctor` explicitly report these as unsupported.
-- **Single Token Model**: The write service uses single-operator bearer token authentication comparing SHA-256 digests in constant time. Tokens must be stored in mode `0600` files.
+- **Single Token Model**: The write service uses single-operator bearer token authentication comparing SHA-256 digests in constant time. Tokens must be stored in mode `0600` files, and the service binds loopback only.

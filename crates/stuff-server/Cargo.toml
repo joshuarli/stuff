@@ -16,7 +16,6 @@ stuff-store = { version = "0.1.0", path = "../stuff-store" }
 
 [dev-dependencies]
 flate2 = "1"
-mycrates = { version = "0.1.0", path = "../mycrates" }
 sha2 = "0.10"
 tar = "0.4"
 tempfile = "3.13"

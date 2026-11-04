@@ -4,8 +4,9 @@ One repository, four registries, one serving platform.
 
 `stuff` consolidates the `mycrates` (Cargo), `mynpm` (npm), `mypypi`
 (Python wheel), and `myoci` (OCI Distribution) registries onto shared Rust
-infrastructure for HTTP serving, storage, and generation management. All
-first-party registry logic is Rust; external ecosystems are orchestrated, not
+infrastructure for HTTP serving, storage, and generation management.
+`mycrates` itself is a Python standard-library tool; the other registries are
+Rust. External ecosystems are orchestrated, not
 reimplemented (npm/pnpm resolve and install, uv/CPython build and install
 wheels, oras imports OCI images). Package semantics stay per-ecosystem; only
 the serving layer is shared.

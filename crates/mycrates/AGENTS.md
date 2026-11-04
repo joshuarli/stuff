@@ -1,23 +1,24 @@
 # AGENTS.md
 
-`mycrates` is a self-hosted Cargo sparse registry and dependency archive in safe Rust. Build, test, and lint commands are the workspace ones in the root [AGENTS.md](../../AGENTS.md); each file in `tests/` is a target (`cargo test -p mycrates --test <name>`), and `tests/readme.rs` runs the README's `sh verified` blocks.
+`mycrates` is a self-hosted Cargo sparse registry and dependency archive in standard-library-only Python 3.11. Run it as `crates/mycrates/bin/mycrates` or `python3 -m mycrates` with `crates/mycrates` on `PYTHONPATH`. Tests are `unittest`: `make test-mycrates` (from `crates/mycrates`: `python3 -m unittest discover -t . -s tests`). No third-party packages, no formatter. Wire and on-disk formats are in [docs/mycrates-contracts.md](../../docs/mycrates-contracts.md) and pinned by `tests/golden/`; change a format, its contract text, and its golden together.
 
 ## Module map
 
-- `src/model.rs`: core types `CrateName`, `Version`, `IndexEntry`, `IndexDep`, `PublishBody`; `src/version.rs` holds the SemVer `Version` and `VersionReq` it wraps.
-- `src/config.rs`: `config.json` in the state directory, including `limits`.
-- `src/error.rs`: the `Error` kinds and their exit codes.
-- `src/json.rs`, `src/toml.rs`: thin `deser` wrappers that map parse errors to `Error`.
-- `src/index.rs`: sparse index lines and `config.json`; shard paths come from `stuff-cargo-shard`.
-- `src/crate_file.rs`: `scan_crate_staged`, the single archive gate for uploads and upstream downloads (gzip/tar integrity, entry types, path traversal, `name-version/` prefix, `Cargo.toml` name/version parity, size and ratio limits), without extracting to disk.
-- `src/lockfile.rs`: Cargo.lock (v3/v4) parsing and source classification (crates.io, alternate registry, git, path, workspace).
-- `src/pins.rs`: exact registry pins in `pins/<project>.toml`.
-- `src/store.rs`: content-addressed blob store (`blobs/<sha256>.crate`), records (`native/`, `upstream/`), the exclusive store lock (`File::lock`), and SHA-256 verification.
-- `src/adopt.rs`: rebuild records and blobs from a published site (`mycrates adopt`).
-- `src/publish.rs`: generation rendering, the manifest-derived generation id, and activation through `stuff_store::Site`.
-- `src/wire.rs`: framing for `PUT /api/v1/crates/new` (length-prefixed JSON plus tarball).
-- `src/serve.rs`: the `serve-publish` HTTP service (`httparse`), constant-time token comparison, yank/unyank, and Cargo error JSON.
-- `src/upstream.rs`: crates.io client, `dl` template expansion, bounded downloads, and the download SHA-256 check.
-- `src/acquire.rs`: `plan`, `fetch`, and `verify`, including the trust chain check (lockfile checksum equals index `cksum`).
-- `src/validate.rs`: offline validation of locked projects through Cargo proxy denial and source replacement.
-- `src/cli.rs`, `src/cli/`: one handler per subcommand.
+- `names.py`, `semver.py`, `requirements.py`: crate name rules and shard paths, SemVer parsing and precedence, and requirement normalization. Requirements are compared by version interval only; Cargo resolves.
+- `model.py`: `IndexEntry`, `IndexDep`, `PublishBody` with strict field typing and the byte-exact index line serializer.
+- `wirejson.py`: JSON escaping that matches the index contract, and strict loading.
+- `config.py`: `config.json` in the state directory, including `limits`.
+- `errors.py`: the error kinds, exit codes, and HTTP statuses.
+- `index.py`: sparse `config.json` documents, `publish_to_index`, and reconciliation of upload metadata against the packaged manifest.
+- `crate_file.py`: `scan_crate_staged`, the single archive gate for uploads and upstream downloads (gzip/tar integrity, entry types, path traversal, `name-version/` prefix, `Cargo.toml` parity, size and ratio limits), without extracting to disk; and the packaged manifest parser.
+- `lockfile.py`, `pins.py`: Cargo.lock (v3/v4) parsing and source classification; exact registry pins in `pins/<project>.json`.
+- `store.py`: content-addressed blob store, native and upstream records, the exclusive store lock (`flock`), name collision and build-metadata identity rules, and SHA-256 verification.
+- `migrate.py`: one-way conversion of the Rust tool's TOML records to JSON (`migrate-state`).
+- `fsutil.py`, `site.py`: durable writes, locks, and atomic generation activation with immutable blob sync.
+- `catalog.py`, `catalog_style.py`: catalog JSON, HTML, `llms.txt`, and fingerprint rendering, byte-compatible with `crates/stuff-catalog`; the search script is read from `crates/stuff-catalog/assets/search.js`.
+- `publish.py`: generation rendering, the manifest-derived generation id, and activation.
+- `adopt.py`: rebuild records and blobs from a published site.
+- `wire.py`, `server.py`: framing for `PUT /api/v1/crates/new`, and the loopback-only `serve-publish` server (write API, yank/unyank, sparse index and blob reads).
+- `upstream.py`, `acquire.py`: crates.io client with `dl` template expansion, bounded downloads and the SHA-256 checks; `plan`, `fetch`, `verify` with the trust chain (lockfile checksum equals index `cksum` equals downloaded bytes).
+- `validate.py`: offline validation of locked projects through Cargo proxy denial and source replacement.
+- `cli.py`: one handler per subcommand.

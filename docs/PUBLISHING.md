@@ -8,7 +8,8 @@
 | --- | --- | --- |
 | `cf` signed in | List and upload R2 objects, promote `current` | `cf auth whoami` |
 | Publication state | Extend the live registry instead of replacing it | The wrapper adopts if missing |
-| Rust nightly | Build the registry binaries | `cargo --version` |
+| Python 3.11+ | Run `mycrates` and the R2 scripts | `python3 --version` |
+| Rust nightly | `cargo publish` for crates, and the `mynpm`, `mypypi`, and `myoci` binaries | `cargo --version` |
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | `auditwheel` or `delocate` | `mypypi` repairs native wheels | `deploy/provision-mypypi-repair.sh` installs the pin |
@@ -38,7 +39,7 @@ The wrapper sets `STUFF_DIR` to its own checkout unless it is already set, so th
 - adopts the live bucket: for mycrates until the state carries an `.adopt-complete` marker, and again whenever the live generation is not the one this machine last promoted or adopted (the adopt extends the state in place, so another machine's records join this machine's); for mynpm and mypypi when the site has no `current`;
 - selects `s3` promotion, the conditional write, unless you pass `--promote=cf`. It mints `R2_S3_*` from `cf` when they are unset and stops before building if it cannot.
 
-The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`, and every writer of that registry's bucket on the machine takes it: the helpers, adoption, `make sync`, `r2-rollback.sh`, and `make gc`. `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A source or build failure stops the run before any R2 write. The mycrates helper restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
+The helper then holds the registry's publish lock, builds the site, uploads it, and promotes it. The lock is a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`, and every writer of that registry's bucket on the machine takes it: the helpers, adoption, `make sync`, `r2-rollback.sh`, and `make gc`. `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A source or build failure stops the run before any R2 write. The mycrates helper compiles nothing itself: one loopback `mycrates serve-publish` on `PUBLISH_PORT` (default 8080) takes the Cargo writes and serves the index and blobs while `cargo publish` runs. It restores the public base URL and rebuilds the site from its exit trap, so a failure cannot leave `http://127.0.0.1:8080` in the site for a later manual `r2-sync.sh` to promote.
 
 For `mynpm`, `TARGETS` adds platform-specific lockfile entries. For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build, validate, and publish (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
@@ -222,6 +223,16 @@ deploy/r2-pull.py stuff-mypypi "$H/mypypi/site"
 ```
 
 `mycrates` publishes from `state/` alone, so `adopt` rebuilds its records from the pulled index lines and blobs. `mynpm` and `mypypi` extend the `current` generation of their site, so the pulled site is their state. Delete `$H/pull-mycrates` once adopted. A manual mycrates adoption leaves `.adopt-complete` absent, so the next `deploy/publish mycrates` repeats the idempotent adopt in place and writes the marker once it verifies.
+
+## Upgrading mycrates state from the Rust tool
+
+The Rust `mycrates` stored native records and pins as TOML; the Python tool stores JSON and refuses a state directory with TOML records left in it. Once, per state directory, with a backup in hand (`cp -a "$H/mycrates" "$H/mycrates.bak"`), run:
+
+```sh
+crates/mycrates/bin/mycrates migrate-state --state-dir "$H/mycrates/state"
+```
+
+The wrapper does not run this itself. The migrated state republishes the generation the live site already serves: check it by publishing into a scratch site (`crates/mycrates/bin/mycrates publish --state-dir "$H/mycrates/state" --site-dir "$H/mycrates/check"`) and comparing the `current` link there with the live `current` marker.
 
 ## mycrates auth
 
