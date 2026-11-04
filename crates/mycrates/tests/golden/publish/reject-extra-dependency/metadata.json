@@ -1,0 +1,19 @@
+{
+  "name": "extra",
+  "vers": "0.1.0",
+  "deps": [
+    {
+      "name": "serde",
+      "version_req": "^1.0",
+      "features": [],
+      "optional": false,
+      "default_features": true,
+      "target": null,
+      "kind": "normal",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    }
+  ],
+  "features": {}
+}

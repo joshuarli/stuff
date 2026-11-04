@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "response": {
+    "warnings": {
+      "invalid_categories": [],
+      "invalid_badges": [],
+      "other": []
+    }
+  },
+  "index_line": "{\"name\":\"fullcrate\",\"vers\":\"1.2.3-beta.1+meta\",\"deps\":[{\"name\":\"serde\",\"req\":\"^1.0\",\"features\":[\"derive\"],\"optional\":true,\"default_features\":true,\"kind\":\"normal\",\"registry\":\"https://github.com/rust-lang/crates.io-index\"},{\"name\":\"json\",\"req\":\"^1\",\"features\":[],\"optional\":false,\"default_features\":true,\"kind\":\"normal\",\"registry\":\"https://github.com/rust-lang/crates.io-index\",\"package\":\"serde_json\"},{\"name\":\"libc_alias\",\"req\":\">=0.2, <0.3\",\"features\":[],\"optional\":false,\"default_features\":false,\"kind\":\"normal\",\"registry\":\"https://github.com/rust-lang/crates.io-index\",\"package\":\"libc\"},{\"name\":\"tempfile\",\"req\":\"^3\",\"features\":[],\"optional\":false,\"default_features\":true,\"kind\":\"dev\",\"registry\":\"https://github.com/rust-lang/crates.io-index\"},{\"name\":\"cc\",\"req\":\"^1.0.60\",\"features\":[],\"optional\":false,\"default_features\":false,\"kind\":\"build\",\"registry\":\"https://github.com/rust-lang/crates.io-index\"},{\"name\":\"winapi\",\"req\":\"^0.3\",\"features\":[],\"optional\":false,\"default_features\":true,\"target\":\"cfg(any(unix, windows))\",\"kind\":\"normal\",\"registry\":\"https://github.com/rust-lang/crates.io-index\"},{\"name\":\"winapi\",\"req\":\"^0.3\",\"features\":[],\"optional\":false,\"default_features\":true,\"target\":\"cfg(any(unix, windows))\",\"kind\":\"dev\",\"registry\":\"https://github.com/rust-lang/crates.io-index\"}],\"cksum\":\"233d1d9f737696783e3d6a632333b67c79435b5aaac2e8a89cdf95b139c1ff00\",\"features\":{\"default\":[\"std\"],\"std\":[\"dep:serde\",\"serde?/std\"]},\"yanked\":false,\"v\":2}",
+  "shard": "fu/ll/fullcrate",
+  "cksum": "233d1d9f737696783e3d6a632333b67c79435b5aaac2e8a89cdf95b139c1ff00"
+}

@@ -1,0 +1,2 @@
+{"name":"serde","vers":"1.0.0","deps":[],"cksum":"20fd373f0033cba783cca4d59c0da0b50d7046de31c8fd4310c90adad6d95f48","features":{"default":["std"],"std":[]},"yanked":false}
+{"name":"serde","vers":"1.0.1","deps":[],"cksum":"894c6de04aeaebdc62ec6d1e9dcacd40e6c047f0ff16afe9cf8077ddba2e38ba","features":{},"yanked":true,"rust_version":"1.31","v":2,"features2":{"alloc":["dep:x"]}}

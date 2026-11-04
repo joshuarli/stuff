@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "response": {
+    "warnings": {
+      "invalid_categories": [],
+      "invalid_badges": [],
+      "other": []
+    }
+  },
+  "index_line": "{\"name\":\"linked\",\"vers\":\"0.3.0\",\"deps\":[],\"cksum\":\"989885ff90ac377c96723af3220edced1a13a1a42bd21ae1828551092b115b61\",\"features\":{},\"yanked\":false,\"links\":\"native-linked\",\"rust_version\":\"1.70\",\"v\":1}",
+  "shard": "li/nk/linked",
+  "cksum": "989885ff90ac377c96723af3220edced1a13a1a42bd21ae1828551092b115b61"
+}

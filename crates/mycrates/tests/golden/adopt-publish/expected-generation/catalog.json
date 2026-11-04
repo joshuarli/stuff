@@ -1,0 +1,72 @@
+{
+  "schema_version": 4,
+  "registry": "cargo",
+  "generation": "d412ab198d6ccdfa49affbf7",
+  "packages": [
+    {
+      "name": "Beta_crate",
+      "source": "native",
+      "latest": "1.0.0-rc.1",
+      "versions": [
+        {"version": "1.0.0-rc.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "a",
+      "source": "native",
+      "latest": "2.0.0+build.5",
+      "versions": [
+        {"version": "2.0.0+build.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "ab",
+      "source": "native",
+      "latest": "0.0.1",
+      "versions": [
+        {"version": "0.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "abc",
+      "source": "native",
+      "latest": "1.0.0",
+      "versions": [
+        {"version": "1.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "alpha",
+      "source": "native",
+      "latest": "0.1.0",
+      "versions": [
+        {"version": "0.1.0", "yanked": false},
+        {"version": "0.2.0", "yanked": true}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "serde",
+      "source": "upstream",
+      "latest": "1.0.0",
+      "versions": [
+        {"version": "1.0.0", "yanked": false},
+        {"version": "1.0.1", "yanked": true}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "serde_json",
+      "source": "upstream",
+      "latest": "1.0.9",
+      "versions": [
+        {"version": "1.0.9", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["itoa"], "peer": [], "build": [], "dev": ["serde"]}
+    }
+  ]
+}

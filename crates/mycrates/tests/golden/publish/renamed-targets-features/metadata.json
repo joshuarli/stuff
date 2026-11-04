@@ -1,0 +1,102 @@
+{
+  "name": "fullcrate",
+  "vers": "1.2.3-beta.1+meta",
+  "deps": [
+    {
+      "name": "serde",
+      "version_req": "^1.0",
+      "features": [
+        "derive"
+      ],
+      "optional": true,
+      "default_features": true,
+      "target": null,
+      "kind": "normal",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    },
+    {
+      "name": "serde_json",
+      "version_req": "^1",
+      "features": [],
+      "optional": false,
+      "default_features": true,
+      "target": null,
+      "kind": "normal",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": "json",
+      "package": null
+    },
+    {
+      "name": "libc",
+      "version_req": ">=0.2, <0.3",
+      "features": [],
+      "optional": false,
+      "default_features": false,
+      "target": null,
+      "kind": "normal",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": "libc_alias",
+      "package": null
+    },
+    {
+      "name": "tempfile",
+      "version_req": "^3",
+      "features": [],
+      "optional": false,
+      "default_features": true,
+      "target": null,
+      "kind": "dev",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    },
+    {
+      "name": "cc",
+      "version_req": "^1.0.60",
+      "features": [],
+      "optional": false,
+      "default_features": false,
+      "target": null,
+      "kind": "build",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    },
+    {
+      "name": "winapi",
+      "version_req": "^0.3",
+      "features": [],
+      "optional": false,
+      "default_features": true,
+      "target": "cfg(any(unix, windows))",
+      "kind": "normal",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    },
+    {
+      "name": "winapi",
+      "version_req": "^0.3",
+      "features": [],
+      "optional": false,
+      "default_features": true,
+      "target": "cfg(any(unix, windows))",
+      "kind": "dev",
+      "registry": "https://github.com/rust-lang/crates.io-index",
+      "explicit_name_in_toml": null,
+      "package": null
+    }
+  ],
+  "features": {
+    "default": [
+      "std"
+    ],
+    "std": [
+      "dep:serde",
+      "serde?/std"
+    ]
+  },
+  "description": "ignored"
+}

@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "response": {
+    "warnings": {
+      "invalid_categories": [],
+      "invalid_badges": [],
+      "other": []
+    }
+  },
+  "index_line": "{\"name\":\"plain\",\"vers\":\"0.1.0\",\"deps\":[],\"cksum\":\"8f1e5ca850dfd0f9c24e17a482118229e67dd8f9f0a28c78e32a98ca0733845d\",\"features\":{},\"yanked\":false,\"v\":1}",
+  "shard": "pl/ai/plain",
+  "cksum": "8f1e5ca850dfd0f9c24e17a482118229e67dd8f9f0a28c78e32a98ca0733845d"
+}

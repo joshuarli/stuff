@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "public_base_url": "https://crates.example.test",
+  "upstream": {
+    "index_url": "https://index.crates.io/"
+  },
+  "limits": {
+    "max_compressed": 1073741824,
+    "max_expanded": 4294967296,
+    "max_entries": 200000,
+    "max_ratio": 1000,
+    "concurrent_requests": 4,
+    "fetch_bytes": 10737418240,
+    "fetch_timeout_secs": 3600,
+    "request_timeout_secs": 300,
+    "redirects": 5,
+    "serve_connections": 64,
+    "serve_writes": 4,
+    "upload_timeout_secs": 300
+  },
+  "auth_required": false
+}

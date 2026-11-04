@@ -1,0 +1,8 @@
+{
+  "name": "linked",
+  "vers": "0.3.0",
+  "deps": [],
+  "features": {},
+  "links": "native-linked",
+  "rust_version": "1.70"
+}

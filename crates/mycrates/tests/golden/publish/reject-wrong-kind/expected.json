@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "response": {
+    "errors": [
+      {
+        "detail": "integrity: dependency set mismatch (alias/package/kind/target): archive-only 'serde' kind=normal target=None; publish-only 'serde' kind=dev target=None"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "response": {
+    "errors": [
+      {
+        "detail": "integrity: dependency 'serde' version_req mismatch: archive '1.0' vs publish '^2.0'"
+      }
+    ]
+  }
+}

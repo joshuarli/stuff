@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "response": {
+    "errors": [
+      {
+        "detail": "integrity: links mismatch between archive and publish metadata"
+      }
+    ]
+  }
+}

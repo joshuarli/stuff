@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "response": {
+    "errors": [
+      {
+        "detail": "integrity: dependency count mismatch: archive has 0, publish metadata has 1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+# Cargo registry
+> Static snapshot for LLMs. Generation `d412ab198d6ccdfa49affbf7`: 7 packages, 9 versions. Machine-readable inventory: [catalog.json](/generations/d412ab198d6ccdfa49affbf7/catalog.json). Human browser: [index.html](/generations/d412ab198d6ccdfa49affbf7/index.html).
+
+## Registry
+
+- Origin: https://crates.example.test
+- Pinned generation: `generations/d412ab198d6ccdfa49affbf7/`
+- Inventory: [catalog.json](/generations/d412ab198d6ccdfa49affbf7/catalog.json)
+- Browser: [index.html](/generations/d412ab198d6ccdfa49affbf7/index.html)
+
+## Use
+
+Configure Cargo against the sparse index under `current/registry/`:
+
+```toml
+[source.crates-io]
+replace-with = "stuff"
+[source.stuff]
+registry = "sparse+https://crates.example.test/current/registry/"
+```
+
+Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). Config: [config.json](/generations/d412ab198d6ccdfa49affbf7/registry/config.json). Blobs: `blobs/<sha256>.crate` via the `dl` template. Inventory: [catalog.json](/generations/d412ab198d6ccdfa49affbf7/catalog.json). Browser: [index.html](/generations/d412ab198d6ccdfa49affbf7/index.html). Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`.
+
+## Packages
+
+- `Beta_crate` — latest `1.0.0-rc.1` (1 version): `1.0.0-rc.1` [native]
+- `a` — latest `2.0.0+build.5` (1 version): `2.0.0+build.5` [native]
+- `ab` — latest `0.0.1` (1 version): `0.0.1` [native]
+- `abc` — latest `1.0.0` (1 version): `1.0.0` [native]
+- `alpha` — latest `0.1.0` (2 versions): `0.1.0`, `0.2.0` (yanked) [native]
+- `serde` — latest `1.0.0` (2 versions): `1.0.0`, `1.0.1` (yanked) [upstream]
+- `serde_json` — latest `1.0.9` (1 version): `1.0.9` [upstream]
+
