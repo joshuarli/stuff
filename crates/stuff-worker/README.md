@@ -57,6 +57,9 @@ integration test harness. The tests seed local R2 bindings and use the built
 Worker's compatibility date. They cover cold-HEAD caching, root links, pinned
 artifact aliases, OCI reads, and OCI writes.
 
+`npm run check` builds the Worker, runs Oxlint and the TypeScript checker, and
+runs the Worker tests. It requires Node.js 26.12.1 or newer.
+
 CI runs `npm run build` and then `npm run test:runtime` in the same build
 directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that
 only `scripts/build.mjs` generates, so the wasm step must run before `tsrs`.

@@ -7,14 +7,21 @@
     "build:wasm": "sh scripts/build-wasm.sh",
     "dev": "cf dev",
     "typecheck": "tsrs -p tsconfig.json --noEmit --fast",
-    "test:runtime": "node --test test/runtime.test.mjs"
+    "test:runtime": "node --test test/runtime.test.mjs",
+    "lint": "oxlint --type-aware entry.ts src",
+    "check": "node scripts/build.mjs && oxlint --type-aware entry.ts src && tsrs -p tsconfig.json --noEmit --fast && node --test test/runtime.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/config": "0.29.0",
     "@cloudflare/vite-plugin": "2.0.0-beta.v.8",
     "cf": "^1.0.0-beta.26",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "tsrs": "0.20.1-ts7.1.0-beta",
     "vite": "8.3.5",
     "wrangler": "4.157.0"
+  },
+  "engines": {
+    "node": ">=26.12.1"
   }
 }
