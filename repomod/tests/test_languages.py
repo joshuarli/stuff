@@ -131,6 +131,15 @@ def test_typescript_source_is_found_in_nested_package_directories(tmp_path: Path
     assert "javascript" not in _language_sources(tmp_path)
 
 
+def test_typescript_source_is_found_in_deep_package_directories(tmp_path: Path) -> None:
+    package = tmp_path / "crates" / "worker"
+    package.mkdir(parents=True)
+    (package / "package.json").write_text("{}\n", encoding="utf-8")
+    (package / "entry.ts").write_text("export {};\n", encoding="utf-8")
+
+    assert "typescript" in _language_sources(tmp_path)
+
+
 def _write(path: Path, text: str = "") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")

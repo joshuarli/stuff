@@ -13,6 +13,7 @@ from typing import Any, Literal
 from repomod.catalog import write_if_changed
 from repomod.github import action_tags_many
 from repomod.io import read_json_object, safe_relative
+from repomod.rules.languages import _manifest_paths as _language_manifest_paths
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _IGNORED_DIRS = {
@@ -185,16 +186,9 @@ def _finding(
 
 
 def _manifest_paths(root: Path) -> tuple[Path, ...]:
-    candidates = [root / "package.json"]
-    candidates.extend(
-        child / "package.json"
-        for child in sorted(root.iterdir(), key=lambda item: item.name.casefold())
-        if not child.is_symlink() and child.is_dir() and child.name not in _IGNORED_DIRS
-    )
     return tuple(
-        path
-        for path in candidates
-        if path.is_symlink() or path.is_file()
+        path for path in _language_manifest_paths(root, "package.json")
+        if not any(part in _IGNORED_DIRS for part in path.relative_to(root).parts)
     )
 
 
@@ -212,9 +206,6 @@ def _typescript_manifests(
 ) -> list[tuple[Path, dict[str, Any]]]:
     selected = []
     for manifest, package in packages:
-        if manifest.parent == root:
-            selected.append((manifest, package))
-            continue
         if "typescript" in _dependency_versions(package) or (
             not (manifest.parent / "tsconfig.json").is_symlink()
             and (manifest.parent / "tsconfig.json").is_file()
@@ -232,6 +223,9 @@ def _typescript_manifests(
             ):
                 selected.append((manifest, package))
                 break
+        else:
+            if manifest.parent == root and not (root / "pnpm-workspace.yaml").is_file():
+                selected.append((manifest, package))
     return selected
 
 
@@ -729,7 +723,9 @@ def _package_typescript_findings(
                     f"TypeScript dependency {specifier} must have a lower bound of 7.0.0 or newer",
                 )
             )
-    for package_root in package_roots:
+    typescript_packages = _typescript_manifests(root, packages)
+    config_roots = tuple(path.parent for path, _package in typescript_packages) or package_roots
+    for package_root in config_roots:
         findings.extend(_typescript_config_findings(root, package_root, repository))
     return findings
 

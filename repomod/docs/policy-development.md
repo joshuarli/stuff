@@ -286,6 +286,8 @@ runtime pins offline, requires TypeScript 7 or newer, strict type checking, Oxli
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
 apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI framework
 (React or Solid) or contains JSX sources; a plain Vite bundle of vanilla TypeScript does not.
+Nested package manifests are inspected, and a pnpm workspace coordinator without its own TypeScript
+source or configuration is checked as a package authority rather than a TypeScript package.
 
 `rust-deps` notes the fleet's minimal Rust stack. Libraries emit via `log`;
 binaries initialize with `env_logger`. Use `tracing` only when spans are needed,

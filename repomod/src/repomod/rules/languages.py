@@ -280,16 +280,12 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
 
 
 def _js_manifests_uncached(root: Path) -> list[Path]:
-    paths = []
-    for child in (root, *sorted(root.iterdir(), key=lambda item: item.name.casefold())):
-        if child != root and (
-            child.is_symlink() or not child.is_dir() or child.name in _IGNORED_PACKAGES
-        ):
-            continue
-        manifest = child / "package.json"
-        if manifest.is_file() and not manifest.is_symlink():
-            paths.append(manifest)
-    return paths
+    return [
+        path for path in _manifest_paths(root, "package.json")
+        if not path.is_symlink()
+        and not any(part in _IGNORED_PACKAGES for part in path.relative_to(root).parts)
+        and safe_relative(root, path) is not None
+    ]
 
 
 def _js_manifests(root: Path) -> list[Path]:

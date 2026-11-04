@@ -191,6 +191,42 @@ def test_independent_package_roots_each_declare_typescript(tmp_path: Path) -> No
     )
 
 
+def test_deep_worker_package_is_checked_as_its_own_package_root(tmp_path: Path) -> None:
+    worker = tmp_path / "crates" / "worker"
+    worker.mkdir(parents=True)
+    make_project(worker)
+    (worker / "package-lock.json").write_text("{}\n", encoding="utf-8")
+
+    findings = _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript"))
+
+    assert any(finding.file == "crates/worker/package-lock.json" for finding in findings)
+    assert not any("requires a pnpm-managed package.json" in finding.message for finding in findings)
+
+
+def test_workspace_coordinator_is_not_required_to_be_a_typescript_package(tmp_path: Path) -> None:
+    pins = load_typescript_tool_pins()
+    root_package = {
+        "name": "workspace",
+        "private": True,
+        "packageManager": f"pnpm@{pins.pnpm}",
+        "engines": {"node": f">={pins.node}"},
+        "scripts": {"test": "pnpm --filter worker test"},
+    }
+    (tmp_path / "package.json").write_text(json.dumps(root_package), encoding="utf-8")
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    (tmp_path / "pnpm-workspace.yaml").write_text("packages:\n  - worker\n", encoding="utf-8")
+    worker = tmp_path / "worker"
+    worker.mkdir()
+    (worker / "package.json").write_text(json.dumps(package_data()), encoding="utf-8")
+    (worker / "tsconfig.json").write_text('{"compilerOptions":{"strict":true}}\n', encoding="utf-8")
+
+    assert _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript")) == []
+
+    (worker / "tsconfig.json").write_text('{"compilerOptions":{"strict":false}}\n', encoding="utf-8")
+    findings = _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript"))
+    assert any(finding.file == "worker/tsconfig.json" and "strict" in finding.message for finding in findings)
+
+
 def test_library_stack_does_not_require_app_frameworks(tmp_path: Path) -> None:
     package = package_data()
     pins = load_typescript_tool_pins()
