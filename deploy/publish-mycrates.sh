@@ -3,6 +3,9 @@
 # Called from the source repos' Makefiles (smolith, h12tiny), which own their
 # crate lists. Runs the whole flow in one shell under `set -eu` with server
 # cleanup on exit, so a failed `cargo publish` aborts before any R2 write.
+# One loopback `mycrates serve-publish` process takes the Cargo write API and
+# serves the sparse index and blobs; nothing is compiled except by `cargo
+# publish` itself.
 # The exit trap restores PUBLIC_URL and rebuilds the site, so an aborted run
 # never leaves a localhost base URL for a later manual r2-sync to promote.
 #
@@ -17,7 +20,7 @@
 #   SITE_DIR=$STUFF_STATE_HOME/mycrates/site
 #   TOKEN_FILE=$STUFF_STATE_HOME/mycrates/token
 #   LOCK_DIR=$STUFF_STATE_HOME/mycrates/publish.lock
-#   PUBLISH_PORT=8080 STATIC_PORT=8081
+#   PUBLISH_PORT=8080
 #
 # State lives outside the calling checkout and the whole transaction is
 # serialized, so publishing from two source repositories extends one index
@@ -34,7 +37,6 @@ SITE_DIR=${SITE_DIR:-$STUFF_STATE_HOME/mycrates/site}
 TOKEN_FILE=${TOKEN_FILE:-$STUFF_STATE_HOME/mycrates/token}
 LOCK_DIR=${LOCK_DIR:-$STUFF_STATE_HOME/mycrates/publish.lock}
 PUBLISH_PORT=${PUBLISH_PORT:-8080}
-STATIC_PORT=${STATIC_PORT:-8081}
 CALLER_MANIFEST=${CALLER_MANIFEST:-$PWD/Cargo.toml}
 CALLER_TOOLCHAIN=
 if command -v rustup >/dev/null 2>&1; then
@@ -51,14 +53,11 @@ fi
 mkdir -p "$STUFF_STATE_HOME/mycrates"
 acquire_publish_lock "$LOCK_DIR"
 SRV_PID=""
-STATIC_PID=""
 SITE_RESTORED=""
-MYCRATES_BIN=$STUFF_DIR/target/debug/mycrates
-SERVER_BIN=$STUFF_DIR/target/debug/stuff-server
+MYCRATES_BIN=$STUFF_DIR/crates/mycrates/bin/mycrates
 R2_SYNC=$STUFF_DIR/deploy/r2-sync.sh
 PRUNE=$STUFF_DIR/deploy/prune-generations.sh
 LOCAL_API=http://127.0.0.1:$PUBLISH_PORT
-LOCAL_SITE=http://127.0.0.1:$STATIC_PORT
 
 restore_public_site() {
   "$MYCRATES_BIN" config set-public-base-url "$PUBLIC_URL" --state-dir "$STATE_DIR"
@@ -73,12 +72,7 @@ cleanup() {
     kill "$SRV_PID" 2>/dev/null || true
     wait "$SRV_PID" 2>/dev/null || true
   fi
-  if [ -n "$STATIC_PID" ]; then
-    kill "$STATIC_PID" 2>/dev/null || true
-    wait "$STATIC_PID" 2>/dev/null || true
-  fi
   SRV_PID=""
-  STATIC_PID=""
   if [ -z "$SITE_RESTORED" ] && [ -x "$MYCRATES_BIN" ] && [ -d "$STATE_DIR" ]; then
     if restore_public_site; then
       echo "publish-mycrates: restored $PUBLIC_URL and rebuilt $SITE_DIR after failure" >&2
@@ -96,7 +90,6 @@ trap 'exit 143' TERM
 trap 'exit 129' HUP
 
 if [ -n "${REPUBLISH:-}" ]; then
-  cargo build -p mycrates --manifest-path "$STUFF_DIR/Cargo.toml"
   restore_public_site
   SITE_RESTORED=1
   "$R2_SYNC" "$SITE_DIR" "$BUCKET"
@@ -105,7 +98,6 @@ fi
 
 [ -n "${CRATES:-}" ] || { echo "publish-mycrates: CRATES is empty" >&2; exit 1; }
 
-cargo build -p mycrates -p stuff-server --manifest-path "$STUFF_DIR/Cargo.toml"
 mkdir -p "$STATE_DIR" "$SITE_DIR"
 "$MYCRATES_BIN" init --state-dir "$STATE_DIR" --site-dir "$SITE_DIR" >/dev/null
 "$MYCRATES_BIN" config set-public-base-url "$LOCAL_API" --state-dir "$STATE_DIR"
@@ -119,15 +111,13 @@ chmod 600 "$TOKEN_FILE"
 "$MYCRATES_BIN" serve-publish --bind "127.0.0.1:$PUBLISH_PORT" --token-file "$TOKEN_FILE" \
   --state-dir "$STATE_DIR" --site-dir "$SITE_DIR" >/dev/null 2>&1 &
 SRV_PID=$!
-"$SERVER_BIN" --bind "127.0.0.1:$STATIC_PORT" --route "/=$SITE_DIR" >/dev/null 2>&1 &
-STATIC_PID=$!
 i=0
-while ! curl -sf "$LOCAL_SITE/current/registry/config.json" >/dev/null; do
+while ! curl -sf "$LOCAL_API/current/registry/config.json" >/dev/null; do
   i=$((i + 1))
-  [ "$i" -lt 60 ] || { echo "publish-mycrates: static server never came up" >&2; exit 1; }
+  [ "$i" -lt 60 ] || { echo "publish-mycrates: local registry never came up" >&2; exit 1; }
   sleep 1
 done
-export "CARGO_REGISTRIES_${REG_ENV}_INDEX"="sparse+$LOCAL_SITE/current/registry/"
+export "CARGO_REGISTRIES_${REG_ENV}_INDEX"="sparse+$LOCAL_API/current/registry/"
 export "CARGO_REGISTRIES_${REG_ENV}_TOKEN"="$(cat "$TOKEN_FILE")"
 for c in $CRATES; do
   if output=$(
@@ -150,9 +140,9 @@ for c in $CRATES; do
   fi
   "$MYCRATES_BIN" publish --state-dir "$STATE_DIR" --site-dir "$SITE_DIR"
 done
-kill $SRV_PID $STATIC_PID 2>/dev/null
+kill "$SRV_PID" 2>/dev/null
+wait "$SRV_PID" 2>/dev/null || true
 SRV_PID=""
-STATIC_PID=""
 restore_public_site
 SITE_RESTORED=1
 "$R2_SYNC" "$SITE_DIR" "$BUCKET"

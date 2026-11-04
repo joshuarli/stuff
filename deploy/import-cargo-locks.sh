@@ -4,12 +4,12 @@
 # into "-", so nested lockfiles in one repository never collide.
 #
 # Usage: import-cargo-locks.sh STATE_DIR LOCKFILE...
-# Optional env: MYCRATES_BIN=target/debug/mycrates
+# Optional env: MYCRATES_BIN=crates/mycrates/bin/mycrates
 # Exits non-zero on the first lockfile that import-lock rejects. Re-running
 # with the same lockfiles rewrites the same pin files.
 set -eu
 [ "$#" -ge 2 ] || { echo "usage: $0 STATE_DIR LOCKFILE..." >&2; exit 2; }
-MYCRATES_BIN=${MYCRATES_BIN:-target/debug/mycrates}
+MYCRATES_BIN=${MYCRATES_BIN:-$(cd "$(dirname "$0")/.." && pwd)/crates/mycrates/bin/mycrates}
 STATE_DIR=$1
 shift
 for lock in "$@"; do

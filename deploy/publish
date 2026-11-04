@@ -143,8 +143,7 @@ adopt_marker() {
 
 adopt_mycrates() {
   echo "publish: adopting the live mycrates publication into $STATE_DIR" >&2
-  cargo build -q -p mycrates --manifest-path "$STUFF_DIR/Cargo.toml"
-  BIN=$STUFF_DIR/target/debug/mycrates
+  BIN=$STUFF_DIR/crates/mycrates/bin/mycrates
   mkdir -p "$H" "$(dirname "$STATE_DIR")"
   ADOPT_PULL=$(mktemp -d "$H/mycrates-adopt.XXXXXX")
   python3 "$STUFF_DIR/deploy/r2-pull.py" stuff-mycrates "$ADOPT_PULL"

@@ -68,7 +68,7 @@ project_of() {
 }
 
 ingest_cargo() {
-  bin=$BIN_DIR/mycrates
+  bin=$STUFF_DIR/crates/mycrates/bin/mycrates
   state=$OUT_DIR/mycrates/state
   site=$OUT_DIR/mycrates/site
   mkdir -p "$state" "$site" || return 1
@@ -154,7 +154,7 @@ CONFIG
 }
 
 mkdir -p "$OUT_DIR" || exit 1
-cargo build -p mycrates -p mynpm -p mypypi --manifest-path "$STUFF_DIR/Cargo.toml" || exit 1
+cargo build -p mynpm -p mypypi --manifest-path "$STUFF_DIR/Cargo.toml" || exit 1
 FAILED=""
 run() {
   name=$1

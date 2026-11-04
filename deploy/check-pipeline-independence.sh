@@ -44,8 +44,8 @@ snapshot() {
   done
 }
 
-(cd "$ROOT" && cargo run -q -p mycrates -- init --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null)
-(cd "$ROOT" && cargo run -q -p mycrates -- publish --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null)
+"$ROOT/crates/mycrates/bin/mycrates" init --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null
+"$ROOT/crates/mycrates/bin/mycrates" publish --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null
 snapshot "$WORK/after-crates.txt" "crates-site"
 CRATES_GEN_1=$(readlink "$CRATES_SITE/current")
 
@@ -87,7 +87,7 @@ else
   echo "FAIL: pypi publish changed crates-site"; exit 1
 fi
 
-(cd "$ROOT" && cargo run -q -p mycrates -- publish --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null)
+"$ROOT/crates/mycrates/bin/mycrates" publish --state-dir "$CRATES_STATE" --site-dir "$CRATES_SITE" >/dev/null
 snapshot "$WORK/after-crates-again.txt" "crates-site"
 CRATES_GEN_2=$(readlink "$CRATES_SITE/current")
 [ "$CRATES_GEN_1" = "$CRATES_GEN_2" ] || { echo "FAIL: crates republish changed generation"; exit 1; }
