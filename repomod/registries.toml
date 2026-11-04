@@ -6,6 +6,7 @@ native = "sparse+https://crates.17166969.xyz/current/registry/"
 
 [npm]
 registry = "https://npm.17166969.xyz/current/"
+allowed = ["https://sfw.security.sentry.io/npm/"]
 
 [python]
 index = "https://pypi.17166969.xyz/current/simple/"

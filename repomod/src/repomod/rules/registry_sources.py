@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 from repomod.catalog import GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX
 from repomod.io import read_toml
@@ -45,6 +46,7 @@ class RegistryPolicy:
     cargo_native: str
     npm_registry: str
     python_index: str
+    npm_allowed: tuple[str, ...]
 
 
 def registry_policy_file() -> Path:
@@ -77,14 +79,26 @@ def parse_registry_policy(source: str) -> RegistryPolicy:
     if not isinstance(enforce, bool):
         raise ValueError("registries.toml enforce must be a boolean")
     cargo = _table(document, "cargo", ("source", "native"), "sparse+https://")
-    npm = _table(document, "npm", ("registry",), "https://")
+    npm = document.get("npm")
+    if not isinstance(npm, dict) or set(npm) != {"registry", "allowed"}:
+        raise ValueError("registries.toml [npm] must contain only registry and allowed")
+    registry = npm["registry"]
+    allowed = npm["allowed"]
+    if not isinstance(registry, str) or not registry.startswith("https://") or not registry.endswith("/"):
+        raise ValueError("registries.toml npm.registry must be a https:// URL ending in /")
+    if not isinstance(allowed, list) or any(
+        not isinstance(url, str) or not url.startswith("https://") or not url.endswith("/")
+        for url in allowed
+    ) or len(allowed) != len(set(allowed)):
+        raise ValueError("registries.toml npm.allowed must contain unique https:// URLs ending in /")
     python = _table(document, "python", ("index",), "https://")
     return RegistryPolicy(
         enforce,
         cargo["source"],
         cargo["native"],
-        npm["registry"],
+        registry,
         python["index"],
+        tuple(allowed),
     )
 
 
@@ -263,7 +277,7 @@ def _npm_config(report: _Report, policy: RegistryPolicy, directory: Path) -> Non
         npmrc = candidate / ".npmrc"
         if npmrc.is_file():
             for key, value in _npmrc_entries(npmrc):
-                if key == "registry" and value == policy.npm_registry:
+                if key == "registry" and value in (policy.npm_registry, *policy.npm_allowed):
                     satisfied = True
                 elif key == "registry" or key.endswith(":registry"):
                     report.add(
@@ -292,6 +306,16 @@ def _is_git_url(url: str) -> bool:
     return url.startswith(("git+", "git:", "github:")) or re.match(
         r"https://(codeload\.)?github\.com/", url
     ) is not None
+
+
+def _approved_npm_url(url: str, policy: RegistryPolicy) -> bool:
+    try:
+        path = unquote(urlsplit(url).path)
+    except ValueError:
+        return False
+    return not any(part in {".", ".."} for part in path.split("/")) and url.startswith(
+        (policy.npm_registry, *policy.npm_allowed)
+    )
 
 
 def _package_name(key: str) -> str:
@@ -329,7 +353,7 @@ def _pnpm_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
                 report.git_source(lock, "npm", package, "a git repository")
             continue
         url = tarball.group(1).strip("'\"")
-        if url.startswith((policy.npm_registry, "file:")):
+        if url.startswith("file:") or _approved_npm_url(url, policy):
             continue
         if _is_git_url(url):
             report.git_source(lock, "npm", package, url)
@@ -366,7 +390,7 @@ def _package_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
                     lock, str(name), f"{name} links {resolved} outside the repository"
                 )
             continue
-        if not isinstance(resolved, str) or resolved.startswith((policy.npm_registry, "file:")):
+        if not isinstance(resolved, str) or resolved.startswith("file:") or _approved_npm_url(resolved, policy):
             continue
         if _is_git_url(resolved):
             report.git_source(lock, "npm", name, resolved)

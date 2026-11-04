@@ -160,6 +160,10 @@ ignore_reason = "Tokio is only reachable through wasm-bindgen's opt-in wasm_bind
 ignore = ["registry-sources:git:shadowdriver", "registry-sources:path:shadowdriver"]
 ignore_reason = "shadowdriver stays private and is never published to stuff, so toolbox keeps its git or sibling-path dependency on it."
 
+[overrides."joshuarli/stuff"]
+ignore = ["registry-sources"]
+ignore_reason = "The registry service must remain buildable when its own package registries are unavailable."
+
 [overrides."joshuarli/tansu"]
 ignore = ["registry-sources:git:laputa-h2-futures-lite", "registry-sources:git:laputa-hyper-futures-lite"]
 ignore_reason = "tansu depends on two patched git forks (h2-futures-lite, hyper-futures-lite) that are not published to the native stuff registry yet."

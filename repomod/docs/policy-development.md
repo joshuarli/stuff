@@ -318,17 +318,19 @@ and stay manual.
 `audit-banned` rejects direct Miniflare dependencies and imports. Cloudflare's test tools may
 continue to depend on Miniflare transitively.
 
-`registry-sources` requires every non-fork repository to resolve Cargo, npm/pnpm, and Python
-dependencies only from the private `stuff` registry. `registries.toml` owns the four approved URLs
+`registry-sources` requires non-fork repositories to resolve Cargo, npm/pnpm, and Python
+dependencies from the private `stuff` registry. `registries.toml` also allows the Sentry work npm
+proxy. The catalog exempts `stuff` itself so it can be rebuilt when its registry is unavailable.
+`registries.toml` owns the approved URLs
 and the `enforce` switch; the fleet is migrated, so `enforce = true` and the rule checks, per project directory holding a
 lockfile (and the root `package.json` or `pyproject.toml`), that the configuration is present in that
 directory or an ancestor: `.cargo/config.toml` replacing `crates-io` with the approved sparse
-source, `.npmrc` with `registry=` set to the approved URL and no other registry key (and no
+source, `.npmrc` with `registry=` set to the stuff registry or the allowed work proxy and no other registry key (and no
 `registry` or `registries` in `pnpm-workspace.yaml`), and a `default = true` uv index at the approved
 URL in `pyproject.toml` or `uv.toml`. It also scans lockfiles. `Cargo.lock` keeps crates.io source
 ids under replacement, so those are accepted along with `cargo.source` and `cargo.native`; other
 registries are findings. pnpm and npm lock
-tarball URLs must start with the approved registry, and `uv.lock` registry sources must equal the
+tarball URLs must start with the stuff registry or the allowed work proxy, and `uv.lock` registry sources must equal the
 approved index. Git sources are findings unless the repository's catalog override ignores
 `registry-sources:git:NAME` with an `ignore_reason`; a `path` or `link` source outside the
 repository is ignored the same way with `registry-sources:path:NAME`. Path, `link:`, `file:`, and workspace sources

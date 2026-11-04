@@ -19,7 +19,8 @@ CARGO = "sparse+https://crates.example/current/crates-io/"
 NATIVE = "sparse+https://crates.example/current/registry/"
 NPM = "https://npm.example/current/"
 PYPI = "https://pypi.example/current/simple/"
-POLICY = RegistryPolicy(True, CARGO, NATIVE, NPM, PYPI)
+WORK_NPM = "https://sfw.security.sentry.io/npm/"
+POLICY = RegistryPolicy(True, CARGO, NATIVE, NPM, PYPI, (WORK_NPM,))
 CRATES_IO = "registry+https://github.com/rust-lang/crates.io-index"
 
 
@@ -174,6 +175,31 @@ def test_package_lock_resolved_urls(tmp_path: Path) -> None:
     assert "registry.npmjs.org (bad)" in message
 
 
+def test_work_registry_is_allowed_without_allowing_lookalikes(tmp_path: Path) -> None:
+    write(tmp_path, ".npmrc", f"registry={WORK_NPM}\n")
+    write(
+        tmp_path,
+        "package-lock.json",
+        '{"lockfileVersion": 3, "packages": {'
+        f'"node_modules/ok": {{"resolved": "{WORK_NPM}ok/-/ok.tgz"}}, '
+        '"node_modules/other": {"resolved": "https://sfw.security.sentry.io.evil/npm/other.tgz"}, '
+        '"node_modules/wrongpath": {"resolved": "https://sfw.security.sentry.io/other/bad.tgz"}, '
+        '"node_modules/traversal": {"resolved": "https://sfw.security.sentry.io/npm/%2e%2e/bad.tgz"}}}',
+    )
+    found = messages(tmp_path)
+    assert len(found) == 2
+    assert all(file == "package-lock.json" for file, _ in found)
+    assert any("sfw.security.sentry.io.evil" in message for _, message in found)
+    assert any("wrongpath" in message for _, message in found)
+    assert any("traversal" in message for _, message in found)
+
+
+def test_work_registry_is_allowed_in_pnpm_lock(tmp_path: Path) -> None:
+    write(tmp_path, ".npmrc", f"registry={NPM}\n")
+    write(tmp_path, "pnpm-lock.yaml", f"packages:\n  safe@1.0.0:\n    resolution: {{tarball: {WORK_NPM}safe.tgz}}\n")
+    assert messages(tmp_path) == []
+
+
 def test_python_index_and_lock(tmp_path: Path) -> None:
     write(
         tmp_path,
@@ -240,7 +266,7 @@ def policy_source(*, enforce: bool) -> str:
     return (
         f"enforce = {str(enforce).lower()}\n\n[cargo]\nsource = \"{CARGO}\"\n"
         f'native = "{NATIVE}"\n\n'
-        f'[npm]\nregistry = "{NPM}"\n\n[python]\nindex = "{PYPI}"\n'
+        f'[npm]\nregistry = "{NPM}"\nallowed = ["{WORK_NPM}"]\n\n[python]\nindex = "{PYPI}"\n'
     )
 
 
