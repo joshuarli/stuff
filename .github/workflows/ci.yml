@@ -28,10 +28,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # x86_64 Linux, ARM64 Linux, ARM64 macOS, and Intel macOS: each runner
-        # builds, validates, and installs the host platform's wheels. The
-        # dedicated mypypi-linux-native job covers the manylinux 2.28 baseline.
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26, macos-26-intel]
+        # x86_64 Linux, ARM64 Linux, and ARM64 macOS: each runner builds,
+        # validates, and installs the host platform's wheels. The dedicated
+        # mypypi-linux-native job covers the manylinux 2.28 baseline.
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
