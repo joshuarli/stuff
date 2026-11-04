@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import wirejson
 from .errors import ConflictError, InputError, IntegrityError
-from .fsutil import exclusive_lock, sha256_file, sync_dir, unique_suffix, write_file_durable
+from .fsutil import exclusive_lock, list_dir, sha256_file, sync_dir, unique_suffix, write_file_durable
 from .model import IndexEntry
 from .names import lower_name, normalized_key, validate_crate_name
 from .semver import Version
@@ -133,14 +133,14 @@ class Store:
 
     def recover_staging(self):
         if self.blobs_dir.exists():
-            for entry in os.scandir(self.blobs_dir):
+            for entry in list_dir(self.blobs_dir):
                 if _is_temporary(entry.name):
                     Path(entry.path).unlink(missing_ok=True)
 
     def recover_uploads(self):
         if self.uploads_dir.exists():
             now = time.time()
-            for entry in os.scandir(self.uploads_dir):
+            for entry in list_dir(self.uploads_dir):
                 if entry.is_file(follow_symlinks=False):
                     try:
                         age = now - entry.stat(follow_symlinks=False).st_mtime
@@ -168,7 +168,7 @@ class Store:
         with self._collision_mutex:
             if directory not in self._collision_index:
                 by_norm = {}
-                for entry in os.scandir(directory):
+                for entry in list_dir(directory):
                     if entry.is_dir(follow_symlinks=False):
                         by_norm.setdefault(normalized_key(entry.name), []).append(Path(entry.path))
                 self._collision_index[directory] = by_norm
@@ -231,7 +231,7 @@ class Store:
             return []
         return [
             Path(entry.path)
-            for entry in os.scandir(crate_dir)
+            for entry in list_dir(crate_dir)
             if entry.name.endswith(suffix) and not _is_temporary(entry.name) and entry.is_file(follow_symlinks=False)
         ]
 
@@ -331,7 +331,7 @@ class Store:
         records = []
         if not self.native_dir.exists():
             return records
-        for crate_dir in os.scandir(self.native_dir):
+        for crate_dir in list_dir(self.native_dir):
             if not crate_dir.is_dir(follow_symlinks=False):
                 continue
             for path in self._version_files(Path(crate_dir.path), ".json"):
@@ -343,7 +343,7 @@ class Store:
         records = []
         if not self.upstream_dir.exists():
             return records
-        for crate_dir in os.scandir(self.upstream_dir):
+        for crate_dir in list_dir(self.upstream_dir):
             if not crate_dir.is_dir(follow_symlinks=False):
                 continue
             for path in self._version_files(Path(crate_dir.path), ".json"):
@@ -360,7 +360,7 @@ class Store:
 
     def verify_locked(self):
         if self.blobs_dir.exists():
-            for entry in os.scandir(self.blobs_dir):
+            for entry in list_dir(self.blobs_dir):
                 if entry.name.endswith(".crate") and not _is_temporary(entry.name) and entry.is_file(
                     follow_symlinks=False
                 ):
@@ -382,7 +382,7 @@ class Store:
 
 def _canonical_names_in(crate_dir):
     names = []
-    for entry in os.scandir(crate_dir):
+    for entry in list_dir(crate_dir):
         if not entry.is_file(follow_symlinks=False) or _is_temporary(entry.name) or not entry.name.endswith(".json"):
             continue
         try:

@@ -84,7 +84,7 @@ def _comparator_interval(op, partial):
     if op == ">":
         if specified == 3:
             return Bound(_version_key(major, minor, patch, pre), False), None
-        return next_after(specified - 1), None
+        return Bound(next_after(specified - 1).version, True), None
     if op == ">=":
         return floor(), None
     if op == "<":

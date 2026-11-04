@@ -15,6 +15,11 @@ def unique_suffix():
     return f"{os.getpid()}.{time.time_ns()}.{next(_counter)}"
 
 
+def list_dir(path):
+    with os.scandir(path) as listing:
+        return list(listing)
+
+
 def sync_dir(path):
     fd = os.open(path, os.O_RDONLY)
     try:

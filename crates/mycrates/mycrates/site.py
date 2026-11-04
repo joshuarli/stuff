@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .errors import InputError, IntegrityError, OperationError
-from .fsutil import CHUNK, exclusive_lock, sha256_file, sync_dir, sync_tree, unique_suffix
+from .fsutil import CHUNK, list_dir, exclusive_lock, sha256_file, sync_dir, sync_tree, unique_suffix
 
 MAX_GENERATION_ID_LENGTH = 128
 TEMP_PREFIXES = (".staging.", ".current.tmp.", ".quarantine.")
@@ -131,14 +131,14 @@ class Site:
         if self.site_dir.is_symlink():
             raise IntegrityError(f"site dir itself cannot be a symlink: {self.site_dir}")
         if self.site_dir.exists():
-            for entry in os.scandir(self.site_dir):
+            for entry in list_dir(self.site_dir):
                 if entry.name != "current" and entry.is_symlink():
                     raise IntegrityError(f"unexpected symlink in site dir: {entry.path}")
 
     def recover_staging(self):
         removed = 0
         if self.site_dir.exists():
-            for entry in os.scandir(self.site_dir):
+            for entry in list_dir(self.site_dir):
                 if entry.name.startswith(TEMP_PREFIXES):
                     if entry.is_symlink() or not entry.is_dir(follow_symlinks=False):
                         Path(entry.path).unlink(missing_ok=True)

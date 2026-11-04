@@ -1,7 +1,7 @@
 {
   "schema_version": 4,
   "registry": "cargo",
-  "generation": "d412ab198d6ccdfa49affbf7",
+  "generation": "7c80bc596083516bc725ea06",
   "packages": [
     {
       "name": "Beta_crate",
@@ -42,10 +42,19 @@
     {
       "name": "alpha",
       "source": "native",
-      "latest": "0.1.0",
+      "latest": "0.2.0",
       "versions": [
         {"version": "0.1.0", "yanked": false},
-        {"version": "0.2.0", "yanked": true}
+        {"version": "0.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["serde_json"], "peer": [], "build": ["cc"], "dev": ["tempfile"]}
+    },
+    {
+      "name": "gamma",
+      "source": "native",
+      "latest": "0.1.0",
+      "versions": [
+        {"version": "0.1.0", "yanked": true}
       ],
       "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
     },

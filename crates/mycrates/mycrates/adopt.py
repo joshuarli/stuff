@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .fsutil import list_dir
 from .errors import InputError, IntegrityError
 from .model import IndexEntry
 from .names import shard_for_name, validate_crate_name
@@ -90,7 +91,7 @@ def _index_files(root):
     pending = [root]
     while pending:
         directory = pending.pop()
-        for entry in os.scandir(directory):
+        for entry in list_dir(directory):
             path = Path(entry.path)
             if entry.is_symlink():
                 raise IntegrityError(f"unexpected index entry: {path}")

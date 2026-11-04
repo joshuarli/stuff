@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import wirejson
+from .fsutil import list_dir
 from .errors import InputError, IntegrityError, NetworkError, OperationError
 from .lockfile import is_crates_io_source, parse_lockfile
 from .pins import read_pins
@@ -153,7 +154,7 @@ def validate_project(state_dir, pins_path, mirror_index_url, project_dir):
 
 def _copy_project(source, destination):
     destination.mkdir(parents=True)
-    for entry in os.scandir(source):
+    for entry in list_dir(source):
         if entry.name in SKIPPED_PROJECT_ENTRIES:
             continue
         target = destination / entry.name
