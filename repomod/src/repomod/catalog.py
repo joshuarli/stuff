@@ -22,6 +22,7 @@ PRIMARY_TAGS = frozenset(
         "extension",
         "system",
         "build",
+        "cloudflare",
         "config",
         "data",
     }

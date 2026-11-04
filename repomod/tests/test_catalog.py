@@ -150,6 +150,20 @@ def test_sync_reports_all_missing_primary_tags_before_fetching(
     assert captured.out == ""
 
 
+def test_cloudflare_is_a_primary_tag_and_can_filter_repositories(tmp_path: Path) -> None:
+    from repomod.cmd.common import _tags
+    from repomod.policy import filter_repositories
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos.joshuarli]\nstats = ["cloudflare", "rust", "typescript"]\nother = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    selected = filter_repositories(catalog.repositories, tags=_tags(["cloudflare"]))
+    assert [str(repository.id) for repository in selected] == ["joshuarli/stats"]
+
+
 def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:
     path = write_catalog(
         tmp_path / "catalog.toml", '[repos."joshuarli"]\nSingleFile = ["extension"]'

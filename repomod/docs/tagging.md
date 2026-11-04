@@ -17,6 +17,7 @@ Each repository needs at least one role tag:
 - `extension`: browser or editor extension.
 - `system`: operating system, libc, runtime, compiler, or system-level project.
 - `build`: toolchain or artifact-building project.
+- `cloudflare`: project substantially deploying an application or service on Cloudflare.
 - `config`: dotfiles, workstation, or development configuration.
 - `data`: repository primarily containing data.
 
