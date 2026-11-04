@@ -158,6 +158,7 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
     repositories: list[Repository] = []
     pending: list[RepoId] = []
     ignored: list[Repository] = []
+    missing_primary: list[RepoId] = []
     for owner, raw_names in raw_repos.items():
         validate_identifier(owner, "owner")
         owner_key = owner.casefold()
@@ -198,8 +199,14 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                 ignored.append(Repository(repo_id, tuple(tag for tag in tags if tag != REPOSITORY_IGNORE)))
                 continue
             if not set(tags) & PRIMARY_TAGS:
-                raise CatalogError(f"{repo_id} must have at least one primary tag")
+                missing_primary.append(repo_id)
+                continue
             repositories.append(Repository(repo_id, tuple(tags)))
+
+    if missing_primary:
+        raise CatalogError(
+            "\n".join(f"{repo_id} must have at least one primary tag" for repo_id in missing_primary)
+        )
 
     overrides = parsed.get("overrides", {})
     if not isinstance(overrides, dict):

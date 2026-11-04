@@ -128,6 +128,28 @@ def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(t
         load_catalog(path, {"HOME": str(tmp_path)})
 
 
+def test_sync_reports_all_missing_primary_tags_before_fetching(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from repomod.cli import main
+    from repomod.cmd import common
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos.alpha]\nfirst = ["fork"]\nvalid = ["tool"]\n'
+        'ignored = ["IGNORE", "rust"]\npending = []\n'
+        '[repos.beta]\nsecond = ["rust"]',
+    )
+    monkeypatch.setattr(common, "_catalog_path", lambda: path)
+
+    assert main(["sync"]) == 2
+    captured = capsys.readouterr()
+    assert "alpha/first must have at least one primary tag" in captured.err
+    assert "beta/second must have at least one primary tag" in captured.err
+    assert "Fetching" not in captured.err
+    assert captured.out == ""
+
+
 def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:
     path = write_catalog(
         tmp_path / "catalog.toml", '[repos."joshuarli"]\nSingleFile = ["extension"]'
