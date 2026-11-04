@@ -315,6 +315,9 @@ disposable copy and returns the changed lockfiles and manifests as its file plan
 need manifest edits, such as Rust majors constrained by `Cargo.toml`, fail the fixer postcondition
 and stay manual.
 
+`audit-banned` rejects direct Miniflare dependencies and imports. Cloudflare's test tools may
+continue to depend on Miniflare transitively.
+
 `registry-sources` requires every non-fork repository to resolve Cargo, npm/pnpm, and Python
 dependencies only from the private `stuff` registry. `registries.toml` owns the four approved URLs
 and the `enforce` switch; the fleet is migrated, so `enforce = true` and the rule checks, per project directory holding a

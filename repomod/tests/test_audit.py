@@ -73,6 +73,29 @@ def test_js_filesystem_specs() -> None:
     assert not _js_spec_is_filesystem("^4.0.0")
 
 
+def test_ban_direct_miniflare_in_nested_worker_but_allow_transitive_use(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    worker = root / "crates" / "worker"
+    worker.mkdir(parents=True)
+    (worker / "package.json").write_text(
+        '{"devDependencies":{"miniflare":"4.0.0","@cloudflare/vitest-plugin":"1.4.11"}}\n',
+        encoding="utf-8",
+    )
+    (worker / "test.mjs").write_text('import { Miniflare } from "miniflare";\n', encoding="utf-8")
+    repo = repository("cloudflare", "typescript")
+
+    findings = _policy_findings(root, repo)
+    banned = [finding for finding in findings if finding.rule == "audit-banned"]
+    assert {finding.file for finding in banned} >= {"crates/worker/package.json", "crates/worker/test.mjs"}
+
+    (worker / "package.json").write_text(
+        '{"devDependencies":{"@cloudflare/vitest-plugin":"1.4.11"}}\n', encoding="utf-8"
+    )
+    (worker / "test.mjs").write_text('import { cloudflareTest } from "@cloudflare/vitest-plugin";\n', encoding="utf-8")
+    (worker / "package-lock.json").write_text('{"packages":{"node_modules/miniflare":{}}}\n', encoding="utf-8")
+    assert not any("miniflare" in finding.message for finding in _policy_findings(root, repo))
+
+
 def test_banned_rust_matches_variants() -> None:
     assert _is_banned_rust("clap")
     assert _is_banned_rust("clap_builder")
