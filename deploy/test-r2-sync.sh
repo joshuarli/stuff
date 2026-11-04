@@ -1,13 +1,14 @@
 #!/bin/sh
 # Exercise r2-sync.sh against the local R2 simulation (never real R2).
-# Usage: test-r2-sync.sh [OBJECT_COUNT]   (default 1100, above the 1000 page)
+# Usage: test-r2-sync.sh [OBJECT_COUNT]   (default 120, above two R2_LIST_PAGE=50 pages)
 # Checks: listing past one page, unchanged re-sync uploads nothing, changed
 # immutable content is a conflict unless --repair is explicit, the manifest
 # uploads after every object it lists, the marker is last and verified, a large file whose multipart ETag matches is skipped, and
 # rollback refuses a generation that was never uploaded, and a machine whose
 # last promotion is no longer live cannot replace the newer generation.
 set -eu
-COUNT=${1:-1100}
+COUNT=${1:-120}
+export R2_LIST_PAGE=${R2_LIST_PAGE:-50}
 HERE=$(cd "$(dirname "$0")" && pwd)
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/r2-sync-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT

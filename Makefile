@@ -100,9 +100,9 @@ SERVE_PORT ?= 8000
 serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
 	cargo run -q -p stuff-server -- --bind 127.0.0.1:$(SERVE_PORT) --route /=$(SITE_DIR)
 
-test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulation ([SYNC_OBJECTS=1100])
+test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulation ([SYNC_OBJECTS=120])
 	@mkdir -p .work/tmp
-	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
+	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),120)
 
 test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAITERS=4])
 	@mkdir -p .work/tmp
@@ -110,7 +110,7 @@ test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAI
 
 test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and promotion without network access
 	@mkdir -p .work/tmp
-	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),1100)
+	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),120)
 	deploy/test-r2-pull.sh
 	python3 deploy/test-r2-pull.py
 	deploy/test-prune-generations.sh
