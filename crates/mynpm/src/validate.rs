@@ -350,6 +350,9 @@ fn start_static_server(mirror_dir: PathBuf, requests: Arc<Mutex<Vec<StaticReques
                     continue;
                 }
             };
+            if stream.set_nonblocking(false).is_err() {
+                continue;
+            }
             let mirror = mirror_dir.clone();
             let thread_requests = thread_requests.clone();
             std::thread::spawn(move || handle_connection(stream, &mirror, &thread_requests));
@@ -2225,6 +2228,21 @@ fn unique_suffix() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn static_server_answers_a_request_that_arrives_after_accept() {
+        let dir = tempfile::tempdir().unwrap();
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let shutdown = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let server = start_static_server(dir.path().to_path_buf(), requests, shutdown).unwrap();
+        let mut stream = std::net::TcpStream::connect(("127.0.0.1", server.port)).unwrap();
+        std::thread::sleep(Duration::from_millis(200));
+        stream.write_all(b"GET /current/missing HTTP/1.1\r\nHost: x\r\n\r\n").unwrap();
+        let mut response = String::new();
+        stream.read_to_string(&mut response).unwrap();
+        server.close();
+        assert!(response.starts_with("HTTP/1.1 404 "), "{response:?}");
+    }
 
     #[test]
     fn sweeps_only_stale_validation_workspaces() {
