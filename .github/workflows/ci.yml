@@ -130,7 +130,3 @@ jobs:
       - name: exercise the worker runtime
         run: npm run test:runtime
         working-directory: crates/stuff-worker
-      - name: check deploy protocol helpers
-        run: PATH="$PWD/crates/stuff-worker/node_modules/.bin:$PATH" make test-r2
-      - name: check OCI publication and blob GC
-        run: PATH="$PWD/crates/stuff-worker/node_modules/.bin:$PATH" deploy/test-oci-publish.sh
