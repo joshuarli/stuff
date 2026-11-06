@@ -103,7 +103,7 @@ def _safe_manifest(root: Path, path: Path) -> bool:
 
 def _rust_manifests_uncached(
     root: Path,
-) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any]]], list[tuple[str, str]]]:
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any], Path]], list[tuple[str, str]]]:
     candidates = _cargo_candidates(root)
     documents: dict[Path, dict[str, Any]] = {}
     problems: list[tuple[str, str]] = []
@@ -157,14 +157,14 @@ def _rust_manifests_uncached(
             if path == workspace_path or workspace_path.parent in path.parents
         ]
         workspace_path = max(parents, key=lambda item: len(item.parts)) if parents else path
-        manifests.append((path, document, workspaces.get(workspace_path, document)))
+        manifests.append((path, document, workspaces.get(workspace_path, document), workspace_path.parent))
     manifests.sort(key=lambda item: item[0].relative_to(root).as_posix().casefold())
     return manifests, sorted(problems)
 
 
 def _rust_manifests(
     root: Path,
-) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any]]], list[tuple[str, str]]]:
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any], Path]], list[tuple[str, str]]]:
     return cached(("rust_manifests", root), lambda: _rust_manifests_uncached(root))
 
 
@@ -215,8 +215,8 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
         if "rust" in repository.tags:
             findings.append(_finding(repository, "rust-project", None, "rust language tag has no Cargo.toml"))
         return findings
-    has_binary = False
-    for path, document, workspace_document in manifests:
+    lock_roots: set[Path] = set()
+    for path, document, workspace_document, workspace_root in manifests:
         package = document.get("package")
         if not isinstance(package, dict):
             continue
@@ -259,21 +259,24 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
             findings.append(
                 _finding(repository, "rust-project", relative, "lints.workspace = true has no workspace.lints")
             )
-        has_binary |= _rust_binary_target(path, document)
-    if has_binary and not (root / "Cargo.lock").is_file():
-        findings.append(
-            _finding(repository, "rust-project", "Cargo.lock", "commit Cargo.lock for the Rust executable")
-        )
-    lockfile = root / "Cargo.lock"
-    if lockfile.is_symlink():
-        findings.append(
-            _finding(repository, "rust-project", "Cargo.lock", "Cargo.lock is a symlink and is not followed")
-        )
-    elif lockfile.is_file():
-        _, error = read_toml(lockfile)
-        if error is not None:
+        if _rust_binary_target(path, document):
+            lock_roots.add(workspace_root)
+    for lock_root in sorted(lock_roots | {root}):
+        lockfile = lock_root / "Cargo.lock"
+        lock_name = lockfile.relative_to(root).as_posix()
+        if lockfile.is_symlink():
             findings.append(
-                _finding(repository, "rust-project", "Cargo.lock", f"Cargo.lock is invalid TOML: {error}")
+                _finding(repository, "rust-project", lock_name, "Cargo.lock is a symlink and is not followed")
+            )
+        elif lockfile.is_file():
+            _, error = read_toml(lockfile)
+            if error is not None:
+                findings.append(
+                    _finding(repository, "rust-project", lock_name, f"Cargo.lock is invalid TOML: {error}")
+                )
+        elif lock_root in lock_roots:
+            findings.append(
+                _finding(repository, "rust-project", lock_name, "commit Cargo.lock for the Rust executable")
             )
     findings.extend(_rust_tool_configs(root, repository))
     return findings
@@ -441,7 +444,7 @@ def _shallow_source_patterns(
 
 def _rust_source_present(root: Path) -> bool:
     manifests, _ = _rust_manifests(root)
-    for path, _, _ in manifests:
+    for path, *_ in manifests:
         package = path.parent.relative_to(root).as_posix()
         prefix = "" if package == "." else package + "/"
         patterns = tuple(

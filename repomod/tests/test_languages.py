@@ -208,3 +208,42 @@ def test_nested_manifests_do_not_count_for_forks(tmp_path: Path) -> None:
 
     assert "go" in _language_sources(tmp_path)
     assert "go" not in _language_sources(tmp_path, nested_manifests=False)
+
+
+def _cargo_package(path: Path, name: str, *, binary: bool) -> None:
+    _write(
+        path / "Cargo.toml",
+        f'[package]\nname = "{name}"\nversion = "1.0.0"\nedition = "2024"\n',
+    )
+    _write(path / "src" / ("main.rs" if binary else "lib.rs"), "fn main() {}\n")
+
+
+def test_rust_lockfile_is_required_at_the_nested_executable_workspace_root(
+    tmp_path: Path,
+) -> None:
+    _cargo_package(tmp_path, "demo", binary=False)
+    _cargo_package(tmp_path / "compare", "compare", binary=True)
+
+    findings = _rust_findings(tmp_path, repository("library", "rust"))
+    assert [finding.file for finding in findings if "Cargo.lock" in (finding.file or "")] == [
+        "compare/Cargo.lock"
+    ]
+
+    _write(tmp_path / "compare" / "Cargo.lock", "version = 4\n")
+    assert _rust_findings(tmp_path, repository("library", "rust")) == []
+
+
+def test_rust_workspace_member_executable_needs_the_workspace_root_lockfile(
+    tmp_path: Path,
+) -> None:
+    _write(tmp_path / "Cargo.toml", '[workspace]\nmembers = ["crates/*"]\n')
+    _cargo_package(tmp_path / "crates" / "cli", "cli", binary=True)
+    _write(tmp_path / "crates" / "cli" / "Cargo.lock", "version = 4\n")
+
+    findings = _rust_findings(tmp_path, repository("tool", "rust"))
+    assert [finding.file for finding in findings if "Cargo.lock" in (finding.file or "")] == [
+        "Cargo.lock"
+    ]
+
+    _write(tmp_path / "Cargo.lock", "version = 4\n")
+    assert _rust_findings(tmp_path, repository("tool", "rust")) == []
