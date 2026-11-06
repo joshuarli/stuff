@@ -281,3 +281,31 @@ vite = ["vite"]
 esbuild = ["esbuild"]
 webpack = ["webpack"]
 rollup = ["rollup"]
+rolldown = ["rolldown"]
+
+[ts-compiler]
+ecosystem = "npm"
+preferred = "tsrs"
+
+[ts-compiler.options]
+tsrs = ["tsrs"]
+typescript = ["typescript"]
+
+[base-image]
+ecosystem = "docker"
+preferred = "alpine"
+
+[base-image.options]
+alpine = ["alpine"]
+debian = ["debian", "library/debian"]
+ubuntu = ["ubuntu"]
+archlinux = ["archlinux"]
+python = ["python"]
+
+[nix-installer]
+ecosystem = "github"
+preferred = "cachix"
+
+[nix-installer.options]
+cachix = ["cachix/install-nix-action"]
+determinate = ["determinatesystems/nix-installer-action"]
