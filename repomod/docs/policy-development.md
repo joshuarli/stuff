@@ -326,9 +326,6 @@ disposable copy and returns the changed lockfiles and manifests as its file plan
 need manifest edits, such as Rust majors constrained by `Cargo.toml`, fail the fixer postcondition
 and stay manual.
 
-`audit-banned` rejects direct Miniflare dependencies and imports. Cloudflare's test tools may
-continue to depend on Miniflare transitively.
-
 `registry-sources` requires non-fork repositories to resolve Cargo, npm/pnpm, and Python
 dependencies from the private `stuff` registry. `registries.toml` also allows the Sentry work npm
 proxy. The catalog exempts `stuff` itself so it can be rebuilt when its registry is unavailable.

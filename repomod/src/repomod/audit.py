@@ -42,9 +42,6 @@ DEFAULT_MINIMUM_RELEASE_AGE_MINUTES = 1440
 _OSV_URL = "https://api.osv.dev/v1/querybatch"
 _OSV_BATCH_SIZE = 100
 _NETWORK_TIMEOUT = 30
-_MINIFLARE_IMPORT = re.compile(
-    r"(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)[\"']miniflare(?:/[^\"']*)?[\"']"
-)
 
 _BLOATED_RUST = ("url",)
 _IGNORED_DIRS = frozenset(
@@ -1562,43 +1559,6 @@ def _local_rust_package_names(root: Path) -> set[str]:
     return names
 
 
-def _direct_miniflare_findings(root: Path, repository: Repository) -> list[Finding]:
-    findings = []
-    for directory, child_names, filenames in os.walk(root, followlinks=False):
-        current = Path(directory)
-        child_names[:] = sorted(
-            name for name in child_names
-            if name not in _IGNORED_DIRS | {"fixtures", "generated", "third_party"}
-            and not (current / name).is_symlink()
-        )
-        if "package.json" in filenames:
-            manifest = current / "package.json"
-            dependencies = _js_direct_dependencies(current)
-            if any(name == "miniflare" or spec.startswith("npm:miniflare@") for name, spec in dependencies.items()):
-                findings.append(
-                    _finding(repository, "audit-banned", manifest.relative_to(root).as_posix(),
-                             "remove the direct miniflare dependency")
-                )
-        for name in sorted(filenames):
-            path = current / name
-            if path.suffix not in {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".sh"}:
-                continue
-            if path.is_symlink() or safe_relative(root, path) is None:
-                continue
-            try:
-                source = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeError) as error:
-                findings.append(_operational(repository, "audit-banned", path.relative_to(root).as_posix(),
-                                             f"cannot read source: {error}"))
-                continue
-            if _MINIFLARE_IMPORT.search(source):
-                findings.append(
-                    _finding(repository, "audit-banned", path.relative_to(root).as_posix(),
-                             "replace the direct miniflare import with a Cloudflare test tool")
-                )
-    return findings
-
-
 def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
     findings: list[Finding] = []
     tags = set(repository.tags)
@@ -1725,7 +1685,6 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                 message = _banned_rust_message(normalized, transitive=True, version=version)
                 findings.append(_finding(repository, "audit-banned", "Cargo.lock", message))
     if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
-        findings.extend(_direct_miniflare_findings(root, repository))
         for project in _js_project_roots(root):
             dependencies = _js_direct_dependencies(project)
             relative_manifest = (project / "package.json").relative_to(root).as_posix()
