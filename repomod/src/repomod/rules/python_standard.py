@@ -361,9 +361,9 @@ def _normalize_name(value: str) -> str:
 
 
 def _dependency_pins(document: dict[str, Any]) -> dict[str, list[str]] | None:
-    groups = document.get("dependency-groups")
+    groups = document.get("dependency-groups", {})
     if not isinstance(groups, dict):
-        return {}
+        return None
     dev = groups.get("dev", [])
     if not isinstance(dev, list) or any(not isinstance(item, str) for item in dev):
         return None

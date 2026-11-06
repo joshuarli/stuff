@@ -641,3 +641,20 @@ def test_python_standard_never_creates_over_a_pyproject_symlink(
 
     with pytest.raises(RuntimeError, match=r"without a regular pyproject\.toml"):
         refresh_python_standard(tmp_path, _repository())
+
+
+def test_python_standard_requires_tool_pins_when_dependency_groups_are_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_approvals(tmp_path, monkeypatch)
+    _write_project(tmp_path)
+    pyproject = tmp_path / "pyproject.toml"
+    source = pyproject.read_text(encoding="utf-8")
+    start = source.index("[dependency-groups]")
+    pyproject.write_text(source[:start] + source[source.index("[tool.ruff]"):], encoding="utf-8")
+
+    messages = [finding.message for finding in _python_standard_findings(tmp_path, _repository())]
+
+    for tool in ("uv", "ruff", "ty"):
+        assert any(f"dev dependency {tool} must be pinned" in message for message in messages)
