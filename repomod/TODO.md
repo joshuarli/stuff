@@ -1,5 +1,5 @@
 Prefix: RPMD
-Next: 54
+Next: 71
 
 ### RPMD-53 · P2 · Enforce required check names match produced checks
 
@@ -46,12 +46,30 @@ Next: 54
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-45 · P3 · Blacklist intentional README omissions per repository
+### RPMD-57 · P2 · Decide audit exemptions for smolith and h12tiny compatibility dependencies
 
-- **Area:** Catalog policy
-- **Where:** `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/AGENTS.md`
-- **Problem:** The repo-template lint requires a human-written README for gh even though its repository instructions explicitly say the upstream README and documentation are intentionally removed from this fork.
-- **Recommendation:** Add a repository-specific `repo-template` lint blacklist entry for gh.
+- **Area:** Config
+- **Where:** `catalog.toml` (`laputa-systems.smolith`, `laputa-systems.h12tiny`), `laputa-systems/smolith/crates/smol/Cargo.toml`
+- **Problem:** The smolith ban fails the repositories that provide the forks. smolith's `smol` crate declares upstream `hyper`, `smol-hyper`, `surf`, `async-h1`, and `futures` as dev dependencies for upstream examples, and its lockfile carries the upstream smol crates. h12tiny declares `tokio` and `futures` as dev dependencies. `unproven`: whether those are needed for compatibility tests or can be dropped.
+- **Recommendation:** Either remove the upstream dev dependencies, or add `audit-banned:transitive:NAME` exemptions in `catalog.toml` for the crates the compatibility tests need. Direct dependencies cannot be exempted today, so dropping them is the cleaner path.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-59 · P2 · Import the fixed h12tiny forks into the stuff archive and bump shadowdriver and tansu
+
+- **Area:** Dependencies
+- **Where:** `~/repos/stuff` (mycrates mirror, `current/crates-io/`), `joshuarli/shadowdriver/Cargo.lock`, `joshuarli/tansu/Cargo.lock`
+- **Problem:** shadowdriver and tansu now use the smolith forks directly, but upstream `futures-lite`, `parking`, and `atomic-waker` stay in their lockfiles through `laputa-fastwebsockets-futures-lite 0.10.0`, `laputa-hyper-futures-lite 1.12.0-beta.0`, and `laputa-h2-futures-lite 0.4.20-beta.0`. The fixed releases (0.10.1, 1.12.0-beta.1, 0.4.20-beta.2) are on crates.io and depend only on `laputa-*` crates, but the stuff archive these repositories resolve through has not imported them. The import is blocked: minting R2 S3 credentials fails with 403 (the Cloudflare token cannot list account tokens), and the stuff state is behind the live generation, so a plain `--promote=cf` would risk overwriting another publisher.
+- **Recommendation:** Grant the token R2 credential minting (or export `R2_S3_*`), run `deploy/publish mycrates --republish` to adopt the live generation, then `mycrates import-lock` a lockfile pinning the three releases, `plan`, `fetch`, `verify`, `publish`, and `deploy/r2-sync.sh`. Then bump the three crates in shadowdriver and tansu and confirm `repomod lint --rule audit-banned` is clean.
+- **Fix with:** stuff-registries
+- **Effort:** S (hours)
+
+### RPMD-62 · P2 · Remove url from smolith
+
+- **Area:** Dependencies
+- **Where:** `laputa-systems/smolith/Cargo.toml`
+- **Problem:** The audit bans `url` as bloated. shadowdriver and stuff no longer use it; smolith still declares it for upstream examples.
+- **Recommendation:** Drop the examples that need it, as part of RPMD-57.
 - **Fix with:** none
 - **Effort:** S (hours)
 
@@ -63,3 +81,48 @@ Next: 54
 - **Recommendation:** Skip C003 when the consuming line is a package-manifest readme declaration or the consumer is a template source that generates the target.
 - **Fix with:** none
 - **Effort:** S (hours)
+
+### RPMD-68 · P2 · Fix the shadowdriver-py build
+
+- **Area:** Build
+- **Where:** `joshuarli/shadowdriver/py/`, `Pool` in the shadowdriver crate
+- **Problem:** `cargo test -p shadowdriver-py` fails on `origin/master` with two E0599 errors: `Pool` has no `open_interactive_tab` or `cookies_json`. The Python binding calls methods the Rust crate no longer has, so `make rust-test` cannot finish and the Python package cannot be built.
+- **Recommendation:** Restore the two methods on `Pool` or update the binding to the current API, and keep `make rust-test` in the repository's verification.
+- **Fix with:** root-cause
+- **Effort:** S (hours)
+
+### RPMD-69 · P2 · Decide how the audit treats banned crates in fork repositories
+
+- **Area:** Config
+- **Where:** `src/repomod/rules/audit_findings.py`, `catalog.toml` overrides, forks `laputa-systems/oxish`, `laputa-systems/rage`, `laputa-systems/rustls`, `laputa-systems/rawzip`
+- **Problem:** The dashboard now leaves forks out because they keep upstream's choices, but `audit-banned` still fails them on upstream's dependencies: clap and tokio in oxish, rage, and rustls; criterion in rage, rustls, and rawzip; proptest in rage; h2 and atomic-waker in rustls. These findings will never be fixed in the fork, so they are permanent noise. deser and rawzip already carry per-crate exemptions for the same reason.
+- **Recommendation:** Skip `audit-banned` for repositories tagged `fork`, the way other fork-aware rules do, and drop the per-crate fork exemptions for deser and rawzip; keep `audit-vuln` and `audit-lock` for forks.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-45 · P3 · Blacklist intentional README omissions per repository
+
+- **Area:** Catalog policy
+- **Where:** `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/AGENTS.md`
+- **Problem:** The repo-template lint requires a human-written README for gh even though its repository instructions explicitly say the upstream README and documentation are intentionally removed from this fork.
+- **Recommendation:** Add a repository-specific `repo-template` lint blacklist entry for gh.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-63 · P3 · Move owned repositories from serde to deser
+
+- **Area:** Dependencies
+- **Where:** `Cargo.toml` in `joshuarli/defuddle-rs`, `joshuarli/ish`, `joshuarli/kache`, `joshuarli/obsidian-ferrisearch`, `joshuarli/shadowdriver`, `joshuarli/soulseek-rs`, `joshuarli/tansu`, `laputa-systems/h12tiny`, `laputa-systems/python-build`, `laputa-systems/rustybench`
+- **Problem:** deser is the preferred serialization stack, but these ten owned repositories still declare serde (fork repositories jaq, oxish, rg, rustls, and webpki also do). serde brings `serde_derive`, `syn`, and `proc-macro2` with it.
+- **Recommendation:** Migrate one repository at a time, starting with those where serde is only JSON (`deser-json`), and confirm on the Bloat page that the derive stack leaves the lockfile.
+- **Fix with:** none
+- **Effort:** L (weeks)
+
+### RPMD-70 · P3 · Prefer the Python standard library over third-party packages
+
+- **Area:** Dependencies
+- **Where:** `dependency-roles.toml`, `src/repomod/dependency_roles.py`, pyproject.toml in `joshuarli/toolbox`, `joshuarli/agent-memory`, `joshuarli/pytest-parallel`
+- **Problem:** Python repositories pull in third-party packages for jobs the standard library covers: HTTP (`httpx2`, `urllib3`, `truststore`), and possibly `idna` and `websockets`. The preference is to stay within the standard library, but roles can only name packages, so "use the standard library" cannot be preferred or flagged.
+- **Recommendation:** Let a role option stand for the standard library (an option with no packages, such as `stdlib = []`), add a Python HTTP role preferring it, then move each repository to `urllib.request` and `ssl` where it does not need HTTP/2 or connection pooling, and record exceptions with reasons where it does.
+- **Fix with:** none
+- **Effort:** M (days)
