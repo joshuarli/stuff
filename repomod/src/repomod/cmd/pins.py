@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -91,13 +92,21 @@ def _pins(args: argparse.Namespace) -> int:
     names = (args.only,) if args.only else _DOMAINS
     targets = _targets()
     with tempfile.TemporaryDirectory(prefix="pins-", dir=_scratch_directory()) as directory:
+        scratch = Path(directory)
         plans: list[tuple[str, _Plan]] = []
-        for name in names:
-            try:
-                plans.append((name, _plan(name, targets[name], Path(directory))))
-            except (OSError, UnicodeError, ValueError, RuntimeError) as error:
-                print(f"repomod: cannot refresh {name} pins: {error}", file=sys.stderr)
-                return 2
+        with ThreadPoolExecutor(
+            max_workers=len(names), thread_name_prefix="repomod-pins"
+        ) as pool:
+            futures = [
+                (name, pool.submit(_plan, name, targets[name], scratch))
+                for name in names
+            ]
+            for name, future in futures:
+                try:
+                    plans.append((name, future.result()))
+                except (OSError, UnicodeError, ValueError, RuntimeError) as error:
+                    print(f"repomod: cannot refresh {name} pins: {error}", file=sys.stderr)
+                    return 2
     for _, plan in plans:
         for observation in plan.observations:
             print(observation, file=sys.stderr)

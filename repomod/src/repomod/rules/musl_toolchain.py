@@ -8,6 +8,7 @@ import subprocess
 import tarfile
 import tomllib
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
@@ -512,11 +513,19 @@ def _channel_packages(branch: str, arch: str, approved: dict[str, str]) -> dict[
 
 
 def _apkindex_merged(repository: str, arch: str, wanted: set[str]) -> dict[str, str]:
+    components = ("main", "community")
+    with ThreadPoolExecutor(
+        max_workers=len(components), thread_name_prefix="repomod-apkindex"
+    ) as pool:
+        futures = {
+            component: pool.submit(_apkindex, f"{repository}/{component}", arch)
+            for component in components
+        }
+        sources = {component: futures[component].result() for component in components}
     merged: dict[str, str] = {}
-    for component in ("main", "community"):
-        source = _apkindex(f"{repository}/{component}", arch)
+    for component in components:
         for package in wanted:
-            version = source.get(package)
+            version = sources[component].get(package)
             if version is not None and package not in merged:
                 merged[package] = version
     return merged
@@ -608,11 +617,20 @@ def _branch_observation(branch: str) -> str:
 
 def _refreshed_channel(lock: MuslToolchain, name: str) -> Channel:
     channel = lock.channel(name)
-    digests = _inspect_image(channel.image)
-    release = _observe_release(channel.image)
-    packages = {
-        arch: _channel_packages(channel.branch, arch, channel.packages[arch]) for arch in _ARCHES
-    }
+    with ThreadPoolExecutor(
+        max_workers=4, thread_name_prefix="repomod-musl-channel"
+    ) as pool:
+        digests_future = pool.submit(_inspect_image, channel.image)
+        release_future = pool.submit(_observe_release, channel.image)
+        package_futures = {
+            arch: pool.submit(
+                _channel_packages, channel.branch, arch, channel.packages[arch]
+            )
+            for arch in _ARCHES
+        }
+        digests = digests_future.result()
+        release = release_future.result()
+        packages = {arch: package_futures[arch].result() for arch in _ARCHES}
     return replace(
         channel,
         index_digest=digests.index,
@@ -625,8 +643,19 @@ def _refreshed_channel(lock: MuslToolchain, name: str) -> Channel:
 def musl_toolchain_refresh_plan(path: Path | None = None) -> tuple[Path, str | None, tuple[str, ...]]:
     target = musl_toolchain_file() if path is None else path
     lock = load_musl_toolchain(target)
-    upstream_version, upstream_released = _latest_upstream_musl()
-    channels = {name: _refreshed_channel(lock, name) for name in _CHANNEL_NAMES}
+    with ThreadPoolExecutor(
+        max_workers=len(_CHANNEL_NAMES) + 2, thread_name_prefix="repomod-musl"
+    ) as pool:
+        upstream_future = pool.submit(_latest_upstream_musl)
+        channel_futures = {
+            name: pool.submit(_refreshed_channel, lock, name) for name in _CHANNEL_NAMES
+        }
+        observation_future = pool.submit(
+            _branch_observation, lock.channel("stable").branch
+        )
+        upstream_version, upstream_released = upstream_future.result()
+        channels = {name: channel_futures[name].result() for name in _CHANNEL_NAMES}
+        observations = (observation_future.result(),)
     refreshed = replace(
         lock,
         upstream_version=upstream_version,
@@ -636,7 +665,6 @@ def musl_toolchain_refresh_plan(path: Path | None = None) -> tuple[Path, str | N
     source = render_musl_toolchain(refreshed)
     if _parse_musl_toolchain(source) != refreshed:
         raise ValueError("rendered musl lock does not round-trip")
-    observations = (_branch_observation(channels["stable"].branch),)
     if source == target.read_text(encoding="utf-8"):
         return target, None, observations
     return target, source, observations

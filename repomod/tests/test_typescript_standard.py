@@ -389,15 +389,16 @@ def test_tool_pin_refresh_uses_official_current_stable_release_sources(
             {"version": "v27.0.0"},
         ]
     ).encode()
+    pnpm_index = json.dumps({"version": "12.15.0"}).encode()
+
+    def fake_urlopen(request: object, timeout: int) -> BytesIO:
+        url = getattr(request, "full_url", "")
+        if "pnpm" in url:
+            return BytesIO(pnpm_index)
+        return BytesIO(node_index)
+
     monkeypatch.setattr(
-        typescript_standard.urllib.request,
-        "urlopen",
-        lambda _request, timeout: BytesIO(node_index),
-    )
-    monkeypatch.setattr(
-        typescript_standard,
-        "action_tags_many",
-        lambda repositories, _prefix: {"pnpm/pnpm": ("v12.15.0", "v12.16.0-rc.0", "v11.28.8")},
+        typescript_standard.urllib.request, "urlopen", fake_urlopen
     )
 
     assert typescript_standard.refresh_typescript_tool_pins(pins_path)

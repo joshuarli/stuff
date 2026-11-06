@@ -6,12 +6,12 @@ import re
 import shlex
 import tomllib
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
 from repomod.catalog import write_if_changed
-from repomod.github import action_tags_many
 from repomod.io import read_json_object, safe_relative
 from repomod.rules.languages import _manifest_paths as _language_manifest_paths
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
@@ -55,6 +55,7 @@ _PNPM_PACKAGE_MANAGER_VERSION = re.compile(
     r"pnpm@(?P<version>v?(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))"
     r"(?:\+[0-9A-Za-z./+=-]+)?\Z"
 )
+_PNPM_LATEST = "https://registry.npmjs.org/pnpm/latest"
 _NODE_RELEASE_INDEX = "https://nodejs.org/dist/index.json"
 _APP_STACK = {
     "effect": 4,
@@ -138,15 +139,16 @@ def _latest_node_release() -> str:
 
 
 def _latest_pnpm_release() -> str:
-    tags = action_tags_many(("pnpm/pnpm",), "v").get("pnpm/pnpm", ())
-    candidates = [
-        (version, tag.removeprefix("v"))
-        for tag in tags
-        if (version := _release_version(tag)) is not None
-    ]
-    if not candidates:
-        raise ValueError("GitHub did not report a stable pnpm release")
-    return max(candidates)[1]
+    request = urllib.request.Request(_PNPM_LATEST, headers={"User-Agent": "repomod"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            document = json.loads(response.read().decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read the official pnpm release: {error}") from error
+    version = document.get("version") if isinstance(document, dict) else None
+    if not isinstance(version, str) or _release_version(version) is None:
+        raise ValueError("the official pnpm release has no stable version")
+    return str(version).removeprefix("v")
 
 
 def _render_typescript_tool_pins(pins: TypeScriptToolPins) -> str:
@@ -156,8 +158,11 @@ def _render_typescript_tool_pins(pins: TypeScriptToolPins) -> str:
 def refresh_typescript_tool_pins(path: Path | None = None) -> bool:
     target = typescript_tools_file() if path is None else path
     current = load_typescript_tool_pins(target)
-    node = _latest_node_release()
-    pnpm = _latest_pnpm_release()
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="repomod-ts-pins") as pool:
+        node_future = pool.submit(_latest_node_release)
+        pnpm_future = pool.submit(_latest_pnpm_release)
+        node = node_future.result()
+        pnpm = pnpm_future.result()
     for name, previous, latest in (
         ("Node.js", current.node, node),
         ("pnpm", current.pnpm, pnpm),
