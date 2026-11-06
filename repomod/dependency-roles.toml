@@ -1,10 +1,23 @@
-[http-client]
+[http]
 ecosystem = "cargo"
 preferred = "h12tiny"
 
-[http-client.options]
-h12tiny = ["h12tiny", "h12tiny-client-sync"]
+[http.options]
+h12tiny = [
+  "h12tiny",
+  "h12tiny-client",
+  "h12tiny-client-sync",
+  "h12tiny-core",
+  "h12tiny-server",
+  "h12tiny-tls-system",
+  "h12tiny-util",
+  "h12tiny-web",
+  "laputa-h2-futures-lite",
+  "laputa-hyper-futures-lite",
+  "laputa-fastwebsockets-futures-lite",
+]
 hyper = ["hyper", "hyper-util", "hyper-rustls", "smol-hyper"]
+h2 = ["h2"]
 reqwest = ["reqwest"]
 ureq = ["ureq"]
 surf = ["surf"]
@@ -12,6 +25,7 @@ isahc = ["isahc"]
 attohttpc = ["attohttpc"]
 curl = ["curl"]
 awc = ["awc"]
+tiny-http = ["tiny_http"]
 
 [cli-arguments]
 ecosystem = "cargo"
@@ -35,11 +49,62 @@ divan = ["divan"]
 
 [async-runtime]
 ecosystem = "cargo"
-preferred = "smol"
+preferred = "smolith"
 
 [async-runtime.options]
+smolith = [
+  "laputa-smol",
+  "laputa-smol-macros",
+  "laputa-async-broadcast",
+  "laputa-async-channel",
+  "laputa-async-dup",
+  "laputa-async-executor",
+  "laputa-async-fs",
+  "laputa-async-io",
+  "laputa-async-lock",
+  "laputa-async-net",
+  "laputa-async-process",
+  "laputa-async-signal",
+  "laputa-async-task",
+  "laputa-atomic-waker",
+  "laputa-blocking",
+  "laputa-concurrent-queue",
+  "laputa-easy-parallel",
+  "laputa-event-listener",
+  "laputa-event-listener-strategy",
+  "laputa-futures-lite",
+  "laputa-parking",
+  "laputa-piper",
+  "laputa-polling",
+  "laputa-waker-fn",
+]
+smol = [
+  "smol",
+  "smol-macros",
+  "async-broadcast",
+  "async-channel",
+  "async-dup",
+  "async-executor",
+  "async-fs",
+  "async-io",
+  "async-lock",
+  "async-net",
+  "async-process",
+  "async-signal",
+  "async-task",
+  "atomic-waker",
+  "blocking",
+  "concurrent-queue",
+  "easy-parallel",
+  "event-listener",
+  "event-listener-strategy",
+  "futures-lite",
+  "parking",
+  "piper",
+  "polling",
+  "waker-fn",
+]
 tokio = ["tokio", "tokio-util"]
-smol = ["smol", "futures-lite", "async-io", "async-executor"]
 async-std = ["async-std"]
 
 [serialization]
@@ -91,9 +156,10 @@ fxhash = ["fxhash"]
 
 [random]
 ecosystem = "cargo"
-preferred = "fastrand"
+preferred = "laputa-fastrand"
 
 [random.options]
+laputa-fastrand = ["laputa-fastrand", "laputa-fastrand-contrib"]
 fastrand = ["fastrand"]
 rand = ["rand"]
 
