@@ -91,15 +91,6 @@ Next: 71
 - **Fix with:** root-cause
 - **Effort:** S (hours)
 
-### RPMD-69 · P2 · Decide how the audit treats banned crates in fork repositories
-
-- **Area:** Config
-- **Where:** `src/repomod/rules/audit_findings.py`, `catalog.toml` overrides, forks `laputa-systems/oxish`, `laputa-systems/rage`, `laputa-systems/rustls`, `laputa-systems/rawzip`
-- **Problem:** The dashboard now leaves forks out because they keep upstream's choices, but `audit-banned` still fails them on upstream's dependencies: clap and tokio in oxish, rage, and rustls; criterion in rage, rustls, and rawzip; proptest in rage; h2 and atomic-waker in rustls. These findings will never be fixed in the fork, so they are permanent noise. deser and rawzip already carry per-crate exemptions for the same reason.
-- **Recommendation:** Skip `audit-banned` for repositories tagged `fork`, the way other fork-aware rules do, and drop the per-crate fork exemptions for deser and rawzip; keep `audit-vuln` and `audit-lock` for forks.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-45 · P3 · Blacklist intentional README omissions per repository
 
 - **Area:** Catalog policy

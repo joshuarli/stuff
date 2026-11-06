@@ -18,8 +18,12 @@ from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate, violation
 
 
-def _policy_rule(rule_id: str) -> Callable[[Path, Repository], list[Finding]]:
+def _policy_rule(
+    rule_id: str, *, skip_forks: bool = False
+) -> Callable[[Path, Repository], list[Finding]]:
     def check(root: Path, repository: Repository) -> list[Finding]:
+        if skip_forks and "fork" in repository.tags:
+            return []
         findings = cached(
             ("audit_policy", root, str(repository.id), repository.tags, repository.ignored_rules),
             lambda: _policy_findings(root, repository),
@@ -74,7 +78,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
             "audit-banned",
             "Reject banned dependencies and package managers",
             TagPredicate(),
-            _policy_rule("audit-banned"),
+            _policy_rule("audit-banned", skip_forks=True),
             None,
             None,
             (),

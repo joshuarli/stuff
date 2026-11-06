@@ -64,6 +64,8 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   clients (h12tiny). `fastrand` is not banned because common crates such as
   `tempfile` depend on it, and the `futures-core` and `futures-io` traits
   remain the interop layer.
+  Repositories tagged `fork` keep upstream's dependency choices and are not
+  checked for banned crates; their lockfiles and vulnerabilities still are.
   A repository with a target-specific transitive crate that is never compiled
   can exempt that crate with `audit-banned:transitive:NAME`; direct
   dependencies remain banned unless exempted with `audit-banned:direct:NAME`.

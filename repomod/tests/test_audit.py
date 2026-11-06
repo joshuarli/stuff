@@ -599,3 +599,17 @@ def test_audit_rules_cover_repositories_without_language_tags(tmp_path: Path) ->
     assert all(rule.applies_to.matches(untagged.tags) for rule in rules.values())
     findings = rules["audit-banned"].check(root, untagged)
     assert [finding.message for finding in findings] == ["remove proptest; use quickcheck instead"]
+
+
+def test_fork_repositories_keep_upstream_dependency_choices(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dependencies]\ntokio = "1"\n',
+        encoding="utf-8",
+    )
+    rules = {rule.id: rule for rule in audit_finding_rules()}
+    assert rules["audit-banned"].check(root, repository("fork", "rust")) == []
+    assert [finding.message for finding in rules["audit-banned"].check(root, repository("rust"))] == [
+        "remove tokio; use smolith instead"
+    ]
