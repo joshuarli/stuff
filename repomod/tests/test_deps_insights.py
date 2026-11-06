@@ -238,6 +238,29 @@ def test_complements_pass_only_alongside_the_preferred_option(tmp_path: Path) ->
     assert use.off_preferred == ("acme/bare", "acme/nix")
 
 
+def test_standard_library_preference_flags_every_third_party_option(tmp_path: Path) -> None:
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/requests", [instance(Ecosystem.PYPI, "requests", "2.0.0")]),
+        ],
+    )
+    roles = dependency_roles.parse_roles(
+        {
+            "python-http": {
+                "ecosystem": "pypi",
+                "preferred": "stdlib",
+                "options": {"stdlib": [], "requests": ["requests"], "httpx": ["httpx"]},
+            }
+        },
+        "roles.toml",
+    )
+    [use] = insights.role_uses(roles, insights.declarations(graph))
+    assert use.in_use == ("requests",)
+    assert use.off_preferred == ("acme/requests",)
+    assert use.overlapping == ()
+
+
 def test_role_exceptions_are_reported_apart_from_conflicts(tmp_path: Path) -> None:
     graph = build_graph(
         tmp_path,

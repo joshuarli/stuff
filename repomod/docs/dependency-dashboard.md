@@ -53,7 +53,10 @@ package names that mean a repository uses it. A complement is an option that may
 alongside the preferred one, such as `libc` next to `rustix` for calls rustix does not cover;
 it is flagged only in repositories that lack the preferred option. `exceptions` maps a
 repository to the reason it keeps a non-preferred option; Choices lists it with that reason
-instead of flagging it. `ban` maps an option to `exact` or `prefix`; the audit fails
+instead of flagging it. The preferred option may be an empty list, which stands for the
+standard library (`stdlib = []`): it is never in use itself, so every repository that declares
+any other option of the role is off preferred, and repositories that declare none are not
+counted. `ban` maps an option to `exact` or `prefix`; the audit fails
 repositories that depend on a banned option's crates (see [audit](audit.md)).
 
 Repositories tagged `fork` keep upstream's dependency choices. Outdated, Bloat, Alignment,

@@ -335,3 +335,16 @@ preferred = "cachix"
 [nix-installer.options]
 cachix = ["cachix/install-nix-action"]
 determinate = ["determinatesystems/nix-installer-action"]
+
+[python-http]
+ecosystem = "pypi"
+preferred = "stdlib"
+
+[python-http.options]
+stdlib = []
+httpx = ["httpx", "httpx2", "httpcore", "httpcore2", "h2", "h11"]
+requests = ["requests"]
+urllib3 = ["urllib3"]
+aiohttp = ["aiohttp"]
+websockets = ["websockets"]
+truststore = ["truststore", "wassima"]

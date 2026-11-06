@@ -62,3 +62,17 @@ def test_curated_bans_keep_the_fleet_policy() -> None:
     for name in ("lexopt", "laputa-smol", "parking_lot", "quickcheck", "rustybench", "h12tiny",
                  "laputa-hyper-futures-lite", "fastrand"):
         assert find_ban(roles, Ecosystem.CARGO, name) is None, name
+
+
+def test_only_the_preferred_option_may_stand_for_the_standard_library() -> None:
+    options = {"stdlib": [], "requests": ["requests"], "httpx": ["httpx"]}
+    [role] = parse_roles(
+        {"python-http": {"ecosystem": "pypi", "preferred": "stdlib", "options": options}},
+        "roles.toml",
+    )
+    assert role.options["stdlib"] == frozenset()
+    with pytest.raises(ValueError, match="only the preferred option"):
+        parse_roles(
+            {"python-http": {"ecosystem": "pypi", "preferred": "requests", "options": options}},
+            "roles.toml",
+        )

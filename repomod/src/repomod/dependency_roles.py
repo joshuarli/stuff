@@ -83,8 +83,8 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
             ecosystem = Ecosystem(table.get("ecosystem"))
         except ValueError as error:
             raise ValueError(f"{source} [{name}] has an unknown ecosystem") from error
-        options = _options(table.get("options"), name, source)
         preferred = table.get("preferred")
+        options = _options(table.get("options"), name, source, preferred)
         if preferred is not None and preferred not in options:
             raise ValueError(f"{source} [{name}] prefers {preferred!r}, which is not an option")
         complements = table.get("complements", [])
@@ -113,18 +113,21 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
     return tuple(roles)
 
 
-def _options(raw: object, name: str, source: str) -> dict[str, frozenset[str]]:
+def _options(raw: object, name: str, source: str, preferred: object) -> dict[str, frozenset[str]]:
     if not isinstance(raw, dict) or len(raw) < 2:
         raise ValueError(f"{source} [{name}.options] must name at least two options")
     options: dict[str, frozenset[str]] = {}
     seen: dict[str, str] = {}
     for option, packages in cast(Mapping[str, object], raw).items():
-        if (
-            not isinstance(packages, list)
-            or not packages
-            or not all(isinstance(item, str) and item for item in packages)
+        if not isinstance(packages, list) or not all(
+            isinstance(item, str) and item for item in packages
         ):
             raise ValueError(f"{source} [{name}.options] {option} must list package names")
+        if not packages and option != preferred:
+            raise ValueError(
+                f"{source} [{name}.options] {option} is empty; "
+                "only the preferred option may stand for the standard library"
+            )
         for package in cast(list[str], packages):
             if package in seen:
                 raise ValueError(
