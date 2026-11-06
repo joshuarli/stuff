@@ -13,8 +13,8 @@ from repomod.dependencies.model import (
     Edge,
     Instance,
     Issue,
-    Project,
     Relation,
+    RepositoryData,
     Resolution,
     Scope,
     SourceKind,
@@ -33,11 +33,6 @@ def report(
         if selected is None or name.casefold() in selected
     )
     selected_names = {name.casefold() for name in names}
-    projects = {
-        project_id: project
-        for project_id, project in graph.projects.items()
-        if graph.project_repositories[project_id].casefold() in selected_names
-    }
     instances = {
         instance_id: instance
         for instance_id, instance in graph.instances.items()
@@ -59,9 +54,10 @@ def report(
     issues = tuple(
         issue for name in names for issue in graph.repositories[name].issues
     )
+    data = tuple(graph.repositories[name] for name in names)
     return {
         "repositories": list(names),
-        "composition": _composition(names, projects, instances, edges, component_of),
+        "composition": _composition(names, data, instances, edges, component_of),
         "concentration": _concentration(graph, names, instances, edges, component_of, top),
         "divergence": _divergence(graph, instances, edges, component_of),
         "source_risk": _source_risk(instances, edges, component_of, issues),
@@ -109,7 +105,7 @@ def _component(
 
 def _composition(
     names: Iterable[str],
-    projects: Mapping[str, Project],
+    data: tuple[RepositoryData, ...],
     instances: Mapping[str, Instance],
     edges: tuple[Edge, ...],
     component_of: Mapping[str, Component | None],
@@ -125,6 +121,11 @@ def _composition(
         for instance in instances.values()
         if instance.version is not None
     }
+    projects = 0
+    instance_records = 0
+    for repository in data:
+        projects += len(repository.projects)
+        instance_records += len(repository.instances)
     direct = sum(1 for edge in edges if edge.relation is Relation.DIRECT)
     transitive = sum(1 for edge in edges if edge.relation is Relation.TRANSITIVE)
     ecosystems: dict[str, dict[str, Metric]] = {}
@@ -134,39 +135,44 @@ def _composition(
             for component in components.values()
             if component.ecosystem is ecosystem
         }
-        ecosystem_instances: list[Instance] = []
-        for instance in instances.values():
-            component = _component(component_of, instance.id)
-            if component is not None and component.ecosystem is ecosystem:
-                ecosystem_instances.append(instance)
-        if not ecosystem_components and not ecosystem_instances:
-            continue
-        ecosystem_versions = {
-            (instance.component, instance.version)
-            for instance in ecosystem_instances
-            if instance.version is not None
-        }
+        ecosystem_instances = 0
+        ecosystem_projects = 0
+        ecosystem_versions: set[tuple[str, str | None]] = set()
+        for repository in data:
+            for project in repository.projects:
+                if project.ecosystem is ecosystem:
+                    ecosystem_projects += 1
+            for instance in repository.instances:
+                component = _component(component_of, instance.id)
+                if component is None or component.ecosystem is not ecosystem:
+                    continue
+                ecosystem_instances += 1
+                if instance.version is not None:
+                    ecosystem_versions.add((instance.component, instance.version))
         ecosystem_edges = 0
         for edge in edges:
             component = _component(component_of, edge.to_id)
             if component is not None and component.ecosystem is ecosystem:
                 ecosystem_edges += 1
+        if not ecosystem_components and not ecosystem_instances and not ecosystem_projects:
+            continue
         ecosystems[ecosystem.value] = {
+            "projects": _metric(ecosystem_projects, "projects", "all projects"),
             "package_names": _metric(
                 len(ecosystem_components), "package names", "all package names"
             ),
             "name_versions": _metric(
                 len(ecosystem_versions), "name@version", "all name@version pairs"
             ),
-            "instances": _metric(len(ecosystem_instances), "instances", "all instances"),
+            "instances": _metric(ecosystem_instances, "instances", "all instances"),
             "edges": _metric(ecosystem_edges, "edges", "all edges"),
         }
     return {
         "repositories": _metric(len(repositories), "repositories", "selected repositories"),
-        "projects": _metric(len(projects), "projects", "selected repositories"),
+        "projects": _metric(projects, "projects", "selected repositories"),
         "package_names": _metric(len(components), "package names", "selected repositories"),
         "name_versions": _metric(len(versions), "name@version", "selected repositories"),
-        "instances": _metric(len(instances), "instances", "selected repositories"),
+        "instances": _metric(instance_records, "instances", "selected repositories"),
         "direct_edges": _metric(direct, "edges", "all edges"),
         "transitive_edges": _metric(transitive, "edges", "all edges"),
         "ecosystems": ecosystems,
