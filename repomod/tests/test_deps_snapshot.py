@@ -279,36 +279,28 @@ def test_vendored_tree_with_manifest_has_no_vendored_issue(
     inspection = inspect_repository(catalog, catalog.repositories[0])
 
     kinds = [issue.kind for issue in inspection.data.issues]
-    assert kinds == [CoverageKind.UNSUPPORTED_FORMAT]
-    assert inspection.data.issues[0].path == "vendor/foo/Cargo.toml"
+    assert CoverageKind.VENDORED_UNKNOWN not in kinds
+    assert [item.path for item in inspection.data.inputs] == ["vendor/foo/Cargo.toml"]
 
 
-def test_recognized_inputs_are_unsupported_until_an_adapter_lands(
+def test_detection_only_formats_report_unsupported_format(
     tmp_path: Path, git_environment: None
 ) -> None:
     files = {
-        "Cargo.toml": "[package]\nname = \"tool\"\n",
-        "Cargo.lock": "version = 4\n",
-        "pyproject.toml": "[project]\nname = \"tool\"\n",
-        "uv.lock": "version = 1\n",
-        "requirements-dev.txt": "packaging\n",
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-        "package-lock.json": "{\"lockfileVersion\": 3}\n",
-        "package.json": "{\"packageManager\": \"pnpm@10.0.0\"}\n",
-        "go.mod": "module example.com/tool\n",
-        "go.sum": "",
-        "Package.swift": "// swift-tools-version: 6.0\n",
-        "Package.resolved": "{\"version\": 3}\n",
-        "build.zig.zon": ".{\n}\n",
-        ".github/workflows/ci.yml": "on: push\n",
-        "Dockerfile": "FROM alpine:3.24\n",
-        "docker/linux-musl.Dockerfile": "FROM alpine:3.24\n",
-        ".gitmodules": "[submodule \"x\"]\n",
-        "CMakeLists.txt": "cmake_minimum_required(VERSION 3.30)\n",
-        "wrangler.test.jsonc": "{}\n",
-        "rust-toolchain.toml": "[toolchain]\nchannel = \"nightly\"\n",
-        "Makefile": "all:\n",
+        "meson.build": "project('tool')\n",
+        "conanfile.py": "from conan import ConanFile\n",
+        "conanfile.txt": "[requires]\n",
+        "vcpkg.json": "{}\n",
+        "module.pc": "Name: module\n",
         "flake.nix": "{}\n",
+        "Makefile": "all:\n",
+        "GNUmakefile": "all:\n",
+        "build.gradle": "plugins {}\n",
+        "build.gradle.kts": "plugins {}\n",
+        "settings.gradle": "rootProject.name = 'tool'\n",
+        "settings.gradle.kts": "rootProject.name = \"tool\"\n",
+        "pom.xml": "<project/>\n",
+        "Gemfile": "source 'https://rubygems.org'\n",
     }
     _checkout(tmp_path, "tool", {**files, "README.md": "x\n"})
     catalog = _one_repo(tmp_path)
@@ -321,6 +313,7 @@ def test_recognized_inputs_are_unsupported_until_an_adapter_lands(
     unsupported = [issue for issue in inspection.data.issues if issue.kind is CoverageKind.UNSUPPORTED_FORMAT]
     assert len(unsupported) == len(files)
     assert {issue.path for issue in unsupported} == set(files)
+    assert {item.path for item in inspection.data.inputs} == set(files)
 
 
 def test_repository_without_inputs_is_complete(
@@ -338,13 +331,60 @@ def test_repository_without_inputs_is_complete(
 
 
 def test_discovery_classifies_real_input_names() -> None:
-    assert classify("Cargo.toml") is not None
-    assert classify("crates/foo/Cargo.toml") is not None
-    assert classify("requirements-dev.txt") is not None
-    assert classify(".github/workflows/ci.yml") is not None
+    recognized = (
+        "Cargo.toml",
+        "crates/foo/Cargo.toml",
+        "Cargo.lock",
+        "pyproject.toml",
+        "uv.lock",
+        "requirements-dev.txt",
+        "pnpm-lock.yaml",
+        "package-lock.json",
+        "package.json",
+        "yarn.lock",
+        "bun.lock",
+        "bun.lockb",
+        "go.mod",
+        "go.sum",
+        "go.work",
+        "Package.swift",
+        "Package.resolved",
+        "build.zig.zon",
+        "rust-toolchain.toml",
+        ".node-version",
+        ".python-version",
+        ".tool-versions",
+        ".nvmrc",
+        ".gitmodules",
+        "CMakeLists.txt",
+        "wrangler.toml",
+        "wrangler.json",
+        "wrangler.jsonc",
+        "wrangler.test.jsonc",
+        ".github/workflows/ci.yml",
+        ".github/workflows/ci.yaml",
+        "Dockerfile",
+        "docker/linux-musl.Dockerfile",
+        "Dockerfile.alpine",
+        "src/module.pc",
+        "meson.build",
+        "conanfile.py",
+        "conanfile.txt",
+        "vcpkg.json",
+        "flake.nix",
+        "Makefile",
+        "makefile",
+        "GNUmakefile",
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+        "pom.xml",
+        "Gemfile",
+    )
+    for path in recognized:
+        assert classify(path) is not None, path
     assert classify(".github/workflows/nested/ci.yml") is None
-    assert classify("docker/linux-musl.Dockerfile") is not None
-    assert classify("vendor/foo/build.gradle") is not None
     assert classify("src/main.rs") is None
     assert classify("README.md") is None
 
