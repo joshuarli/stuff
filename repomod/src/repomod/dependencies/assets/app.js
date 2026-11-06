@@ -1,184 +1,300 @@
-(function () {
-  "use strict";
-  function pageData() {
-    var node = document.getElementById("page-data");
-    if (!node) return {};
-    try {
-      return JSON.parse(node.textContent || "{}");
-    } catch (error) {
-      return {};
+"use strict";
+(() => {
+    "use strict";
+    function recordValue(value) {
+        if (typeof value !== "object" || value === null || Array.isArray(value))
+            return undefined;
+        return value;
     }
-  }
-  var data = pageData();
-  var page = document.body.getAttribute("data-page") || "";
-  var prefix = document.body.getAttribute("data-prefix") || "";
-
-  document.addEventListener("keydown", function (event) {
-    var target = event.target;
-    var typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-    if (event.key === "/" && !typing) {
-      var search = document.getElementById("search");
-      if (search) {
-        event.preventDefault();
-        search.focus();
-      }
-      return;
+    function stringList(value) {
+        if (!Array.isArray(value))
+            return undefined;
+        const items = [];
+        for (const item of value) {
+            if (typeof item === "string")
+                items.push(item);
+        }
+        return items;
     }
-    if (typing) return;
-    if (event.key === "j" || event.key === "k") {
-      var rows = Array.prototype.slice.call(document.querySelectorAll("tr[data-row], .row[data-row]"));
-      if (!rows.length) return;
-      event.preventDefault();
-      var index = rows.findIndex(function (row) { return row.classList.contains("selected"); });
-      var next = index < 0 ? 0 : event.key === "j" ? Math.min(rows.length - 1, index + 1) : Math.max(0, index - 1);
-      rows.forEach(function (row) { row.classList.remove("selected"); });
-      rows[next].classList.add("selected");
-      rows[next].scrollIntoView({ block: "nearest" });
+    function decodeLandscape(record) {
+        const membership = {};
+        const rawMembership = recordValue(record["membership"]);
+        if (rawMembership !== undefined) {
+            for (const [purl, raw] of Object.entries(rawMembership)) {
+                const entry = recordValue(raw);
+                if (entry === undefined)
+                    continue;
+                const direct = stringList(entry["direct"]);
+                const transitive = stringList(entry["transitive"]);
+                membership[purl] = {
+                    ...(direct === undefined ? {} : { direct }),
+                    ...(transitive === undefined ? {} : { transitive }),
+                };
+            }
+        }
+        const labels = {};
+        const rawLabels = recordValue(record["labels"]);
+        if (rawLabels !== undefined) {
+            for (const [purl, label] of Object.entries(rawLabels)) {
+                if (typeof label === "string")
+                    labels[purl] = label;
+            }
+        }
+        return { membership, labels };
     }
-    if (event.key === "Enter" && !typing) {
-      var selected = document.querySelector(".selected[data-href]");
-      if (selected) window.location.href = selected.getAttribute("data-href");
+    function pageData() {
+        const node = document.getElementById("page-data");
+        if (node === null)
+            return {};
+        try {
+            const parsed = JSON.parse(node.textContent ?? "{}");
+            const record = recordValue(parsed);
+            return record === undefined ? {} : decodeLandscape(record);
+        }
+        catch {
+            return {};
+        }
     }
-  });
-
-  document.addEventListener("click", function (event) {
-    var button = event.target.closest("[data-copy]");
-    if (!button) return;
-    var value = button.getAttribute("data-copy") || "";
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value).then(function () {
-        button.setAttribute("data-copied", "1");
-        button.textContent = "copied";
-        window.setTimeout(function () {
-          button.removeAttribute("data-copied");
-          button.textContent = "copy";
-        }, 1200);
-      });
-    }
-  });
-
-  var input = document.getElementById("search");
-  var results = document.getElementById("search-results");
-  function closeResults() {
-    if (!results) return;
-    results.innerHTML = "";
-    results.style.display = "none";
-  }
-  function renderResults() {
-    if (!input || !results || typeof window.searchDeps !== "function") return;
-    var found = window.searchDeps(input.value);
-    results.innerHTML = "";
-    if (!found.length) {
-      closeResults();
-      return;
-    }
-    found.forEach(function (entry) {
-      var row = document.createElement("div");
-      var link = document.createElement("a");
-      link.href = prefix + "packages.html#pkg=" + encodeURIComponent(entry.purl);
-      link.textContent = entry.label + " @ " + entry.ecosystem;
-      var meta = document.createElement("span");
-      meta.className = "meta";
-      meta.textContent = "  " + entry.purl;
-      link.appendChild(meta);
-      row.appendChild(link);
-      if (page === "landscape") {
-        var add = document.createElement("button");
-        add.type = "button";
-        add.textContent = "+ column";
-        add.setAttribute("data-add-column", entry.purl);
-        row.appendChild(add);
-      }
-      results.appendChild(row);
+    const data = pageData();
+    const page = document.body.getAttribute("data-page") ?? "";
+    const prefix = document.body.getAttribute("data-prefix") ?? "";
+    document.addEventListener("keydown", (event) => {
+        const target = event.target;
+        const typing = target instanceof HTMLElement &&
+            (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+        if (event.key === "/" && !typing) {
+            const search = document.getElementById("search");
+            if (search !== null) {
+                event.preventDefault();
+                search.focus();
+            }
+            return;
+        }
+        if (typing)
+            return;
+        if (event.key === "j" || event.key === "k") {
+            const rows = Array.from(document.querySelectorAll("tr[data-row], .row[data-row]"));
+            if (rows.length === 0)
+                return;
+            event.preventDefault();
+            const index = rows.findIndex((row) => row.classList.contains("selected"));
+            const next = index < 0 ? 0 : event.key === "j" ? Math.min(rows.length - 1, index + 1) : Math.max(0, index - 1);
+            for (const row of rows)
+                row.classList.remove("selected");
+            const selected = rows[next];
+            if (selected === undefined)
+                return;
+            selected.classList.add("selected");
+            selected.scrollIntoView({ block: "nearest" });
+        }
+        if (event.key === "Enter" && !typing) {
+            const selected = document.querySelector(".selected[data-href]");
+            if (selected !== null) {
+                const href = selected.getAttribute("data-href");
+                if (href !== null)
+                    window.location.href = href;
+            }
+        }
     });
-    results.style.display = "block";
-  }
-  if (input) {
-    input.addEventListener("input", renderResults);
-    input.addEventListener("focus", renderResults);
-    document.addEventListener("click", function (event) {
-      if (event.target === input || (results && results.contains(event.target))) return;
-      closeResults();
+    document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element))
+            return;
+        const button = target.closest("[data-copy]");
+        if (button === null)
+            return;
+        const value = button.getAttribute("data-copy") ?? "";
+        const clipboard = navigator.clipboard;
+        if (clipboard === undefined)
+            return;
+        void clipboard.writeText(value).then(() => {
+            button.setAttribute("data-copied", "1");
+            button.textContent = "copied";
+            window.setTimeout(() => {
+                button.removeAttribute("data-copied");
+                button.textContent = "copy";
+            }, 1200);
+        }, () => undefined);
     });
-  }
-
-  function routePackage() {
-    if (page !== "packages") return;
-    var sections = Array.prototype.slice.call(document.querySelectorAll(".package"));
-    var list = document.getElementById("package-index");
-    var match = null;
-    var hash = window.location.hash || "";
-    if (hash.indexOf("#pkg=") === 0) {
-      var wanted = decodeURIComponent(hash.slice(5));
-      sections.forEach(function (section) {
-        var active = section.getAttribute("data-purl") === wanted;
-        section.classList.toggle("active", active);
-        if (active) match = section;
-      });
+    const input = document.querySelector("#search");
+    const results = document.querySelector("#search-results");
+    function closeResults() {
+        if (results === null)
+            return;
+        results.innerHTML = "";
+        results.style.display = "none";
     }
-    if (list) list.style.display = match ? "none" : "block";
-    if (match) match.scrollIntoView({ block: "start" });
-  }
-  window.addEventListener("hashchange", routePackage);
-  routePackage();
-
-  function sortRows(key, direction) {
-    var table = document.querySelector("table.landscape");
-    if (!table) return;
-    var body = table.tBodies[0];
-    var rows = Array.prototype.slice.call(body.rows);
-    rows.sort(function (left, right) {
-      var a = left.getAttribute("data-" + key) || "";
-      var b = right.getAttribute("data-" + key) || "";
-      if (key === "commonality" || key === "coverage") {
-        a = Number(a);
-        b = Number(b);
-      }
-      if (a < b) return direction === "asc" ? -1 : 1;
-      if (a > b) return direction === "asc" ? 1 : -1;
-      return (left.getAttribute("data-repo") || "").localeCompare(right.getAttribute("data-repo") || "");
+    function renderResults() {
+        if (input === null || results === null)
+            return;
+        const search = window.searchDeps;
+        if (typeof search !== "function")
+            return;
+        const found = search(input.value);
+        results.innerHTML = "";
+        if (found.length === 0) {
+            closeResults();
+            return;
+        }
+        for (const entry of found) {
+            const row = document.createElement("div");
+            const link = document.createElement("a");
+            link.href = prefix + "packages.html#pkg=" + encodeURIComponent(entry.purl);
+            link.textContent = entry.label + " @ " + entry.ecosystem;
+            const meta = document.createElement("span");
+            meta.className = "meta";
+            meta.textContent = "  " + entry.purl;
+            link.appendChild(meta);
+            row.appendChild(link);
+            if (page === "landscape") {
+                const add = document.createElement("button");
+                add.type = "button";
+                add.textContent = "+ column";
+                add.setAttribute("data-add-column", entry.purl);
+                row.appendChild(add);
+            }
+            results.appendChild(row);
+        }
+        results.style.display = "block";
+    }
+    if (input !== null) {
+        input.addEventListener("input", renderResults);
+        input.addEventListener("focus", renderResults);
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (target === input)
+                return;
+            if (results !== null && target instanceof Node && results.contains(target))
+                return;
+            closeResults();
+        });
+    }
+    function routePackage() {
+        if (page !== "packages")
+            return;
+        const sections = Array.from(document.querySelectorAll(".package"));
+        const list = document.getElementById("package-index");
+        let match = null;
+        const hash = window.location.hash || "";
+        let wanted = null;
+        if (hash.startsWith("#pkg=")) {
+            try {
+                wanted = decodeURIComponent(hash.slice(5));
+            }
+            catch {
+                wanted = null;
+            }
+        }
+        for (const section of sections) {
+            const active = wanted !== null && section.getAttribute("data-purl") === wanted;
+            section.classList.toggle("active", active);
+            if (active)
+                match = section;
+        }
+        if (list !== null)
+            list.style.display = match !== null ? "none" : "block";
+        if (match !== null)
+            match.scrollIntoView({ block: "start" });
+    }
+    window.addEventListener("hashchange", routePackage);
+    routePackage();
+    function sortRows(key, direction) {
+        const table = document.querySelector("table.landscape");
+        if (table === null)
+            return;
+        const body = table.tBodies[0];
+        if (body === undefined)
+            return;
+        const rows = Array.from(body.rows);
+        rows.sort((left, right) => {
+            const leftValue = left.getAttribute("data-" + key) ?? "";
+            const rightValue = right.getAttribute("data-" + key) ?? "";
+            let comparison;
+            if (key === "commonality" || key === "coverage") {
+                comparison = Number(leftValue) - Number(rightValue);
+            }
+            else if (leftValue < rightValue) {
+                comparison = -1;
+            }
+            else if (leftValue > rightValue) {
+                comparison = 1;
+            }
+            else {
+                comparison = 0;
+            }
+            if (comparison !== 0)
+                return direction === "asc" ? comparison : -comparison;
+            return (left.getAttribute("data-repo") ?? "").localeCompare(right.getAttribute("data-repo") ?? "");
+        });
+        for (const row of rows)
+            body.appendChild(row);
+    }
+    document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element))
+            return;
+        const button = target.closest("[data-sort]");
+        if (button === null)
+            return;
+        const key = button.getAttribute("data-sort");
+        if (key === null)
+            return;
+        const direction = button.getAttribute("data-direction") === "asc" ? "desc" : "asc";
+        for (const item of document.querySelectorAll("[data-sort]")) {
+            item.removeAttribute("data-direction");
+        }
+        button.setAttribute("data-direction", direction);
+        sortRows(key, direction);
     });
-    rows.forEach(function (row) { body.appendChild(row); });
-  }
-  document.addEventListener("click", function (event) {
-    var button = event.target.closest("[data-sort]");
-    if (!button) return;
-    var key = button.getAttribute("data-sort");
-    var direction = button.getAttribute("data-direction") === "asc" ? "desc" : "asc";
-    Array.prototype.forEach.call(document.querySelectorAll("[data-sort]"), function (item) {
-      item.removeAttribute("data-direction");
+    window.addLandscapeColumn = (purl) => {
+        const table = document.querySelector("table.landscape");
+        const membershipMap = data.membership;
+        if (table === null || membershipMap === undefined)
+            return;
+        const head = table.tHead;
+        if (head === null)
+            return;
+        const header = head.rows[0];
+        if (header === undefined)
+            return;
+        const body = table.tBodies[0];
+        if (body === undefined)
+            return;
+        const label = data.labels?.[purl] ?? purl;
+        const th = document.createElement("th");
+        th.className = "rotate";
+        th.textContent = label;
+        header.appendChild(th);
+        const membership = membershipMap[purl];
+        for (const row of Array.from(body.rows)) {
+            const repo = row.getAttribute("data-repo");
+            if (repo === null)
+                continue;
+            const cell = document.createElement("td");
+            cell.className = "cell";
+            if (membership?.direct?.includes(repo) === true) {
+                cell.className = "cell direct";
+                cell.title = "direct";
+            }
+            else if (membership?.transitive?.includes(repo) === true) {
+                cell.className = "cell transitive";
+                cell.title = "transitive";
+            }
+            row.appendChild(cell);
+        }
+    };
+    document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element))
+            return;
+        const button = target.closest("[data-add-column]");
+        if (button === null)
+            return;
+        const purl = button.getAttribute("data-add-column");
+        if (purl === null)
+            return;
+        const add = window.addLandscapeColumn;
+        if (typeof add === "function")
+            add(purl);
     });
-    button.setAttribute("data-direction", direction);
-    sortRows(key, direction);
-  });
-
-  window.addLandscapeColumn = function (purl) {
-    var table = document.querySelector("table.landscape");
-    if (!table || !data.membership) return;
-    var header = table.tHead.rows[0];
-    var label = (data.labels && data.labels[purl]) || purl;
-    var th = document.createElement("th");
-    th.className = "rotate";
-    th.textContent = label;
-    header.appendChild(th);
-    var membership = data.membership[purl] || {};
-    Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
-      var repo = row.getAttribute("data-repo");
-      var cell = document.createElement("td");
-      cell.className = "cell";
-      if ((membership.direct || []).indexOf(repo) >= 0) {
-        cell.className = "cell direct";
-        cell.title = "direct";
-      } else if ((membership.transitive || []).indexOf(repo) >= 0) {
-        cell.className = "cell transitive";
-        cell.title = "transitive";
-      }
-      row.appendChild(cell);
-    });
-  };
-  document.addEventListener("click", function (event) {
-    var button = event.target.closest("[data-add-column]");
-    if (!button) return;
-    window.addLandscapeColumn(button.getAttribute("data-add-column"));
-  });
 })();

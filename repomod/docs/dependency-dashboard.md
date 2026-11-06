@@ -61,6 +61,13 @@ uv run repomod deps render
 The renderer refuses to replace a directory that lacks its `.repomod-dashboard` marker, so a
 mistyped `--output` cannot delete unrelated files.
 
+## Source and verification
+
+The browser scripts are TypeScript under `src/repomod/dependencies/dashboard_ts/` and compile to
+`assets/app.js` and `assets/search.js` with `tsrs` (TypeScript 7.1). `make dashboard-ts` verifies a
+frozen pnpm install, type-checks, lints with Oxlint, rebuilds, and fails if the committed
+JavaScript is stale. `make deps` only renders and serves; it does not run Node.
+
 ## Budgets and verification
 
 The site must stay under 10 MB. The current fleet is 58 pages and about 9.9 MB. The overview

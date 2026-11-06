@@ -162,6 +162,7 @@ uv run repomod deps render
 
 For a local server, `make deps` renders the dashboard and serves it at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
+The dashboard scripts are TypeScript; run `make dashboard-ts` after editing them.
 
 See [dependency inventory](docs/dependency-inventory.md) for the data layout, coverage kinds,
 update flow, and limits. Open the generated dashboard with
