@@ -61,24 +61,6 @@
    "purl": "pkg:cargo/arrayvec"
   },
   {
-   "display_name": "autocfg",
-   "ecosystem": "cargo",
-   "name": "autocfg",
-   "purl": "pkg:cargo/autocfg"
-  },
-  {
-   "display_name": "bit-set",
-   "ecosystem": "cargo",
-   "name": "bit-set",
-   "purl": "pkg:cargo/bit-set"
-  },
-  {
-   "display_name": "bit-vec",
-   "ecosystem": "cargo",
-   "name": "bit-vec",
-   "purl": "pkg:cargo/bit-vec"
-  },
-  {
    "display_name": "bitflags",
    "ecosystem": "cargo",
    "name": "bitflags",
@@ -101,18 +83,6 @@
    "ecosystem": "cargo",
    "name": "errno",
    "purl": "pkg:cargo/errno"
-  },
-  {
-   "display_name": "fastrand",
-   "ecosystem": "cargo",
-   "name": "fastrand",
-   "purl": "pkg:cargo/fastrand"
-  },
-  {
-   "display_name": "fnv",
-   "ecosystem": "cargo",
-   "name": "fnv",
-   "purl": "pkg:cargo/fnv"
   },
   {
    "display_name": "foldhash",
@@ -217,24 +187,6 @@
    "purl": "pkg:cargo/miniserde"
   },
   {
-   "display_name": "num-traits",
-   "ecosystem": "cargo",
-   "name": "num-traits",
-   "purl": "pkg:cargo/num-traits"
-  },
-  {
-   "display_name": "once_cell",
-   "ecosystem": "cargo",
-   "name": "once_cell",
-   "purl": "pkg:cargo/once_cell"
-  },
-  {
-   "display_name": "ppv-lite86",
-   "ecosystem": "cargo",
-   "name": "ppv-lite86",
-   "purl": "pkg:cargo/ppv-lite86"
-  },
-  {
    "display_name": "prettyplease",
    "ecosystem": "cargo",
    "name": "prettyplease",
@@ -247,16 +199,10 @@
    "purl": "pkg:cargo/proc-macro2"
   },
   {
-   "display_name": "proptest",
+   "display_name": "quickcheck",
    "ecosystem": "cargo",
-   "name": "proptest",
-   "purl": "pkg:cargo/proptest"
-  },
-  {
-   "display_name": "quick-error",
-   "ecosystem": "cargo",
-   "name": "quick-error",
-   "purl": "pkg:cargo/quick-error"
+   "name": "quickcheck",
+   "purl": "pkg:cargo/quickcheck"
   },
   {
    "display_name": "quote",
@@ -277,34 +223,16 @@
    "purl": "pkg:cargo/rand"
   },
   {
-   "display_name": "rand_chacha",
-   "ecosystem": "cargo",
-   "name": "rand_chacha",
-   "purl": "pkg:cargo/rand_chacha"
-  },
-  {
    "display_name": "rand_core",
    "ecosystem": "cargo",
    "name": "rand_core",
    "purl": "pkg:cargo/rand_core"
   },
   {
-   "display_name": "rand_xorshift",
-   "ecosystem": "cargo",
-   "name": "rand_xorshift",
-   "purl": "pkg:cargo/rand_xorshift"
-  },
-  {
    "display_name": "regex-lite",
    "ecosystem": "cargo",
    "name": "regex-lite",
    "purl": "pkg:cargo/regex-lite"
-  },
-  {
-   "display_name": "regex-syntax",
-   "ecosystem": "cargo",
-   "name": "regex-syntax",
-   "purl": "pkg:cargo/regex-syntax"
   },
   {
    "display_name": "rustc-hash",
@@ -317,12 +245,6 @@
    "ecosystem": "cargo",
    "name": "rustix",
    "purl": "pkg:cargo/rustix"
-  },
-  {
-   "display_name": "rusty-fork",
-   "ecosystem": "cargo",
-   "name": "rusty-fork",
-   "purl": "pkg:cargo/rusty-fork"
   },
   {
    "display_name": "rustybench",
@@ -373,18 +295,6 @@
    "purl": "pkg:cargo/syn"
   },
   {
-   "display_name": "tempfile",
-   "ecosystem": "cargo",
-   "name": "tempfile",
-   "purl": "pkg:cargo/tempfile"
-  },
-  {
-   "display_name": "unarray",
-   "ecosystem": "cargo",
-   "name": "unarray",
-   "purl": "pkg:cargo/unarray"
-  },
-  {
    "display_name": "unicode-ident",
    "ecosystem": "cargo",
    "name": "unicode-ident",
@@ -413,12 +323,6 @@
    "ecosystem": "cargo",
    "name": "vte",
    "purl": "pkg:cargo/vte"
-  },
-  {
-   "display_name": "wait-timeout",
-   "ecosystem": "cargo",
-   "name": "wait-timeout",
-   "purl": "pkg:cargo/wait-timeout"
   },
   {
    "display_name": "wasip2",
@@ -497,18 +401,6 @@
    "ecosystem": "cargo",
    "name": "wit-parser",
    "purl": "pkg:cargo/wit-parser"
-  },
-  {
-   "display_name": "zerocopy",
-   "ecosystem": "cargo",
-   "name": "zerocopy",
-   "purl": "pkg:cargo/zerocopy"
-  },
-  {
-   "display_name": "zerocopy-derive",
-   "ecosystem": "cargo",
-   "name": "zerocopy-derive",
-   "purl": "pkg:cargo/zerocopy-derive"
   },
   {
    "display_name": "zmij",
@@ -621,7 +513,7 @@
    "constraint": "1",
    "evidence": [
     {
-     "locator": "dev-dependencies.proptest",
+     "locator": "dev-dependencies.quickcheck",
      "path": "Cargo.toml"
     },
     {
@@ -633,10 +525,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.10.0",
+   "resolved_version": "1.1.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/proptest@1.10.0#"
+   "to": "pkg:cargo/quickcheck@1.1.0#"
   },
   {
    "condition": null,
@@ -1055,24 +947,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=bit-set,version=0.8.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/bit-set@0.8.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/bit-vec@0.8.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=errno,version=0.3.14].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -1103,78 +977,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cfg-if@1.0.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.182",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.182#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.3.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/r-efi@5.3.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.2+wasi-0.2.9",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wasip2@1.0.2%2Bwasi-0.2.9#"
   },
   {
    "condition": null,
@@ -1243,6 +1045,24 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
+   "resolved_version": "0.10.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_core@0.10.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=getrandom,version=0.4.2].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/getrandom@0.4.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
    "resolved_version": "1.0.2+wasi-0.2.9",
    "scope": "runtime",
    "source_kind": "registry",
@@ -1253,7 +1073,7 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=getrandom,version=0.4.2].dependencies[4]",
+     "locator": "package[name=getrandom,version=0.4.2].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1505,42 +1325,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=num-traits,version=0.2.19].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/num-traits@0.2.19#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/autocfg@1.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=ppv-lite86,version=0.2.21].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/ppv-lite86@0.2.21#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.42",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zerocopy@0.8.42#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=prettyplease,version=0.2.37].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -1595,198 +1379,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[0]",
+     "locator": "package[name=quickcheck,version=1.1.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/proptest@1.10.0#",
+   "from": "pkg:cargo/quickcheck@1.1.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.10.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/bit-set@0.8.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/bit-vec@0.8.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.11.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/bitflags@2.11.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.19",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/num-traits@0.2.19#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.9.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rand@0.9.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.9.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rand_chacha@0.9.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[6]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rand_xorshift@0.4.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[7]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.10",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/regex-syntax@0.8.10#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[8]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rusty-fork@0.3.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[9]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.26.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/tempfile@3.26.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=proptest,version=1.10.0].dependencies[10]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/proptest@1.10.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/unarray@0.1.4#"
+   "to": "pkg:cargo/rand@0.10.3#"
   },
   {
    "condition": null,
@@ -1811,108 +1415,36 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rand,version=0.9.5].dependencies[0]",
+     "locator": "package[name=rand,version=0.10.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rand@0.9.5#",
+   "from": "pkg:cargo/rand@0.10.3#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.9.0",
+   "resolved_version": "0.4.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rand_chacha@0.9.0#"
+   "to": "pkg:cargo/getrandom@0.4.2#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rand,version=0.9.5].dependencies[1]",
+     "locator": "package[name=rand,version=0.10.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rand@0.9.5#",
+   "from": "pkg:cargo/rand@0.10.3#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.9.5",
+   "resolved_version": "0.10.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rand_core@0.9.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rand_chacha,version=0.9.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rand_chacha@0.9.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.21",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/ppv-lite86@0.2.21#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rand_chacha,version=0.9.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rand_chacha@0.9.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.9.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rand_core@0.9.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rand_core,version=0.9.5].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rand_core@0.9.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/getrandom@0.3.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rand_xorshift,version=0.4.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rand_xorshift@0.4.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.9.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rand_core@0.9.5#"
+   "to": "pkg:cargo/rand_core@0.10.1#"
   },
   {
    "condition": null,
@@ -2003,78 +1535,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rusty-fork,version=0.3.1].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rusty-fork@0.3.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.7",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fnv@1.0.7#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rusty-fork,version=0.3.1].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rusty-fork@0.3.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.2.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quick-error@1.2.3#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rusty-fork,version=0.3.1].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rusty-fork@0.3.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.26.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/tempfile@3.26.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rusty-fork,version=0.3.1].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rusty-fork@0.3.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wait-timeout@0.2.1#"
   },
   {
    "condition": null,
@@ -2441,96 +1901,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=tempfile,version=3.26.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/tempfile@3.26.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.3.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.3.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=tempfile,version=3.26.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/tempfile@3.26.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/getrandom@0.4.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=tempfile,version=3.26.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/tempfile@3.26.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.21.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/once_cell@1.21.3#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=tempfile,version=3.26.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/tempfile@3.26.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=tempfile,version=3.26.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/tempfile@3.26.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.61.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=vt100,version=0.16.2].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -2615,24 +1985,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/memchr@2.8.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=wait-timeout,version=0.2.1].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/wait-timeout@0.2.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.182",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.182#"
   },
   {
    "condition": null,
@@ -3587,78 +2939,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/wasmparser@0.244.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=zerocopy-derive,version=0.8.42].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/zerocopy-derive@0.8.42#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.106",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.106#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=zerocopy-derive,version=0.8.42].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/zerocopy-derive@0.8.42#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.44",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.44#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=zerocopy-derive,version=0.8.42].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/zerocopy-derive@0.8.42#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.0.117",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/syn@2.0.117#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=zerocopy,version=0.8.42].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/zerocopy@0.8.42#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.42",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zerocopy-derive@0.8.42#"
   }
  ],
  "inputs": [
@@ -3675,11 +2955,11 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "c3734f3de96774866249ae5ca554c8181c4e0f11",
+   "blob": "ebdbbfccc0c345eb85473b34f71f7b1959231fdc",
    "path": "Cargo.lock"
   },
   {
-   "blob": "49f2d6357c34c8794ee9ed44a9f969d01dde8ad0",
+   "blob": "2893d6bb25ea79dcc6eadb67d867476dbc61100e",
    "path": "Cargo.toml"
   },
   {
@@ -3695,7 +2975,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "fab853d585b1fe377ad37c63dbdd88c606a934e50ad308b6a60f20d309b75969",
+ "inputs_fingerprint": "583f0ce792376a1e940927fc40f63562423c7f4ae3a3f8066db5f040eaaa8122",
  "instances": [
   {
    "commit": null,
@@ -3829,45 +3109,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/autocfg",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/autocfg@1.5.0#",
-   "purl": "pkg:cargo/autocfg@1.5.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.5.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bit-set",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/bit-set@0.8.0#",
-   "purl": "pkg:cargo/bit-set@0.8.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.8.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bit-vec",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/bit-vec@0.8.0#",
-   "purl": "pkg:cargo/bit-vec@0.8.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.8.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/bitflags",
    "context": "",
    "first_party": false,
@@ -3920,32 +3161,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/fastrand",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/fastrand@2.3.0#",
-   "purl": "pkg:cargo/fastrand@2.3.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/fnv",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/fnv@1.0.7#",
-   "purl": "pkg:cargo/fnv@1.0.7",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.7"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/foldhash",
    "context": "",
    "first_party": false,
@@ -3956,19 +3171,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/getrandom",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/getrandom@0.3.4#",
-   "purl": "pkg:cargo/getrandom@0.3.4",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.3.4"
   },
   {
    "commit": null,
@@ -4193,45 +3395,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/num-traits",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/num-traits@0.2.19#",
-   "purl": "pkg:cargo/num-traits@0.2.19",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.2.19"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/once_cell",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/once_cell@1.21.3#",
-   "purl": "pkg:cargo/once_cell@1.21.3",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.21.3"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/ppv-lite86",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/ppv-lite86@0.2.21#",
-   "purl": "pkg:cargo/ppv-lite86@0.2.21",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.2.21"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/prettyplease",
    "context": "",
    "first_party": false,
@@ -4258,29 +3421,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/proptest",
+   "component": "pkg:cargo/quickcheck",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/proptest@1.10.0#",
-   "purl": "pkg:cargo/proptest@1.10.0",
+   "id": "pkg:cargo/quickcheck@1.1.0#",
+   "purl": "pkg:cargo/quickcheck@1.1.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.10.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/quick-error",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/quick-error@1.2.3#",
-   "purl": "pkg:cargo/quick-error@1.2.3",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.2.3"
+   "version": "1.1.0"
   },
   {
    "commit": null,
@@ -4300,19 +3450,6 @@
    "component": "pkg:cargo/r-efi",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/r-efi@5.3.0#",
-   "purl": "pkg:cargo/r-efi@5.3.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/r-efi",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/r-efi@6.0.0#",
    "purl": "pkg:cargo/r-efi@6.0.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -4326,52 +3463,26 @@
    "component": "pkg:cargo/rand",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rand@0.9.5#",
-   "purl": "pkg:cargo/rand@0.9.5",
+   "id": "pkg:cargo/rand@0.10.3#",
+   "purl": "pkg:cargo/rand@0.10.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.9.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rand_chacha",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rand_chacha@0.9.0#",
-   "purl": "pkg:cargo/rand_chacha@0.9.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.9.0"
+   "version": "0.10.3"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rand_core",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rand_core@0.9.5#",
-   "purl": "pkg:cargo/rand_core@0.9.5",
+   "id": "pkg:cargo/rand_core@0.10.1#",
+   "purl": "pkg:cargo/rand_core@0.10.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.9.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rand_xorshift",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rand_xorshift@0.4.0#",
-   "purl": "pkg:cargo/rand_xorshift@0.4.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.10.1"
   },
   {
    "commit": null,
@@ -4385,19 +3496,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.9"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/regex-syntax",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/regex-syntax@0.8.10#",
-   "purl": "pkg:cargo/regex-syntax@0.8.10",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.8.10"
   },
   {
    "commit": null,
@@ -4424,19 +3522,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.1.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rusty-fork",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rusty-fork@0.3.1#",
-   "purl": "pkg:cargo/rusty-fork@0.3.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.3.1"
   },
   {
    "commit": null,
@@ -4557,32 +3642,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/tempfile",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/tempfile@3.26.0#",
-   "purl": "pkg:cargo/tempfile@3.26.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "3.26.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/unarray",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/unarray@0.1.4#",
-   "purl": "pkg:cargo/unarray@0.1.4",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.4"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/unicode-ident",
    "context": "",
    "first_party": false,
@@ -4645,19 +3704,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.15.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/wait-timeout",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/wait-timeout@0.2.1#",
-   "purl": "pkg:cargo/wait-timeout@0.2.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.2.1"
   },
   {
    "commit": null,
@@ -4827,32 +3873,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.244.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/zerocopy-derive",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/zerocopy-derive@0.8.42#",
-   "purl": "pkg:cargo/zerocopy-derive@0.8.42",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.8.42"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/zerocopy",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/zerocopy@0.8.42#",
-   "purl": "pkg:cargo/zerocopy@0.8.42",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.8.42"
   },
   {
    "commit": null,

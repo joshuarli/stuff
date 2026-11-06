@@ -91,42 +91,6 @@
    "purl": "pkg:cargo/arrayvec"
   },
   {
-   "display_name": "async-channel",
-   "ecosystem": "cargo",
-   "name": "async-channel",
-   "purl": "pkg:cargo/async-channel"
-  },
-  {
-   "display_name": "async-executor",
-   "ecosystem": "cargo",
-   "name": "async-executor",
-   "purl": "pkg:cargo/async-executor"
-  },
-  {
-   "display_name": "async-io",
-   "ecosystem": "cargo",
-   "name": "async-io",
-   "purl": "pkg:cargo/async-io"
-  },
-  {
-   "display_name": "async-lock",
-   "ecosystem": "cargo",
-   "name": "async-lock",
-   "purl": "pkg:cargo/async-lock"
-  },
-  {
-   "display_name": "async-net",
-   "ecosystem": "cargo",
-   "name": "async-net",
-   "purl": "pkg:cargo/async-net"
-  },
-  {
-   "display_name": "async-task",
-   "ecosystem": "cargo",
-   "name": "async-task",
-   "purl": "pkg:cargo/async-task"
-  },
-  {
    "display_name": "async-trait",
    "ecosystem": "cargo",
    "name": "async-trait",
@@ -179,12 +143,6 @@
    "ecosystem": "cargo",
    "name": "block2",
    "purl": "pkg:cargo/block2"
-  },
-  {
-   "display_name": "blocking",
-   "ecosystem": "cargo",
-   "name": "blocking",
-   "purl": "pkg:cargo/blocking"
   },
   {
    "display_name": "bon",
@@ -257,12 +215,6 @@
    "ecosystem": "cargo",
    "name": "ciborium-ll",
    "purl": "pkg:cargo/ciborium-ll"
-  },
-  {
-   "display_name": "concurrent-queue",
-   "ecosystem": "cargo",
-   "name": "concurrent-queue",
-   "purl": "pkg:cargo/concurrent-queue"
   },
   {
    "display_name": "constant_time_eq",
@@ -383,18 +335,6 @@
    "ecosystem": "cargo",
    "name": "errno",
    "purl": "pkg:cargo/errno"
-  },
-  {
-   "display_name": "event-listener",
-   "ecosystem": "cargo",
-   "name": "event-listener",
-   "purl": "pkg:cargo/event-listener"
-  },
-  {
-   "display_name": "event-listener-strategy",
-   "ecosystem": "cargo",
-   "name": "event-listener-strategy",
-   "purl": "pkg:cargo/event-listener-strategy"
   },
   {
    "display_name": "fallible-iterator",
@@ -625,16 +565,112 @@
    "purl": "pkg:cargo/kqueue-sys"
   },
   {
+   "display_name": "laputa-async-channel",
+   "ecosystem": "cargo",
+   "name": "laputa-async-channel",
+   "purl": "pkg:cargo/laputa-async-channel"
+  },
+  {
+   "display_name": "laputa-async-executor",
+   "ecosystem": "cargo",
+   "name": "laputa-async-executor",
+   "purl": "pkg:cargo/laputa-async-executor"
+  },
+  {
+   "display_name": "laputa-async-io",
+   "ecosystem": "cargo",
+   "name": "laputa-async-io",
+   "purl": "pkg:cargo/laputa-async-io"
+  },
+  {
+   "display_name": "laputa-async-lock",
+   "ecosystem": "cargo",
+   "name": "laputa-async-lock",
+   "purl": "pkg:cargo/laputa-async-lock"
+  },
+  {
+   "display_name": "laputa-async-net",
+   "ecosystem": "cargo",
+   "name": "laputa-async-net",
+   "purl": "pkg:cargo/laputa-async-net"
+  },
+  {
+   "display_name": "laputa-async-task",
+   "ecosystem": "cargo",
+   "name": "laputa-async-task",
+   "purl": "pkg:cargo/laputa-async-task"
+  },
+  {
+   "display_name": "laputa-atomic-waker",
+   "ecosystem": "cargo",
+   "name": "laputa-atomic-waker",
+   "purl": "pkg:cargo/laputa-atomic-waker"
+  },
+  {
+   "display_name": "laputa-blocking",
+   "ecosystem": "cargo",
+   "name": "laputa-blocking",
+   "purl": "pkg:cargo/laputa-blocking"
+  },
+  {
+   "display_name": "laputa-concurrent-queue",
+   "ecosystem": "cargo",
+   "name": "laputa-concurrent-queue",
+   "purl": "pkg:cargo/laputa-concurrent-queue"
+  },
+  {
+   "display_name": "laputa-event-listener",
+   "ecosystem": "cargo",
+   "name": "laputa-event-listener",
+   "purl": "pkg:cargo/laputa-event-listener"
+  },
+  {
+   "display_name": "laputa-event-listener-strategy",
+   "ecosystem": "cargo",
+   "name": "laputa-event-listener-strategy",
+   "purl": "pkg:cargo/laputa-event-listener-strategy"
+  },
+  {
+   "display_name": "laputa-fastrand",
+   "ecosystem": "cargo",
+   "name": "laputa-fastrand",
+   "purl": "pkg:cargo/laputa-fastrand"
+  },
+  {
+   "display_name": "laputa-futures-lite",
+   "ecosystem": "cargo",
+   "name": "laputa-futures-lite",
+   "purl": "pkg:cargo/laputa-futures-lite"
+  },
+  {
    "display_name": "laputa-h2-futures-lite",
    "ecosystem": "cargo",
    "name": "laputa-h2-futures-lite",
-   "purl": "pkg:cargo/laputa-h2-futures-lite?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite"
+   "purl": "pkg:cargo/laputa-h2-futures-lite"
   },
   {
    "display_name": "laputa-hyper-futures-lite",
    "ecosystem": "cargo",
    "name": "laputa-hyper-futures-lite",
-   "purl": "pkg:cargo/laputa-hyper-futures-lite?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite"
+   "purl": "pkg:cargo/laputa-hyper-futures-lite"
+  },
+  {
+   "display_name": "laputa-parking",
+   "ecosystem": "cargo",
+   "name": "laputa-parking",
+   "purl": "pkg:cargo/laputa-parking"
+  },
+  {
+   "display_name": "laputa-piper",
+   "ecosystem": "cargo",
+   "name": "laputa-piper",
+   "purl": "pkg:cargo/laputa-piper"
+  },
+  {
+   "display_name": "laputa-polling",
+   "ecosystem": "cargo",
+   "name": "laputa-polling",
+   "purl": "pkg:cargo/laputa-polling"
   },
   {
    "display_name": "levenshtein_automata",
@@ -811,22 +847,10 @@
    "purl": "pkg:cargo/pin-project-lite"
   },
   {
-   "display_name": "piper",
-   "ecosystem": "cargo",
-   "name": "piper",
-   "purl": "pkg:cargo/piper"
-  },
-  {
    "display_name": "pkg-config",
    "ecosystem": "cargo",
    "name": "pkg-config",
    "purl": "pkg:cargo/pkg-config"
-  },
-  {
-   "display_name": "polling",
-   "ecosystem": "cargo",
-   "name": "polling",
-   "purl": "pkg:cargo/polling"
   },
   {
    "display_name": "powerfmt",
@@ -2284,116 +2308,6 @@
  "edges": [
   {
    "condition": null,
-   "constraint": "2.5",
-   "evidence": [
-    {
-     "locator": "dependencies.async-channel",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-channel@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.13",
-   "evidence": [
-    {
-     "locator": "dependencies.async-executor",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.14.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-executor@1.14.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "2.6",
-   "evidence": [
-    {
-     "locator": "dependencies.async-io",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.6.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-io@2.6.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "3.4",
-   "evidence": [
-    {
-     "locator": "dependencies.async-lock",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3.4.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-lock@3.4.2#"
-  },
-  {
-   "condition": null,
-   "constraint": "2.0",
-   "evidence": [
-    {
-     "locator": "dependencies.async-net",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.0.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-net@2.0.0#"
-  },
-  {
-   "condition": null,
    "constraint": "1.8",
    "evidence": [
     {
@@ -2401,7 +2315,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[5]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -2416,28 +2330,6 @@
   },
   {
    "condition": null,
-   "constraint": "1.7",
-   "evidence": [
-    {
-     "locator": "dependencies.blocking",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[6]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.7.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/blocking@1.7.0#"
-  },
-  {
-   "condition": null,
    "constraint": "3.4",
    "evidence": [
     {
@@ -2445,7 +2337,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[7]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -2460,50 +2352,6 @@
   },
   {
    "condition": null,
-   "constraint": "5.4",
-   "evidence": [
-    {
-     "locator": "dependencies.event-listener",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[8]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "5.4.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/event-listener@5.4.2#"
-  },
-  {
-   "condition": null,
-   "constraint": "2.4",
-   "evidence": [
-    {
-     "locator": "dependencies.fastrand",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[9]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
-  },
-  {
-   "condition": null,
    "constraint": "0.3",
    "evidence": [
     {
@@ -2511,7 +2359,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[10]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -2526,28 +2374,6 @@
   },
   {
    "condition": null,
-   "constraint": "2.6",
-   "evidence": [
-    {
-     "locator": "dependencies.futures-lite",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[11]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
    "constraint": "0.3",
    "evidence": [
     {
@@ -2555,7 +2381,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[12]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2577,7 +2403,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[13]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -2599,7 +2425,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=tansu,version=0.1.0].dependencies[14]",
+     "locator": "package[name=tansu,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -2611,6 +2437,204 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/http-body-util@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.async-channel",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[6]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-channel@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.async-executor",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[7]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-executor@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.async-io",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[8]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-io@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.async-lock",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[9]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-lock@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.async-net",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[10]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-net@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.blocking",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[11]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-blocking@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.event-listener",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[12]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-event-listener@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.fastrand",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[13]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-fastrand@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.futures-lite",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=tansu,version=0.1.0].dependencies[14]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -2631,8 +2655,8 @@
    "resolution": "resolved",
    "resolved_version": "1.12.0-beta.0",
    "scope": "dev",
-   "source_kind": "git",
-   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#"
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#"
   },
   {
    "condition": null,
@@ -2653,8 +2677,8 @@
    "resolution": "resolved",
    "resolved_version": "1.12.0-beta.0",
    "scope": "runtime",
-   "source_kind": "git",
-   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#"
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#"
   },
   {
    "condition": null,
@@ -4497,474 +4521,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=async-channel,version=2.5.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-channel@2.5.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/concurrent-queue@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-channel,version=2.5.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-channel@2.5.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.5.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/event-listener-strategy@0.5.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-channel,version=2.5.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-channel@2.5.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-core@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-channel,version=2.5.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-channel@2.5.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "4.7.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-task@4.7.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/concurrent-queue@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-executor,version=1.14.0].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-executor@1.14.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.12",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/slab@0.4.12#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.5.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/autocfg@1.5.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cfg-if@1.0.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/concurrent-queue@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-io@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.2.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/parking@2.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[6]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.11.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/polling@3.11.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[7]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.6",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.6#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[8]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.12",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/slab@0.4.12#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-io,version=2.6.0].dependencies[9]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-io@2.6.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.61.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-lock,version=3.4.2].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-lock@3.4.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.5.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/event-listener-strategy@0.5.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-lock,version=3.4.2].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-lock@3.4.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.4.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/event-listener@5.4.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-lock,version=3.4.2].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-lock@3.4.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-net,version=2.0.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-net@2.0.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-io@2.6.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-net,version=2.0.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-net@2.0.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.7.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/blocking@1.7.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=async-net,version=2.0.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/async-net@2.0.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=async-trait,version=0.1.92].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -5139,96 +4695,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/objc2@0.6.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=blocking,version=1.7.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/blocking@1.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-channel@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=blocking,version=1.7.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/blocking@1.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "4.7.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/async-task@4.7.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=blocking,version=1.7.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/blocking@1.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-io@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=blocking,version=1.7.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/blocking@1.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=blocking,version=1.7.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/blocking@1.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/piper@0.2.5#"
   },
   {
    "condition": null,
@@ -5487,24 +4953,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=concurrent-queue,version=2.5.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/concurrent-queue@2.5.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.23",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/crossbeam-utils@0.8.23#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=cpufeatures,version=0.3.1].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -5523,11 +4971,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=crc32fast,version=1.5.3].dependencies[0]",
+     "locator": "package[name=crc32fast,version=1.5.4].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/crc32fast@1.5.3#",
+   "from": "pkg:cargo/crc32fast@1.5.4#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6021,78 +5469,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=event-listener-strategy,version=0.5.4].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/event-listener-strategy@0.5.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.4.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/event-listener@5.4.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=event-listener-strategy,version=0.5.4].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/event-listener-strategy@0.5.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=event-listener,version=5.4.2].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/event-listener@5.4.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.2.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/parking@2.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=event-listener,version=5.4.2].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/event-listener@5.4.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
   },
   {
    "condition": null,
@@ -7071,11 +6447,731 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=laputa-async-channel,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-channel@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-core@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-channel,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-channel@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-concurrent-queue@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-channel,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-channel@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-event-listener-strategy@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-channel,version=0.3.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-channel@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-task@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-concurrent-queue@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-fastrand@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-executor,version=0.3.0].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.12",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/slab@0.4.12#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/autocfg@1.5.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/cfg-if@1.0.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-io@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-concurrent-queue@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-parking@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[6]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-polling@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[7]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustix@1.1.6#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-io,version=0.3.0].dependencies[8]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-io@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.12",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/slab@0.4.12#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-lock,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-lock@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-event-listener-strategy@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-lock,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-lock@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-event-listener@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-lock,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-lock@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-net,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-net@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-io@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-net,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-net@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-blocking@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-async-net,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-async-net@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-blocking,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-blocking@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-io@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-blocking,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-blocking@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-channel@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-blocking,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-blocking@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-async-task@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-blocking,version=0.3.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-blocking@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-blocking,version=0.3.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-blocking@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-piper@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-concurrent-queue,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-concurrent-queue@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/crossbeam-utils@0.8.23#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-event-listener-strategy,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-event-listener-strategy@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-event-listener@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-event-listener-strategy,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-event-listener-strategy@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-event-listener,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-event-listener@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-parking@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-event-listener,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-event-listener@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-futures-lite,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-core@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-futures-lite,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-io@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-futures-lite,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-fastrand@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-futures-lite,version=0.3.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-parking@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-futures-lite,version=0.3.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7093,7 +7189,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7111,7 +7207,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7129,7 +7225,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7147,7 +7243,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7165,7 +7261,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7183,7 +7279,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7201,7 +7297,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7219,7 +7315,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7237,7 +7333,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7255,7 +7351,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7273,7 +7369,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7291,7 +7387,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7309,7 +7405,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7327,7 +7423,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7345,7 +7441,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7363,7 +7459,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7381,7 +7477,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7399,7 +7495,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7417,7 +7513,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7435,7 +7531,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7453,7 +7549,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7471,7 +7567,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7489,14 +7585,14 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "0.4.20-beta.0",
    "scope": "runtime",
-   "source_kind": "git",
-   "to": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#"
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#"
   },
   {
    "condition": null,
@@ -7507,7 +7603,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7525,7 +7621,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7543,7 +7639,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7551,6 +7647,114 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/want@0.3.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-piper,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-piper@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/futures-io@0.3.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-piper,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-piper@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-atomic-waker@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-piper,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-piper@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-fastrand@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-polling,version=0.3.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-polling@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/cfg-if@1.0.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-polling,version=0.3.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-polling@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.5.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hermit-abi@0.5.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-polling,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-polling@0.3.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustix@1.1.6#"
   },
   {
    "condition": null,
@@ -8181,168 +8385,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/stable_deref_trait@1.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=piper,version=0.2.5].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/piper@0.2.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/atomic-waker@1.1.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=piper,version=0.2.5].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/piper@0.2.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=piper,version=0.2.5].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/piper@0.2.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-io@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cfg-if@1.0.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/concurrent-queue@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.5.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/hermit-abi@0.5.3#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.6",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.6#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=polling,version=3.11.0].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/polling@3.11.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.61.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/windows-sys@0.61.2#"
   },
   {
    "condition": null,
@@ -10121,10 +10163,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.5.3",
+   "resolved_version": "1.5.4",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/crc32fast@1.5.3#"
+   "to": "pkg:cargo/crc32fast@1.5.4#"
   },
   {
    "condition": null,
@@ -15793,11 +15835,11 @@
    "path": ".node-version"
   },
   {
-   "blob": "8a552f12f9580962b6625d311fd006e6efb30f17",
+   "blob": "88368c47c00b08b4c868bfde5e52da705500fd2e",
    "path": "Cargo.lock"
   },
   {
-   "blob": "d9352e2abfac68b22d774d598d45dd019a3a48fc",
+   "blob": "40031a5e96cd4be378c036eeabd620c9e16d3a7a",
    "path": "Cargo.toml"
   },
   {
@@ -15853,7 +15895,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "bbfa3886f4ee7fbebeef8122fc21e444d26971e3465fcceaf334ac45475bc7d3",
+ "inputs_fingerprint": "c26b74fde6e67d66235c0d83b70b5f69b4ce01d3917316e9344e9263cc2dd8fe",
  "instances": [
   {
    "commit": null,
@@ -16052,84 +16094,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/async-channel",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-channel@2.5.0#",
-   "purl": "pkg:cargo/async-channel@2.5.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.5.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/async-executor",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-executor@1.14.0#",
-   "purl": "pkg:cargo/async-executor@1.14.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.14.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/async-io",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-io@2.6.0#",
-   "purl": "pkg:cargo/async-io@2.6.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.6.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/async-lock",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-lock@3.4.2#",
-   "purl": "pkg:cargo/async-lock@3.4.2",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "3.4.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/async-net",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-net@2.0.0#",
-   "purl": "pkg:cargo/async-net@2.0.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/async-task",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/async-task@4.7.1#",
-   "purl": "pkg:cargo/async-task@4.7.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "4.7.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/async-trait",
    "context": "",
    "first_party": false,
@@ -16244,19 +16208,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.6.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/blocking",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/blocking@1.7.0#",
-   "purl": "pkg:cargo/blocking@1.7.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.7.0"
   },
   {
    "commit": null,
@@ -16416,19 +16367,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/concurrent-queue",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/concurrent-queue@2.5.0#",
-   "purl": "pkg:cargo/concurrent-queue@2.5.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.5.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/constant_time_eq",
    "context": "",
    "first_party": false,
@@ -16458,13 +16396,13 @@
    "component": "pkg:cargo/crc32fast",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/crc32fast@1.5.3#",
-   "purl": "pkg:cargo/crc32fast@1.5.3",
+   "id": "pkg:cargo/crc32fast@1.5.4#",
+   "purl": "pkg:cargo/crc32fast@1.5.4",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.5.3"
+   "version": "1.5.4"
   },
   {
    "commit": null,
@@ -16686,32 +16624,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.14"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/event-listener-strategy",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/event-listener-strategy@0.5.4#",
-   "purl": "pkg:cargo/event-listener-strategy@0.5.4",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.5.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/event-listener",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/event-listener@5.4.2#",
-   "purl": "pkg:cargo/event-listener@5.4.2",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.4.2"
   },
   {
    "commit": null,
@@ -17221,30 +17133,238 @@
    "version": "1.2.1"
   },
   {
-   "commit": "32d106fca1249b731c4169dc8f9115f55abe995b",
-   "component": "pkg:cargo/laputa-h2-futures-lite?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite",
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-channel",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite#",
-   "purl": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fh2-futures-lite",
-   "registry_url": null,
+   "id": "pkg:cargo/laputa-async-channel@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-channel@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/joshuarli/h2-futures-lite",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-executor",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-async-executor@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-executor@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-io",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-async-io@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-io@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-lock",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-async-lock@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-lock@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-net",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-async-net@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-net@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-async-task",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-async-task@0.3.0#",
+   "purl": "pkg:cargo/laputa-async-task@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-atomic-waker",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-atomic-waker@0.3.0#",
+   "purl": "pkg:cargo/laputa-atomic-waker@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-blocking",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-blocking@0.3.0#",
+   "purl": "pkg:cargo/laputa-blocking@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-concurrent-queue",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-concurrent-queue@0.3.0#",
+   "purl": "pkg:cargo/laputa-concurrent-queue@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-event-listener-strategy",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-event-listener-strategy@0.3.0#",
+   "purl": "pkg:cargo/laputa-event-listener-strategy@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-event-listener",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-event-listener@0.3.0#",
+   "purl": "pkg:cargo/laputa-event-listener@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-fastrand",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-fastrand@0.3.0#",
+   "purl": "pkg:cargo/laputa-fastrand@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-futures-lite",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-futures-lite@0.3.0#",
+   "purl": "pkg:cargo/laputa-futures-lite@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-h2-futures-lite",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "purl": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
    "version": "0.4.20-beta.0"
   },
   {
-   "commit": "770427abdcafc516531dd275423ceee0c0b1fb2e",
-   "component": "pkg:cargo/laputa-hyper-futures-lite?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite",
+   "commit": null,
+   "component": "pkg:cargo/laputa-hyper-futures-lite",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite#",
-   "purl": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0?vcs_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fhyper-futures-lite",
-   "registry_url": null,
+   "id": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "purl": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/joshuarli/hyper-futures-lite",
+   "source_kind": "registry",
+   "vcs_url": null,
    "version": "1.12.0-beta.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-parking",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-parking@0.3.0#",
+   "purl": "pkg:cargo/laputa-parking@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-piper",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-piper@0.3.0#",
+   "purl": "pkg:cargo/laputa-piper@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/laputa-polling",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-polling@0.3.0#",
+   "purl": "pkg:cargo/laputa-polling@0.3.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.0"
   },
   {
    "commit": null,
@@ -17625,19 +17745,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/piper",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/piper@0.2.5#",
-   "purl": "pkg:cargo/piper@0.2.5",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.2.5"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/pkg-config",
    "context": "",
    "first_party": false,
@@ -17648,19 +17755,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.34"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/polling",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/polling@3.11.0#",
-   "purl": "pkg:cargo/polling@3.11.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "3.11.0"
   },
   {
    "commit": null,
