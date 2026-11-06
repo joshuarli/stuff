@@ -120,6 +120,9 @@ def test_banned_rust_matches_variants() -> None:
     assert _is_banned_rust("url")
     assert _is_banned_rust("criterion")
     assert _is_banned_rust("criterion-plot")
+    assert _is_banned_rust("proptest")
+    assert _is_banned_rust("proptest-derive")
+    assert not _is_banned_rust("quickcheck")
     assert not _is_banned_rust("lexopt")
     assert not _is_banned_rust("urlish")
 
@@ -132,6 +135,10 @@ def test_banned_rust_messages_name_the_replacement() -> None:
     assert (
         _banned_rust_message("criterion-plot", transitive=True, version="0.5.0")
         == "remove criterion-plot 0.5.0; use rustybench instead"
+    )
+    assert (
+        _banned_rust_message("proptest-derive", transitive=False)
+        == "remove proptest-derive; use quickcheck instead"
     )
     assert _banned_rust_message("url", transitive=False) == "remove bloated dependency url"
 

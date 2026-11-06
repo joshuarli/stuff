@@ -45,7 +45,7 @@ _MINIFLARE_IMPORT = re.compile(
 )
 
 _BANNED_RUST = ("clap", "tokio", "url")
-_BANNED_RUST_ALTERNATIVES = {"criterion": "rustybench"}
+_BANNED_RUST_ALTERNATIVES = {"criterion": "rustybench", "proptest": "quickcheck"}
 _BANNED_RUST_HTTP = frozenset(
     {
         "reqwest",

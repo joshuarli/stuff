@@ -56,6 +56,7 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   manager. Rust must not depend on `clap`, `tokio`, or `url`, including
   transitive `clap-*`, `tokio-*`, and `url-*` crates via `Cargo.lock`.
   Criterion is banned too, including `criterion-*`; use `rustybench` instead.
+  Proptest is banned, including `proptest-*`; use `quickcheck` instead.
   A repository with a target-specific transitive crate that is never compiled
   can exempt that crate with `audit-banned:transitive:NAME`; direct
   dependencies remain banned.
