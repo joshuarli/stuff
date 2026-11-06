@@ -1,5 +1,5 @@
 Prefix: RPMD
-Next: 71
+Next: 72
 
 ### RPMD-53 · P2 · Enforce required check names match produced checks
 
@@ -46,15 +46,6 @@ Next: 71
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-57 · P2 · Decide audit exemptions for smolith and h12tiny compatibility dependencies
-
-- **Area:** Config
-- **Where:** `catalog.toml` (`laputa-systems.smolith`, `laputa-systems.h12tiny`), `laputa-systems/smolith/crates/smol/Cargo.toml`
-- **Problem:** The smolith ban fails the repositories that provide the forks. smolith's `smol` crate declares upstream `hyper`, `smol-hyper`, `surf`, `async-h1`, and `futures` as dev dependencies for upstream examples, and its lockfile carries the upstream smol crates. h12tiny declares `tokio` and `futures` as dev dependencies. `unproven`: whether those are needed for compatibility tests or can be dropped.
-- **Recommendation:** Either remove the upstream dev dependencies, or add `audit-banned:transitive:NAME` exemptions in `catalog.toml` for the crates the compatibility tests need. Direct dependencies cannot be exempted today, so dropping them is the cleaner path.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-59 · P2 · Import the fixed h12tiny forks into the stuff archive and bump shadowdriver and tansu
 
 - **Area:** Dependencies
@@ -62,15 +53,6 @@ Next: 71
 - **Problem:** shadowdriver and tansu now use the smolith forks directly, but upstream `futures-lite`, `parking`, and `atomic-waker` stay in their lockfiles through `laputa-fastwebsockets-futures-lite 0.10.0`, `laputa-hyper-futures-lite 1.12.0-beta.0`, and `laputa-h2-futures-lite 0.4.20-beta.0`. The fixed releases (0.10.1, 1.12.0-beta.1, 0.4.20-beta.2) are on crates.io and depend only on `laputa-*` crates, but the stuff archive these repositories resolve through has not imported them. The import is blocked: minting R2 S3 credentials fails with 403 (the Cloudflare token cannot list account tokens), and the stuff state is behind the live generation, so a plain `--promote=cf` would risk overwriting another publisher.
 - **Recommendation:** Grant the token R2 credential minting (or export `R2_S3_*`), run `deploy/publish mycrates --republish` to adopt the live generation, then `mycrates import-lock` a lockfile pinning the three releases, `plan`, `fetch`, `verify`, `publish`, and `deploy/r2-sync.sh`. Then bump the three crates in shadowdriver and tansu and confirm `repomod lint --rule audit-banned` is clean.
 - **Fix with:** stuff-registries
-- **Effort:** S (hours)
-
-### RPMD-62 · P2 · Remove url from smolith
-
-- **Area:** Dependencies
-- **Where:** `laputa-systems/smolith/Cargo.toml`
-- **Problem:** The audit bans `url` as bloated. shadowdriver and stuff no longer use it; smolith still declares it for upstream examples.
-- **Recommendation:** Drop the examples that need it, as part of RPMD-57.
-- **Fix with:** none
 - **Effort:** S (hours)
 
 ### RPMD-50 · P2 · Recognize manifest readme declarations in generated-data audit
@@ -98,6 +80,15 @@ Next: 71
 - **Problem:** The repo-template lint requires a human-written README for gh even though its repository instructions explicitly say the upstream README and documentation are intentionally removed from this fork.
 - **Recommendation:** Add a repository-specific `repo-template` lint blacklist entry for gh.
 - **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-71 · P3 · Check smolith-qualify for parallel test flakes
+
+- **Area:** Tests
+- **Where:** `laputa-systems/smolith/tests/qualify`
+- **Problem:** `unproven`: in two parallel runs of `smolith-qualify`, a different fd-reuse test failed each time; it passed 22 of 22 twice with `--test-threads=1`. Not yet confirmed against the commit before the example and bench clean-up, so it may predate it.
+- **Recommendation:** Reproduce on the earlier commit with parallel threads; if it reproduces, isolate the shared file descriptors per test rather than serializing the suite.
+- **Fix with:** root-cause
 - **Effort:** S (hours)
 
 ### RPMD-63 · P3 · Move owned repositories from serde to deser
