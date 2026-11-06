@@ -104,11 +104,11 @@ def list_all(bucket):
         if done.returncode != 0:
             fail(f"listing failed: {done.stderr.strip()}")
         page = json.loads(done.stdout)
-        repeated = next((o["key"] for o in page if o["key"] in seen), None)
-        if repeated is not None:
-            fail(f"listing repeated {repeated} after {after}")
-        seen.update(o["key"] for o in page)
-        objects.extend(page)
+        fresh = [o for o in page if o["key"] not in seen]
+        if page and not fresh:
+            fail(f"listing made no progress after {after}")
+        seen.update(o["key"] for o in fresh)
+        objects.extend(fresh)
         if len(page) < PAGE:
             return objects
         after = page[-1]["key"]

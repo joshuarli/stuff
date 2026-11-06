@@ -30,8 +30,11 @@ while i < len(args):
         i += 1
 objects = json.load(open(os.environ["FAKE_CF_OBJECTS"]))
 if after is not None and os.environ.get("FAKE_CF_IGNORE_CURSOR") != "1":
-    keys = [o["key"] for o in objects]
-    objects = objects[keys.index(after) + 1:]
+    if os.environ.get("FAKE_CF_RAW_CURSOR") == "1":
+        objects = [o for o in objects if o["key"] > after]
+    else:
+        keys = [o["key"] for o in objects]
+        objects = objects[keys.index(after) + 1:]
 json.dump(objects[:page], sys.stdout)
 """
 
@@ -111,6 +114,25 @@ class ListingTests(unittest.TestCase):
             pull.RATE_LIMIT_BACKOFF_SECONDS = saved_backoff
             os.environ.pop("FAKE_CF_GET_ATTEMPTS", None)
             os.environ.pop("FAKE_CF_GET_FAILURES", None)
+
+    def test_a_cursor_on_a_key_that_prefixes_others_lists_each_key_once(self):
+        root = pathlib.Path(self.work.name)
+        r2_order = [
+            "generations/g/crates-io/si/gn/signal-hook-mio",
+            "generations/g/crates-io/si/gn/signal-hook-registry",
+            "generations/g/crates-io/si/gn/signal-hook",
+            "generations/g/crates-io/si/gn/signature",
+        ]
+        (root / "objects.json").write_text(
+            json.dumps([{"key": key, "size": 1, "etag": "x"} for key in r2_order])
+        )
+        os.environ["FAKE_CF_RAW_CURSOR"] = "1"
+        pull.PAGE = 3
+        try:
+            listed = [o["key"] for o in pull.list_all("bucket")]
+        finally:
+            os.environ.pop("FAKE_CF_RAW_CURSOR", None)
+        self.assertEqual(listed, r2_order)
 
     def test_a_listing_that_ignores_the_cursor_fails(self):
         os.environ["FAKE_CF_IGNORE_CURSOR"] = "1"
