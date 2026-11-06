@@ -47,8 +47,8 @@
    "state": "partial"
   },
   "joshuarli/play": {
-   "commit": "d4683bd8d6caac01b5f6761f15b6b40c20cb6d77",
-   "inputs_fingerprint": "7f49d6f1219e3b7dd7bb1a98623d9f81a2d66730bd032e041f3bcc19f52646ed",
+   "commit": "cc9edbe3ddb88aa730457a17c475693905fc98c2",
+   "inputs_fingerprint": "52b7341bb8783108bdac748f9b725cd55437e92f71632a738e369d77572ce8b5",
    "state": "partial"
   },
   "joshuarli/pytest-parallel": {
@@ -67,7 +67,7 @@
    "state": "partial"
   },
   "joshuarli/stats": {
-   "commit": "153a7c32e6572f2576617b1c3a977d4354df3845",
+   "commit": "8f5005c28c4f30ca7b62ccec51aaa5e201da3988",
    "inputs_fingerprint": "b1531d5a991d67891df781b517b28e6baeb69c843f3da932d1a4a5f0af4069bc",
    "state": "partial"
   },
@@ -137,7 +137,7 @@
    "state": "partial"
   },
   "laputa-systems/fdu": {
-   "commit": "e222cd3f6d3d1e1375caf83f1e38b5607353f40d",
+   "commit": "b39b4466629c5f8fb68dc0f4df5ce4ef592122c6",
    "inputs_fingerprint": "c344d5a7571deba2ab17e777508075cdcff33fc10199fecc8faf5c8243af1f68",
    "state": "partial"
   },

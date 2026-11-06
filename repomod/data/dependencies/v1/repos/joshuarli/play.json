@@ -1105,6 +1105,864 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "dependencies.player-audio",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-audio@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-backend",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-backend@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-core",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-core@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-display",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-display@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-engine",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-engine@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-media",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[6]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-media@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-output",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[7]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-output@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-overlay",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[8]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-overlay@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-tui",
+     "path": "crates/player-app/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-app,version=0.42.2].dependencies[9]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-app:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-tui@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-audio/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-audio,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-audio:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-media",
+     "path": "crates/player-audio/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-audio,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-audio:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-media@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.symphonia",
+     "path": "crates/player-audio/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-audio,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-audio:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.6.1",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/symphonia@0.6.1#4d8d81e742a9adaa"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-audio",
+     "path": "crates/player-backend/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-backend,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-backend:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-audio@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-backend/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-backend,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-backend:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-engine",
+     "path": "crates/player-backend/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-backend,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-backend:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-engine@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-overlay",
+     "path": "crates/player-backend/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-backend,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-backend:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-overlay@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "=1.11.0",
+   "evidence": [
+    {
+     "locator": "build-dependencies.cc",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.11.0",
+   "scope": "build",
+   "source_kind": "registry",
+   "to": "pkg:cargo/cc@1.11.0#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
+   "constraint": "=0.31.15",
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.wayland-client",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.31.15",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/wayland-client@0.31.15#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
+   "constraint": "=0.32.13",
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.wayland-protocols",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.32.13",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/wayland-protocols@0.32.13#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.player-output",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-output@0.1.0#"
+  },
+  {
+   "condition": "cfg(target_os = \"macos\")",
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"macos\")'.dependencies.player-output",
+     "path": "crates/player-display/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-display,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-display:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-output@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-audio",
+     "path": "crates/player-engine/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-engine,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-engine:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-audio@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-engine/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-engine,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-engine:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-media",
+     "path": "crates/player-engine/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-engine,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-engine:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-media@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-output",
+     "path": "crates/player-engine/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-engine,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-engine:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-output@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-app",
+     "path": "crates/player-gui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-gui,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-gui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.42.2",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-app@0.42.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-gui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-gui,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-gui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-media/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-media,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-media:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.player-core",
+     "path": "crates/player-media/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-media,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-media:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-core@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "build-dependencies.player-build",
+     "path": "crates/player-output/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-output,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-output:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "build",
+   "source_kind": "workspace",
+   "to": "pkg:generic/player-build@0.1.0#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
+   "constraint": "0.3.18",
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.unicode-bidi",
+     "path": "crates/player-overlay/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-overlay,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-overlay:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.3.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/unicode-bidi@0.3.18#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
+   "constraint": "0.1.5",
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.unicode-linebreak",
+     "path": "crates/player-overlay/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-overlay,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-overlay:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.1.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/unicode-linebreak@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.22",
+   "evidence": [
+    {
+     "locator": "dependencies.base64",
+     "path": "crates/player-tui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-tui,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-tui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.22.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/base64@0.22.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.29.0",
+   "evidence": [
+    {
+     "locator": "dependencies.crossterm",
+     "path": "crates/player-tui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-tui,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-tui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.29.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/crossterm@0.29.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.1",
+   "evidence": [
+    {
+     "locator": "dependencies.rustix",
+     "path": "crates/player-tui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-tui,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-tui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustix@1.1.6#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.signal-hook",
+     "path": "crates/player-tui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-tui,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-tui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/signal-hook@0.3.18#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.2",
+   "evidence": [
+    {
+     "locator": "dependencies.unicode-width",
+     "path": "crates/player-tui/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-tui,version=0.1.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-tui:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.2.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/unicode-width@0.2.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "L3",
      "path": "docker/linux/Dockerfile"
     }
@@ -2060,7 +2918,7 @@
    "evidence": [
     {
      "locator": "package[name=cc,version=1.11.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/cc@1.11.0#",
@@ -2078,7 +2936,7 @@
    "evidence": [
     {
      "locator": "package[name=cc,version=1.11.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/cc@1.11.0#",
@@ -2096,7 +2954,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2114,7 +2972,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2132,7 +2990,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2150,7 +3008,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2168,7 +3026,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[4]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2186,7 +3044,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[6]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2204,7 +3062,7 @@
    "evidence": [
     {
      "locator": "package[name=crossterm,version=0.29.0].dependencies[5]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/crossterm@0.29.0#",
@@ -2222,7 +3080,7 @@
    "evidence": [
     {
      "locator": "package[name=dlib,version=0.5.3].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/dlib@0.5.3#",
@@ -2240,7 +3098,7 @@
    "evidence": [
     {
      "locator": "package[name=document-features,version=0.2.12].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/document-features@0.2.12#",
@@ -2258,7 +3116,7 @@
    "evidence": [
     {
      "locator": "package[name=errno,version=0.3.14].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/errno@0.3.14#",
@@ -2276,7 +3134,7 @@
    "evidence": [
     {
      "locator": "package[name=errno,version=0.3.14].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/errno@0.3.14#",
@@ -2294,7 +3152,7 @@
    "evidence": [
     {
      "locator": "package[name=libloading,version=0.8.9].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/libloading@0.8.9#",
@@ -2312,7 +3170,7 @@
    "evidence": [
     {
      "locator": "package[name=libloading,version=0.8.9].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/libloading@0.8.9#",
@@ -2330,7 +3188,7 @@
    "evidence": [
     {
      "locator": "package[name=lock_api,version=0.4.14].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/lock_api@0.4.14#",
@@ -2348,7 +3206,7 @@
    "evidence": [
     {
      "locator": "package[name=mio,version=1.2.4].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/mio@1.2.4#",
@@ -2366,7 +3224,7 @@
    "evidence": [
     {
      "locator": "package[name=mio,version=1.2.4].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/mio@1.2.4#",
@@ -2384,7 +3242,7 @@
    "evidence": [
     {
      "locator": "package[name=mio,version=1.2.4].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/mio@1.2.4#",
@@ -2402,7 +3260,7 @@
    "evidence": [
     {
      "locator": "package[name=mio,version=1.2.4].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/mio@1.2.4#",
@@ -2420,7 +3278,7 @@
    "evidence": [
     {
      "locator": "package[name=num-complex,version=0.4.6].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/num-complex@0.4.6#",
@@ -2438,7 +3296,7 @@
    "evidence": [
     {
      "locator": "package[name=num-integer,version=0.1.47].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/num-integer@0.1.47#",
@@ -2456,7 +3314,7 @@
    "evidence": [
     {
      "locator": "package[name=num-traits,version=0.2.19].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/num-traits@0.2.19#",
@@ -2474,7 +3332,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot,version=0.12.5].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot@0.12.5#",
@@ -2492,7 +3350,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot,version=0.12.5].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot@0.12.5#",
@@ -2510,7 +3368,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot_core,version=0.9.12].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot_core@0.9.12#",
@@ -2528,7 +3386,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot_core,version=0.9.12].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot_core@0.9.12#",
@@ -2546,7 +3404,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot_core,version=0.9.12].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot_core@0.9.12#",
@@ -2564,7 +3422,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot_core,version=0.9.12].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot_core@0.9.12#",
@@ -2582,7 +3440,7 @@
    "evidence": [
     {
      "locator": "package[name=parking_lot_core,version=0.9.12].dependencies[4]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/parking_lot_core@0.9.12#",
@@ -2600,7 +3458,7 @@
    "evidence": [
     {
      "locator": "package[name=primal-check,version=0.3.4].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/primal-check@0.3.4#",
@@ -2618,7 +3476,7 @@
    "evidence": [
     {
      "locator": "package[name=proc-macro2,version=1.0.107].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/proc-macro2@1.0.107#",
@@ -2636,7 +3494,7 @@
    "evidence": [
     {
      "locator": "package[name=quick-xml,version=0.41.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/quick-xml@0.41.0#",
@@ -2654,7 +3512,7 @@
    "evidence": [
     {
      "locator": "package[name=quote,version=1.0.47].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/quote@1.0.47#",
@@ -2672,7 +3530,7 @@
    "evidence": [
     {
      "locator": "package[name=redox_syscall,version=0.5.18].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/redox_syscall@0.5.18#",
@@ -2690,7 +3548,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2708,7 +3566,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2726,7 +3584,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2744,7 +3602,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2762,7 +3620,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[4]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2780,7 +3638,7 @@
    "evidence": [
     {
      "locator": "package[name=rustfft,version=6.4.1].dependencies[5]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustfft@6.4.1#",
@@ -2798,7 +3656,7 @@
    "evidence": [
     {
      "locator": "package[name=rustix,version=1.1.6].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustix@1.1.6#",
@@ -2816,7 +3674,7 @@
    "evidence": [
     {
      "locator": "package[name=rustix,version=1.1.6].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustix@1.1.6#",
@@ -2834,7 +3692,7 @@
    "evidence": [
     {
      "locator": "package[name=rustix,version=1.1.6].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustix@1.1.6#",
@@ -2852,7 +3710,7 @@
    "evidence": [
     {
      "locator": "package[name=rustix,version=1.1.6].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustix@1.1.6#",
@@ -2870,7 +3728,7 @@
    "evidence": [
     {
      "locator": "package[name=rustix,version=1.1.6].dependencies[4]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/rustix@1.1.6#",
@@ -2888,7 +3746,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook-mio,version=0.2.5].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook-mio@0.2.5#",
@@ -2906,7 +3764,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook-mio,version=0.2.5].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook-mio@0.2.5#",
@@ -2924,7 +3782,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook-mio,version=0.2.5].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook-mio@0.2.5#",
@@ -2942,7 +3800,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook-registry,version=1.4.8].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook-registry@1.4.8#",
@@ -2960,7 +3818,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook-registry,version=1.4.8].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook-registry@1.4.8#",
@@ -2978,7 +3836,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook,version=0.3.18].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook@0.3.18#",
@@ -2996,7 +3854,7 @@
    "evidence": [
     {
      "locator": "package[name=signal-hook,version=0.3.18].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/signal-hook@0.3.18#",
@@ -3014,7 +3872,7 @@
    "evidence": [
     {
      "locator": "package[name=transpose,version=0.2.3].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/transpose@0.2.3#",
@@ -3032,7 +3890,7 @@
    "evidence": [
     {
      "locator": "package[name=transpose,version=0.2.3].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/transpose@0.2.3#",
@@ -3050,7 +3908,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3068,7 +3926,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3086,7 +3944,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3104,7 +3962,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3122,7 +3980,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[4]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3140,7 +3998,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-backend,version=0.3.17].dependencies[5]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-backend@0.3.17#",
@@ -3158,7 +4016,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-client,version=0.31.15].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-client@0.31.15#",
@@ -3176,7 +4034,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-client,version=0.31.15].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-client@0.31.15#",
@@ -3194,7 +4052,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-client,version=0.31.15].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-client@0.31.15#",
@@ -3212,7 +4070,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-client,version=0.31.15].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-client@0.31.15#",
@@ -3230,7 +4088,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-protocols,version=0.32.13].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-protocols@0.32.13#",
@@ -3248,7 +4106,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-protocols,version=0.32.13].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-protocols@0.32.13#",
@@ -3266,7 +4124,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-protocols,version=0.32.13].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-protocols@0.32.13#",
@@ -3284,7 +4142,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-protocols,version=0.32.13].dependencies[3]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-protocols@0.32.13#",
@@ -3302,7 +4160,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-scanner,version=0.31.11].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-scanner@0.31.11#",
@@ -3320,7 +4178,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-scanner,version=0.31.11].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-scanner@0.31.11#",
@@ -3338,7 +4196,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-scanner,version=0.31.11].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-scanner@0.31.11#",
@@ -3356,7 +4214,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-sys,version=0.31.11].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-sys@0.31.11#",
@@ -3374,7 +4232,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-sys,version=0.31.11].dependencies[1]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-sys@0.31.11#",
@@ -3392,7 +4250,7 @@
    "evidence": [
     {
      "locator": "package[name=wayland-sys,version=0.31.11].dependencies[2]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/wayland-sys@0.31.11#",
@@ -3410,7 +4268,7 @@
    "evidence": [
     {
      "locator": "package[name=windows-sys,version=0.61.2].dependencies[0]",
-     "path": "rust/Cargo.lock"
+     "path": "Cargo.lock"
     }
    ],
    "from": "pkg:cargo/windows-sys@0.61.2#",
@@ -3421,864 +4279,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-link@0.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-audio",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-backend",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-backend@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-core",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[3]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-core@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-display",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[4]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-display@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-engine",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[5]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-engine@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-media",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[6]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-output",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[7]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-overlay",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[8]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-overlay@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-tui",
-     "path": "rust/player-app/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[9]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-app:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-tui@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-audio/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-audio,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-audio:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-media",
-     "path": "rust/player-audio/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-audio,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-audio:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.symphonia",
-     "path": "rust/player-audio/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-audio,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-audio:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.6.1",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/symphonia@0.6.1#4d8d81e742a9adaa"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-audio",
-     "path": "rust/player-backend/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-backend,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-backend:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-backend/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-backend,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-backend:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-engine",
-     "path": "rust/player-backend/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-backend,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-backend:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-engine@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-overlay",
-     "path": "rust/player-backend/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-backend,version=0.1.0].dependencies[3]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-backend:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-overlay@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "=1.11.0",
-   "evidence": [
-    {
-     "locator": "build-dependencies.cc",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.11.0",
-   "scope": "build",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cc@1.11.0#"
-  },
-  {
-   "condition": "cfg(target_os = \"linux\")",
-   "constraint": "=0.31.15",
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.wayland-client",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[3]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.31.15",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wayland-client@0.31.15#"
-  },
-  {
-   "condition": "cfg(target_os = \"linux\")",
-   "constraint": "=0.32.13",
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.wayland-protocols",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[4]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.32.13",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wayland-protocols@0.32.13#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": "cfg(target_os = \"linux\")",
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.player-output",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
-  },
-  {
-   "condition": "cfg(target_os = \"macos\")",
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"macos\")'.dependencies.player-output",
-     "path": "rust/player-display/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-display,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-display:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-audio",
-     "path": "rust/player-engine/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-engine,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-engine:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-engine/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-engine,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-engine:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-media",
-     "path": "rust/player-engine/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-engine,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-engine:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-output",
-     "path": "rust/player-engine/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-engine,version=0.1.0].dependencies[3]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-engine:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-app",
-     "path": "rust/player-gui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-gui,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-gui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.42.2",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-app@0.42.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-gui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-gui,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-gui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-media/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-media,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-media:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "dependencies.player-core",
-     "path": "rust/player-media/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-media,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-media:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "runtime",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-core@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "build-dependencies.player-build",
-     "path": "rust/player-output/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-output,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-output:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.0",
-   "scope": "build",
-   "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
-  },
-  {
-   "condition": "cfg(target_os = \"linux\")",
-   "constraint": "0.3.18",
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.unicode-bidi",
-     "path": "rust/player-overlay/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-overlay,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-overlay:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.3.18",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/unicode-bidi@0.3.18#"
-  },
-  {
-   "condition": "cfg(target_os = \"linux\")",
-   "constraint": "0.1.5",
-   "evidence": [
-    {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.unicode-linebreak",
-     "path": "rust/player-overlay/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-overlay,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-overlay:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.1.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/unicode-linebreak@0.1.5#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.22",
-   "evidence": [
-    {
-     "locator": "dependencies.base64",
-     "path": "rust/player-tui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-tui,version=0.1.0].dependencies[0]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-tui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.22.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/base64@0.22.1#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.29.0",
-   "evidence": [
-    {
-     "locator": "dependencies.crossterm",
-     "path": "rust/player-tui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-tui,version=0.1.0].dependencies[1]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-tui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.29.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/crossterm@0.29.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.1",
-   "evidence": [
-    {
-     "locator": "dependencies.rustix",
-     "path": "rust/player-tui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-tui,version=0.1.0].dependencies[2]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-tui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.1.6",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.6#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.3",
-   "evidence": [
-    {
-     "locator": "dependencies.signal-hook",
-     "path": "rust/player-tui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-tui,version=0.1.0].dependencies[3]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-tui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.3.18",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/signal-hook@0.3.18#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.2",
-   "evidence": [
-    {
-     "locator": "dependencies.unicode-width",
-     "path": "rust/player-tui/Cargo.toml"
-    },
-    {
-     "locator": "package[name=player-tui,version=0.1.0].dependencies[4]",
-     "path": "rust/Cargo.lock"
-    }
-   ],
-   "from": "rust/player-tui:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.2.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/unicode-width@0.2.3#"
   },
   {
    "condition": "feature:libm",
@@ -6011,11 +6011,11 @@
  ],
  "inputs": [
   {
-   "blob": "a29dc46276100486e5c05ed1373a28722f83bf5f",
+   "blob": "167c572df7baa42665b27e4495a986821bd5ac75",
    "path": ".github/workflows/linux.yml"
   },
   {
-   "blob": "845c802ddd61569a258a51eb41ee45eba57a1ee7",
+   "blob": "94d92b2b93d3729a041b10e8c04cd0e5354c79d5",
    "path": ".github/workflows/macos.yml"
   },
   {
@@ -6023,8 +6023,64 @@
    "path": ".github/workflows/release.yml"
   },
   {
+   "blob": "5bffe893c7c38859cb81de7a7dd7fcdccf751e88",
+   "path": "Cargo.lock"
+  },
+  {
+   "blob": "a9b1e2899514109dae3160c5a387527373be2910",
+   "path": "Cargo.toml"
+  },
+  {
    "blob": "90262fbe1a3f2ea5422775bcc5032f0f35d361ae",
    "path": "Makefile"
+  },
+  {
+   "blob": "3dac83d5d88976adad6390193194c8260654eae8",
+   "path": "crates/player-app/Cargo.toml"
+  },
+  {
+   "blob": "26e532f924f1359d96f6fb0939761e9caeb0c27d",
+   "path": "crates/player-audio/Cargo.toml"
+  },
+  {
+   "blob": "5cab1f45e222950c1e69e3e64dc00579a82f78af",
+   "path": "crates/player-backend/Cargo.toml"
+  },
+  {
+   "blob": "a7fccc8e8f9024324e93c3ec0a317ee5b22c8b04",
+   "path": "crates/player-build/Cargo.toml"
+  },
+  {
+   "blob": "6642793536a42aafd360aef880b6c475b05a5eb0",
+   "path": "crates/player-core/Cargo.toml"
+  },
+  {
+   "blob": "adf7284c4a0c60de6effc6b7094ae83ef27204a6",
+   "path": "crates/player-display/Cargo.toml"
+  },
+  {
+   "blob": "757c5d96129862991912048917507aacc101bb15",
+   "path": "crates/player-engine/Cargo.toml"
+  },
+  {
+   "blob": "a9e31ad5ed698a499235107710198bbd45ac6805",
+   "path": "crates/player-gui/Cargo.toml"
+  },
+  {
+   "blob": "7ed52318b0313b4a033b713fe3fef1a81f00d886",
+   "path": "crates/player-media/Cargo.toml"
+  },
+  {
+   "blob": "f6455413ef5d1f517d5aa1a7a43de56bfa323a94",
+   "path": "crates/player-output/Cargo.toml"
+  },
+  {
+   "blob": "18a874b95a77abfcc5c99d6630b2ac11bbf4e9e5",
+   "path": "crates/player-overlay/Cargo.toml"
+  },
+  {
+   "blob": "9eb51b06d7515188628d3bc1702290fb620673f0",
+   "path": "crates/player-tui/Cargo.toml"
   },
   {
    "blob": "ba2840d073313ae0b684580e9073ff3db6609f8c",
@@ -6033,62 +6089,6 @@
   {
    "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
    "path": "rust-toolchain.toml"
-  },
-  {
-   "blob": "5bffe893c7c38859cb81de7a7dd7fcdccf751e88",
-   "path": "rust/Cargo.lock"
-  },
-  {
-   "blob": "81764a1dfe5c0944bd8b167ea36260afe0d14e73",
-   "path": "rust/Cargo.toml"
-  },
-  {
-   "blob": "3dac83d5d88976adad6390193194c8260654eae8",
-   "path": "rust/player-app/Cargo.toml"
-  },
-  {
-   "blob": "26e532f924f1359d96f6fb0939761e9caeb0c27d",
-   "path": "rust/player-audio/Cargo.toml"
-  },
-  {
-   "blob": "5cab1f45e222950c1e69e3e64dc00579a82f78af",
-   "path": "rust/player-backend/Cargo.toml"
-  },
-  {
-   "blob": "a7fccc8e8f9024324e93c3ec0a317ee5b22c8b04",
-   "path": "rust/player-build/Cargo.toml"
-  },
-  {
-   "blob": "6642793536a42aafd360aef880b6c475b05a5eb0",
-   "path": "rust/player-core/Cargo.toml"
-  },
-  {
-   "blob": "adf7284c4a0c60de6effc6b7094ae83ef27204a6",
-   "path": "rust/player-display/Cargo.toml"
-  },
-  {
-   "blob": "757c5d96129862991912048917507aacc101bb15",
-   "path": "rust/player-engine/Cargo.toml"
-  },
-  {
-   "blob": "a9e31ad5ed698a499235107710198bbd45ac6805",
-   "path": "rust/player-gui/Cargo.toml"
-  },
-  {
-   "blob": "7ed52318b0313b4a033b713fe3fef1a81f00d886",
-   "path": "rust/player-media/Cargo.toml"
-  },
-  {
-   "blob": "f6455413ef5d1f517d5aa1a7a43de56bfa323a94",
-   "path": "rust/player-output/Cargo.toml"
-  },
-  {
-   "blob": "18a874b95a77abfcc5c99d6630b2ac11bbf4e9e5",
-   "path": "rust/player-overlay/Cargo.toml"
-  },
-  {
-   "blob": "9eb51b06d7515188628d3bc1702290fb620673f0",
-   "path": "rust/player-tui/Cargo.toml"
   },
   {
    "blob": "f78e9a4b5f53f57c77efc7fda8b43393786658e0",
@@ -6191,7 +6191,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "7f49d6f1219e3b7dd7bb1a98623d9f81a2d66730bd032e041f3bcc19f52646ed",
+ "inputs_fingerprint": "52b7341bb8783108bdac748f9b725cd55437e92f71632a738e369d77572ce8b5",
  "instances": [
   {
    "commit": null,
@@ -8521,69 +8521,69 @@
    "id": ".:generic"
   },
   {
+   "directory": "crates/player-app",
+   "ecosystem": "cargo",
+   "id": "crates/player-app:cargo"
+  },
+  {
+   "directory": "crates/player-audio",
+   "ecosystem": "cargo",
+   "id": "crates/player-audio:cargo"
+  },
+  {
+   "directory": "crates/player-backend",
+   "ecosystem": "cargo",
+   "id": "crates/player-backend:cargo"
+  },
+  {
+   "directory": "crates/player-build",
+   "ecosystem": "cargo",
+   "id": "crates/player-build:cargo"
+  },
+  {
+   "directory": "crates/player-core",
+   "ecosystem": "cargo",
+   "id": "crates/player-core:cargo"
+  },
+  {
+   "directory": "crates/player-display",
+   "ecosystem": "cargo",
+   "id": "crates/player-display:cargo"
+  },
+  {
+   "directory": "crates/player-engine",
+   "ecosystem": "cargo",
+   "id": "crates/player-engine:cargo"
+  },
+  {
+   "directory": "crates/player-gui",
+   "ecosystem": "cargo",
+   "id": "crates/player-gui:cargo"
+  },
+  {
+   "directory": "crates/player-media",
+   "ecosystem": "cargo",
+   "id": "crates/player-media:cargo"
+  },
+  {
+   "directory": "crates/player-output",
+   "ecosystem": "cargo",
+   "id": "crates/player-output:cargo"
+  },
+  {
+   "directory": "crates/player-overlay",
+   "ecosystem": "cargo",
+   "id": "crates/player-overlay:cargo"
+  },
+  {
+   "directory": "crates/player-tui",
+   "ecosystem": "cargo",
+   "id": "crates/player-tui:cargo"
+  },
+  {
    "directory": "docker/linux",
    "ecosystem": "generic",
    "id": "docker/linux:generic"
-  },
-  {
-   "directory": "rust/player-app",
-   "ecosystem": "cargo",
-   "id": "rust/player-app:cargo"
-  },
-  {
-   "directory": "rust/player-audio",
-   "ecosystem": "cargo",
-   "id": "rust/player-audio:cargo"
-  },
-  {
-   "directory": "rust/player-backend",
-   "ecosystem": "cargo",
-   "id": "rust/player-backend:cargo"
-  },
-  {
-   "directory": "rust/player-build",
-   "ecosystem": "cargo",
-   "id": "rust/player-build:cargo"
-  },
-  {
-   "directory": "rust/player-core",
-   "ecosystem": "cargo",
-   "id": "rust/player-core:cargo"
-  },
-  {
-   "directory": "rust/player-display",
-   "ecosystem": "cargo",
-   "id": "rust/player-display:cargo"
-  },
-  {
-   "directory": "rust/player-engine",
-   "ecosystem": "cargo",
-   "id": "rust/player-engine:cargo"
-  },
-  {
-   "directory": "rust/player-gui",
-   "ecosystem": "cargo",
-   "id": "rust/player-gui:cargo"
-  },
-  {
-   "directory": "rust/player-media",
-   "ecosystem": "cargo",
-   "id": "rust/player-media:cargo"
-  },
-  {
-   "directory": "rust/player-output",
-   "ecosystem": "cargo",
-   "id": "rust/player-output:cargo"
-  },
-  {
-   "directory": "rust/player-overlay",
-   "ecosystem": "cargo",
-   "id": "rust/player-overlay:cargo"
-  },
-  {
-   "directory": "rust/player-tui",
-   "ecosystem": "cargo",
-   "id": "rust/player-tui:cargo"
   },
   {
    "directory": "vendor/ruopus",
