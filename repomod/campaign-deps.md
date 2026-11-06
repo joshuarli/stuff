@@ -6,10 +6,10 @@
 
 **Preflight:** ready on 2026-11-06 at `102b7b4`. Owner decision D1 was given on 2026-11-06.
 
-- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`). The fleet pilot read 52 repositories and 962 inputs in 0.51 s CPU with four workers, wrote 275 KB, and `check` reproduced identical bytes in 0.52 s CPU. Every selected repository is `partial` because no adapter has landed; the only issues are `unsupported_format` (962) and `vendored_unknown` (10).
-- **Red:** none. `make test` is 643 passed and 1 skipped; ruff and ty are clean.
+- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`). Fleet pilot: 52 repositories, 962 inputs, 1.44 s wall and 2.59 s CPU, 7.8 MB, largest file 848 KB, and 0 parse errors. Cargo gaps are 21 missing-lock paths and 4 named registries that cannot be resolved statically. Every repository remains `partial` until the other adapters land.
+- **Red:** none. `make test` is 667 passed and 1 skipped; ruff and ty are clean.
 - **Parked:** none.
-- **Next:** S2.
+- **Next:** S3.
 - **Resume:** "Execute `campaign-deps.md` from **Status**. Run `uv run repomod sync`, then start the next slice."
 
 ## Charter
