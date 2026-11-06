@@ -6869,6 +6869,7 @@
  "repository": "joshuarli/soulseek-rs",
  "schema": 1,
  "tags": [
+  "fork",
   "tool"
  ]
 }

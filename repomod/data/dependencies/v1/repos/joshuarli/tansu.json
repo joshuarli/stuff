@@ -97,12 +97,6 @@
    "purl": "pkg:cargo/async-trait"
   },
   {
-   "display_name": "atomic-waker",
-   "ecosystem": "cargo",
-   "name": "atomic-waker",
-   "purl": "pkg:cargo/atomic-waker"
-  },
-  {
    "display_name": "autocfg",
    "ecosystem": "cargo",
    "name": "autocfg",
@@ -401,12 +395,6 @@
    "ecosystem": "cargo",
    "name": "futures-io",
    "purl": "pkg:cargo/futures-io"
-  },
-  {
-   "display_name": "futures-lite",
-   "ecosystem": "cargo",
-   "name": "futures-lite",
-   "purl": "pkg:cargo/futures-lite"
   },
   {
    "display_name": "futures-macro",
@@ -833,12 +821,6 @@
    "ecosystem": "cargo",
    "name": "ownedbytes",
    "purl": "pkg:cargo/ownedbytes"
-  },
-  {
-   "display_name": "parking",
-   "ecosystem": "cargo",
-   "name": "parking",
-   "purl": "pkg:cargo/parking"
   },
   {
    "display_name": "pin-project-lite",
@@ -2638,7 +2620,7 @@
   },
   {
    "condition": null,
-   "constraint": "=1.12.0-beta.0",
+   "constraint": "=1.12.0-beta.1",
    "evidence": [
     {
      "locator": "dev-dependencies.hyper",
@@ -2653,14 +2635,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.12.0-beta.0",
+   "resolved_version": "1.12.0-beta.1",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#"
+   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
-   "constraint": "=1.12.0-beta.0",
+   "constraint": "=1.12.0-beta.1",
    "evidence": [
     {
      "locator": "dependencies.hyper",
@@ -2675,10 +2657,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.12.0-beta.0",
+   "resolved_version": "1.12.0-beta.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#"
+   "to": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -5529,96 +5511,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-core@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-io@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.2.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/parking@2.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=futures-macro,version=0.3.34].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -7167,29 +7059,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[0]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/atomic-waker@1.1.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7203,11 +7077,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[2]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7221,11 +7095,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[3]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7239,11 +7113,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[4]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7257,29 +7131,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[5]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[6]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7293,11 +7149,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[7]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7311,11 +7167,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[8]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7329,11 +7185,47 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[9]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-atomic-waker@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[8]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[9]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7347,11 +7239,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[10]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7365,11 +7257,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.0].dependencies[11]",
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
+   "from": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7383,29 +7275,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[0]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/atomic-waker@1.1.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7419,11 +7293,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[2]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7437,11 +7311,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[3]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7455,11 +7329,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[4]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7473,29 +7347,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[5]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[7]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7509,11 +7365,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[6]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7527,11 +7383,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[8]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7545,11 +7401,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[9]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7563,11 +7419,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[10]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7581,29 +7437,65 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[11]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.4.20-beta.0",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#"
+   "to": "pkg:cargo/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[12]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[11]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.20-beta.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[12]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7617,11 +7509,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[13]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7635,11 +7527,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.0].dependencies[14]",
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
+   "from": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -15835,11 +15727,11 @@
    "path": ".node-version"
   },
   {
-   "blob": "88368c47c00b08b4c868bfde5e52da705500fd2e",
+   "blob": "a492e7e8a517f79d482242d307b196b3ed35a5af",
    "path": "Cargo.lock"
   },
   {
-   "blob": "40031a5e96cd4be378c036eeabd620c9e16d3a7a",
+   "blob": "1ef0012ce35d641d11ac448c583a33d7e8b45377",
    "path": "Cargo.toml"
   },
   {
@@ -15895,7 +15787,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "c26b74fde6e67d66235c0d83b70b5f69b4ce01d3917316e9344e9263cc2dd8fe",
+ "inputs_fingerprint": "d37187f363c1870782a32633c6fc2eb53c47d954a8ab61b4c6e46dcef05f802e",
  "instances": [
   {
    "commit": null,
@@ -16104,19 +15996,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.92"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/atomic-waker",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/atomic-waker@1.1.2#",
-   "purl": "pkg:cargo/atomic-waker@1.1.2",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.1.2"
   },
   {
    "commit": null,
@@ -16770,19 +16649,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/futures-lite",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/futures-lite@2.6.1#",
-   "purl": "pkg:cargo/futures-lite@2.6.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.6.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/futures-macro",
    "context": "",
    "first_party": false,
@@ -17306,26 +17172,26 @@
    "component": "pkg:cargo/laputa-h2-futures-lite",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0#",
-   "purl": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.0",
+   "id": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2#",
+   "purl": "pkg:cargo/laputa-h2-futures-lite@0.4.20-beta.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.4.20-beta.0"
+   "version": "0.4.20-beta.2"
   },
   {
    "commit": null,
    "component": "pkg:cargo/laputa-hyper-futures-lite",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0#",
-   "purl": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.0",
+   "id": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1#",
+   "purl": "pkg:cargo/laputa-hyper-futures-lite@1.12.0-beta.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.12.0-beta.0"
+   "version": "1.12.0-beta.1"
   },
   {
    "commit": null,
@@ -17716,19 +17582,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/parking",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/parking@2.2.1#",
-   "purl": "pkg:cargo/parking@2.2.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.2.1"
   },
   {
    "commit": null,

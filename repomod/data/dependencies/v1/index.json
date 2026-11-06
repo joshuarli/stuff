@@ -2,7 +2,7 @@
  "parser_version": 2,
  "repositories": {
   "joshuarli/agent-memory": {
-   "commit": "51e12a894968cf32e7b7e89d0426dd1fb04a442b",
+   "commit": "94ff6ca531b6bc4e0c1249867edfdeac95bbfcb4",
    "inputs_fingerprint": "95ea651b3d08c91d12e0ec51d5bfb42c4bf2f8b07dd7fb677cfc296562c6fef9",
    "state": "partial"
   },
@@ -57,8 +57,8 @@
    "state": "partial"
   },
   "joshuarli/shadowdriver": {
-   "commit": "73cbd2fdc57964a131fe2169967c79e7ffdb33f4",
-   "inputs_fingerprint": "ce74cae0fa5c29f52fadbac3ac7061652c061a09d3e2b42fc9bef8d4af4ead98",
+   "commit": "60195769f6fb017ec50ebcd72e02dba7b90dc2d1",
+   "inputs_fingerprint": "2b707b07793729b357e222fe3a346ffa021f76e67e253a667b4f37cc6e1c2450",
    "state": "partial"
   },
   "joshuarli/soulseek-rs": {
@@ -72,7 +72,7 @@
    "state": "partial"
   },
   "joshuarli/stuff": {
-   "commit": "aa7683c98de8f0ade54c8f2369a57b6c22eb3c97",
+   "commit": "6312ca94681f77fdbdaebf8150da890a261e66e1",
    "inputs_fingerprint": "366685479058a9032d7bc426adcdba9c07c66cf7bdd6d57ebca30628a6ed65b8",
    "state": "partial"
   },
@@ -87,8 +87,8 @@
    "state": "partial"
   },
   "joshuarli/tansu": {
-   "commit": "f1f6948597568cada504a50b18eb69d1ee03cc9a",
-   "inputs_fingerprint": "c26b74fde6e67d66235c0d83b70b5f69b4ce01d3917316e9344e9263cc2dd8fe",
+   "commit": "b68162826cf41a7cfcfae8dfd375278538b31f0b",
+   "inputs_fingerprint": "d37187f363c1870782a32633c6fc2eb53c47d954a8ab61b4c6e46dcef05f802e",
    "state": "partial"
   },
   "joshuarli/toolbox": {
@@ -227,8 +227,8 @@
    "state": "partial"
   },
   "laputa-systems/smolith": {
-   "commit": "7e8fc3077137b39fe925006269abcfcc2c58c1c6",
-   "inputs_fingerprint": "f855fa04c3faa5c87372a6ccdb833b421c79572e048c54a033a3612e6952dfe1",
+   "commit": "0ffc2e717548288739fc93d400f0759b01577a41",
+   "inputs_fingerprint": "3048d3213cb266701465406c48955a7d3492e89f0d2f516195959af128dcbe28",
    "state": "partial"
   },
   "laputa-systems/srv": {

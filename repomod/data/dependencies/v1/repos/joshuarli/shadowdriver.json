@@ -67,12 +67,6 @@
    "purl": "pkg:cargo/futures-io"
   },
   {
-   "display_name": "futures-lite",
-   "ecosystem": "cargo",
-   "name": "futures-lite",
-   "purl": "pkg:cargo/futures-lite"
-  },
-  {
    "display_name": "getrandom",
    "ecosystem": "cargo",
    "name": "getrandom",
@@ -209,12 +203,6 @@
    "ecosystem": "cargo",
    "name": "once_cell",
    "purl": "pkg:cargo/once_cell"
-  },
-  {
-   "display_name": "parking",
-   "ecosystem": "cargo",
-   "name": "parking",
-   "purl": "pkg:cargo/parking"
   },
   {
    "display_name": "pin-project-lite",
@@ -1571,10 +1559,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.10.0",
+   "resolved_version": "0.10.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#"
+   "to": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#"
   },
   {
    "condition": null,
@@ -2971,96 +2959,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-core@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.34",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/futures-io@0.3.34#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.2.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/parking@2.2.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=futures-lite,version=2.6.1].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/futures-lite@2.6.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.17",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite@0.2.17#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=getrandom,version=0.4.3].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -3601,11 +3499,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.0].dependencies[0]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
+   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3619,47 +3517,47 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.0].dependencies[1]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
+   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "2.5.0",
+   "resolved_version": "0.4.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/fastrand@2.5.0#"
+   "to": "pkg:cargo/getrandom@0.4.3#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.0].dependencies[2]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
+   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "2.6.1",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-lite@2.6.1#"
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.0].dependencies[3]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
+   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3673,18 +3571,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.0].dependencies[4]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
+   "from": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.69",
+   "resolved_version": "2.0.21",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/thiserror@1.0.69#"
+   "to": "pkg:cargo/thiserror@2.0.21#"
   },
   {
    "condition": null,
@@ -4771,60 +4669,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=thiserror-impl,version=1.0.69].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/thiserror-impl@1.0.69#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.107",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=thiserror-impl,version=1.0.69].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/thiserror-impl@1.0.69#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.47",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.47#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=thiserror-impl,version=1.0.69].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/thiserror-impl@1.0.69#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.0.119",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/syn@2.0.119#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=thiserror-impl,version=2.0.21].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -4873,24 +4717,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/syn@3.0.9#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=thiserror,version=1.0.69].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/thiserror@1.0.69#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.69",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/thiserror-impl@1.0.69#"
   },
   {
    "condition": null,
@@ -13723,7 +13549,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "52f2198c6cf10af18663138f25f42334aa3a639e",
+   "blob": "abcf2d15dab1eacf26881255ec4591189a05887f",
    "path": "Cargo.lock"
   },
   {
@@ -13815,7 +13641,7 @@
    "path": "ts/pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "ce74cae0fa5c29f52fadbac3ac7061652c061a09d3e2b42fc9bef8d4af4ead98",
+ "inputs_fingerprint": "2b707b07793729b357e222fe3a346ffa021f76e67e253a667b4f37cc6e1c2450",
  "instances": [
   {
    "commit": null,
@@ -13959,19 +13785,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.34"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/futures-lite",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/futures-lite@2.6.1#",
-   "purl": "pkg:cargo/futures-lite@2.6.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.6.1"
   },
   {
    "commit": null,
@@ -14147,13 +13960,13 @@
    "component": "pkg:cargo/laputa-fastwebsockets-futures-lite",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0#",
-   "purl": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.0",
+   "id": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1#",
+   "purl": "pkg:cargo/laputa-fastwebsockets-futures-lite@0.10.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.10.0"
+   "version": "0.10.1"
   },
   {
    "commit": null,
@@ -14271,19 +14084,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.21.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/parking",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/parking@2.2.1#",
-   "purl": "pkg:cargo/parking@2.2.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.2.1"
   },
   {
    "commit": null,
@@ -14576,19 +14376,6 @@
    "component": "pkg:cargo/thiserror-impl",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/thiserror-impl@1.0.69#",
-   "purl": "pkg:cargo/thiserror-impl@1.0.69",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.69"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/thiserror-impl",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/thiserror-impl@2.0.21#",
    "purl": "pkg:cargo/thiserror-impl@2.0.21",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -14596,19 +14383,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.0.21"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/thiserror",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/thiserror@1.0.69#",
-   "purl": "pkg:cargo/thiserror@1.0.69",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.69"
   },
   {
    "commit": null,
