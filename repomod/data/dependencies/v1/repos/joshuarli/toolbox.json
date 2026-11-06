@@ -1,0 +1,1265 @@
+{
+ "components": [
+  {
+   "display_name": "python",
+   "ecosystem": "generic",
+   "name": "python",
+   "purl": "pkg:generic/python"
+  },
+  {
+   "display_name": "shadowdriver",
+   "ecosystem": "generic",
+   "name": "shadowdriver",
+   "purl": "pkg:generic/shadowdriver"
+  },
+  {
+   "display_name": "tool",
+   "ecosystem": "generic",
+   "name": "tool",
+   "purl": "pkg:generic/tool"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/setup-python",
+   "ecosystem": "github",
+   "name": "actions/setup-python",
+   "purl": "pkg:github/actions/setup-python"
+  },
+  {
+   "display_name": "astral-sh/setup-uv",
+   "ecosystem": "github",
+   "name": "astral-sh/setup-uv",
+   "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
+   "display_name": "blessed",
+   "ecosystem": "pypi",
+   "name": "blessed",
+   "purl": "pkg:pypi/blessed"
+  },
+  {
+   "display_name": "coverage",
+   "ecosystem": "pypi",
+   "name": "coverage",
+   "purl": "pkg:pypi/coverage"
+  },
+  {
+   "display_name": "iniconfig",
+   "ecosystem": "pypi",
+   "name": "iniconfig",
+   "purl": "pkg:pypi/iniconfig"
+  },
+  {
+   "display_name": "jinxed",
+   "ecosystem": "pypi",
+   "name": "jinxed",
+   "purl": "pkg:pypi/jinxed"
+  },
+  {
+   "display_name": "joshuarli-pytest-parallel",
+   "ecosystem": "pypi",
+   "name": "joshuarli-pytest-parallel",
+   "purl": "pkg:pypi/joshuarli-pytest-parallel"
+  },
+  {
+   "display_name": "maturin",
+   "ecosystem": "pypi",
+   "name": "maturin",
+   "purl": "pkg:pypi/maturin"
+  },
+  {
+   "display_name": "mutagen",
+   "ecosystem": "pypi",
+   "name": "mutagen",
+   "purl": "pkg:pypi/mutagen"
+  },
+  {
+   "display_name": "packaging",
+   "ecosystem": "pypi",
+   "name": "packaging",
+   "purl": "pkg:pypi/packaging"
+  },
+  {
+   "display_name": "pluggy",
+   "ecosystem": "pypi",
+   "name": "pluggy",
+   "purl": "pkg:pypi/pluggy"
+  },
+  {
+   "display_name": "pygments",
+   "ecosystem": "pypi",
+   "name": "pygments",
+   "purl": "pkg:pypi/pygments"
+  },
+  {
+   "display_name": "pyobjc-core",
+   "ecosystem": "pypi",
+   "name": "pyobjc-core",
+   "purl": "pkg:pypi/pyobjc-core"
+  },
+  {
+   "display_name": "pyobjc-framework-cocoa",
+   "ecosystem": "pypi",
+   "name": "pyobjc-framework-cocoa",
+   "purl": "pkg:pypi/pyobjc-framework-cocoa"
+  },
+  {
+   "display_name": "pytest",
+   "ecosystem": "pypi",
+   "name": "pytest",
+   "purl": "pkg:pypi/pytest"
+  },
+  {
+   "display_name": "pytest-asyncio",
+   "ecosystem": "pypi",
+   "name": "pytest-asyncio",
+   "purl": "pkg:pypi/pytest-asyncio"
+  },
+  {
+   "display_name": "pytest-cov",
+   "ecosystem": "pypi",
+   "name": "pytest-cov",
+   "purl": "pkg:pypi/pytest-cov"
+  },
+  {
+   "display_name": "ruff",
+   "ecosystem": "pypi",
+   "name": "ruff",
+   "purl": "pkg:pypi/ruff"
+  },
+  {
+   "display_name": "ty",
+   "ecosystem": "pypi",
+   "name": "ty",
+   "purl": "pkg:pypi/ty"
+  },
+  {
+   "display_name": "urllib3",
+   "ecosystem": "pypi",
+   "name": "urllib3",
+   "purl": "pkg:pypi/urllib3"
+  },
+  {
+   "display_name": "uv",
+   "ecosystem": "pypi",
+   "name": "uv",
+   "purl": "pkg:pypi/uv"
+  },
+  {
+   "display_name": "uvloop",
+   "ecosystem": "pypi",
+   "name": "uvloop",
+   "purl": "pkg:pypi/uvloop"
+  },
+  {
+   "display_name": "wcwidth",
+   "ecosystem": "pypi",
+   "name": "wcwidth",
+   "purl": "pkg:pypi/wcwidth"
+  },
+  {
+   "display_name": "websockets",
+   "ecosystem": "pypi",
+   "name": "websockets",
+   "purl": "pkg:pypi/websockets"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "3.15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".python-version"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3.15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/python@3.15#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[3].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+  },
+  {
+   "condition": "extra == 'browser'",
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "project.optional-dependencies.browser[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].optional-dependencies.browser[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": null,
+   "scope": "optional",
+   "source_kind": "path",
+   "to": "pkg:generic/shadowdriver#"
+  },
+  {
+   "condition": null,
+   "constraint": ">=1.20",
+   "evidence": [
+    {
+     "locator": "project.dependencies[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.50.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/blessed@1.50.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": ">=0.2.0",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.4.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/joshuarli-pytest-parallel@0.4.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "<2,>=1.9",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "1.15.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/maturin@1.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": ">=1.48.1",
+   "evidence": [
+    {
+     "locator": "project.dependencies[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.48.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/mutagen@1.48.1#"
+  },
+  {
+   "condition": "sys_platform == \"darwin\"; sys_platform != \"linux\"",
+   "constraint": ">=11",
+   "evidence": [
+    {
+     "locator": "project.dependencies[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "12.2.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pyobjc-framework-cocoa@12.2.2#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": ">=1.3.0",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[3]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[3]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "1.4.1",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest-asyncio@1.4.1#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": ">=7.1.0",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[4]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[4]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "7.1.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest-cov@7.1.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": ">=9.1.1",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "9.2.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest@9.2.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.17.2",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[5]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[5]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.17.2",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ruff@0.17.2#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.0.91",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[6]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[6]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.0.91",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ty@0.0.91#"
+  },
+  {
+   "condition": null,
+   "constraint": ">=2.7.0",
+   "evidence": [
+    {
+     "locator": "project.dependencies[3]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[3]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.8.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/urllib3@2.8.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.13.5",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[7]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dev-dependencies.dev[7]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.13.5",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uv@0.13.5#"
+  },
+  {
+   "condition": null,
+   "constraint": ">=0.22.1",
+   "evidence": [
+    {
+     "locator": "project.dependencies[4]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[4]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.23.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uvloop@0.23.0#"
+  },
+  {
+   "condition": null,
+   "constraint": ">=16.0",
+   "evidence": [
+    {
+     "locator": "project.dependencies[5]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=tool,version=0.1.0].dependencies[5]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "17.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/websockets@17.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=blessed,version=1.50.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/blessed@1.50.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/jinxed@2.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=blessed,version=1.50.0].dependencies[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/blessed@1.50.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/wcwidth@0.8.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=joshuarli-pytest-parallel,version=0.4.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/joshuarli-pytest-parallel@0.4.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "9.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest@9.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pyobjc-framework-cocoa,version=12.2.2].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pyobjc-framework-cocoa@12.2.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "12.2.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pyobjc-core@12.2.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest-asyncio,version=1.4.1].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest-asyncio@1.4.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "9.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest@9.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest-cov,version=7.1.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest-cov@7.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "7.16.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/coverage@7.16.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest-cov,version=7.1.0].dependencies[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest-cov@7.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.6.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pluggy@1.6.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest-cov,version=7.1.0].dependencies[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest-cov@7.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "9.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest@9.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/iniconfig@2.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "26.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/packaging@26.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.6.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pluggy@1.6.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[3]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.21.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pygments@2.21.0#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "fb1f0b9704838593ae380ec62f679802e6a4ad8d",
+   "path": ".github/workflows/ci.yml"
+  },
+  {
+   "blob": "dabb6b60aab35720fcd3e595a05b644c67625289",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "93a848f9688291c7b2172cf99f133675225ad282",
+   "path": ".python-version"
+  },
+  {
+   "blob": "327ff0af7f09b3991fcd6f3cb13cedbfdbd3bc12",
+   "path": "Makefile"
+  },
+  {
+   "blob": "4d298155b3e0f13c8fd3bc290df51e5ec1a1b473",
+   "path": "pyproject.toml"
+  },
+  {
+   "blob": "1bb825a477a8f4ace6578a54be9bc96eb682bc79",
+   "path": "uv.lock"
+  }
+ ],
+ "inputs_fingerprint": "49fb2f8e4afe45b320d5ba88406a29a2e638ff02937f1797b3b8f94474c34d80",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:generic/python",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/python@3.15#",
+   "purl": "pkg:generic/python@3.15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "3.15"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/shadowdriver",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/shadowdriver#",
+   "purl": "pkg:generic/shadowdriver",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/tool",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/tool@0.1.0#",
+   "purl": "pkg:generic/tool@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "component": "pkg:github/actions/setup-python",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#",
+   "purl": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/setup-python",
+   "version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+  },
+  {
+   "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "component": "pkg:github/astral-sh/setup-uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#",
+   "purl": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/astral-sh/setup-uv",
+   "version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/blessed",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/blessed@1.50.0#",
+   "purl": "pkg:pypi/blessed@1.50.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.50.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/coverage",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/coverage@7.16.1#",
+   "purl": "pkg:pypi/coverage@7.16.1",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "7.16.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/iniconfig",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/iniconfig@2.3.0#",
+   "purl": "pkg:pypi/iniconfig@2.3.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/jinxed",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/jinxed@2.1.0#",
+   "purl": "pkg:pypi/jinxed@2.1.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/joshuarli-pytest-parallel",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/joshuarli-pytest-parallel@0.4.0#",
+   "purl": "pkg:pypi/joshuarli-pytest-parallel@0.4.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/maturin",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/maturin@1.15.0#",
+   "purl": "pkg:pypi/maturin@1.15.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.15.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/mutagen",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/mutagen@1.48.1#",
+   "purl": "pkg:pypi/mutagen@1.48.1",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.48.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/packaging",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/packaging@26.3#",
+   "purl": "pkg:pypi/packaging@26.3",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "26.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pluggy",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pluggy@1.6.0#",
+   "purl": "pkg:pypi/pluggy@1.6.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.6.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pygments",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pygments@2.21.0#",
+   "purl": "pkg:pypi/pygments@2.21.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.21.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pyobjc-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pyobjc-core@12.2.2#",
+   "purl": "pkg:pypi/pyobjc-core@12.2.2",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "12.2.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pyobjc-framework-cocoa",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pyobjc-framework-cocoa@12.2.2#",
+   "purl": "pkg:pypi/pyobjc-framework-cocoa@12.2.2",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "12.2.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pytest-asyncio",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pytest-asyncio@1.4.1#",
+   "purl": "pkg:pypi/pytest-asyncio@1.4.1",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.4.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pytest-cov",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pytest-cov@7.1.0#",
+   "purl": "pkg:pypi/pytest-cov@7.1.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "7.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pytest",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pytest@9.2.0#",
+   "purl": "pkg:pypi/pytest@9.2.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "9.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ruff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ruff@0.17.2#",
+   "purl": "pkg:pypi/ruff@0.17.2",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ty@0.0.91#",
+   "purl": "pkg:pypi/ty@0.0.91",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.0.91"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/urllib3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/urllib3@2.8.0#",
+   "purl": "pkg:pypi/urllib3@2.8.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uv@0.13.5#",
+   "purl": "pkg:pypi/uv@0.13.5",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uvloop",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uvloop@0.23.0#",
+   "purl": "pkg:pypi/uvloop@0.23.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.23.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/wcwidth",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/wcwidth@0.8.4#",
+   "purl": "pkg:pypi/wcwidth@0.8.4",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.8.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/websockets",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/websockets@17.3#",
+   "purl": "pkg:pypi/websockets@17.3",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "17.3"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "pypi",
+   "id": ".:pypi"
+  }
+ ],
+ "repository": "joshuarli/toolbox",
+ "schema": 1,
+ "tags": [
+  "private-tool",
+  "python"
+ ]
+}

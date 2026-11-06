@@ -1,0 +1,1643 @@
+{
+ "components": [
+  {
+   "display_name": "aes",
+   "ecosystem": "cargo",
+   "name": "aes",
+   "purl": "pkg:cargo/aes"
+  },
+  {
+   "display_name": "anyhow",
+   "ecosystem": "cargo",
+   "name": "anyhow",
+   "purl": "pkg:cargo/anyhow"
+  },
+  {
+   "display_name": "async_zip",
+   "ecosystem": "cargo",
+   "name": "async_zip",
+   "purl": "pkg:cargo/async_zip"
+  },
+  {
+   "display_name": "criterion",
+   "ecosystem": "cargo",
+   "name": "criterion",
+   "purl": "pkg:cargo/criterion"
+  },
+  {
+   "display_name": "ctr",
+   "ecosystem": "cargo",
+   "name": "ctr",
+   "purl": "pkg:cargo/ctr"
+  },
+  {
+   "display_name": "filetime",
+   "ecosystem": "cargo",
+   "name": "filetime",
+   "purl": "pkg:cargo/filetime"
+  },
+  {
+   "display_name": "flate2",
+   "ecosystem": "cargo",
+   "name": "flate2",
+   "purl": "pkg:cargo/flate2"
+  },
+  {
+   "display_name": "gungraun",
+   "ecosystem": "cargo",
+   "name": "gungraun",
+   "purl": "pkg:cargo/gungraun"
+  },
+  {
+   "display_name": "hmac",
+   "ecosystem": "cargo",
+   "name": "hmac",
+   "purl": "pkg:cargo/hmac"
+  },
+  {
+   "display_name": "jiff",
+   "ecosystem": "cargo",
+   "name": "jiff",
+   "purl": "pkg:cargo/jiff"
+  },
+  {
+   "display_name": "libfuzzer-sys",
+   "ecosystem": "cargo",
+   "name": "libfuzzer-sys",
+   "purl": "pkg:cargo/libfuzzer-sys"
+  },
+  {
+   "display_name": "paste",
+   "ecosystem": "cargo",
+   "name": "paste",
+   "purl": "pkg:cargo/paste"
+  },
+  {
+   "display_name": "pbkdf2",
+   "ecosystem": "cargo",
+   "name": "pbkdf2",
+   "purl": "pkg:cargo/pbkdf2"
+  },
+  {
+   "display_name": "quickcheck",
+   "ecosystem": "cargo",
+   "name": "quickcheck",
+   "purl": "pkg:cargo/quickcheck"
+  },
+  {
+   "display_name": "quickcheck_macros",
+   "ecosystem": "cargo",
+   "name": "quickcheck_macros",
+   "purl": "pkg:cargo/quickcheck_macros"
+  },
+  {
+   "display_name": "rc-zip",
+   "ecosystem": "cargo",
+   "name": "rc-zip",
+   "purl": "pkg:cargo/rc-zip"
+  },
+  {
+   "display_name": "rc-zip-sync",
+   "ecosystem": "cargo",
+   "name": "rc-zip-sync",
+   "purl": "pkg:cargo/rc-zip-sync"
+  },
+  {
+   "display_name": "rstest",
+   "ecosystem": "cargo",
+   "name": "rstest",
+   "purl": "pkg:cargo/rstest"
+  },
+  {
+   "display_name": "sha1",
+   "ecosystem": "cargo",
+   "name": "sha1",
+   "purl": "pkg:cargo/sha1"
+  },
+  {
+   "display_name": "tokio",
+   "ecosystem": "cargo",
+   "name": "tokio",
+   "purl": "pkg:cargo/tokio"
+  },
+  {
+   "display_name": "tokio-util",
+   "ecosystem": "cargo",
+   "name": "tokio-util",
+   "purl": "pkg:cargo/tokio-util"
+  },
+  {
+   "display_name": "zip",
+   "ecosystem": "cargo",
+   "name": "zip",
+   "purl": "pkg:cargo/zip"
+  },
+  {
+   "display_name": "zstd",
+   "ecosystem": "cargo",
+   "name": "zstd",
+   "purl": "pkg:cargo/zstd"
+  },
+  {
+   "display_name": "rawzip",
+   "ecosystem": "generic",
+   "name": "rawzip",
+   "purl": "pkg:generic/rawzip"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "generic",
+   "name": "rust",
+   "purl": "pkg:generic/rust"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "cargo-bins/cargo-binstall",
+   "ecosystem": "github",
+   "name": "cargo-bins/cargo-binstall",
+   "purl": "pkg:github/cargo-bins/cargo-binstall"
+  },
+  {
+   "display_name": "dtolnay/rust-toolchain",
+   "ecosystem": "github",
+   "name": "dtolnay/rust-toolchain",
+   "purl": "pkg:github/dtolnay/rust-toolchain"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "0.9.1",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.aes",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/aes#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10.1",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.ctr",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/ctr#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.2",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.filetime",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/filetime#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.1.9",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.flate2",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/flate2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.13.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.hmac",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hmac#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.2.28",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.jiff",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/jiff#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.paste",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/paste#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.13.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.pbkdf2",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pbkdf2#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0.3",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.quickcheck",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quickcheck#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.quickcheck_macros",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quickcheck_macros#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.28",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.rstest",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rstest#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.11.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.sha1",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/sha1#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.14",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.zstd",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zstd#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[0].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.msrv.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.cross.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.testbench.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.clippy.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.rustfmt.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.docs.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.fuzz.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.wasm.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.no-std.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7",
+   "evidence": [
+    {
+     "locator": "jobs.big-example.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v7",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v7#"
+  },
+  {
+   "condition": null,
+   "constraint": "main",
+   "evidence": [
+    {
+     "locator": "jobs.cross.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "main",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/cargo-bins/cargo-binstall@main#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[1].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "683b588c487a69d01f6c6ddf40f036ff682cc2c8",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.msrv.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.testbench.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.clippy.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.rustfmt.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.docs.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.fuzz.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.wasm.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.no-std.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.big-example.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.8.2",
+   "evidence": [
+    {
+     "locator": "dependencies.criterion",
+     "path": "bench/Cargo.toml"
+    }
+   ],
+   "from": "bench:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/criterion#"
+  },
+  {
+   "condition": "cfg(not(target_family = \"wasm\"))",
+   "constraint": "0.19.1",
+   "evidence": [
+    {
+     "locator": "target.'cfg(not(target_family = \"wasm\"))'.dependencies.gungraun",
+     "path": "bench/Cargo.toml"
+    }
+   ],
+   "from": "bench:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/gungraun#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rawzip",
+     "path": "bench/Cargo.toml"
+    }
+   ],
+   "from": "bench:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.5.2",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:generic/rawzip@0.5.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0.103",
+   "evidence": [
+    {
+     "locator": "dependencies.anyhow",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/anyhow#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.0.18",
+   "evidence": [
+    {
+     "locator": "dependencies.async_zip",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/async_zip#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.8",
+   "evidence": [
+    {
+     "locator": "dependencies.criterion",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/criterion#"
+  },
+  {
+   "condition": null,
+   "constraint": "5.4.1",
+   "evidence": [
+    {
+     "locator": "dependencies.rc-zip",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rc-zip#"
+  },
+  {
+   "condition": null,
+   "constraint": "4.4.2",
+   "evidence": [
+    {
+     "locator": "dependencies.rc-zip-sync",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rc-zip-sync#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.52",
+   "evidence": [
+    {
+     "locator": "dependencies.tokio",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/tokio#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.7.18",
+   "evidence": [
+    {
+     "locator": "dependencies.tokio-util",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/tokio-util#"
+  },
+  {
+   "condition": null,
+   "constraint": "9.0",
+   "evidence": [
+    {
+     "locator": "dependencies.zip",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zip#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rawzip",
+     "path": "compare/Cargo.toml"
+    }
+   ],
+   "from": "compare:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.5.2",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:generic/rawzip@0.5.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0.35",
+   "evidence": [
+    {
+     "locator": "dependencies.flate2",
+     "path": "fuzz/Cargo.toml"
+    }
+   ],
+   "from": "fuzz:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/flate2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.4",
+   "evidence": [
+    {
+     "locator": "dependencies.libfuzzer-sys",
+     "path": "fuzz/Cargo.toml"
+    }
+   ],
+   "from": "fuzz:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libfuzzer-sys#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rawzip",
+     "path": "fuzz/Cargo.toml"
+    }
+   ],
+   "from": "fuzz:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.5.2",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:generic/rawzip@0.5.2#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "65ce04b46819969efbd4d7ed6c4015f170d74bde",
+   "path": ".github/workflows/ci.yml"
+  },
+  {
+   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "eec6249e68c81a0ce0dee48bad49eca09796be14",
+   "path": ".github/workflows/test.yml"
+  },
+  {
+   "blob": "045a307e1dcb72cc75692e35d114bfd6f3f4fae1",
+   "path": "Cargo.toml"
+  },
+  {
+   "blob": "8b40a1e113a8ae2aeef70f7822fcf0b1ba4d5f39",
+   "path": "Makefile"
+  },
+  {
+   "blob": "44749166873859afe5b4383b7c2386b92da0dedc",
+   "path": "bench/Cargo.toml"
+  },
+  {
+   "blob": "f3ea23fcf197114d8ee296b8c4a644f1f9f09c49",
+   "path": "compare/Cargo.toml"
+  },
+  {
+   "blob": "1ba6e6628a84674263d2ee21c10c588099282971",
+   "path": "fuzz/Cargo.toml"
+  },
+  {
+   "blob": "6572a8702b82496bb28ab50d80bba414d559d374",
+   "path": "rust-toolchain.toml"
+  }
+ ],
+ "inputs_fingerprint": "b6f2ea4e34f7a598d506fb54451a137a5448bf695b8ebf08e08904128ecd866c",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:cargo/aes",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/aes#",
+   "purl": "pkg:cargo/aes",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/anyhow",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/anyhow#",
+   "purl": "pkg:cargo/anyhow",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/async_zip",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/async_zip#",
+   "purl": "pkg:cargo/async_zip",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/criterion",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/criterion#",
+   "purl": "pkg:cargo/criterion",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/ctr",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/ctr#",
+   "purl": "pkg:cargo/ctr",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/filetime",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/filetime#",
+   "purl": "pkg:cargo/filetime",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/flate2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/flate2#",
+   "purl": "pkg:cargo/flate2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/gungraun",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/gungraun#",
+   "purl": "pkg:cargo/gungraun",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/hmac",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/hmac#",
+   "purl": "pkg:cargo/hmac",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/jiff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/jiff#",
+   "purl": "pkg:cargo/jiff",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/libfuzzer-sys",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/libfuzzer-sys#",
+   "purl": "pkg:cargo/libfuzzer-sys",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/paste",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/paste#",
+   "purl": "pkg:cargo/paste",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/pbkdf2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/pbkdf2#",
+   "purl": "pkg:cargo/pbkdf2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/quickcheck",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/quickcheck#",
+   "purl": "pkg:cargo/quickcheck",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/quickcheck_macros",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/quickcheck_macros#",
+   "purl": "pkg:cargo/quickcheck_macros",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rc-zip",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rc-zip#",
+   "purl": "pkg:cargo/rc-zip",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rc-zip-sync",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rc-zip-sync#",
+   "purl": "pkg:cargo/rc-zip-sync",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rstest",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rstest#",
+   "purl": "pkg:cargo/rstest",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/sha1",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/sha1#",
+   "purl": "pkg:cargo/sha1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/tokio",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/tokio#",
+   "purl": "pkg:cargo/tokio",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/tokio-util",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/tokio-util#",
+   "purl": "pkg:cargo/tokio-util",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/zip",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/zip#",
+   "purl": "pkg:cargo/zip",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/zstd",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/zstd#",
+   "purl": "pkg:cargo/zstd",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rawzip",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/rawzip@0.5.2#",
+   "purl": "pkg:generic/rawzip@0.5.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.5.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/rust@nightly-2026-09-15#",
+   "purl": "pkg:generic/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v7#",
+   "purl": "pkg:github/actions/checkout@v7",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v7"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/cargo-bins/cargo-binstall",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/cargo-bins/cargo-binstall@main#",
+   "purl": "pkg:github/cargo-bins/cargo-binstall@main",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/cargo-bins/cargo-binstall",
+   "version": "main"
+  },
+  {
+   "commit": "683b588c487a69d01f6c6ddf40f036ff682cc2c8",
+   "component": "pkg:github/dtolnay/rust-toolchain",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8#",
+   "purl": "pkg:github/dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/dtolnay/rust-toolchain",
+   "version": "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/dtolnay/rust-toolchain",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/dtolnay/rust-toolchain@master#",
+   "purl": "pkg:github/dtolnay/rust-toolchain@master",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/dtolnay/rust-toolchain",
+   "version": "master"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at Cargo.lock",
+   "path": "Cargo.lock"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at bench/Cargo.lock",
+   "path": "bench/Cargo.lock"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at compare/Cargo.lock",
+   "path": "compare/Cargo.lock"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at fuzz/Cargo.lock",
+   "path": "fuzz/Cargo.lock"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "cargo",
+   "id": ".:cargo"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": "bench",
+   "ecosystem": "cargo",
+   "id": "bench:cargo"
+  },
+  {
+   "directory": "compare",
+   "ecosystem": "cargo",
+   "id": "compare:cargo"
+  },
+  {
+   "directory": "fuzz",
+   "ecosystem": "cargo",
+   "id": "fuzz:cargo"
+  }
+ ],
+ "repository": "laputa-systems/rawzip",
+ "schema": 1,
+ "tags": [
+  "fork",
+  "library",
+  "rust"
+ ]
+}

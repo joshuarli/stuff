@@ -1,0 +1,279 @@
+{
+ "components": [
+  {
+   "display_name": "bylaws-aarch64-apple-darwin.zip",
+   "ecosystem": "generic",
+   "name": "bylaws-aarch64-apple-darwin.zip",
+   "purl": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip"
+  },
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/download-artifact",
+   "ecosystem": "github",
+   "name": "actions/download-artifact",
+   "purl": "pkg:github/actions/download-artifact"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].run",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "url",
+   "to": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.ci.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[5].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "445d9493a169bf336cf66f4f6b8fee471d306384",
+   "path": ".github/workflows/ci.yml"
+  },
+  {
+   "blob": "6a698c69622a53ec31dd3ac4524c010fbed8c4f8",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "962d91ce5ab837cfe1f521018545f0b6533feb8e",
+   "path": ".github/workflows/release.yml"
+  },
+  {
+   "blob": "cff43c258d48d267ce3e63f1bfc3d1bdca347e99",
+   "path": "Makefile"
+  },
+  {
+   "blob": "3a9b0a3a7f873d36389545f88065430a52b557ee",
+   "path": "Package.swift"
+  }
+ ],
+ "inputs_fingerprint": "c71ffcdc42f5351e38c407865ac87c4dc0620d0cba5e894ddba491c71d3fec11",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#",
+   "purl": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "component": "pkg:github/actions/cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#",
+   "purl": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "component": "pkg:github/actions/download-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#",
+   "purl": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/download-artifact",
+   "version": "9000827ccba6bdab643e8b6fd33ac0654aef8333"
+  },
+  {
+   "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#",
+   "purl": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "swift",
+   "id": ".:swift"
+  }
+ ],
+ "repository": "joshuarli/mactop",
+ "schema": 1,
+ "tags": [
+  "macos",
+  "swift",
+  "tool"
+ ]
+}

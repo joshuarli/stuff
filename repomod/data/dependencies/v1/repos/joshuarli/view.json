@@ -1,0 +1,38 @@
+{
+ "components": [],
+ "edges": [],
+ "inputs": [
+  {
+   "blob": "9f363408c04087ebee5b7f4b38bad6e7317ff5ea",
+   "path": "Makefile"
+  },
+  {
+   "blob": "76fa013094f5137848de8742ef7ead10ce5e466e",
+   "path": "Package.swift"
+  }
+ ],
+ "inputs_fingerprint": "69c0ead602243e087b5f7e4be848b956ef7d11efcc49b7e752fbc70eaf042ffd",
+ "instances": [],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "swift",
+   "id": ".:swift"
+  }
+ ],
+ "repository": "joshuarli/view",
+ "schema": 1,
+ "tags": [
+  "app",
+  "macos",
+  "swift"
+ ]
+}

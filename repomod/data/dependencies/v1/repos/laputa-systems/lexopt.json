@@ -1,0 +1,220 @@
+{
+ "components": [
+  {
+   "display_name": "libfuzzer-sys",
+   "ecosystem": "cargo",
+   "name": "libfuzzer-sys",
+   "purl": "pkg:cargo/libfuzzer-sys"
+  },
+  {
+   "display_name": "lexopt",
+   "ecosystem": "generic",
+   "name": "lexopt",
+   "purl": "pkg:generic/lexopt"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[0].uses",
+     "path": ".github/workflows/ci.yaml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test_wasi.steps[0].uses",
+     "path": ".github/workflows/ci.yaml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.fuzz.steps[0].uses",
+     "path": ".github/workflows/ci.yaml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/ci.yaml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.4",
+   "evidence": [
+    {
+     "locator": "dependencies.libfuzzer-sys",
+     "path": "fuzz/Cargo.toml"
+    }
+   ],
+   "from": "fuzz:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libfuzzer-sys#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.lexopt",
+     "path": "fuzz/Cargo.toml"
+    }
+   ],
+   "from": "fuzz:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.2",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:generic/lexopt@0.3.2#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "97b0f128d6712f327f312350a337a0339e80c490",
+   "path": ".github/workflows/ci.yaml"
+  },
+  {
+   "blob": "70fbaa9605ca64643a98864ae11ec2fc847bd45a",
+   "path": "Cargo.toml"
+  },
+  {
+   "blob": "b53eda13d7bc0dd11e91019b9824304c4b4ed60b",
+   "path": "fuzz/Cargo.toml"
+  }
+ ],
+ "inputs_fingerprint": "eb892d55657665c12fcb627726a15acb47f8eea6b9bbfa5beab68574a65717f1",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:cargo/libfuzzer-sys",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/libfuzzer-sys#",
+   "purl": "pkg:cargo/libfuzzer-sys",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/lexopt",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/lexopt@0.3.2#",
+   "purl": "pkg:generic/lexopt@0.3.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.3.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v2#",
+   "purl": "pkg:github/actions/checkout@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v2"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at fuzz/Cargo.lock",
+   "path": "fuzz/Cargo.lock"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "cargo",
+   "id": ".:cargo"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": "fuzz",
+   "ecosystem": "cargo",
+   "id": "fuzz:cargo"
+  }
+ ],
+ "repository": "laputa-systems/lexopt",
+ "schema": 1,
+ "tags": [
+  "fork",
+  "library",
+  "rust"
+ ]
+}

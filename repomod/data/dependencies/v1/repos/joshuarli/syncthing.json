@@ -1,0 +1,4535 @@
+{
+ "components": [
+  {
+   "display_name": "ca-certificates",
+   "ecosystem": "apk",
+   "name": "ca-certificates",
+   "purl": "pkg:apk/ca-certificates"
+  },
+  {
+   "display_name": "curl",
+   "ecosystem": "apk",
+   "name": "curl",
+   "purl": "pkg:apk/curl"
+  },
+  {
+   "display_name": "libcap",
+   "ecosystem": "apk",
+   "name": "libcap",
+   "purl": "pkg:apk/libcap"
+  },
+  {
+   "display_name": "su-exec",
+   "ecosystem": "apk",
+   "name": "su-exec",
+   "purl": "pkg:apk/su-exec"
+  },
+  {
+   "display_name": "tzdata",
+   "ecosystem": "apk",
+   "name": "tzdata",
+   "purl": "pkg:apk/tzdata"
+  },
+  {
+   "display_name": "alpine",
+   "ecosystem": "docker",
+   "name": "alpine",
+   "purl": "pkg:docker/alpine"
+  },
+  {
+   "display_name": "golang",
+   "ecosystem": "docker",
+   "name": "golang",
+   "purl": "pkg:docker/golang"
+  },
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/download-artifact",
+   "ecosystem": "github",
+   "name": "actions/download-artifact",
+   "purl": "pkg:github/actions/download-artifact"
+  },
+  {
+   "display_name": "actions/setup-go",
+   "ecosystem": "github",
+   "name": "actions/setup-go",
+   "purl": "pkg:github/actions/setup-go"
+  },
+  {
+   "display_name": "actions/setup-java",
+   "ecosystem": "github",
+   "name": "actions/setup-java",
+   "purl": "pkg:github/actions/setup-java"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+   "ecosystem": "golang",
+   "name": "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+   "purl": "pkg:golang/buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go"
+  },
+  {
+   "display_name": "buf.build/go/protovalidate",
+   "ecosystem": "golang",
+   "name": "buf.build/go/protovalidate",
+   "purl": "pkg:golang/buf.build/go/protovalidate"
+  },
+  {
+   "display_name": "cel.dev/cel-go",
+   "ecosystem": "golang",
+   "name": "cel.dev/cel-go",
+   "purl": "pkg:golang/cel.dev/cel-go"
+  },
+  {
+   "display_name": "cel.dev/expr",
+   "ecosystem": "golang",
+   "name": "cel.dev/expr",
+   "purl": "pkg:golang/cel.dev/expr"
+  },
+  {
+   "display_name": "github.com/AudriusButkevicius/recli",
+   "ecosystem": "golang",
+   "name": "github.com/AudriusButkevicius/recli",
+   "purl": "pkg:golang/github.com/AudriusButkevicius/recli"
+  },
+  {
+   "display_name": "github.com/Azure/go-ntlmssp",
+   "ecosystem": "golang",
+   "name": "github.com/Azure/go-ntlmssp",
+   "purl": "pkg:golang/github.com/Azure/go-ntlmssp"
+  },
+  {
+   "display_name": "github.com/alecthomas/kong",
+   "ecosystem": "golang",
+   "name": "github.com/alecthomas/kong",
+   "purl": "pkg:golang/github.com/alecthomas/kong"
+  },
+  {
+   "display_name": "github.com/antlr4-go/antlr/v4",
+   "ecosystem": "golang",
+   "name": "github.com/antlr4-go/antlr/v4",
+   "purl": "pkg:golang/github.com/antlr4-go/antlr/v4"
+  },
+  {
+   "display_name": "github.com/aws/aws-sdk-go",
+   "ecosystem": "golang",
+   "name": "github.com/aws/aws-sdk-go",
+   "purl": "pkg:golang/github.com/aws/aws-sdk-go"
+  },
+  {
+   "display_name": "github.com/beorn7/perks",
+   "ecosystem": "golang",
+   "name": "github.com/beorn7/perks",
+   "purl": "pkg:golang/github.com/beorn7/perks"
+  },
+  {
+   "display_name": "github.com/calmh/glob",
+   "ecosystem": "golang",
+   "name": "github.com/calmh/glob",
+   "purl": "pkg:golang/github.com/calmh/glob"
+  },
+  {
+   "display_name": "github.com/calmh/incontainer",
+   "ecosystem": "golang",
+   "name": "github.com/calmh/incontainer",
+   "purl": "pkg:golang/github.com/calmh/incontainer"
+  },
+  {
+   "display_name": "github.com/calmh/xdr",
+   "ecosystem": "golang",
+   "name": "github.com/calmh/xdr",
+   "purl": "pkg:golang/github.com/calmh/xdr"
+  },
+  {
+   "display_name": "github.com/ccding/go-stun",
+   "ecosystem": "golang",
+   "name": "github.com/ccding/go-stun",
+   "purl": "pkg:golang/github.com/ccding/go-stun"
+  },
+  {
+   "display_name": "github.com/cenkalti/backoff/v4",
+   "ecosystem": "golang",
+   "name": "github.com/cenkalti/backoff/v4",
+   "purl": "pkg:golang/github.com/cenkalti/backoff/v4"
+  },
+  {
+   "display_name": "github.com/certifi/gocertifi",
+   "ecosystem": "golang",
+   "name": "github.com/certifi/gocertifi",
+   "purl": "pkg:golang/github.com/certifi/gocertifi"
+  },
+  {
+   "display_name": "github.com/cespare/xxhash/v2",
+   "ecosystem": "golang",
+   "name": "github.com/cespare/xxhash/v2",
+   "purl": "pkg:golang/github.com/cespare/xxhash/v2"
+  },
+  {
+   "display_name": "github.com/coreos/go-semver",
+   "ecosystem": "golang",
+   "name": "github.com/coreos/go-semver",
+   "purl": "pkg:golang/github.com/coreos/go-semver"
+  },
+  {
+   "display_name": "github.com/cpuguy83/go-md2man/v2",
+   "ecosystem": "golang",
+   "name": "github.com/cpuguy83/go-md2man/v2",
+   "purl": "pkg:golang/github.com/cpuguy83/go-md2man/v2"
+  },
+  {
+   "display_name": "github.com/d4l3k/messagediff",
+   "ecosystem": "golang",
+   "name": "github.com/d4l3k/messagediff",
+   "purl": "pkg:golang/github.com/d4l3k/messagediff"
+  },
+  {
+   "display_name": "github.com/dustin/go-humanize",
+   "ecosystem": "golang",
+   "name": "github.com/dustin/go-humanize",
+   "purl": "pkg:golang/github.com/dustin/go-humanize"
+  },
+  {
+   "display_name": "github.com/ebitengine/purego",
+   "ecosystem": "golang",
+   "name": "github.com/ebitengine/purego",
+   "purl": "pkg:golang/github.com/ebitengine/purego"
+  },
+  {
+   "display_name": "github.com/fsnotify/fsnotify",
+   "ecosystem": "golang",
+   "name": "github.com/fsnotify/fsnotify",
+   "purl": "pkg:golang/github.com/fsnotify/fsnotify"
+  },
+  {
+   "display_name": "github.com/getsentry/raven-go",
+   "ecosystem": "golang",
+   "name": "github.com/getsentry/raven-go",
+   "purl": "pkg:golang/github.com/getsentry/raven-go"
+  },
+  {
+   "display_name": "github.com/go-asn1-ber/asn1-ber",
+   "ecosystem": "golang",
+   "name": "github.com/go-asn1-ber/asn1-ber",
+   "purl": "pkg:golang/github.com/go-asn1-ber/asn1-ber"
+  },
+  {
+   "display_name": "github.com/go-ldap/ldap/v3",
+   "ecosystem": "golang",
+   "name": "github.com/go-ldap/ldap/v3",
+   "purl": "pkg:golang/github.com/go-ldap/ldap/v3"
+  },
+  {
+   "display_name": "github.com/go-ole/go-ole",
+   "ecosystem": "golang",
+   "name": "github.com/go-ole/go-ole",
+   "purl": "pkg:golang/github.com/go-ole/go-ole"
+  },
+  {
+   "display_name": "github.com/gofrs/flock",
+   "ecosystem": "golang",
+   "name": "github.com/gofrs/flock",
+   "purl": "pkg:golang/github.com/gofrs/flock"
+  },
+  {
+   "display_name": "github.com/golang/snappy",
+   "ecosystem": "golang",
+   "name": "github.com/golang/snappy",
+   "purl": "pkg:golang/github.com/golang/snappy"
+  },
+  {
+   "display_name": "github.com/google/uuid",
+   "ecosystem": "golang",
+   "name": "github.com/google/uuid",
+   "purl": "pkg:golang/github.com/google/uuid"
+  },
+  {
+   "display_name": "github.com/hashicorp/errwrap",
+   "ecosystem": "golang",
+   "name": "github.com/hashicorp/errwrap",
+   "purl": "pkg:golang/github.com/hashicorp/errwrap"
+  },
+  {
+   "display_name": "github.com/hashicorp/go-multierror",
+   "ecosystem": "golang",
+   "name": "github.com/hashicorp/go-multierror",
+   "purl": "pkg:golang/github.com/hashicorp/go-multierror"
+  },
+  {
+   "display_name": "github.com/hashicorp/golang-lru/v2",
+   "ecosystem": "golang",
+   "name": "github.com/hashicorp/golang-lru/v2",
+   "purl": "pkg:golang/github.com/hashicorp/golang-lru/v2"
+  },
+  {
+   "display_name": "github.com/jackpal/gateway",
+   "ecosystem": "golang",
+   "name": "github.com/jackpal/gateway",
+   "purl": "pkg:golang/github.com/jackpal/gateway"
+  },
+  {
+   "display_name": "github.com/jackpal/go-nat-pmp",
+   "ecosystem": "golang",
+   "name": "github.com/jackpal/go-nat-pmp",
+   "purl": "pkg:golang/github.com/jackpal/go-nat-pmp"
+  },
+  {
+   "display_name": "github.com/jmespath/go-jmespath",
+   "ecosystem": "golang",
+   "name": "github.com/jmespath/go-jmespath",
+   "purl": "pkg:golang/github.com/jmespath/go-jmespath"
+  },
+  {
+   "display_name": "github.com/jmoiron/sqlx",
+   "ecosystem": "golang",
+   "name": "github.com/jmoiron/sqlx",
+   "purl": "pkg:golang/github.com/jmoiron/sqlx"
+  },
+  {
+   "display_name": "github.com/julienschmidt/httprouter",
+   "ecosystem": "golang",
+   "name": "github.com/julienschmidt/httprouter",
+   "purl": "pkg:golang/github.com/julienschmidt/httprouter"
+  },
+  {
+   "display_name": "github.com/kballard/go-shellquote",
+   "ecosystem": "golang",
+   "name": "github.com/kballard/go-shellquote",
+   "purl": "pkg:golang/github.com/kballard/go-shellquote"
+  },
+  {
+   "display_name": "github.com/lufia/plan9stats",
+   "ecosystem": "golang",
+   "name": "github.com/lufia/plan9stats",
+   "purl": "pkg:golang/github.com/lufia/plan9stats"
+  },
+  {
+   "display_name": "github.com/maruel/panicparse/v2",
+   "ecosystem": "golang",
+   "name": "github.com/maruel/panicparse/v2",
+   "purl": "pkg:golang/github.com/maruel/panicparse/v2"
+  },
+  {
+   "display_name": "github.com/mattn/go-isatty",
+   "ecosystem": "golang",
+   "name": "github.com/mattn/go-isatty",
+   "purl": "pkg:golang/github.com/mattn/go-isatty"
+  },
+  {
+   "display_name": "github.com/mattn/go-sqlite3",
+   "ecosystem": "golang",
+   "name": "github.com/mattn/go-sqlite3",
+   "purl": "pkg:golang/github.com/mattn/go-sqlite3"
+  },
+  {
+   "display_name": "github.com/maxbrunsfeld/counterfeiter/v6",
+   "ecosystem": "golang",
+   "name": "github.com/maxbrunsfeld/counterfeiter/v6",
+   "purl": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6"
+  },
+  {
+   "display_name": "github.com/maxmind/geoipupdate/v6",
+   "ecosystem": "golang",
+   "name": "github.com/maxmind/geoipupdate/v6",
+   "purl": "pkg:golang/github.com/maxmind/geoipupdate/v6"
+  },
+  {
+   "display_name": "github.com/miscreant/miscreant.go",
+   "ecosystem": "golang",
+   "name": "github.com/miscreant/miscreant.go",
+   "purl": "pkg:golang/github.com/miscreant/miscreant.go"
+  },
+  {
+   "display_name": "github.com/munnerz/goautoneg",
+   "ecosystem": "golang",
+   "name": "github.com/munnerz/goautoneg",
+   "purl": "pkg:golang/github.com/munnerz/goautoneg"
+  },
+  {
+   "display_name": "github.com/ncruces/go-strftime",
+   "ecosystem": "golang",
+   "name": "github.com/ncruces/go-strftime",
+   "purl": "pkg:golang/github.com/ncruces/go-strftime"
+  },
+  {
+   "display_name": "github.com/nxadm/tail",
+   "ecosystem": "golang",
+   "name": "github.com/nxadm/tail",
+   "purl": "pkg:golang/github.com/nxadm/tail"
+  },
+  {
+   "display_name": "github.com/oschwald/geoip2-golang",
+   "ecosystem": "golang",
+   "name": "github.com/oschwald/geoip2-golang",
+   "purl": "pkg:golang/github.com/oschwald/geoip2-golang"
+  },
+  {
+   "display_name": "github.com/oschwald/maxminddb-golang",
+   "ecosystem": "golang",
+   "name": "github.com/oschwald/maxminddb-golang",
+   "purl": "pkg:golang/github.com/oschwald/maxminddb-golang"
+  },
+  {
+   "display_name": "github.com/pierrec/lz4/v4",
+   "ecosystem": "golang",
+   "name": "github.com/pierrec/lz4/v4",
+   "purl": "pkg:golang/github.com/pierrec/lz4/v4"
+  },
+  {
+   "display_name": "github.com/pkg/errors",
+   "ecosystem": "golang",
+   "name": "github.com/pkg/errors",
+   "purl": "pkg:golang/github.com/pkg/errors"
+  },
+  {
+   "display_name": "github.com/posener/complete",
+   "ecosystem": "golang",
+   "name": "github.com/posener/complete",
+   "purl": "pkg:golang/github.com/posener/complete"
+  },
+  {
+   "display_name": "github.com/power-devops/perfstat",
+   "ecosystem": "golang",
+   "name": "github.com/power-devops/perfstat",
+   "purl": "pkg:golang/github.com/power-devops/perfstat"
+  },
+  {
+   "display_name": "github.com/prometheus/client_golang",
+   "ecosystem": "golang",
+   "name": "github.com/prometheus/client_golang",
+   "purl": "pkg:golang/github.com/prometheus/client_golang"
+  },
+  {
+   "display_name": "github.com/prometheus/client_model",
+   "ecosystem": "golang",
+   "name": "github.com/prometheus/client_model",
+   "purl": "pkg:golang/github.com/prometheus/client_model"
+  },
+  {
+   "display_name": "github.com/prometheus/common",
+   "ecosystem": "golang",
+   "name": "github.com/prometheus/common",
+   "purl": "pkg:golang/github.com/prometheus/common"
+  },
+  {
+   "display_name": "github.com/prometheus/procfs",
+   "ecosystem": "golang",
+   "name": "github.com/prometheus/procfs",
+   "purl": "pkg:golang/github.com/prometheus/procfs"
+  },
+  {
+   "display_name": "github.com/puzpuzpuz/xsync/v3",
+   "ecosystem": "golang",
+   "name": "github.com/puzpuzpuz/xsync/v3",
+   "purl": "pkg:golang/github.com/puzpuzpuz/xsync/v3"
+  },
+  {
+   "display_name": "github.com/quic-go/quic-go",
+   "ecosystem": "golang",
+   "name": "github.com/quic-go/quic-go",
+   "purl": "pkg:golang/github.com/quic-go/quic-go"
+  },
+  {
+   "display_name": "github.com/rabbitmq/amqp091-go",
+   "ecosystem": "golang",
+   "name": "github.com/rabbitmq/amqp091-go",
+   "purl": "pkg:golang/github.com/rabbitmq/amqp091-go"
+  },
+  {
+   "display_name": "github.com/rcrowley/go-metrics",
+   "ecosystem": "golang",
+   "name": "github.com/rcrowley/go-metrics",
+   "purl": "pkg:golang/github.com/rcrowley/go-metrics"
+  },
+  {
+   "display_name": "github.com/remyoudompheng/bigfft",
+   "ecosystem": "golang",
+   "name": "github.com/remyoudompheng/bigfft",
+   "purl": "pkg:golang/github.com/remyoudompheng/bigfft"
+  },
+  {
+   "display_name": "github.com/riywo/loginshell",
+   "ecosystem": "golang",
+   "name": "github.com/riywo/loginshell",
+   "purl": "pkg:golang/github.com/riywo/loginshell"
+  },
+  {
+   "display_name": "github.com/russross/blackfriday/v2",
+   "ecosystem": "golang",
+   "name": "github.com/russross/blackfriday/v2",
+   "purl": "pkg:golang/github.com/russross/blackfriday/v2"
+  },
+  {
+   "display_name": "github.com/shirou/gopsutil/v4",
+   "ecosystem": "golang",
+   "name": "github.com/shirou/gopsutil/v4",
+   "purl": "pkg:golang/github.com/shirou/gopsutil/v4"
+  },
+  {
+   "display_name": "github.com/syncthing/notify",
+   "ecosystem": "golang",
+   "name": "github.com/syncthing/notify",
+   "purl": "pkg:golang/github.com/syncthing/notify"
+  },
+  {
+   "display_name": "github.com/syndtr/goleveldb",
+   "ecosystem": "golang",
+   "name": "github.com/syndtr/goleveldb",
+   "purl": "pkg:golang/github.com/syndtr/goleveldb"
+  },
+  {
+   "display_name": "github.com/thejerf/suture/v4",
+   "ecosystem": "golang",
+   "name": "github.com/thejerf/suture/v4",
+   "purl": "pkg:golang/github.com/thejerf/suture/v4"
+  },
+  {
+   "display_name": "github.com/tklauser/go-sysconf",
+   "ecosystem": "golang",
+   "name": "github.com/tklauser/go-sysconf",
+   "purl": "pkg:golang/github.com/tklauser/go-sysconf"
+  },
+  {
+   "display_name": "github.com/tklauser/numcpus",
+   "ecosystem": "golang",
+   "name": "github.com/tklauser/numcpus",
+   "purl": "pkg:golang/github.com/tklauser/numcpus"
+  },
+  {
+   "display_name": "github.com/urfave/cli",
+   "ecosystem": "golang",
+   "name": "github.com/urfave/cli",
+   "purl": "pkg:golang/github.com/urfave/cli"
+  },
+  {
+   "display_name": "github.com/vitrun/qart",
+   "ecosystem": "golang",
+   "name": "github.com/vitrun/qart",
+   "purl": "pkg:golang/github.com/vitrun/qart"
+  },
+  {
+   "display_name": "github.com/willabides/kongplete",
+   "ecosystem": "golang",
+   "name": "github.com/willabides/kongplete",
+   "purl": "pkg:golang/github.com/willabides/kongplete"
+  },
+  {
+   "display_name": "github.com/wlynxg/anet",
+   "ecosystem": "golang",
+   "name": "github.com/wlynxg/anet",
+   "purl": "pkg:golang/github.com/wlynxg/anet"
+  },
+  {
+   "display_name": "github.com/yusufpapurcu/wmi",
+   "ecosystem": "golang",
+   "name": "github.com/yusufpapurcu/wmi",
+   "purl": "pkg:golang/github.com/yusufpapurcu/wmi"
+  },
+  {
+   "display_name": "go.yaml.in/yaml/v2",
+   "ecosystem": "golang",
+   "name": "go.yaml.in/yaml/v2",
+   "purl": "pkg:golang/go.yaml.in/yaml/v2"
+  },
+  {
+   "display_name": "go.yaml.in/yaml/v3",
+   "ecosystem": "golang",
+   "name": "go.yaml.in/yaml/v3",
+   "purl": "pkg:golang/go.yaml.in/yaml/v3"
+  },
+  {
+   "display_name": "golang.org/x/crypto",
+   "ecosystem": "golang",
+   "name": "golang.org/x/crypto",
+   "purl": "pkg:golang/golang.org/x/crypto"
+  },
+  {
+   "display_name": "golang.org/x/exp",
+   "ecosystem": "golang",
+   "name": "golang.org/x/exp",
+   "purl": "pkg:golang/golang.org/x/exp"
+  },
+  {
+   "display_name": "golang.org/x/mod",
+   "ecosystem": "golang",
+   "name": "golang.org/x/mod",
+   "purl": "pkg:golang/golang.org/x/mod"
+  },
+  {
+   "display_name": "golang.org/x/net",
+   "ecosystem": "golang",
+   "name": "golang.org/x/net",
+   "purl": "pkg:golang/golang.org/x/net"
+  },
+  {
+   "display_name": "golang.org/x/sync",
+   "ecosystem": "golang",
+   "name": "golang.org/x/sync",
+   "purl": "pkg:golang/golang.org/x/sync"
+  },
+  {
+   "display_name": "golang.org/x/sys",
+   "ecosystem": "golang",
+   "name": "golang.org/x/sys",
+   "purl": "pkg:golang/golang.org/x/sys"
+  },
+  {
+   "display_name": "golang.org/x/telemetry",
+   "ecosystem": "golang",
+   "name": "golang.org/x/telemetry",
+   "purl": "pkg:golang/golang.org/x/telemetry"
+  },
+  {
+   "display_name": "golang.org/x/text",
+   "ecosystem": "golang",
+   "name": "golang.org/x/text",
+   "purl": "pkg:golang/golang.org/x/text"
+  },
+  {
+   "display_name": "golang.org/x/time",
+   "ecosystem": "golang",
+   "name": "golang.org/x/time",
+   "purl": "pkg:golang/golang.org/x/time"
+  },
+  {
+   "display_name": "golang.org/x/tools",
+   "ecosystem": "golang",
+   "name": "golang.org/x/tools",
+   "purl": "pkg:golang/golang.org/x/tools"
+  },
+  {
+   "display_name": "google.golang.org/genproto/googleapis/api",
+   "ecosystem": "golang",
+   "name": "google.golang.org/genproto/googleapis/api",
+   "purl": "pkg:golang/google.golang.org/genproto/googleapis/api"
+  },
+  {
+   "display_name": "google.golang.org/genproto/googleapis/rpc",
+   "ecosystem": "golang",
+   "name": "google.golang.org/genproto/googleapis/rpc",
+   "purl": "pkg:golang/google.golang.org/genproto/googleapis/rpc"
+  },
+  {
+   "display_name": "google.golang.org/protobuf",
+   "ecosystem": "golang",
+   "name": "google.golang.org/protobuf",
+   "purl": "pkg:golang/google.golang.org/protobuf"
+  },
+  {
+   "display_name": "modernc.org/libc",
+   "ecosystem": "golang",
+   "name": "modernc.org/libc",
+   "purl": "pkg:golang/modernc.org/libc"
+  },
+  {
+   "display_name": "modernc.org/mathutil",
+   "ecosystem": "golang",
+   "name": "modernc.org/mathutil",
+   "purl": "pkg:golang/modernc.org/mathutil"
+  },
+  {
+   "display_name": "modernc.org/memory",
+   "ecosystem": "golang",
+   "name": "modernc.org/memory",
+   "purl": "pkg:golang/modernc.org/memory"
+  },
+  {
+   "display_name": "modernc.org/sqlite",
+   "ecosystem": "golang",
+   "name": "modernc.org/sqlite",
+   "purl": "pkg:golang/modernc.org/sqlite"
+  },
+  {
+   "display_name": "sigs.k8s.io/yaml",
+   "ecosystem": "golang",
+   "name": "sigs.k8s.io/yaml",
+   "purl": "pkg:golang/sigs.k8s.io/yaml"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/curl#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/libcap#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/tzdata#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L29",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.stcrashreceiver"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L16",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.strelaypoolsrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L16",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.stupgrades"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.ursrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L10",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.builder"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[5].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[1].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[2].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "de7274f081f381c8f8158605e0321c36c376e2e6",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[6].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.36.12-20260825204119-511051f7f437.2",
+   "evidence": [
+    {
+     "locator": "L6",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.36.12-20260825204119-511051f7f437.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go@v1.36.12-20260825204119-511051f7f437.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.4.0",
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/buf.build/go/protovalidate@v1.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.32.0",
+   "evidence": [
+    {
+     "locator": "L57",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.32.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/cel.dev/cel-go@v0.32.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.25.3",
+   "evidence": [
+    {
+     "locator": "L58",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.25.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/cel.dev/expr@v0.25.3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.7",
+   "evidence": [
+    {
+     "locator": "L8",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.7",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/AudriusButkevicius/recli@v0.0.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.1.1",
+   "evidence": [
+    {
+     "locator": "L59",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.1.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/Azure/go-ntlmssp@v0.1.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.16.1",
+   "evidence": [
+    {
+     "locator": "L9",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.16.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/alecthomas/kong@v1.16.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.13.1",
+   "evidence": [
+    {
+     "locator": "L60",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v4.13.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/antlr4-go/antlr/v4@v4.13.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.55.8",
+   "evidence": [
+    {
+     "locator": "L10",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.55.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.0.1",
+   "evidence": [
+    {
+     "locator": "L61",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.0.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/beorn7/perks@v1.0.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.2.3",
+   "evidence": [
+    {
+     "locator": "L18",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20220615080505-1d823af5017b",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/calmh/glob@v0.0.0-20220615080505-1d823af5017b#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.0.0",
+   "evidence": [
+    {
+     "locator": "L11",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.0.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/calmh/incontainer@v1.0.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.2.0",
+   "evidence": [
+    {
+     "locator": "L12",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/calmh/xdr@v1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L115",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.0",
+   "scope": "toolchain",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/calmh/xdr@v1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.1.6",
+   "evidence": [
+    {
+     "locator": "L13",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.1.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/ccding/go-stun@v0.1.6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.3.0",
+   "evidence": [
+    {
+     "locator": "L62",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v4.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/cenkalti/backoff/v4@v4.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20210507211836-431795d63e8d",
+   "evidence": [
+    {
+     "locator": "L63",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20210507211836-431795d63e8d",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/certifi/gocertifi@v0.0.0-20210507211836-431795d63e8d#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.3.0",
+   "evidence": [
+    {
+     "locator": "L64",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v2.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/cespare/xxhash/v2@v2.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.3.1",
+   "evidence": [
+    {
+     "locator": "L14",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.3.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/coreos/go-semver@v0.3.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.0.7",
+   "evidence": [
+    {
+     "locator": "L65",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v2.0.7",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.2.1",
+   "evidence": [
+    {
+     "locator": "L15",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/d4l3k/messagediff@v1.2.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.0.1",
+   "evidence": [
+    {
+     "locator": "L66",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.0.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/dustin/go-humanize@v1.0.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.11.1",
+   "evidence": [
+    {
+     "locator": "L67",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.11.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/ebitengine/purego@v0.11.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.7.0",
+   "evidence": [
+    {
+     "locator": "L68",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.7.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/fsnotify/fsnotify@v1.7.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.2.0",
+   "evidence": [
+    {
+     "locator": "L16",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/getsentry/raven-go@v0.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.5.8",
+   "evidence": [
+    {
+     "locator": "L69",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.5.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/go-asn1-ber/asn1-ber@v1.5.8#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.4.15",
+   "evidence": [
+    {
+     "locator": "L17",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v3.4.15",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/go-ldap/ldap/v3@v3.4.15#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.3.0",
+   "evidence": [
+    {
+     "locator": "L70",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/go-ole/go-ole@v1.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.13.1",
+   "evidence": [
+    {
+     "locator": "L19",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.13.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/gofrs/flock@v0.13.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.4",
+   "evidence": [
+    {
+     "locator": "L71",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/golang/snappy@v0.0.4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.6.0",
+   "evidence": [
+    {
+     "locator": "L72",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.6.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/google/uuid@v1.6.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.1.0",
+   "evidence": [
+    {
+     "locator": "L73",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/hashicorp/errwrap@v1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.1.1",
+   "evidence": [
+    {
+     "locator": "L74",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.1.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/hashicorp/go-multierror@v1.1.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.0.7",
+   "evidence": [
+    {
+     "locator": "L20",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v2.0.7",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/hashicorp/golang-lru/v2@v2.0.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.2.0",
+   "evidence": [
+    {
+     "locator": "L21",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/jackpal/gateway@v1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.1.0",
+   "evidence": [
+    {
+     "locator": "L22",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/jackpal/go-nat-pmp@v1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.4.0",
+   "evidence": [
+    {
+     "locator": "L75",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.4.0",
+   "evidence": [
+    {
+     "locator": "L23",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/jmoiron/sqlx@v1.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.3.0",
+   "evidence": [
+    {
+     "locator": "L24",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/julienschmidt/httprouter@v1.3.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20180428030007-95032a82bc51",
+   "evidence": [
+    {
+     "locator": "L25",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20180428030007-95032a82bc51",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/kballard/go-shellquote@v0.0.0-20180428030007-95032a82bc51#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20240909124753-873cd0166683",
+   "evidence": [
+    {
+     "locator": "L76",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20240909124753-873cd0166683",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20240909124753-873cd0166683#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.5.0",
+   "evidence": [
+    {
+     "locator": "L26",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v2.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/maruel/panicparse/v2@v2.5.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.24",
+   "evidence": [
+    {
+     "locator": "L77",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.24",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/mattn/go-isatty@v0.0.24#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.14.52",
+   "evidence": [
+    {
+     "locator": "L27",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.14.52",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/mattn/go-sqlite3@v1.14.52#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.12.0",
+   "evidence": [
+    {
+     "locator": "L78",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v6.12.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6@v6.12.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L116",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v6.12.0",
+   "scope": "toolchain",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6@v6.12.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.0",
+   "evidence": [
+    {
+     "locator": "L28",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v6.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/maxmind/geoipupdate/v6@v6.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20200214223636-26d376326b75",
+   "evidence": [
+    {
+     "locator": "L29",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20200214223636-26d376326b75",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/miscreant/miscreant.go@v0.0.0-20200214223636-26d376326b75#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20191010083416-a7dc8b61c822",
+   "evidence": [
+    {
+     "locator": "L79",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20191010083416-a7dc8b61c822",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.0.0",
+   "evidence": [
+    {
+     "locator": "L80",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.0.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/ncruces/go-strftime@v1.0.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.4.11",
+   "evidence": [
+    {
+     "locator": "L81",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.4.11",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/nxadm/tail@v1.4.11#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.13.0",
+   "evidence": [
+    {
+     "locator": "L30",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.13.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/oschwald/geoip2-golang@v1.13.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.13.1",
+   "evidence": [
+    {
+     "locator": "L82",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.13.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/oschwald/maxminddb-golang@v1.13.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.1.33",
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v4.1.33",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/pierrec/lz4/v4@v4.1.33#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.9.1",
+   "evidence": [
+    {
+     "locator": "L83",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.9.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/pkg/errors@v0.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.2.3",
+   "evidence": [
+    {
+     "locator": "L84",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/posener/complete@v1.2.3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20260805114148-88456608a4f6",
+   "evidence": [
+    {
+     "locator": "L85",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20260805114148-88456608a4f6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20260805114148-88456608a4f6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.25.0",
+   "evidence": [
+    {
+     "locator": "L32",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.25.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/prometheus/client_golang@v1.25.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.6.3",
+   "evidence": [
+    {
+     "locator": "L86",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.6.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/prometheus/client_model@v0.6.3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.72.0",
+   "evidence": [
+    {
+     "locator": "L87",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.72.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/prometheus/common@v0.72.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.22.0",
+   "evidence": [
+    {
+     "locator": "L88",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.22.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/prometheus/procfs@v0.22.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.5.1",
+   "evidence": [
+    {
+     "locator": "L33",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v3.5.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/puzpuzpuz/xsync/v3@v3.5.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.63.0",
+   "evidence": [
+    {
+     "locator": "L34",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.63.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/quic-go/quic-go@v0.63.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.15.0",
+   "evidence": [
+    {
+     "locator": "L35",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.15.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/rabbitmq/amqp091-go@v1.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20250401214520-65e299d6c5c9",
+   "evidence": [
+    {
+     "locator": "L36",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20250401214520-65e299d6c5c9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/rcrowley/go-metrics@v0.0.0-20250401214520-65e299d6c5c9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20230129092748-24d4a6f8daec",
+   "evidence": [
+    {
+     "locator": "L89",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20230129092748-24d4a6f8daec",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20200815045211-7d26008be1ab",
+   "evidence": [
+    {
+     "locator": "L90",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20200815045211-7d26008be1ab",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/riywo/loginshell@v0.0.0-20200815045211-7d26008be1ab#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.1.0",
+   "evidence": [
+    {
+     "locator": "L91",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v2.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.26.9",
+   "evidence": [
+    {
+     "locator": "L37",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v4.26.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/shirou/gopsutil/v4@v4.26.9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20250528144937-c7027d4f7465",
+   "evidence": [
+    {
+     "locator": "L38",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20250528144937-c7027d4f7465",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/syncthing/notify@v0.0.0-20250528144937-c7027d4f7465#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.0.1-0.20220721030215-126854af5e6d",
+   "evidence": [
+    {
+     "locator": "L39",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.0.1-0.20220721030215-126854af5e6d",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.0.6",
+   "evidence": [
+    {
+     "locator": "L40",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v4.0.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/thejerf/suture/v4@v4.0.6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.4.0",
+   "evidence": [
+    {
+     "locator": "L92",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/tklauser/go-sysconf@v0.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.12.0",
+   "evidence": [
+    {
+     "locator": "L93",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.12.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/tklauser/numcpus@v0.12.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.22.17",
+   "evidence": [
+    {
+     "locator": "L41",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.22.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/urfave/cli@v1.22.17#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20160531060029-bf64b92db6b0",
+   "evidence": [
+    {
+     "locator": "L42",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20160531060029-bf64b92db6b0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/vitrun/qart@v0.0.0-20160531060029-bf64b92db6b0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.4.0",
+   "evidence": [
+    {
+     "locator": "L43",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/willabides/kongplete@v0.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.5",
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/wlynxg/anet@v0.0.5#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.2.4",
+   "evidence": [
+    {
+     "locator": "L94",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.2.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2.4.4",
+   "evidence": [
+    {
+     "locator": "L95",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v2.4.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/go.yaml.in/yaml/v2@v2.4.4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.0.5",
+   "evidence": [
+    {
+     "locator": "L96",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v3.0.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.57.0",
+   "evidence": [
+    {
+     "locator": "L45",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.57.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/crypto@v0.57.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20261007192929-f45ad48fbe92",
+   "evidence": [
+    {
+     "locator": "L46",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20261007192929-f45ad48fbe92",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/exp@v0.0.0-20261007192929-f45ad48fbe92#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.41.0",
+   "evidence": [
+    {
+     "locator": "L97",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.41.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/mod@v0.41.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.60.0",
+   "evidence": [
+    {
+     "locator": "L47",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.60.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/net@v0.60.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.23.0",
+   "evidence": [
+    {
+     "locator": "L98",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.23.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/sync@v0.23.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.48.0",
+   "evidence": [
+    {
+     "locator": "L48",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.48.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/sys@v0.48.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20260924152758-ed294f943157",
+   "evidence": [
+    {
+     "locator": "L99",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20260924152758-ed294f943157",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/telemetry@v0.0.0-20260924152758-ed294f943157#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.42.0",
+   "evidence": [
+    {
+     "locator": "L49",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.42.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/text@v0.42.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.16.0",
+   "evidence": [
+    {
+     "locator": "L50",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.16.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/time@v0.16.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.51.0",
+   "evidence": [
+    {
+     "locator": "L100",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.51.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/tools@v0.51.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L117",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.51.0",
+   "scope": "toolchain",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/tools@v0.51.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20260819154853-08b0e4226688",
+   "evidence": [
+    {
+     "locator": "L101",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20260819154853-08b0e4226688",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.0.0-20260819154853-08b0e4226688",
+   "evidence": [
+    {
+     "locator": "L102",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.0.0-20260819154853-08b0e4226688",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/google.golang.org/genproto/googleapis/rpc@v0.0.0-20260819154853-08b0e4226688#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.36.12",
+   "evidence": [
+    {
+     "locator": "L51",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.36.12",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/google.golang.org/protobuf@v1.36.12#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.77.1",
+   "evidence": [
+    {
+     "locator": "L103",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.77.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/modernc.org/libc@v1.77.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.7.1",
+   "evidence": [
+    {
+     "locator": "L104",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.7.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/modernc.org/mathutil@v1.7.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.12.1",
+   "evidence": [
+    {
+     "locator": "L105",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v1.12.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/modernc.org/memory@v1.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.60.1",
+   "evidence": [
+    {
+     "locator": "L52",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.60.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/modernc.org/sqlite@v1.60.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1.6.0",
+   "evidence": [
+    {
+     "locator": "L53",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v1.6.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/sigs.k8s.io/yaml@v1.6.0#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "5e6ad16b1f7e49ef90ebb20c21b8d354a59c41d0",
+   "path": ".github/workflows/android.yml"
+  },
+  {
+   "blob": "f027367355a4b9b6f3354113acb4f81cee1f0901",
+   "path": ".github/workflows/prerelease.yml"
+  },
+  {
+   "blob": "106fc931bcc82b9a6ab7572e6b1ae5a36487a23d",
+   "path": "Dockerfile"
+  },
+  {
+   "blob": "19c099aaed4433f953cf016cd23f3b4152ee6732",
+   "path": "Dockerfile.builder"
+  },
+  {
+   "blob": "c964d6d57cd29bcbc1623d5039be6067b23b257c",
+   "path": "Dockerfile.stcrashreceiver"
+  },
+  {
+   "blob": "cce3d83314f1c8007544ac034e0dfd4ffb6ba93d",
+   "path": "Dockerfile.stdiscosrv"
+  },
+  {
+   "blob": "a0ad1fd6dde5d1d21f502aec425a60d1823b77fa",
+   "path": "Dockerfile.strelaypoolsrv"
+  },
+  {
+   "blob": "3c07fbb5f37e6f9be9a6a5eb1f266731cbd08e6d",
+   "path": "Dockerfile.strelaysrv"
+  },
+  {
+   "blob": "c2bb4e3cb8562f76fea337f8a10519d7ecd655c3",
+   "path": "Dockerfile.stupgrades"
+  },
+  {
+   "blob": "0f7fc86ee2b5c118279909550e85af51db00a821",
+   "path": "Dockerfile.ursrv"
+  },
+  {
+   "blob": "07846a9fff38c5a772f7466ccbfe7b5de1b36db4",
+   "path": "android/app/build.gradle.kts"
+  },
+  {
+   "blob": "5d26ca0afe7dc9f8f9350b0c0745aca91af44ef5",
+   "path": "android/build.gradle.kts"
+  },
+  {
+   "blob": "20b7e4df1185824b978cc592bf8e0cd4e2ed0ed3",
+   "path": "android/settings.gradle.kts"
+  },
+  {
+   "blob": "09274f41d8ed5dd41ecddc1ee28f49bec889f294",
+   "path": "android/syncthing/build.gradle.kts"
+  },
+  {
+   "blob": "3f5286161bb8702dac0806cfb64b63757ec26d1d",
+   "path": "go.mod"
+  },
+  {
+   "blob": "974dfbc2bf798c6b7ec9626ae95559317903f993",
+   "path": "go.sum"
+  },
+  {
+   "blob": "b967b0ce614416533276e8330fbf0d4bf574f903",
+   "path": "gui/default/vendor/HumanizeDuration.js/Makefile"
+  }
+ ],
+ "inputs_fingerprint": "f293ae48cb9338502044975978c64ad41052d2e84ff43d782b73d4be93c5978f",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:apk/ca-certificates",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/ca-certificates#",
+   "purl": "pkg:apk/ca-certificates",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/curl",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/curl#",
+   "purl": "pkg:apk/curl",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/libcap",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/libcap#",
+   "purl": "pkg:apk/libcap",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/su-exec",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/su-exec#",
+   "purl": "pkg:apk/su-exec",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/tzdata",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/tzdata#",
+   "purl": "pkg:apk/tzdata",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:docker/alpine",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:docker/alpine#",
+   "purl": "pkg:docker/alpine",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "image",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:docker/golang",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:docker/golang@latest#",
+   "purl": "pkg:docker/golang@latest",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "image",
+   "vcs_url": null,
+   "version": "latest"
+  },
+  {
+   "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "component": "pkg:github/actions/cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#",
+   "purl": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "component": "pkg:github/actions/download-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#",
+   "purl": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/download-artifact",
+   "version": "9000827ccba6bdab643e8b6fd33ac0654aef8333"
+  },
+  {
+   "commit": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "component": "pkg:github/actions/setup-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#",
+   "purl": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/setup-go",
+   "version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+  },
+  {
+   "commit": "de7274f081f381c8f8158605e0321c36c376e2e6",
+   "component": "pkg:github/actions/setup-java",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6#",
+   "purl": "pkg:github/actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/setup-java",
+   "version": "de7274f081f381c8f8158605e0321c36c376e2e6"
+  },
+  {
+   "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#",
+   "purl": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go@v1.36.12-20260825204119-511051f7f437.2#",
+   "purl": "pkg:golang/buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go@v1.36.12-20260825204119-511051f7f437.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.36.12-20260825204119-511051f7f437.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/buf.build/go/protovalidate",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/buf.build/go/protovalidate@v1.4.0#",
+   "purl": "pkg:golang/buf.build/go/protovalidate@v1.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/cel.dev/cel-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/cel.dev/cel-go@v0.32.0#",
+   "purl": "pkg:golang/cel.dev/cel-go@v0.32.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.32.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/cel.dev/expr",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/cel.dev/expr@v0.25.3#",
+   "purl": "pkg:golang/cel.dev/expr@v0.25.3",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.25.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/AudriusButkevicius/recli",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/AudriusButkevicius/recli@v0.0.7#",
+   "purl": "pkg:golang/github.com/AudriusButkevicius/recli@v0.0.7",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.7"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/Azure/go-ntlmssp",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/Azure/go-ntlmssp@v0.1.1#",
+   "purl": "pkg:golang/github.com/Azure/go-ntlmssp@v0.1.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.1.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/alecthomas/kong",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/alecthomas/kong@v1.16.1#",
+   "purl": "pkg:golang/github.com/alecthomas/kong@v1.16.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.16.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/antlr4-go/antlr/v4",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/antlr4-go/antlr/v4@v4.13.1#",
+   "purl": "pkg:golang/github.com/antlr4-go/antlr/v4@v4.13.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v4.13.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/aws/aws-sdk-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8#",
+   "purl": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.55.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/beorn7/perks",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/beorn7/perks@v1.0.1#",
+   "purl": "pkg:golang/github.com/beorn7/perks@v1.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/calmh/glob",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/calmh/glob@v0.0.0-20220615080505-1d823af5017b#",
+   "purl": "pkg:golang/github.com/calmh/glob@v0.0.0-20220615080505-1d823af5017b",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20220615080505-1d823af5017b"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/calmh/incontainer",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/calmh/incontainer@v1.0.0#",
+   "purl": "pkg:golang/github.com/calmh/incontainer@v1.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/calmh/xdr",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/calmh/xdr@v1.2.0#",
+   "purl": "pkg:golang/github.com/calmh/xdr@v1.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/ccding/go-stun",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/ccding/go-stun@v0.1.6#",
+   "purl": "pkg:golang/github.com/ccding/go-stun@v0.1.6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.1.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/cenkalti/backoff/v4",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/cenkalti/backoff/v4@v4.3.0#",
+   "purl": "pkg:golang/github.com/cenkalti/backoff/v4@v4.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v4.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/certifi/gocertifi",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/certifi/gocertifi@v0.0.0-20210507211836-431795d63e8d#",
+   "purl": "pkg:golang/github.com/certifi/gocertifi@v0.0.0-20210507211836-431795d63e8d",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20210507211836-431795d63e8d"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/cespare/xxhash/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/cespare/xxhash/v2@v2.3.0#",
+   "purl": "pkg:golang/github.com/cespare/xxhash/v2@v2.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/coreos/go-semver",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/coreos/go-semver@v0.3.1#",
+   "purl": "pkg:golang/github.com/coreos/go-semver@v0.3.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.3.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/cpuguy83/go-md2man/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.7#",
+   "purl": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.7",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.0.7"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/d4l3k/messagediff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/d4l3k/messagediff@v1.2.1#",
+   "purl": "pkg:golang/github.com/d4l3k/messagediff@v1.2.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.2.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/dustin/go-humanize",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/dustin/go-humanize@v1.0.1#",
+   "purl": "pkg:golang/github.com/dustin/go-humanize@v1.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/ebitengine/purego",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/ebitengine/purego@v0.11.1#",
+   "purl": "pkg:golang/github.com/ebitengine/purego@v0.11.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.11.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/fsnotify/fsnotify",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/fsnotify/fsnotify@v1.7.0#",
+   "purl": "pkg:golang/github.com/fsnotify/fsnotify@v1.7.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.7.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/getsentry/raven-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/getsentry/raven-go@v0.2.0#",
+   "purl": "pkg:golang/github.com/getsentry/raven-go@v0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/go-asn1-ber/asn1-ber",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/go-asn1-ber/asn1-ber@v1.5.8#",
+   "purl": "pkg:golang/github.com/go-asn1-ber/asn1-ber@v1.5.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.5.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/go-ldap/ldap/v3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/go-ldap/ldap/v3@v3.4.15#",
+   "purl": "pkg:golang/github.com/go-ldap/ldap/v3@v3.4.15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v3.4.15"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/go-ole/go-ole",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/go-ole/go-ole@v1.3.0#",
+   "purl": "pkg:golang/github.com/go-ole/go-ole@v1.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/gofrs/flock",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/gofrs/flock@v0.13.1#",
+   "purl": "pkg:golang/github.com/gofrs/flock@v0.13.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.13.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/golang/snappy",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/golang/snappy@v0.0.4#",
+   "purl": "pkg:golang/github.com/golang/snappy@v0.0.4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/google/uuid",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/google/uuid@v1.6.0#",
+   "purl": "pkg:golang/github.com/google/uuid@v1.6.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.6.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/hashicorp/errwrap",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/hashicorp/errwrap@v1.1.0#",
+   "purl": "pkg:golang/github.com/hashicorp/errwrap@v1.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/hashicorp/go-multierror",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/hashicorp/go-multierror@v1.1.1#",
+   "purl": "pkg:golang/github.com/hashicorp/go-multierror@v1.1.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.1.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/hashicorp/golang-lru/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/hashicorp/golang-lru/v2@v2.0.7#",
+   "purl": "pkg:golang/github.com/hashicorp/golang-lru/v2@v2.0.7",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.0.7"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/jackpal/gateway",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/jackpal/gateway@v1.2.0#",
+   "purl": "pkg:golang/github.com/jackpal/gateway@v1.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/jackpal/go-nat-pmp",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/jackpal/go-nat-pmp@v1.1.0#",
+   "purl": "pkg:golang/github.com/jackpal/go-nat-pmp@v1.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/jmespath/go-jmespath",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0#",
+   "purl": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/jmoiron/sqlx",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/jmoiron/sqlx@v1.4.0#",
+   "purl": "pkg:golang/github.com/jmoiron/sqlx@v1.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/julienschmidt/httprouter",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/julienschmidt/httprouter@v1.3.0#",
+   "purl": "pkg:golang/github.com/julienschmidt/httprouter@v1.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/kballard/go-shellquote",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/kballard/go-shellquote@v0.0.0-20180428030007-95032a82bc51#",
+   "purl": "pkg:golang/github.com/kballard/go-shellquote@v0.0.0-20180428030007-95032a82bc51",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20180428030007-95032a82bc51"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/lufia/plan9stats",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20240909124753-873cd0166683#",
+   "purl": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20240909124753-873cd0166683",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20240909124753-873cd0166683"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/maruel/panicparse/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/maruel/panicparse/v2@v2.5.0#",
+   "purl": "pkg:golang/github.com/maruel/panicparse/v2@v2.5.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.5.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/mattn/go-isatty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/mattn/go-isatty@v0.0.24#",
+   "purl": "pkg:golang/github.com/mattn/go-isatty@v0.0.24",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.24"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/mattn/go-sqlite3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/mattn/go-sqlite3@v1.14.52#",
+   "purl": "pkg:golang/github.com/mattn/go-sqlite3@v1.14.52",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.14.52"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6@v6.12.0#",
+   "purl": "pkg:golang/github.com/maxbrunsfeld/counterfeiter/v6@v6.12.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v6.12.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/maxmind/geoipupdate/v6",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/maxmind/geoipupdate/v6@v6.1.0#",
+   "purl": "pkg:golang/github.com/maxmind/geoipupdate/v6@v6.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v6.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/miscreant/miscreant.go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/miscreant/miscreant.go@v0.0.0-20200214223636-26d376326b75#",
+   "purl": "pkg:golang/github.com/miscreant/miscreant.go@v0.0.0-20200214223636-26d376326b75",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20200214223636-26d376326b75"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/munnerz/goautoneg",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822#",
+   "purl": "pkg:golang/github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20191010083416-a7dc8b61c822"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/ncruces/go-strftime",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/ncruces/go-strftime@v1.0.0#",
+   "purl": "pkg:golang/github.com/ncruces/go-strftime@v1.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/nxadm/tail",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/nxadm/tail@v1.4.11#",
+   "purl": "pkg:golang/github.com/nxadm/tail@v1.4.11",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.4.11"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/oschwald/geoip2-golang",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/oschwald/geoip2-golang@v1.13.0#",
+   "purl": "pkg:golang/github.com/oschwald/geoip2-golang@v1.13.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.13.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/oschwald/maxminddb-golang",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/oschwald/maxminddb-golang@v1.13.1#",
+   "purl": "pkg:golang/github.com/oschwald/maxminddb-golang@v1.13.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.13.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/pierrec/lz4/v4",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/pierrec/lz4/v4@v4.1.33#",
+   "purl": "pkg:golang/github.com/pierrec/lz4/v4@v4.1.33",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v4.1.33"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/pkg/errors",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/pkg/errors@v0.9.1#",
+   "purl": "pkg:golang/github.com/pkg/errors@v0.9.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.9.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/posener/complete",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/posener/complete@v1.2.3#",
+   "purl": "pkg:golang/github.com/posener/complete@v1.2.3",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.2.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/power-devops/perfstat",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20260805114148-88456608a4f6#",
+   "purl": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20260805114148-88456608a4f6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20260805114148-88456608a4f6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/prometheus/client_golang",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/prometheus/client_golang@v1.25.0#",
+   "purl": "pkg:golang/github.com/prometheus/client_golang@v1.25.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.25.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/prometheus/client_model",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/prometheus/client_model@v0.6.3#",
+   "purl": "pkg:golang/github.com/prometheus/client_model@v0.6.3",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.6.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/prometheus/common",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/prometheus/common@v0.72.0#",
+   "purl": "pkg:golang/github.com/prometheus/common@v0.72.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.72.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/prometheus/procfs",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/prometheus/procfs@v0.22.0#",
+   "purl": "pkg:golang/github.com/prometheus/procfs@v0.22.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.22.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/puzpuzpuz/xsync/v3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/puzpuzpuz/xsync/v3@v3.5.1#",
+   "purl": "pkg:golang/github.com/puzpuzpuz/xsync/v3@v3.5.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v3.5.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/quic-go/quic-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/quic-go/quic-go@v0.63.0#",
+   "purl": "pkg:golang/github.com/quic-go/quic-go@v0.63.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.63.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/rabbitmq/amqp091-go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/rabbitmq/amqp091-go@v1.15.0#",
+   "purl": "pkg:golang/github.com/rabbitmq/amqp091-go@v1.15.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.15.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/rcrowley/go-metrics",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/rcrowley/go-metrics@v0.0.0-20250401214520-65e299d6c5c9#",
+   "purl": "pkg:golang/github.com/rcrowley/go-metrics@v0.0.0-20250401214520-65e299d6c5c9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20250401214520-65e299d6c5c9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/remyoudompheng/bigfft",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec#",
+   "purl": "pkg:golang/github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20230129092748-24d4a6f8daec"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/riywo/loginshell",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/riywo/loginshell@v0.0.0-20200815045211-7d26008be1ab#",
+   "purl": "pkg:golang/github.com/riywo/loginshell@v0.0.0-20200815045211-7d26008be1ab",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20200815045211-7d26008be1ab"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/russross/blackfriday/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0#",
+   "purl": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/shirou/gopsutil/v4",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/shirou/gopsutil/v4@v4.26.9#",
+   "purl": "pkg:golang/github.com/shirou/gopsutil/v4@v4.26.9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v4.26.9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/syncthing/notify",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/syncthing/notify@v0.0.0-20250528144937-c7027d4f7465#",
+   "purl": "pkg:golang/github.com/syncthing/notify@v0.0.0-20250528144937-c7027d4f7465",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20250528144937-c7027d4f7465"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/syndtr/goleveldb",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d#",
+   "purl": "pkg:golang/github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.0.1-0.20220721030215-126854af5e6d"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/thejerf/suture/v4",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/thejerf/suture/v4@v4.0.6#",
+   "purl": "pkg:golang/github.com/thejerf/suture/v4@v4.0.6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v4.0.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/tklauser/go-sysconf",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/tklauser/go-sysconf@v0.4.0#",
+   "purl": "pkg:golang/github.com/tklauser/go-sysconf@v0.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/tklauser/numcpus",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/tklauser/numcpus@v0.12.0#",
+   "purl": "pkg:golang/github.com/tklauser/numcpus@v0.12.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.12.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/urfave/cli",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/urfave/cli@v1.22.17#",
+   "purl": "pkg:golang/github.com/urfave/cli@v1.22.17",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.22.17"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/vitrun/qart",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/vitrun/qart@v0.0.0-20160531060029-bf64b92db6b0#",
+   "purl": "pkg:golang/github.com/vitrun/qart@v0.0.0-20160531060029-bf64b92db6b0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20160531060029-bf64b92db6b0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/willabides/kongplete",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/willabides/kongplete@v0.4.0#",
+   "purl": "pkg:golang/github.com/willabides/kongplete@v0.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/wlynxg/anet",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/wlynxg/anet@v0.0.5#",
+   "purl": "pkg:golang/github.com/wlynxg/anet@v0.0.5",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/github.com/yusufpapurcu/wmi",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4#",
+   "purl": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.2.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/go.yaml.in/yaml/v2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/go.yaml.in/yaml/v2@v2.4.4#",
+   "purl": "pkg:golang/go.yaml.in/yaml/v2@v2.4.4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v2.4.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/go.yaml.in/yaml/v3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5#",
+   "purl": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v3.0.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/crypto",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/crypto@v0.57.0#",
+   "purl": "pkg:golang/golang.org/x/crypto@v0.57.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.57.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/exp",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/exp@v0.0.0-20261007192929-f45ad48fbe92#",
+   "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20261007192929-f45ad48fbe92",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20261007192929-f45ad48fbe92"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/mod",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/mod@v0.41.0#",
+   "purl": "pkg:golang/golang.org/x/mod@v0.41.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.41.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/net",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/net@v0.60.0#",
+   "purl": "pkg:golang/golang.org/x/net@v0.60.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.60.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/sync",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/sync@v0.23.0#",
+   "purl": "pkg:golang/golang.org/x/sync@v0.23.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.23.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/sys",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/sys@v0.48.0#",
+   "purl": "pkg:golang/golang.org/x/sys@v0.48.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.48.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/telemetry",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/telemetry@v0.0.0-20260924152758-ed294f943157#",
+   "purl": "pkg:golang/golang.org/x/telemetry@v0.0.0-20260924152758-ed294f943157",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20260924152758-ed294f943157"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/text",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/text@v0.42.0#",
+   "purl": "pkg:golang/golang.org/x/text@v0.42.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.42.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/time",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/time@v0.16.0#",
+   "purl": "pkg:golang/golang.org/x/time@v0.16.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.16.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/golang.org/x/tools",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/golang.org/x/tools@v0.51.0#",
+   "purl": "pkg:golang/golang.org/x/tools@v0.51.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.51.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/google.golang.org/genproto/googleapis/api",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688#",
+   "purl": "pkg:golang/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20260819154853-08b0e4226688"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/google.golang.org/genproto/googleapis/rpc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/google.golang.org/genproto/googleapis/rpc@v0.0.0-20260819154853-08b0e4226688#",
+   "purl": "pkg:golang/google.golang.org/genproto/googleapis/rpc@v0.0.0-20260819154853-08b0e4226688",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v0.0.0-20260819154853-08b0e4226688"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/google.golang.org/protobuf",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/google.golang.org/protobuf@v1.36.12#",
+   "purl": "pkg:golang/google.golang.org/protobuf@v1.36.12",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.36.12"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/modernc.org/libc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/modernc.org/libc@v1.77.1#",
+   "purl": "pkg:golang/modernc.org/libc@v1.77.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.77.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/modernc.org/mathutil",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/modernc.org/mathutil@v1.7.1#",
+   "purl": "pkg:golang/modernc.org/mathutil@v1.7.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.7.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/modernc.org/memory",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/modernc.org/memory@v1.12.1#",
+   "purl": "pkg:golang/modernc.org/memory@v1.12.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.12.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/modernc.org/sqlite",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/modernc.org/sqlite@v1.60.1#",
+   "purl": "pkg:golang/modernc.org/sqlite@v1.60.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.60.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:golang/sigs.k8s.io/yaml",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:golang/sigs.k8s.io/yaml@v1.6.0#",
+   "purl": "pkg:golang/sigs.k8s.io/yaml@v1.6.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "v1.6.0"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.build.steps[4].run",
+   "message": "artifact URL 'https://dl.google.com/android/repository/commandlinetools-linux-${cmdline_tools}_latest.zip' is not literal",
+   "path": ".github/workflows/android.yml"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for build.gradle.kts",
+   "path": "android/app/build.gradle.kts"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for build.gradle.kts",
+   "path": "android/build.gradle.kts"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for settings.gradle.kts",
+   "path": "android/settings.gradle.kts"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for build.gradle.kts",
+   "path": "android/syncthing/build.gradle.kts"
+  },
+  {
+   "kind": "vendored_unknown",
+   "locator": null,
+   "message": "vendored tree has no recognized manifest",
+   "path": "gui/default/vendor"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "gui/default/vendor/HumanizeDuration.js/Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "golang",
+   "id": ".:golang"
+  }
+ ],
+ "repository": "joshuarli/syncthing",
+ "schema": 1,
+ "tags": [
+  "fork",
+  "tool"
+ ]
+}
