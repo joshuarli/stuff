@@ -17,8 +17,6 @@ from repomod.audit import (
 from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate, violation
 
-_AUDITED = frozenset({"python", "typescript", "javascript", "rust", "go"})
-
 
 def _policy_rule(rule_id: str) -> Callable[[Path, Repository], list[Finding]]:
     def check(root: Path, repository: Repository) -> list[Finding]:
@@ -66,7 +64,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
         Rule(
             "audit-lock",
             "Require the lockfile each managed ecosystem needs",
-            TagPredicate(any_of=_AUDITED),
+            TagPredicate(),
             _policy_rule("audit-lock"),
             None,
             None,
@@ -75,7 +73,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
         Rule(
             "audit-banned",
             "Reject banned dependencies and package managers",
-            TagPredicate(any_of=_AUDITED),
+            TagPredicate(),
             _policy_rule("audit-banned"),
             None,
             None,
@@ -84,7 +82,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
         Rule(
             "audit-registry",
             "Reject filesystem dependencies and warn on git dependencies",
-            TagPredicate(any_of=_AUDITED),
+            TagPredicate(),
             _policy_rule("audit-registry"),
             None,
             None,
@@ -93,7 +91,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
         Rule(
             "audit-vuln",
             "Report locked dependencies with known OSV vulnerabilities",
-            TagPredicate(any_of=_AUDITED),
+            TagPredicate(),
             _vuln_check,
             None,
             None,

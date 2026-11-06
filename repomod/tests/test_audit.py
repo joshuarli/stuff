@@ -19,6 +19,7 @@ from repomod.audit import (
 )
 from repomod.catalog import Catalog
 from repomod.github import UpstreamStatus
+from repomod.rules.audit_findings import audit_finding_rules
 from repomod.types import RepoId, Repository
 
 
@@ -583,3 +584,17 @@ def test_audit_without_upstream_statuses_skips_upstream(tmp_path: Path) -> None:
         catalog, (repo,), offline=True, cache_path=tmp_path / "cache.json", now=1000.0
     )
     assert all(finding.rule != "audit-upstream" for finding in outcomes[0].findings)
+
+
+def test_audit_rules_cover_repositories_without_language_tags(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2024"\n'
+        '[dev-dependencies]\nproptest = "1"\n',
+        encoding="utf-8",
+    )
+    untagged = repository("tool")
+    rules = {rule.id: rule for rule in audit_finding_rules()}
+    assert all(rule.applies_to.matches(untagged.tags) for rule in rules.values())
+    findings = rules["audit-banned"].check(root, untagged)
+    assert [finding.message for finding in findings] == ["remove proptest; use quickcheck instead"]
