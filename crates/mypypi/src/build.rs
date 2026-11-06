@@ -50,7 +50,7 @@ pub(crate) fn require_uv_version() -> Result<()> {
 }
 
 pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
-    let parsed: url::Url = url.parse().map_err(|_| {
+    let parsed: stuff_url::Url = url.parse().map_err(|_| {
         Error::configuration(
             "build dependency index must use credential-free HTTPS, loopback HTTP, or an absolute file URL",
         )
@@ -71,8 +71,8 @@ pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
         || host == "::1"
         || host == "[::1]"
         || host.parse::<std::net::IpAddr>().is_ok_and(|ip| ip.is_loopback());
-    let remote_https = parsed.scheme() == "https" && parsed.has_host();
-    let local_http = parsed.scheme() == "http" && is_loopback_host && parsed.has_host();
+    let remote_https = parsed.scheme() == "https" && parsed.host_str().is_some();
+    let local_http = parsed.scheme() == "http" && is_loopback_host && parsed.host_str().is_some();
     let local_file = parsed.scheme() == "file"
         && (parsed.host_str().is_none() || parsed.host_str() == Some("localhost"))
         && Path::new(parsed.path()).is_absolute();

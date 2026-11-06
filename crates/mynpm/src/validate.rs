@@ -208,13 +208,13 @@ fn package_selection(
                 )));
             }
             if let Some(ref resolved) = item.resolved {
-                let parsed = url::Url::parse(resolved).map_err(|_| {
+                let parsed = stuff_url::Url::parse(resolved).map_err(|_| {
                     Error::Conflict(format!(
                         "validation lock contains an invalid source for {}@{version}",
                         item.name
                     ))
                 })?;
-                if parsed.origin().ascii_serialization() != local_origin.unwrap_or("") {
+                if parsed.origin_ascii() != local_origin.unwrap_or("") {
                     return Err(Error::Conflict(format!(
                         "validation lock resolved {}@{version} outside the local static site",
                         item.name

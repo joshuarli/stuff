@@ -95,8 +95,8 @@ pub fn resolve_public_host(hostname: &str) -> Result<Vec<IpAddr>> {
     Ok(addrs)
 }
 
-fn validate_source_url(raw: &str, expected_host: &str) -> Result<url::Url> {
-    let url = url::Url::parse(raw)
+fn validate_source_url(raw: &str, expected_host: &str) -> Result<stuff_url::Url> {
+    let url = stuff_url::Url::parse(raw)
         .map_err(|_| Error::Operation("upstream returned an invalid URL".to_string()))?;
     let host = url.host_str().unwrap_or("").to_lowercase();
     let host = host.strip_suffix('.').unwrap_or(&host);
@@ -123,7 +123,7 @@ pub struct FetchedResponse {
 }
 
 pub trait Exchange: Send + Sync {
-    fn fetch(&self, url: &url::Url) -> Result<FetchedResponse>;
+    fn fetch(&self, url: &stuff_url::Url) -> Result<FetchedResponse>;
 }
 
 pub struct HttpsExchange {
@@ -146,7 +146,7 @@ impl Default for HttpsExchange {
 }
 
 impl Exchange for HttpsExchange {
-    fn fetch(&self, url: &url::Url) -> Result<FetchedResponse> {
+    fn fetch(&self, url: &stuff_url::Url) -> Result<FetchedResponse> {
         let host = url.host_str().unwrap_or("").to_string();
         let _ = resolve_public_host(&host)?;
         let timeout = Duration::from_millis(limits::REQUEST_MILLISECONDS);
@@ -212,7 +212,7 @@ pub fn transfer(
     let mut current = validate_source_url(initial, expected_host)?.to_string();
     for redirects in 0..=limits::REDIRECTS as usize {
         current = validate_source_url(&current, expected_host)?.to_string();
-        let url = url::Url::parse(&current)
+        let url = stuff_url::Url::parse(&current)
             .map_err(|_| Error::Operation("upstream returned an invalid URL".to_string()))?;
         let response = exchange.fetch(&url)?;
         if REDIRECT_STATUSES.contains(&response.status) {
@@ -1288,7 +1288,7 @@ fn fetch_inventory_until(
             metadata_only_recorded: 0,
         });
     }
-    let expected_host = url::Url::parse(&config.upstream_registry)
+    let expected_host = stuff_url::Url::parse(&config.upstream_registry)
         .map_err(|_| Error::Input("configured upstream registry is invalid".to_string()))?
         .host_str()
         .unwrap_or("")
@@ -1521,7 +1521,7 @@ mod tests {
     fn rejects_redirect_outside_registry() {
         struct Loop;
         impl Exchange for Loop {
-            fn fetch(&self, _url: &url::Url) -> Result<FetchedResponse> {
+            fn fetch(&self, _url: &stuff_url::Url) -> Result<FetchedResponse> {
                 Ok(FetchedResponse {
                     status: 302,
                     location: Some("https://evil.test/x".to_string()),
@@ -1547,7 +1547,7 @@ mod tests {
     }
 
     impl Exchange for Reply {
-        fn fetch(&self, _url: &url::Url) -> Result<FetchedResponse> {
+        fn fetch(&self, _url: &stuff_url::Url) -> Result<FetchedResponse> {
             Ok(FetchedResponse { status: self.status, location: None, body: self.body.clone() })
         }
     }
@@ -1556,7 +1556,7 @@ mod tests {
     fn transport_errors_keep_the_network_category() {
         struct Unreachable;
         impl Exchange for Unreachable {
-            fn fetch(&self, _url: &url::Url) -> Result<FetchedResponse> {
+            fn fetch(&self, _url: &stuff_url::Url) -> Result<FetchedResponse> {
                 Err(Error::Network("connection refused".to_string()))
             }
         }
@@ -1673,7 +1673,7 @@ mod tests {
     }
 
     impl Exchange for FakeRegistry {
-        fn fetch(&self, url: &url::Url) -> Result<FetchedResponse> {
+        fn fetch(&self, url: &stuff_url::Url) -> Result<FetchedResponse> {
             if url.as_str() == self.tarball_url {
                 return Ok(FetchedResponse { status: 200, location: None, body: self.tarball.clone() });
             }
@@ -1802,7 +1802,7 @@ mod tests {
     }
 
     impl Exchange for MultiRegistry {
-        fn fetch(&self, url: &url::Url) -> Result<FetchedResponse> {
+        fn fetch(&self, url: &stuff_url::Url) -> Result<FetchedResponse> {
             let path = url.path().trim_start_matches('/');
             let (name, file) = match path.split_once("/-/") {
                 Some((name, file)) => (name, Some(file)),

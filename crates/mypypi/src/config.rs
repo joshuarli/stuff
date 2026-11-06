@@ -131,7 +131,7 @@ pub fn parse_project_settings(source: &str) -> Result<ProjectSettings> {
 }
 
 fn parse_public_base_url(text: &str) -> Result<String> {
-    let parsed: url::Url = text
+    let parsed: stuff_url::Url = text
         .parse()
         .map_err(|_| fail(format!("public_base_url is not a valid URL: {text}")))?;
     if parsed.scheme() != "https" && parsed.scheme() != "http" {

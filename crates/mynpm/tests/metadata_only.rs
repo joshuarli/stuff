@@ -62,7 +62,7 @@ impl Upstream {
 }
 
 impl Exchange for Upstream {
-    fn fetch(&self, url: &url::Url) -> Result<FetchedResponse> {
+    fn fetch(&self, url: &stuff_url::Url) -> Result<FetchedResponse> {
         self.requests.lock().unwrap().push(url.to_string());
         let body = if url.as_str() == HOSTED_TARBALL_URL {
             self.tarball.clone()

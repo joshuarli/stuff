@@ -34,6 +34,8 @@ for repair.
 - `crates/stuff-catalog`: normalized catalog rendering, HTML, and `llms.txt`.
   The page search is a vendored MiniSearch in `web/` bundled into the
   committed `assets/search.js`.
+- `crates/stuff-url`: strict absolute URL parsing and redirect resolution shared by the
+  CLIs (replaces the `url` crate; rejects IDNA and non-canonical IPv4 hosts).
 - `crates/stuff-cargo-shard`: Cargo sparse-index shard paths for the `stuff`
   CLI.
 - `crates/stuff-server`: native static file server (blocking httparse +

@@ -835,7 +835,7 @@ fn normalize_artifact(
             return Err(err(category, format!("{label}.shasum must be a lowercase SHA-1 hex digest")));
         }
     let source_url = require_text(record.get("sourceUrl").unwrap_or(&null), &format!("{label}.sourceUrl"), category)?;
-    let url = url::Url::parse(&source_url).map_err(|_| err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")))?;
+    let url = stuff_url::Url::parse(&source_url).map_err(|_| err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")))?;
     if url.scheme() != "https" || url.host_str() != Some("registry.npmjs.org") || !url.port().is_none() || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
         return Err(err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")));
     }

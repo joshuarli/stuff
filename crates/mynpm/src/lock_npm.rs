@@ -74,14 +74,13 @@ fn sanitize_resolved(value: Option<String>, label: &str) -> Result<(Option<Strin
     if !has_scheme {
         return Ok((Some(text), false));
     }
-    let mut url = url::Url::parse(&text)
+    let mut url = stuff_url::Url::parse(&text)
         .map_err(|e| Error::Input(format!("{label} is not a valid URL: {e}")))?;
     let had = !url.username().is_empty() || url.password().is_some() || url.query().is_some();
     if had {
-        let _ = url.set_username("");
-        let _ = url.set_password(None);
-        url.set_query(None);
-        url.set_fragment(None);
+        url.clear_credentials();
+        url.clear_query();
+        url.clear_fragment();
     }
     Ok((Some(url.to_string()), had))
 }
@@ -102,7 +101,7 @@ fn classify_source(resolved: Option<&str>, is_link: bool, had_credentials: bool)
         return SourceKind::Unknown;
     }
     if lower.starts_with("http:") || lower.starts_with("https:") {
-        match url::Url::parse(r) {
+        match stuff_url::Url::parse(r) {
             Ok(u) => {
                 if u.scheme() == "https" && u.host_str() == Some("registry.npmjs.org") {
                     return SourceKind::Registry;

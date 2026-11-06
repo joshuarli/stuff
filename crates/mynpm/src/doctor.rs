@@ -93,7 +93,7 @@ fn source_finding(item: &PackageRecord) -> Option<SourceFinding> {
         crate::inventory::SourceKind::ExternalUrl => {
             let mut host = "invalid URL".to_string();
             if let Some(ref resolved) = item.resolved
-                && let Ok(url) = url::Url::parse(resolved) {
+                && let Ok(url) = stuff_url::Url::parse(resolved) {
                     host = url.host_str().unwrap_or("invalid URL").to_lowercase();
                     host = host.strip_suffix('.').unwrap_or(&host).to_string();
                 }

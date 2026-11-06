@@ -63,7 +63,7 @@ fn request(
         if matches!(response.status, 301 | 302 | 303 | 307 | 308)
             && let Some(location) = response.header("location")
         {
-            let base = url::Url::parse(&current)
+            let base = stuff_url::Url::parse(&current)
                 .map_err(|error| Error::Network(format!("invalid URL {current}: {error}")))?;
             current = base
                 .join(location)
@@ -143,7 +143,7 @@ fn blob_url(base: &str, repository: &RepositoryName, digest: &Digest) -> String 
 
 fn check_base(base: &str) -> Result<String> {
     let base = base.trim_end_matches('/').to_string();
-    let parsed: url::Url = base
+    let parsed: stuff_url::Url = base
         .parse()
         .map_err(|_| Error::Input(format!("invalid base URL: {base}")))?;
     if !parsed.username().is_empty() || parsed.password().is_some() {

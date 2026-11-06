@@ -28,7 +28,7 @@ rustix = { version = "1", features = ["fs"] }
 sha1 = "0.10"
 sha2 = "0.10"
 tar = "0.4"
-url = "2.5"
+stuff-url = { version = "0.1.0", path = "../stuff-url" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 

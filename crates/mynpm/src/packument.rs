@@ -14,7 +14,7 @@ pub struct PackumentFile {
 }
 
 fn validate_base_url(value: &str) -> Result<String> {
-    let url = url::Url::parse(value)
+    let url = stuff_url::Url::parse(value)
         .map_err(|_| Error::Input("publicBaseUrl must be an absolute HTTPS URL".to_string()))?;
     let host = url.host_str().unwrap_or("");
     let is_loopback = url.scheme() == "http"

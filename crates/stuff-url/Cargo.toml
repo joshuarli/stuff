@@ -1,0 +1,12 @@
+[package]
+name = "stuff-url"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "Strict absolute URL parsing and resolution for registry endpoints"
+repository = "https://github.com/joshuarli/stuff"
+
+[lib]
+name = "stuff_url"
+path = "src/lib.rs"

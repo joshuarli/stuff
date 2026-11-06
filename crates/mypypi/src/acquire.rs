@@ -167,7 +167,7 @@ pub fn release_from_metadata(
 }
 
 fn check_artifact_url(url: &str) -> std::result::Result<(), ()> {
-    let parsed: url::Url = url.parse().map_err(|_| ())?;
+    let parsed: stuff_url::Url = url.parse().map_err(|_| ())?;
     if parsed.scheme() != "https" {
         return Err(());
     }
@@ -199,8 +199,8 @@ fn http_client() -> h12tiny_client_sync::Client {
         .build()
 }
 
-fn check_url_security(raw: &str) -> Result<url::Url> {
-    let parsed: url::Url = raw.parse().map_err(|_| {
+fn check_url_security(raw: &str) -> Result<stuff_url::Url> {
+    let parsed: stuff_url::Url = raw.parse().map_err(|_| {
         Error::integrity("artifact download requires HTTPS", Stage::Acquisition)
     })?;
     if !parsed.username().is_empty() || parsed.password().is_some() {
@@ -216,7 +216,7 @@ fn resolve_url(base: &str, location: &str) -> Result<String> {
     if location.contains("://") {
         return Ok(location.to_string());
     }
-    let base_url: url::Url = base
+    let base_url: stuff_url::Url = base
         .parse()
         .map_err(|_| Error::network(format!("invalid redirect base: {base}"), Stage::Acquisition))?;
     base_url.join(location).map(|u| u.to_string()).map_err(|_| {

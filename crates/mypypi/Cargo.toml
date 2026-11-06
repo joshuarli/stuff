@@ -26,7 +26,7 @@ sha2 = "0.10"
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 tar = "0.4"
-url = "2.5"
+stuff-url = { version = "0.1.0", path = "../stuff-url" }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

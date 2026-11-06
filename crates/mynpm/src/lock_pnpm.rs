@@ -66,18 +66,17 @@ fn sanitize_url(v: Option<&deser_value::Value>, label: &str) -> Result<(Option<S
         return Err(invalid(format!("{label} must be a non-empty string")));
     }
     let source = require_text(v, label)?;
-    let mut url = url::Url::parse(&source)
+    let mut url = stuff_url::Url::parse(&source)
         .map_err(|_| invalid(format!("{label} is not a valid absolute URL")))?;
     if url.host_str().is_none() {
         return Err(invalid(format!("{label} is not a valid absolute URL")));
     }
     let had = !url.username().is_empty() || url.password().is_some() || url.query().is_some();
     if had {
-        let _ = url.set_username("");
-        let _ = url.set_password(None);
-        url.set_query(None);
+        url.clear_credentials();
+        url.clear_query();
     }
-    url.set_fragment(None);
+    url.clear_fragment();
     Ok((Some(url.to_string()), had))
 }
 
@@ -113,7 +112,7 @@ fn source_kind(resolution: &deser_value::Map, reference: &str, url: Option<&str>
     if url.to_lowercase().starts_with("file:") {
         return SourceKind::Local;
     }
-    match url::Url::parse(url) {
+    match stuff_url::Url::parse(url) {
         Ok(parsed) => {
             if parsed.scheme() == "https" && parsed.host_str() == Some("registry.npmjs.org") {
                 SourceKind::Registry

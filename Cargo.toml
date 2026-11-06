@@ -32,6 +32,7 @@ members = [
   "crates/mynpm",
   "crates/mypypi",
   "crates/stuff-store",
+  "crates/stuff-url",
   "crates/stuff-cargo-shard",
   "crates/stuff-http",
   "crates/stuff-oci",

@@ -11,7 +11,7 @@ const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_CATALOG_BYTES: u64 = 32 * 1024 * 1024;
 
 fn check_url_security(url: &str) -> Result<()> {
-    let parsed: url::Url = url.parse().map_err(|_| Error::usage(format!("invalid URL: {url}")))?;
+    let parsed: stuff_url::Url = url.parse().map_err(|_| Error::usage(format!("invalid URL: {url}")))?;
     if !parsed.username().is_empty() || parsed.password().is_some() {
         return Err(Error::usage(format!("credentials in URL forbidden: {url}")));
     }
@@ -93,7 +93,7 @@ pub fn fetch_response(url: &str, accept: Option<&str>) -> Result<FetchResponse> 
     let Some(location) = response.header("location") else {
         return Ok(response);
     };
-    let base: url::Url = url.parse().map_err(|_| Error::usage(format!("invalid URL: {url}")))?;
+    let base: stuff_url::Url = url.parse().map_err(|_| Error::usage(format!("invalid URL: {url}")))?;
     let target = base
         .join(location)
         .map_err(|_| Error::Network(format!("invalid redirect location from {url}: {location}")))?;

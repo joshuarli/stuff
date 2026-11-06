@@ -127,7 +127,7 @@ fn assert_no_credential_urls_text(text: &str, label: &str) -> Result<()> {
         };
         let after_scheme = normalized.find("://").map(|p| &normalized[p + 3..]).unwrap_or("");
         let authority = after_scheme.split(['/', '?', '#']).next().unwrap_or("");
-        match url::Url::parse(normalized) {
+        match stuff_url::Url::parse(normalized) {
             Ok(parsed) => {
                 if authority.contains('@')
                     || !parsed.username().is_empty()

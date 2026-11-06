@@ -24,7 +24,7 @@ httparse = "1"
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-oci = { version = "0.1.0", path = "../stuff-oci" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
-url = "2.5"
+stuff-url = { version = "0.1.0", path = "../stuff-url" }
 
 [dev-dependencies]
 tempfile = "3.13"
