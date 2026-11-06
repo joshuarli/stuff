@@ -53,24 +53,20 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   use `requirements*.txt`. JavaScript must not use yarn: `yarn.lock`,
   `.yarnrc`, `.yarnrc.yml`, `.yarnrc.yaml`, `.yarn/`, and
   `packageManager: yarn@*` are banned because pnpm is the only package
-  manager. Rust must not depend on `clap`, `tokio`, or `url`, including
-  transitive `clap-*`, `tokio-*`, and `url-*` crates via `Cargo.lock`.
-  Criterion is banned too, including `criterion-*`; use `rustybench` instead.
-  Proptest is banned, including `proptest-*`; use `quickcheck` instead.
+  manager. Rust must not depend on `url`, including transitive `url-*` crates
+  via `Cargo.lock`. Every other Rust ban comes from the `ban` tables in
+  `dependency-roles.toml`: an option marked `prefix` bans its crates and any
+  `NAME-*` crate, `exact` bans only the listed names, and the finding names
+  the role's preferred option as the replacement, or the matching `laputa-*`
+  fork when the preferred option has one. Today that bans clap (use lexopt),
+  criterion (rustybench), proptest (quickcheck), tokio, async-std, and the
+  upstream smol crates (smolith), and hyper, h2, and the mainstream HTTP
+  clients (h12tiny). `fastrand` is not banned because common crates such as
+  `tempfile` depend on it, and the `futures-core` and `futures-io` traits
+  remain the interop layer.
   A repository with a target-specific transitive crate that is never compiled
   can exempt that crate with `audit-banned:transitive:NAME`; direct
-  dependencies remain banned.
-  Rust must not use HTTP clients `reqwest`, `tiny_http`, `hyper`, `h2`,
-  `ureq`, `attohttpc`, `surf`, `isahc`, `curl`, `awc`, or `smol-hyper`
-  (including suffixed crates such as `hyper-*` and `reqwest-*`); use
-  `h12tiny-*`, `laputa-h2-futures-lite`, or `laputa-hyper-futures-lite` instead.
-  The async stack is smolith: the upstream crates it forks (`smol`,
-  `smol-macros`, `async-*`, `atomic-waker`, `blocking`, `concurrent-queue`,
-  `easy-parallel`, `event-listener*`, `futures-lite`, `parking`, `piper`,
-  `polling`, and `waker-fn`) are banned by exact name in favor of their
-  `laputa-*` forks, and `async-std` in favor of `laputa-smol`. `fastrand` is
-  not banned because common crates such as `tempfile` depend on it, and the
-  `futures-core` and `futures-io` traits remain the interop layer.
+  dependencies remain banned unless exempted with `audit-banned:direct:NAME`.
 - `audit-registry`: a dependency bypasses a package registry. Filesystem
   dependencies are errors and git URL dependencies are warnings. Rust `path`
   dependencies without a `version` are banned; `version` plus `path` workspace

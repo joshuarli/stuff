@@ -264,9 +264,11 @@ def test_http_client_ban_suggests_replacements(tmp_path: Path) -> None:
     )
     findings = _policy_findings(root, repository("tool", "rust"))
     banned = {finding.message for finding in findings if finding.rule == "audit-banned"}
-    assert any("reqwest" in message and "h12tiny" in message for message in banned)
-    assert any("hyper" in message and "laputa-h2-futures-lite" in message for message in banned)
-    assert any(message == "remove bloated dependency clap" for message in banned)
+    assert banned == {
+        "remove reqwest; use h12tiny instead",
+        "remove hyper; use h12tiny instead",
+        "remove clap; use lexopt instead",
+    }
 
 
 def test_fixer_flows_through_worktree_commit(

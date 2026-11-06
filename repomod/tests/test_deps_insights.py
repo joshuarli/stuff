@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from deps_fixtures import build_graph, instance, project, repository
 
+from repomod import dependency_roles
 from repomod.dependencies import insights
 from repomod.dependencies.insights import Gap
 from repomod.dependencies.model import (
@@ -191,7 +192,7 @@ def test_role_use_reports_mixed_and_off_preferred_repositories(tmp_path: Path) -
             _app("acme/legacy", [_cargo("clap", "4.0.0")]),
         ],
     )
-    roles = insights.parse_roles(
+    roles = dependency_roles.parse_roles(
         {
             "cli-arguments": {
                 "ecosystem": "cargo",
@@ -221,7 +222,7 @@ def test_complements_pass_only_alongside_the_preferred_option(tmp_path: Path) ->
             _app("acme/nix", [_cargo("rustix", "1.0.0"), _cargo("nix", "0.30.0")]),
         ],
     )
-    roles = insights.parse_roles(
+    roles = dependency_roles.parse_roles(
         {
             "system-calls": {
                 "ecosystem": "cargo",
@@ -245,7 +246,7 @@ def test_role_exceptions_are_reported_apart_from_conflicts(tmp_path: Path) -> No
             _app("acme/tool", [_cargo("regex", "1.0.0")]),
         ],
     )
-    roles = insights.parse_roles(
+    roles = dependency_roles.parse_roles(
         {
             "regex": {
                 "ecosystem": "cargo",
@@ -321,7 +322,7 @@ def test_owned_declarations_leave_out_fork_repositories(tmp_path: Path) -> None:
 )
 def test_roles_file_rejects_invalid_roles(role: dict[str, object], message: str) -> None:
     with pytest.raises(ValueError, match=message):
-        insights.parse_roles({"cli": role}, "roles.toml")
+        dependency_roles.parse_roles({"cli": role}, "roles.toml")
 
 
 def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) -> None:
@@ -343,7 +344,7 @@ def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) ->
         "pkg:cargo/log@0.4.35": {"latest": "0.4.35"},
         "pkg:cargo/tokio@1.0.0": {"vulns": [{"id": "RUSTSEC-1"}]},
     }
-    roles = insights.parse_roles(
+    roles = dependency_roles.parse_roles(
         {
             "cli": {
                 "ecosystem": "cargo",

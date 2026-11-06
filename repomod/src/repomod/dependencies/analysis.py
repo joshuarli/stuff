@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any, cast
 
+from repomod import dependency_roles
 from repomod.dependencies import enrich as enrich_module
 from repomod.dependencies import insights
 from repomod.dependencies.graph import Graph, RepositoryEdge, is_first_party_edge
@@ -468,7 +469,7 @@ def _roles(graph: Graph, names: Iterable[str]) -> dict[str, object]:
                 for package in packages
             ),
         }
-        for use in insights.role_uses(insights.load_roles(), found)
+        for use in insights.role_uses(dependency_roles.load_roles(), found)
         for repository in use.overlapping
     ]
     return {

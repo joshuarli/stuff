@@ -28,6 +28,8 @@ from repomod.catalog import (
     parse_banned_transitive_ignore,
     repository_path,
 )
+from repomod.dependencies.model import Ecosystem
+from repomod.dependency_roles import Ban, find_ban, load_roles
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
 from repomod.io import cache_file, read_toml, safe_relative
@@ -44,55 +46,7 @@ _MINIFLARE_IMPORT = re.compile(
     r"(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)[\"']miniflare(?:/[^\"']*)?[\"']"
 )
 
-_BANNED_RUST = ("clap", "tokio", "url")
-_BANNED_RUST_ALTERNATIVES = {"criterion": "rustybench", "proptest": "quickcheck"}
-_BANNED_RUST_HTTP = frozenset(
-    {
-        "reqwest",
-        "tiny-http",
-        "hyper",
-        "h2",
-        "ureq",
-        "attohttpc",
-        "surf",
-        "isahc",
-        "curl",
-        "awc",
-        "smol-hyper",
-    }
-)
-_SMOLITH_FORKED = frozenset(
-    {
-        "smol",
-        "smol-macros",
-        "async-broadcast",
-        "async-channel",
-        "async-dup",
-        "async-executor",
-        "async-fs",
-        "async-io",
-        "async-lock",
-        "async-net",
-        "async-process",
-        "async-signal",
-        "async-task",
-        "atomic-waker",
-        "blocking",
-        "concurrent-queue",
-        "easy-parallel",
-        "event-listener",
-        "event-listener-strategy",
-        "futures-lite",
-        "parking",
-        "piper",
-        "polling",
-        "waker-fn",
-    }
-)
-_SMOLITH_REPLACEMENTS = {name: f"laputa-{name}" for name in _SMOLITH_FORKED} | {
-    "async-std": "laputa-smol"
-}
-_BANNED_RUST_ALL = _BANNED_RUST + tuple(sorted(_BANNED_RUST_ALTERNATIVES)) + tuple(sorted(_BANNED_RUST_HTTP))
+_BLOATED_RUST = ("url",)
 _IGNORED_DIRS = frozenset(
     {
         ".git",
@@ -153,35 +107,19 @@ def _normalize_rust_name(value: str) -> str:
     return value.replace("_", "-").casefold()
 
 
-def _is_banned_rust(name: str) -> bool:
+def _rust_role_ban(name: str) -> Ban | None:
+    return find_ban(load_roles(), Ecosystem.CARGO, name)
+
+
+def _is_bloated_rust(name: str) -> bool:
     normalized = _normalize_rust_name(name)
-    if normalized in _SMOLITH_REPLACEMENTS:
-        return True
     return any(
-        normalized == banned or normalized.startswith(f"{banned}-")
-        for banned in _BANNED_RUST_ALL
+        normalized == bloated or normalized.startswith(f"{bloated}-") for bloated in _BLOATED_RUST
     )
 
 
-def _banned_rust_reason(name: str) -> str:
-    normalized = _normalize_rust_name(name)
-    if normalized in _SMOLITH_REPLACEMENTS:
-        return "smolith"
-    for banned in _BANNED_RUST_HTTP:
-        if normalized == banned or normalized.startswith(f"{banned}-"):
-            return "http"
-    for banned in _BANNED_RUST_ALTERNATIVES:
-        if normalized == banned or normalized.startswith(f"{banned}-"):
-            return "alternative"
-    return "bloated"
-
-
-def _banned_rust_alternative(name: str) -> str | None:
-    normalized = _normalize_rust_name(name)
-    for banned, replacement in _BANNED_RUST_ALTERNATIVES.items():
-        if normalized == banned or normalized.startswith(f"{banned}-"):
-            return replacement
-    return None
+def _is_banned_rust(name: str) -> bool:
+    return _is_bloated_rust(name) or _rust_role_ban(name) is not None
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -1560,19 +1498,10 @@ def _banned_direct_ignored(repository: Repository) -> set[str]:
 
 
 def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
-    reason = _banned_rust_reason(name)
     detail = f"{name} {version}" if transitive and version is not None else name
-    if reason == "http":
-        return (
-            f"remove HTTP client {detail}; "
-            "use h12tiny-*, laputa-h2-futures-lite, or laputa-hyper-futures-lite"
-        )
-    if reason == "alternative":
-        alternative = _banned_rust_alternative(name)
-        return f"remove {detail}; use {alternative} instead"
-    if reason == "smolith":
-        replacement = _SMOLITH_REPLACEMENTS[_normalize_rust_name(name)]
-        return f"remove {detail}; use {replacement} from smolith instead"
+    ban = _rust_role_ban(name)
+    if ban is not None:
+        return f"remove {detail}; use {ban.replacement} instead"
     if transitive and version is not None:
         return f"remove bloated transitive {name} {version}"
     return f"remove bloated dependency {name}"

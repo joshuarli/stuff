@@ -27,6 +27,18 @@ curl = ["curl"]
 awc = ["awc"]
 tiny-http = ["tiny_http"]
 
+[http.ban]
+hyper = "prefix"
+h2 = "prefix"
+reqwest = "prefix"
+ureq = "prefix"
+surf = "prefix"
+isahc = "prefix"
+attohttpc = "prefix"
+curl = "prefix"
+awc = "prefix"
+tiny-http = "prefix"
+
 [cli-arguments]
 ecosystem = "cargo"
 preferred = "lexopt"
@@ -38,6 +50,9 @@ pico-args = ["pico-args"]
 argh = ["argh"]
 bpaf = ["bpaf"]
 
+[cli-arguments.ban]
+clap = "prefix"
+
 [benchmark]
 ecosystem = "cargo"
 preferred = "rustybench"
@@ -46,6 +61,9 @@ preferred = "rustybench"
 rustybench = ["rustybench"]
 criterion = ["criterion", "criterion-cycles-per-byte"]
 divan = ["divan"]
+
+[benchmark.ban]
+criterion = "prefix"
 
 [async-runtime]
 ecosystem = "cargo"
@@ -106,6 +124,11 @@ smol = [
 ]
 tokio = ["tokio", "tokio-util"]
 async-std = ["async-std"]
+
+[async-runtime.ban]
+tokio = "prefix"
+smol = "exact"
+async-std = "exact"
 
 [serialization]
 ecosystem = "cargo"
@@ -175,6 +198,9 @@ preferred = "quickcheck"
 [property-testing.options]
 proptest = ["proptest"]
 quickcheck = ["quickcheck", "quickcheck_macros"]
+
+[property-testing.ban]
+proptest = "prefix"
 
 [signals]
 ecosystem = "cargo"

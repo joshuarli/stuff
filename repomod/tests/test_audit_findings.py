@@ -111,13 +111,13 @@ def test_banned_transitive_ignore_suppresses_only_the_named_transitive_crate(
         finding.message
         for finding in _policy_rule("audit-banned")(root, plain)
     ] == [
-        "remove bloated transitive tokio 1.54.1",
-        "remove bloated transitive tokio-macros 2.7.2",
+        "remove tokio 1.54.1; use smolith instead",
+        "remove tokio-macros 2.7.2; use smolith instead",
     ]
     assert [
         finding.message
         for finding in _policy_rule("audit-banned")(root, ignored)
-    ] == ["remove bloated transitive tokio-macros 2.7.2"]
+    ] == ["remove tokio-macros 2.7.2; use smolith instead"]
 
 
 def test_banned_transitive_ignore_does_not_hide_a_direct_dependency(
@@ -144,7 +144,7 @@ def test_banned_transitive_ignore_does_not_hide_a_direct_dependency(
     assert [
         finding.message
         for finding in _policy_rule("audit-banned")(root, ignored)
-    ] == ["remove bloated dependency tokio"]
+    ] == ["remove tokio; use smolith instead"]
 
 
 def test_banned_direct_ignore_suppresses_the_direct_dependency_and_its_lock_entry(
@@ -172,7 +172,7 @@ def test_banned_direct_ignore_suppresses_the_direct_dependency_and_its_lock_entr
     assert [
         finding.message
         for finding in _policy_rule("audit-banned")(root, ignored)
-    ] == ["remove bloated transitive tokio-macros 2.7.2"]
+    ] == ["remove tokio-macros 2.7.2; use smolith instead"]
 
 
 def test_vuln_check_reports_osv_entries(

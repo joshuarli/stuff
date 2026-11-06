@@ -155,10 +155,11 @@ def test_upstream_smol_crates_point_to_their_smolith_forks() -> None:
     )
     assert (
         _banned_rust_message("async-std", transitive=False)
-        == "remove async-std; use laputa-smol from smolith instead"
+        == "remove async-std; use smolith instead"
     )
-    assert _banned_rust_message("smol-hyper", transitive=False).startswith(
-        "remove HTTP client smol-hyper; use h12tiny-*"
+    assert (
+        _banned_rust_message("smol-hyper", transitive=False)
+        == "remove smol-hyper; use h12tiny instead"
     )
 
 

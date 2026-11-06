@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import tomllib
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from packaging.version import InvalidVersion, Version
 
@@ -19,8 +17,8 @@ from repomod.dependencies.model import (
     Scope,
     SourceKind,
 )
+from repomod.dependency_roles import Role
 
-ROLES_PATH = Path(__file__).resolve().parents[3] / "dependency-roles.toml"
 _LOCAL_SOURCES = frozenset({SourceKind.PATH, SourceKind.WORKSPACE})
 _UNALIGNED_ECOSYSTEMS = frozenset({Ecosystem.APK})
 
@@ -104,21 +102,6 @@ class Split:
             if use.version != self.target
             for repository in use.repositories
         )
-
-
-@dataclass(frozen=True, slots=True)
-class Role:
-    name: str
-    ecosystem: Ecosystem
-    preferred: str | None
-    options: Mapping[str, frozenset[str]]
-    complements: frozenset[str] = frozenset()
-    exceptions: Mapping[str, str] = field(default_factory=dict)
-
-    def allows(self, chosen: frozenset[str]) -> bool:
-        if self.preferred is None or self.preferred not in chosen:
-            return False
-        return chosen <= self.complements | {self.preferred}
 
 
 @dataclass(frozen=True, slots=True)
@@ -505,74 +488,6 @@ def scorecards(
         for repository in repositories
     ]
     return tuple(sorted(cards, key=lambda card: (card.rank, card.repository.casefold())))
-
-
-def load_roles(path: Path = ROLES_PATH) -> tuple[Role, ...]:
-    try:
-        document = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
-        raise ValueError(f"cannot read {path.name}: {error}") from error
-    return parse_roles(document, path.name)
-
-
-def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]:
-    roles = []
-    for name, raw in document.items():
-        if not isinstance(raw, dict):
-            raise ValueError(f"{source} [{name}] must be a table")
-        table = cast(Mapping[str, Any], raw)
-        unknown = set(table) - {"ecosystem", "preferred", "complements", "options", "exceptions"}
-        if unknown:
-            raise ValueError(f"{source} [{name}] has unknown keys: {', '.join(sorted(unknown))}")
-        try:
-            ecosystem = Ecosystem(table.get("ecosystem"))
-        except ValueError as error:
-            raise ValueError(f"{source} [{name}] has an unknown ecosystem") from error
-        raw_options = table.get("options")
-        if not isinstance(raw_options, dict) or len(raw_options) < 2:
-            raise ValueError(f"{source} [{name}.options] must name at least two options")
-        options: dict[str, frozenset[str]] = {}
-        seen: dict[str, str] = {}
-        for option, packages in cast(Mapping[str, object], raw_options).items():
-            if (
-                not isinstance(packages, list)
-                or not packages
-                or not all(isinstance(item, str) and item for item in packages)
-            ):
-                raise ValueError(f"{source} [{name}.options] {option} must list package names")
-            for package in cast(list[str], packages):
-                if package in seen:
-                    raise ValueError(
-                        f"{source} [{name}] lists {package} under both {seen[package]} and {option}"
-                    )
-                seen[package] = option
-            options[option] = frozenset(cast(list[str], packages))
-        preferred = table.get("preferred")
-        if preferred is not None and preferred not in options:
-            raise ValueError(f"{source} [{name}] prefers {preferred!r}, which is not an option")
-        complements = table.get("complements", [])
-        if not isinstance(complements, list) or not all(isinstance(item, str) for item in complements):
-            raise ValueError(f"{source} [{name}] complements must list option names")
-        if complements and preferred is None:
-            raise ValueError(f"{source} [{name}] complements need a preferred option")
-        if any(item == preferred or item not in options for item in complements):
-            raise ValueError(f"{source} [{name}] complements must be other options of the role")
-        exceptions = table.get("exceptions", {})
-        if not isinstance(exceptions, dict) or not all(
-            isinstance(reason, str) and reason.strip() for reason in exceptions.values()
-        ):
-            raise ValueError(f"{source} [{name}] exceptions must map repositories to reasons")
-        roles.append(
-            Role(
-                name,
-                ecosystem,
-                cast(str | None, preferred),
-                options,
-                frozenset(cast(list[str], complements)),
-                cast(dict[str, str], exceptions),
-            )
-        )
-    return tuple(roles)
 
 
 def _latest(enrichment: Mapping[str, Mapping[str, object]], instance: Instance) -> str | None:

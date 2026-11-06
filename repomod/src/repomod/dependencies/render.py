@@ -13,6 +13,7 @@ from urllib.parse import quote
 
 from packaging.version import InvalidVersion, Version
 
+from repomod import dependency_roles
 from repomod.dependencies import analysis, enrich, insights
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
@@ -180,7 +181,7 @@ def _site(
     splits = insights.splits(
         mine, results, pins={name: pin.sha for name, pin in actions_rule.load_pins().items()}
     )
-    roles = insights.role_uses(insights.load_roles(), mine)
+    roles = insights.role_uses(dependency_roles.load_roles(), mine)
     return _Site(
         graph,
         inventory,
@@ -710,6 +711,11 @@ def _choices(site: _Site) -> str:
             + (
                 f" · {_e(', '.join(sorted(use.role.complements)))} allowed alongside it"
                 if use.role.complements
+                else ""
+            )
+            + (
+                f" · audit bans {_e(', '.join(sorted(use.role.bans)))}"
+                if use.role.bans
                 else ""
             )
             + "</span></h2>"
