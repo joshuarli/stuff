@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 72
 
-### RPMD-53 · P2 · Enforce required check names match produced checks
-
-- **Area:** Release policy
-- **Where:** `src/repomod/github.py` (`protection_many`), branch protection on `joshuarli/pytest-parallel`
-- **Problem:** pytest-parallel protection required `test (..., 3.13)` and `test (..., 3.14)` while CI produces `test (..., 3.15)`, so auto-merge stalled with green checks the same way the missing vault `CI` job did. The `github-protection` lint only checks the approval count today.
-- **Recommendation:** Compare required status check contexts against the check names CI workflows produce, accounting for matrix expansion, and report stale requirements.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-42 · P2 · Check Rust lockfiles at executable workspace roots
 
 - **Area:** Lint accuracy
