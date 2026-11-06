@@ -1,23 +1,32 @@
 Prefix: RPMD
-Next: 72
+Next: 74
 
-### RPMD-68 · P2 · Fix the shadowdriver-py build
+### RPMD-72 · P2 · Fix kache's macOS release build under -D warnings
 
 - **Area:** Build
-- **Where:** `joshuarli/shadowdriver/py/`, `Pool` in the shadowdriver crate
-- **Problem:** `cargo test -p shadowdriver-py` fails on `origin/master` with two E0599 errors: `Pool` has no `open_interactive_tab` or `cookies_json`. The Python binding calls methods the Rust crate no longer has, so `make rust-test` cannot finish and the Python package cannot be built.
-- **Recommendation:** Restore the two methods on `Pool` or update the binding to the current API, and keep `make rust-test` in the repository's verification.
+- **Where:** `joshuarli/kache/src/fallback/sandbox.rs`, `joshuarli/kache/src/fallback/macos.rs`
+- **Problem:** `cargo build --release --bin kache` on macOS at origin/main c1fba3b stops with nine dead-code errors under `-D warnings` (`Probe`, `check`, `denial`, `server_pid`, and others), so the release binary only builds with `--cap-lints warn`.
+- **Recommendation:** Gate the unused items on the platforms that use them or delete them, then confirm the macOS release build passes with warnings denied.
 - **Fix with:** root-cause
 - **Effort:** S (hours)
 
-### RPMD-63 · P3 · Move owned repositories from serde to deser
+### RPMD-73 · P2 · Repair branch protections that require checks no workflow produces
+
+- **Area:** Release policy
+- **Where:** branch protection on `laputa-systems/diff-pretty` (`test (macos-26)`), `laputa-systems/fdu` (`Build and test (macos-26)`), `laputa-systems/fz` (`CI (macos-26)`), `laputa-systems/tm` (`CI`)
+- **Problem:** `github-protection` reports required status checks that no workflow produces, so pull requests on these repositories wait forever for green checks and auto-merge stalls. The macos-26 contexts look like a runner rename to macos-latest; tm's job is now named `CI (${{ matrix.os }})`.
+- **Recommendation:** Point each protection at the check names the workflows produce now; repomod has no command that writes branch protection, so do it in GitHub settings or with `gh api`, then confirm the lint is clean.
+- **Fix with:** none
+- **Effort:** S (hours)
+
+### RPMD-63 · P3 · Finish moving owned repositories from serde to deser
 
 - **Area:** Dependencies
-- **Where:** `Cargo.toml` in `joshuarli/defuddle-rs`, `joshuarli/ish`, `joshuarli/kache`, `joshuarli/obsidian-ferrisearch`, `joshuarli/shadowdriver`, `joshuarli/soulseek-rs`, `joshuarli/tansu`, `laputa-systems/h12tiny`, `laputa-systems/python-build`, `laputa-systems/rustybench`
-- **Problem:** deser is the preferred serialization stack, but these ten owned repositories still declare serde (fork repositories jaq, oxish, rg, rustls, and webpki also do). serde brings `serde_derive`, `syn`, and `proc-macro2` with it.
-- **Recommendation:** Migrate one repository at a time, starting with those where serde is only JSON (`deser-json`), and confirm on the Bloat page that the derive stack leaves the lockfile.
+- **Where:** `laputa-systems/python-build/rust-cpython/overlay/Modules/_pickle_rs/src/lib.rs`; `miniserde` in `laputa-systems/rustybench`, `laputa-systems/h12tiny` (`json` and `query` features), `joshuarli/defuddle-rs`, `joshuarli/obsidian-ferrisearch`
+- **Problem:** ish, tansu, shadowdriver, kache, and h12tiny's benchmark app are on deser, and soulseek-rs is an accepted exception. `_pickle_rs` still uses `serde` and `serde-pickle` because `deser-pickle` 0.10.2 cannot emit the module's current bytes: it writes small ints as `K`/`M` instead of `J`, sizes `LONG1` minimally instead of always 8 bytes, and encodes empty lists and dicts as `](e` and `}(u`. Its output is valid pickle and closer to CPython's own, and a deser-based loader decodes every valid pickle identically. Four repositories use `miniserde`, which is not serde but is also not the preferred stack; in defuddle-rs and obsidian-ferrisearch serde stays in the lockfile through html5ever and tantivy regardless, and ferrisearch moved to miniserde on purpose to slim its wasm build.
+- **Recommendation:** Decide whether `_pickle_rs` must keep its exact bytes. If CPython-equivalent loading is enough, port both directions to `deser-pickle` and run CPython's `test_pickle`; otherwise leave it until `deser-pickle` has a compatible mode. Decide separately whether `miniserde` should move to deser, starting with rustybench behind report and baseline round-trip tests, and measure wasm size before touching ferrisearch.
 - **Fix with:** none
-- **Effort:** L (weeks)
+- **Effort:** M (days)
 
 ### RPMD-70 · P3 · Prefer the Python standard library over third-party packages
 
