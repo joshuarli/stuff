@@ -6,10 +6,10 @@
 
 **Preflight:** ready on 2026-11-06 at `102b7b4`. Owner decision D1 was given on 2026-11-06.
 
-- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`). Fleet pilot: 52 repositories, 962 inputs, 1.35 s wall and 1.07 s CPU, 8.15 MB, largest file 848 KB, and 0 parse errors. Remaining gaps in the covered ecosystems are 23 missing-lock paths and 4 named Cargo registries that cannot be resolved statically. Every repository remains `partial` until the other adapters land.
-- **Red:** none. `make test` is 686 passed and 1 skipped; ruff and ty are clean.
+- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`); S4 — pnpm v9 and npm v3 adapters with peer contexts and nested resolution (`fca699d`). Fleet pilot: 52 repositories, 962 inputs, 1.83 s wall and 1.57 s CPU, 10.8 MB, largest file 848 KB, and 0 parse errors. Remaining gaps in the covered ecosystems are 23 missing-lock paths and 4 named Cargo registries that cannot be resolved statically. Every repository remains `partial` until the other adapters land.
+- **Red:** none. `make test` is 706 passed and 1 skipped; ruff and ty are clean.
 - **Parked:** none.
-- **Next:** S4.
+- **Next:** S5.
 - **Resume:** "Execute `campaign-deps.md` from **Status**. Run `uv run repomod sync`, then start the next slice."
 
 ## Charter
