@@ -66,6 +66,7 @@ class _Site:
     weights: tuple[insights.Weight, ...]
     splits: tuple[insights.Split, ...]
     roles: tuple[insights.RoleUse, ...]
+    scorecards: tuple[insights.Scorecard, ...]
 
 
 def render(
@@ -169,6 +170,11 @@ def _site(
             diff_value = None
     declared = insights.declarations(graph)
     results = cache.results
+    outdated = insights.outdated(declared, results)
+    vulnerable = insights.vulnerable(graph, declared, results)
+    weights = insights.weights(graph, declared)
+    splits = insights.splits(declared, results)
+    roles = insights.role_uses(insights.load_roles(), declared)
     return _Site(
         graph,
         inventory,
@@ -179,11 +185,12 @@ def _site(
         tuple(index),
         {key: frozenset(value) for key, value in direct_repos.items()},
         time.time(),
-        insights.outdated(declared, results),
-        insights.vulnerable(graph, declared, results),
-        insights.weights(graph, declared),
-        insights.splits(declared, results),
-        insights.role_uses(insights.load_roles(), declared),
+        outdated,
+        vulnerable,
+        weights,
+        splits,
+        roles,
+        insights.scorecards(graph.repositories, outdated, vulnerable, splits, roles, weights),
     )
 
 
@@ -297,8 +304,100 @@ def _overview(site: _Site) -> str:
         _split_table(site.splits[:_OVERVIEW_ROWS]),
         _section("Competing choices", "choices.html", overlaps),
         _choices_summary(site),
+        "<h2>Repositories</h2>",
+        '<p class="sub">Worst first: vulnerable versions, breaking upgrades, versions behind, '
+        "split versions, then role conflicts.</p>",
+        _scorecard_table(site),
     ]
     return "\n".join(body)
+
+
+def _scorecard_table(site: _Site) -> str:
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Repository</th>'
+        '<th class="num">Vulnerable</th><th class="num">Behind</th>'
+        '<th class="num">Breaking</th><th class="num">Off target</th>'
+        "<th>Role conflicts</th><th>Heaviest dependency</th></tr></thead><tbody>"
+    ]
+    for card in site.scorecards:
+        quiet = card.rank == (0, 0, 0, 0, 0)
+        roles = ", ".join(
+            f'<a href="choices.html#role-{_e(role)}">{_e(role)}</a>'
+            for role in sorted({*card.mixed_roles, *card.off_preferred})
+        )
+        heaviest = (
+            f"{_package_link(card.heaviest.component.purl, '', card.heaviest.component.display_name)}"
+            f' <span class="sub">{card.heaviest.sole} only via it</span>'
+            if card.heaviest is not None and card.heaviest.sole > 0
+            else ""
+        )
+        body.append(
+            f'<tr data-row data-href="repos/{_e(card.repository)}/index.html"'
+            + (' class="quiet"' if quiet else "")
+            + f"><td>{_repo_link(card.repository, '')}</td>"
+            f'<td class="num{" finding" if card.vulnerable else ""}">{_count(card.vulnerable)}</td>'
+            f'<td class="num">{_count(card.behind)}</td>'
+            f'<td class="num{" risk" if card.breaking else ""}">{_count(card.breaking)}</td>'
+            f'<td class="num">{_count(card.off_target)}</td>'
+            f"<td>{roles}</td><td>{heaviest}</td></tr>"
+        )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _count(value: int) -> str:
+    return str(value) if value else '<span class="sub">·</span>'
+
+
+def _attention(site: _Site, name: str) -> str:
+    prefix = "../../../"
+    items: list[str] = []
+    for row in site.vulnerable:
+        if name in row.direct_in or name in row.transitive_in:
+            how = "declared" if name in row.direct_in else "locked"
+            items.append(
+                f'<li><span class="finding">vulnerable</span> '
+                f"{_package_link(row.component.purl, prefix, f'{row.component.display_name}@{row.version}')} "
+                f'<span class="sub">{how} · {_e(", ".join(row.advisories))}</span></li>'
+            )
+    for row in site.outdated:
+        for use in row.uses:
+            if name not in use.repositories:
+                continue
+            severity = insights.gap(row.component.ecosystem, use.version, row.latest)
+            badge = _badge(severity) if severity is not None else ""
+            items.append(
+                f"<li>{badge} {_package_link(row.component.purl, prefix, row.component.display_name)} "
+                f'<span class="mono">{_e(use.version)} → {_e(row.latest)}</span></li>'
+            )
+    behind = {
+        row.component.purl
+        for row in site.outdated
+        if any(name in use.repositories for use in row.uses)
+    }
+    for row in site.splits:
+        if name in row.off_target and row.component.purl not in behind:
+            version = next(use.version for use in row.uses if name in use.repositories)
+            items.append(
+                f'<li>off target {_package_link(row.component.purl, prefix, row.component.display_name)} '
+                f'<span class="mono">{_e(version)} → {_e(row.target)}</span></li>'
+            )
+    for use in site.roles:
+        mine = [option for option, owners in use.options.items() if name in owners]
+        if name in use.overlapping or name in use.off_preferred:
+            preferred = f" · preferred {use.role.preferred}" if use.role.preferred is not None else ""
+            items.append(
+                f'<li>role <a href="{prefix}choices.html#role-{_e(use.role.name)}">'
+                f"{_e(use.role.name)}</a> uses "
+                f'<span class="mono">{_e(", ".join(mine))}</span>'
+                f'<span class="sub">{_e(preferred)}</span></li>'
+            )
+    if not items:
+        return '<h2>Needs attention</h2><p class="zero">nothing flagged</p>'
+    return (
+        f'<h2>Needs attention <span class="sub">{len(items)}</span></h2>'
+        f'<ul class="attention">{"".join(items)}</ul>'
+    )
 
 
 def _tile(href: str, value: int, label: str, detail: str, kind: str = "") -> str:
@@ -431,8 +530,9 @@ def _split_table(rows: Sequence[insights.Split]) -> str:
             f'<span class="mono">{_e(use.version)}</span> {_repo_list(use.repositories)}</div>'
             for use in row.uses
         )
-        target = f'<span class="mono">{_e(row.target)}</span>' + (
-            ' <span class="sub">latest</span>' if row.target_is_latest else ' <span class="sub">newest in use</span>'
+        target = (
+            f'<span class="mono">{_e(row.target)}</span> '
+            f'<span class="sub">{_e(row.basis.value)}</span>'
         )
         body.append(
             "<tr>"
@@ -540,7 +640,8 @@ def _alignment(site: _Site) -> str:
             "<h1>Alignment</h1>",
             '<p class="sub">Packages declared directly by two or more repositories at different '
             "versions. The target is the registry's latest release when known, otherwise the "
-            "newest version in use. Alpine packages follow their base image and are left out.</p>",
+            "newest version in use, or the most common ref when versions are tags or commits. "
+            "Alpine packages follow their base image and are left out.</p>",
             _split_table(site.splits),
         ]
     )
@@ -886,6 +987,7 @@ def _repository(site: _Site, name: str) -> str:
         f'<span class="state-{data.state.value}">{_e(data.state.value)}</span> · '
         f"commit <span class=\"mono\">{_e(commit or 'unknown')}</span></p>",
         f'<p>{_tags(data.tags)}</p>',
+        _attention(site, name),
     ]
     if not data.edges:
         body.append(

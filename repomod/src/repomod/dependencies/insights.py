@@ -82,11 +82,17 @@ class Weight:
     sole: int
 
 
+class TargetBasis(Enum):
+    LATEST = "latest"
+    NEWEST_IN_USE = "newest in use"
+    MOST_COMMON = "most common"
+
+
 @dataclass(frozen=True, slots=True)
 class Split:
     component: Component
     target: str
-    target_is_latest: bool
+    basis: TargetBasis
     uses: tuple[VersionUse, ...]
 
     @property
@@ -142,6 +148,28 @@ class RoleUse:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class Scorecard:
+    repository: str
+    vulnerable: int
+    behind: int
+    breaking: int
+    off_target: int
+    mixed_roles: tuple[str, ...]
+    off_preferred: tuple[str, ...]
+    heaviest: Weight | None
+
+    @property
+    def rank(self) -> tuple[int, ...]:
+        return (
+            -self.vulnerable,
+            -self.breaking,
+            -self.behind,
+            -self.off_target,
+            -len(self.mixed_roles) - len(self.off_preferred),
+        )
+
+
 def declarations(graph: Graph) -> tuple[Declaration, ...]:
     found: dict[tuple[str, str], tuple[Instance, Component, set[Scope]]] = {}
     for repository, data in graph.repositories.items():
@@ -191,8 +219,11 @@ def release(ecosystem: Ecosystem, version: str) -> tuple[int, ...] | None:
             return Version(version).release
         except InvalidVersion:
             return None
+    pieces = version.removeprefix("v").split(".")
+    if not pieces[0].isdigit():
+        return None
     parts: list[int] = []
-    for piece in version.removeprefix("v").split("."):
+    for piece in pieces:
         digits = ""
         for character in piece:
             if not character.isdigit():
@@ -338,14 +369,10 @@ def splits(
         component = components[purl]
         uses = _uses(component, by_version)
         latest = latest_of.get(purl)
-        rows.append(
-            Split(
-                component,
-                latest if latest is not None else uses[0].version,
-                latest is not None,
-                uses,
-            )
+        target, basis = (
+            (latest, TargetBasis.LATEST) if latest is not None else _fallback_target(component, uses)
         )
+        rows.append(Split(component, target, basis, uses))
     return tuple(
         sorted(
             rows,
@@ -389,6 +416,59 @@ def role_uses(roles: Iterable[Role], found: Iterable[Declaration]) -> tuple[Role
             ),
         )
     )
+
+
+def scorecards(
+    repositories: Iterable[str],
+    outdated_rows: Iterable[Outdated],
+    vulnerable_rows: Iterable[Vulnerable],
+    split_rows: Iterable[Split],
+    role_rows: Iterable[RoleUse],
+    weight_rows: Iterable[Weight],
+) -> tuple[Scorecard, ...]:
+    vulnerable_count: dict[str, int] = defaultdict(int)
+    for row in vulnerable_rows:
+        for repository in {*row.direct_in, *row.transitive_in}:
+            vulnerable_count[repository] += 1
+    behind: dict[str, int] = defaultdict(int)
+    breaking: dict[str, int] = defaultdict(int)
+    for row in outdated_rows:
+        for use in row.uses:
+            severity = gap(row.component.ecosystem, use.version, row.latest)
+            for repository in use.repositories:
+                behind[repository] += 1
+                if severity is Gap.BREAKING:
+                    breaking[repository] += 1
+    off_target: dict[str, int] = defaultdict(int)
+    for row in split_rows:
+        for repository in set(row.off_target):
+            off_target[repository] += 1
+    mixed: dict[str, list[str]] = defaultdict(list)
+    off_preferred: dict[str, list[str]] = defaultdict(list)
+    for use in role_rows:
+        for repository in use.overlapping:
+            mixed[repository].append(use.role.name)
+        for repository in use.off_preferred:
+            off_preferred[repository].append(use.role.name)
+    heaviest: dict[str, Weight] = {}
+    for row in weight_rows:
+        current = heaviest.get(row.repository)
+        if current is None or row.sole > current.sole:
+            heaviest[row.repository] = row
+    cards = [
+        Scorecard(
+            repository,
+            vulnerable_count[repository],
+            behind[repository],
+            breaking[repository],
+            off_target[repository],
+            tuple(sorted(mixed[repository])),
+            tuple(sorted(off_preferred[repository])),
+            heaviest.get(repository),
+        )
+        for repository in repositories
+    ]
+    return tuple(sorted(cards, key=lambda card: (card.rank, card.repository.casefold())))
 
 
 def load_roles(path: Path = ROLES_PATH) -> tuple[Role, ...]:
@@ -455,6 +535,16 @@ def _advisories(entry: Mapping[str, object] | None) -> tuple[str, ...]:
             if isinstance(item, dict)
         )
     )
+
+
+def _fallback_target(
+    component: Component, uses: tuple[VersionUse, ...]
+) -> tuple[str, TargetBasis]:
+    comparable = [use for use in uses if release(component.ecosystem, use.version) is not None]
+    if comparable:
+        return comparable[0].version, TargetBasis.NEWEST_IN_USE
+    common = max(uses, key=lambda use: (len(use.repositories), use.version))
+    return common.version, TargetBasis.MOST_COMMON
 
 
 def _closure(start: str, children: Mapping[str, set[str]]) -> set[str]:

@@ -175,9 +175,9 @@ def test_splits_need_two_repositories_and_skip_local_and_alpine(tmp_path: Path) 
         ],
     )
     rows = insights.splits(insights.declarations(graph), {})
-    assert [(row.component.name, row.target, row.target_is_latest) for row in rows] == [
-        ("solo", "2.0.0", False),
-        ("libc", "0.2.191", False),
+    assert [(row.component.name, row.target, row.basis) for row in rows] == [
+        ("solo", "2.0.0", insights.TargetBasis.NEWEST_IN_USE),
+        ("libc", "0.2.191", insights.TargetBasis.NEWEST_IN_USE),
     ]
     assert rows[0].off_target == ("acme/one", "acme/two")
 
@@ -227,3 +227,76 @@ def test_role_use_reports_mixed_and_off_preferred_repositories(tmp_path: Path) -
 def test_roles_file_rejects_invalid_roles(role: dict[str, object], message: str) -> None:
     with pytest.raises(ValueError, match=message):
         insights.parse_roles({"cli": role}, "roles.toml")
+
+
+def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) -> None:
+    tokio = _cargo("tokio", "1.0.0")
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/calm", [_cargo("log", "0.4.35")]),
+            _app("acme/stale", [_cargo("log", "0.3.0"), _cargo("clap", "4.0.0")]),
+            _app(
+                "acme/exposed",
+                [_cargo("log", "0.4.35"), _cargo("hyper", "1.0.0")],
+                ((_cargo("hyper", "1.0.0"), tokio),),
+            ),
+        ],
+    )
+    enrichment = {
+        "pkg:cargo/log@0.3.0": {"latest": "0.4.35"},
+        "pkg:cargo/log@0.4.35": {"latest": "0.4.35"},
+        "pkg:cargo/tokio@1.0.0": {"vulns": [{"id": "RUSTSEC-1"}]},
+    }
+    roles = insights.parse_roles(
+        {
+            "cli": {
+                "ecosystem": "cargo",
+                "preferred": "lexopt",
+                "options": {"lexopt": ["lexopt"], "clap": ["clap"]},
+            }
+        },
+        "roles.toml",
+    )
+    found = insights.declarations(graph)
+    cards = insights.scorecards(
+        graph.repositories,
+        insights.outdated(found, enrichment),
+        insights.vulnerable(graph, found, enrichment),
+        insights.splits(found, enrichment),
+        insights.role_uses(roles, found),
+        insights.weights(graph, found),
+    )
+    assert [card.repository for card in cards] == ["acme/exposed", "acme/stale", "acme/calm"]
+    exposed, stale, calm = cards
+    assert exposed.vulnerable == 1
+    assert exposed.heaviest is not None
+    assert exposed.heaviest.component.name == "hyper"
+    assert (stale.behind, stale.breaking, stale.off_target) == (1, 1, 1)
+    assert stale.off_preferred == ("cli",)
+    assert (calm.vulnerable, calm.behind, calm.off_target, calm.heaviest) == (0, 0, 0, None)
+
+
+def test_split_target_prefers_comparable_versions_then_the_most_common_ref(tmp_path: Path) -> None:
+    def action(ref: str) -> Instance:
+        return instance(Ecosystem.GITHUB, "actions/checkout", ref)
+
+    def toolchain(ref: str) -> Instance:
+        return instance(Ecosystem.GITHUB, "dtolnay/rust-toolchain", ref)
+
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/one", [action("v4"), toolchain("master")]),
+            _app("acme/two", [action("0123abcd"), toolchain("master")]),
+            _app("acme/three", [action("v5"), toolchain("ffff0000")]),
+        ],
+    )
+    targets = {
+        row.component.name: (row.target, row.basis)
+        for row in insights.splits(insights.declarations(graph), {})
+    }
+    assert targets == {
+        "actions/checkout": ("v5", insights.TargetBasis.NEWEST_IN_USE),
+        "dtolnay/rust-toolchain": ("master", insights.TargetBasis.MOST_COMMON),
+    }

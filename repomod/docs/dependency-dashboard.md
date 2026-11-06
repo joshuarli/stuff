@@ -19,7 +19,8 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 
 - **Overview** — counts and the top ten of each list below: vulnerable versions, direct
   dependencies furthest behind, the heaviest direct dependencies, version splits, and
-  roles with competing choices.
+  roles with competing choices; then every repository ranked worst first by vulnerable
+  versions, breaking upgrades, versions behind, split versions, and role conflicts.
 - **Outdated** — vulnerable versions, then direct dependencies behind their registry's
   latest release, grouped into breaking, minor, and patch upgrades. A breaking upgrade
   changes the leftmost nonzero version component. Needs `repomod deps enrich`.
@@ -28,8 +29,8 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
   holds two versions of one package. Lockfiles list every platform's packages, so counts are
   upper bounds.
 - **Alignment** — packages declared directly by two or more repositories at different
-  versions, with a target (the latest release, or the newest version in use) and the
-  repositories off it. Alpine packages follow their base image and are left out.
+  versions, with a target and the repositories off it. The target is the latest release,
+  else the newest version in use, else the most common ref for tags and commits. Alpine packages follow their base image and are left out.
 - **Choices** — roles from `dependency-roles.toml`: which option each repository declares,
   which repositories mix options, and which use something other than the preferred option.
 - **Packages** — search or pick a package. Each view shows identity, versions and sources,
@@ -39,8 +40,9 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
   previous revision has no inventory.
 - **Coverage** — repository states, issue kinds, ecosystem composition, source risk, and
   detection-only formats.
-- **Repository pages** — one page per repository under `repos/OWNER/REPO/index.html`, with
-  projects, scope counts, direct dependencies, expandable transitive lists, sources,
+- **Repository pages** — one page per repository under `repos/OWNER/REPO/index.html`,
+  starting with what needs attention there (vulnerable versions, upgrades, versions off
+  target, role conflicts), then projects, scope counts, direct dependencies, expandable transitive lists, sources,
   duplicates, gap evidence, and links back to the overview.
 
 ## Curated roles
@@ -86,7 +88,7 @@ JavaScript is stale. `make deps` only renders and serves; it does not run Node.
 
 ## Budgets and verification
 
-The site must stay under 10 MB. The current fleet is 60 pages and about 9.4 MB. The overview
+The site must stay under 10 MB. The current fleet is 60 pages and about 9.5 MB. The overview
 renders in tens of milliseconds from `file://`.
 
 The browser checks use agent-browser at 1440×900 and 390×844. They verify no console errors, no

@@ -117,6 +117,9 @@ h2 .more { float: right; font-size: .8rem; font-weight: 400; }
 .badge.minor { color: var(--gap); }
 .badge.patch { color: var(--muted); }
 .on-target { color: var(--ok); }
+tr.quiet td { color: var(--muted); }
+ul.attention { padding-left: 1.1rem; }
+ul.attention li { max-width: none; }
 .on-target a { color: var(--ok); }
 td.weight { min-width: 10rem; white-space: nowrap; }
 td.weight .bar { height: .6rem; }
