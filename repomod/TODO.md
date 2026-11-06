@@ -64,15 +64,6 @@ Next: 72
 - **Fix with:** root-cause
 - **Effort:** S (hours)
 
-### RPMD-45 · P3 · Blacklist intentional README omissions per repository
-
-- **Area:** Catalog policy
-- **Where:** `catalog.toml` (`joshuarli.gh`), `joshuarli/gh/AGENTS.md`
-- **Problem:** The repo-template lint requires a human-written README for gh even though its repository instructions explicitly say the upstream README and documentation are intentionally removed from this fork.
-- **Recommendation:** Add a repository-specific `repo-template` lint blacklist entry for gh.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-71 · P3 · Check smolith-qualify for parallel test flakes
 
 - **Area:** Tests
