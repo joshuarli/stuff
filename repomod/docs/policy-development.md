@@ -221,7 +221,11 @@ prerelease contract. It keeps the versioned rustup and `llvm-prebuilt-musl` arch
 checksums, both musl targets, `rust-src`, `musl-cargo`, the CRT stubs, and `libutil.a`, and
 requires the root Makefile's `release` or `dist` recipe to build std with `-Z build-std=std`
 and `-Z build-std-features=`. The LLVM, mold, and rustup versions in `ARG` defaults or
-literal archive URLs must equal the lock. A Rust builder without that contract, such as a
+literal archive URLs must equal the lock. The canonical image builds musl libc from the
+locked source with clang and installs no `gcc` package, so released Linux ELFs carry no GCC
+runtime dependency and no `GCC:` `.comment` entry; the shared `verify-static-elf` step enforces
+both. `libgcc` stays installed only because the host `rustc`, `cargo`, and `mold` binaries link
+`libgcc_s.so.1`, and the Rust sysroot symlinks it for host proc-macro dylibs. A Rust builder without that contract, such as a
 CI check image or benchmark image, is checked only for its base digest and package pins.
 
 Each adapter has its own check. `python-build` validates the `bootstrap.lock.json` release,

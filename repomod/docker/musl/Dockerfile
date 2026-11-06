@@ -2,6 +2,8 @@ ARG BASE_IMAGE=alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910
 FROM ${BASE_IMAGE}
 
 ARG TARGETARCH
+ARG MUSL_VERSION=1.2.6
+ARG MUSL_SHA256=d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a
 ARG LLVM_VERSION=23.1.0-rc2
 ARG LLVM_RELEASE_SHA=6eb5fb9
 ARG LLVM_X86_64_SHA256=36647cca0bf57d206a6ce757d07a9d8489ef6ccf283a2cc7f740d1cba99a088b
@@ -21,7 +23,6 @@ RUN apk add --no-cache \
     coreutils=9.11-r0 \
     curl=8.23.0-r0 \
     file=5.47-r2 \
-    gcc=15.2.0-r5 \
     git=2.54.0-r0 \
     libgcc=15.2.0-r5 \
     make=4.4.1-r4 \
@@ -54,6 +55,34 @@ RUN for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do \
             /opt/llvm-musl/bin/clang --target="$target" -x c -c /dev/null -o "$stub_dir/$obj"; \
         done; \
     done
+
+RUN case "$TARGETARCH" in \
+        amd64) arch=x86_64 ;; \
+        arm64) arch=aarch64 ;; \
+        *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL -o /tmp/musl.tar.gz "https://musl.libc.org/releases/musl-${MUSL_VERSION}.tar.gz" \
+    && echo "$MUSL_SHA256  /tmp/musl.tar.gz" | sha256sum -c - \
+    && mkdir /tmp/musl-src \
+    && tar -xzf /tmp/musl.tar.gz -C /tmp/musl-src --strip-components=1 \
+    && cd /tmp/musl-src \
+    && CC=/opt/llvm-musl/bin/clang \
+        AR=/opt/llvm-musl/bin/llvm-ar \
+        RANLIB=/opt/llvm-musl/bin/llvm-ranlib \
+        LIBCC="$(/opt/llvm-musl/bin/clang --rtlib=compiler-rt --print-libgcc-file-name)" \
+        ./configure --prefix=/opt/musl-llvm --target="$arch" --disable-shared \
+    && make -j"$(nproc)" \
+    && make install \
+    && stub_dir="/usr/lib/musl-crt/${arch}-unknown-linux-musl" \
+    && for obj in libc.a crt1.o rcrt1.o Scrt1.o crti.o crtn.o; do \
+        cp "/opt/musl-llvm/lib/$obj" "/usr/lib/$obj"; \
+    done \
+    && cp /opt/llvm-musl/lib/libunwind.a "$stub_dir/libunwind.a" \
+    && for config in clang.cfg clang++.cfg; do \
+        printf '%s\n' "-B$stub_dir" "-L$stub_dir" --rtlib=compiler-rt --unwindlib=none >> "/opt/llvm-musl/bin/$config"; \
+    done \
+    && cd / \
+    && rm -rf /tmp/musl.tar.gz /tmp/musl-src /opt/musl-llvm
 
 RUN case "$TARGETARCH" in \
         amd64) arch=x86_64; sum="$MOLD_X86_64_SHA256" ;; \
@@ -101,6 +130,9 @@ RUN host_target="$(rustc -vV | awk '/^host:/ {print $2}')" \
     && host_libdir="$(rustc --print target-libdir)" \
     && for obj in crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o; do \
         ln -sf "/usr/lib/musl-crt/$host_target/$obj" "$host_libdir/$obj"; \
+    done \
+    && for obj in crt1.o rcrt1.o Scrt1.o crti.o crtn.o; do \
+        ln -sf "/usr/lib/$obj" "$host_libdir/self-contained/$obj"; \
     done
 
 RUN host_libdir="$(rustc --print target-libdir)" \
@@ -127,7 +159,7 @@ case "$target" in
 esac
 
 mode=${MUSL_BUILD_MODE:-static}
-native="-L native=/usr/lib -Clink-arg=-B$crt -Clink-arg=--ld-path=/opt/mold/bin/mold"
+native="-L native=$crt -L native=/usr/lib -Clink-arg=-B$crt -Clink-arg=--ld-path=/opt/mold/bin/mold"
 release="-Cpanic=abort"
 case "$mode" in
     static|test|driver)

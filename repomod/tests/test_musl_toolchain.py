@@ -80,6 +80,7 @@ llvm_release = "6eb5fb9"
 mold_version = "3.0.0"
 mold_release = "cfb4aab"
 rustup_version = "1.29.1"
+musl_sha256 = "d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a"
 
 [toolchain.archives.llvm.x86_64]
 url = "https://example.invalid/llvm-x86_64.tar.xz"

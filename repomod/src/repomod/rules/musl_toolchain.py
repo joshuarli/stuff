@@ -33,6 +33,7 @@ _ARCHES = ("x86_64", "aarch64")
 _MANIFEST_ARCHES = ("amd64", "arm64")
 _CHANNEL_NAMES = ("stable", "edge")
 _TOOLS = ("llvm", "mold", "rustup")
+_GCC_PACKAGES = frozenset({"gcc", "g++", "build-base"})
 _ADAPTER_FIELDS = ("kind", "channel", "lock", "workflow", "dockerfile", "zig_version", "zig_archive_sha256")
 _ADAPTER_KINDS = {
     "python-build": ("lock",),
@@ -68,6 +69,7 @@ class Toolchain:
     mold_version: str
     mold_release: str
     rustup_version: str
+    musl_sha256: str
     archives: dict[str, dict[str, Archive]]
 
 
@@ -223,7 +225,7 @@ def _channel(
 def _toolchain(value: dict[str, Any]) -> Toolchain:
     _exact_keys(
         value,
-        {"llvm_version", "llvm_release", "mold_version", "mold_release", "rustup_version", "archives"},
+        {"llvm_version", "llvm_release", "mold_version", "mold_release", "rustup_version", "musl_sha256", "archives"},
         "toolchain",
     )
     archives = _object(value["archives"], "toolchain.archives")
@@ -249,6 +251,7 @@ def _toolchain(value: dict[str, Any]) -> Toolchain:
         mold_version=_string(value["mold_version"], "toolchain.mold_version"),
         mold_release=_string(value["mold_release"], "toolchain.mold_release"),
         rustup_version=_string(value["rustup_version"], "toolchain.rustup_version"),
+        musl_sha256=_archive_sha256(value["musl_sha256"], "toolchain.musl_sha256"),
         archives=parsed_archives,
     )
 
@@ -408,6 +411,7 @@ def render_musl_toolchain(lock: MuslToolchain) -> str:
             ("mold_version", toolchain.mold_version),
             ("mold_release", toolchain.mold_release),
             ("rustup_version", toolchain.rustup_version),
+            ("musl_sha256", toolchain.musl_sha256),
         ),
     )
     for tool in _TOOLS:
@@ -1919,6 +1923,8 @@ def image_build_arguments(lock: MuslToolchain) -> dict[str, str]:
     archives = lock.toolchain.archives
     return {
         "BASE_IMAGE": f"{stable.image}@{stable.index_digest}",
+        "MUSL_VERSION": lock.upstream_version,
+        "MUSL_SHA256": lock.toolchain.musl_sha256,
         "LLVM_VERSION": lock.toolchain.llvm_version,
         "LLVM_RELEASE_SHA": lock.toolchain.llvm_release,
         "LLVM_X86_64_SHA256": archives["llvm"]["x86_64"].sha256,
@@ -1964,6 +1970,10 @@ def validate_image_definition(
             continue
         for command in _apk_commands(line.text[run_match.end() :]):
             for package in command.packages:
+                if package.name in _GCC_PACKAGES:
+                    raise ValueError(
+                        f"canonical image package {package.name} puts GCC objects in the build image"
+                    )
                 expected = packages.get(package.name)
                 if expected is None:
                     raise ValueError(
@@ -1983,6 +1993,8 @@ def validate_image_definition(
         ("musl-cargo", "canonical image must provide the musl-cargo wrapper"),
         ("crtbegin", "canonical image must provide musl CRT stubs"),
         ("libutil.a", "canonical image must stub libutil.a"),
+        ("libunwind.a", "canonical image must provide the LLVM libunwind"),
+        ("musl-llvm", "canonical image must build musl libc with clang"),
     ):
         if marker not in dockerfile:
             raise ValueError(message)

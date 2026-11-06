@@ -216,3 +216,22 @@ def test_parser_builds_the_musl_image_and_has_no_push_path() -> None:
     assert args.output == Path(".work/oci/musl")
     with pytest.raises(SystemExit):
         _parser().parse_args(["musl", "build", "--platform", "linux/arm64", "--push"])
+
+
+def test_build_rejects_gcc_in_the_image_before_docker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _workspace(tmp_path, monkeypatch)
+    dockerfile = root / "docker" / "musl" / "Dockerfile"
+    dockerfile.write_text(
+        dockerfile.read_text(encoding="utf-8").replace(
+            "    git=2.54.0-r0 \\\n", "    gcc=15.2.0-r5 \\\n    git=2.54.0-r0 \\\n"
+        ),
+        encoding="utf-8",
+    )
+    calls = _fake_run(monkeypatch)
+
+    with pytest.raises(ValueError, match="puts GCC objects in the build image"):
+        musl_cmd._musl(_args(output=tmp_path / "oci"))
+
+    assert calls == []
