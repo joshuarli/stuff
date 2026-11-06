@@ -128,6 +128,28 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="exit 1 when a selected repository is failed or unavailable",
     )
+    why = deps_commands.add_parser(
+        "why",
+        help="explain why a package is in the inventory",
+        description=(
+            "read the inventory and print every simple path from each selected "
+            "project to the matching package instances"
+        ),
+    )
+    _filters(why)
+    why.add_argument("package", help="name, ecosystem:name, or either with @version")
+    why.add_argument("--max-paths", type=int, default=20)
+    why.add_argument("--json", action="store_true")
+    report = deps_commands.add_parser(
+        "report",
+        help="summarize the dependency inventory",
+        description=(
+            "read the inventory and print composition, concentration, divergence, "
+            "source risk, scope, and first-party analyses"
+        ),
+    )
+    _filters(report)
+    report.add_argument("--json", action="store_true")
 
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)
