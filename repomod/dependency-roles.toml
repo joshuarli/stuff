@@ -140,6 +140,9 @@ serde = ["serde", "serde_json", "serde_derive", "serde_core", "serde-saphyr", "s
 miniserde = ["miniserde"]
 nanoserde = ["nanoserde"]
 
+[serialization.exceptions]
+"joshuarli/soulseek-rs" = "serde_json and schemars are dev-dependencies: the OpenRPC test derives JSON Schema for docs/openrpc.json with schemars, and deser has no schema generator."
+
 [regex]
 ecosystem = "cargo"
 preferred = "regex-lite"
@@ -348,3 +351,6 @@ urllib3 = ["urllib3"]
 aiohttp = ["aiohttp"]
 websockets = ["websockets"]
 truststore = ["truststore", "wassima"]
+
+[python-http.exceptions]
+"laputa-systems/python-build" = "wassima is an optional dependency of the vendored RTLS TLS backend under backend/vendor/rtls; the build never installs it."
