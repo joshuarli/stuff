@@ -58,8 +58,40 @@ _BANNED_RUST_HTTP = frozenset(
         "isahc",
         "curl",
         "awc",
+        "smol-hyper",
     }
 )
+_SMOLITH_FORKED = frozenset(
+    {
+        "smol",
+        "smol-macros",
+        "async-broadcast",
+        "async-channel",
+        "async-dup",
+        "async-executor",
+        "async-fs",
+        "async-io",
+        "async-lock",
+        "async-net",
+        "async-process",
+        "async-signal",
+        "async-task",
+        "atomic-waker",
+        "blocking",
+        "concurrent-queue",
+        "easy-parallel",
+        "event-listener",
+        "event-listener-strategy",
+        "futures-lite",
+        "parking",
+        "piper",
+        "polling",
+        "waker-fn",
+    }
+)
+_SMOLITH_REPLACEMENTS = {name: f"laputa-{name}" for name in _SMOLITH_FORKED} | {
+    "async-std": "laputa-smol"
+}
 _BANNED_RUST_ALL = _BANNED_RUST + tuple(sorted(_BANNED_RUST_ALTERNATIVES)) + tuple(sorted(_BANNED_RUST_HTTP))
 _IGNORED_DIRS = frozenset(
     {
@@ -123,6 +155,8 @@ def _normalize_rust_name(value: str) -> str:
 
 def _is_banned_rust(name: str) -> bool:
     normalized = _normalize_rust_name(name)
+    if normalized in _SMOLITH_REPLACEMENTS:
+        return True
     return any(
         normalized == banned or normalized.startswith(f"{banned}-")
         for banned in _BANNED_RUST_ALL
@@ -131,6 +165,8 @@ def _is_banned_rust(name: str) -> bool:
 
 def _banned_rust_reason(name: str) -> str:
     normalized = _normalize_rust_name(name)
+    if normalized in _SMOLITH_REPLACEMENTS:
+        return "smolith"
     for banned in _BANNED_RUST_HTTP:
         if normalized == banned or normalized.startswith(f"{banned}-"):
             return "http"
@@ -1534,6 +1570,9 @@ def _banned_rust_message(name: str, *, transitive: bool, version: str | None = N
     if reason == "alternative":
         alternative = _banned_rust_alternative(name)
         return f"remove {detail}; use {alternative} instead"
+    if reason == "smolith":
+        replacement = _SMOLITH_REPLACEMENTS[_normalize_rust_name(name)]
+        return f"remove {detail}; use {replacement} from smolith instead"
     if transitive and version is not None:
         return f"remove bloated transitive {name} {version}"
     return f"remove bloated dependency {name}"

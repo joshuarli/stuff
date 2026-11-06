@@ -61,9 +61,16 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   can exempt that crate with `audit-banned:transitive:NAME`; direct
   dependencies remain banned.
   Rust must not use HTTP clients `reqwest`, `tiny_http`, `hyper`, `h2`,
-  `ureq`, `attohttpc`, `surf`, `isahc`, `curl`, or `awc` (including suffixed
-  crates such as `hyper-*` and `reqwest-*`); use `h12tiny-*`,
-  `laputa-h2-futures-lite`, or `laputa-hyper-futures-lite` instead.
+  `ureq`, `attohttpc`, `surf`, `isahc`, `curl`, `awc`, or `smol-hyper`
+  (including suffixed crates such as `hyper-*` and `reqwest-*`); use
+  `h12tiny-*`, `laputa-h2-futures-lite`, or `laputa-hyper-futures-lite` instead.
+  The async stack is smolith: the upstream crates it forks (`smol`,
+  `smol-macros`, `async-*`, `atomic-waker`, `blocking`, `concurrent-queue`,
+  `easy-parallel`, `event-listener*`, `futures-lite`, `parking`, `piper`,
+  `polling`, and `waker-fn`) are banned by exact name in favor of their
+  `laputa-*` forks, and `async-std` in favor of `laputa-smol`. `fastrand` is
+  not banned because common crates such as `tempfile` depend on it, and the
+  `futures-core` and `futures-io` traits remain the interop layer.
 - `audit-registry`: a dependency bypasses a package registry. Filesystem
   dependencies are errors and git URL dependencies are warnings. Rust `path`
   dependencies without a `version` are banned; `version` plus `path` workspace

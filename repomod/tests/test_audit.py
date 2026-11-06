@@ -143,6 +143,24 @@ def test_banned_rust_messages_name_the_replacement() -> None:
     assert _banned_rust_message("url", transitive=False) == "remove bloated dependency url"
 
 
+def test_upstream_smol_crates_point_to_their_smolith_forks() -> None:
+    for name in ("smol", "async-io", "async_executor", "futures-lite", "polling", "parking"):
+        assert _is_banned_rust(name)
+    for name in ("parking_lot", "async-iouring", "polling-extra", "fastrand", "laputa-async-io"):
+        assert not _is_banned_rust(name)
+    assert (
+        _banned_rust_message("async_io", transitive=True, version="2.4.0")
+        == "remove async_io 2.4.0; use laputa-async-io from smolith instead"
+    )
+    assert (
+        _banned_rust_message("async-std", transitive=False)
+        == "remove async-std; use laputa-smol from smolith instead"
+    )
+    assert _banned_rust_message("smol-hyper", transitive=False).startswith(
+        "remove HTTP client smol-hyper; use h12tiny-*"
+    )
+
+
 def test_python_missing_lock_and_requirements(tmp_path: Path) -> None:
     root = repo_root(tmp_path)
     write_python(root, lock=False, requirements=True)
