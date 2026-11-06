@@ -555,7 +555,10 @@ def _divergence(site: _Site) -> str:
         "packages carry more than one version.</p>",
     ]
     if isinstance(packages, list) and packages:
-        body.append("<table><thead><tr><th>Package</th><th>Versions</th><th>Dots</th></tr></thead><tbody>")
+        body.append(
+            '<div class="scroll"><table><thead><tr><th>Package</th><th>Versions</th>'
+            "<th>Dots</th></tr></thead><tbody>"
+        )
         for raw in packages:
             record = _table(raw)
             purl = str(record.get("component", ""))
@@ -567,10 +570,11 @@ def _divergence(site: _Site) -> str:
                 (_table(item) for item in versions),
                 key=lambda item: _version_sort_key(ecosystem, str(item.get("version", ""))),
             )
+            shown = ordered[:40]
             dots = "".join(
-                f'<span class="dot" style="--x:{index}" title="{_e(_table(item).get("version"))} · '
+                f'<span class="dot" title="{_e(_table(item).get("version"))} · '
                 f'{len(_list(_table(item).get("repositories")))} repositories"></span>'
-                for index, item in enumerate(ordered)
+                for item in shown
             )
             labels = ", ".join(
                 f"{_table(item).get('version')} ({len(_list(_table(item).get('repositories')))})"
@@ -579,16 +583,17 @@ def _divergence(site: _Site) -> str:
             body.append(
                 f"<tr><td>{_package_link(purl, '', purl)}</td>"
                 f'<td class="versions">{_e(labels)}</td>'
-                f'<td><span class="dots">{dots}</span></td></tr>'
+                f'<td><span class="dots" style="--n:{len(shown)}">{dots}</span></td></tr>'
             )
-        body.append("</tbody></table>")
+        body.append("</tbody></table></div>")
     else:
         body.append('<p class="zero">no package diverges across the fleet</p>')
     within = _table(site.report["divergence"]).get("repositories")
     body.append("<h2>Within one repository</h2>")
     if isinstance(within, list) and within:
         body.append(
-            "<table><thead><tr><th>Repository</th><th>Package</th><th>Versions</th></tr></thead><tbody>"
+            '<div class="scroll"><table><thead><tr><th>Repository</th><th>Package</th>'
+            "<th>Versions</th></tr></thead><tbody>"
         )
         for raw in within:
             record = _table(raw)
@@ -597,7 +602,7 @@ def _divergence(site: _Site) -> str:
                 f"<td>{_package_link(str(record.get('component')), '', str(record.get('component')))}</td>"
                 f'<td class="versions">{_e(", ".join(str(item) for item in _list(record.get("versions"))))}</td></tr>'
             )
-        body.append("</tbody></table>")
+        body.append("</tbody></table></div>")
     else:
         body.append('<p class="zero">no repository carries two versions of one package</p>')
     return "".join(body)

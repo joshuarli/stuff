@@ -102,8 +102,8 @@ details summary { cursor: pointer; color: var(--muted); }
 .matrix td.transitive { background: var(--direct); opacity: .3; }
 .matrix th.rotate { writing-mode: vertical-rl; transform: rotate(180deg); height: 10rem; white-space: nowrap; font-size: .68rem; }
 .matrix td, .matrix th { border-bottom: 1px solid var(--rule); padding: 1px 2px; }
-.dots { position: relative; height: 1.25rem; min-width: 18rem; }
-.dot { position: absolute; left: calc(var(--x) * 2.4rem); top: .32rem; width: .6rem; height: .6rem; border-radius: 50%; background: var(--direct); }
+.dots { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(.55rem, 1fr)); align-items: center; height: 1.25rem; width: 100%; min-width: 0; }
+.dot { justify-self: start; width: .6rem; height: .6rem; border-radius: 50%; background: var(--direct); }
 .dot.gap { background: var(--gap); }
 .versions { font-family: var(--mono); font-size: 12px; }
 .package { display: none; }
