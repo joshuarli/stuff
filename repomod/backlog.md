@@ -8,13 +8,13 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 - Scope is package registries only (crates.io, registry.npmjs.org, pypi.org). Toolchain
   downloads, apk, base images, and GitHub Actions are out of scope for now.
 - ~/d/stuff may be changed to remove the blockers below.
-- Git sources are allowed through catalog exceptions with a reason; path and `link:` workspace
-  members inside a repository stay allowed.
+- Git sources are warnings, not errors; path and `link:` workspace members inside a repository
+  stay allowed.
 - The repomod rule lands last, after the fleet is migrated, so `status` stays at 0.
 - Nothing is published to R2 or deployed without an explicit go from the owner.
 - shadowdriver stays private and is never published to stuff. toolbox, the only tracked repo that
-  depends on it, keeps its git dependency through a catalog exception; its other dependencies
-  still move to stuff.
+  depends on it, keeps its sibling-path dependency through a catalog exception; a git dependency
+  only warns. Its other dependencies still move to stuff.
 
 ## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
 
@@ -44,7 +44,7 @@ from `stuff` (~/d/stuff), and repomod enforces it.
 - [x] default-branch CI repaired where it blocked the PRs: h12tiny (smolith pin, bare-LF test race), ish (musl pipe test, stale macOS `l` test), vault (prompt expectations after 1efe588), fz (required check names)
 - [x] stuff gaps found by CI and filled: tool crates (wasm-bindgen-cli, rustybench), laputa-ptytest 0.3.0, the h12tiny fork locks (env_logger 0.9, pretty_env_logger)
 - [ ] tm #11 (approved Action pins and a docs link) is open; tm CI is red on main (`missing tmux 3.8 reference`), which is the owner's in-flight work
-- [ ] tansu keeps two git forks (catalog exception); publish h2-futures-lite and hyper-futures-lite to the native registry to remove it
+- [ ] tansu keeps two git forks (warnings); publish h2-futures-lite and hyper-futures-lite to the native registry to remove them
 - [x] fz's Cargo.lock has a sourceless `laputa-ptytest` entry; regenerate it
 - [ ] unlocked nested manifests (gitignored or absent lockfiles) resolve at CI time against whatever stuff holds; add their locks to the ingest when CI reports a missing crate
 

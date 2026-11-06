@@ -99,6 +99,12 @@ def test_cargo_alternate_registry_and_git_sources(tmp_path: Path) -> None:
         for _, m in found
     )
 
+    findings = registry_source_findings(tmp_path, repository(ignored=("registry-sources:git:vendored",)), POLICY)
+    git_finding = next(item for item in findings if "git source" in item.message)
+    alternate_registry = next(item for item in findings if "other.example" in item.message)
+    assert git_finding.severity == "warning"
+    assert alternate_registry.severity == "error"
+
 
 def test_cargo_config_in_ancestor_covers_nested_lockfile(tmp_path: Path) -> None:
     write(tmp_path, ".cargo/config.toml", cargo_config())
@@ -128,6 +134,10 @@ def test_npm_registry_config_and_lock(tmp_path: Path) -> None:
     assert any("registry.npmjs.org (@scope/right)" in m for _, m in found)
     assert any("npm package forked resolves from git source" in m for _, m in found)
     assert any("links ../outside outside the repository" in m for _, m in found)
+
+    findings = registry_source_findings(tmp_path, repository(), POLICY)
+    assert next(item for item in findings if "forked" in item.message).severity == "warning"
+    assert next(item for item in findings if "outside the repository" in item.message).severity == "error"
 
 
 def test_npm_workspace_links_inside_repository_are_allowed(tmp_path: Path) -> None:
@@ -224,6 +234,10 @@ def test_python_index_and_lock(tmp_path: Path) -> None:
     assert any("https://pypi.org/simple (bad)" in m for _, m in found)
     assert any("python package gitdep resolves from git source" in m for _, m in found)
     assert any("outside the repository" in m for _, m in found)
+
+    findings = registry_source_findings(tmp_path, repository(), POLICY)
+    assert next(item for item in findings if "gitdep" in item.message).severity == "warning"
+    assert next(item for item in findings if "outside the repository" in item.message).severity == "error"
 
 
 def test_python_without_default_index_is_flagged(tmp_path: Path) -> None:

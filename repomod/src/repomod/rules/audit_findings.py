@@ -83,7 +83,7 @@ def audit_finding_rules() -> tuple[Rule, ...]:
         ),
         Rule(
             "audit-registry",
-            "Reject filesystem and git dependencies",
+            "Reject filesystem dependencies and warn on git dependencies",
             TagPredicate(any_of=_AUDITED),
             _policy_rule("audit-registry"),
             None,

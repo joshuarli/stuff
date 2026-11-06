@@ -16,7 +16,7 @@ from urllib.parse import unquote, urlsplit
 from repomod.catalog import GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX
 from repomod.io import read_toml
 from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
-from repomod.types import Finding, Repository, Rule, TagPredicate, violation
+from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, violation
 
 RULE_ID = "registry-sources"
 _CRATES_IO_SOURCE_IDS = frozenset(
@@ -157,9 +157,21 @@ class _Report:
         self.root = root
         self.findings: dict[Finding, None] = {}
 
-    def add(self, path: Path, message: str, *, fixable: bool = False) -> None:
+    def add(
+        self,
+        path: Path,
+        message: str,
+        *,
+        fixable: bool = False,
+        severity: Severity = "error",
+    ) -> None:
         finding = violation(
-            self.repository, RULE_ID, _relative(self.root, path), message, fixable=fixable
+            self.repository,
+            RULE_ID,
+            _relative(self.root, path),
+            message,
+            fixable=fixable,
+            severity=severity,
         )
         self.findings[finding] = None
 
@@ -169,7 +181,9 @@ class _Report:
         self.add(
             path,
             f"{ecosystem} package {name} resolves from git source {source}; publish it to stuff "
-            f"or add {GIT_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason",
+            f"or add {GIT_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason "
+            "to silence this warning",
+            severity="warning",
         )
 
     def outside_repository(self, path: Path, name: str, message: str) -> None:

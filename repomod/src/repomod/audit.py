@@ -31,7 +31,7 @@ from repomod.catalog import (
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
 from repomod.io import cache_file, read_toml, safe_relative
-from repomod.types import Finding, Repository
+from repomod.types import Finding, Repository, Severity
 from repomod.types import operational as _operational
 from repomod.types import violation as _violation
 
@@ -44,7 +44,8 @@ _MINIFLARE_IMPORT = re.compile(
     r"(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)[\"']miniflare(?:/[^\"']*)?[\"']"
 )
 
-_BANNED_RUST = ("clap", "tokio")
+_BANNED_RUST = ("clap", "tokio", "url")
+_BANNED_RUST_ALTERNATIVES = {"criterion": "rustybench"}
 _BANNED_RUST_HTTP = frozenset(
     {
         "reqwest",
@@ -59,7 +60,7 @@ _BANNED_RUST_HTTP = frozenset(
         "awc",
     }
 )
-_BANNED_RUST_ALL = _BANNED_RUST + tuple(sorted(_BANNED_RUST_HTTP))
+_BANNED_RUST_ALL = _BANNED_RUST + tuple(sorted(_BANNED_RUST_ALTERNATIVES)) + tuple(sorted(_BANNED_RUST_HTTP))
 _IGNORED_DIRS = frozenset(
     {
         ".git",
@@ -105,10 +106,11 @@ def _finding(
     message: str,
     *,
     operational: bool = False,
+    severity: Severity = "error",
 ) -> Finding:
     if operational:
         return _operational(repository, rule, path, message)
-    return _violation(repository, rule, path, message)
+    return _violation(repository, rule, path, message, severity=severity)
 
 
 def _normalize_python_name(value: str) -> str:
@@ -132,7 +134,18 @@ def _banned_rust_reason(name: str) -> str:
     for banned in _BANNED_RUST_HTTP:
         if normalized == banned or normalized.startswith(f"{banned}-"):
             return "http"
+    for banned in _BANNED_RUST_ALTERNATIVES:
+        if normalized == banned or normalized.startswith(f"{banned}-"):
+            return "alternative"
     return "bloated"
+
+
+def _banned_rust_alternative(name: str) -> str | None:
+    normalized = _normalize_rust_name(name)
+    for banned, replacement in _BANNED_RUST_ALTERNATIVES.items():
+        if normalized == banned or normalized.startswith(f"{banned}-"):
+            return replacement
+    return None
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -192,6 +205,29 @@ def _pep508_is_filesystem(spec: str) -> bool:
     lowered = url.casefold()
     prefixes = ("file:", "git+", "./", "../", "/", "ssh:", "http:", "https:")
     return lowered.startswith(prefixes) or "://" in lowered
+
+
+_VCS_URL_PREFIXES = ("git+", "hg+", "svn+", "bzr+", "git:")
+
+
+def _pep508_is_git_url(spec: str) -> bool:
+    if "@" not in spec:
+        return False
+    url = spec.partition("@")[2].strip().split(";")[0].strip().strip("\"'")
+    return url.casefold().startswith(_VCS_URL_PREFIXES)
+
+
+_JS_GIT_PREFIXES = ("github:", "gitlab:", "bitbucket:", "git+", "git:", "ssh:")
+
+
+def _js_spec_is_git(spec: str) -> bool:
+    value = spec.strip().casefold()
+    if value.startswith(_JS_GIT_PREFIXES):
+        return True
+    if "://" not in value:
+        return False
+    scheme, _, remainder = value.partition("://")
+    return scheme in {"git", "ssh"} or remainder.split("?", 1)[0].split("#", 1)[0].endswith(".git")
 
 
 def _js_spec_is_filesystem(spec: str) -> bool:
@@ -1489,12 +1525,15 @@ def _banned_direct_ignored(repository: Repository) -> set[str]:
 
 def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
     reason = _banned_rust_reason(name)
+    detail = f"{name} {version}" if transitive and version is not None else name
     if reason == "http":
-        detail = f"{name} {version}" if transitive and version is not None else name
         return (
             f"remove HTTP client {detail}; "
             "use h12tiny-*, laputa-h2-futures-lite, or laputa-hyper-futures-lite"
         )
+    if reason == "alternative":
+        alternative = _banned_rust_alternative(name)
+        return f"remove {detail}; use {alternative} instead"
     if transitive and version is not None:
         return f"remove bloated transitive {name} {version}"
     return f"remove bloated dependency {name}"
@@ -1622,7 +1661,16 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
             message = (
                 f"dependency '{name}' uses {mechanism}; depend on the registry version instead"
             )
-            findings.append(_finding(repository, "audit-registry", "pyproject.toml", message))
+            severity: Severity = "warning" if _pep508_is_git_url(spec) else "error"
+            findings.append(
+                _finding(
+                    repository,
+                    "audit-registry",
+                    "pyproject.toml",
+                    message,
+                    severity=severity,
+                )
+            )
         if isinstance(document, dict):
             tool = document.get("tool")
             sources: Any = None
@@ -1642,7 +1690,16 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                             f"dependency '{name}' uses {kind} source{detail}; "
                             "depend on the registry version instead"
                         )
-                        findings.append(_finding(repository, "audit-registry", "pyproject.toml", message))
+                        severity = "warning" if kind == "git" else "error"
+                        findings.append(
+                            _finding(
+                                repository,
+                                "audit-registry",
+                                "pyproject.toml",
+                                message,
+                                severity=severity,
+                            )
+                        )
     if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
         direct, _ = _rust_direct_dependencies(root)
         for dependency in sorted(direct, key=lambda item: item.name.casefold()):
@@ -1663,7 +1720,15 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                     f"dependency '{dependency.name}' uses git{detail}; "
                     "depend on the registry version instead"
                 )
-                findings.append(_finding(repository, "audit-registry", dependency.manifest, message))
+                findings.append(
+                    _finding(
+                        repository,
+                        "audit-registry",
+                        dependency.manifest,
+                        message,
+                        severity="warning",
+                    )
+                )
         seen_banned: set[str] = set()
         ignored_direct = _banned_direct_ignored(repository)
         for dependency in direct:
@@ -1706,7 +1771,16 @@ def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
                     message = (
                         f"dependency '{name}' uses \"{spec}\"; depend on the registry version instead"
                     )
-                    findings.append(_finding(repository, "audit-registry", relative_manifest, message))
+                    severity = "warning" if _js_spec_is_git(spec) else "error"
+                    findings.append(
+                        _finding(
+                            repository,
+                            "audit-registry",
+                            relative_manifest,
+                            message,
+                            severity=severity,
+                        )
+                    )
             manifest, _ = _read_json(project / "package.json")
             manager = manifest.get("packageManager") if isinstance(manifest, dict) else None
             if isinstance(manager, str) and manager.split("@", 1)[0].strip().casefold() == "yarn":

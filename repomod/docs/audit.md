@@ -53,8 +53,9 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   use `requirements*.txt`. JavaScript must not use yarn: `yarn.lock`,
   `.yarnrc`, `.yarnrc.yml`, `.yarnrc.yaml`, `.yarn/`, and
   `packageManager: yarn@*` are banned because pnpm is the only package
-  manager. Rust must not depend on `clap` or `tokio`,
-  including transitive `clap-*` and `tokio-*` crates via `Cargo.lock`.
+  manager. Rust must not depend on `clap`, `tokio`, or `url`, including
+  transitive `clap-*`, `tokio-*`, and `url-*` crates via `Cargo.lock`.
+  Criterion is banned too, including `criterion-*`; use `rustybench` instead.
   A repository with a target-specific transitive crate that is never compiled
   can exempt that crate with `audit-banned:transitive:NAME`; direct
   dependencies remain banned.
@@ -62,12 +63,13 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   `ureq`, `attohttpc`, `surf`, `isahc`, `curl`, or `awc` (including suffixed
   crates such as `hyper-*` and `reqwest-*`); use `h12tiny-*`,
   `laputa-h2-futures-lite`, or `laputa-hyper-futures-lite` instead.
-- `audit-registry`: a filesystem or git dependency is present. All
-  dependencies must come from a registry. Rust `path` dependencies without a
-  `version` are banned; `version` plus `path` workspace members are allowed.
-  Python `tool.uv.sources` with `path` or `git` is banned. JavaScript
-  `file:`, `link:`, `portal:`, `workspace:`, relative, and URL specs are
-  banned. Go `replace` directives pointing at the filesystem are banned.
+- `audit-registry`: a dependency bypasses a package registry. Filesystem
+  dependencies are errors and git URL dependencies are warnings. Rust `path`
+  dependencies without a `version` are banned; `version` plus `path` workspace
+  members are allowed. Python `tool.uv.sources` with `path` is banned; `git`
+  sources warn. JavaScript `file:`, `link:`, `portal:`, `workspace:`, and
+  relative specs are banned; git and GitHub specs warn. Go `replace`
+  directives pointing at the filesystem are banned.
   A `path` dependency that resolves to the repository's own root package (for
   example a `bench/` harness depending on its parent library via
   `path = ".."`) is exempt: it exercises the working copy and has no registry

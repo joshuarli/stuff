@@ -3,11 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from repomod.audit import (
+    _banned_rust_message,
     _collect_locked,
     _is_banned_rust,
     _is_outdated,
     _js_spec_is_filesystem,
+    _js_spec_is_git,
     _pep508_is_filesystem,
+    _pep508_is_git_url,
     _pep508_name,
     _pnpm_locked_versions,
     _policy_findings,
@@ -73,6 +76,19 @@ def test_js_filesystem_specs() -> None:
     assert not _js_spec_is_filesystem("^4.0.0")
 
 
+def test_git_url_specs_are_recognized() -> None:
+    assert _pep508_is_git_url("demo @ git+https://example.com/repo.git")
+    assert _pep508_is_git_url("demo @ git+ssh://git@example.com/repo")
+    assert not _pep508_is_git_url("demo @ file:./local")
+    assert not _pep508_is_git_url("requests>=2.0")
+    assert _js_spec_is_git("git+https://example.com/repo.git")
+    assert _js_spec_is_git("github:acme/repo")
+    assert _js_spec_is_git("ssh://git@example.com/repo")
+    assert _js_spec_is_git("https://example.com/repo.git")
+    assert not _js_spec_is_git("file:../local")
+    assert not _js_spec_is_git("https://example.com/left-pad.tgz")
+
+
 def test_ban_direct_miniflare_in_nested_worker_but_allow_transitive_use(tmp_path: Path) -> None:
     root = repo_root(tmp_path)
     worker = root / "crates" / "worker"
@@ -101,7 +117,23 @@ def test_banned_rust_matches_variants() -> None:
     assert _is_banned_rust("clap_builder")
     assert _is_banned_rust("tokio")
     assert _is_banned_rust("tokio-util")
+    assert _is_banned_rust("url")
+    assert _is_banned_rust("criterion")
+    assert _is_banned_rust("criterion-plot")
     assert not _is_banned_rust("lexopt")
+    assert not _is_banned_rust("urlish")
+
+
+def test_banned_rust_messages_name_the_replacement() -> None:
+    assert (
+        _banned_rust_message("criterion", transitive=False)
+        == "remove criterion; use rustybench instead"
+    )
+    assert (
+        _banned_rust_message("criterion-plot", transitive=True, version="0.5.0")
+        == "remove criterion-plot 0.5.0; use rustybench instead"
+    )
+    assert _banned_rust_message("url", transitive=False) == "remove bloated dependency url"
 
 
 def test_python_missing_lock_and_requirements(tmp_path: Path) -> None:
@@ -114,7 +146,7 @@ def test_python_missing_lock_and_requirements(tmp_path: Path) -> None:
     assert any(rule == "audit-banned" and (file or "").startswith("requirements") for rule, file in codes)
 
 
-def test_python_git_source_is_registry_violation(tmp_path: Path) -> None:
+def test_python_git_source_is_registry_warning(tmp_path: Path) -> None:
     root = repo_root(tmp_path)
     (root / "pyproject.toml").write_text(
         '[project]\nname = "demo"\nversion = "1.0.0"\ndependencies = ["shadowdriver"]\n'
@@ -125,12 +157,18 @@ def test_python_git_source_is_registry_violation(tmp_path: Path) -> None:
         'version = 1\n[[package]]\nname = "shadowdriver"\nversion = "0.1.0"\n',
         encoding="utf-8",
     )
-    findings = _policy_findings(root, repository("tool", "python"))
-    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
+    findings = [
+        finding
+        for finding in _policy_findings(root, repository("tool", "python"))
+        if finding.rule == "audit-registry"
+    ]
     assert any(
-        "'shadowdriver'" in message and "git" in message and "registry version" in message
-        for message in messages
+        "'shadowdriver'" in finding.message
+        and "git" in finding.message
+        and "registry version" in finding.message
+        for finding in findings
     )
+    assert [finding.severity for finding in findings] == ["warning"]
 
 
 def test_js_registry_message_names_spec_and_remedy(tmp_path: Path) -> None:
@@ -139,12 +177,32 @@ def test_js_registry_message_names_spec_and_remedy(tmp_path: Path) -> None:
         '{"dependencies":{"left-pad":"file:../left-pad"}}\n', encoding="utf-8"
     )
     (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
-    findings = _policy_findings(root, repository("tool", "typescript"))
-    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
+    findings = [
+        finding
+        for finding in _policy_findings(root, repository("tool", "typescript"))
+        if finding.rule == "audit-registry"
+    ]
     assert any(
-        "'left-pad'" in message and "file:../left-pad" in message and "registry version" in message
-        for message in messages
+        "'left-pad'" in finding.message
+        and "file:../left-pad" in finding.message
+        and "registry version" in finding.message
+        for finding in findings
     )
+    assert [finding.severity for finding in findings] == ["error"]
+
+
+def test_js_git_spec_is_a_registry_warning(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    (root / "package.json").write_text(
+        '{"dependencies":{"left-pad":"git+https://example.com/left-pad.git"}}\n', encoding="utf-8"
+    )
+    (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    findings = [
+        finding
+        for finding in _policy_findings(root, repository("tool", "typescript"))
+        if finding.rule == "audit-registry"
+    ]
+    assert [finding.severity for finding in findings] == ["warning"]
 
 
 def test_rust_bans_direct_and_transitive(tmp_path: Path) -> None:
@@ -282,16 +340,27 @@ def test_rust_registry_message_names_mechanism_and_remedy(tmp_path: Path) -> Non
         'remote = { git = "https://example.com/repo.git" }\n',
         encoding="utf-8",
     )
-    findings = _policy_findings(root, repository("tool", "rust"))
-    messages = [finding.message for finding in findings if finding.rule == "audit-registry"]
-    assert any(
-        "'local'" in message and 'path "crates/local"' in message and "registry version" in message
-        for message in messages
+    findings = [
+        finding
+        for finding in _policy_findings(root, repository("tool", "rust"))
+        if finding.rule == "audit-registry"
+    ]
+    local = next(
+        finding
+        for finding in findings
+        if "'local'" in finding.message
+        and 'path "crates/local"' in finding.message
+        and "registry version" in finding.message
     )
-    assert any(
-        "'remote'" in message and "git" in message and "registry version" in message
-        for message in messages
+    remote = next(
+        finding
+        for finding in findings
+        if "'remote'" in finding.message
+        and "git" in finding.message
+        and "registry version" in finding.message
     )
+    assert local.severity == "error"
+    assert remote.severity == "warning"
 
 
 def test_rust_versioned_path_is_registry_compatible(tmp_path: Path) -> None:
