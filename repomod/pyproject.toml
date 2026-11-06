@@ -2,7 +2,10 @@
 name = "repomod"
 version = "0.1.0"
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "packaging>=26",
+    "ruamel.yaml>=0.19.1",
+]
 
 [project.scripts]
 repomod = "repomod.cli:main"

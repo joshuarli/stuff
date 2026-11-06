@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from repomod.catalog import CatalogError
+from repomod.cmd.deps import _deps
 from repomod.cmd.discover import _discover
 from repomod.cmd.fix import _fix
 from repomod.cmd.gc import _gc
@@ -94,6 +95,40 @@ def _parser() -> argparse.ArgumentParser:
     discover.add_argument("--owner", action="append", default=[])
     discover.add_argument("--json", action="store_true")
 
+    deps = commands.add_parser(
+        "deps", help="inventory the dependency inputs of catalogued repositories"
+    )
+    deps_commands = deps.add_subparsers(dest="operation", required=True)
+    snapshot = deps_commands.add_parser(
+        "snapshot",
+        help="read catalogued checkouts and write data/dependencies/v1",
+        description=(
+            "read the origin/HEAD tree of each selected checkout and write "
+            "data/dependencies/v1"
+        ),
+    )
+    _filters(snapshot)
+    snapshot.add_argument("--workers", type=int, default=4)
+    snapshot.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit 1 when a selected repository is failed or unavailable",
+    )
+    check = deps_commands.add_parser(
+        "check",
+        help="report inventory drift without writing",
+        description=(
+            "regenerate the inventory in memory and list files that differ from "
+            "data/dependencies/v1"
+        ),
+    )
+    _filters(check)
+    check.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit 1 when a selected repository is failed or unavailable",
+    )
+
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)
     for operation in ("diff", "apply"):
@@ -131,6 +166,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "merge": _merge,
             "gc": _gc,
             "discover": _discover,
+            "deps": _deps,
             "topics": _topics,
         }
         return dispatch[args.command](args)

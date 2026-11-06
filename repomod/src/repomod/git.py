@@ -6,7 +6,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -67,6 +67,35 @@ def run_git(
         raise GitError(f"git {arguments[0]} failed: {error}") from error
     if check and result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GitError(f"git {' '.join(arguments[:2])} failed: {detail}")
+    return result
+
+
+def run_git_bytes(
+    arguments: list[str],
+    cwd: Path | None = None,
+    *,
+    input_bytes: bytes | None = None,
+    check: bool = True,
+    timeout: int = GIT_TIMEOUT,
+    env: Mapping[str, str] | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    command = ["git", *arguments]
+    environment = None if env is None else {**os.environ, **env}
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            input=input_bytes,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+            env=environment,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise GitError(f"git {arguments[0]} failed: {error}") from error
+    if check and result.returncode != 0:
+        detail = result.stderr.decode("utf-8", "replace").strip() or f"exit {result.returncode}"
         raise GitError(f"git {' '.join(arguments[:2])} failed: {detail}")
     return result
 
