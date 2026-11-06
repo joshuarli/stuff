@@ -43,12 +43,6 @@
    "purl": "pkg:generic/rust"
   },
   {
-   "display_name": "Swatinem/rust-cache",
-   "ecosystem": "github",
-   "name": "Swatinem/rust-cache",
-   "purl": "pkg:github/Swatinem/rust-cache"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -71,6 +65,12 @@
    "ecosystem": "github",
    "name": "obi1kenobi/cargo-semver-checks-action",
    "purl": "pkg:github/obi1kenobi/cargo-semver-checks-action"
+  },
+  {
+   "display_name": "swatinem/rust-cache",
+   "ecosystem": "github",
+   "name": "swatinem/rust-cache",
+   "purl": "pkg:github/swatinem/rust-cache"
   },
   {
    "display_name": "taiki-e/install-action",
@@ -187,60 +187,6 @@
    "scope": "toolchain",
    "source_kind": "url",
    "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.test.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.msrv.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.portable-float.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
   },
   {
    "condition": null,
@@ -367,6 +313,60 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/obi1kenobi/cargo-semver-checks-action@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.msrv.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.portable-float.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
   },
   {
    "condition": null,
@@ -505,7 +505,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "deb9459ea3f991b81876cc9b2fc890a399f691a55e50554f7f18c219232e4a42",
+ "inputs_fingerprint": "4cb8e8dc7a9f239dda5a238de5544b270ba1fa057835b134d4d83b2c00b653e8",
  "instances": [
   {
    "commit": null,
@@ -599,19 +599,6 @@
    "version": "nightly-2026-09-15"
   },
   {
-   "commit": null,
-   "component": "pkg:github/Swatinem/rust-cache",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/Swatinem/rust-cache@v2#",
-   "purl": "pkg:github/Swatinem/rust-cache@v2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/Swatinem/rust-cache",
-   "version": "v2"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -674,6 +661,19 @@
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/obi1kenobi/cargo-semver-checks-action",
+   "version": "v2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/swatinem/rust-cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/swatinem/rust-cache@v2#",
+   "purl": "pkg:github/swatinem/rust-cache@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/swatinem/rust-cache",
    "version": "v2"
   },
   {

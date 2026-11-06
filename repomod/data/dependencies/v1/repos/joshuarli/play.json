@@ -6191,7 +6191,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "52b7341bb8783108bdac748f9b725cd55437e92f71632a738e369d77572ce8b5",
+ "inputs_fingerprint": "cecb1ebfa04ea7f8236cdea6622e34c86d2363630b68497f072e610239981b06",
  "instances": [
   {
    "commit": null,

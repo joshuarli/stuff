@@ -106,6 +106,23 @@ def test_workflow_actions_are_resolved_with_comments() -> None:
     assert _direct(result, "alpine", Ecosystem.DOCKER)[0].scope is Scope.IMAGE
 
 
+def test_action_owner_case_does_not_split_one_action() -> None:
+    workflow = (
+        "jobs:\n"
+        "  test:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - uses: Swatinem/rust-cache@v2\n"
+        "      - uses: swatinem/Rust-Cache@v2\n"
+    )
+    result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
+
+    assert [instance.component for instance in result.instances] == [
+        purl(Ecosystem.GITHUB, "swatinem/rust-cache")
+    ]
+    assert len(_direct(result, "swatinem/rust-cache", Ecosystem.GITHUB)) == 2
+
+
 def test_reusable_workflow_and_expressions() -> None:
     workflow = (
         "jobs:\n"

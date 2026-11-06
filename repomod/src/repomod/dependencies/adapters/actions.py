@@ -311,7 +311,7 @@ def _uses_edge(
             )
         )
         return
-    owner, repository = parts[0], parts[1]
+    owner, repository = parts[0].casefold(), parts[1].casefold()
     subpath = "/".join(parts[2:]) or None
     commit = ref_value if _is_sha(ref_value) else None
     name = f"{owner}/{repository}"

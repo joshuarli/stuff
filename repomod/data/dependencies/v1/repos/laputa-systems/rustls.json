@@ -1729,12 +1729,6 @@
    "purl": "pkg:generic/rustls-util"
   },
   {
-   "display_name": "EmbarkStudios/cargo-deny-action",
-   "ecosystem": "github",
-   "name": "EmbarkStudios/cargo-deny-action",
-   "purl": "pkg:github/EmbarkStudios/cargo-deny-action"
-  },
-  {
    "display_name": "actions/cache",
    "ecosystem": "github",
    "name": "actions/cache",
@@ -1789,6 +1783,12 @@
    "purl": "pkg:github/dtolnay/rust-toolchain"
   },
   {
+   "display_name": "embarkstudios/cargo-deny-action",
+   "ecosystem": "github",
+   "name": "embarkstudios/cargo-deny-action",
+   "purl": "pkg:github/embarkstudios/cargo-deny-action"
+  },
+  {
    "display_name": "google/oss-fuzz",
    "ecosystem": "github",
    "name": "google/oss-fuzz",
@@ -1832,24 +1832,6 @@
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.audit.steps[1].uses",
-     "path": ".github/workflows/build.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/EmbarkStudios/cargo-deny-action@v2#"
-  },
   {
    "condition": null,
    "constraint": "v6",
@@ -2767,6 +2749,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/dtolnay/rust-toolchain@stable#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.audit.steps[1].uses",
+     "path": ".github/workflows/build.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/embarkstudios/cargo-deny-action@v2#"
   },
   {
    "condition": null,
@@ -16461,7 +16461,7 @@
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "01287db614c4c1dd3a553c731f25d9806eac25cf511006d22a907fec13cb5236",
+ "inputs_fingerprint": "f0ddbee701ba3587d32203857034f4639cd297fb6d11d95da76b6561cb8c63f5",
  "instances": [
   {
    "commit": null,
@@ -20430,19 +20430,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:github/EmbarkStudios/cargo-deny-action",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/EmbarkStudios/cargo-deny-action@v2#",
-   "purl": "pkg:github/EmbarkStudios/cargo-deny-action@v2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/EmbarkStudios/cargo-deny-action",
-   "version": "v2"
-  },
-  {
-   "commit": null,
    "component": "pkg:github/actions/cache",
    "context": "",
    "first_party": false,
@@ -20583,6 +20570,19 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/dtolnay/rust-toolchain",
    "version": "stable"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/embarkstudios/cargo-deny-action",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/embarkstudios/cargo-deny-action@v2#",
+   "purl": "pkg:github/embarkstudios/cargo-deny-action@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/embarkstudios/cargo-deny-action",
+   "version": "v2"
   },
   {
    "commit": null,

@@ -922,7 +922,7 @@
   },
   {
    "condition": null,
-   "constraint": "4.20260730.0",
+   "constraint": "5.20261104.0-beta",
    "evidence": [
     {
      "locator": "packages[''].devDependencies.miniflare",
@@ -933,10 +933,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "4.20260730.0",
+   "resolved_version": "5.20261104.0-beta",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
@@ -1084,31 +1084,13 @@
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-darwin-arm64'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-darwin-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-darwin-arm64'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1121,48 +1103,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-darwin-arm64'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-darwin-x64'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-darwin-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-darwin-x64'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-darwin-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1174,49 +1120,13 @@
   },
   {
    "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-darwin-x64'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-darwin-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-freebsd-wasm32'].dependencies.'@img/sharp-wasm32'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-freebsd-wasm32'].dependencies.'@img/sharp-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": false,
    "relation": "transitive",
@@ -1228,49 +1138,13 @@
   },
   {
    "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-freebsd-wasm32'].dependencies.'@img/sharp-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-arm64'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-arm64'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1283,48 +1157,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-arm64'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-arm'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-arm@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-arm'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1337,48 +1175,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-arm'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-ppc64'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-ppc64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-ppc64'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-ppc64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1391,48 +1193,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-ppc64'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-ppc64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-riscv64'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-riscv64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-riscv64'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1445,48 +1211,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-riscv64'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-s390x'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-s390x@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-s390x'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-s390x@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1499,48 +1229,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-s390x'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-s390x@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linux-x64'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linux-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linux-x64'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1553,48 +1247,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linux-x64'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linuxmusl-arm64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linuxmusl-arm64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1607,48 +1265,12 @@
   {
    "condition": null,
    "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linuxmusl-arm64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.1",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-linuxmusl-x64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-linuxmusl-x64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
@@ -1660,49 +1282,13 @@
   },
   {
    "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-linuxmusl-x64'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^1.11.1",
+   "constraint": "^1.11.3",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-wasm32'].dependencies.'@emnapi/runtime'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/%40img/sharp-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.11.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40emnapi/runtime@1.11.3?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^1.11.3",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-wasm32'].dependencies.'@emnapi/runtime'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
    "from": "pkg:npm/%40img/sharp-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": false,
    "relation": "transitive",
@@ -1714,64 +1300,10 @@
   },
   {
    "condition": null,
-   "constraint": "^1.11.3",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-wasm32'].dependencies.'@emnapi/runtime'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.11.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40emnapi/runtime@1.11.3?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/@img/sharp-webcontainers-wasm32'].dependencies.'@img/sharp-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/@img/sharp-webcontainers-wasm32'].dependencies.'@img/sharp-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/@img/sharp-webcontainers-wasm32'].dependencies.'@img/sharp-wasm32'",
      "path": "cloudflare/package-lock.json"
     }
    ],
@@ -2707,114 +2239,6 @@
    "constraint": "0.8.1",
    "evidence": [
     {
-     "locator": "packages['node_modules/miniflare'].dependencies.'@cspotcode/source-map-support'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cspotcode/source-map-support@0.8.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.2",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare'].dependencies.sharp",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "7.28.0",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare'].dependencies.undici",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "7.28.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/undici@7.28.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare'].dependencies.workerd",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "8.21.0",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare'].dependencies.ws",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "8.21.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/ws@8.21.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "4.1.0-beta.10",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare'].dependencies.youch",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "4.1.0-beta.10",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/youch@4.1.0-beta.10?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.8.1",
-   "evidence": [
-    {
      "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/miniflare'].dependencies.'@cspotcode/source-map-support'",
      "path": "cloudflare/package-lock.json"
     }
@@ -3018,6 +2442,114 @@
     }
    ],
    "from": "pkg:npm/miniflare@5.20261023.3-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "4.1.0-beta.10",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/youch@4.1.0-beta.10?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.8.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.'@cspotcode/source-map-support'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cspotcode/source-map-support@0.8.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.35.5",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.sharp",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.35.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "7.30.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.undici",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "7.30.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/undici@7.30.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.workerd",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "8.21.0",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.ws",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "8.21.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/ws@8.21.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "4.1.0-beta.10",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare'].dependencies.youch",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3413,7 +2945,7 @@
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3424,453 +2956,453 @@
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-darwin-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-freebsd-wasm32'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "1.3.1",
+   "constraint": "1.3.4",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.3.1",
+   "resolved_version": "1.3.4",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-ppc64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-ppc64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-ppc64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-riscv64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-riscv64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-s390x'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-s390x@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-s390x@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linux-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-webcontainers-wasm32'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-win32-arm64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-win32-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-win32-ia32'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-ia32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-win32-ia32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
-   "constraint": "0.35.2",
+   "constraint": "0.35.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].optionalDependencies.'@img/sharp-win32-x64'",
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.35.2",
+   "resolved_version": "0.35.5",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+   "to": "pkg:npm/%40img/sharp-win32-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
@@ -3881,7 +3413,7 @@
      "path": "cloudflare/package-lock.json"
     }
    ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3892,1018 +3424,10 @@
   },
   {
    "condition": null,
-   "constraint": "^7.8.4",
+   "constraint": "^7.8.5",
    "evidence": [
     {
      "locator": "packages['node_modules/sharp'].dependencies.semver",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "7.8.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/semver@7.8.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^1.1.0",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].dependencies.'@img/colour'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/colour@1.1.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^1.1.0",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].dependencies.'@img/colour'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/colour@1.1.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-darwin-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-freebsd-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-freebsd-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-darwin-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.3.4",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-libvips-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.3.4",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-arm'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-ppc64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-ppc64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-ppc64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-riscv64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-s390x@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-s390x'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-s390x@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linux-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-linuxmusl-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-webcontainers-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-webcontainers-wasm32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-ia32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-ia32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-ia32'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-ia32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "0.35.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].optionalDependencies.'@img/sharp-win32-x64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40img/sharp-win32-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^2.1.2",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].dependencies.detect-libc",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.1.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/detect-libc@2.1.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^2.1.2",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].dependencies.detect-libc",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.1.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/detect-libc@2.1.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^7.8.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/@cloudflare/runtime-types/node_modules/sharp'].dependencies.semver",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/sharp@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "7.8.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/semver@7.8.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "^7.8.5",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/cf/node_modules/sharp'].dependencies.semver",
      "path": "cloudflare/package-lock.json"
     }
    ],
@@ -5080,96 +3604,6 @@
   },
   {
    "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-darwin-64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-darwin-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-linux-64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-linux-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-linux-arm64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.20260730.1",
-   "evidence": [
-    {
-     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-windows-64'",
-     "path": "cloudflare/package-lock.json"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20260730.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-windows-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
-  },
-  {
-   "condition": null,
    "constraint": "1.20261023.1",
    "evidence": [
     {
@@ -5257,6 +3691,96 @@
    "scope": "optional",
    "source_kind": "registry",
    "to": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261023.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-darwin-64'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-darwin-arm64'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-linux-64'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-linux-arm64'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.20261104.1",
+   "evidence": [
+    {
+     "locator": "packages['node_modules/miniflare/node_modules/workerd'].optionalDependencies.'@cloudflare/workerd-windows-64'",
+     "path": "cloudflare/package-lock.json"
+    }
+   ],
+   "from": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261104.1",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#"
   },
   {
    "condition": null,
@@ -5423,15 +3947,15 @@
  ],
  "inputs": [
   {
-   "blob": "a56453e2705704a2c7fa598ea38a71333b70e2cf",
+   "blob": "288de838d425c058686f0ff165c7ca8fa9bfa333",
    "path": "Makefile"
   },
   {
-   "blob": "232e0b4be4d37dcded964e01d74ed46c3cfefe77",
+   "blob": "ecf9ce3036f99ddafd60513419a7fa561723ab5c",
    "path": "cloudflare/package-lock.json"
   },
   {
-   "blob": "36b7fa3396d48a821239bc8af175eb883bfcfd0e",
+   "blob": "b31d5741a6a85bc22dd496d369bbe86a5916364a",
    "path": "cloudflare/package.json"
   },
   {
@@ -5439,7 +3963,7 @@
    "path": "pyproject.toml"
   }
  ],
- "inputs_fingerprint": "4547220c8d74c08e0e88b0f5c606cf6073150c7d2e8033fe2312860799b4733a",
+ "inputs_fingerprint": "95ea651b3d08c91d12e0ec51d5bfb42c4bf2f8b07dd7fb677cfc296562c6fef9",
  "instances": [
   {
    "commit": null,
@@ -5485,19 +4009,6 @@
    "component": "pkg:npm/%40cloudflare/workerd-darwin-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20260730.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-darwin-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261023.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261023.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -5508,16 +4019,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-darwin-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "component": "pkg:npm/%40cloudflare/workerd-darwin-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "id": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
    "repository_url": "https://sfw.security.sentry.io/",
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.20260730.1"
+   "version": "1.20261104.1"
   },
   {
    "commit": null,
@@ -5534,16 +4045,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-linux-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "component": "pkg:npm/%40cloudflare/workerd-darwin-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-linux-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40cloudflare/workerd-linux-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "id": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
    "repository_url": "https://sfw.security.sentry.io/",
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.20260730.1"
+   "version": "1.20261104.1"
   },
   {
    "commit": null,
@@ -5560,16 +4071,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-linux-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "component": "pkg:npm/%40cloudflare/workerd-linux-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "id": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
    "repository_url": "https://sfw.security.sentry.io/",
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.20260730.1"
+   "version": "1.20261104.1"
   },
   {
    "commit": null,
@@ -5586,16 +4097,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-windows-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "component": "pkg:npm/%40cloudflare/workerd-linux-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-windows-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40cloudflare/workerd-windows-64@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "id": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
    "repository_url": "https://sfw.security.sentry.io/",
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.20260730.1"
+   "version": "1.20261104.1"
   },
   {
    "commit": null,
@@ -5609,6 +4120,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.20261023.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40cloudflare/workerd-windows-64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "registry_url": "https://sfw.security.sentry.io/",
+   "repository_url": "https://sfw.security.sentry.io/",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.20261104.1"
   },
   {
    "commit": null,
@@ -6005,19 +4529,6 @@
    "component": "pkg:npm/%40img/sharp-darwin-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-darwin-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-darwin-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-darwin-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-darwin-arm64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6025,19 +4536,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-darwin-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-darwin-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-darwin-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6057,19 +4555,6 @@
    "component": "pkg:npm/%40img/sharp-freebsd-wasm32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-freebsd-wasm32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-freebsd-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6077,19 +4562,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-darwin-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-darwin-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
   },
   {
    "commit": null,
@@ -6109,19 +4581,6 @@
    "component": "pkg:npm/%40img/sharp-libvips-darwin-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-darwin-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-libvips-darwin-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6129,19 +4588,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.3.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
   },
   {
    "commit": null,
@@ -6161,19 +4607,6 @@
    "component": "pkg:npm/%40img/sharp-libvips-linux-arm?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-arm?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-libvips-linux-arm@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6181,19 +4614,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.3.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-ppc64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-ppc64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
   },
   {
    "commit": null,
@@ -6213,19 +4633,6 @@
    "component": "pkg:npm/%40img/sharp-libvips-linux-riscv64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-riscv64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-libvips-linux-riscv64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6233,19 +4640,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.3.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-s390x?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-s390x@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
   },
   {
    "commit": null,
@@ -6265,19 +4659,6 @@
    "component": "pkg:npm/%40img/sharp-libvips-linux-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linux-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-libvips-linux-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6285,19 +4666,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.3.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linuxmusl-arm64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
   },
   {
    "commit": null,
@@ -6317,19 +4685,6 @@
    "component": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-libvips-linuxmusl-x64@1.3.4?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6337,19 +4692,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.3.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6369,19 +4711,6 @@
    "component": "pkg:npm/%40img/sharp-linux-arm?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-arm@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-arm@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-arm?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-linux-arm@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6389,19 +4718,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-ppc64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-ppc64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-ppc64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6421,19 +4737,6 @@
    "component": "pkg:npm/%40img/sharp-linux-riscv64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-riscv64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-riscv64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-riscv64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-linux-riscv64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6441,19 +4744,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-s390x?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-s390x@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-s390x@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6473,19 +4763,6 @@
    "component": "pkg:npm/%40img/sharp-linux-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linux-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linux-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linux-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-linux-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6493,19 +4770,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linuxmusl-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linuxmusl-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6525,19 +4789,6 @@
    "component": "pkg:npm/%40img/sharp-linuxmusl-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-linuxmusl-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-linuxmusl-x64@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6545,19 +4796,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-wasm32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6577,19 +4815,6 @@
    "component": "pkg:npm/%40img/sharp-webcontainers-wasm32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-webcontainers-wasm32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-webcontainers-wasm32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6597,19 +4822,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-win32-arm64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-win32-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-win32-arm64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -6629,19 +4841,6 @@
    "component": "pkg:npm/%40img/sharp-win32-ia32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40img/sharp-win32-ia32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-win32-ia32@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-win32-ia32?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40img/sharp-win32-ia32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/%40img/sharp-win32-ia32@0.35.5?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -6649,19 +4848,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.35.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40img/sharp-win32-x64?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40img/sharp-win32-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/%40img/sharp-win32-x64@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -7331,19 +5517,6 @@
    "component": "pkg:npm/miniflare?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/miniflare@4.20260730.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "4.20260730.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/miniflare?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/miniflare@5.20261023.3-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/miniflare@5.20261023.3-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -7351,6 +5524,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "5.20261023.3-beta"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/miniflare?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/miniflare@5.20261104.0-beta?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "registry_url": "https://sfw.security.sentry.io/",
+   "repository_url": "https://sfw.security.sentry.io/",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "5.20261104.0-beta"
   },
   {
    "commit": null,
@@ -7416,19 +5602,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "7.8.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/sharp?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/sharp@0.35.2?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.35.2"
   },
   {
    "commit": null,
@@ -7513,19 +5686,6 @@
    "component": "pkg:npm/undici?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/undici@7.28.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/undici@7.28.0?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "7.28.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/undici?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/undici@7.30.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/undici@7.30.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -7578,19 +5738,6 @@
    "component": "pkg:npm/workerd?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
-   "purl": "pkg:npm/workerd@1.20260730.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "registry_url": "https://sfw.security.sentry.io/",
-   "repository_url": "https://sfw.security.sentry.io/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20260730.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/workerd?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/workerd@1.20261023.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
    "purl": "pkg:npm/workerd@1.20261023.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
    "registry_url": "https://sfw.security.sentry.io/",
@@ -7598,6 +5745,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.20261023.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/workerd?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F#",
+   "purl": "pkg:npm/workerd@1.20261104.1?repository_url=https%3A%2F%2Fsfw.security.sentry.io%2F",
+   "registry_url": "https://sfw.security.sentry.io/",
+   "repository_url": "https://sfw.security.sentry.io/",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.20261104.1"
   },
   {
    "commit": null,

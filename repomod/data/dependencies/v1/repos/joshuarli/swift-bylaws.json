@@ -18967,7 +18967,7 @@
    "path": "Tools/SwiftSyntaxArtifact/Package.swift"
   }
  ],
- "inputs_fingerprint": "6dbf68e6592b9f0e988fc28a2a234e5e0c99d979913a0320f0b3497a541e2b20",
+ "inputs_fingerprint": "e0337143f805fea607c9b357ef7d1ffecde31c7d4cbd5d04e3dd1d86b81d5ed1",
  "instances": [
   {
    "commit": null,

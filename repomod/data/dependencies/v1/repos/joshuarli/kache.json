@@ -10995,7 +10995,7 @@
    "path": "test-projects/stale-check/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "544b0a9343ea05d1dacc961b4be4b6e7182c683ba4472cd773fd28230d054f8b",
+ "inputs_fingerprint": "28813f63d02941703b2d0503f575787e74d00453d64c4c07f51e14a1ad1e969d",
  "instances": [
   {
    "commit": null,

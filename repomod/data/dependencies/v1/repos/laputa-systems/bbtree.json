@@ -2185,24 +2185,6 @@
    "purl": "pkg:generic/bbtree-vis"
   },
   {
-   "display_name": "DeterminateSystems/magic-nix-cache-action",
-   "ecosystem": "github",
-   "name": "DeterminateSystems/magic-nix-cache-action",
-   "purl": "pkg:github/DeterminateSystems/magic-nix-cache-action"
-  },
-  {
-   "display_name": "DeterminateSystems/nix-installer-action",
-   "ecosystem": "github",
-   "name": "DeterminateSystems/nix-installer-action",
-   "purl": "pkg:github/DeterminateSystems/nix-installer-action"
-  },
-  {
-   "display_name": "Swatinem/rust-cache",
-   "ecosystem": "github",
-   "name": "Swatinem/rust-cache",
-   "purl": "pkg:github/Swatinem/rust-cache"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -2239,6 +2221,18 @@
    "purl": "pkg:github/cachix/install-nix-action"
   },
   {
+   "display_name": "determinatesystems/magic-nix-cache-action",
+   "ecosystem": "github",
+   "name": "determinatesystems/magic-nix-cache-action",
+   "purl": "pkg:github/determinatesystems/magic-nix-cache-action"
+  },
+  {
+   "display_name": "determinatesystems/nix-installer-action",
+   "ecosystem": "github",
+   "name": "determinatesystems/nix-installer-action",
+   "purl": "pkg:github/determinatesystems/nix-installer-action"
+  },
+  {
    "display_name": "dtolnay/rust-toolchain",
    "ecosystem": "github",
    "name": "dtolnay/rust-toolchain",
@@ -2249,6 +2243,12 @@
    "ecosystem": "github",
    "name": "peter-evans/create-pull-request",
    "purl": "pkg:github/peter-evans/create-pull-request"
+  },
+  {
+   "display_name": "swatinem/rust-cache",
+   "ecosystem": "github",
+   "name": "swatinem/rust-cache",
+   "purl": "pkg:github/swatinem/rust-cache"
   },
   {
    "display_name": "taiki-e/install-action",
@@ -2311,240 +2311,6 @@
    "scope": "ci",
    "source_kind": "path",
    "to": "pkg:generic/.github/workflows/fuzz.yml#"
-  },
-  {
-   "condition": null,
-   "constraint": "v14",
-   "evidence": [
-    {
-     "locator": "jobs.verus.steps[2].uses",
-     "path": ".github/workflows/verus.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v14",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/magic-nix-cache-action@v14#"
-  },
-  {
-   "condition": null,
-   "constraint": "v22",
-   "evidence": [
-    {
-     "locator": "jobs.verus.steps[1].uses",
-     "path": ".github/workflows/verus.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v22",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@v22#"
-  },
-  {
-   "condition": null,
-   "constraint": "A name that matches no test, say after a rename, would drop that\n      # test from Miri without a word.",
-   "evidence": [
-    {
-     "locator": "jobs.miri.steps[3].uses",
-     "path": ".github/workflows/miri.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "`--cfg tsan` has the optimistic reads of a latched tree tell TSan to\n      # ignore them: they race with writers on purpose, and a version check\n      # after throws away what they read (`src/tree/node/optimistic.rs`).\n      # TSan checks every other access. It exits with an error after any\n      # report.",
-   "evidence": [
-    {
-     "locator": "jobs.thread-sanitizer.steps[2].uses",
-     "path": ".github/workflows/sanitizer.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "`-Zbuild-std` instruments std as well, which needs an explicit\n      # `--target`. Doc tests aren't built with the sanitizer, so they stay\n      # out.",
-   "evidence": [
-    {
-     "locator": "jobs.address-sanitizer.steps[2].uses",
-     "path": ".github/workflows/sanitizer.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.check.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.bench.steps[3].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.fuzz.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.test-aarch64.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.test-macos.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.test-wasm.steps[3].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.racing-reads.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v2",
-   "evidence": [
-    {
-     "locator": "jobs.shuttle.steps[2].uses",
-     "path": ".github/workflows/shuttle.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/Swatinem/rust-cache@v2#"
   },
   {
    "condition": null,
@@ -3124,6 +2890,42 @@
   },
   {
    "condition": null,
+   "constraint": "v14",
+   "evidence": [
+    {
+     "locator": "jobs.verus.steps[2].uses",
+     "path": ".github/workflows/verus.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v14",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/magic-nix-cache-action@v14#"
+  },
+  {
+   "condition": null,
+   "constraint": "v22",
+   "evidence": [
+    {
+     "locator": "jobs.verus.steps[1].uses",
+     "path": ".github/workflows/verus.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v22",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@v22#"
+  },
+  {
+   "condition": null,
    "constraint": "master",
    "evidence": [
     {
@@ -3391,6 +3193,204 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/peter-evans/create-pull-request@v8#"
+  },
+  {
+   "condition": null,
+   "constraint": "A name that matches no test, say after a rename, would drop that\n      # test from Miri without a word.",
+   "evidence": [
+    {
+     "locator": "jobs.miri.steps[3].uses",
+     "path": ".github/workflows/miri.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "`--cfg tsan` has the optimistic reads of a latched tree tell TSan to\n      # ignore them: they race with writers on purpose, and a version check\n      # after throws away what they read (`src/tree/node/optimistic.rs`).\n      # TSan checks every other access. It exits with an error after any\n      # report.",
+   "evidence": [
+    {
+     "locator": "jobs.thread-sanitizer.steps[2].uses",
+     "path": ".github/workflows/sanitizer.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "`-Zbuild-std` instruments std as well, which needs an explicit\n      # `--target`. Doc tests aren't built with the sanitizer, so they stay\n      # out.",
+   "evidence": [
+    {
+     "locator": "jobs.address-sanitizer.steps[2].uses",
+     "path": ".github/workflows/sanitizer.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.bench.steps[3].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.fuzz.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test-aarch64.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test-macos.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.test-wasm.steps[3].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.racing-reads.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.shuttle.steps[2].uses",
+     "path": ".github/workflows/shuttle.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/swatinem/rust-cache@v2#"
   },
   {
    "condition": null,
@@ -27123,7 +27123,7 @@
    "path": "flake.nix"
   }
  ],
- "inputs_fingerprint": "dad630fb1405926ebe933dbbd94db21065b51823a2324f0938e51a05fccf04cf",
+ "inputs_fingerprint": "e8e93876dd74c77ae9a15d31b8fd1df51b2db22a74795ba50ed8bdd65eabb637",
  "instances": [
   {
    "commit": null,
@@ -32443,45 +32443,6 @@
    "version": "0.1.7"
   },
   {
-   "commit": null,
-   "component": "pkg:github/DeterminateSystems/magic-nix-cache-action",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/DeterminateSystems/magic-nix-cache-action@v14#",
-   "purl": "pkg:github/DeterminateSystems/magic-nix-cache-action@v14",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/DeterminateSystems/magic-nix-cache-action",
-   "version": "v14"
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/DeterminateSystems/nix-installer-action",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/DeterminateSystems/nix-installer-action@v22#",
-   "purl": "pkg:github/DeterminateSystems/nix-installer-action@v22",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/DeterminateSystems/nix-installer-action",
-   "version": "v22"
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/Swatinem/rust-cache",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/Swatinem/rust-cache@v2#",
-   "purl": "pkg:github/Swatinem/rust-cache@v2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/Swatinem/rust-cache",
-   "version": "v2"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -32574,6 +32535,32 @@
   },
   {
    "commit": null,
+   "component": "pkg:github/determinatesystems/magic-nix-cache-action",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/determinatesystems/magic-nix-cache-action@v14#",
+   "purl": "pkg:github/determinatesystems/magic-nix-cache-action@v14",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/determinatesystems/magic-nix-cache-action",
+   "version": "v14"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/determinatesystems/nix-installer-action",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/determinatesystems/nix-installer-action@v22#",
+   "purl": "pkg:github/determinatesystems/nix-installer-action@v22",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/determinatesystems/nix-installer-action",
+   "version": "v22"
+  },
+  {
+   "commit": null,
    "component": "pkg:github/dtolnay/rust-toolchain",
    "context": "",
    "first_party": false,
@@ -32597,6 +32584,19 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/peter-evans/create-pull-request",
    "version": "v8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/swatinem/rust-cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/swatinem/rust-cache@v2#",
+   "purl": "pkg:github/swatinem/rust-cache@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/swatinem/rust-cache",
+   "version": "v2"
   },
   {
    "commit": null,

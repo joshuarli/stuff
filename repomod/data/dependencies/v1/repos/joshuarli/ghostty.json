@@ -403,12 +403,6 @@
    "purl": "pkg:generic/zlib?download_url=https%3A%2F%2Fdeps.files.ghostty.org%2Fzlib-1220fed0c74e1019b3ee29edae2051788b080cd96e90d56836eea857b0b966742efb.tar.gz"
   },
   {
-   "display_name": "DeterminateSystems/nix-installer-action",
-   "ecosystem": "github",
-   "name": "DeterminateSystems/nix-installer-action",
-   "purl": "pkg:github/DeterminateSystems/nix-installer-action"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -437,6 +431,12 @@
    "ecosystem": "github",
    "name": "cachix/install-nix-action",
    "purl": "pkg:github/cachix/install-nix-action"
+  },
+  {
+   "display_name": "determinatesystems/nix-installer-action",
+   "ecosystem": "github",
+   "name": "determinatesystems/nix-installer-action",
+   "purl": "pkg:github/determinatesystems/nix-installer-action"
   },
   {
    "display_name": "docker/build-push-action",
@@ -1189,150 +1189,6 @@
    "scope": "runtime",
    "source_kind": "path",
    "to": "pkg:generic/zlib#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-example-zig-vt-macos-no-sdk.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-examples-swift.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-libghostty-vt-macos.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-macos.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-macos-xcode-27.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.build-macos-freetype.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.test-macos.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
-  },
-  {
-   "condition": null,
-   "constraint": "v23",
-   "evidence": [
-    {
-     "locator": "jobs.swiftlint.steps[2].uses",
-     "path": ".github/workflows/test.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
   },
   {
    "condition": null,
@@ -4105,6 +3961,150 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-example-zig-vt-macos-no-sdk.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-examples-swift.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-libghostty-vt-macos.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-macos.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-macos-xcode-27.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.build-macos-freetype.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.test-macos.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
+  },
+  {
+   "condition": null,
+   "constraint": "v23",
+   "evidence": [
+    {
+     "locator": "jobs.swiftlint.steps[2].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#"
   },
   {
    "condition": null,
@@ -7185,7 +7185,7 @@
    "path": "test/fuzz-libghostty/build.zig.zon"
   }
  ],
- "inputs_fingerprint": "5f8b998d58e42e06d3914171631497f5a78f26c038e0a5111a9592b95fad0dab",
+ "inputs_fingerprint": "ff53ee52f656f74684c62502aaf75be4801645f568b68ea9585e138a7a4c7f57",
  "instances": [
   {
    "commit": null,
@@ -8059,19 +8059,6 @@
    "version": null
   },
   {
-   "commit": "3138316df39ed29be04236d7ffc686fa525866aa",
-   "component": "pkg:github/DeterminateSystems/nix-installer-action",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#",
-   "purl": "pkg:github/DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/DeterminateSystems/nix-installer-action",
-   "version": "3138316df39ed29be04236d7ffc686fa525866aa"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -8135,6 +8122,19 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/cachix/install-nix-action",
    "version": "75c75c31ebece974e48ebc36b4ad125bd97bd97b"
+  },
+  {
+   "commit": "3138316df39ed29be04236d7ffc686fa525866aa",
+   "component": "pkg:github/determinatesystems/nix-installer-action",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa#",
+   "purl": "pkg:github/determinatesystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/determinatesystems/nix-installer-action",
+   "version": "3138316df39ed29be04236d7ffc686fa525866aa"
   },
   {
    "commit": "c3c9e263c25d99ce0380d002d59b67737d91b0dc",

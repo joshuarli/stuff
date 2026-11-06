@@ -15667,7 +15667,7 @@
    "path": "tests/fixtures/mypypi/rust-toolchain-sdist/pyproject.toml"
   }
  ],
- "inputs_fingerprint": "5c019987eac9404e1c0e8c267c19c8b4e0010686c5392d112302ae4043fcbefa",
+ "inputs_fingerprint": "9f3cdf957cf5cfcac45496a64b71eadc3cae3593ea420050b9733e3ccdcecf75",
  "instances": [
   {
    "commit": null,

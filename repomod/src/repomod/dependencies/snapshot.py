@@ -30,7 +30,7 @@ from repomod.dependencies.model import (
 from repomod.git import GitError, expected_origin, is_git_checkout, origin_url
 from repomod.types import Repository
 
-PARSER_VERSION = 1
+PARSER_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)

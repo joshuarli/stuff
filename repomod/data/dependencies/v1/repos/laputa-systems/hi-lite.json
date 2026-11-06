@@ -2063,7 +2063,7 @@
    "path": "tools/hi-lite-syntect/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "beeb386010cc4f8867cf869b55f44b4ecdd2d719f7fbfb3d5d37daae5b6f4d62",
+ "inputs_fingerprint": "57a686c1416cc59fb11afed88ff329a2c45a879fefa799790054c62deba4a85b",
  "instances": [
   {
    "commit": null,
