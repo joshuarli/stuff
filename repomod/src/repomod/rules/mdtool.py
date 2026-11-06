@@ -22,6 +22,13 @@ _FINDING_CODE = re.compile(r"[A-Z]\d{3}\Z")
 _CONSUMER_ADVISORY_CODES = frozenset({"C001", "C002", "C003"})
 
 
+_RUSTDOC_PATH = re.compile(r"\w+(?:::\w+)+\Z")
+
+
+def _is_rustdoc_link(code: str, target: str) -> bool:
+    return code == "L005" and _RUSTDOC_PATH.fullmatch(target) is not None
+
+
 def _is_excluded(path: PurePosixPath) -> bool:
     return path.name in _EXCLUDED_FILES or not _EXCLUDED_DIRS.isdisjoint(path.parent.parts)
 
@@ -93,7 +100,11 @@ def _mdtool_findings(root: Path, repository: Repository) -> list[Finding]:
             continue
         if MDTOOL_IGNORE_PREFIX + code in repository.ignored_rules:
             continue
-        if code in _CONSUMER_ADVISORY_CODES or _is_project_title(code, target, repository):
+        if (
+            code in _CONSUMER_ADVISORY_CODES
+            or _is_project_title(code, target, repository)
+            or _is_rustdoc_link(code, target)
+        ):
             continue
         path = PurePosixPath(relative)
         if _is_excluded(path) or is_workspace_excluded(excluded_prefixes, path):

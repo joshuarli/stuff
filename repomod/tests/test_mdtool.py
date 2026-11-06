@@ -101,3 +101,31 @@ def test_only_well_formed_mdtool_code_ignores_validate() -> None:
     assert not is_mdtool_code_ignore("mdtool")
     with pytest.raises(PolicyError):
         validate_ignored_rules((Repository(RepoId("acme", "demo"), (), ignored_rules=frozenset({"mdtool:nope"})),))
+
+
+def test_rustdoc_intra_doc_links_are_not_missing_references(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    records = [
+        {"code": "L005", "severity": "error", "file": "docs/01-reading.md", "line": line, "col": 3,
+         "message": "missing reference definition", "target": target}
+        for line, target in (
+            (5, "crate::ziparchive::from_file"),
+            (6, "crate::readerat"),
+            (7, "self::guide"),
+            (8, "ziparchive::from_slice"),
+            (9, "undefined"),
+            (10, "a::"),
+        )
+    ]
+    executable = tmp_path / ".local" / "bin" / "mdtool"
+    executable.parent.mkdir(parents=True)
+    output = "\n".join(json.dumps(record) for record in records)
+    executable.write_text(f"#!/bin/sh\ncat <<'EOF'\n{output}\nEOF\nexit 1\n", encoding="utf-8")
+    executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    findings = _mdtool_findings(tmp_path, Repository(RepoId("acme", "demo"), ()))
+
+    assert [finding.message for finding in findings] == [
+        "line 9:3: L005 missing reference definition: undefined",
+        "line 10:3: L005 missing reference definition: a::",
+    ]
