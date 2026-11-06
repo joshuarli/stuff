@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import struct
 import subprocess
 import sys
 from dataclasses import replace
@@ -690,3 +691,97 @@ def test_binary_static_fixer_requires_a_trace_in_image_mode(
         workflow, encoding="utf-8"
     )
     assert _binary_release_static_findings(tmp_path, tool) == []
+
+
+def build_elf(
+    *,
+    needed: tuple[str, ...] = (),
+    soname: str | None = None,
+    comments: tuple[str, ...] = ("clang version 23.1.0",),
+    extra_strings: tuple[str, ...] = (),
+) -> bytes:
+    strings = b"\0" + b"".join(
+        value.encode() + b"\0" for value in (*needed, *((soname,) if soname else ()), *extra_strings)
+    )
+    offsets: dict[str, int] = {}
+    cursor = 1
+    for value in (*needed, *((soname,) if soname else ()), *extra_strings):
+        offsets[value] = cursor
+        cursor += len(value) + 1
+    dynamic_entries = [(1, offsets[name]) for name in needed]
+    if soname:
+        dynamic_entries.append((14, offsets[soname]))
+    dynamic = b""
+    base = 64 + 56 * 2
+    strtab_offset = base
+    dynamic_offset = strtab_offset + len(strings)
+    dynamic_entries.extend([(5, strtab_offset), (10, len(strings)), (0, 0)])
+    dynamic = b"".join(struct.pack("<qQ", tag, value) for tag, value in dynamic_entries)
+    comment = b"".join(value.encode() + b"\0" for value in comments)
+    shstrtab = b"\0.comment\0.shstrtab\0"
+    comment_offset = dynamic_offset + len(dynamic)
+    shstrtab_offset = comment_offset + len(comment)
+    section_offset = shstrtab_offset + len(shstrtab)
+    load_size = dynamic_offset + len(dynamic)
+    header = bytearray(64)
+    header[:4] = b"\x7fELF"
+    header[4], header[5], header[6] = 2, 1, 1
+    struct.pack_into("<H", header, 18, 62)
+    struct.pack_into("<Q", header, 32, 64)
+    struct.pack_into("<Q", header, 40, section_offset)
+    struct.pack_into("<HHH", header, 54, 56, 2, 64)
+    struct.pack_into("<HHH", header, 58, 64, 3, 2)
+    load = struct.pack("<IIQQQQQQ", 1, 5, 0, 0, 0, load_size, load_size, 0x1000)
+    dynamic_header = struct.pack(
+        "<IIQQQQQQ", 2, 6, dynamic_offset, dynamic_offset, dynamic_offset, len(dynamic), len(dynamic), 8
+    )
+    sections = (
+        bytes(64)
+        + struct.pack("<IIQQQQIIQQ", 1, 1, 0, 0, comment_offset, len(comment), 0, 0, 1, 1)
+        + struct.pack("<IIQQQQIIQQ", 10, 3, 0, 0, shstrtab_offset, len(shstrtab), 0, 0, 1, 0)
+    )
+    return bytes(header) + load + dynamic_header + strings + dynamic + comment + shstrtab + sections
+
+
+def write_elf(tmp_path: Path, **options: object) -> Path:
+    path = tmp_path / "artifact.elf"
+    path.write_bytes(build_elf(**options))
+    return path
+
+
+def test_verifier_accepts_a_clean_llvm_built_elf(tmp_path: Path) -> None:
+    assert run_verifier(write_elf(tmp_path)).returncode == 0
+
+
+def test_verifier_rejects_a_libgcc_s_dependency(tmp_path: Path) -> None:
+    result = run_verifier(write_elf(tmp_path, needed=("libgcc_s.so.1",)))
+
+    assert result.returncode == 1
+    assert "libgcc_s runtime dependency: DT_NEEDED libgcc_s.so.1" in result.stderr
+
+
+def test_verifier_rejects_a_glibc_dependency(tmp_path: Path) -> None:
+    needed = run_verifier(write_elf(tmp_path, needed=("libc.so.6",)))
+    versioned = run_verifier(write_elf(tmp_path, extra_strings=("GLIBC_2.17",)))
+
+    assert needed.returncode == 1
+    assert "glibc runtime dependency" in needed.stderr
+    assert versioned.returncode == 1
+    assert "glibc symbol version GLIBC_2.17" in versioned.stderr
+
+
+def test_verifier_rejects_a_bundled_libgcc_s(tmp_path: Path) -> None:
+    result = run_verifier(write_elf(tmp_path, soname="libgcc_s.so.1"))
+
+    assert result.returncode == 1
+    assert "bundles a libgcc_s library: SONAME libgcc_s.so.1" in result.stderr
+
+
+def test_verifier_rejects_gcc_objects_in_the_comment_section(tmp_path: Path) -> None:
+    result = run_verifier(
+        write_elf(tmp_path, comments=("clang version 23.1.0", "GCC: (Alpine 15.2.0) 15.2.0"))
+    )
+
+    assert result.returncode == 1
+    assert "links GCC-built objects" in result.stderr
+    assert "GCC: (Alpine 15.2.0) 15.2.0" in result.stderr
