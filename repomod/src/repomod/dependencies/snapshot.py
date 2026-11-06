@@ -127,6 +127,9 @@ def inspect_repository(catalog: Catalog, repository: Repository) -> RepositoryIn
         issues.append(Issue(CoverageKind.GIT_FAILURE, str(error)))
         return RepositoryInspection(_repository_data(repository, inputs, issues), commit)
     contents: list[InputContent] = []
+    gitlinks = tuple(
+        sorted((entry.path, entry.object_id) for entry in entries if entry.kind == "gitlink")
+    )
     for item in inputs:
         entry = by_path[item.path]
         if entry.kind != "blob":
@@ -137,7 +140,12 @@ def inspect_repository(catalog: Catalog, repository: Repository) -> RepositoryIn
             issues.append(Issue(CoverageKind.NON_UTF8, "dependency input is not UTF-8", path=item.path))
             continue
         contents.append(
-            InputContent(item.path, text, vendored=_is_vendored(item.path, discovery.vendored_roots))
+            InputContent(
+                item.path,
+                text,
+                vendored=_is_vendored(item.path, discovery.vendored_roots),
+                gitlinks=gitlinks,
+            )
         )
 
     groups: list[tuple[Adapter, list[InputContent]]] = []

@@ -3,11 +3,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from repomod.dependencies.adapters.vendored import VENDORED_MANIFESTS, vendored_roots
 from repomod.dependencies.git_tree import TreeEntry
 from repomod.dependencies.model import Ecosystem
-
-VENDORED_COMPONENTS = frozenset({"vendor", "third_party", "third-party"})
-VENDORED_MANIFESTS = frozenset({"Cargo.toml", "package.json", "go.mod"})
 
 _NAME_RULES: dict[str, tuple[Ecosystem, str]] = {
     "Cargo.toml": (Ecosystem.CARGO, "Cargo.toml"),
@@ -103,19 +101,9 @@ def discover(entries: Iterable[TreeEntry]) -> Discovery:
             inputs.append(found)
     inputs.sort(key=lambda item: item.path)
     symlinks.sort(key=lambda item: item.path)
-    roots = _vendored_roots(entry.path for entry in ordered if entry.kind != "gitlink")
+    roots = vendored_roots(entry.path for entry in ordered if entry.kind != "gitlink")
     manifests = [item.path for item in inputs if item.path.rsplit("/", 1)[-1] in VENDORED_MANIFESTS]
     unknown = tuple(
         root for root in roots if not any(path.startswith(root + "/") for path in manifests)
     )
     return Discovery(tuple(inputs), tuple(symlinks), roots, unknown)
-
-
-def _vendored_roots(paths: Iterable[str]) -> tuple[str, ...]:
-    roots: set[str] = set()
-    for path in paths:
-        parts = path.split("/")[:-1]
-        for index, part in enumerate(parts):
-            if part in VENDORED_COMPONENTS:
-                roots.add("/".join(parts[: index + 1]))
-    return tuple(sorted(roots))

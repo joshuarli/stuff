@@ -223,6 +223,7 @@ class InputContent:
     path: str
     text: str
     vendored: bool = False
+    gitlinks: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
