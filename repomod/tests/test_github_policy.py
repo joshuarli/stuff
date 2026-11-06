@@ -1121,6 +1121,16 @@ def test_protection_reviews_reports_counts_and_skips_unprotected(monkeypatch) ->
         name = endpoint.split("/")[2]
         if "protection" not in endpoint:
             return {"default_branch": "main"}
+        if endpoint.endswith("/required_status_checks"):
+            if name == "full":
+                return {
+                    "checks": [
+                        {"context": "test (3.13)", "app_id": 15368},
+                        {"context": "any", "app_id": -1},
+                        {"context": "codecov/patch", "app_id": 254},
+                    ]
+                }
+            raise github.GitHubError("Required status checks not enabled (HTTP 404)")
         if name == "full":
             return {"required_approving_review_count": 2}
         if name == "clean":
@@ -1140,7 +1150,7 @@ def test_protection_reviews_reports_counts_and_skips_unprotected(monkeypatch) ->
 
     results = {
         name: (protected, count, error)
-        for name, protected, count, error in github.protection_many(repositories, jobs=1)
+        for name, protected, count, _, error in github.protection_many(repositories, jobs=1)
     }
 
     assert results["acme/full"] == (True, 2, None)
@@ -1149,6 +1159,11 @@ def test_protection_reviews_reports_counts_and_skips_unprotected(monkeypatch) ->
     assert results["acme/private"] == (False, 0, None)
     assert results["acme/badcount"][2] == "GitHub returned invalid review protection"
     assert results["acme/broken"][2] == "boom"
+    contexts = {
+        name: contexts for name, _, _, contexts, _ in github.protection_many(repositories, jobs=1)
+    }
+    assert contexts["acme/full"] == ("test (3.13)", "any")
+    assert contexts["acme/clean"] == ()
 
 
 def test_protection_lint_flags_required_approvals(tmp_path: Path, monkeypatch) -> None:
@@ -1161,7 +1176,7 @@ def test_protection_lint_flags_required_approvals(tmp_path: Path, monkeypatch) -
     catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), True, 1, None) for repository in repositories],
+        lambda repositories: [(str(repository.id), True, 1, (), None) for repository in repositories],
     )
 
     findings = lint_repositories(catalog, rule_ids=("github-protection",))
@@ -1184,20 +1199,119 @@ def test_protection_lint_skips_unprotected_and_reports_errors(
     catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), False, 0, None) for repository in repositories],
+        lambda repositories: [(str(repository.id), False, 0, (), None) for repository in repositories],
     )
 
     assert lint_repositories(catalog, rule_ids=("github-protection",)) == []
 
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), False, 0, "boom") for repository in repositories],
+        lambda repositories: [(str(repository.id), False, 0, (), "boom") for repository in repositories],
     )
     findings = lint_repositories(catalog, rule_ids=("github-protection",))
 
     assert len(findings) == 1
     assert findings[0].kind == "operational"
     assert "cannot read branch protection" in findings[0].message
+
+
+def _stale_check_findings(tmp_path: Path, monkeypatch, workflow: str, required: tuple[str, ...]):
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\ndemo = ["tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
+    workflows = tmp_path / "demo" / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(workflow, encoding="utf-8")
+    monkeypatch.setattr(
+        "repomod.policy.protection_many",
+        lambda repositories: [
+            (str(repository.id), True, 0, required, None) for repository in repositories
+        ],
+    )
+    return lint_repositories(catalog, rule_ids=("github-protection",))
+
+
+_MATRIX_WORKFLOW = """\
+name: ci
+on: push
+jobs:
+  test:
+    name: test (${{ matrix.os }}, ${{ matrix.python }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.14", "3.15"]
+        exclude:
+          - os: macos-latest
+            python: "3.14"
+        include:
+          - os: windows-latest
+            python: "3.15"
+  lint:
+    runs-on: ubuntu-latest
+  unit:
+    strategy:
+      matrix:
+        node: [20, 22]
+"""
+
+
+def test_protection_lint_flags_required_checks_no_workflow_produces(
+    tmp_path: Path, monkeypatch
+) -> None:
+    findings = _stale_check_findings(
+        tmp_path,
+        monkeypatch,
+        _MATRIX_WORKFLOW,
+        (
+            "test (ubuntu-latest, 3.15)",
+            "test (windows-latest, 3.15)",
+            "lint",
+            "unit (22)",
+            "test (macos-latest, 3.14)",
+            "test (ubuntu-latest, 3.13)",
+            "CI",
+        ),
+    )
+
+    assert len(findings) == 1
+    assert findings[0].kind == "violation"
+    assert not findings[0].fixable
+    assert findings[0].message == (
+        "branch protection requires status checks no workflow produces: "
+        "CI, test (macos-latest, 3.14), test (ubuntu-latest, 3.13)"
+    )
+
+
+def test_protection_lint_names_include_only_matrix_by_values(tmp_path: Path, monkeypatch) -> None:
+    workflow = (
+        "on: push\njobs:\n  test:\n    strategy:\n      matrix:\n        include:\n"
+        "          - os: ubuntu-latest\n            python: '3.15'\n"
+        "          - os: macos-latest\n            python: '3.15'\n"
+    )
+
+    assert (
+        _stale_check_findings(
+            tmp_path,
+            monkeypatch,
+            workflow,
+            ("test (ubuntu-latest, 3.15)", "test (macos-latest, 3.15)"),
+        )
+        == []
+    )
+
+
+def test_protection_lint_trusts_dynamic_matrix(tmp_path: Path, monkeypatch) -> None:
+    workflow = (
+        "on: push\njobs:\n  test:\n    strategy:\n"
+        "      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}\n"
+    )
+
+    assert _stale_check_findings(tmp_path, monkeypatch, workflow, ("anything",)) == []
 
 
 def _init_default_branch(root: Path, branch: str = "main") -> None:

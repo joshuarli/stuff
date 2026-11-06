@@ -19,6 +19,7 @@ from repomod.rules.conventional_commits import titles_findings
 from repomod.rules.mdtool import is_mdtool_code_ignore
 from repomod.run_cache import run_cache
 from repomod.types import Finding, OpenPullRequest, Repository, Rule, operational, violation
+from repomod.workflow_checks import produced_check_names
 
 
 class PolicyError(RuntimeError):
@@ -109,9 +110,10 @@ def _check_rule(rule: Rule, root: Path, repository: Repository) -> list[Finding]
 
 def _batched_findings(
     rule: Rule,
+    root: Path,
     repository: Repository,
     topic_results: Mapping[str, tuple[Sequence[str], Sequence[str], str | None]],
-    protection_results: Mapping[str, tuple[bool, int, str | None]],
+    protection_results: Mapping[str, tuple[bool, int, tuple[str, ...], str | None]],
     pull_results: Mapping[str, tuple[list[OpenPullRequest], str | None]],
 ) -> list[Finding] | None:
     if rule.id not in _BATCHED_RULE_IDS:
@@ -149,7 +151,7 @@ def _batched_findings(
                     "cannot read branch protection: missing result",
                 )
             ]
-        has_protection, count, error = result
+        has_protection, count, contexts, error = result
         if error is not None:
             return [
                 operational(
@@ -167,6 +169,19 @@ def _batched_findings(
                     None,
                     f"branch protection requires {count} approving review(s); "
                     "owner-only repositories must require none",
+                    fixable=False,
+                )
+            ]
+        produced = produced_check_names(root) if has_protection and contexts else None
+        stale = sorted(set(contexts) - produced) if produced is not None else []
+        if stale:
+            return [
+                violation(
+                    repository,
+                    "github-protection",
+                    None,
+                    "branch protection requires status checks no workflow produces: "
+                    + ", ".join(stale),
                     fixable=False,
                 )
             ]
@@ -232,7 +247,7 @@ def lint_repositories(
                 repositories_with_topics, apply=False
             )
         }
-    protection_results: dict[str, tuple[bool, int, str | None]] = {}
+    protection_results: dict[str, tuple[bool, int, tuple[str, ...], str | None]] = {}
     repositories_with_protection = tuple(
         repository
         for repository in selected
@@ -240,8 +255,8 @@ def lint_repositories(
     )
     if repositories_with_protection:
         protection_results = {
-            name: (has_protection, count, error)
-            for name, has_protection, count, error in protection_many(
+            name: (has_protection, count, contexts, error)
+            for name, has_protection, count, contexts, error in protection_many(
                 repositories_with_protection
             )
         }
@@ -269,7 +284,7 @@ def lint_repositories(
             if not rule.applies_to.matches(repository.tags):
                 continue
             batched = _batched_findings(
-                rule, repository, topic_results, protection_results, pull_results
+                rule, root, repository, topic_results, protection_results, pull_results
             )
             if batched is not None:
                 findings.extend(batched)

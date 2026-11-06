@@ -255,8 +255,11 @@ Alpine base, not an unpublished canonical reference. The fixer never switches a 
 image mode; that migration is an owner-run step after publication.
 
 `github-protection` requires zero approving reviews on protected branches so owner-only
-automation never waits on reviews. Repositories without branch protection are skipped.
-It has no fixer; change protection with explicit API calls.
+automation never waits on reviews. It also reports required GitHub Actions status checks that no workflow produces, expanding job
+`name:` templates over `strategy.matrix` (including `include` and `exclude`) and falling back to
+the job id; a workflow whose names cannot be determined statically (for example a matrix from
+`fromJSON`, or a reusable-workflow job) suppresses the check for that repository.
+Repositories without branch protection are skipped. It has no fixer; change protection with explicit API calls.
 
 `rust-release-profiles` rule for binary-shipping Rust repositories. `[profile.release]`
 is for performant testing and CI: `opt-level = 3`, `lto = "thin"`,

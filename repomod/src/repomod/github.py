@@ -1589,7 +1589,10 @@ def topics_many(
     return sorted(output, key=lambda item: item[0].casefold())
 
 
-type ProtectionResult = tuple[str, bool, int, str | None]
+type ProtectionResult = tuple[str, bool, int, tuple[str, ...], str | None]
+
+_GITHUB_ACTIONS_APP_ID = 15368
+_ANY_APP_ID = -1
 
 _SKIP_PROTECTION_MARKERS = (
     "http 404",
@@ -1599,6 +1602,27 @@ _SKIP_PROTECTION_MARKERS = (
 )
 
 
+def _required_actions_contexts(endpoint: str) -> tuple[str, ...]:
+    try:
+        value = _gh_json([f"{endpoint}/required_status_checks"])
+    except GitHubError as error:
+        if "http 404" in str(error).casefold():
+            return ()
+        raise
+    checks = value.get("checks") if isinstance(value, dict) else None
+    if not isinstance(checks, list):
+        raise GitHubError("GitHub returned invalid status check protection")
+    contexts: list[str] = []
+    for check in checks:
+        context = check.get("context") if isinstance(check, dict) else None
+        app_id = check.get("app_id") if isinstance(check, dict) else None
+        if not isinstance(context, str) or not context:
+            raise GitHubError("GitHub returned invalid status check protection")
+        if app_id in (_GITHUB_ACTIONS_APP_ID, _ANY_APP_ID):
+            contexts.append(context)
+    return tuple(contexts)
+
+
 def _protection_reviews_one(repository: Repository) -> ProtectionResult:
     name = str(repository.id)
     try:
@@ -1606,17 +1630,17 @@ def _protection_reviews_one(repository: Repository) -> ProtectionResult:
         branch = metadata.get("default_branch") if isinstance(metadata, dict) else None
         if not isinstance(branch, str) or not branch:
             raise GitHubError("GitHub returned invalid repository metadata")
-        reviews = _gh_json(
-            [f"repos/{repository.id.owner}/{repository.id.name}/branches/{branch}/protection/required_pull_request_reviews"]
-        )
+        endpoint = f"repos/{repository.id.owner}/{repository.id.name}/branches/{branch}/protection"
+        reviews = _gh_json([f"{endpoint}/required_pull_request_reviews"])
+        contexts = _required_actions_contexts(endpoint)
     except GitHubError as error:
         if any(marker in str(error).casefold() for marker in _SKIP_PROTECTION_MARKERS):
-            return name, False, 0, None
-        return name, False, 0, str(error)
+            return name, False, 0, (), None
+        return name, False, 0, (), str(error)
     count = reviews.get("required_approving_review_count") if isinstance(reviews, dict) else None
     if not isinstance(count, int) or count < 0:
-        return name, False, 0, "GitHub returned invalid review protection"
-    return name, True, count, None
+        return name, False, 0, (), "GitHub returned invalid review protection"
+    return name, True, count, contexts, None
 
 
 def protection_many(
