@@ -46,15 +46,6 @@ Next: 72
 - **Fix with:** none
 - **Effort:** M (days)
 
-### RPMD-59 · P2 · Import the fixed h12tiny forks into the stuff archive and bump shadowdriver and tansu
-
-- **Area:** Dependencies
-- **Where:** `~/repos/stuff` (mycrates mirror, `current/crates-io/`), `joshuarli/shadowdriver/Cargo.lock`, `joshuarli/tansu/Cargo.lock`
-- **Problem:** shadowdriver and tansu now use the smolith forks directly, but upstream `futures-lite`, `parking`, and `atomic-waker` stay in their lockfiles through `laputa-fastwebsockets-futures-lite 0.10.0`, `laputa-hyper-futures-lite 1.12.0-beta.0`, and `laputa-h2-futures-lite 0.4.20-beta.0`. The fixed releases (0.10.1, 1.12.0-beta.1, 0.4.20-beta.2) are on crates.io and depend only on `laputa-*` crates, but the stuff archive these repositories resolve through has not imported them. The import is blocked: minting R2 S3 credentials fails with 403 (the Cloudflare token cannot list account tokens), and the stuff state is behind the live generation, so a plain `--promote=cf` would risk overwriting another publisher.
-- **Recommendation:** Grant the token R2 credential minting (or export `R2_S3_*`), run `deploy/publish mycrates --republish` to adopt the live generation, then `mycrates import-lock` a lockfile pinning the three releases, `plan`, `fetch`, `verify`, `publish`, and `deploy/r2-sync.sh`. Then bump the three crates in shadowdriver and tansu and confirm `repomod lint --rule audit-banned` is clean.
-- **Fix with:** stuff-registries
-- **Effort:** S (hours)
-
 ### RPMD-50 · P2 · Recognize manifest readme declarations in generated-data audit
 
 - **Area:** Lint accuracy
