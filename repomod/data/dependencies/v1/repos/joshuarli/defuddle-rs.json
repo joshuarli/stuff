@@ -97,6 +97,36 @@
    "purl": "pkg:cargo/cssparser-macros"
   },
   {
+   "display_name": "deser",
+   "ecosystem": "cargo",
+   "name": "deser",
+   "purl": "pkg:cargo/deser"
+  },
+  {
+   "display_name": "deser-core",
+   "ecosystem": "cargo",
+   "name": "deser-core",
+   "purl": "pkg:cargo/deser-core"
+  },
+  {
+   "display_name": "deser-derive",
+   "ecosystem": "cargo",
+   "name": "deser-derive",
+   "purl": "pkg:cargo/deser-derive"
+  },
+  {
+   "display_name": "deser-json",
+   "ecosystem": "cargo",
+   "name": "deser-json",
+   "purl": "pkg:cargo/deser-json"
+  },
+  {
+   "display_name": "deser-value",
+   "ecosystem": "cargo",
+   "name": "deser-value",
+   "purl": "pkg:cargo/deser-value"
+  },
+  {
    "display_name": "dhat",
    "ecosystem": "cargo",
    "name": "dhat",
@@ -119,6 +149,12 @@
    "ecosystem": "cargo",
    "name": "dtoa-short",
    "purl": "pkg:cargo/dtoa-short"
+  },
+  {
+   "display_name": "equivalent",
+   "ecosystem": "cargo",
+   "name": "equivalent",
+   "purl": "pkg:cargo/equivalent"
   },
   {
    "display_name": "fastrand",
@@ -169,10 +205,22 @@
    "purl": "pkg:cargo/gimli"
   },
   {
+   "display_name": "hashbrown",
+   "ecosystem": "cargo",
+   "name": "hashbrown",
+   "purl": "pkg:cargo/hashbrown"
+  },
+  {
    "display_name": "html5ever",
    "ecosystem": "cargo",
    "name": "html5ever",
    "purl": "pkg:cargo/html5ever"
+  },
+  {
+   "display_name": "indexmap",
+   "ecosystem": "cargo",
+   "name": "indexmap",
+   "purl": "pkg:cargo/indexmap"
   },
   {
    "display_name": "itoa",
@@ -505,6 +553,12 @@
    "purl": "pkg:cargo/simd-adler32"
   },
   {
+   "display_name": "simdutf8",
+   "ecosystem": "cargo",
+   "name": "simdutf8",
+   "purl": "pkg:cargo/simdutf8"
+  },
+  {
    "display_name": "siphasher",
    "ecosystem": "cargo",
    "name": "siphasher",
@@ -817,6 +871,50 @@
    "to": "pkg:cargo/assert_cmd@2.2.2#"
   },
   {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-json",
+     "path": "crates/defuddle-cli/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle-cli:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-value",
+     "path": "crates/defuddle-cli/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle-cli:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-value@0.10.2#"
+  },
+  {
    "condition": "feature:alloc-profile",
    "constraint": "0.3.3",
    "evidence": [
@@ -825,7 +923,7 @@
      "path": "crates/defuddle-cli/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[2]",
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -847,7 +945,7 @@
      "path": "crates/defuddle-cli/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[3]",
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -869,7 +967,7 @@
      "path": "crates/defuddle-cli/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[4]",
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -884,28 +982,6 @@
   },
   {
    "condition": null,
-   "constraint": "0.1.46",
-   "evidence": [
-    {
-     "locator": "dependencies.miniserde",
-     "path": "crates/defuddle-cli/Cargo.toml"
-    },
-    {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/defuddle-cli:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
-  },
-  {
-   "condition": null,
    "constraint": "3.1.4",
    "evidence": [
     {
@@ -913,7 +989,7 @@
      "path": "crates/defuddle-cli/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[6]",
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -935,7 +1011,7 @@
      "path": "crates/defuddle-cli/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[7]",
+     "locator": "package[name=defuddle-cli,version=0.0.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -972,10 +1048,32 @@
   },
   {
    "condition": null,
-   "constraint": "0.1.46",
+   "constraint": "0.10",
    "evidence": [
     {
-     "locator": "dependencies.miniserde",
+     "locator": "dependencies.deser-json",
+     "path": "crates/defuddle-wasm/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle-wasm,version=0.0.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle-wasm:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
      "path": "crates/defuddle-wasm/Cargo.toml"
     },
     {
@@ -987,10 +1085,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.1.46",
+   "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
+   "to": "pkg:cargo/deser@0.10.2#"
   },
   {
    "condition": null,
@@ -1001,7 +1099,7 @@
      "path": "crates/defuddle-wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-wasm,version=0.0.0].dependencies[3]",
+     "locator": "package[name=defuddle-wasm,version=0.0.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1023,7 +1121,7 @@
      "path": "crates/defuddle-wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle-wasm,version=0.0.0].dependencies[2]",
+     "locator": "package[name=defuddle-wasm,version=0.0.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -1082,6 +1180,72 @@
   },
   {
    "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-json",
+     "path": "crates/defuddle/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-value",
+     "path": "crates/defuddle/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-value@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "crates/defuddle/Cargo.toml"
+    },
+    {
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/defuddle:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
    "constraint": "0.39",
    "evidence": [
     {
@@ -1089,7 +1253,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[2]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1111,7 +1275,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[3]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -1126,28 +1290,6 @@
   },
   {
    "condition": null,
-   "constraint": "0.1.46",
-   "evidence": [
-    {
-     "locator": "dependencies.miniserde",
-     "path": "crates/defuddle/Cargo.toml"
-    },
-    {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/defuddle:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
-  },
-  {
-   "condition": null,
    "constraint": "0.1.9",
    "evidence": [
     {
@@ -1155,7 +1297,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[5]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1177,7 +1319,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[6]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -1199,7 +1341,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[7]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -1221,7 +1363,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[8]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -1243,7 +1385,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[9]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -1265,7 +1407,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[10]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -1287,7 +1429,7 @@
      "path": "crates/defuddle/Cargo.toml"
     },
     {
-     "locator": "package[name=defuddle,version=0.0.0].dependencies[1]",
+     "locator": "package[name=defuddle,version=0.0.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1793,10 +1935,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "2.0.119",
+   "resolved_version": "3.0.9",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@2.0.119#"
+   "to": "pkg:cargo/syn@3.0.9#"
   },
   {
    "condition": null,
@@ -1887,6 +2029,204 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/smallvec@1.16.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/itoa@1.0.18#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/simdutf8@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zmij@1.0.23#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-value,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-value@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-value,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-value@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/indexmap@2.14.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-derive@0.10.2#"
   },
   {
    "condition": null,
@@ -2211,6 +2551,42 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/markup5ever@0.39.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=indexmap,version=2.14.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/indexmap@2.14.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/equivalent@1.0.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=indexmap,version=2.14.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/indexmap@2.14.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.17.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hashbrown@0.17.1#"
   },
   {
    "condition": null,
@@ -4887,7 +5263,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "ad5bd60a0d76442fd9a069ac65d1c432af4164c4",
+   "blob": "fff91fd9af57f398639091b00703f88c95d2628b",
    "path": "Cargo.lock"
   },
   {
@@ -4899,15 +5275,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "53683745be60c83c232515d5a0f9414e41116885",
+   "blob": "1917d0e1c6aba648aeb4de47f43a9622f786b9d4",
    "path": "crates/defuddle-cli/Cargo.toml"
   },
   {
-   "blob": "af116100726da68d2720f218ebb6c6faed231316",
+   "blob": "97cbac0ba5ff25f574377d9e189ad9317a8d6bc8",
    "path": "crates/defuddle-wasm/Cargo.toml"
   },
   {
-   "blob": "647738ec8d8e1158731bf88017a598b57f3a4e22",
+   "blob": "88a32c95ba558498e74e6ce97eb32fa4eb885fc5",
    "path": "crates/defuddle/Cargo.toml"
   },
   {
@@ -4919,7 +5295,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "7489def9a224f122a27696e21bb8616ed1b530325ea5decda5732aa6f62ed5b4",
+ "inputs_fingerprint": "3d9b44905ae33e8a32f5c46510e21055fff82ab8252da2136d16762909256c19",
  "instances": [
   {
    "commit": null,
@@ -5131,6 +5507,71 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/deser-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-core@0.10.2#",
+   "purl": "pkg:cargo/deser-core@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-derive@0.10.2#",
+   "purl": "pkg:cargo/deser-derive@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-json",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-json@0.10.2#",
+   "purl": "pkg:cargo/deser-json@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-value",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-value@0.10.2#",
+   "purl": "pkg:cargo/deser-value@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser@0.10.2#",
+   "purl": "pkg:cargo/deser@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/dhat",
    "context": "",
    "first_party": false,
@@ -5180,6 +5621,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.11"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/equivalent",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/equivalent@1.0.3#",
+   "purl": "pkg:cargo/equivalent@1.0.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.0.3"
   },
   {
    "commit": null,
@@ -5287,6 +5741,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/hashbrown",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/hashbrown@0.17.1#",
+   "purl": "pkg:cargo/hashbrown@0.17.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.1"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/html5ever",
    "context": "",
    "first_party": false,
@@ -5297,6 +5764,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.39.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/indexmap",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/indexmap@2.14.2#",
+   "purl": "pkg:cargo/indexmap@2.14.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.14.2"
   },
   {
    "commit": null,
@@ -6077,6 +6557,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.10"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/simdutf8",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/simdutf8@0.1.5#",
+   "purl": "pkg:cargo/simdutf8@0.1.5",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.5"
   },
   {
    "commit": null,

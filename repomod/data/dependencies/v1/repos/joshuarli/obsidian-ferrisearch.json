@@ -169,6 +169,30 @@
    "purl": "pkg:cargo/deranged"
   },
   {
+   "display_name": "deser",
+   "ecosystem": "cargo",
+   "name": "deser",
+   "purl": "pkg:cargo/deser"
+  },
+  {
+   "display_name": "deser-core",
+   "ecosystem": "cargo",
+   "name": "deser-core",
+   "purl": "pkg:cargo/deser-core"
+  },
+  {
+   "display_name": "deser-derive",
+   "ecosystem": "cargo",
+   "name": "deser-derive",
+   "purl": "pkg:cargo/deser-derive"
+  },
+  {
+   "display_name": "deser-json",
+   "ecosystem": "cargo",
+   "name": "deser-json",
+   "purl": "pkg:cargo/deser-json"
+  },
+  {
    "display_name": "downcast-rs",
    "ecosystem": "cargo",
    "name": "downcast-rs",
@@ -397,12 +421,6 @@
    "purl": "pkg:cargo/memmap2"
   },
   {
-   "display_name": "mini-internal",
-   "ecosystem": "cargo",
-   "name": "mini-internal",
-   "purl": "pkg:cargo/mini-internal"
-  },
-  {
    "display_name": "minicov",
    "ecosystem": "cargo",
    "name": "minicov",
@@ -413,12 +431,6 @@
    "ecosystem": "cargo",
    "name": "minimal-lexical",
    "purl": "pkg:cargo/minimal-lexical"
-  },
-  {
-   "display_name": "miniserde",
-   "ecosystem": "cargo",
-   "name": "miniserde",
-   "purl": "pkg:cargo/miniserde"
   },
   {
    "display_name": "murmurhash32",
@@ -671,6 +683,12 @@
    "ecosystem": "cargo",
    "name": "shlex",
    "purl": "pkg:cargo/shlex"
+  },
+  {
+   "display_name": "simdutf8",
+   "ecosystem": "cargo",
+   "name": "simdutf8",
+   "purl": "pkg:cargo/simdutf8"
   },
   {
    "display_name": "sketches-ddsketch",
@@ -3009,6 +3027,50 @@
    "to": "pkg:npm/vitest@5.0.5#(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.6))"
   },
   {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.deser-json",
+     "path": "crates/ferrisearch-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/ferrisearch-core:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "crates/ferrisearch-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/ferrisearch-core:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
    "condition": "cfg(target_arch = \"wasm32\")",
    "constraint": "0.3",
    "evidence": [
@@ -3017,7 +3079,7 @@
      "path": "crates/ferrisearch-core/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[0]",
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3032,28 +3094,6 @@
   },
   {
    "condition": null,
-   "constraint": "0.1",
-   "evidence": [
-    {
-     "locator": "dependencies.miniserde",
-     "path": "crates/ferrisearch-core/Cargo.toml"
-    },
-    {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/ferrisearch-core:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
-  },
-  {
-   "condition": null,
    "constraint": "1",
    "evidence": [
     {
@@ -3061,7 +3101,7 @@
      "path": "crates/ferrisearch-core/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[2]",
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -3083,7 +3123,7 @@
      "path": "crates/ferrisearch-core/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[3]",
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3105,7 +3145,7 @@
      "path": "crates/ferrisearch-core/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[4]",
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3127,7 +3167,7 @@
      "path": "crates/ferrisearch-core/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[5]",
+     "locator": "package[name=ferrisearch-core,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3803,6 +3843,168 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/serde_core@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/itoa@1.0.18#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/simdutf8@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zmij@1.0.23#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-derive@0.10.2#"
   },
   {
    "condition": null,
@@ -4727,60 +4929,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.107",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.47",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.47#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.0.9",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=minicov,version=0.3.8].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -4811,60 +4959,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/walkdir@2.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.18",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/mini-internal@0.1.46#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.23",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zmij@1.0.23#"
   },
   {
    "condition": null,
@@ -15325,6 +15419,50 @@
    "to": "pkg:npm/why-is-node-running@3.2.1#"
   },
   {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-json",
+     "path": "wasm/Cargo.toml"
+    },
+    {
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "wasm:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "wasm/Cargo.toml"
+    },
+    {
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "wasm:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
    "condition": "cfg(target_arch = \"wasm32\")",
    "constraint": "0.3",
    "evidence": [
@@ -15333,7 +15471,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[1]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -15355,7 +15493,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[2]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -15370,28 +15508,6 @@
   },
   {
    "condition": null,
-   "constraint": "0.1",
-   "evidence": [
-    {
-     "locator": "dependencies.miniserde",
-     "path": "wasm/Cargo.toml"
-    },
-    {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "wasm:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
-  },
-  {
-   "condition": null,
    "constraint": "1",
    "evidence": [
     {
@@ -15399,7 +15515,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[4]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -15421,7 +15537,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[6]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -15443,7 +15559,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[5]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -15465,7 +15581,7 @@
      "path": "wasm/Cargo.toml"
     },
     {
-     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[0]",
+     "locator": "package[name=ferrisearch-wasm,version=0.1.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -15489,7 +15605,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "3ff6b258fab04f47ab784180e05484d972105de8",
+   "blob": "f1f33e1cc7a5368efb71f67424e7d2d38f220733",
    "path": "Cargo.lock"
   },
   {
@@ -15501,7 +15617,7 @@
    "path": "Makefile"
   },
   {
-   "blob": "e68bc3afd78e7cca0491290d0e81222a1dc0e472",
+   "blob": "bc8f7f594b45d9932f57c229a97404a6c71bc046",
    "path": "crates/ferrisearch-core/Cargo.toml"
   },
   {
@@ -15521,11 +15637,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "545aa91651fe8632ce6dbd5df844a39a4404e773",
+   "blob": "757accab639466fc628d44b70e823deeb2418829",
    "path": "wasm/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "7e4bc41bf5720353907878b353b2af3c3c13b5701355f93b3e38c119c7f5a943",
+ "inputs_fingerprint": "6d5d5823e9a18983b7d9d3b75dd5d6ea8e4633d544d60f99411d47b04595f8ff",
  "instances": [
   {
    "commit": null,
@@ -15890,6 +16006,58 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.5.9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-core@0.10.2#",
+   "purl": "pkg:cargo/deser-core@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-derive@0.10.2#",
+   "purl": "pkg:cargo/deser-derive@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-json",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-json@0.10.2#",
+   "purl": "pkg:cargo/deser-json@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser@0.10.2#",
+   "purl": "pkg:cargo/deser@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
   },
   {
    "commit": null,
@@ -16400,19 +16568,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/mini-internal",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/mini-internal@0.1.46#",
-   "purl": "pkg:cargo/mini-internal@0.1.46",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.46"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/minicov",
    "context": "",
    "first_party": false,
@@ -16436,19 +16591,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.2.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/miniserde",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/miniserde@0.1.46#",
-   "purl": "pkg:cargo/miniserde@0.1.46",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.46"
   },
   {
    "commit": null,
@@ -17008,6 +17150,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/simdutf8",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/simdutf8@0.1.5#",
+   "purl": "pkg:cargo/simdutf8@0.1.5",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.5"
   },
   {
    "commit": null,

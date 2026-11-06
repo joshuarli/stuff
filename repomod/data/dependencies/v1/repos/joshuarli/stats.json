@@ -745,6 +745,54 @@
    "purl": "pkg:generic/stats"
   },
   {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/download-artifact",
+   "ecosystem": "github",
+   "name": "actions/download-artifact",
+   "purl": "pkg:github/actions/download-artifact"
+  },
+  {
+   "display_name": "actions/setup-node",
+   "ecosystem": "github",
+   "name": "actions/setup-node",
+   "purl": "pkg:github/actions/setup-node"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": "dtolnay/rust-toolchain",
+   "ecosystem": "github",
+   "name": "dtolnay/rust-toolchain",
+   "purl": "pkg:github/dtolnay/rust-toolchain"
+  },
+  {
+   "display_name": "mlugg/setup-zig",
+   "ecosystem": "github",
+   "name": "mlugg/setup-zig",
+   "purl": "pkg:github/mlugg/setup-zig"
+  },
+  {
+   "display_name": "pnpm/action-setup",
+   "ecosystem": "github",
+   "name": "pnpm/action-setup",
+   "purl": "pkg:github/pnpm/action-setup"
+  },
+  {
+   "display_name": "softprops/action-gh-release",
+   "ecosystem": "github",
+   "name": "softprops/action-gh-release",
+   "purl": "pkg:github/softprops/action-gh-release"
+  },
+  {
    "display_name": "@ampproject/remapping",
    "ecosystem": "npm",
    "name": "@ampproject/remapping",
@@ -2473,6 +2521,258 @@
    "scope": "toolchain",
    "source_kind": "url",
    "to": "pkg:generic/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-linux.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-macos.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-statsctl.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-statsctl.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-node@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-linux.steps[4].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-macos.steps[3].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-statsctl.steps[5].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "stable",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-linux.steps[2].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "stable",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@stable#"
+  },
+  {
+   "condition": null,
+   "constraint": "stable",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-macos.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "stable",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@stable#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.build-agent-linux.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/mlugg/setup-zig@v2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build-statsctl.steps[2].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/action-setup@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v2",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[4].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/softprops/action-gh-release@v2#"
   },
   {
    "condition": null,
@@ -14197,11 +14497,15 @@
  ],
  "inputs": [
   {
+   "blob": "6838580c4395e9ddbc586173413a777df97d3bbb",
+   "path": ".github/workflows/release.yml"
+  },
+  {
    "blob": "63f87c20ef9fd0ace28f8d0a3b74b5ef2e24feff",
    "path": ".node-version"
   },
   {
-   "blob": "8e2b2a31698c1e5263ee557cf149fe391f82f23a",
+   "blob": "8bb2897a71307c3c6c5397f5a82bb8ef21eadb26",
    "path": "Makefile"
   },
   {
@@ -14237,7 +14541,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "cb4d8ab2b087ee78deca49a85dd35e019c0da6dd63f9b222cef5b24b99276a52",
+ "inputs_fingerprint": "7a0abd0e1edb7331068d4a2ce4a4150146e2748c71346d4c9aa0fa3068459887",
  "instances": [
   {
    "commit": null,
@@ -15967,6 +16271,110 @@
    "source_kind": "path",
    "vcs_url": null,
    "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v4#",
+   "purl": "pkg:github/actions/checkout@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/download-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/download-artifact@v4#",
+   "purl": "pkg:github/actions/download-artifact@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/download-artifact",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/setup-node",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/setup-node@v4#",
+   "purl": "pkg:github/actions/setup-node@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/setup-node",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@v4#",
+   "purl": "pkg:github/actions/upload-artifact@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/dtolnay/rust-toolchain",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/dtolnay/rust-toolchain@stable#",
+   "purl": "pkg:github/dtolnay/rust-toolchain@stable",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/dtolnay/rust-toolchain",
+   "version": "stable"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/mlugg/setup-zig",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/mlugg/setup-zig@v2#",
+   "purl": "pkg:github/mlugg/setup-zig@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/mlugg/setup-zig",
+   "version": "v2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/pnpm/action-setup",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/pnpm/action-setup@v4#",
+   "purl": "pkg:github/pnpm/action-setup@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/pnpm/action-setup",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/softprops/action-gh-release",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/softprops/action-gh-release@v2#",
+   "purl": "pkg:github/softprops/action-gh-release@v2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/softprops/action-gh-release",
+   "version": "v2"
   },
   {
    "commit": null,

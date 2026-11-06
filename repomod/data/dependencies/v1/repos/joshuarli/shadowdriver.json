@@ -2389,7 +2389,7 @@
    "constraint": ">=3.20",
    "evidence": [
     {
-     "locator": "project.dependencies[3]",
+     "locator": "project.dependencies[4]",
      "path": "grab/pyproject.toml"
     },
     {
@@ -2433,7 +2433,7 @@
    "constraint": ">=12",
    "evidence": [
     {
-     "locator": "project.dependencies[4]",
+     "locator": "project.dependencies[5]",
      "path": "grab/pyproject.toml"
     },
     {
@@ -2517,6 +2517,28 @@
    "to": "pkg:pypi/ruff@0.17.3#"
   },
   {
+   "condition": null,
+   "constraint": ">=0.10",
+   "evidence": [
+    {
+     "locator": "project.dependencies[3]",
+     "path": "grab/pyproject.toml"
+    },
+    {
+     "locator": "package[name=grab,version=0.1.0].dependencies[4]",
+     "path": "grab/uv.lock"
+    }
+   ],
+   "from": "grab:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/truststore@0.10.5#"
+  },
+  {
    "condition": "group == 'dev'",
    "constraint": ">=0.0.42",
    "evidence": [
@@ -2547,7 +2569,7 @@
      "path": "grab/pyproject.toml"
     },
     {
-     "locator": "package[name=grab,version=0.1.0].dependencies[4]",
+     "locator": "package[name=grab,version=0.1.0].dependencies[5]",
      "path": "grab/uv.lock"
     }
    ],
@@ -13655,11 +13677,11 @@
    "path": "grab/Makefile"
   },
   {
-   "blob": "dc3173fe70b21947eb40940508ae3de4b557939a",
+   "blob": "3aa5e57b91c07eb597cfc04a166b729ccd6408c0",
    "path": "grab/pyproject.toml"
   },
   {
-   "blob": "a2ed6e0d71feb09c593478f0387625eb6983ef72",
+   "blob": "e00dd9d6e2fc378724d99e675f6908c004e6708a",
    "path": "grab/uv.lock"
   },
   {
@@ -13711,7 +13733,7 @@
    "path": "ts/pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "0ac4ffb981dab6d503025ca75937968e256b9c830434f7f08f2a3ca0022723bf",
+ "inputs_fingerprint": "802ba14daa7eef1a09f7ac990c91e9c5e4b7bc51d0f546caa1913dd630cd4614",
  "instances": [
   {
    "commit": null,

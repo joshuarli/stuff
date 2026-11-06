@@ -73,6 +73,12 @@
    "purl": "pkg:cargo/aho-corasick"
   },
   {
+   "display_name": "arrayvec",
+   "ecosystem": "cargo",
+   "name": "arrayvec",
+   "purl": "pkg:cargo/arrayvec"
+  },
+  {
    "display_name": "asn1-rs",
    "ecosystem": "cargo",
    "name": "asn1-rs",
@@ -121,6 +127,12 @@
    "purl": "pkg:cargo/base64ct"
   },
   {
+   "display_name": "bigdecimal",
+   "ecosystem": "cargo",
+   "name": "bigdecimal",
+   "purl": "pkg:cargo/bigdecimal"
+  },
+  {
    "display_name": "bindgen",
    "ecosystem": "cargo",
    "name": "bindgen",
@@ -151,6 +163,18 @@
    "purl": "pkg:cargo/block-padding"
   },
   {
+   "display_name": "borsh",
+   "ecosystem": "cargo",
+   "name": "borsh",
+   "purl": "pkg:cargo/borsh"
+  },
+  {
+   "display_name": "borsh-derive",
+   "ecosystem": "cargo",
+   "name": "borsh-derive",
+   "purl": "pkg:cargo/borsh-derive"
+  },
+  {
    "display_name": "bumpalo",
    "ecosystem": "cargo",
    "name": "bumpalo",
@@ -161,6 +185,12 @@
    "ecosystem": "cargo",
    "name": "byteorder",
    "purl": "pkg:cargo/byteorder"
+  },
+  {
+   "display_name": "bytes",
+   "ecosystem": "cargo",
+   "name": "bytes",
+   "purl": "pkg:cargo/bytes"
   },
   {
    "display_name": "bzip2",
@@ -191,6 +221,12 @@
    "ecosystem": "cargo",
    "name": "cfg-if",
    "purl": "pkg:cargo/cfg-if"
+  },
+  {
+   "display_name": "cfg_aliases",
+   "ecosystem": "cargo",
+   "name": "cfg_aliases",
+   "purl": "pkg:cargo/cfg_aliases"
   },
   {
    "display_name": "charset",
@@ -277,6 +313,24 @@
    "purl": "pkg:cargo/data-encoding"
   },
   {
+   "display_name": "defmt",
+   "ecosystem": "cargo",
+   "name": "defmt",
+   "purl": "pkg:cargo/defmt"
+  },
+  {
+   "display_name": "defmt-macros",
+   "ecosystem": "cargo",
+   "name": "defmt-macros",
+   "purl": "pkg:cargo/defmt-macros"
+  },
+  {
+   "display_name": "defmt-parser",
+   "ecosystem": "cargo",
+   "name": "defmt-parser",
+   "purl": "pkg:cargo/defmt-parser"
+  },
+  {
    "display_name": "der",
    "ecosystem": "cargo",
    "name": "der",
@@ -299,6 +353,24 @@
    "ecosystem": "cargo",
    "name": "des",
    "purl": "pkg:cargo/des"
+  },
+  {
+   "display_name": "deser",
+   "ecosystem": "cargo",
+   "name": "deser",
+   "purl": "pkg:cargo/deser"
+  },
+  {
+   "display_name": "deser-core",
+   "ecosystem": "cargo",
+   "name": "deser-core",
+   "purl": "pkg:cargo/deser-core"
+  },
+  {
+   "display_name": "deser-pickle",
+   "ecosystem": "cargo",
+   "name": "deser-pickle",
+   "purl": "pkg:cargo/deser-pickle"
   },
   {
    "display_name": "digest",
@@ -499,12 +571,6 @@
    "purl": "pkg:cargo/inout"
   },
   {
-   "display_name": "iter-read",
-   "ecosystem": "cargo",
-   "name": "iter-read",
-   "purl": "pkg:cargo/iter-read"
-  },
-  {
    "display_name": "itertools",
    "ecosystem": "cargo",
    "name": "itertools",
@@ -515,6 +581,24 @@
    "ecosystem": "cargo",
    "name": "itoa",
    "purl": "pkg:cargo/itoa"
+  },
+  {
+   "display_name": "jiff",
+   "ecosystem": "cargo",
+   "name": "jiff",
+   "purl": "pkg:cargo/jiff"
+  },
+  {
+   "display_name": "jiff-core",
+   "ecosystem": "cargo",
+   "name": "jiff-core",
+   "purl": "pkg:cargo/jiff-core"
+  },
+  {
+   "display_name": "jiff-static",
+   "ecosystem": "cargo",
+   "name": "jiff-static",
+   "purl": "pkg:cargo/jiff-static"
   },
   {
    "display_name": "jobserver",
@@ -557,6 +641,12 @@
    "ecosystem": "cargo",
    "name": "libloading",
    "purl": "pkg:cargo/libloading"
+  },
+  {
+   "display_name": "libm",
+   "ecosystem": "cargo",
+   "name": "libm",
+   "purl": "pkg:cargo/libm"
   },
   {
    "display_name": "libz-rs-sys",
@@ -715,6 +805,12 @@
    "purl": "pkg:cargo/portable-atomic"
   },
   {
+   "display_name": "portable-atomic-util",
+   "ecosystem": "cargo",
+   "name": "portable-atomic-util",
+   "purl": "pkg:cargo/portable-atomic-util"
+  },
+  {
    "display_name": "potential_utf",
    "ecosystem": "cargo",
    "name": "potential_utf",
@@ -727,10 +823,22 @@
    "purl": "pkg:cargo/powerfmt"
   },
   {
+   "display_name": "ppv-lite86",
+   "ecosystem": "cargo",
+   "name": "ppv-lite86",
+   "purl": "pkg:cargo/ppv-lite86"
+  },
+  {
    "display_name": "prettyplease",
    "ecosystem": "cargo",
    "name": "prettyplease",
    "purl": "pkg:cargo/prettyplease"
+  },
+  {
+   "display_name": "proc-macro-crate",
+   "ecosystem": "cargo",
+   "name": "proc-macro-crate",
+   "purl": "pkg:cargo/proc-macro-crate"
   },
   {
    "display_name": "proc-macro2",
@@ -805,6 +913,12 @@
    "purl": "pkg:cargo/rand"
   },
   {
+   "display_name": "rand_chacha",
+   "ecosystem": "cargo",
+   "name": "rand_chacha",
+   "purl": "pkg:cargo/rand_chacha"
+  },
+  {
    "display_name": "rand_core",
    "ecosystem": "cargo",
    "name": "rand_core",
@@ -845,6 +959,12 @@
    "ecosystem": "cargo",
    "name": "ripemd",
    "purl": "pkg:cargo/ripemd"
+  },
+  {
+   "display_name": "rust_decimal",
+   "ecosystem": "cargo",
+   "name": "rust_decimal",
+   "purl": "pkg:cargo/rust_decimal"
   },
   {
    "display_name": "rustc-demangle",
@@ -943,12 +1063,6 @@
    "purl": "pkg:cargo/serde"
   },
   {
-   "display_name": "serde-pickle",
-   "ecosystem": "cargo",
-   "name": "serde-pickle",
-   "purl": "pkg:cargo/serde-pickle"
-  },
-  {
    "display_name": "serde_core",
    "ecosystem": "cargo",
    "name": "serde_core",
@@ -959,6 +1073,12 @@
    "ecosystem": "cargo",
    "name": "serde_derive",
    "purl": "pkg:cargo/serde_derive"
+  },
+  {
+   "display_name": "serde_json",
+   "ecosystem": "cargo",
+   "name": "serde_json",
+   "purl": "pkg:cargo/serde_json"
   },
   {
    "display_name": "sha1",
@@ -1085,6 +1205,12 @@
    "ecosystem": "cargo",
    "name": "toml_datetime",
    "purl": "pkg:cargo/toml_datetime"
+  },
+  {
+   "display_name": "toml_edit",
+   "ecosystem": "cargo",
+   "name": "toml_edit",
+   "purl": "pkg:cargo/toml_edit"
   },
   {
    "display_name": "toml_parser",
@@ -1297,6 +1423,18 @@
    "purl": "pkg:cargo/yoke-derive"
   },
   {
+   "display_name": "zerocopy",
+   "ecosystem": "cargo",
+   "name": "zerocopy",
+   "purl": "pkg:cargo/zerocopy"
+  },
+  {
+   "display_name": "zerocopy-derive",
+   "ecosystem": "cargo",
+   "name": "zerocopy-derive",
+   "purl": "pkg:cargo/zerocopy-derive"
+  },
+  {
    "display_name": "zerofrom",
    "ecosystem": "cargo",
    "name": "zerofrom",
@@ -1337,6 +1475,12 @@
    "ecosystem": "cargo",
    "name": "zlib-rs",
    "purl": "pkg:cargo/zlib-rs"
+  },
+  {
+   "display_name": "zmij",
+   "ecosystem": "cargo",
+   "name": "zmij",
+   "purl": "pkg:cargo/zmij"
   },
   {
    "display_name": "zstd",
@@ -4309,6 +4453,96 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=bigdecimal,version=0.4.11].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/bigdecimal@0.4.11#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/autocfg@1.5.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=bigdecimal,version=0.4.11].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/bigdecimal@0.4.11#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.16",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libm@0.2.16#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=bigdecimal,version=0.4.11].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/bigdecimal@0.4.11#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/num-bigint@0.4.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=bigdecimal,version=0.4.11].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/bigdecimal@0.4.11#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/num-integer@0.1.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=bigdecimal,version=0.4.11].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/bigdecimal@0.4.11#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.19",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/num-traits@0.2.19#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=bindgen,version=0.72.1].dependencies[0]",
      "path": "rust-cpython/overlay/Cargo.lock"
     }
@@ -4681,6 +4915,150 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/generic-array@0.14.7#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh-derive,version=1.8.1].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh-derive@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.21.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/once_cell@1.21.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh-derive,version=1.8.1].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh-derive@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro-crate@3.5.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh-derive,version=1.8.1].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh-derive@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh-derive,version=1.8.1].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh-derive@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh-derive,version=1.8.1].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh-derive@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh,version=1.8.1].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.8.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/borsh-derive@1.8.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh,version=1.8.1].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.12.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bytes@1.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=borsh,version=1.8.1].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/borsh@1.8.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/cfg_aliases@0.2.2#"
   },
   {
    "condition": null,
@@ -5587,6 +5965,132 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=defmt-macros,version=1.2.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt-macros@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/defmt-parser@1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt-macros,version=1.2.0].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt-macros@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt-macros,version=1.2.0].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt-macros@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt-macros,version=1.2.0].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt-macros@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt-parser,version=1.1.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt-parser@1.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/thiserror@2.0.21#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt,version=1.2.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.3.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bitflags@1.3.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=defmt,version=1.2.0].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/defmt@1.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/defmt-macros@1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=der-parser,version=9.0.0].dependencies[0]",
      "path": "backend/vendor/rtls/rust/Cargo.lock"
     }
@@ -5941,6 +6445,132 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/cipher@0.4.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-core,version=0.10.2].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-core@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.11",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bigdecimal@0.4.11#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-core,version=0.10.2].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-core@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/indexmap@2.14.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-core,version=0.10.2].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-core@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.39",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/jiff@0.2.39#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-core,version=0.10.2].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-core@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/num-bigint@0.4.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-core,version=0.10.2].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-core@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.43.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rust_decimal@1.43.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-pickle,version=0.10.2].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-pickle@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
   },
   {
    "condition": null,
@@ -7873,6 +8503,240 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=jiff-core,version=0.1.2].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-core@0.1.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/defmt@1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff-core,version=0.1.2].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-core@0.1.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/log@0.4.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff-static,version=0.2.39].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-static@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/jiff-core@0.1.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff-static,version=0.2.39].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-static@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff-static,version=0.2.39].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-static@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff-static,version=0.2.39].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff-static@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.119",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@2.0.119#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/defmt@1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/jiff-core@0.1.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.39",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/jiff-static@0.2.39#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.34",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/log@0.4.34#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[5]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/portable-atomic-util@0.2.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.15.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/portable-atomic@1.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=jiff,version=0.2.39].dependencies[6]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/jiff@0.2.39#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serde_core@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=jobserver,version=0.1.34].dependencies[0]",
      "path": "rust-cpython/overlay/Cargo.lock"
     }
@@ -9439,6 +10303,24 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=portable-atomic-util,version=0.2.8].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/portable-atomic-util@0.2.8#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.15.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/portable-atomic@1.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=potential_utf,version=0.1.6].dependencies[0]",
      "path": "rust-cpython/overlay/Cargo.lock"
     }
@@ -9451,6 +10333,24 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/zerovec@0.11.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=ppv-lite86,version=0.2.21].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/ppv-lite86@0.2.21#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.63",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zerocopy@0.8.63#"
   },
   {
    "condition": null,
@@ -9487,6 +10387,24 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/syn@2.0.119#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=proc-macro-crate,version=3.5.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/proc-macro-crate@3.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.25.13+spec-1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#"
   },
   {
    "condition": null,
@@ -10015,6 +10933,96 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=rand,version=0.8.8].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand@0.8.8#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.189",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.189#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand,version=0.8.8].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand@0.8.8#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_chacha@0.3.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand,version=0.8.8].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand@0.8.8#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.6.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_core@0.6.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand,version=0.9.5].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand@0.9.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.9.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_chacha@0.9.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand,version=0.9.5].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand@0.9.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.9.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_core@0.9.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=rand,version=0.9.5].dependencies[0]",
      "path": "rust-cpython/overlay/Modules/_csv_rs/std_source/Cargo.lock"
     }
@@ -10027,6 +11035,114 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/rand_core@0.9.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_chacha,version=0.3.1].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_chacha@0.3.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/ppv-lite86@0.2.21#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_chacha,version=0.3.1].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_chacha@0.3.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.6.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_core@0.6.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_chacha,version=0.9.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_chacha@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/ppv-lite86@0.2.21#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_chacha,version=0.9.0].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_chacha@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.9.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand_core@0.9.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_core,version=0.6.4].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_core@0.6.4#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/getrandom@0.2.17#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rand_core,version=0.9.5].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rand_core@0.9.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/getrandom@0.3.4#"
   },
   {
    "condition": null,
@@ -10423,6 +11539,168 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/digest@0.11.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.7.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/arrayvec@0.7.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.8.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/borsh@1.8.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.12.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bytes@1.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.19",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/num-traits@0.2.19#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand@0.8.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[5]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.9.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rand@0.9.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[6]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serde@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[7]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.154",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serde_json@1.0.154#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rust_decimal,version=1.43.0].dependencies[8]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rust_decimal@1.43.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.117",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/wasm-bindgen@0.2.117#"
   },
   {
    "condition": null,
@@ -11311,96 +12589,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=serde-pickle,version=1.2.0].dependencies[0]",
-     "path": "rust-cpython/overlay/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde-pickle@1.2.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/byteorder@1.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde-pickle,version=1.2.0].dependencies[1]",
-     "path": "rust-cpython/overlay/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde-pickle@1.2.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.1.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/iter-read@1.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde-pickle,version=1.2.0].dependencies[2]",
-     "path": "rust-cpython/overlay/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde-pickle@1.2.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.8",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/num-bigint@0.4.8#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde-pickle,version=1.2.0].dependencies[3]",
-     "path": "rust-cpython/overlay/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde-pickle@1.2.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.19",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/num-traits@0.2.19#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde-pickle,version=1.2.0].dependencies[4]",
-     "path": "rust-cpython/overlay/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde-pickle@1.2.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=serde,version=1.0.229].dependencies[0]",
      "path": "rust-cpython/overlay/Cargo.lock"
     }
@@ -11557,6 +12745,96 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=serde_json,version=1.0.154].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/serde_json@1.0.154#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/itoa@1.0.18#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=serde_json,version=1.0.154].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/serde_json@1.0.154#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.8.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/memchr@2.8.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=serde_json,version=1.0.154].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/serde_json@1.0.154#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serde@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=serde_json,version=1.0.154].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/serde_json@1.0.154#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serde_core@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=serde_json,version=1.0.154].dependencies[4]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/serde_json@1.0.154#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zmij@1.0.23#"
   },
   {
    "condition": null,
@@ -12607,6 +13885,60 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=thiserror-impl,version=2.0.21].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/thiserror-impl@2.0.21#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=thiserror-impl,version=2.0.21].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/thiserror-impl@2.0.21#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=thiserror-impl,version=2.0.21].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/thiserror-impl@2.0.21#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=thiserror,version=1.0.69].dependencies[0]",
      "path": "backend/vendor/rtls/rust/Cargo.lock"
     }
@@ -12637,6 +13969,24 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/thiserror-impl@1.0.69#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=thiserror,version=2.0.21].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/thiserror@2.0.21#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/thiserror-impl@2.0.21#"
   },
   {
    "condition": null,
@@ -12997,6 +14347,78 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/serde_core@1.0.229#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=toml_edit,version=0.25.13+spec-1.1.0].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/indexmap@2.14.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=toml_edit,version=0.25.13+spec-1.1.0].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.1.1+spec-1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/toml_datetime@1.1.1%2Bspec-1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=toml_edit,version=0.25.13+spec-1.1.0].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.1.3+spec-1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/toml_parser@1.1.3%2Bspec-1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=toml_edit,version=0.25.13+spec-1.1.0].dependencies[3]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/winnow@1.0.4#"
   },
   {
    "condition": null,
@@ -13885,6 +15307,24 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=winnow,version=1.0.4].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/winnow@1.0.4#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.8.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/memchr@2.8.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=wit-bindgen,version=0.61.1].dependencies[0]",
      "path": "rust-cpython/overlay/Modules/_csv_rs/std_source/Cargo.lock"
     }
@@ -14383,6 +15823,78 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/zerofrom@0.1.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=zerocopy-derive,version=0.8.63].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/zerocopy-derive@0.8.63#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=zerocopy-derive,version=0.8.63].dependencies[1]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/zerocopy-derive@0.8.63#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=zerocopy-derive,version=0.8.63].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/zerocopy-derive@0.8.63#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.119",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@2.0.119#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=zerocopy,version=0.8.63].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/zerocopy@0.8.63#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.63",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zerocopy-derive@0.8.63#"
   },
   {
    "condition": null,
@@ -17328,10 +18840,10 @@
   },
   {
    "condition": null,
-   "constraint": "1.2.0",
+   "constraint": "0.10.2",
    "evidence": [
     {
-     "locator": "dependencies.serde-pickle",
+     "locator": "dependencies.deser-pickle",
      "path": "rust-cpython/overlay/Modules/_pickle_rs/Cargo.toml"
     },
     {
@@ -17343,17 +18855,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.2.0",
+   "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde-pickle@1.2.0#"
+   "to": "pkg:cargo/deser-pickle@0.10.2#"
   },
   {
    "condition": null,
-   "constraint": "1.0",
+   "constraint": "0.10.2",
    "evidence": [
     {
-     "locator": "dependencies.serde",
+     "locator": "dependencies.deser",
      "path": "rust-cpython/overlay/Modules/_pickle_rs/Cargo.toml"
     },
     {
@@ -17365,10 +18877,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.0.229",
+   "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
+   "to": "pkg:cargo/deser@0.10.2#"
   },
   {
    "condition": null,
@@ -19753,7 +21265,7 @@
    "path": "pyproject.toml"
   },
   {
-   "blob": "c05e37b227a3263331248025020fc37414bc6955",
+   "blob": "e16a3702725dfe353e5e7843f229b29b7ec9d853",
    "path": "rust-cpython/overlay/Cargo.lock"
   },
   {
@@ -19925,7 +21437,7 @@
    "path": "rust-cpython/overlay/Modules/_pathlib_rs/Cargo.toml"
   },
   {
-   "blob": "5479113038cc19589fbb5fc79ec0fe79ca1b4c71",
+   "blob": "0d6a337789c4134bc9af099c48677065655b91a6",
    "path": "rust-cpython/overlay/Modules/_pickle_rs/Cargo.toml"
   },
   {
@@ -20077,7 +21589,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "031e3937d1955373c41367859fde4762ec5c5000b6235ec6c9cb86c7a055456b",
+ "inputs_fingerprint": "ebd29a36382d74173ce2491e3be3868fc49244cd30768be0573f28ceaca0409d",
  "instances": [
   {
    "commit": null,
@@ -20237,6 +21749,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/arrayvec",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/arrayvec@0.7.8#",
+   "purl": "pkg:cargo/arrayvec@0.7.8",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.7.8"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/asn1-rs-derive",
    "context": "",
    "first_party": false,
@@ -20367,6 +21892,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/bigdecimal",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/bigdecimal@0.4.11#",
+   "purl": "pkg:cargo/bigdecimal@0.4.11",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.4.11"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/bindgen",
    "context": "",
    "first_party": false,
@@ -20377,6 +21915,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.72.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/bitflags",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/bitflags@1.3.2#",
+   "purl": "pkg:cargo/bitflags@1.3.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.3.2"
   },
   {
    "commit": null,
@@ -20445,6 +21996,32 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/borsh-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/borsh-derive@1.8.1#",
+   "purl": "pkg:cargo/borsh-derive@1.8.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.8.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/borsh",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/borsh@1.8.1#",
+   "purl": "pkg:cargo/borsh@1.8.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.8.1"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/bumpalo",
    "context": "",
    "first_party": false,
@@ -20468,6 +22045,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.5.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/bytes",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/bytes@1.12.1#",
+   "purl": "pkg:cargo/bytes@1.12.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.12.1"
   },
   {
    "commit": null,
@@ -20572,6 +22162,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/cfg_aliases",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/cfg_aliases@0.2.2#",
+   "purl": "pkg:cargo/cfg_aliases@0.2.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.2"
   },
   {
    "commit": null,
@@ -20835,6 +22438,45 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/defmt-macros",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/defmt-macros@1.2.0#",
+   "purl": "pkg:cargo/defmt-macros@1.2.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/defmt-parser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/defmt-parser@1.1.0#",
+   "purl": "pkg:cargo/defmt-parser@1.1.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/defmt",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/defmt@1.2.0#",
+   "purl": "pkg:cargo/defmt@1.2.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.0"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/der-parser",
    "context": "",
    "first_party": false,
@@ -20897,6 +22539,45 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.8.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-core@0.10.2#",
+   "purl": "pkg:cargo/deser-core@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-pickle",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-pickle@0.10.2#",
+   "purl": "pkg:cargo/deser-pickle@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser@0.10.2#",
+   "purl": "pkg:cargo/deser@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
   },
   {
    "commit": null,
@@ -21420,19 +23101,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/iter-read",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/iter-read@1.1.0#",
-   "purl": "pkg:cargo/iter-read@1.1.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.1.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/itertools",
    "context": "",
    "first_party": false,
@@ -21456,6 +23124,45 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.18"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/jiff-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/jiff-core@0.1.2#",
+   "purl": "pkg:cargo/jiff-core@0.1.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/jiff-static",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/jiff-static@0.2.39#",
+   "purl": "pkg:cargo/jiff-static@0.2.39",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.39"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/jiff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/jiff@0.2.39#",
+   "purl": "pkg:cargo/jiff@0.2.39",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.39"
   },
   {
    "commit": null,
@@ -21586,6 +23293,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.8.9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/libm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/libm@0.2.16#",
+   "purl": "pkg:cargo/libm@0.2.16",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.16"
   },
   {
    "commit": null,
@@ -21953,6 +23673,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/portable-atomic-util",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/portable-atomic-util@0.2.8#",
+   "purl": "pkg:cargo/portable-atomic-util@0.2.8",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.8"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/portable-atomic",
    "context": "",
    "first_party": false,
@@ -21992,6 +23725,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/ppv-lite86",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/ppv-lite86@0.2.21#",
+   "purl": "pkg:cargo/ppv-lite86@0.2.21",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.21"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/prettyplease",
    "context": "",
    "first_party": false,
@@ -22002,6 +23748,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.2.37"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/proc-macro-crate",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/proc-macro-crate@3.5.0#",
+   "purl": "pkg:cargo/proc-macro-crate@3.5.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "3.5.0"
   },
   {
    "commit": null,
@@ -22190,6 +23949,19 @@
    "component": "pkg:cargo/rand",
    "context": "",
    "first_party": false,
+   "id": "pkg:cargo/rand@0.8.8#",
+   "purl": "pkg:cargo/rand@0.8.8",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.8.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rand",
+   "context": "",
+   "first_party": false,
    "id": "pkg:cargo/rand@0.9.5#",
    "purl": "pkg:cargo/rand@0.9.5",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -22197,6 +23969,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.9.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rand_chacha",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rand_chacha@0.3.1#",
+   "purl": "pkg:cargo/rand_chacha@0.3.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rand_chacha",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rand_chacha@0.9.0#",
+   "purl": "pkg:cargo/rand_chacha@0.9.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22301,6 +24099,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rust_decimal",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rust_decimal@1.43.0#",
+   "purl": "pkg:cargo/rust_decimal@1.43.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.43.0"
   },
   {
    "commit": null,
@@ -22525,19 +24336,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/serde-pickle",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde-pickle@1.2.0#",
-   "purl": "pkg:cargo/serde-pickle@1.2.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.2.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/serde",
    "context": "",
    "first_party": false,
@@ -22574,6 +24372,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.229"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/serde_json",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/serde_json@1.0.154#",
+   "purl": "pkg:cargo/serde_json@1.0.154",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.0.154"
   },
   {
    "commit": null,
@@ -22837,6 +24648,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/thiserror-impl",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/thiserror-impl@2.0.21#",
+   "purl": "pkg:cargo/thiserror-impl@2.0.21",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.0.21"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/thiserror",
    "context": "",
    "first_party": false,
@@ -22847,6 +24671,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.69"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/thiserror",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/thiserror@2.0.21#",
+   "purl": "pkg:cargo/thiserror@2.0.21",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.0.21"
   },
   {
    "commit": null,
@@ -22951,6 +24788,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.1.1+spec-1.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/toml_edit",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0#",
+   "purl": "pkg:cargo/toml_edit@0.25.13%2Bspec-1.1.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.25.13+spec-1.1.0"
   },
   {
    "commit": null,
@@ -23448,6 +25298,32 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/zerocopy-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/zerocopy-derive@0.8.63#",
+   "purl": "pkg:cargo/zerocopy-derive@0.8.63",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.8.63"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/zerocopy",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/zerocopy@0.8.63#",
+   "purl": "pkg:cargo/zerocopy@0.8.63",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.8.63"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/zerofrom-derive",
    "context": "",
    "first_party": false,
@@ -23549,6 +25425,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/zmij",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/zmij@1.0.23#",
+   "purl": "pkg:cargo/zmij@1.0.23",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.0.23"
   },
   {
    "commit": null,
