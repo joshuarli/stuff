@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
+from repomod.catalog import LANGUAGE_TAGS, LOCKFILE_IGNORE_PREFIX, PLATFORM_TAGS
 from repomod.io import read_json_object, read_toml, safe_relative
 from repomod.rules.binary_release import has_binary_release_contract
 from repomod.run_cache import cached
@@ -274,7 +274,9 @@ def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
                 findings.append(
                     _finding(repository, "rust-project", lock_name, f"Cargo.lock is invalid TOML: {error}")
                 )
-        elif lock_root in lock_roots:
+        elif lock_root in lock_roots and (
+            f"{LOCKFILE_IGNORE_PREFIX}{lock_root.relative_to(root).as_posix()}" not in repository.ignored_rules
+        ):
             findings.append(
                 _finding(repository, "rust-project", lock_name, "commit Cargo.lock for the Rust executable")
             )

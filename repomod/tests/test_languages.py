@@ -233,6 +233,26 @@ def test_rust_lockfile_is_required_at_the_nested_executable_workspace_root(
     assert _rust_findings(tmp_path, repository("library", "rust")) == []
 
 
+def test_rust_lockfile_ignore_skips_only_the_named_workspace_root(
+    tmp_path: Path,
+) -> None:
+    _cargo_package(tmp_path, "demo", binary=False)
+    _cargo_package(tmp_path / "compare", "compare", binary=True)
+    _cargo_package(tmp_path / "tools" / "gen", "gen", binary=True)
+    ignored = Repository(
+        RepoId("acme", "demo"),
+        ("library", "rust"),
+        ignored_rules=frozenset({"rust-project:lockfile:compare"}),
+        ignore_reason="compare is a development tool",
+    )
+
+    findings = _rust_findings(tmp_path, ignored)
+
+    assert [finding.file for finding in findings if "Cargo.lock" in (finding.file or "")] == [
+        "tools/gen/Cargo.lock"
+    ]
+
+
 def test_rust_workspace_member_executable_needs_the_workspace_root_lockfile(
     tmp_path: Path,
 ) -> None:

@@ -18,7 +18,9 @@ from `audit-upgrades`. An entry of the form `audit-banned:transitive:NAME` exemp
 Rust crate from `audit-banned` without allowing it as a direct dependency. `audit-banned:direct:NAME`
 exempts one direct Rust dependency and its lockfile entry. An entry of the form
 `registry-sources:git:NAME` silences the `registry-sources` warning for one
-git-sourced package named `NAME`. Document policy changes alongside the rule.
+git-sourced package named `NAME`. `rust-project:lockfile:DIR` stops `rust-project` from asking
+for a `Cargo.lock` at the workspace root `DIR` (relative to the repository root) and keeps its other
+checks. Document policy changes alongside the rule.
 
 ## Fixers
 

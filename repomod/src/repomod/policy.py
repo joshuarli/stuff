@@ -11,6 +11,7 @@ from repomod.catalog import (
     parse_dependency_ignore,
     parse_git_source_ignore,
     parse_local_source_ignore,
+    parse_lockfile_ignore,
     repository_path,
 )
 from repomod.github import open_pull_requests, protection_many, topics_many
@@ -63,6 +64,7 @@ def validate_ignored_rules(repositories: Iterable[Repository]) -> None:
             and parse_banned_direct_ignore(value) is None
             and parse_git_source_ignore(value) is None
             and parse_local_source_ignore(value) is None
+            and parse_lockfile_ignore(value) is None
         }
         if unknown:
             raise PolicyError(

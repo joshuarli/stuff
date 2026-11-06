@@ -63,6 +63,8 @@ GIT_SOURCE_IGNORE_PREFIX = "registry-sources:git:"
 _GIT_SOURCE_IGNORE = re.compile(r"registry-sources:git:([A-Za-z0-9@_./+-]+)\Z")
 LOCAL_SOURCE_IGNORE_PREFIX = "registry-sources:path:"
 _LOCAL_SOURCE_IGNORE = re.compile(r"registry-sources:path:([A-Za-z0-9@_./+-]+)\Z")
+LOCKFILE_IGNORE_PREFIX = "rust-project:lockfile:"
+_LOCKFILE_IGNORE = re.compile(r"rust-project:lockfile:([A-Za-z0-9_+-]+(?:/[A-Za-z0-9_.+-]+)*)\Z")
 
 
 def parse_git_source_ignore(value: str) -> str | None:
@@ -72,6 +74,11 @@ def parse_git_source_ignore(value: str) -> str | None:
 
 def parse_local_source_ignore(value: str) -> str | None:
     match = _LOCAL_SOURCE_IGNORE.fullmatch(value)
+    return None if match is None else str(match.group(1))
+
+
+def parse_lockfile_ignore(value: str) -> str | None:
+    match = _LOCKFILE_IGNORE.fullmatch(value)
     return None if match is None else str(match.group(1))
 
 
@@ -291,6 +298,13 @@ def load_catalog(path: Path, environ: dict[str, str] | None = None) -> Catalog:
                     raise CatalogError(
                         f"invalid local source ignore {ignored_rule!r} for {repo_id}; "
                         "use registry-sources:path:NAME"
+                    )
+                continue
+            if ignored_rule.startswith(LOCKFILE_IGNORE_PREFIX):
+                if parse_lockfile_ignore(ignored_rule) is None:
+                    raise CatalogError(
+                        f"invalid lockfile ignore {ignored_rule!r} for {repo_id}; "
+                        "use rust-project:lockfile:DIR with DIR relative to the repository root"
                     )
                 continue
             validate_identifier(ignored_rule.replace(":", "-", 1), "ignored rule code")
