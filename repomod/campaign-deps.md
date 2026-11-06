@@ -6,10 +6,10 @@
 
 **Preflight:** ready on 2026-11-06 at `102b7b4`. Owner decision D1 was given on 2026-11-06.
 
-- **Accepted slices:** none.
-- **Red:** none. The baseline is green (see **Baseline**).
+- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`). The fleet pilot read 52 repositories and 962 inputs in 0.51 s CPU with four workers, wrote 275 KB, and `check` reproduced identical bytes in 0.52 s CPU. Every selected repository is `partial` because no adapter has landed; the only issues are `unsupported_format` (962) and `vendored_unknown` (10).
+- **Red:** none. `make test` is 643 passed and 1 skipped; ruff and ty are clean.
 - **Parked:** none.
-- **Next:** S1.
+- **Next:** S2.
 - **Resume:** "Execute `campaign-deps.md` from **Status**. Run `uv run repomod sync`, then start the next slice."
 
 ## Charter
