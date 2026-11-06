@@ -6,10 +6,10 @@
 
 **Preflight:** ready on 2026-11-06 at `102b7b4`. Owner decision D1 was given on 2026-11-06.
 
-- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`); S4 — pnpm v9 and npm v3 adapters with peer contexts and nested resolution (`fca699d`); S5 — Go, Swift, and Zig adapters (`8d3bebc`). Fleet pilot: 52 repositories, 962 inputs, 1.88 s wall and 1.67 s CPU, 11.1 MB, largest file 848 KB, and 0 parse errors. Remaining known gaps are 23 missing-lock paths, 4 named Cargo registries, and 3 Swift declarations built from variables. Every repository remains `partial` until the infrastructure adapters land.
-- **Red:** none. `make test` is 741 passed and 1 skipped; ruff and ty are clean.
+- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`); S4 — pnpm v9 and npm v3 adapters with peer contexts and nested resolution (`fca699d`); S5 — Go, Swift, and Zig adapters (`8d3bebc`); S6 — Actions, containers, toolchains, submodules, CMake, Wrangler, and vendored inputs (`3887e96`). Fleet pilot: 52 repositories, 962 inputs, 2.56 s wall and 2.43 s CPU, 12.0 MB, largest file 864 KB, and 0 parse errors. Remaining known gaps are 23 missing-lock paths, 43 dynamic values in build arguments and variable declarations, 82 detection-only formats, and 10 vendored roots without manifests. Every repository is `partial` because detection-only formats never gain a parser.
+- **Red:** none. `make test` is 763 passed and 1 skipped; ruff and ty are clean.
 - **Parked:** none.
-- **Next:** S6.
+- **Next:** S7.
 - **Resume:** "Execute `campaign-deps.md` from **Status**. Run `uv run repomod sync`, then start the next slice."
 
 ## Charter
