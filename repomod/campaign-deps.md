@@ -6,10 +6,10 @@
 
 **Preflight:** ready on 2026-11-06 at `102b7b4`. Owner decision D1 was given on 2026-11-06.
 
-- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`); S4 — pnpm v9 and npm v3 adapters with peer contexts and nested resolution (`fca699d`); S5 — Go, Swift, and Zig adapters (`8d3bebc`); S6 — Actions, containers, toolchains, submodules, CMake, Wrangler, and vendored inputs (`3887e96`). Fleet pilot: 52 repositories, 962 inputs, 2.56 s wall and 2.43 s CPU, 12.0 MB, largest file 864 KB, and 0 parse errors. Remaining known gaps are 23 missing-lock paths, 43 dynamic values in build arguments and variable declarations, 82 detection-only formats, and 10 vendored roots without manifests. Every repository is `partial` because detection-only formats never gain a parser.
-- **Red:** none. `make test` is 763 passed and 1 skipped; ruff and ty are clean.
+- **Accepted slices:** S1 — dependency model, tree reader, discovery, snapshot, and check (`db5ffba`); S2 — Cargo adapter and full lock graph (`5b7b4f9`); S3 — uv adapter with markers, extras, groups, and workspace sources (`67eee8e`); S4 — pnpm v9 and npm v3 adapters with peer contexts and nested resolution (`fca699d`); S5 — Go, Swift, and Zig adapters (`8d3bebc`); S6 — Actions, containers, toolchains, submodules, CMake, Wrangler, and vendored inputs (`3887e96`); S7 — graph, `why`, `report`, first-party links, and the opt-in fleet parity test (`38cd08b`). Fleet inventory: 52 repositories, 502 projects, 2911 package names, 3444 name@version pairs, 3823 instances, 3910 direct and 12841 transitive edges, and 158 coverage issues (23 missing locks, 43 dynamic values, 82 detection-only formats, 10 vendored roots). The fleet test proves D7 parity with the documented improvements (committed-tree reads, local packages as generic, ignored working-tree locks, nested locks, and replacements), byte-identical output across runs and worker counts, and unchanged checkout state.
+- **Red:** none. `make test` is 776 passed and 3 skipped; ruff and ty are clean. `REPOMOD_FLEET=1 uv run pytest tests/test_deps_fleet.py` passes.
 - **Parked:** none.
-- **Next:** S7.
+- **Next:** S8.
 - **Resume:** "Execute `campaign-deps.md` from **Status**. Run `uv run repomod sync`, then start the next slice."
 
 ## Charter
