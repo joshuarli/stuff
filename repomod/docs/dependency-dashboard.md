@@ -9,6 +9,9 @@ uv run repomod deps render
 open file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html
 ```
 
+For a local server, `make deps` renders the dashboard and serves it at
+`http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
+
 The site has no fetch, CDN, web font, framework, or chart library. Everything is precomputed by
 Python; the browser only filters, sorts, and expands. It works from `file://`.
 
