@@ -140,6 +140,14 @@ ignore_reason = "The macos-native README names Chromium source paths that live i
 ignore = ["rust-toolchain"]
 ignore_reason = "Fork whose CI and flake pin the nightly the Verus build needs."
 
+[overrides."laputa-systems/rawzip"]
+ignore = ["rust-project:lockfile:compare"]
+ignore_reason = "compare/ is a development tool for comparing against other zip crates, and the repository ignores Cargo.lock on purpose."
+
+[overrides."laputa-systems/h12tiny"]
+ignore = ["rust-project:lockfile:crates/laputa-h2-futures-lite"]
+ignore_reason = "The vendored h2 fork keeps upstream's own workspace, whose only executables are its fuzz, fixture, and Huffman-table development utilities."
+
 [overrides."laputa-systems/python-build"]
 ignore = ["mdtool:D001", "mdtool:P002", "mdtool:R001", "mdtool:R005"]
 ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees repeat skill text on purpose, and the benchmark README names files its commands generate."
