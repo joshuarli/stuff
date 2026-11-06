@@ -454,7 +454,7 @@ def _roles(graph: Graph, names: Iterable[str]) -> dict[str, object]:
     selected = set(names)
     found = tuple(
         declaration
-        for declaration in insights.declarations(graph)
+        for declaration in insights.owned(graph, insights.declarations(graph))
         if declaration.repository in selected
     )
     roles: list[dict[str, object]] = [

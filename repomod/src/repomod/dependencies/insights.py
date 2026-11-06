@@ -3,7 +3,7 @@ from __future__ import annotations
 import tomllib
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, cast
@@ -112,6 +112,7 @@ class Role:
     preferred: str | None
     options: Mapping[str, frozenset[str]]
     complements: frozenset[str] = frozenset()
+    exceptions: Mapping[str, str] = field(default_factory=dict)
 
     def allows(self, chosen: frozenset[str]) -> bool:
         if self.preferred is None or self.preferred not in chosen:
@@ -147,11 +148,21 @@ class RoleUse:
             if chosen != {self.role.preferred} and not self.role.allows(chosen)
         )
 
+    @property
+    def excepted(self) -> tuple[tuple[str, str], ...]:
+        used = {repository for repositories in self.options.values() for repository in repositories}
+        return tuple(
+            (repository, reason)
+            for repository, reason in sorted(self.role.exceptions.items(), key=lambda item: item[0].casefold())
+            if repository in used
+        )
+
     def _chosen(self) -> dict[str, frozenset[str]]:
         chosen: dict[str, set[str]] = defaultdict(set)
         for option, repositories in self.options.items():
             for repository in repositories:
-                chosen[repository].add(option)
+                if repository not in self.role.exceptions:
+                    chosen[repository].add(option)
         return {repository: frozenset(options) for repository, options in chosen.items()}
 
 
@@ -202,6 +213,15 @@ def declarations(graph: Graph) -> tuple[Declaration, ...]:
             found.items(), key=lambda item: (item[0][0].casefold(), item[0][1])
         )
     )
+
+
+def forks(graph: Graph) -> tuple[str, ...]:
+    return _sorted(name for name in graph.repositories if "fork" in graph.tags.get(name, ()))
+
+
+def owned(graph: Graph, found: Iterable[Declaration]) -> tuple[Declaration, ...]:
+    upstream = set(forks(graph))
+    return tuple(declaration for declaration in found if declaration.repository not in upstream)
 
 
 def gap(ecosystem: Ecosystem, current: str, latest: str) -> Gap | None:
@@ -492,7 +512,7 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
         if not isinstance(raw, dict):
             raise ValueError(f"{source} [{name}] must be a table")
         table = cast(Mapping[str, Any], raw)
-        unknown = set(table) - {"ecosystem", "preferred", "complements", "options"}
+        unknown = set(table) - {"ecosystem", "preferred", "complements", "options", "exceptions"}
         if unknown:
             raise ValueError(f"{source} [{name}] has unknown keys: {', '.join(sorted(unknown))}")
         try:
@@ -528,6 +548,11 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
             raise ValueError(f"{source} [{name}] complements need a preferred option")
         if any(item == preferred or item not in options for item in complements):
             raise ValueError(f"{source} [{name}] complements must be other options of the role")
+        exceptions = table.get("exceptions", {})
+        if not isinstance(exceptions, dict) or not all(
+            isinstance(reason, str) and reason.strip() for reason in exceptions.values()
+        ):
+            raise ValueError(f"{source} [{name}] exceptions must map repositories to reasons")
         roles.append(
             Role(
                 name,
@@ -535,6 +560,7 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
                 cast(str | None, preferred),
                 options,
                 frozenset(cast(list[str], complements)),
+                cast(dict[str, str], exceptions),
             )
         )
     return tuple(roles)

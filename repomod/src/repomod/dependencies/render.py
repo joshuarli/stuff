@@ -67,6 +67,7 @@ class _Site:
     splits: tuple[insights.Split, ...]
     roles: tuple[insights.RoleUse, ...]
     scorecards: tuple[insights.Scorecard, ...]
+    forks: tuple[str, ...]
 
 
 def render(
@@ -169,12 +170,14 @@ def _site(
         except ValueError:
             diff_value = None
     declared = insights.declarations(graph)
+    mine = insights.owned(graph, declared)
+    forks = insights.forks(graph)
     results = cache.results
-    outdated = insights.outdated(declared, results)
+    outdated = insights.outdated(mine, results)
     vulnerable = insights.vulnerable(graph, declared, results)
-    weights = insights.weights(graph, declared)
-    splits = insights.splits(declared, results)
-    roles = insights.role_uses(insights.load_roles(), declared)
+    weights = insights.weights(graph, mine)
+    splits = insights.splits(mine, results)
+    roles = insights.role_uses(insights.load_roles(), mine)
     return _Site(
         graph,
         inventory,
@@ -190,7 +193,15 @@ def _site(
         weights,
         splits,
         roles,
-        insights.scorecards(graph.repositories, outdated, vulnerable, splits, roles, weights),
+        insights.scorecards(
+            [name for name in graph.repositories if name not in forks],
+            outdated,
+            vulnerable,
+            splits,
+            roles,
+            weights,
+        ),
+        forks,
     )
 
 
@@ -308,8 +319,34 @@ def _overview(site: _Site) -> str:
         '<p class="sub">Worst first: vulnerable versions, breaking upgrades, versions behind, '
         "split versions, then role conflicts.</p>",
         _scorecard_table(site),
+        "<h2>Forks</h2>",
+        '<p class="sub">Forks keep upstream\'s dependency choices, so they are left out of the '
+        "lists above. Only vulnerable versions are tracked here.</p>",
+        _fork_table(site),
     ]
     return "\n".join(body)
+
+
+def _fork_table(site: _Site) -> str:
+    if not site.forks:
+        return '<p class="zero">no fork repositories</p>'
+    exposure: dict[str, list[str]] = {name: [] for name in site.forks}
+    for row in site.vulnerable:
+        for repository in {*row.direct_in, *row.transitive_in}:
+            if repository in exposure:
+                exposure[repository].append(f"{row.component.display_name}@{row.version}")
+    rows = "".join(
+        f'<tr data-row data-href="repos/{_e(name)}/index.html"'
+        + ("" if exposure[name] else ' class="quiet"')
+        + f"><td>{_repo_link(name, '')}</td>"
+        f'<td class="num{" finding" if exposure[name] else ""}">{_count(len(exposure[name]))}</td>'
+        f'<td class="mono">{_e(", ".join(sorted(exposure[name])))}</td></tr>'
+        for name in sorted(site.forks, key=lambda item: (-len(exposure[item]), item.casefold()))
+    )
+    return (
+        '<div class="scroll"><table><thead><tr><th>Fork</th><th class="num">Vulnerable</th>'
+        f"<th>Versions</th></tr></thead><tbody>{rows}</tbody></table></div>"
+    )
 
 
 def _scorecard_table(site: _Site) -> str:
@@ -654,13 +691,13 @@ def _choices(site: _Site) -> str:
         "packages that do the same job. A mixed repository declares more than one option for "
         "a role; off preferred means it uses an option other than the preferred one. An option "
         "allowed alongside the preferred one is flagged only when the preferred one is "
-        "missing.</p>",
+        "missing. Fork repositories are left out.</p>",
     ]
     settled = []
     for use in site.roles:
         if not use.in_use:
             continue
-        if len(use.in_use) == 1 and not use.off_preferred:
+        if len(use.in_use) == 1 and not use.off_preferred and not use.excepted:
             settled.append(use)
             continue
         body.append(
@@ -690,6 +727,15 @@ def _choices(site: _Site) -> str:
         if use.overlapping:
             body.append(
                 f'<p class="sub risk">mixed: {_repo_list(use.overlapping, limit=12)}</p>'
+            )
+        if use.excepted:
+            body.append(
+                '<p class="sub">accepted exceptions:</p><ul>'
+                + "".join(
+                    f"<li>{_repo_link(repository, '')} <span class=\"sub\">{_e(reason)}</span></li>"
+                    for repository, reason in use.excepted
+                )
+                + "</ul>"
             )
     if settled:
         body.append("<h2>Settled</h2>")

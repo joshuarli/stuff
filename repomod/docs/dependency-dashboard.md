@@ -51,7 +51,13 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 optional `preferred` option, optional `complements`, and `options` mapping each option to the
 package names that mean a repository uses it. A complement is an option that may be used
 alongside the preferred one, such as `libc` next to `rustix` for calls rustix does not cover;
-it is flagged only in repositories that lack the preferred option. A package may belong to one option per role. Only direct
+it is flagged only in repositories that lack the preferred option. `exceptions` maps a
+repository to the reason it keeps a non-preferred option; Choices lists it with that reason
+instead of flagging it.
+
+Repositories tagged `fork` keep upstream's dependency choices. Outdated, Bloat, Alignment,
+Choices, and the repository ranking leave them out; the overview lists them separately with
+their vulnerable versions. A package may belong to one option per role. Only direct
 declarations count. `repomod deps report` lists the repositories that mix options.
 
 ## Interaction

@@ -211,3 +211,40 @@ def test_insight_pages_escape_package_and_role_names(tmp_path: Path) -> None:
         content = (result.output / page).read_text(encoding="utf-8")
         assert "<img src=x" not in content
         assert "evil&lt;img src=x onerror=alert(6)&gt;" in content
+
+
+def test_fork_repositories_are_listed_apart_from_owned_ones(tmp_path: Path) -> None:
+    repositories = []
+    for name, tags in (("acme/mine", ("tool",)), ("acme/upstream", ("fork", "tool"))):
+        clap = instance(Ecosystem.CARGO, "clap", "4.0.0")
+        repositories.append(
+            repository(
+                name,
+                (clap,),
+                tags=tags,
+                projects=(project(".", Ecosystem.CARGO),),
+                edges=(
+                    Edge(
+                        ".:cargo",
+                        clap.id,
+                        Relation.DIRECT,
+                        Scope.RUNTIME,
+                        False,
+                        None,
+                        "4.0.0",
+                        None,
+                        SourceKind.REGISTRY,
+                        Resolution.RESOLVED,
+                    ),
+                ),
+            )
+        )
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    choices = (result.output / "choices.html").read_text(encoding="utf-8")
+    index = (result.output / "index.html").read_text(encoding="utf-8")
+    assert "acme/mine" in choices
+    assert "acme/upstream" not in choices
+    forks = index[index.index("<h2>Forks</h2>"):]
+    assert "acme/upstream" in forks
+    assert "acme/mine" not in forks

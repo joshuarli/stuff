@@ -127,6 +127,11 @@ regex-lite = ["regex-lite"]
 regex-bites = ["regex-bites"]
 fancy-regex = ["fancy-regex"]
 
+[regex.exceptions]
+"joshuarli/obsidian-ferrisearch" = "The tokenizer and highlighter split on Unicode general categories (\\p{P}, \\p{Z}, \\p{S}) and search folds non-ASCII case, which regex-lite does not support."
+"joshuarli/tansu" = "tansu-search tokenizes and highlights on Unicode general categories (\\p{P}, \\p{Z}, \\p{S}) with case-insensitive matching, which regex-lite does not support."
+"laputa-systems/python-build" = "The _re_rs accelerator for CPython's re module needs regex::bytes and regex-syntax's parser, and exists for regex's performance."
+
 [logging]
 ecosystem = "cargo"
 preferred = "log"

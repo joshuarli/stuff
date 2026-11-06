@@ -237,6 +237,49 @@ def test_complements_pass_only_alongside_the_preferred_option(tmp_path: Path) ->
     assert use.off_preferred == ("acme/bare", "acme/nix")
 
 
+def test_role_exceptions_are_reported_apart_from_conflicts(tmp_path: Path) -> None:
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/search", [_cargo("regex", "1.0.0")]),
+            _app("acme/tool", [_cargo("regex", "1.0.0")]),
+        ],
+    )
+    roles = insights.parse_roles(
+        {
+            "regex": {
+                "ecosystem": "cargo",
+                "preferred": "regex-lite",
+                "options": {"regex-lite": ["regex-lite"], "regex": ["regex"]},
+                "exceptions": {"acme/search": "Unicode category classes in the tokenizer"},
+            }
+        },
+        "roles.toml",
+    )
+    [use] = insights.role_uses(roles, insights.declarations(graph))
+    assert use.off_preferred == ("acme/tool",)
+    assert use.excepted == (("acme/search", "Unicode category classes in the tokenizer"),)
+
+
+def test_owned_declarations_leave_out_fork_repositories(tmp_path: Path) -> None:
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/mine", [_cargo("tokio", "1.0.0")]),
+            repository(
+                "acme/upstream",
+                (_cargo("tokio", "1.0.0"),),
+                tags=("fork", "library"),
+                projects=(project(".", Ecosystem.CARGO),),
+                edges=(_edge(".:cargo", _cargo("tokio", "1.0.0")),),
+            ),
+        ],
+    )
+    found = insights.declarations(graph)
+    assert {item.repository for item in insights.owned(graph, found)} == {"acme/mine"}
+    assert insights.forks(graph) == ("acme/upstream",)
+
+
 @pytest.mark.parametrize(
     ("role", "message"),
     [
@@ -248,6 +291,10 @@ def test_complements_pass_only_alongside_the_preferred_option(tmp_path: Path) ->
         ),
         ({"ecosystem": "cobol", "options": {"a": ["x"], "b": ["y"]}}, "unknown ecosystem"),
         ({"ecosystem": "cargo", "prefered": "a", "options": {"a": ["x"], "b": ["y"]}}, "unknown keys"),
+        (
+            {"ecosystem": "cargo", "options": {"a": ["x"], "b": ["y"]}, "exceptions": {"r": ""}},
+            "exceptions must map repositories to reasons",
+        ),
         (
             {"ecosystem": "cargo", "complements": ["b"], "options": {"a": ["x"], "b": ["y"]}},
             "complements need a preferred option",
