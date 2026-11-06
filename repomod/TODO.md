@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 74
 
-### RPMD-72 · P2 · Fix kache's macOS release build under -D warnings
-
-- **Area:** Build
-- **Where:** `joshuarli/kache/src/fallback/sandbox.rs`, `joshuarli/kache/src/fallback/macos.rs`
-- **Problem:** `cargo build --release --bin kache` on macOS at origin/main c1fba3b stops with nine dead-code errors under `-D warnings` (`Probe`, `check`, `denial`, `server_pid`, and others), so the release binary only builds with `--cap-lints warn`.
-- **Recommendation:** Gate the unused items on the platforms that use them or delete them, then confirm the macOS release build passes with warnings denied.
-- **Fix with:** root-cause
-- **Effort:** S (hours)
-
 ### RPMD-73 · P2 · Repair branch protections that require checks no workflow produces
 
 - **Area:** Release policy
