@@ -247,3 +247,52 @@ def test_rust_workspace_member_executable_needs_the_workspace_root_lockfile(
 
     _write(tmp_path / "Cargo.lock", "version = 4\n")
     assert _rust_findings(tmp_path, repository("tool", "rust")) == []
+
+
+def test_typescript_source_is_found_under_the_ts_layout(tmp_path: Path) -> None:
+    _write(tmp_path / "package.json", "{}\n")
+    _write(tmp_path / "ts" / "src" / "capture.ts")
+    assert "typescript" in _language_sources(tmp_path)
+
+    config_only = tmp_path / "config-only"
+    _write(config_only / "ts" / "tsconfig.json", "{}\n")
+    _write(config_only / "ts" / "src" / "capture.ts")
+    assert "typescript" in _language_sources(config_only)
+
+
+def test_helper_scripts_are_not_project_languages_beside_a_managed_manifest(
+    tmp_path: Path,
+) -> None:
+    _cargo_package(tmp_path, "demo", binary=True)
+    _write(tmp_path / "scripts" / "bench.sh")
+    _write(tmp_path / "scripts" / "bench.py")
+    _write(tmp_path / ".github" / "scripts" / "release.py")
+    _write(tmp_path / "tools" / "gate.py")
+
+    assert _language_sources(tmp_path) == {"rust"}
+
+
+def test_scripts_are_project_languages_without_a_managed_manifest(tmp_path: Path) -> None:
+    _write(tmp_path / "scripts" / "build.sh")
+    _write(tmp_path / ".github" / "scripts" / "release.py")
+
+    assert _language_sources(tmp_path) == {"shell", "python"}
+
+
+def test_python_counts_beside_other_manifests_only_with_a_pyproject(tmp_path: Path) -> None:
+    _cargo_package(tmp_path, "demo", binary=False)
+    _write(tmp_path / "src" / "demo" / "module.py")
+    assert _language_sources(tmp_path) == {"rust"}
+
+    _write(tmp_path / "pyproject.toml", "[project]\n")
+    assert _language_sources(tmp_path) == {"rust", "python"}
+
+
+def test_fork_nested_manifests_do_not_define_languages(tmp_path: Path) -> None:
+    _write(tmp_path / "Package.swift")
+    _write(tmp_path / "Sources" / "App" / "main.swift")
+    _cargo_package(tmp_path / "Editors" / "Zed", "zed", binary=False)
+    _write(tmp_path / "lsp" / "package.json", "{}\n")
+    _write(tmp_path / "lsp" / "src" / "index.ts")
+
+    assert _language_sources(tmp_path, nested_manifests=False) == {"swift"}

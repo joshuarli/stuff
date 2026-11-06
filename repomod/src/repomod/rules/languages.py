@@ -358,31 +358,26 @@ def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
     return findings
 
 
-def _python_source_present_uncached(root: Path) -> bool:
-    bases = {""}
-    root_patterns = (
-        "*.py",
-        "build/*.py",
-        "buildsys/*.py",
-        "src/*.py",
-        "src/*/*.py",
-        "src/*/*/*.py",
-        "python/*.py",
-        "python/*/*.py",
-        "scripts/*.py",
-        "scripts/*/*.py",
-        "tools/*.py",
-        "tools/*/*.py",
-        ".github/scripts/*.py",
-        ".github/scripts/*/*.py",
-        "packages/*/src/*.py",
-        "packages/*/src/*/*.py",
-    )
-    patterns = {
-        f"{glob.escape(base)}/{pattern}" if base else pattern
-        for base in bases
-        for pattern in root_patterns
-    }
+_PYTHON_BUILD_PATTERNS = ("*.py", "build/*.py", "buildsys/*.py")
+_PYTHON_MANAGED_PATTERNS = (
+    "src/*.py",
+    "src/*/*.py",
+    "src/*/*/*.py",
+    "python/*.py",
+    "python/*/*.py",
+    "scripts/*.py",
+    "scripts/*/*.py",
+    "tools/*.py",
+    "tools/*/*.py",
+    ".github/scripts/*.py",
+    ".github/scripts/*/*.py",
+    "packages/*/src/*.py",
+    "packages/*/src/*/*.py",
+)
+
+
+def _python_source_present_uncached(root: Path, managed_roots: bool) -> bool:
+    patterns = _PYTHON_BUILD_PATTERNS + (_PYTHON_MANAGED_PATTERNS if managed_roots else ())
     for pattern in sorted(patterns):
         for candidate_name in glob.glob(str(root / pattern)):
             candidate = Path(candidate_name)
@@ -397,8 +392,11 @@ def _python_source_present_uncached(root: Path) -> bool:
     return False
 
 
-def _python_source_present(root: Path) -> bool:
-    return cached(("python_source_present", root), lambda: _python_source_present_uncached(root))
+def _python_source_present(root: Path, *, managed_roots: bool = True) -> bool:
+    return cached(
+        ("python_source_present", root, managed_roots),
+        lambda: _python_source_present_uncached(root, managed_roots),
+    )
 
 
 def _source_present(root: Path, patterns: tuple[str, ...], suffixes: frozenset[str]) -> bool:
@@ -442,9 +440,11 @@ def _shallow_source_patterns(
     return tuple(patterns)
 
 
-def _rust_source_present(root: Path) -> bool:
+def _rust_source_present(root: Path, *, nested_manifests: bool = True) -> bool:
     manifests, _ = _rust_manifests(root)
-    for path, *_ in manifests:
+    for path, _, _, workspace_root in manifests:
+        if not nested_manifests and workspace_root != root:
+            continue
         package = path.parent.relative_to(root).as_posix()
         prefix = "" if package == "." else package + "/"
         patterns = tuple(
@@ -461,36 +461,55 @@ def _rust_source_present(root: Path) -> bool:
     return False
 
 
+def _javascript_project_bases(root: Path) -> tuple[str, ...]:
+    manifests = _js_manifests(root) + [
+        path
+        for path in _manifest_paths(root, "tsconfig.json")
+        if not path.is_symlink()
+        and not any(part in _IGNORED_PACKAGES for part in path.relative_to(root).parts)
+        and safe_relative(root, path) is not None
+    ]
+    return tuple(
+        sorted({"" if path.parent == root else path.parent.relative_to(root).as_posix() for path in manifests})
+    )
+
+
+def _regular_file(path: Path) -> bool:
+    return path.is_file() and not path.is_symlink()
+
+
 def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> set[str]:
     observed = set()
-    javascript_packages = _js_manifests(root)
-    if javascript_packages:
-        bases = tuple(
-            "" if manifest.parent == root else manifest.parent.relative_to(root).as_posix()
-            for manifest in javascript_packages
-        )
-        directories = ("src", "web", "app", "packages", "extensions")
+    javascript_bases = tuple(
+        base for base in _javascript_project_bases(root) if nested_manifests or base == ""
+    )
+    go_bases = _manifest_bases(root, "go.mod") if nested_manifests else (
+        ("",) if _regular_file(root / "go.mod") else ()
+    )
+    managed = set()
+    if javascript_bases:
+        managed.add("javascript")
+        directories = ("src", "web", "app", "packages", "extensions", "ts")
         javascript_patterns = tuple(
             pattern
-            for base in bases
+            for base in javascript_bases
             for pattern in _shallow_source_patterns(directories, ("js", "jsx", "mjs", "cjs"), base)
         )
         typescript_patterns = tuple(
             pattern
-            for base in bases
+            for base in javascript_bases
             for pattern in _shallow_source_patterns(directories, ("ts", "tsx", "mts", "cts"), base)
         )
         if _source_present(root, javascript_patterns, frozenset({".js", ".jsx", ".mjs", ".cjs"})):
             observed.add("javascript")
         if _source_present(root, typescript_patterns, frozenset({".ts", ".tsx", ".mts", ".cts"})):
             observed.add("typescript")
-    if _rust_source_present(root):
+    if any(nested_manifests or workspace_root == root for *_, workspace_root in _rust_manifests(root)[0]):
+        managed.add("rust")
+    if _rust_source_present(root, nested_manifests=nested_manifests):
         observed.add("rust")
-    if _python_source_present(root):
-        observed.add("python")
-    go_bases = _manifest_bases(root, "go.mod") if nested_manifests else (
-        ("",) if (root / "go.mod").is_file() and not (root / "go.mod").is_symlink() else ()
-    )
+    if go_bases:
+        managed.add("go")
     go_patterns = tuple(
         f"{glob.escape(base)}/{pattern}" if base else pattern
         for base in go_bases
@@ -498,6 +517,13 @@ def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> 
     )
     if _source_present(root, go_patterns, frozenset({".go"})):
         observed.add("go")
+    managed.update(
+        language
+        for language, manifest in (("swift", "Package.swift"), ("zig", "build.zig"), ("python", "pyproject.toml"))
+        if _regular_file(root / manifest)
+    )
+    if _python_source_present(root, managed_roots="python" in managed or not managed):
+        observed.add("python")
     swift_manifest = root / "Package.swift"
     if (
         swift_manifest.is_file()
@@ -515,9 +541,9 @@ def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> 
         "include/*.hh", "include/*.hpp", "include/*.hxx", "lib/*.cc", "lib/*.cpp",
         "*.cc", "*.cpp", "*.cxx",
     )
-    if native_manifest and _source_present(root, c_sources, frozenset({".c"})):
+    if native_manifest and not managed and _source_present(root, c_sources, frozenset({".c"})):
         observed.add("c")
-    if native_manifest and _source_present(
+    if native_manifest and not managed and _source_present(
         root,
         cpp_sources,
         frozenset({".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"}),
@@ -530,7 +556,7 @@ def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> 
         and _source_present(root, ("*.zig", "src/*.zig", "src/*/*.zig"), frozenset({".zig"}))
     ):
         observed.add("zig")
-    if _source_present(
+    if not managed and _source_present(
         root,
         ("*.sh", "*.bash", "scripts/*.sh", "scripts/*/*.sh", "bin/*.sh", "src/*.sh"),
         frozenset({".bash", ".sh"}),

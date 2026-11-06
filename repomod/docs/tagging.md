@@ -29,7 +29,15 @@ Language tags describe substantial, maintained first-party source: `c`, `cpp`, `
 vendored, generated, dependency, or incidental test code. Rust, JavaScript, TypeScript, and
 Python project checks inspect supported manifests even when the matching language tag is absent.
 The language-tag rule warns when detected source lacks a matching tag or a language tag has no
-detected source. Detection follows the supported source layouts and manifest requirements.
+detected source. Detection starts from managed project manifests (`Cargo.toml`, `go.mod`,
+`package.json` or `tsconfig.json`, `pyproject.toml`, `Package.swift`, `build.zig`) and the
+first-party source roots beside them, such as `src`, `cmd`, `ts`, and `Sources`. Shell, C, and
+C++ files, and Python files outside the repository root, `build`, and `buildsys`, count only in a
+repository with no managed manifest of another ecosystem, so helper scripts in a Rust, Go,
+TypeScript, Swift, or Zig project are not project languages. A `pyproject.toml` makes Python a
+managed ecosystem. Repositories tagged `fork` use only root
+manifests, because their upstream layout is outside local policy. A Rust executable requires
+`Cargo.lock` at the root of its own Cargo workspace.
 
 Publishing tags `crates-io`, `pypi`, and `npm` opt a repository into that ecosystem's release
 policy. Package use, mirroring, or a manifest alone does not opt in.
