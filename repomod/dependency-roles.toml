@@ -353,5 +353,5 @@ websockets = ["websockets"]
 truststore = ["truststore", "wassima"]
 
 [python-http.exceptions]
-"joshuarli/shadowdriver" = "grab's crawler client needs HTTP/2 with h2-first ALPN, an async bounded connection pool shared across workers, and streaming size-bounded reads, none of which urllib provides."
+"joshuarli/shadowdriver" = "grab's crawler client needs HTTP/2 with h2-first ALPN, an async bounded connection pool shared across workers, and streaming size-bounded reads, none of which urllib provides; truststore makes it trust macOS keychain roots as the Rust client's rustls-native-certs does."
 "laputa-systems/python-build" = "wassima is an optional dependency of the vendored RTLS TLS backend under backend/vendor/rtls; the build never installs it."
