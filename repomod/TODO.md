@@ -1,39 +1,12 @@
 Prefix: RPMD
 Next: 72
 
-### RPMD-42 · P2 · Check Rust lockfiles at executable workspace roots
-
-- **Area:** Lint accuracy
-- **Where:** `src/repomod/rules/languages.py:204`, `src/repomod/rules/languages.py:249`, `laputa-systems/rawzip/compare/Cargo.toml`, `laputa-systems/rawzip/compare/src/main.rs`
-- **Problem:** Rawzip's library root has no executable, but its nested `compare` workspace has `src/main.rs`. The Rust lint sees that nested binary and asks for a repository-root `Cargo.lock`, even though the lockfile belongs at the nested workspace root.
-- **Recommendation:** Associate each executable with its owning Cargo workspace and check for a lockfile there; do not attribute nested development executables to the library root.
-- **Fix with:** none
-- **Effort:** M (days)
-
-### RPMD-44 · P2 · Align language detection with managed project ecosystems
-
-- **Area:** Catalog policy
-- **Where:** `src/repomod/rules/languages.py:509`, `catalog.toml`, `joshuarli/shadowdriver/ts/src/`, `joshuarli/gh/go.mod`, `laputa-systems/jaq/Cargo.toml`
-- **Problem:** The detector searches TypeScript under `src`, `web`, `app`, `packages`, and `extensions`, but misses the tracked `shadowdriver/ts/src/*.ts` project. It also treats helper scripts in otherwise Rust repositories as project languages, while primary Go and Rust projects such as gh, ish, and jaq lack corresponding catalog tags.
-- **Recommendation:** Base language tags on managed project manifests and first-party source roots, include the `ts/` layout, and reconcile primary language tags in the catalog.
-- **Fix with:** none
-- **Effort:** M (days)
-
 ### RPMD-68 · P2 · Fix the shadowdriver-py build
 
 - **Area:** Build
 - **Where:** `joshuarli/shadowdriver/py/`, `Pool` in the shadowdriver crate
 - **Problem:** `cargo test -p shadowdriver-py` fails on `origin/master` with two E0599 errors: `Pool` has no `open_interactive_tab` or `cookies_json`. The Python binding calls methods the Rust crate no longer has, so `make rust-test` cannot finish and the Python package cannot be built.
 - **Recommendation:** Restore the two methods on `Pool` or update the binding to the current API, and keep `make rust-test` in the repository's verification.
-- **Fix with:** root-cause
-- **Effort:** S (hours)
-
-### RPMD-71 · P3 · Check smolith-qualify for parallel test flakes
-
-- **Area:** Tests
-- **Where:** `laputa-systems/smolith/tests/qualify`
-- **Problem:** `unproven`: in two parallel runs of `smolith-qualify`, a different fd-reuse test failed each time; it passed 22 of 22 twice with `--test-threads=1`. Not yet confirmed against the commit before the example and bench clean-up, so it may predate it.
-- **Recommendation:** Reproduce on the earlier commit with parallel threads; if it reproduces, isolate the shared file descriptors per test rather than serializing the suite.
 - **Fix with:** root-cause
 - **Effort:** S (hours)
 
