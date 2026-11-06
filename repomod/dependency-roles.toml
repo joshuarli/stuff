@@ -1,0 +1,203 @@
+[http-client]
+ecosystem = "cargo"
+preferred = "h12tiny"
+
+[http-client.options]
+h12tiny = ["h12tiny", "h12tiny-client-sync"]
+hyper = ["hyper", "hyper-util", "hyper-rustls", "smol-hyper"]
+reqwest = ["reqwest"]
+ureq = ["ureq"]
+surf = ["surf"]
+isahc = ["isahc"]
+attohttpc = ["attohttpc"]
+curl = ["curl"]
+awc = ["awc"]
+
+[cli-arguments]
+ecosystem = "cargo"
+preferred = "lexopt"
+
+[cli-arguments.options]
+lexopt = ["lexopt"]
+clap = ["clap", "clap_complete", "clap_mangen"]
+pico-args = ["pico-args"]
+argh = ["argh"]
+bpaf = ["bpaf"]
+
+[benchmark]
+ecosystem = "cargo"
+preferred = "rustybench"
+
+[benchmark.options]
+rustybench = ["rustybench"]
+criterion = ["criterion", "criterion-cycles-per-byte"]
+divan = ["divan"]
+
+[async-runtime]
+ecosystem = "cargo"
+
+[async-runtime.options]
+tokio = ["tokio", "tokio-util"]
+smol = ["smol", "futures-lite", "async-io", "async-executor"]
+async-std = ["async-std"]
+
+[serialization]
+ecosystem = "cargo"
+
+[serialization.options]
+deser = ["deser", "deser-json", "deser-toml", "deser-yaml", "deser-value"]
+serde = ["serde", "serde_json", "serde_derive", "serde_core", "serde-saphyr", "serde-pickle"]
+miniserde = ["miniserde"]
+nanoserde = ["nanoserde"]
+
+[regex]
+ecosystem = "cargo"
+
+[regex.options]
+regex = ["regex", "regex-automata", "regex-syntax"]
+regex-lite = ["regex-lite"]
+regex-bites = ["regex-bites"]
+fancy-regex = ["fancy-regex"]
+
+[logging]
+ecosystem = "cargo"
+
+[logging.options]
+log = ["log", "env_logger"]
+tracing = ["tracing", "tracing-subscriber", "tracing-tree"]
+
+[datetime]
+ecosystem = "cargo"
+
+[datetime.options]
+jiff = ["jiff"]
+chrono = ["chrono"]
+time = ["time"]
+
+[fast-hash]
+ecosystem = "cargo"
+
+[fast-hash.options]
+rustc-hash = ["rustc-hash"]
+foldhash = ["foldhash"]
+ahash = ["ahash"]
+fxhash = ["fxhash"]
+
+[random]
+ecosystem = "cargo"
+
+[random.options]
+fastrand = ["fastrand"]
+rand = ["rand"]
+
+[property-testing]
+ecosystem = "cargo"
+
+[property-testing.options]
+proptest = ["proptest"]
+quickcheck = ["quickcheck", "quickcheck_macros"]
+
+[signals]
+ecosystem = "cargo"
+
+[signals.options]
+ctrlc = ["ctrlc"]
+signal-hook = ["signal-hook", "signal-hook-registry"]
+
+[system-calls]
+ecosystem = "cargo"
+
+[system-calls.options]
+libc = ["libc"]
+rustix = ["rustix"]
+nix = ["nix"]
+
+[tls]
+ecosystem = "cargo"
+
+[tls.options]
+rustls = ["rustls", "rustls-webpki", "rustls-pki-types"]
+openssl = ["openssl", "openssl-sys", "native-tls"]
+
+[crypto-backend]
+ecosystem = "cargo"
+
+[crypto-backend.options]
+graviola = ["graviola", "rustls-graviola"]
+ring = ["ring", "rustls-ring"]
+aws-lc-rs = ["aws-lc-rs", "rustls-aws-lc-rs"]
+
+[base-encoding]
+ecosystem = "cargo"
+
+[base-encoding.options]
+base64 = ["base64"]
+data-encoding = ["data-encoding"]
+
+[gzip]
+ecosystem = "cargo"
+
+[gzip.options]
+flate2 = ["flate2"]
+zlib-rs = ["zlib-rs"]
+miniz_oxide = ["miniz_oxide"]
+
+[terminal]
+ecosystem = "cargo"
+
+[terminal.options]
+crossterm = ["crossterm"]
+termion = ["termion"]
+
+[file-walking]
+ecosystem = "cargo"
+
+[file-walking.options]
+walkdir = ["walkdir"]
+ignore = ["ignore"]
+glob = ["glob", "globset"]
+
+[python-type-checker]
+ecosystem = "pypi"
+preferred = "ty"
+
+[python-type-checker.options]
+ty = ["ty"]
+mypy = ["mypy", "mypy-extensions"]
+pyright = ["pyright"]
+
+[python-linter]
+ecosystem = "pypi"
+preferred = "ruff"
+
+[python-linter.options]
+ruff = ["ruff"]
+flake8 = ["flake8"]
+black = ["black"]
+pylint = ["pylint"]
+
+[js-linter]
+ecosystem = "npm"
+preferred = "oxlint"
+
+[js-linter.options]
+oxlint = ["oxlint", "oxlint-tsgolint"]
+eslint = ["eslint"]
+biome = ["@biomejs/biome"]
+
+[js-test-runner]
+ecosystem = "npm"
+
+[js-test-runner.options]
+vitest = ["vitest"]
+jest = ["jest"]
+mocha = ["mocha"]
+
+[js-bundler]
+ecosystem = "npm"
+
+[js-bundler.options]
+vite = ["vite"]
+esbuild = ["esbuild"]
+webpack = ["webpack"]
+rollup = ["rollup"]

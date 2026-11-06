@@ -57,7 +57,7 @@ uv run repomod deps why npm:@types/node --json
 ### `deps report`
 
 Summarize composition, concentration, divergence, source risk, scope, first-party links, and
-curated-role overlap. Every metric carries a unit and a denominator. Freshness and
+curated-role overlap from `dependency-roles.toml`. Every metric carries a unit and a denominator. Freshness and
 vulnerability counts come only from the enrichment cache and are labeled with its `fetched_at`;
 missing or stale enrichment is `not checked`, never clean.
 

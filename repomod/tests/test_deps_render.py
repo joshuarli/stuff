@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import json
 import socket
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from deps_fixtures import issue, project, repository, write_inventory
+from deps_fixtures import instance, issue, project, repository, write_inventory
 
 from repomod.dependencies import graph, render
 from repomod.dependencies.model import (
+    Component,
     CoverageKind,
     Ecosystem,
     Edge,
@@ -97,7 +99,7 @@ def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
     hostile = (result.output / "repos/acme/hostile/index.html").read_text(encoding="utf-8")
     assert "<script>alert(1)</script>" not in index
     assert "<script>alert(1)</script>" not in packages
-    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in index
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in packages
     assert "&lt;script&gt;alert(2)&lt;/script&gt;" in hostile
     assert "<script>alert(2)</script>" not in coverage
     assert "&lt;script&gt;" in hostile
@@ -185,3 +187,41 @@ def test_output_stays_under_the_budget(tmp_path: Path) -> None:
     assert result.bytes < 10_000_000
     data = json.loads(_page_data((result.output / "landscape.html").read_text(encoding="utf-8")))
     assert "membership" in data
+
+
+def test_insight_pages_escape_package_and_role_names(tmp_path: Path) -> None:
+    name = "evil<img src=x onerror=alert(6)>"
+    repositories = []
+    for owner, version in (("acme/one", "1.0.0"), ("acme/two", "2.0.0")):
+        hostile = instance(Ecosystem.CARGO, name, version)
+        built = repository(
+                owner,
+                (hostile,),
+                projects=(project(".", Ecosystem.CARGO),),
+                edges=(
+                    Edge(
+                        ".:cargo",
+                        hostile.id,
+                        Relation.DIRECT,
+                        Scope.RUNTIME,
+                        False,
+                        None,
+                        version,
+                        None,
+                        SourceKind.REGISTRY,
+                        Resolution.RESOLVED,
+                    ),
+                ),
+            )
+        repositories.append(
+            replace(
+                built,
+                components=(Component(hostile.component, Ecosystem.CARGO, name, name),),
+            )
+        )
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    for page in ("index.html", "alignment.html"):
+        content = (result.output / page).read_text(encoding="utf-8")
+        assert "<img src=x" not in content
+        assert "evil&lt;img src=x onerror=alert(6)&gt;" in content

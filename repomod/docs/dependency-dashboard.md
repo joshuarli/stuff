@@ -17,22 +17,41 @@ Python; the browser only filters, sorts, and expands. It works from `file://`.
 
 ## Pages
 
-- **Overview** — coverage by state, issue kinds, ecosystem composition, prevalence, divergence
-  hotspots, source risk, curated-role overlap, the repository table, and recent changes.
+- **Overview** — counts and the top ten of each list below: vulnerable versions, direct
+  dependencies furthest behind, the heaviest direct dependencies, version splits, and
+  roles with competing choices.
+- **Outdated** — vulnerable versions, then direct dependencies behind their registry's
+  latest release, grouped into breaking, minor, and patch upgrades. A breaking upgrade
+  changes the leftmost nonzero version component. Needs `repomod deps enrich`.
+- **Bloat** — each direct dependency with the lockfile packages it brings in and how many of
+  those no other direct dependency in the repository needs, then repositories whose lockfile
+  holds two versions of one package. Lockfiles list every platform's packages, so counts are
+  upper bounds.
+- **Alignment** — packages declared directly by two or more repositories at different
+  versions, with a target (the latest release, or the newest version in use) and the
+  repositories off it. Alpine packages follow their base image and are left out.
+- **Choices** — roles from `dependency-roles.toml`: which option each repository declares,
+  which repositories mix options, and which use something other than the preferred option.
 - **Landscape** — a dense repository × package matrix. Sort rows by commonality, ecosystem,
   repository, or coverage. Search a package and use **+ column** to add it; the matrix shows at
   most 60 columns by default.
-- **Divergence** — one row per package with more than one version, with a dot plot and the
-  repositories per version, plus packages that diverge inside one repository.
 - **Packages** — search or pick a package. Each view shows identity, versions and sources,
   repositories, enrichment state, and entry paths with relation, scope, and resolution.
   `packages.html#pkg=pkg:cargo/serde` deep-links to a package.
 - **Changes** — the working inventory against `HEAD~1` of `data/`, or `no baseline` when the
   previous revision has no inventory.
-- **Coverage** — repository states, issue kinds, and detection-only formats.
+- **Coverage** — repository states, issue kinds, ecosystem composition, source risk, and
+  detection-only formats.
 - **Repository pages** — one page per repository under `repos/OWNER/REPO/index.html`, with
   projects, scope counts, direct dependencies, expandable transitive lists, sources,
   duplicates, gap evidence, and links back to the overview.
+
+## Curated roles
+
+`dependency-roles.toml` is curated user data. Each table is a role with an `ecosystem`, an
+optional `preferred` option, and `options` mapping each option to the package names that
+mean a repository uses it. A package may belong to one option per role. Only direct
+declarations count. `repomod deps report` lists the repositories that mix options.
 
 ## Interaction
 
@@ -70,7 +89,7 @@ JavaScript is stale. `make deps` only renders and serves; it does not run Node.
 
 ## Budgets and verification
 
-The site must stay under 10 MB. The current fleet is 58 pages and about 9.9 MB. The overview
+The site must stay under 10 MB. The current fleet is 61 pages and about 9.9 MB. The overview
 renders in tens of milliseconds from `file://`.
 
 The browser checks use agent-browser at 1440×900 and 390×844. They verify no console errors, no

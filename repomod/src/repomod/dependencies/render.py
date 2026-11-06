@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 from packaging.version import InvalidVersion, Version
 
-from repomod.dependencies import analysis, enrich
+from repomod.dependencies import analysis, enrich, insights
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
 from repomod.dependencies.model import (
@@ -30,12 +30,18 @@ MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
 _NAV = (
     ("index", "Overview"),
-    ("landscape", "Landscape"),
-    ("divergence", "Divergence"),
+    ("outdated", "Outdated"),
+    ("bloat", "Bloat"),
+    ("alignment", "Alignment"),
+    ("choices", "Choices"),
     ("packages", "Packages"),
+    ("landscape", "Landscape"),
     ("changes", "Changes"),
     ("coverage", "Coverage"),
 )
+_OVERVIEW_ROWS = 10
+_BLOAT_ROWS = 150
+_HEAVY_SOLE = 50
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +63,11 @@ class _Site:
     direct_repos: Mapping[str, frozenset[str]]
     all_repos: Mapping[str, frozenset[str]]
     now: float
+    outdated: tuple[insights.Outdated, ...]
+    vulnerable: tuple[insights.Vulnerable, ...]
+    weights: tuple[insights.Weight, ...]
+    splits: tuple[insights.Split, ...]
+    roles: tuple[insights.RoleUse, ...]
 
 
 def render(
@@ -84,16 +95,19 @@ def render(
             _page(site, "Dependency inventory", "index", "", _overview(site)),
         )
     )
-    pages.append(
-        _write_page(
-            output / "landscape.html",
-            _page(site, "Landscape", "landscape", "", _landscape(site), _landscape_data(site)),
+    pages.extend(
+        _write_page(output / f"{page}.html", _page(site, title, page, "", body(site)))
+        for page, title, body in (
+            ("outdated", "Outdated", _outdated),
+            ("bloat", "Bloat", _bloat),
+            ("alignment", "Alignment", _alignment),
+            ("choices", "Choices", _choices),
         )
     )
     pages.append(
         _write_page(
-            output / "divergence.html",
-            _page(site, "Divergence", "divergence", "", _divergence(site)),
+            output / "landscape.html",
+            _page(site, "Landscape", "landscape", "", _landscape(site), _landscape_data(site)),
         )
     )
     pages.append(
@@ -164,6 +178,8 @@ def _site(
             )
         except ValueError:
             diff_value = None
+    declared = insights.declarations(graph)
+    results = cache.results
     return _Site(
         graph,
         inventory,
@@ -175,6 +191,11 @@ def _site(
         {key: frozenset(value) for key, value in direct_repos.items()},
         {key: frozenset(value) for key, value in all_repos.items()},
         time.time(),
+        insights.outdated(declared, results),
+        insights.vulnerable(graph, declared, results),
+        insights.weights(graph, declared),
+        insights.splits(declared, results),
+        insights.role_uses(insights.load_roles(), declared),
     )
 
 
@@ -244,69 +265,354 @@ def _write_assets(output: Path, site: _Site) -> None:
 
 
 def _overview(site: _Site) -> str:
-    composition = _table(site.report["composition"])
-    counts = Counter(data.state.value for data in site.graph.repositories.values())
-    repositories = len(site.graph.repositories)
-    projects = _value(composition.get("projects"))
-    packages = _value(composition.get("package_names"))
-    versions = _value(composition.get("name_versions"))
-    instances = _value(composition.get("instances"))
-    direct = _value(composition.get("direct_edges"))
-    transitive = _value(composition.get("transitive_edges"))
-    issues = sum(len(data.issues) for data in site.graph.repositories.values())
+    overlaps = sum(1 for use in site.roles if use.overlapping or use.off_preferred)
+    breaking = sum(1 for row in site.outdated if row.gap is insights.Gap.BREAKING)
+    direct_vulnerable = sum(1 for row in site.vulnerable if row.direct_in)
     body = [
-        "<h1>Dependency inventory</h1>",
-        f'<p class="sub">{repositories} repositories · {projects} projects · '
-        f"{packages} package names · {versions} name@version · {instances} instances · "
-        f"{direct + transitive} edges ({direct} direct, {transitive} transitive) · "
-        f"{issues} coverage issues</p>",
-        "<h2>Coverage</h2>",
-        '<div class="scroll"><table><thead><tr><th>State</th><th class="num">Repositories</th>'
-        '<th class="num">Share</th></tr></thead><tbody>',
+        "<h1>Dependencies</h1>",
+        f'<p class="sub">{len(site.graph.repositories)} repositories · '
+        f"{_enrichment_stamp(site)} · {_changes_line(site)}</p>",
+        '<div class="tiles">',
+        _tile(
+            "outdated.html#vulnerable",
+            len(site.vulnerable),
+            "vulnerable versions",
+            f"{direct_vulnerable} declared directly",
+            "finding" if site.vulnerable else "",
+        ),
+        _tile(
+            "outdated.html",
+            len(site.outdated),
+            "direct dependencies behind",
+            f"{breaking} need a breaking upgrade",
+            "risk" if breaking else "",
+        ),
+        _tile(
+            "bloat.html",
+            sum(1 for row in site.weights if row.sole >= _HEAVY_SOLE),
+            "heavy direct dependencies",
+            f"each alone brings in {_HEAVY_SOLE}+ lockfile packages",
+        ),
+        _tile(
+            "alignment.html",
+            len(site.splits),
+            "packages on split versions",
+            f"{len({repo for row in site.splits for repo in row.off_target})} repositories off target",
+        ),
+        _tile(
+            "choices.html",
+            overlaps,
+            "roles with competing choices",
+            f"of {len(site.roles)} curated roles",
+        ),
+        "</div>",
+        _section("Vulnerable", "outdated.html#vulnerable", len(site.vulnerable)),
+        _vulnerable_table(site, site.vulnerable[:_OVERVIEW_ROWS]),
+        _section("Furthest behind", "outdated.html", len(site.outdated)),
+        _outdated_table(site.outdated[:_OVERVIEW_ROWS]),
+        _section("Heaviest direct dependencies", "bloat.html", len(site.weights)),
+        _weight_table(site.weights[:_OVERVIEW_ROWS], site.weights),
+        _section("Version splits", "alignment.html", len(site.splits)),
+        _split_table(site.splits[:_OVERVIEW_ROWS]),
+        _section("Competing choices", "choices.html", overlaps),
+        _choices_summary(site),
     ]
-    body.extend(
-        f'<tr><td class="state-{state}">{_e(state)}</td>'
-        f'<td class="num">{counts.get(state, 0)}</td>'
-        f'<td>{_bar(counts.get(state, 0), repositories)}</td></tr>'
-        for state in ("complete", "partial", "failed", "unavailable")
-    )
-    body.append("</tbody></table></div>")
-    body.append(_issue_summary(site))
-    body.append("<h2>Ecosystems</h2>")
-    body.append(_ecosystem_table(composition))
-    body.append("<h2>Prevalence</h2>")
-    body.append(_prevalence(site))
-    body.append("<h2>Divergence hotspots</h2>")
-    body.append(_divergence_table(site, limit=10))
-    body.append("<h2>Source risk</h2>")
-    body.append(_risk_table(site))
-    body.append("<h2>Curated-role overlap</h2>")
-    body.append(_roles(site))
-    body.append("<h2>Repositories</h2>")
-    body.append(_repository_table(site))
-    body.append("<h2>Recent changes</h2>")
-    body.append(_changes_summary(site))
     return "\n".join(body)
 
 
-def _issue_summary(site: _Site) -> str:
-    counts: Counter[str] = Counter()
-    totals: Counter[str] = Counter()
-    for data in site.graph.repositories.values():
-        for issue in data.issues:
-            counts[issue.kind.value] += 1
-            totals[issue.kind.severity] += 1
-    if not counts:
-        return '<p class="zero">no coverage issues</p>'
-    rows = "".join(
-        f"<tr><td>{_e(kind)}</td><td class=\"num\">{count}</td></tr>"
-        for kind, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-    )
+def _tile(href: str, value: int, label: str, detail: str, kind: str = "") -> str:
     return (
-        f'<p class="sub">{totals["error"]} error issues and {totals["gap"]} gap issues</p>'
-        '<div class="scroll"><table><thead><tr><th>Issue kind</th>'
-        f'<th class="num">Issues</th></tr></thead><tbody>{rows}</tbody></table></div>'
+        f'<a class="tile" href="{href}"><span class="value {kind}">{value}</span>'
+        f'<span class="label">{_e(label)}</span><span class="detail">{_e(detail)}</span></a>'
     )
+
+
+def _section(title: str, href: str, total: int) -> str:
+    return f'<h2>{_e(title)} <a class="more" href="{href}">all {total} →</a></h2>'
+
+
+def _enrichment_stamp(site: _Site) -> str:
+    fetched = site.cache.fetched_at
+    if fetched is None:
+        return '<span class="unknown">no registry data; run repomod deps enrich</span>'
+    stamp = time.strftime("%Y-%m-%d", time.gmtime(fetched))
+    return f"registry data from {stamp}"
+
+
+def _changes_line(site: _Site) -> str:
+    value = site.diff_value
+    if value is None or not value.baseline:
+        return '<a href="changes.html">no change baseline</a>'
+    return f'<a href="changes.html">{_summary_metrics(value)}</a>'
+
+
+def _repo_list(repositories: Sequence[str], prefix: str = "", limit: int = 6) -> str:
+    links = [_repo_link(name, prefix) for name in repositories]
+    if len(links) <= limit:
+        return ", ".join(links)
+    return (
+        ", ".join(links[:limit])
+        + f"<details><summary>{len(links) - limit} more</summary>{', '.join(links[limit:])}</details>"
+    )
+
+
+def _badge(gap: insights.Gap) -> str:
+    return f'<span class="badge {gap.value}">{gap.value}</span>'
+
+
+def _vulnerable_table(site: _Site, rows: Sequence[insights.Vulnerable]) -> str:
+    if not rows:
+        if site.cache.fetched_at is None:
+            return '<p class="unknown">not checked</p>'
+        return '<p class="zero">no known vulnerabilities in checked versions</p>'
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Package</th><th>Advisories</th>'
+        "<th>Latest</th><th>Declared in</th><th>Locked in</th></tr></thead><tbody>"
+    ]
+    for row in rows:
+        fixed = row.latest is not None and row.latest != row.version
+        latest = (
+            f'<span class="mono">{_e(row.latest)}</span>'
+            if fixed
+            else '<span class="unknown">no newer release</span>'
+        )
+        body.append(
+            "<tr>"
+            f"<td>{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}</td>"
+            f'<td class="mono finding">{_e(", ".join(row.advisories))}</td>'
+            f"<td>{latest}</td>"
+            f"<td>{_repo_list(row.direct_in)}</td>"
+            f"<td>{_repo_list(row.transitive_in)}</td></tr>"
+        )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _outdated_table(rows: Sequence[insights.Outdated]) -> str:
+    if not rows:
+        return '<p class="zero">every checked direct dependency is on its latest release</p>'
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Package</th><th>Upgrade</th>'
+        '<th>Latest</th><th>In use</th><th class="num">Repos</th></tr></thead><tbody>'
+    ]
+    for row in rows:
+        uses = "".join(
+            f'<div><span class="mono">{_e(use.version)}</span> {_repo_list(use.repositories)}</div>'
+            for use in row.uses
+        )
+        body.append(
+            "<tr>"
+            f"<td>{_package_link(row.component.purl, '', row.component.display_name)}"
+            f' <span class="sub">{_e(row.component.ecosystem.value)}</span></td>'
+            f"<td>{_badge(row.gap)}</td>"
+            f'<td class="mono">{_e(row.latest)}</td>'
+            f"<td>{uses}</td>"
+            f'<td class="num">{row.repositories}</td></tr>'
+        )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _weight_table(
+    rows: Sequence[insights.Weight], scale: Sequence[insights.Weight]
+) -> str:
+    if not rows:
+        return '<p class="zero">no direct dependency brings in lockfile packages</p>'
+    widest = max(row.pulls for row in scale)
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Repository</th><th>Dependency</th>'
+        '<th>Scope</th><th class="num">Only via it</th><th class="num">Pulls in</th>'
+        "<th></th></tr></thead><tbody>"
+    ]
+    body.extend(
+        "<tr>"
+        f"<td>{_repo_link(row.repository, '')}</td>"
+        f"<td>{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}</td>"
+        f"<td>{_e(', '.join(sorted(scope.value for scope in row.scopes)))}</td>"
+        f'<td class="num">{row.sole}</td><td class="num">{row.pulls}</td>'
+        f'<td class="weight">{_bar(row.sole, widest)}{_bar(row.pulls - row.sole, widest, "shared")}</td></tr>'
+        for row in rows
+    )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _split_table(rows: Sequence[insights.Split]) -> str:
+    if not rows:
+        return '<p class="zero">every package declared in two or more repositories uses one version</p>'
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Package</th><th>Target</th>'
+        '<th>Versions in use</th><th class="num">Off target</th></tr></thead><tbody>'
+    ]
+    for row in rows:
+        uses = "".join(
+            f'<div class="{"on-target" if use.version == row.target else ""}">'
+            f'<span class="mono">{_e(use.version)}</span> {_repo_list(use.repositories)}</div>'
+            for use in row.uses
+        )
+        target = f'<span class="mono">{_e(row.target)}</span>' + (
+            ' <span class="sub">latest</span>' if row.target_is_latest else ' <span class="sub">newest in use</span>'
+        )
+        body.append(
+            "<tr>"
+            f"<td>{_package_link(row.component.purl, '', row.component.display_name)}"
+            f' <span class="sub">{_e(row.component.ecosystem.value)}</span></td>'
+            f"<td>{target}</td><td>{uses}</td>"
+            f'<td class="num">{len(set(row.off_target))}</td></tr>'
+        )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _choices_summary(site: _Site) -> str:
+    contested = [use for use in site.roles if use.overlapping or use.off_preferred]
+    if not contested:
+        return '<p class="zero">every curated role has one choice in use</p>'
+    body = [
+        '<div class="scroll"><table><thead><tr><th>Role</th><th>Options in use</th>'
+        '<th>Preferred</th><th class="num">Mixed repos</th><th class="num">Off preferred</th>'
+        "</tr></thead><tbody>"
+    ]
+    for use in contested[:_OVERVIEW_ROWS]:
+        options = ", ".join(
+            f"{_e(option)} <span class=\"sub\">{len(use.options[option])}</span>" for option in use.in_use
+        )
+        body.append(
+            "<tr>"
+            f'<td><a href="choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a></td>'
+            f"<td>{options}</td>"
+            f"<td>{_e(use.role.preferred or '—')}</td>"
+            f'<td class="num">{len(use.overlapping)}</td>'
+            f'<td class="num">{len(use.off_preferred)}</td></tr>'
+        )
+    body.append("</tbody></table></div>")
+    return "".join(body)
+
+
+def _outdated(site: _Site) -> str:
+    body = [
+        "<h1>Outdated</h1>",
+        f'<p class="sub">Direct dependencies compared with their registry\'s latest release '
+        f"({_enrichment_stamp(site)}). A breaking upgrade changes the leftmost nonzero "
+        "version component.</p>",
+        '<h2 id="vulnerable">Vulnerable versions</h2>',
+        _vulnerable_table(site, site.vulnerable),
+    ]
+    for gap in insights.Gap:
+        rows = [row for row in site.outdated if row.gap is gap]
+        body.append(f'<h2 id="{gap.value}">{gap.value.capitalize()} upgrades <span class="sub">{len(rows)}</span></h2>')
+        body.append(_outdated_table(rows))
+    return "\n".join(body)
+
+
+def _bloat(site: _Site) -> str:
+    body = [
+        "<h1>Bloat</h1>",
+        '<p class="sub">Each direct dependency with the lockfile packages it brings in. '
+        "<em>Only via it</em> counts packages no other direct dependency in that repository "
+        "needs, so removing or replacing it drops them. Lockfiles list every platform's "
+        "packages, so these are upper bounds on what one target compiles.</p>",
+        _weight_table(site.weights[:_BLOAT_ROWS], site.weights),
+        f'<p class="sub">{max(0, len(site.weights) - _BLOAT_ROWS)} lighter dependencies not shown.</p>'
+        if len(site.weights) > _BLOAT_ROWS
+        else "",
+        "<h2>Duplicate versions in one repository</h2>",
+        '<p class="sub">Two versions of one package in a lockfile means both are built.</p>',
+    ]
+    duplicates = [
+        (name, _duplicates(site, data))
+        for name, data in site.graph.repositories.items()
+    ]
+    duplicates = sorted(
+        ((name, found) for name, found in duplicates if found),
+        key=lambda item: (-len(item[1]), item[0].casefold()),
+    )
+    if not duplicates:
+        body.append('<p class="zero">no repository carries two versions of one package</p>')
+        return "\n".join(body)
+    body.append(
+        '<div class="scroll"><table><thead><tr><th>Repository</th><th class="num">Packages</th>'
+        "<th>Duplicated</th></tr></thead><tbody>"
+    )
+    for name, found in duplicates:
+        items = "".join(
+            f"<li>{_package_link(purl, '', _display_name(site, purl))} "
+            f'<span class="versions">{_e(", ".join(versions))}</span></li>'
+            for purl, versions in found
+        )
+        body.append(
+            f"<tr><td>{_repo_link(name, '')}</td><td class=\"num\">{len(found)}</td>"
+            f"<td><details><summary>show</summary><ul>{items}</ul></details></td></tr>"
+        )
+    body.append("</tbody></table></div>")
+    return "\n".join(body)
+
+
+def _display_name(site: _Site, purl: str) -> str:
+    component = site.graph.components.get(purl)
+    return component.display_name if component is not None else purl
+
+
+def _alignment(site: _Site) -> str:
+    return "\n".join(
+        [
+            "<h1>Alignment</h1>",
+            '<p class="sub">Packages declared directly by two or more repositories at different '
+            "versions. The target is the registry's latest release when known, otherwise the "
+            "newest version in use. Alpine packages follow their base image and are left out.</p>",
+            _split_table(site.splits),
+        ]
+    )
+
+
+def _choices(site: _Site) -> str:
+    body = [
+        "<h1>Choices</h1>",
+        '<p class="sub">Curated roles from <span class="mono">dependency-roles.toml</span>: '
+        "packages that do the same job. A mixed repository declares more than one option for "
+        "a role; off preferred means it uses an option other than the preferred one.</p>",
+    ]
+    settled = []
+    for use in site.roles:
+        if not use.in_use:
+            continue
+        if len(use.in_use) == 1 and not use.off_preferred:
+            settled.append(use)
+            continue
+        body.append(
+            f'<h2 id="role-{_e(use.role.name)}">{_e(use.role.name)} '
+            f'<span class="sub">{_e(use.role.ecosystem.value)} · preferred '
+            f"{_e(use.role.preferred or 'not chosen')}</span></h2>"
+        )
+        body.append(
+            '<div class="scroll"><table><thead><tr><th>Option</th><th class="num">Repos</th>'
+            "<th>Repositories</th></tr></thead><tbody>"
+        )
+        for option in use.in_use:
+            repositories = use.options[option]
+            preferred = option == use.role.preferred
+            body.append(
+                f'<tr class="{"on-target" if preferred else ""}"><td class="mono">{_e(option)}</td>'
+                f'<td class="num">{len(repositories)}</td>'
+                f"<td>{_repo_list(repositories, limit=12)}</td></tr>"
+            )
+        body.append("</tbody></table></div>")
+        if use.overlapping:
+            body.append(
+                f'<p class="sub risk">mixed: {_repo_list(use.overlapping, limit=12)}</p>'
+            )
+    if settled:
+        body.append("<h2>Settled</h2>")
+        body.append(
+            "<ul>"
+            + "".join(
+                f"<li>{_e(use.role.name)}: <span class=\"mono\">{_e(use.in_use[0])}</span> "
+                f'<span class="sub">{len(use.options[use.in_use[0]])} repositories</span></li>'
+                for use in settled
+            )
+            + "</ul>"
+        )
+    return "\n".join(body)
 
 
 def _ecosystem_table(composition: Mapping[str, Any]) -> str:
@@ -334,55 +640,6 @@ def _ecosystem_table(composition: Mapping[str, Any]) -> str:
         + "".join(rows)
         + "</tbody></table></div>"
     )
-
-
-def _prevalence(site: _Site) -> str:
-    rows = _table(site.report["concentration"]).get("rows")
-    if not isinstance(rows, list) or not rows:
-        return '<p class="zero">no package edges</p>'
-    repositories = len(site.graph.repositories)
-    body = [
-        '<div class="scroll"><table><thead><tr><th>Package</th><th>Ecosystem</th>'
-        '<th class="num">Direct</th><th class="num">Total</th><th>Share</th></tr></thead><tbody>'
-    ]
-    for raw in rows[:20]:
-        record = _table(raw)
-        direct = _value(record.get("direct_repositories"))
-        total = _value(record.get("all_repositories"))
-        purl = str(record.get("component", ""))
-        body.append(
-            f"<tr><td>{_package_link(purl, '', str(record.get('name') or purl))}</td>"
-            f"<td>{_e(record.get('ecosystem'))}</td>"
-            f'<td class="num">{direct}</td><td class="num">{total}</td>'
-            f"<td>{_bar(total, repositories)}</td></tr>"
-        )
-    body.append("</tbody></table></div>")
-    return "".join(body)
-
-
-def _divergence_table(site: _Site, *, limit: int | None = None) -> str:
-    rows = _table(site.report["divergence"]).get("packages")
-    if not isinstance(rows, list) or not rows:
-        return '<p class="zero">no package diverges across the fleet</p>'
-    selected = rows if limit is None else rows[:limit]
-    body = [
-        '<div class="scroll"><table><thead><tr><th>Package</th><th>Versions</th>'
-        '<th class="num">Consumers</th></tr></thead><tbody>'
-    ]
-    for raw in selected:
-        record = _table(raw)
-        purl = str(record.get("component", ""))
-        versions = record.get("versions")
-        labels = ", ".join(
-            str(_table(item).get("version")) for item in versions
-        ) if isinstance(versions, list) else ""
-        body.append(
-            f"<tr><td>{_package_link(purl, '', purl)}</td>"
-            f'<td class="versions">{_e(labels)}</td>'
-            f'<td class="num">{_value(record.get("consumers"))}</td></tr>'
-        )
-    body.append("</tbody></table></div>")
-    return "".join(body)
 
 
 def _risk_table(site: _Site) -> str:
@@ -420,58 +677,6 @@ def _risk_table(site: _Site) -> str:
             f"{_e(kind)} {count}" for kind, count in errors.items()
         ) + "</p>")
     return "".join(out)
-
-
-def _roles(site: _Site) -> str:
-    rows = _table(site.report["roles"]).get("rows")
-    if not isinstance(rows, list) or not rows:
-        return '<p class="zero">no curated-role overlap</p>'
-    body = ["<table><thead><tr><th>Repository</th><th>Role</th><th>Packages</th></tr></thead><tbody>"]
-    for raw in rows:
-        record = _table(raw)
-        packages = record.get("packages")
-        packages_text = ", ".join(str(item) for item in packages) if isinstance(packages, list) else ""
-        body.append(
-            f"<tr><td>{_repo_link(str(record.get('repository')), '')}</td>"
-            f"<td>{_e(record.get('role'))}</td>"
-            f'<td class="mono">{_e(packages_text)}</td></tr>'
-        )
-    body.append("</tbody></table>")
-    return "".join(body)
-
-
-def _repository_table(site: _Site) -> str:
-    body = [
-        '<div class="scroll"><table><thead><tr><th>Repository</th><th>State</th>'
-        '<th class="num">Projects</th><th class="num">Direct edges</th>'
-        '<th class="num">Issues</th><th>Tags</th></tr></thead><tbody>'
-    ]
-    for name in sorted(site.graph.repositories, key=str.casefold):
-        data = site.graph.repositories[name]
-        direct = sum(1 for edge in data.edges if edge.relation is Relation.DIRECT)
-        body.append(
-            f'<tr data-row data-href="repos/{_e(name)}/index.html">'
-            f"<td>{_repo_link(name, '')}</td>"
-            f'<td class="state-{data.state.value}">{_e(data.state.value)}</td>'
-            f'<td class="num">{len(data.projects)}</td>'
-            f'<td class="num">{direct}</td>'
-            f'<td class="num">{len(data.issues)}</td>'
-            f"<td>{_tags(data.tags)}</td></tr>"
-        )
-    body.append("</tbody></table></div>")
-    return "".join(body)
-
-
-def _changes_summary(site: _Site) -> str:
-    value = site.diff_value
-    if value is None or not value.baseline:
-        return '<p class="unknown">no baseline</p>'
-    summary = _summary_metrics(value)
-    return (
-        f'<p class="sub">{summary}</p>'
-        f'<p><a href="changes.html">all changes</a></p>'
-    )
-
 
 def _landscape(site: _Site) -> str:
     columns = _landscape_columns(site)
@@ -543,69 +748,6 @@ def _landscape_columns(site: _Site) -> tuple[str, ...]:
         ),
     )
     return tuple(ranked[:60])
-
-
-def _divergence(site: _Site) -> str:
-    divergence = _table(site.report["divergence"])
-    packages = divergence.get("packages")
-    body = [
-        "<h1>Divergence</h1>",
-        f'<p class="sub">{_value(divergence.get("fleet"))} package names carry more than one '
-        f'version across the fleet; {_value(divergence.get("within_repository"))} repository '
-        "packages carry more than one version.</p>",
-    ]
-    if isinstance(packages, list) and packages:
-        body.append(
-            '<div class="scroll"><table><thead><tr><th>Package</th><th>Versions</th>'
-            "<th>Dots</th></tr></thead><tbody>"
-        )
-        for raw in packages:
-            record = _table(raw)
-            purl = str(record.get("component", ""))
-            ecosystem = _ecosystem_of(purl)
-            versions = record.get("versions")
-            if not isinstance(versions, list):
-                continue
-            ordered = sorted(
-                (_table(item) for item in versions),
-                key=lambda item: _version_sort_key(ecosystem, str(item.get("version", ""))),
-            )
-            shown = ordered[:40]
-            dots = "".join(
-                f'<span class="dot" title="{_e(_table(item).get("version"))} · '
-                f'{len(_list(_table(item).get("repositories")))} repositories"></span>'
-                for item in shown
-            )
-            labels = ", ".join(
-                f"{_table(item).get('version')} ({len(_list(_table(item).get('repositories')))})"
-                for item in ordered
-            )
-            body.append(
-                f"<tr><td>{_package_link(purl, '', purl)}</td>"
-                f'<td class="versions">{_e(labels)}</td>'
-                f'<td><span class="dots" style="--n:{len(shown)}">{dots}</span></td></tr>'
-            )
-        body.append("</tbody></table></div>")
-    else:
-        body.append('<p class="zero">no package diverges across the fleet</p>')
-    within = _table(site.report["divergence"]).get("repositories")
-    body.append("<h2>Within one repository</h2>")
-    if isinstance(within, list) and within:
-        body.append(
-            '<div class="scroll"><table><thead><tr><th>Repository</th><th>Package</th>'
-            "<th>Versions</th></tr></thead><tbody>"
-        )
-        for raw in within:
-            record = _table(raw)
-            body.append(
-                f"<tr><td>{_repo_link(str(record.get('repository')), '')}</td>"
-                f"<td>{_package_link(str(record.get('component')), '', str(record.get('component')))}</td>"
-                f'<td class="versions">{_e(", ".join(str(item) for item in _list(record.get("versions"))))}</td></tr>'
-            )
-        body.append("</tbody></table></div>")
-    else:
-        body.append('<p class="zero">no repository carries two versions of one package</p>')
-    return "".join(body)
 
 
 def _packages(site: _Site) -> str:
@@ -797,6 +939,10 @@ def _coverage(site: _Site) -> str:
         )
         + "</tbody></table>"
     )
+    body.append("<h2>Ecosystems</h2>")
+    body.append(_ecosystem_table(_table(site.report["composition"])))
+    body.append("<h2>Source risk</h2>")
+    body.append(_risk_table(site))
     unsupported = [
         (name, issue.path or "", issue.message)
         for name, data in site.graph.repositories.items()

@@ -5,8 +5,8 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any, cast
 
-from repomod.audit import _BANNED_RUST_ALTERNATIVES, _BANNED_RUST_HTTP
 from repomod.dependencies import enrich as enrich_module
+from repomod.dependencies import insights
 from repomod.dependencies.graph import Graph, is_first_party_edge
 from repomod.dependencies.model import (
     Component,
@@ -65,7 +65,7 @@ def report(
         "source_risk": _source_risk(instances, edges, component_of, issues),
         "scopes": _scopes(edges),
         "first_party": _first_party(graph, instances, edges, component_of),
-        "roles": _roles(graph, names, instances, component_of),
+        "roles": _roles(graph, names),
         "freshness": _freshness(data, component_of),
     }
 
@@ -460,40 +460,27 @@ def _first_party(
     }
 
 
-def _roles(
-    graph: Graph,
-    names: Iterable[str],
-    instances: Mapping[str, Instance],
-    component_of: Mapping[str, Component | None],
-) -> dict[str, object]:
-    http = set(_BANNED_RUST_HTTP)
-    forks = ("h12tiny-", "laputa-")
-    benchmarks = set(_BANNED_RUST_ALTERNATIVES) | set(_BANNED_RUST_ALTERNATIVES.values())
-    roles: list[dict[str, object]] = []
-    for repository in names:
-        packages: set[str] = set()
-        for instance in instances.values():
-            if repository not in graph.instance_repositories.get(instance.id, frozenset()):
-                continue
-            component = _component(component_of, instance.id)
-            if component is not None and component.ecosystem is Ecosystem.CARGO:
-                packages.add(component.name)
-        sets = {
-            "http-client": sorted(
-                name
-                for name in packages
-                if any(name == item or name.startswith(item + "-") for item in http)
+def _roles(graph: Graph, names: Iterable[str]) -> dict[str, object]:
+    selected = set(names)
+    found = tuple(
+        declaration
+        for declaration in insights.declarations(graph)
+        if declaration.repository in selected
+    )
+    roles: list[dict[str, object]] = [
+        {
+            "repository": repository,
+            "role": use.role.name,
+            "packages": sorted(
+                package
+                for (owner, _), packages in use.packages.items()
+                if owner == repository
+                for package in packages
             ),
-            "http-client-fork": sorted(
-                name
-                for name in packages
-                if name.startswith(forks) and any(item in name for item in http)
-            ),
-            "benchmark": sorted(name for name in packages if name in benchmarks),
         }
-        for role, found in sets.items():
-            if len(found) >= 2:
-                roles.append({"repository": repository, "role": role, "packages": found})
+        for use in insights.role_uses(insights.load_roles(), found)
+        for repository in use.overlapping
+    ]
     return {
         "repositories": _metric(
             len({str(role["repository"]) for role in roles}),

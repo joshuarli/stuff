@@ -113,6 +113,25 @@ details summary { cursor: pointer; color: var(--muted); }
 .copy[data-copied="1"] { color: var(--ok); }
 .risk { color: var(--gap); }
 .finding { color: var(--error); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: .6rem; margin: .9rem 0 .4rem; }
+.tile { display: flex; flex-direction: column; border: 1px solid var(--rule); background: #fff; padding: .55rem .7rem; color: var(--ink); }
+.tile:hover { border-color: var(--direct); text-decoration: none; }
+.tile .value { font: 600 1.6rem/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.tile .label { font-size: .88rem; }
+.tile .detail { font-size: .78rem; color: var(--muted); }
+h2 .more { float: right; font-size: .8rem; font-weight: 400; }
+.badge { font: 11px var(--mono); padding: 0 .3rem; border: 1px solid currentColor; }
+.badge.breaking { color: var(--error); }
+.badge.minor { color: var(--gap); }
+.badge.patch { color: var(--muted); }
+.on-target { color: var(--ok); }
+.on-target a { color: var(--ok); }
+td.weight { min-width: 10rem; white-space: nowrap; }
+td.weight .bar { height: .6rem; }
+.bar.shared { opacity: .25; }
+td details { display: inline; }
+td details[open] { display: block; }
+td div + div { margin-top: .1rem; }
 @media (max-width: 700px) {
   body { padding: .8rem .8rem 3rem; font-size: 14px; }
   input#search { min-width: 0; width: 100%; margin-left: 0; }
