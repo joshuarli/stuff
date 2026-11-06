@@ -30,7 +30,7 @@ RUN apk add --no-cache \
     pax-utils=1.3.9-r1 \
     python3=3.14.10-r1 \
     tar=1.35-r5 \
-    tzdata=2026e-r0 \
+    tzdata=2026f-r0 \
     xz=5.8.4-r0
 
 RUN ar rcs /usr/lib/libutil.a
