@@ -1,15 +1,6 @@
 Prefix: RPMD
 Next: 74
 
-### RPMD-73 · P2 · Repair branch protections that require checks no workflow produces
-
-- **Area:** Release policy
-- **Where:** branch protection on `laputa-systems/diff-pretty` (`test (macos-26)`), `laputa-systems/fdu` (`Build and test (macos-26)`), `laputa-systems/fz` (`CI (macos-26)`), `laputa-systems/tm` (`CI`)
-- **Problem:** `github-protection` reports required status checks that no workflow produces, so pull requests on these repositories wait forever for green checks and auto-merge stalls. The macos-26 contexts look like a runner rename to macos-latest; tm's job is now named `CI (${{ matrix.os }})`.
-- **Recommendation:** Point each protection at the check names the workflows produce now; repomod has no command that writes branch protection, so do it in GitHub settings or with `gh api`, then confirm the lint is clean.
-- **Fix with:** none
-- **Effort:** S (hours)
-
 ### RPMD-63 · P3 · Finish moving owned repositories from serde to deser
 
 - **Area:** Dependencies
