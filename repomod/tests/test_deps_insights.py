@@ -174,7 +174,7 @@ def test_splits_need_two_repositories_and_skip_local_and_alpine(tmp_path: Path) 
             _app("acme/three", [_cargo("solo", "2.0.0")]),
         ],
     )
-    rows = insights.splits(insights.declarations(graph), {})
+    rows = insights.splits(insights.declarations(graph), {}, pins={})
     assert [(row.component.name, row.target, row.basis) for row in rows] == [
         ("solo", "2.0.0", insights.TargetBasis.NEWEST_IN_USE),
         ("libc", "0.2.191", insights.TargetBasis.NEWEST_IN_USE),
@@ -358,7 +358,7 @@ def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) ->
         graph.repositories,
         insights.outdated(found, enrichment),
         insights.vulnerable(graph, found, enrichment),
-        insights.splits(found, enrichment),
+        insights.splits(found, enrichment, pins={}),
         insights.role_uses(roles, found),
         insights.weights(graph, found),
     )
@@ -389,9 +389,30 @@ def test_split_target_prefers_comparable_versions_then_the_most_common_ref(tmp_p
     )
     targets = {
         row.component.name: (row.target, row.basis)
-        for row in insights.splits(insights.declarations(graph), {})
+        for row in insights.splits(insights.declarations(graph), {}, pins={})
     }
     assert targets == {
         "actions/checkout": ("v5", insights.TargetBasis.NEWEST_IN_USE),
         "dtolnay/rust-toolchain": ("master", insights.TargetBasis.MOST_COMMON),
     }
+
+
+def test_approved_action_pins_set_the_alignment_target(tmp_path: Path) -> None:
+    approved = "3d3c42e5aac5ba805825da76410c181273ba90b1"
+
+    def checkout(ref: str) -> Instance:
+        return instance(Ecosystem.GITHUB, "actions/checkout", ref)
+
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/one", [checkout(approved)]),
+            _app("acme/two", [checkout("v7")]),
+            _app("acme/three", [checkout("v4")]),
+        ],
+    )
+    [row] = insights.splits(
+        insights.declarations(graph), {}, pins={"actions/checkout": approved}
+    )
+    assert (row.target, row.basis) == (approved, insights.TargetBasis.APPROVED_PIN)
+    assert sorted(row.off_target) == ["acme/three", "acme/two"]

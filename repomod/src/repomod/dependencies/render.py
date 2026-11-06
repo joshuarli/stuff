@@ -25,6 +25,7 @@ from repomod.dependencies.model import (
     Relation,
     RepositoryData,
 )
+from repomod.rules import actions as actions_rule
 
 MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
@@ -176,7 +177,9 @@ def _site(
     outdated = insights.outdated(mine, results)
     vulnerable = insights.vulnerable(graph, declared, results)
     weights = insights.weights(graph, mine)
-    splits = insights.splits(mine, results)
+    splits = insights.splits(
+        mine, results, pins={name: pin.sha for name, pin in actions_rule.load_pins().items()}
+    )
     roles = insights.role_uses(insights.load_roles(), mine)
     return _Site(
         graph,

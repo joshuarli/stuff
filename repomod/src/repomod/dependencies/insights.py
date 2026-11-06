@@ -83,6 +83,7 @@ class Weight:
 
 
 class TargetBasis(Enum):
+    APPROVED_PIN = "approved pin"
     LATEST = "latest"
     NEWEST_IN_USE = "newest in use"
     MOST_COMMON = "most common"
@@ -374,7 +375,10 @@ def weights(graph: Graph, found: Iterable[Declaration]) -> tuple[Weight, ...]:
 
 
 def splits(
-    found: Iterable[Declaration], enrichment: Mapping[str, Mapping[str, object]]
+    found: Iterable[Declaration],
+    enrichment: Mapping[str, Mapping[str, object]],
+    *,
+    pins: Mapping[str, str],
 ) -> tuple[Split, ...]:
     versions: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     components: dict[str, Component] = {}
@@ -390,11 +394,16 @@ def splits(
             latest_of[purl] = latest
     rows = []
     for purl, by_version in versions.items():
+        component = components[purl]
+        uses = _uses(component, by_version)
+        pin = pins.get(component.name) if component.ecosystem is Ecosystem.GITHUB else None
+        if pin is not None:
+            if set(by_version) != {pin}:
+                rows.append(Split(component, pin, TargetBasis.APPROVED_PIN, uses))
+            continue
         repositories = {repository for found in by_version.values() for repository in found}
         if len(by_version) < 2 or len(repositories) < 2:
             continue
-        component = components[purl]
-        uses = _uses(component, by_version)
         latest = latest_of.get(purl)
         target, basis = (
             (latest, TargetBasis.LATEST) if latest is not None else _fallback_target(component, uses)
