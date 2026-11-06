@@ -4028,6 +4028,7 @@
  "repository": "laputa-systems/e",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

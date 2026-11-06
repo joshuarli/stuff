@@ -3106,6 +3106,7 @@
  "repository": "laputa-systems/fdu",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

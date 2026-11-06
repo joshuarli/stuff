@@ -4530,6 +4530,7 @@
  "schema": 1,
  "tags": [
   "fork",
+  "go",
   "tool"
  ]
 }

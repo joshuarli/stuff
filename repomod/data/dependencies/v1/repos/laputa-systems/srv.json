@@ -3418,6 +3418,7 @@
  "repository": "laputa-systems/srv",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

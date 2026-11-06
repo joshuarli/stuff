@@ -3539,6 +3539,7 @@
  "repository": "laputa-systems/fastermod",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

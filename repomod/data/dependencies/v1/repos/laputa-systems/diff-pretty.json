@@ -1677,6 +1677,7 @@
  "repository": "laputa-systems/diff-pretty",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

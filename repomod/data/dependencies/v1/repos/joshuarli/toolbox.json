@@ -139,12 +139,6 @@
    "purl": "pkg:pypi/ty"
   },
   {
-   "display_name": "urllib3",
-   "ecosystem": "pypi",
-   "name": "urllib3",
-   "purl": "pkg:pypi/urllib3"
-  },
-  {
    "display_name": "uv",
    "ecosystem": "pypi",
    "name": "uv",
@@ -161,12 +155,6 @@
    "ecosystem": "pypi",
    "name": "wcwidth",
    "purl": "pkg:pypi/wcwidth"
-  },
-  {
-   "display_name": "websockets",
-   "ecosystem": "pypi",
-   "name": "websockets",
-   "purl": "pkg:pypi/websockets"
   }
  ],
  "edges": [
@@ -539,28 +527,6 @@
    "to": "pkg:pypi/ty@0.0.91#"
   },
   {
-   "condition": null,
-   "constraint": ">=2.7.0",
-   "evidence": [
-    {
-     "locator": "project.dependencies[3]",
-     "path": "pyproject.toml"
-    },
-    {
-     "locator": "package[name=tool,version=0.1.0].dependencies[3]",
-     "path": "uv.lock"
-    }
-   ],
-   "from": ".:pypi",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "2.8.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:pypi/urllib3@2.8.0#"
-  },
-  {
    "condition": "group == 'dev'",
    "constraint": "==0.13.5",
    "evidence": [
@@ -587,11 +553,11 @@
    "constraint": ">=0.22.1",
    "evidence": [
     {
-     "locator": "project.dependencies[4]",
+     "locator": "project.dependencies[3]",
      "path": "pyproject.toml"
     },
     {
-     "locator": "package[name=tool,version=0.1.0].dependencies[4]",
+     "locator": "package[name=tool,version=0.1.0].dependencies[3]",
      "path": "uv.lock"
     }
    ],
@@ -603,28 +569,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:pypi/uvloop@0.23.0#"
-  },
-  {
-   "condition": null,
-   "constraint": ">=16.0",
-   "evidence": [
-    {
-     "locator": "project.dependencies[5]",
-     "path": "pyproject.toml"
-    },
-    {
-     "locator": "package[name=tool,version=0.1.0].dependencies[5]",
-     "path": "uv.lock"
-    }
-   ],
-   "from": ".:pypi",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "17.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:pypi/websockets@17.3#"
   },
   {
    "condition": null,
@@ -861,15 +805,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "4d298155b3e0f13c8fd3bc290df51e5ec1a1b473",
+   "blob": "33eaf1c0fe32270b905ce9b1a2e0abafe1c204ce",
    "path": "pyproject.toml"
   },
   {
-   "blob": "1bb825a477a8f4ace6578a54be9bc96eb682bc79",
+   "blob": "550ca5ec434b8a4e7e166cf400d22e0a3fa08baa",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "9f7bc3f998b867da4c1a5cef9b10443853f79dd51b83ca416e939ae7e725ddf8",
+ "inputs_fingerprint": "e3e95cd8f438e822b5b9dcfd428b64366fd53b29db6d18dacff1f593a0ff90e3",
  "instances": [
   {
    "commit": null,
@@ -1172,19 +1116,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:pypi/urllib3",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:pypi/urllib3@2.8.0#",
-   "purl": "pkg:pypi/urllib3@2.8.0",
-   "registry_url": "https://pypi.17166969.xyz/current/simple/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.8.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
@@ -1221,19 +1152,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.8.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:pypi/websockets",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:pypi/websockets@17.3#",
-   "purl": "pkg:pypi/websockets@17.3",
-   "registry_url": "https://pypi.17166969.xyz/current/simple/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "17.3"
   }
  ],
  "issues": [

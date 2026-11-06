@@ -37,6 +37,42 @@
    "purl": "pkg:cargo/crossbeam-utils"
   },
   {
+   "display_name": "deser",
+   "ecosystem": "cargo",
+   "name": "deser",
+   "purl": "pkg:cargo/deser"
+  },
+  {
+   "display_name": "deser-core",
+   "ecosystem": "cargo",
+   "name": "deser-core",
+   "purl": "pkg:cargo/deser-core"
+  },
+  {
+   "display_name": "deser-derive",
+   "ecosystem": "cargo",
+   "name": "deser-derive",
+   "purl": "pkg:cargo/deser-derive"
+  },
+  {
+   "display_name": "deser-json",
+   "ecosystem": "cargo",
+   "name": "deser-json",
+   "purl": "pkg:cargo/deser-json"
+  },
+  {
+   "display_name": "deser-value",
+   "ecosystem": "cargo",
+   "name": "deser-value",
+   "purl": "pkg:cargo/deser-value"
+  },
+  {
+   "display_name": "equivalent",
+   "ecosystem": "cargo",
+   "name": "equivalent",
+   "purl": "pkg:cargo/equivalent"
+  },
+  {
    "display_name": "errno",
    "ecosystem": "cargo",
    "name": "errno",
@@ -73,6 +109,12 @@
    "purl": "pkg:cargo/getrandom"
   },
   {
+   "display_name": "hashbrown",
+   "ecosystem": "cargo",
+   "name": "hashbrown",
+   "purl": "pkg:cargo/hashbrown"
+  },
+  {
    "display_name": "heck",
    "ecosystem": "cargo",
    "name": "heck",
@@ -83,6 +125,12 @@
    "ecosystem": "cargo",
    "name": "hermit-abi",
    "purl": "pkg:cargo/hermit-abi"
+  },
+  {
+   "display_name": "indexmap",
+   "ecosystem": "cargo",
+   "name": "indexmap",
+   "purl": "pkg:cargo/indexmap"
   },
   {
    "display_name": "itoa",
@@ -181,12 +229,6 @@
    "purl": "pkg:cargo/linux-raw-sys"
   },
   {
-   "display_name": "memchr",
-   "ecosystem": "cargo",
-   "name": "memchr",
-   "purl": "pkg:cargo/memchr"
-  },
-  {
    "display_name": "mini-internal",
    "ecosystem": "cargo",
    "name": "mini-internal",
@@ -275,30 +317,6 @@
    "ecosystem": "cargo",
    "name": "rustix",
    "purl": "pkg:cargo/rustix"
-  },
-  {
-   "display_name": "serde",
-   "ecosystem": "cargo",
-   "name": "serde",
-   "purl": "pkg:cargo/serde"
-  },
-  {
-   "display_name": "serde_core",
-   "ecosystem": "cargo",
-   "name": "serde_core",
-   "purl": "pkg:cargo/serde_core"
-  },
-  {
-   "display_name": "serde_derive",
-   "ecosystem": "cargo",
-   "name": "serde_derive",
-   "purl": "pkg:cargo/serde_derive"
-  },
-  {
-   "display_name": "serde_json",
-   "ecosystem": "cargo",
-   "name": "serde_json",
-   "purl": "pkg:cargo/serde_json"
   },
   {
    "display_name": "simdutf8",
@@ -1379,12 +1397,6 @@
    "ecosystem": "pypi",
    "name": "uvloop",
    "purl": "pkg:pypi/uvloop"
-  },
-  {
-   "display_name": "websockets",
-   "ecosystem": "pypi",
-   "name": "websockets",
-   "purl": "pkg:pypi/websockets"
   }
  ],
  "edges": [
@@ -1412,6 +1424,72 @@
   },
   {
    "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-json",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-value",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-value@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
    "constraint": "0.3",
    "evidence": [
     {
@@ -1419,7 +1497,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[1]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1441,7 +1519,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[2]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1463,7 +1541,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[3]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -1485,7 +1563,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[4]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1507,7 +1585,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[5]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -1529,7 +1607,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[6]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -1551,7 +1629,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[7]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -1573,7 +1651,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[8]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -1595,7 +1673,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[9]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -1617,7 +1695,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[10]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -1639,7 +1717,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[11]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -1654,50 +1732,6 @@
   },
   {
    "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.serde",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[12]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.serde_json",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[13]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.0.154",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_json@1.0.154#"
-  },
-  {
-   "condition": null,
    "constraint": "0.1",
    "evidence": [
     {
@@ -1705,7 +1739,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[15]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
@@ -1727,7 +1761,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[14]",
+     "locator": "package[name=shadowdriver,version=0.1.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
@@ -1868,6 +1902,72 @@
   },
   {
    "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser-json",
+     "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/shadowdriver-cdp-codegen:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.deser-value",
+     "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/shadowdriver-cdp-codegen:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-value@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/shadowdriver-cdp-codegen:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
    "constraint": "=0.4.3",
    "evidence": [
     {
@@ -1875,7 +1975,7 @@
      "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[0]",
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -1897,7 +1997,7 @@
      "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[1]",
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1912,50 +2012,6 @@
   },
   {
    "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.serde",
-     "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
-    },
-    {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/shadowdriver-cdp-codegen:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.serde_json",
-     "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
-    },
-    {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/shadowdriver-cdp-codegen:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.0.154",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_json@1.0.154#"
-  },
-  {
-   "condition": null,
    "constraint": "=3.27.0",
    "evidence": [
     {
@@ -1963,7 +2019,7 @@
      "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[4]",
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1985,7 +2041,7 @@
      "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
     },
     {
-     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[5]",
+     "locator": "package[name=shadowdriver-cdp-codegen,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -2000,32 +2056,10 @@
   },
   {
    "condition": null,
-   "constraint": "0.3",
+   "constraint": "0.10",
    "evidence": [
     {
-     "locator": "dependencies.futures-lite",
-     "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
-    },
-    {
-     "locator": "package[name=shadowdriver-cdp-protocol,version=0.1.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/shadowdriver-cdp-protocol:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.3.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.serde",
+     "locator": "dev-dependencies.deser-json",
      "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
     },
     {
@@ -2037,17 +2071,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
+   "resolved_version": "0.10.2",
+   "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
+   "to": "pkg:cargo/deser-json@0.10.2#"
   },
   {
    "condition": null,
-   "constraint": "1",
+   "constraint": "0.10",
    "evidence": [
     {
-     "locator": "dependencies.serde_json",
+     "locator": "dependencies.deser-value",
      "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
     },
     {
@@ -2059,10 +2093,54 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.0.154",
+   "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde_json@1.0.154#"
+   "to": "pkg:cargo/deser-value@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.10",
+   "evidence": [
+    {
+     "locator": "dependencies.deser",
+     "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver-cdp-protocol,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/shadowdriver-cdp-protocol:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3",
+   "evidence": [
+    {
+     "locator": "dependencies.futures-lite",
+     "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
+    },
+    {
+     "locator": "package[name=shadowdriver-cdp-protocol,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/shadowdriver-cdp-protocol:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -2311,7 +2389,7 @@
    "constraint": ">=3.20",
    "evidence": [
     {
-     "locator": "project.dependencies[4]",
+     "locator": "project.dependencies[3]",
      "path": "grab/pyproject.toml"
     },
     {
@@ -2355,7 +2433,7 @@
    "constraint": ">=12",
    "evidence": [
     {
-     "locator": "project.dependencies[5]",
+     "locator": "project.dependencies[4]",
      "path": "grab/pyproject.toml"
     },
     {
@@ -2439,28 +2517,6 @@
    "to": "pkg:pypi/ruff@0.17.3#"
   },
   {
-   "condition": null,
-   "constraint": ">=0.10",
-   "evidence": [
-    {
-     "locator": "project.dependencies[3]",
-     "path": "grab/pyproject.toml"
-    },
-    {
-     "locator": "package[name=grab,version=0.1.0].dependencies[4]",
-     "path": "grab/uv.lock"
-    }
-   ],
-   "from": "grab:pypi",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.10.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:pypi/truststore@0.10.5#"
-  },
-  {
    "condition": "group == 'dev'",
    "constraint": ">=0.0.42",
    "evidence": [
@@ -2491,7 +2547,7 @@
      "path": "grab/pyproject.toml"
     },
     {
-     "locator": "package[name=grab,version=0.1.0].dependencies[5]",
+     "locator": "package[name=grab,version=0.1.0].dependencies[4]",
      "path": "grab/uv.lock"
     }
    ],
@@ -2689,7 +2745,7 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "project.dependencies[2]",
+     "locator": "project.dependencies[1]",
      "path": "ig/pyproject.toml"
     },
     {
@@ -2862,25 +2918,201 @@
   },
   {
    "condition": null,
-   "constraint": ">=16.0",
+   "constraint": null,
    "evidence": [
     {
-     "locator": "project.dependencies[1]",
-     "path": "ig/pyproject.toml"
-    },
-    {
-     "locator": "package[name=instagram,version=0.1.0].dependencies[2]",
-     "path": "ig/uv.lock"
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
-   "from": "ig:pypi",
+   "from": "pkg:cargo/deser-derive@0.10.2#",
    "optional": false,
-   "relation": "direct",
+   "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "17.3",
+   "resolved_version": "1.0.107",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:pypi/websockets@17.3#"
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.18",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/itoa@1.0.18#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/simdutf8@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zmij@1.0.23#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-value,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-value@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-value,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-value@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/indexmap@2.14.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-derive@0.10.2#"
   },
   {
    "condition": null,
@@ -3007,6 +3239,42 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/r-efi@6.0.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=indexmap,version=2.14.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/indexmap@2.14.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/equivalent@1.0.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=indexmap,version=2.14.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/indexmap@2.14.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.17.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hashbrown@0.17.1#"
   },
   {
    "condition": null,
@@ -4267,204 +4535,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde,version=1.0.229].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_core@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde,version=1.0.229].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_derive@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_core,version=1.0.229].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_core@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_derive@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_derive,version=1.0.229].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_derive@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.107",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_derive,version=1.0.229].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_derive@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.47",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.47#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_derive,version=1.0.229].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_derive@1.0.229#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.0.9",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_json,version=1.0.154].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_json@1.0.154#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.18",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_json,version=1.0.154].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_json@1.0.154#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.8.3",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/memchr@2.8.3#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_json,version=1.0.154].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_json@1.0.154#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_json,version=1.0.154].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_json@1.0.154#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.229",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/serde_core@1.0.229#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=serde_json,version=1.0.154].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/serde_json@1.0.154#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.23",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zmij@1.0.23#"
   },
   {
    "condition": null,
@@ -13549,11 +13619,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "abcf2d15dab1eacf26881255ec4591189a05887f",
+   "blob": "89374cec1f95779a3dd516e1b653a4f0267d27bb",
    "path": "Cargo.lock"
   },
   {
-   "blob": "39c3c4eeb51047e25358543f1f33450a03d632bb",
+   "blob": "df2d445ca4a2eb0877b7c6052d6b74a18e0c46b0",
    "path": "Cargo.toml"
   },
   {
@@ -13561,11 +13631,11 @@
    "path": "Makefile"
   },
   {
-   "blob": "e7ebcf2ef1a895ded36d5172b8feab0f2d083c52",
+   "blob": "466966c0ae65f3086b2cd90a40efebf0b08da260",
    "path": "crates/shadowdriver-cdp-codegen/Cargo.toml"
   },
   {
-   "blob": "8191b5b29a0f63d8c6262a12c1b84a9576fdc91f",
+   "blob": "8eb35ffc573e0cfa366a975efc697f70811a144a",
    "path": "crates/shadowdriver-cdp-protocol/Cargo.toml"
   },
   {
@@ -13585,11 +13655,11 @@
    "path": "grab/Makefile"
   },
   {
-   "blob": "3aa5e57b91c07eb597cfc04a166b729ccd6408c0",
+   "blob": "dc3173fe70b21947eb40940508ae3de4b557939a",
    "path": "grab/pyproject.toml"
   },
   {
-   "blob": "e00dd9d6e2fc378724d99e675f6908c004e6708a",
+   "blob": "a2ed6e0d71feb09c593478f0387625eb6983ef72",
    "path": "grab/uv.lock"
   },
   {
@@ -13609,11 +13679,11 @@
    "path": "ig/Makefile"
   },
   {
-   "blob": "9595f263f6375a65c2b6b7bd5bf76532ba7c8cbf",
+   "blob": "b09cf5d6b36d3a99c6803cbcca2ba8151bbf7c79",
    "path": "ig/pyproject.toml"
   },
   {
-   "blob": "bd0fa777507dd2b01b78dccd15806eb209b64898",
+   "blob": "b26bd35073fd5c7b17c3445405ad835f3569e7bc",
    "path": "ig/uv.lock"
   },
   {
@@ -13641,7 +13711,7 @@
    "path": "ts/pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "2b707b07793729b357e222fe3a346ffa021f76e67e253a667b4f37cc6e1c2450",
+ "inputs_fingerprint": "0ac4ffb981dab6d503025ca75937968e256b9c830434f7f08f2a3ca0022723bf",
  "instances": [
   {
    "commit": null,
@@ -13723,6 +13793,84 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/deser-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-core@0.10.2#",
+   "purl": "pkg:cargo/deser-core@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-derive@0.10.2#",
+   "purl": "pkg:cargo/deser-derive@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-json",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-json@0.10.2#",
+   "purl": "pkg:cargo/deser-json@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-value",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-value@0.10.2#",
+   "purl": "pkg:cargo/deser-value@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser@0.10.2#",
+   "purl": "pkg:cargo/deser@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/equivalent",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/equivalent@1.0.3#",
+   "purl": "pkg:cargo/equivalent@1.0.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.0.3"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/errno",
    "context": "",
    "first_party": false,
@@ -13801,6 +13949,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/hashbrown",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/hashbrown@0.17.1#",
+   "purl": "pkg:cargo/hashbrown@0.17.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.1"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/heck",
    "context": "",
    "first_party": false,
@@ -13824,6 +13985,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.5.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/indexmap",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/indexmap@2.14.2#",
+   "purl": "pkg:cargo/indexmap@2.14.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.14.2"
   },
   {
    "commit": null,
@@ -14035,19 +14209,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/memchr",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/memchr@2.8.3#",
-   "purl": "pkg:cargo/memchr@2.8.3",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "2.8.3"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/mini-internal",
    "context": "",
    "first_party": false,
@@ -14240,58 +14401,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.1.6"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde@1.0.229#",
-   "purl": "pkg:cargo/serde@1.0.229",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.229"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde_core",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde_core@1.0.229#",
-   "purl": "pkg:cargo/serde_core@1.0.229",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.229"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde_derive",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde_derive@1.0.229#",
-   "purl": "pkg:cargo/serde_derive@1.0.229",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.229"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde_json",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde_json@1.0.154#",
-   "purl": "pkg:cargo/serde_json@1.0.154",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.0.154"
   },
   {
    "commit": null,
@@ -16827,19 +16936,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.23.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:pypi/websockets",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:pypi/websockets@17.3#",
-   "purl": "pkg:pypi/websockets@17.3",
-   "registry_url": "https://pypi.17166969.xyz/current/simple/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "17.3"
   }
  ],
  "issues": [

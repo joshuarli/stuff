@@ -1770,6 +1770,7 @@
  "repository": "laputa-systems/tm",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

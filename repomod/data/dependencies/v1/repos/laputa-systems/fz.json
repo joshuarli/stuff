@@ -1819,6 +1819,7 @@
  "repository": "laputa-systems/fz",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

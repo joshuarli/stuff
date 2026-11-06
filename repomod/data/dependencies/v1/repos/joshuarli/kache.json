@@ -14516,6 +14516,7 @@
  "repository": "joshuarli/kache",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

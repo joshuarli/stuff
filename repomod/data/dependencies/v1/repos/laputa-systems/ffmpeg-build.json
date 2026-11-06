@@ -1353,6 +1353,8 @@
  "repository": "laputa-systems/ffmpeg-build",
  "schema": 1,
  "tags": [
-  "build"
+  "build",
+  "python",
+  "shell"
  ]
 }

@@ -8704,6 +8704,7 @@
  "repository": "joshuarli/play",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

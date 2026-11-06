@@ -8602,6 +8602,7 @@
  "schema": 1,
  "tags": [
   "app",
-  "fork"
+  "fork",
+  "zig"
  ]
 }

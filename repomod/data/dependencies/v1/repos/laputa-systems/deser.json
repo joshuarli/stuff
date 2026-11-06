@@ -10152,7 +10152,6 @@
   "fork",
   "library",
   "python",
-  "rust",
-  "shell"
+  "rust"
  ]
 }

@@ -6870,6 +6870,7 @@
  "schema": 1,
  "tags": [
   "fork",
+  "rust",
   "tool"
  ]
 }
