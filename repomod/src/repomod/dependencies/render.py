@@ -35,7 +35,6 @@ _NAV = (
     ("alignment", "Alignment"),
     ("choices", "Choices"),
     ("packages", "Packages"),
-    ("landscape", "Landscape"),
     ("changes", "Changes"),
     ("coverage", "Coverage"),
 )
@@ -61,7 +60,6 @@ class _Site:
     diff_value: diff_module.Diff | None
     index: tuple[dict[str, object], ...]
     direct_repos: Mapping[str, frozenset[str]]
-    all_repos: Mapping[str, frozenset[str]]
     now: float
     outdated: tuple[insights.Outdated, ...]
     vulnerable: tuple[insights.Vulnerable, ...]
@@ -102,12 +100,6 @@ def render(
             ("bloat", "Bloat", _bloat),
             ("alignment", "Alignment", _alignment),
             ("choices", "Choices", _choices),
-        )
-    )
-    pages.append(
-        _write_page(
-            output / "landscape.html",
-            _page(site, "Landscape", "landscape", "", _landscape(site), _landscape_data(site)),
         )
     )
     pages.append(
@@ -159,7 +151,6 @@ def _site(
             }
         )
     direct_repos: dict[str, set[str]] = defaultdict(set)
-    all_repos: dict[str, set[str]] = defaultdict(set)
     for repository, edge in ((item.repository, item.edge) for item in graph.edges):
         instance = graph.instances.get(edge.to_id)
         if instance is None:
@@ -167,7 +158,6 @@ def _site(
         component = graph.components.get(instance.component)
         if component is None:
             continue
-        all_repos[component.purl].add(repository)
         if edge.relation is Relation.DIRECT:
             direct_repos[component.purl].add(repository)
     if diff_value is None and root is not None:
@@ -188,7 +178,6 @@ def _site(
         diff_value,
         tuple(index),
         {key: frozenset(value) for key, value in direct_repos.items()},
-        {key: frozenset(value) for key, value in all_repos.items()},
         time.time(),
         insights.outdated(declared, results),
         insights.vulnerable(graph, declared, results),
@@ -204,13 +193,7 @@ def _page(
     page_id: str,
     prefix: str,
     body: str,
-    data: object | None = None,
 ) -> str:
-    data_script = (
-        f'<script type="application/json" id="page-data">{_json(data)}</script>'
-        if data is not None
-        else ""
-    )
     return (
         "<!doctype html>\n"
         '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
@@ -227,7 +210,6 @@ def _page(
         '<div id="search-results"></div>\n'
         "</header>\n"
         f"<main>\n{body}\n</main>\n"
-        f"{data_script}\n"
         f'<script src="{prefix}assets/search.js"></script>\n'
         f'<script src="{prefix}assets/app.js"></script>\n'
         "</body>\n</html>\n"
@@ -676,78 +658,6 @@ def _risk_table(site: _Site) -> str:
             f"{_e(kind)} {count}" for kind, count in errors.items()
         ) + "</p>")
     return "".join(out)
-
-def _landscape(site: _Site) -> str:
-    columns = _landscape_columns(site)
-    repositories = sorted(site.graph.repositories, key=str.casefold)
-    body = [
-        "<h1>Landscape</h1>",
-        '<p class="sub">Dense cells are repositories that depend on a package. '
-        "Blue is direct; pale blue is transitive. Sort by commonality, ecosystem, "
-        "repository, or coverage; add a column from search.</p>",
-        '<p class="sub">Sort: '
-        '<button class="copy" data-sort="commonality">commonality</button> '
-        '<button class="copy" data-sort="ecosystem">ecosystem</button> '
-        '<button class="copy" data-sort="repo">repository</button> '
-        '<button class="copy" data-sort="coverage">coverage</button></p>',
-        '<div class="scroll"><table class="matrix landscape"><thead><tr><th>Repository</th>',
-    ]
-    for purl in columns:
-        component = site.graph.components.get(purl)
-        label = component.display_name if component is not None else purl
-        body.append(f'<th class="rotate" title="{_e(purl)}">{_e(label)}</th>')
-    body.append("</tr></thead><tbody>")
-    for name in repositories:
-        data = site.graph.repositories[name]
-        commonality = sum(
-            1
-            for purl in columns
-            if name in site.all_repos.get(purl, frozenset())
-        )
-        coverage = {"failed": 3, "unavailable": 3, "partial": 2, "complete": 1}.get(
-            data.state.value, 0
-        )
-        body.append(
-            f'<tr data-row data-repo="{_e(name)}" data-href="repos/{_e(name)}/index.html" '
-            f'data-commonality="{commonality}" data-ecosystem="{_e(",".join(data.tags))}" '
-            f'data-coverage="{coverage}">'
-            f"<td>{_repo_link(name, '')}</td>"
-        )
-        for purl in columns:
-            if name in site.direct_repos.get(purl, frozenset()):
-                body.append('<td class="cell direct" title="direct"></td>')
-            elif name in site.all_repos.get(purl, frozenset()):
-                body.append('<td class="cell transitive" title="transitive"></td>')
-            else:
-                body.append('<td class="cell"></td>')
-        body.append("</tr>")
-    body.append("</tbody></table></div>")
-    return "".join(body)
-
-
-def _landscape_data(site: _Site) -> dict[str, object]:
-    membership: dict[str, dict[str, list[str]]] = {}
-    labels: dict[str, str] = {}
-    for purl, component in site.graph.components.items():
-        membership[purl] = {
-            "direct": sorted(site.direct_repos.get(purl, frozenset())),
-            "transitive": sorted(site.all_repos.get(purl, frozenset())),
-        }
-        labels[purl] = component.display_name
-    return {"membership": membership, "labels": labels}
-
-
-def _landscape_columns(site: _Site) -> tuple[str, ...]:
-    ranked = sorted(
-        site.all_repos,
-        key=lambda purl: (
-            -len(site.all_repos[purl]),
-            -len(site.direct_repos.get(purl, frozenset())),
-            purl,
-        ),
-    )
-    return tuple(ranked[:60])
-
 
 def _packages(site: _Site) -> str:
     body = ["<h1>Packages</h1>", '<div id="package-index">']

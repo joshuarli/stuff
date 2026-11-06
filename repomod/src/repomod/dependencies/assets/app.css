@@ -97,14 +97,6 @@ td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numer
 .direct { color: var(--direct); }
 .transitive { color: var(--muted); }
 details summary { cursor: pointer; color: var(--muted); }
-.matrix td.cell { width: 12px; height: 12px; padding: 0; }
-.matrix td.direct { background: var(--direct); }
-.matrix td.transitive { background: var(--direct); opacity: .3; }
-.matrix th.rotate { writing-mode: vertical-rl; transform: rotate(180deg); height: 10rem; white-space: nowrap; font-size: .68rem; }
-.matrix td, .matrix th { border-bottom: 1px solid var(--rule); padding: 1px 2px; }
-.dots { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(.55rem, 1fr)); align-items: center; height: 1.25rem; width: 100%; min-width: 0; }
-.dot { justify-self: start; width: .6rem; height: .6rem; border-radius: 50%; background: var(--direct); }
-.dot.gap { background: var(--gap); }
 .versions { font-family: var(--mono); font-size: 12px; }
 .package { display: none; }
 .package.active { display: block; }

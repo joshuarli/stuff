@@ -13,7 +13,7 @@ For a local server, `make deps` renders the dashboard and serves it at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
 
 The site has no fetch, CDN, web font, framework, or chart library. Everything is precomputed by
-Python; the browser only filters, sorts, and expands. It works from `file://`.
+Python; the browser only searches, routes, and expands. It works from `file://`.
 
 ## Pages
 
@@ -32,9 +32,6 @@ Python; the browser only filters, sorts, and expands. It works from `file://`.
   repositories off it. Alpine packages follow their base image and are left out.
 - **Choices** — roles from `dependency-roles.toml`: which option each repository declares,
   which repositories mix options, and which use something other than the preferred option.
-- **Landscape** — a dense repository × package matrix. Sort rows by commonality, ecosystem,
-  repository, or coverage. Search a package and use **+ column** to add it; the matrix shows at
-  most 60 columns by default.
 - **Packages** — search or pick a package. Each view shows identity, versions and sources,
   repositories, enrichment state, and entry paths with relation, scope, and resolution.
   `packages.html#pkg=pkg:cargo/serde` deep-links to a package.
@@ -89,7 +86,7 @@ JavaScript is stale. `make deps` only renders and serves; it does not run Node.
 
 ## Budgets and verification
 
-The site must stay under 10 MB. The current fleet is 61 pages and about 9.9 MB. The overview
+The site must stay under 10 MB. The current fleet is 60 pages and about 9.4 MB. The overview
 renders in tens of milliseconds from `file://`.
 
 The browser checks use agent-browser at 1440×900 and 390×844. They verify no console errors, no

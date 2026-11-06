@@ -1,61 +1,6 @@
 "use strict";
 (() => {
     "use strict";
-    function recordValue(value) {
-        if (typeof value !== "object" || value === null || Array.isArray(value))
-            return undefined;
-        return value;
-    }
-    function stringList(value) {
-        if (!Array.isArray(value))
-            return undefined;
-        const items = [];
-        for (const item of value) {
-            if (typeof item === "string")
-                items.push(item);
-        }
-        return items;
-    }
-    function decodeLandscape(record) {
-        const membership = {};
-        const rawMembership = recordValue(record["membership"]);
-        if (rawMembership !== undefined) {
-            for (const [purl, raw] of Object.entries(rawMembership)) {
-                const entry = recordValue(raw);
-                if (entry === undefined)
-                    continue;
-                const direct = stringList(entry["direct"]);
-                const transitive = stringList(entry["transitive"]);
-                membership[purl] = {
-                    ...(direct === undefined ? {} : { direct }),
-                    ...(transitive === undefined ? {} : { transitive }),
-                };
-            }
-        }
-        const labels = {};
-        const rawLabels = recordValue(record["labels"]);
-        if (rawLabels !== undefined) {
-            for (const [purl, label] of Object.entries(rawLabels)) {
-                if (typeof label === "string")
-                    labels[purl] = label;
-            }
-        }
-        return { membership, labels };
-    }
-    function pageData() {
-        const node = document.getElementById("page-data");
-        if (node === null)
-            return {};
-        try {
-            const parsed = JSON.parse(node.textContent ?? "{}");
-            const record = recordValue(parsed);
-            return record === undefined ? {} : decodeLandscape(record);
-        }
-        catch {
-            return {};
-        }
-    }
-    const data = pageData();
     const page = document.body.getAttribute("data-page") ?? "";
     const prefix = document.body.getAttribute("data-prefix") ?? "";
     document.addEventListener("keydown", (event) => {
@@ -146,13 +91,6 @@
             meta.textContent = "  " + entry.purl;
             link.appendChild(meta);
             row.appendChild(link);
-            if (page === "landscape") {
-                const add = document.createElement("button");
-                add.type = "button";
-                add.textContent = "+ column";
-                add.setAttribute("data-add-column", entry.purl);
-                row.appendChild(add);
-            }
             results.appendChild(row);
         }
         results.style.display = "block";
@@ -198,103 +136,4 @@
     }
     window.addEventListener("hashchange", routePackage);
     routePackage();
-    function sortRows(key, direction) {
-        const table = document.querySelector("table.landscape");
-        if (table === null)
-            return;
-        const body = table.tBodies[0];
-        if (body === undefined)
-            return;
-        const rows = Array.from(body.rows);
-        rows.sort((left, right) => {
-            const leftValue = left.getAttribute("data-" + key) ?? "";
-            const rightValue = right.getAttribute("data-" + key) ?? "";
-            let comparison;
-            if (key === "commonality" || key === "coverage") {
-                comparison = Number(leftValue) - Number(rightValue);
-            }
-            else if (leftValue < rightValue) {
-                comparison = -1;
-            }
-            else if (leftValue > rightValue) {
-                comparison = 1;
-            }
-            else {
-                comparison = 0;
-            }
-            if (comparison !== 0)
-                return direction === "asc" ? comparison : -comparison;
-            return (left.getAttribute("data-repo") ?? "").localeCompare(right.getAttribute("data-repo") ?? "");
-        });
-        for (const row of rows)
-            body.appendChild(row);
-    }
-    document.addEventListener("click", (event) => {
-        const target = event.target;
-        if (!(target instanceof Element))
-            return;
-        const button = target.closest("[data-sort]");
-        if (button === null)
-            return;
-        const key = button.getAttribute("data-sort");
-        if (key === null)
-            return;
-        const direction = button.getAttribute("data-direction") === "asc" ? "desc" : "asc";
-        for (const item of document.querySelectorAll("[data-sort]")) {
-            item.removeAttribute("data-direction");
-        }
-        button.setAttribute("data-direction", direction);
-        sortRows(key, direction);
-    });
-    window.addLandscapeColumn = (purl) => {
-        const table = document.querySelector("table.landscape");
-        const membershipMap = data.membership;
-        if (table === null || membershipMap === undefined)
-            return;
-        const head = table.tHead;
-        if (head === null)
-            return;
-        const header = head.rows[0];
-        if (header === undefined)
-            return;
-        const body = table.tBodies[0];
-        if (body === undefined)
-            return;
-        const label = data.labels?.[purl] ?? purl;
-        const th = document.createElement("th");
-        th.className = "rotate";
-        th.textContent = label;
-        header.appendChild(th);
-        const membership = membershipMap[purl];
-        for (const row of Array.from(body.rows)) {
-            const repo = row.getAttribute("data-repo");
-            if (repo === null)
-                continue;
-            const cell = document.createElement("td");
-            cell.className = "cell";
-            if (membership?.direct?.includes(repo) === true) {
-                cell.className = "cell direct";
-                cell.title = "direct";
-            }
-            else if (membership?.transitive?.includes(repo) === true) {
-                cell.className = "cell transitive";
-                cell.title = "transitive";
-            }
-            row.appendChild(cell);
-        }
-    };
-    document.addEventListener("click", (event) => {
-        const target = event.target;
-        if (!(target instanceof Element))
-            return;
-        const button = target.closest("[data-add-column]");
-        if (button === null)
-            return;
-        const purl = button.getAttribute("data-add-column");
-        if (purl === null)
-            return;
-        const add = window.addLandscapeColumn;
-        if (typeof add === "function")
-            add(purl);
-    });
 })();

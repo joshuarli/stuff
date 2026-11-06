@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import socket
 from dataclasses import replace
 from pathlib import Path
@@ -83,18 +82,10 @@ def _render(tmp_path: Path, name: str = "dashboard") -> render.Dashboard:
     return render.render(inventory, built, tmp_path / name)
 
 
-def _page_data(text: str) -> str:
-    marker = '<script type="application/json" id="page-data">'
-    start = text.index(marker) + len(marker)
-    end = text.index("</script>", start)
-    return text[start:end]
-
-
 def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
     result = _render(tmp_path)
     index = (result.output / "index.html").read_text(encoding="utf-8")
     packages = (result.output / "packages.html").read_text(encoding="utf-8")
-    landscape = (result.output / "landscape.html").read_text(encoding="utf-8")
     coverage = (result.output / "coverage.html").read_text(encoding="utf-8")
     hostile = (result.output / "repos/acme/hostile/index.html").read_text(encoding="utf-8")
     assert "<script>alert(1)</script>" not in index
@@ -103,9 +94,6 @@ def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
     assert "&lt;script&gt;alert(2)&lt;/script&gt;" in hostile
     assert "<script>alert(2)</script>" not in coverage
     assert "&lt;script&gt;" in hostile
-    payload = _page_data(landscape)
-    assert "</script>" not in payload
-    assert "\\u003c/script\\u003e" in payload
     search = (result.output / "assets/search.js").read_text(encoding="utf-8")
     assert "</script>" not in search
     assert "\\u003c/script\\u003e" in search
@@ -185,8 +173,6 @@ def test_refuses_to_replace_a_non_dashboard_directory(tmp_path: Path) -> None:
 def test_output_stays_under_the_budget(tmp_path: Path) -> None:
     result = _render(tmp_path)
     assert result.bytes < 10_000_000
-    data = json.loads(_page_data((result.output / "landscape.html").read_text(encoding="utf-8")))
-    assert "membership" in data
 
 
 def test_insight_pages_escape_package_and_role_names(tmp_path: Path) -> None:
