@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import time
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any, cast
 
 from repomod.audit import _BANNED_RUST_ALTERNATIVES, _BANNED_RUST_HTTP
+from repomod.dependencies import enrich as enrich_module
 from repomod.dependencies.graph import Graph, is_first_party_edge
 from repomod.dependencies.model import (
     Component,
@@ -64,12 +66,7 @@ def report(
         "scopes": _scopes(edges),
         "first_party": _first_party(graph, instances, edges, component_of),
         "roles": _roles(graph, names, instances, component_of),
-        "freshness": {
-            "available": False,
-            "unit": "instances",
-            "denominator": "all instances",
-            "note": "run repomod deps enrich",
-        },
+        "freshness": _freshness(data, component_of),
     }
 
 
@@ -101,6 +98,52 @@ def _component(
     component_of: Mapping[str, Component | None], instance_id: str
 ) -> Component | None:
     return component_of.get(instance_id)
+
+
+_CHECKED = frozenset(
+    {Ecosystem.CARGO, Ecosystem.PYPI, Ecosystem.NPM, Ecosystem.GOLANG}
+)
+
+
+def _freshness(
+    data: tuple[RepositoryData, ...],
+    component_of: Mapping[str, Component | None],
+) -> dict[str, object]:
+    cache = enrich_module.load_cache()
+    now = time.time()
+    checked = stale = not_checked = vulnerable = 0
+    total = 0
+    for repository in data:
+        components = {component.purl: component for component in repository.components}
+        for instance in repository.instances:
+            total += 1
+            component = components.get(instance.component)
+            if (
+                component is None
+                or component.ecosystem not in _CHECKED
+                or instance.version is None
+            ):
+                not_checked += 1
+                continue
+            entry = cache.results.get(instance.purl)
+            if entry is None:
+                not_checked += 1
+            elif not enrich_module.is_fresh(entry, now):
+                stale += 1
+            else:
+                checked += 1
+                vulns = entry.get("vulns")
+                if isinstance(vulns, list) and vulns:
+                    vulnerable += 1
+    return {
+        "available": cache.fetched_at is not None,
+        "fetched_at": cache.fetched_at,
+        "total": _metric(total, "instances", "all instances"),
+        "checked": _metric(checked, "instances", "all instances"),
+        "stale": _metric(stale, "instances", "all instances"),
+        "not_checked": _metric(not_checked, "instances", "all instances"),
+        "vulnerable": _metric(vulnerable, "instances", "checked instances"),
+    }
 
 
 def _composition(
@@ -530,7 +573,22 @@ def report_text(value: Mapping[str, Any]) -> list[str]:
         lines.append("  none")
     freshness = _table(value["freshness"])
     lines.append("")
-    lines.append(f"freshness: {freshness['note']}")
+    if freshness.get("available"):
+        fetched_at = freshness.get("fetched_at")
+        stamp = (
+            time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(fetched_at)))
+            if isinstance(fetched_at, (int, float))
+            else "unknown"
+        )
+        lines.append(
+            f"freshness: {_value(freshness['checked'])} checked, "
+            f"{_value(freshness['stale'])} stale, "
+            f"{_value(freshness['not_checked'])} not checked, "
+            f"{_value(freshness['vulnerable'])} vulnerable of "
+            f"{_value(freshness['total'])} instances (fetched_at {stamp})"
+        )
+    else:
+        lines.append("freshness: not checked (run repomod deps enrich)")
     return lines
 
 

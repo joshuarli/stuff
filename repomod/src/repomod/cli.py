@@ -145,11 +145,33 @@ def _parser() -> argparse.ArgumentParser:
         help="summarize the dependency inventory",
         description=(
             "read the inventory and print composition, concentration, divergence, "
-            "source risk, scope, and first-party analyses"
+            "source risk, scope, first-party, and freshness analyses"
         ),
     )
     _filters(report)
     report.add_argument("--json", action="store_true")
+    diff = deps_commands.add_parser(
+        "diff",
+        help="compare the inventory across Git revisions",
+        description=(
+            "read data/dependencies/v1 at two revisions and list added, removed, "
+            "and changed repositories, instances, versions, sources, and issues"
+        ),
+    )
+    diff.add_argument("--from", dest="from_rev", metavar="REV")
+    diff.add_argument("--to", dest="to_rev", metavar="REV")
+    diff.add_argument("--json", action="store_true")
+    enrich = deps_commands.add_parser(
+        "enrich",
+        help="fetch latest versions and vulnerabilities into the local cache",
+        description=(
+            "read the inventory and query registries and OSV for resolved Cargo, "
+            "Python, npm, and Go components; write ~/.cache/repomod/deps-enrichment.json"
+        ),
+    )
+    enrich.add_argument("--refresh", action="store_true")
+    enrich.add_argument("--offline", action="store_true")
+    enrich.add_argument("--json", action="store_true")
 
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)

@@ -11,8 +11,8 @@ from repomod.audit import (
     _collect_vuln_candidates,
     _policy_findings,
     _read_cache,
-    _resolve_vulns,
     _write_cache,
+    resolve_vulns,
 )
 from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate, violation
@@ -39,7 +39,7 @@ def _vuln_check(root: Path, repository: Repository) -> list[Finding]:
     if not locked:
         return []
     candidates = _collect_vuln_candidates(root, repository, locked)
-    vulns = _resolve_vulns(
+    vulns = resolve_vulns(
         candidates,
         offline=False,
         refresh=False,

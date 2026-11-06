@@ -1314,7 +1314,7 @@ _OSV_ECOSYSTEMS = {
 }
 
 
-def _osv_query_batch(queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+def osv_query_batch(queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     results: list[list[dict[str, Any]]] = []
     for offset in range(0, len(queries), _OSV_BATCH_SIZE):
         batch = queries[offset : offset + _OSV_BATCH_SIZE]
@@ -1910,7 +1910,7 @@ def _resolve_npm_installable(
     return resolved
 
 
-def _resolve_latest(
+def resolve_latest(
     locked: list[LockedDependency],
     *,
     offline: bool,
@@ -1997,7 +1997,7 @@ def _resolve_latest(
     return resolved
 
 
-def _resolve_vulns(
+def resolve_vulns(
     candidates: list[LockedDependency],
     *,
     offline: bool,
@@ -2046,7 +2046,7 @@ def _resolve_vulns(
             )
             order.append(item)
     if queries:
-        batches = osv_fetcher(queries) if osv_fetcher is not None else _osv_query_batch(queries)
+        batches = osv_fetcher(queries) if osv_fetcher is not None else osv_query_batch(queries)
         for item, vulns in zip(order, batches, strict=True):
             resolved[(item.ecosystem, item.name, item.locked)] = vulns
             key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
@@ -2119,7 +2119,7 @@ def _audit_one(
     outcome.findings.extend(finding for finding in lock_findings if finding.rule not in ignored)
     if locked:
         direct = [item for item in locked if item.direct]
-        latest = _resolve_latest(
+        latest = resolve_latest(
             direct, offline=offline, refresh=refresh, cache=cache, now=now, fetcher=latest_fetcher
         )
         for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
@@ -2130,7 +2130,7 @@ def _audit_one(
                 message = f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}"
                 outcome.findings.append(_finding(repository, "audit-outdated", None, message))
         candidates = _collect_vuln_candidates(root, repository, locked)
-        vulns = _resolve_vulns(
+        vulns = resolve_vulns(
             candidates, offline=offline, refresh=refresh, cache=cache, now=now, osv_fetcher=osv_fetcher
         )
         for item in sorted(

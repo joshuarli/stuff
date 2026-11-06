@@ -189,7 +189,7 @@ def test_vuln_check_reports_osv_entries(
             ]
         }
 
-    monkeypatch.setattr("repomod.rules.audit_findings._resolve_vulns", vulns)
+    monkeypatch.setattr("repomod.rules.audit_findings.resolve_vulns", vulns)
     findings = _vuln_check(root, repository("tool", "rust"))
     assert [finding.rule for finding in findings] == ["audit-vuln"]
     assert "RUSTSEC-2026-0000 example advisory" in findings[0].message

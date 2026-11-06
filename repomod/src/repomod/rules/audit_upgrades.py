@@ -31,11 +31,11 @@ from repomod.audit import (
     _pep508_name,
     _python_direct_specs,
     _read_cache,
-    _resolve_latest,
     _rust_direct_dependencies,
     _upgrade_tasks,
     _version_key,
     _write_cache,
+    resolve_latest,
 )
 from repomod.catalog import parse_dependency_ignore
 from repomod.io import read_toml
@@ -325,7 +325,7 @@ def _outdated_findings(
     direct = [item for item in locked if item.direct and key_for(item.ecosystem, item.name) not in skipped]
     if not direct:
         return []
-    latest = _resolve_latest(
+    latest = resolve_latest(
         direct,
         offline=False,
         refresh=False,

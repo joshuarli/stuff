@@ -10,6 +10,7 @@ from repomod.cmd import common
 from repomod.dependencies.model import RepositoryData, RepositoryState
 
 if TYPE_CHECKING:
+    from repomod.dependencies.enrich import EnrichReport
     from repomod.dependencies.graph import Graph, WhyPath, WhyResult
 
 
@@ -30,12 +31,28 @@ def _display(path: Path) -> str:
 
 def _deps(args: argparse.Namespace) -> int:
     from repomod.dependencies import analysis, graph
+    from repomod.dependencies import diff as diff_module
     from repomod.dependencies import snapshot as snapshot_module
 
-    catalog = common.default_catalog()
-    repositories = common.select_repositories(catalog, args.repo, args.tag)
-    filtered = bool(args.repo or args.tag)
     inventory = _inventory()
+    if args.operation == "diff":
+        value = diff_module.diff_inventory(
+            _root(),
+            inventory,
+            from_rev=args.from_rev or "HEAD",
+            to_rev=args.to_rev,
+        )
+        if args.json:
+            common.print_json(diff_module.diff_dict(value))
+        else:
+            for line in diff_module.diff_text(value):
+                print(line)
+        return 0
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(
+        catalog, getattr(args, "repo", []), getattr(args, "tag", [])
+    )
+    filtered = bool(getattr(args, "repo", []) or getattr(args, "tag", []))
     if args.operation == "snapshot":
         result = snapshot_module.snapshot(
             catalog,
@@ -67,6 +84,17 @@ def _deps(args: argparse.Namespace) -> int:
     loaded = graph.load_inventory(inventory)
     built = graph.build_graph(loaded, catalog)
     selected = [str(repository.id) for repository in repositories]
+    if args.operation == "enrich":
+        from repomod.dependencies import enrich as enrich_module
+
+        result = enrich_module.enrich(
+            built, selected, offline=args.offline, refresh=args.refresh
+        )
+        if args.json:
+            common.print_json(_enrich_dict(result))
+        else:
+            print(enrich_module.summary_text(result))
+        return 0
     if args.operation == "why":
         query = graph.parse_query(args.package)
         result = graph.why(built, query, repositories=selected, max_paths=args.max_paths)
@@ -82,6 +110,20 @@ def _deps(args: argparse.Namespace) -> int:
         for line in analysis.report_text(value):
             print(line)
     return 0
+
+
+def _enrich_dict(value: EnrichReport) -> dict[str, object]:
+    return {
+        "fetched": value.fetched,
+        "checked": value.checked,
+        "stale": value.stale,
+        "not_checked": value.not_checked,
+        "vulnerable": value.vulnerable,
+        "total": value.total,
+        "cache": str(value.cache.path),
+        "fetched_at": value.cache.fetched_at,
+        "results": value.cache.results,
+    }
 
 
 def _why_dict(built: Graph, result: WhyResult) -> dict[str, object]:

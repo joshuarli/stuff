@@ -112,26 +112,39 @@ def load_inventory(inventory: Path) -> Inventory:
         document = json.loads(index_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
         raise ValueError(f"dependency inventory not found: {index_path}") from error
-    if not isinstance(document, dict) or document.get("schema") != 1:
-        raise ValueError(f"cannot read dependency inventory index: {index_path}")
-    raw_repositories = document.get("repositories")
-    if not isinstance(raw_repositories, dict):
-        raise ValueError(f"dependency inventory index has no repositories: {index_path}")
+    entries = parse_index(document)
     repositories: dict[str, RepositoryData] = {}
-    entries: dict[str, IndexEntry] = {}
-    for name, raw in raw_repositories.items():
-        if not isinstance(name, str) or not isinstance(raw, dict):
-            raise ValueError(f"dependency inventory index is malformed: {index_path}")
-        entries[name] = _entry(raw)
+    for name in entries:
         path = _repository_file(inventory, name)
         try:
             content = json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError as error:
             raise ValueError(f"dependency inventory file is missing: {path}") from error
-        if not isinstance(content, dict):
-            raise ValueError(f"dependency inventory file is malformed: {path}")
-        repositories[name] = _repository_data(content)
+        repositories[name] = parse_repository(content)
     return Inventory(inventory, repositories, entries)
+
+
+def parse_index(document: object) -> Mapping[str, IndexEntry]:
+    if not isinstance(document, dict):
+        raise ValueError("cannot read dependency inventory index")
+    index = cast(Mapping[str, Any], document)
+    if index.get("schema") != 1:
+        raise ValueError("cannot read dependency inventory index")
+    raw_repositories = index.get("repositories")
+    if not isinstance(raw_repositories, dict):
+        raise ValueError("dependency inventory index has no repositories")
+    entries: dict[str, IndexEntry] = {}
+    for name, raw in raw_repositories.items():
+        if not isinstance(name, str) or not isinstance(raw, dict):
+            raise ValueError("dependency inventory index is malformed")
+        entries[name] = _entry(cast(Mapping[str, Any], raw))
+    return entries
+
+
+def parse_repository(document: object) -> RepositoryData:
+    if not isinstance(document, dict):
+        raise ValueError("dependency inventory file is malformed")
+    return _repository_data(cast(Mapping[str, Any], document))
 
 
 def _repository_file(inventory: Path, repository: str) -> Path:
