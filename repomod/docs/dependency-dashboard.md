@@ -48,8 +48,10 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 ## Curated roles
 
 `dependency-roles.toml` is curated user data. Each table is a role with an `ecosystem`, an
-optional `preferred` option, and `options` mapping each option to the package names that
-mean a repository uses it. A package may belong to one option per role. Only direct
+optional `preferred` option, optional `complements`, and `options` mapping each option to the
+package names that mean a repository uses it. A complement is an option that may be used
+alongside the preferred one, such as `libc` next to `rustix` for calls rustix does not cover;
+it is flagged only in repositories that lack the preferred option. A package may belong to one option per role. Only direct
 declarations count. `repomod deps report` lists the repositories that mix options.
 
 ## Interaction

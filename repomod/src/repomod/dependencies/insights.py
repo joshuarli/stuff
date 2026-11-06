@@ -111,6 +111,12 @@ class Role:
     ecosystem: Ecosystem
     preferred: str | None
     options: Mapping[str, frozenset[str]]
+    complements: frozenset[str] = frozenset()
+
+    def allows(self, chosen: frozenset[str]) -> bool:
+        if self.preferred is None or self.preferred not in chosen:
+            return False
+        return chosen <= self.complements | {self.preferred}
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,27 +131,28 @@ class RoleUse:
 
     @property
     def overlapping(self) -> tuple[str, ...]:
-        counts: dict[str, int] = defaultdict(int)
-        for repositories in self.options.values():
-            for repository in repositories:
-                counts[repository] += 1
-        return tuple(sorted((name for name, count in counts.items() if count > 1), key=str.casefold))
+        return _sorted(
+            repository
+            for repository, chosen in self._chosen().items()
+            if len(chosen) > 1 and not self.role.allows(chosen)
+        )
 
     @property
     def off_preferred(self) -> tuple[str, ...]:
         if self.role.preferred is None:
             return ()
-        return tuple(
-            sorted(
-                {
-                    repository
-                    for option, repositories in self.options.items()
-                    if option != self.role.preferred
-                    for repository in repositories
-                },
-                key=str.casefold,
-            )
+        return _sorted(
+            repository
+            for repository, chosen in self._chosen().items()
+            if chosen != {self.role.preferred} and not self.role.allows(chosen)
         )
+
+    def _chosen(self) -> dict[str, frozenset[str]]:
+        chosen: dict[str, set[str]] = defaultdict(set)
+        for option, repositories in self.options.items():
+            for repository in repositories:
+                chosen[repository].add(option)
+        return {repository: frozenset(options) for repository, options in chosen.items()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -485,7 +492,7 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
         if not isinstance(raw, dict):
             raise ValueError(f"{source} [{name}] must be a table")
         table = cast(Mapping[str, Any], raw)
-        unknown = set(table) - {"ecosystem", "preferred", "options"}
+        unknown = set(table) - {"ecosystem", "preferred", "complements", "options"}
         if unknown:
             raise ValueError(f"{source} [{name}] has unknown keys: {', '.join(sorted(unknown))}")
         try:
@@ -514,7 +521,22 @@ def parse_roles(document: Mapping[str, object], source: str) -> tuple[Role, ...]
         preferred = table.get("preferred")
         if preferred is not None and preferred not in options:
             raise ValueError(f"{source} [{name}] prefers {preferred!r}, which is not an option")
-        roles.append(Role(name, ecosystem, cast(str | None, preferred), options))
+        complements = table.get("complements", [])
+        if not isinstance(complements, list) or not all(isinstance(item, str) for item in complements):
+            raise ValueError(f"{source} [{name}] complements must list option names")
+        if complements and preferred is None:
+            raise ValueError(f"{source} [{name}] complements need a preferred option")
+        if any(item == preferred or item not in options for item in complements):
+            raise ValueError(f"{source} [{name}] complements must be other options of the role")
+        roles.append(
+            Role(
+                name,
+                ecosystem,
+                cast(str | None, preferred),
+                options,
+                frozenset(cast(list[str], complements)),
+            )
+        )
     return tuple(roles)
 
 

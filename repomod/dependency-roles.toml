@@ -116,6 +116,7 @@ signal-hook = ["signal-hook", "signal-hook-registry"]
 [system-calls]
 ecosystem = "cargo"
 preferred = "rustix"
+complements = ["libc"]
 
 [system-calls.options]
 libc = ["libc"]

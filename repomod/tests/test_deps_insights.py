@@ -211,6 +211,32 @@ def test_role_use_reports_mixed_and_off_preferred_repositories(tmp_path: Path) -
     assert use.packages[("acme/mixed", "clap")] == ("clap_complete",)
 
 
+def test_complements_pass_only_alongside_the_preferred_option(tmp_path: Path) -> None:
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/both", [_cargo("rustix", "1.0.0"), _cargo("libc", "0.2.0")]),
+            _app("acme/bare", [_cargo("libc", "0.2.0")]),
+            _app("acme/clean", [_cargo("rustix", "1.0.0")]),
+            _app("acme/nix", [_cargo("rustix", "1.0.0"), _cargo("nix", "0.30.0")]),
+        ],
+    )
+    roles = insights.parse_roles(
+        {
+            "system-calls": {
+                "ecosystem": "cargo",
+                "preferred": "rustix",
+                "complements": ["libc"],
+                "options": {"rustix": ["rustix"], "libc": ["libc"], "nix": ["nix"]},
+            }
+        },
+        "roles.toml",
+    )
+    [use] = insights.role_uses(roles, insights.declarations(graph))
+    assert use.overlapping == ("acme/nix",)
+    assert use.off_preferred == ("acme/bare", "acme/nix")
+
+
 @pytest.mark.parametrize(
     ("role", "message"),
     [
@@ -222,6 +248,28 @@ def test_role_use_reports_mixed_and_off_preferred_repositories(tmp_path: Path) -
         ),
         ({"ecosystem": "cobol", "options": {"a": ["x"], "b": ["y"]}}, "unknown ecosystem"),
         ({"ecosystem": "cargo", "prefered": "a", "options": {"a": ["x"], "b": ["y"]}}, "unknown keys"),
+        (
+            {"ecosystem": "cargo", "complements": ["b"], "options": {"a": ["x"], "b": ["y"]}},
+            "complements need a preferred option",
+        ),
+        (
+            {
+                "ecosystem": "cargo",
+                "preferred": "a",
+                "complements": ["a"],
+                "options": {"a": ["x"], "b": ["y"]},
+            },
+            "complements must be other options",
+        ),
+        (
+            {
+                "ecosystem": "cargo",
+                "preferred": "a",
+                "complements": ["c"],
+                "options": {"a": ["x"], "b": ["y"]},
+            },
+            "complements must be other options",
+        ),
     ],
 )
 def test_roles_file_rejects_invalid_roles(role: dict[str, object], message: str) -> None:

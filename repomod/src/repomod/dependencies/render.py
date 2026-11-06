@@ -652,7 +652,9 @@ def _choices(site: _Site) -> str:
         "<h1>Choices</h1>",
         '<p class="sub">Curated roles from <span class="mono">dependency-roles.toml</span>: '
         "packages that do the same job. A mixed repository declares more than one option for "
-        "a role; off preferred means it uses an option other than the preferred one.</p>",
+        "a role; off preferred means it uses an option other than the preferred one. An option "
+        "allowed alongside the preferred one is flagged only when the preferred one is "
+        "missing.</p>",
     ]
     settled = []
     for use in site.roles:
@@ -664,7 +666,13 @@ def _choices(site: _Site) -> str:
         body.append(
             f'<h2 id="role-{_e(use.role.name)}">{_e(use.role.name)} '
             f'<span class="sub">{_e(use.role.ecosystem.value)} · preferred '
-            f"{_e(use.role.preferred or 'not chosen')}</span></h2>"
+            f"{_e(use.role.preferred or 'not chosen')}"
+            + (
+                f" · {_e(', '.join(sorted(use.role.complements)))} allowed alongside it"
+                if use.role.complements
+                else ""
+            )
+            + "</span></h2>"
         )
         body.append(
             '<div class="scroll"><table><thead><tr><th>Option</th><th class="num">Repos</th>'
