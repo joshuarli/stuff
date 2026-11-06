@@ -75,6 +75,30 @@ or more turns the item red and sets `stale_local_work` in `--json`, which also c
 `branch_checked_out_at` and `oldest_unpushed_commit_at` timestamps. This is status information
 only; it is not a lint finding and does not count toward `lints` or `--failed`.
 
+## Dependency inventory
+
+`src/repomod/dependencies/` owns the tracked inventory at `data/dependencies/v1/`.
+`snapshot.py` reads each canonical checkout's `refs/remotes/origin/HEAD` tree through Git
+plumbing; `git_tree.py` reads trees and blobs; `discover.py` classifies recognized inputs;
+ecosystem adapters under `dependencies/adapters/` are frozen classes with `name`,
+`matches(path)`, and `extract(inputs)` that perform no I/O; `model.py` defines the closed scopes,
+sources, resolutions, coverage kinds, and states. `check` regenerates the same bytes in memory
+and never writes. `graph.py`, `analysis.py`, `diff.py`, `enrich.py`, and `render.py` are
+read-only consumers, except that `enrich` writes its local cache and `render` writes its output
+directory.
+
+The inventory records `{path, blob}` inputs and a fingerprint over their sorted list plus
+`PARSER_VERSION`. It never records absolute paths, timestamps, commands, credentials, auth
+tokens, environment values, or unredacted userinfo and download queries. The dashboard is
+static output under `.work/dependencies/dashboard/`; it is disposable and uses no fetch, CDN,
+framework, or chart library.
+
+`cmd/deps.py` imports `repomod.dependencies` inside its handler, so other commands do not load
+`ruamel.yaml` or `packaging`. Policy rules stay read-only, and fixers keep explicit, validated
+file plans. The inventory does not feed lint or fix decisions automatically; it informs people
+and agents. Do not add a database, a background worker, or a generic workflow framework for it.
+See [dependency inventory](dependency-inventory.md).
+
 ## Repair and writes
 
 Fix requires a clean checkout attached to the default branch. Fixers run serially in a dedicated

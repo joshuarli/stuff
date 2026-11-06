@@ -31,6 +31,15 @@ findings for that rule. A changed fixer gets one local commit. Use fixers only f
 repairs. Keep human release choices out of automatic fixes. Do not generate placeholder README,
 license, or agent files.
 
+## Dependency inventory boundary
+
+The dependency inventory is derived data, not policy. `dependencies/` and `cmd/deps.py` read
+Git objects and the tracked inventory; they do not edit checkouts, rules, or fix plans. Policy
+rules stay read-only, and fixers keep their explicit file plans. `snapshot` and `render` write
+only the inventory or dashboard, and `enrich` writes only the local cache. Do not add a
+database, background worker, or generic workflow framework to support the inventory. See
+[dependency inventory](dependency-inventory.md).
+
 ## Release policy
 
 `actions.toml` owns approved GitHub Action channels, versions, and commit SHAs.

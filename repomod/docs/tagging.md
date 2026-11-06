@@ -34,6 +34,13 @@ detected source. Detection follows the supported source layouts and manifest req
 Publishing tags `crates-io`, `pypi`, and `npm` opt a repository into that ecosystem's release
 policy. Package use, mirroring, or a manifest alone does not opt in.
 
+The dependency inventory uses `crates-io` on a Cargo repository and `pypi` on a Python
+repository as first-party publishing evidence: a registry component whose name equals one of
+that repository's own package names links to the repository. Native Cargo registry components
+and path or workspace sources inside the repository link the same way. A Git source links only
+when its URL normalizes to a catalogued repository; a similar name never links. The inventory
+does not change tags.
+
 Platform tags `linux` and `macos` declare a single-OS release scope for a `tool`. A tool
 without a platform tag is portable and releases for all supported targets. `mactop` is
 macOS-only, so it carries `macos` with its implementation language. `zzz` is Linux-only,

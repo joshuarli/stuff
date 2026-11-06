@@ -141,6 +141,32 @@ record the index digest in `[image]`, then run `pins refresh --check`.
 uv run repomod musl build --platform linux/amd64 --output .work/oci/musl
 ```
 
+## Dependency inventory
+
+`repomod deps` keeps a deterministic, Git-tracked inventory of every catalogued repository's
+dependency inputs in `data/dependencies/v1`. It records projects, package instances, edges, and
+typed coverage issues for Cargo, uv, pnpm/npm, Go, Swift, Zig, GitHub Actions, containers,
+toolchains, submodules, CMake, Wrangler, and vendored trees. `snapshot`, `enrich`, and `render`
+write; the other commands read the inventory only. Only `enrich` uses the network, and it writes
+a local cache.
+
+```sh
+uv run repomod deps snapshot
+uv run repomod deps check --strict
+uv run repomod deps why tokio
+uv run repomod deps report
+uv run repomod deps diff --from HEAD~1
+uv run repomod deps enrich
+uv run repomod deps render
+```
+
+See [dependency inventory](docs/dependency-inventory.md) for the data layout, coverage kinds,
+update flow, and limits. Open the generated dashboard with
+`file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html`; see
+[dependency dashboard](docs/dependency-dashboard.md). The repo-local
+[`audit-dependencies`](.agents/skills/audit-dependencies/SKILL.md) skill walks an investigation
+with `why`, `report`, `diff`, `enrich`, and `deps check`.
+
 ## Push
 
 `repomod push` pushes each selected checkout's current branch when it is ahead of
