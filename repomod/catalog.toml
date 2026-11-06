@@ -145,8 +145,8 @@ ignore = ["mdtool:D001", "mdtool:P002", "mdtool:R001", "mdtool:R005"]
 ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees repeat skill text on purpose, and the benchmark README names files its commands generate."
 
 [overrides."laputa-systems/ptytest"]
-ignore = ["mdtool:R003"]
-ignore_reason = "docs/baselines.md quotes the baseline command of another repository."
+ignore = ["mdtool:R003", "audit-banned:transitive:polling", "audit-banned:transitive:piper", "audit-banned:transitive:concurrent-queue", "audit-banned:transitive:atomic-waker"]
+ignore_reason = "docs/baselines.md quotes the baseline command of another repository. polling, piper, concurrent-queue, and atomic-waker arrive only through the alacritty_terminal dev dependency, the reference terminal for the differential test in src/terminal.rs, which has no smolith fork."
 
 [overrides."laputa-systems/deser"]
 ignore = ["audit-banned:transitive:tokio-macros", "audit-banned:direct:tokio", "audit-banned:direct:tokio-util"]
@@ -159,6 +159,10 @@ ignore_reason = "The unpublished compare crate drives async_zip and rc-zip with 
 [overrides."joshuarli/obsidian-ferrisearch"]
 ignore = ["audit-upgrades:crates:getrandom", "audit-banned:transitive:tokio"]
 ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build. Tokio is only reachable through wasm-bindgen's opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; wasm32-unknown-unknown builds never compile it."
+
+[overrides."joshuarli/kache"]
+ignore = ["audit-banned:transitive:tokio"]
+ignore_reason = "kunobi-daemon declares tokio as an optional dependency behind its async feature, which kache never enables; Cargo.lock records it, but cargo tree finds no tokio in any target or edge kind."
 
 [overrides."joshuarli/defuddle-rs"]
 ignore = ["audit-banned:transitive:tokio"]
