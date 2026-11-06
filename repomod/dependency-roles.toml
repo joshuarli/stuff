@@ -35,6 +35,7 @@ divan = ["divan"]
 
 [async-runtime]
 ecosystem = "cargo"
+preferred = "smol"
 
 [async-runtime.options]
 tokio = ["tokio", "tokio-util"]
@@ -43,6 +44,7 @@ async-std = ["async-std"]
 
 [serialization]
 ecosystem = "cargo"
+preferred = "deser"
 
 [serialization.options]
 deser = ["deser", "deser-json", "deser-toml", "deser-yaml", "deser-value"]
@@ -52,6 +54,7 @@ nanoserde = ["nanoserde"]
 
 [regex]
 ecosystem = "cargo"
+preferred = "regex-lite"
 
 [regex.options]
 regex = ["regex", "regex-automata", "regex-syntax"]
@@ -61,6 +64,7 @@ fancy-regex = ["fancy-regex"]
 
 [logging]
 ecosystem = "cargo"
+preferred = "log"
 
 [logging.options]
 log = ["log", "env_logger"]
@@ -68,6 +72,7 @@ tracing = ["tracing", "tracing-subscriber", "tracing-tree"]
 
 [datetime]
 ecosystem = "cargo"
+preferred = "jiff"
 
 [datetime.options]
 jiff = ["jiff"]
@@ -76,6 +81,7 @@ time = ["time"]
 
 [fast-hash]
 ecosystem = "cargo"
+preferred = "rustc-hash"
 
 [fast-hash.options]
 rustc-hash = ["rustc-hash"]
@@ -85,6 +91,7 @@ fxhash = ["fxhash"]
 
 [random]
 ecosystem = "cargo"
+preferred = "fastrand"
 
 [random.options]
 fastrand = ["fastrand"]
@@ -92,6 +99,7 @@ rand = ["rand"]
 
 [property-testing]
 ecosystem = "cargo"
+preferred = "quickcheck"
 
 [property-testing.options]
 proptest = ["proptest"]
@@ -99,6 +107,7 @@ quickcheck = ["quickcheck", "quickcheck_macros"]
 
 [signals]
 ecosystem = "cargo"
+preferred = "signal-hook"
 
 [signals.options]
 ctrlc = ["ctrlc"]
@@ -106,6 +115,7 @@ signal-hook = ["signal-hook", "signal-hook-registry"]
 
 [system-calls]
 ecosystem = "cargo"
+preferred = "rustix"
 
 [system-calls.options]
 libc = ["libc"]
@@ -114,6 +124,7 @@ nix = ["nix"]
 
 [tls]
 ecosystem = "cargo"
+preferred = "rustls"
 
 [tls.options]
 rustls = ["rustls", "rustls-webpki", "rustls-pki-types"]
@@ -121,6 +132,7 @@ openssl = ["openssl", "openssl-sys", "native-tls"]
 
 [crypto-backend]
 ecosystem = "cargo"
+preferred = "graviola"
 
 [crypto-backend.options]
 graviola = ["graviola", "rustls-graviola"]
@@ -129,21 +141,15 @@ aws-lc-rs = ["aws-lc-rs", "rustls-aws-lc-rs"]
 
 [base-encoding]
 ecosystem = "cargo"
+preferred = "base64"
 
 [base-encoding.options]
 base64 = ["base64"]
 data-encoding = ["data-encoding"]
 
-[gzip]
-ecosystem = "cargo"
-
-[gzip.options]
-flate2 = ["flate2"]
-zlib-rs = ["zlib-rs"]
-miniz_oxide = ["miniz_oxide"]
-
 [terminal]
 ecosystem = "cargo"
+preferred = "crossterm"
 
 [terminal.options]
 crossterm = ["crossterm"]
@@ -151,11 +157,11 @@ termion = ["termion"]
 
 [file-walking]
 ecosystem = "cargo"
+preferred = "walkdir"
 
 [file-walking.options]
 walkdir = ["walkdir"]
 ignore = ["ignore"]
-glob = ["glob", "globset"]
 
 [python-type-checker]
 ecosystem = "pypi"
@@ -187,6 +193,7 @@ biome = ["@biomejs/biome"]
 
 [js-test-runner]
 ecosystem = "npm"
+preferred = "vitest"
 
 [js-test-runner.options]
 vitest = ["vitest"]
@@ -195,6 +202,7 @@ mocha = ["mocha"]
 
 [js-bundler]
 ecosystem = "npm"
+preferred = "vite"
 
 [js-bundler.options]
 vite = ["vite"]
