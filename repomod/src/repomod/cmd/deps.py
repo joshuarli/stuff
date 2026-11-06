@@ -22,6 +22,14 @@ def _inventory() -> Path:
     return _root() / "data" / "dependencies" / "v1"
 
 
+def _render_output(value: str | None) -> Path:
+    root = _root()
+    if value is None:
+        return root / ".work" / "dependencies" / "dashboard"
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else root / path
+
+
 def _display(path: Path) -> str:
     try:
         return path.relative_to(_root()).as_posix()
@@ -94,6 +102,16 @@ def _deps(args: argparse.Namespace) -> int:
             common.print_json(_enrich_dict(result))
         else:
             print(enrich_module.summary_text(result))
+        return 0
+    if args.operation == "render":
+        from repomod.dependencies import render as render_module
+
+        output = _render_output(args.output)
+        result = render_module.render(loaded, built, output, root=_root())
+        print(
+            f"wrote {len(result.pages)} pages to {_display(result.output)} "
+            f"({result.bytes} bytes)"
+        )
         return 0
     if args.operation == "why":
         query = graph.parse_query(args.package)

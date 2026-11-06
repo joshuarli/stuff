@@ -172,6 +172,18 @@ def _parser() -> argparse.ArgumentParser:
     enrich.add_argument("--refresh", action="store_true")
     enrich.add_argument("--offline", action="store_true")
     enrich.add_argument("--json", action="store_true")
+    render = deps_commands.add_parser(
+        "render",
+        help="write the static dashboard under .work/dependencies/dashboard",
+        description=(
+            "read the inventory and enrichment cache and write a static dashboard "
+            "under .work/dependencies/dashboard"
+        ),
+    )
+    render.add_argument(
+        "--output",
+        help="output directory (default .work/dependencies/dashboard)",
+    )
 
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)

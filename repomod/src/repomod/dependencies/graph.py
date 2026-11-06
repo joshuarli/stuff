@@ -56,6 +56,7 @@ class Graph:
     tags: Mapping[str, tuple[str, ...]]
     first_party_names: Mapping[Ecosystem, frozenset[str]]
     native: frozenset[str]
+    catalogued: frozenset[str]
 
     def label(self, node: str) -> str:
         project = self.projects.get(node)
@@ -325,37 +326,27 @@ def build_graph(inventory: Inventory, catalog: Catalog | None = None) -> Graph:
             edges.append(edge)
             outgoing.setdefault(edge.from_id, []).append(edge)
             incoming.setdefault(edge.to_id, []).append(edge)
-    if catalog is not None:
-        for repository in catalog.repositories:
-            data = next(
-                (
-                    item
-                    for key, item in inventory.repositories.items()
-                    if key.casefold() == str(repository.id).casefold()
-                ),
-                None,
-            )
-            if data is None:
-                continue
-            if "crates-io" in repository.tags:
-                for instance in data.instances:
-                    if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
-                        names[Ecosystem.CARGO].add(
-                            _normalize_name(
-                                Ecosystem.CARGO, _component_name(components, instance)
-                            )
-                        )
-            if "pypi" in repository.tags:
-                for instance in data.instances:
-                    if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
-                        names[Ecosystem.PYPI].add(
-                            _normalize_name(
-                                Ecosystem.PYPI, _component_name(components, instance)
-                            )
-                        )
-        native = _native_registry()
-    else:
-        native = frozenset[str]()
+    catalog_by_id = (
+        {str(repository.id).casefold(): repository for repository in catalog.repositories}
+        if catalog is not None
+        else {}
+    )
+    for name, data in inventory.repositories.items():
+        effective = catalog_by_id.get(name.casefold())
+        effective_tags = effective.tags if effective is not None else data.tags
+        tags[name] = effective_tags
+        if "crates-io" in effective_tags:
+            for instance in data.instances:
+                if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
+                    names[Ecosystem.CARGO].add(
+                        _normalize_name(Ecosystem.CARGO, _component_name(components, instance))
+                    )
+        if "pypi" in effective_tags:
+            for instance in data.instances:
+                if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
+                    names[Ecosystem.PYPI].add(
+                        _normalize_name(Ecosystem.PYPI, _component_name(components, instance))
+                    )
     return Graph(
         repositories=inventory.repositories,
         catalog=catalog,
@@ -371,7 +362,8 @@ def build_graph(inventory: Inventory, catalog: Catalog | None = None) -> Graph:
         incoming={key: tuple(values) for key, values in incoming.items()},
         tags=tags,
         first_party_names={ecosystem: frozenset(values) for ecosystem, values in names.items()},
-        native=native,
+        native=_native_registry(),
+        catalogued=frozenset(inventory.repositories) | frozenset(catalog_by_id),
     )
 
 
@@ -561,15 +553,10 @@ def is_first_party_edge(graph: Graph, edge: Edge) -> bool:
 
 
 def _catalogued(graph: Graph, url: str) -> bool:
-    if graph.catalog is None:
-        return False
     repo = _github_repo(url)
     if repo is None:
         return False
-    return any(
-        str(repository.id).casefold() == repo.casefold()
-        for repository in graph.catalog.repositories
-    )
+    return repo.casefold() in graph.catalogued
 
 
 def _github_repo(url: str) -> str | None:

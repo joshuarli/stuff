@@ -8,6 +8,7 @@ from repomod.dependencies.model import (
     Component,
     CoverageKind,
     Ecosystem,
+    Edge,
     IndexEntry,
     Instance,
     Issue,
@@ -73,6 +74,7 @@ def repository(
     tags: tuple[str, ...] = ("tool",),
     projects: Sequence[Project] = (),
     issues: Sequence[Issue] = (),
+    edges: Sequence[Edge] = (),
 ) -> RepositoryData:
     return RepositoryData(
         repository=name,
@@ -82,6 +84,7 @@ def repository(
         projects=tuple(projects),
         components=components(instances),
         instances=tuple(instances),
+        edges=tuple(edges),
         issues=tuple(issues),
     )
 
