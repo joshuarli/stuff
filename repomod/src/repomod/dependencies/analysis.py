@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from repomod.dependencies import enrich as enrich_module
 from repomod.dependencies import insights
-from repomod.dependencies.graph import Graph, is_first_party_edge
+from repomod.dependencies.graph import Graph, RepositoryEdge, is_first_party_edge
 from repomod.dependencies.model import (
     Component,
     CoverageKind,
@@ -44,11 +44,10 @@ def report(
         }
         & selected_names
     }
-    edges = tuple(
-        edge
-        for edge in graph.edges
-        if _edge_repository(graph, edge).casefold() in selected_names
+    located = tuple(
+        item for item in graph.edges if item.repository.casefold() in selected_names
     )
+    edges = tuple(item.edge for item in located)
     component_of = {
         instance_id: graph.components.get(instance.component)
         for instance_id, instance in instances.items()
@@ -60,11 +59,11 @@ def report(
     return {
         "repositories": list(names),
         "composition": _composition(names, data, instances, edges, component_of),
-        "concentration": _concentration(graph, names, instances, edges, component_of, top),
-        "divergence": _divergence(graph, instances, edges, component_of),
+        "concentration": _concentration(graph, names, instances, located, component_of, top),
+        "divergence": _divergence(graph, instances, located, component_of),
         "source_risk": _source_risk(instances, edges, component_of, issues),
         "scopes": _scopes(edges),
-        "first_party": _first_party(graph, instances, edges, component_of),
+        "first_party": _first_party(graph, instances, located, component_of),
         "roles": _roles(graph, names),
         "freshness": _freshness(data, component_of),
     }
@@ -74,14 +73,6 @@ def _selected(repositories: Iterable[str] | None) -> set[str] | None:
     if repositories is None:
         return None
     return {repository.casefold() for repository in repositories}
-
-
-def _edge_repository(graph: Graph, edge: Edge) -> str:
-    if edge.from_id in graph.projects:
-        return graph.project_repositories.get(edge.from_id, "")
-    return next(
-        iter(sorted(graph.instance_repositories.get(edge.from_id, frozenset[str]()))), ""
-    )
 
 
 def _metric(value: int, unit: str, denominator: str) -> Metric:
@@ -226,19 +217,18 @@ def _concentration(
     graph: Graph,
     names: Iterable[str],
     instances: Mapping[str, Instance],
-    edges: tuple[Edge, ...],
+    edges: tuple[RepositoryEdge, ...],
     component_of: Mapping[str, Component | None],
     top: int,
 ) -> dict[str, object]:
     direct: dict[str, set[str]] = defaultdict(set)
     any_edge: dict[str, set[str]] = defaultdict(set)
-    for edge in edges:
+    for repository, edge in ((item.repository, item.edge) for item in edges):
         if edge.to_id not in instances:
             continue
         component = _component(component_of, edge.to_id)
         if component is None:
             continue
-        repository = _edge_repository(graph, edge)
         any_edge[component.purl].add(repository)
         if edge.relation is Relation.DIRECT:
             direct[component.purl].add(repository)
@@ -281,7 +271,7 @@ def _concentration(
 def _divergence(
     graph: Graph,
     instances: Mapping[str, Instance],
-    edges: tuple[Edge, ...],
+    edges: tuple[RepositoryEdge, ...],
     component_of: Mapping[str, Component | None],
 ) -> dict[str, object]:
     versions: dict[str, set[str]] = defaultdict(set)
@@ -299,11 +289,11 @@ def _divergence(
         for repository in memberships:
             repositories[(component.purl, instance.version)].add(repository)
             within[(repository, component.purl)].add(instance.version)
-    for edge in edges:
-        instance = instances.get(edge.to_id)
+    for item in edges:
+        instance = instances.get(item.edge.to_id)
         if instance is None:
             continue
-        consumers[instance.component].add(_edge_repository(graph, edge))
+        consumers[instance.component].add(item.repository)
     fleet = [
         _divergence_row(purl, versions[purl], sources, repositories, consumers)
         for purl in sorted(versions)
@@ -430,21 +420,21 @@ def _scopes(edges: tuple[Edge, ...]) -> dict[str, object]:
 def _first_party(
     graph: Graph,
     instances: Mapping[str, Instance],
-    edges: tuple[Edge, ...],
+    edges: tuple[RepositoryEdge, ...],
     component_of: Mapping[str, Component | None],
 ) -> dict[str, object]:
-    linked = [edge for edge in edges if is_first_party_edge(graph, edge)]
+    linked = [item for item in edges if is_first_party_edge(graph, item.edge)]
     packages: dict[str, Component] = {}
     repositories: dict[str, set[str]] = defaultdict(set)
-    for edge in linked:
-        instance = instances.get(edge.to_id)
+    for item in linked:
+        instance = instances.get(item.edge.to_id)
         if instance is None:
             continue
         component = _component(component_of, instance.id)
         if component is None:
             continue
         packages.setdefault(component.purl, component)
-        repositories[component.purl].add(_edge_repository(graph, edge))
+        repositories[component.purl].add(item.repository)
     return {
         "edges": _metric(len(linked), "edges", "all edges"),
         "package_names": _metric(len(packages), "package names", "selected package names"),

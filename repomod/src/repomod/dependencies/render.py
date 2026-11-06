@@ -160,14 +160,13 @@ def _site(
         )
     direct_repos: dict[str, set[str]] = defaultdict(set)
     all_repos: dict[str, set[str]] = defaultdict(set)
-    for edge in graph.edges:
+    for repository, edge in ((item.repository, item.edge) for item in graph.edges):
         instance = graph.instances.get(edge.to_id)
         if instance is None:
             continue
         component = graph.components.get(instance.component)
         if component is None:
             continue
-        repository = _edge_repository(graph, edge)
         all_repos[component.purl].add(repository)
         if edge.relation is Relation.DIRECT:
             direct_repos[component.purl].add(repository)
@@ -795,8 +794,9 @@ def _package_section(site: _Site, purl: str) -> str:
     consumers: list[tuple[str, Edge]] = []
     for instance in instances:
         consumers.extend(
-            (_edge_repository(site.graph, edge), edge)
-            for edge in site.graph.incoming.get(instance.id, ())
+            (repository, edge)
+            for repository in sorted(site.graph.instance_repositories.get(instance.id, ()))
+            for edge in site.graph.incoming.get((repository, instance.id), ())
         )
     consumer_total = len(consumers)
     consumers = consumers[:20]
@@ -1221,13 +1221,6 @@ def _bar(value: int, denominator: int, kind: str = "") -> str:
 def _project_label(projects: Mapping[str, Project], node: str) -> str:
     project = projects.get(node)
     return project.id if project is not None else node
-
-
-def _edge_repository(graph: Graph, edge: Edge) -> str:
-    if edge.from_id in graph.projects:
-        return graph.project_repositories.get(edge.from_id, "")
-    repositories = sorted(graph.instance_repositories.get(edge.from_id, frozenset[str]()))
-    return repositories[0] if repositories else ""
 
 
 def _edge_label(graph: Graph, edge: Edge) -> str:

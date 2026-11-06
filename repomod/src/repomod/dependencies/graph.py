@@ -41,27 +41,32 @@ class Inventory:
     entries: Mapping[str, IndexEntry]
 
 
+type NodeKey = tuple[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class RepositoryEdge:
+    repository: str
+    edge: Edge
+
+
 @dataclass(frozen=True, slots=True)
 class Graph:
     repositories: Mapping[str, RepositoryData]
     catalog: Catalog | None
-    projects: Mapping[str, Project]
-    project_repositories: Mapping[str, str]
+    projects: Mapping[NodeKey, Project]
     instances: Mapping[str, Instance]
     instance_repositories: Mapping[str, frozenset[str]]
     components: Mapping[str, Component]
-    edges: tuple[Edge, ...]
-    outgoing: Mapping[str, tuple[Edge, ...]]
-    incoming: Mapping[str, tuple[Edge, ...]]
+    edges: tuple[RepositoryEdge, ...]
+    outgoing: Mapping[NodeKey, tuple[Edge, ...]]
+    incoming: Mapping[NodeKey, tuple[Edge, ...]]
     tags: Mapping[str, tuple[str, ...]]
     first_party_names: Mapping[Ecosystem, frozenset[str]]
     native: frozenset[str]
     catalogued: frozenset[str]
 
     def label(self, node: str) -> str:
-        project = self.projects.get(node)
-        if project is not None:
-            return project.id
         instance = self.instances.get(node)
         if instance is None:
             return node
@@ -302,30 +307,28 @@ def _ecosystem(value: str) -> Ecosystem:
 
 
 def build_graph(inventory: Inventory, catalog: Catalog | None = None) -> Graph:
-    projects: dict[str, Project] = {}
-    project_repositories: dict[str, str] = {}
+    projects: dict[NodeKey, Project] = {}
     instances: dict[str, Instance] = {}
     instance_repositories: dict[str, set[str]] = {}
     components: dict[str, Component] = {}
-    edges: list[Edge] = []
-    outgoing: dict[str, list[Edge]] = {}
-    incoming: dict[str, list[Edge]] = {}
+    edges: list[RepositoryEdge] = []
+    outgoing: dict[NodeKey, list[Edge]] = {}
+    incoming: dict[NodeKey, list[Edge]] = {}
     tags: dict[str, tuple[str, ...]] = {}
     names: dict[Ecosystem, set[str]] = {ecosystem: set() for ecosystem in Ecosystem}
     for name, data in inventory.repositories.items():
         tags[name] = data.tags
         for project in data.projects:
-            projects[project.id] = project
-            project_repositories[project.id] = name
+            projects[(name, project.id)] = project
         for component in data.components:
             components[component.purl] = component
         for instance in data.instances:
             instances.setdefault(instance.id, instance)
             instance_repositories.setdefault(instance.id, set()).add(name)
         for edge in data.edges:
-            edges.append(edge)
-            outgoing.setdefault(edge.from_id, []).append(edge)
-            incoming.setdefault(edge.to_id, []).append(edge)
+            edges.append(RepositoryEdge(name, edge))
+            outgoing.setdefault((name, edge.from_id), []).append(edge)
+            incoming.setdefault((name, edge.to_id), []).append(edge)
     catalog_by_id = (
         {str(repository.id).casefold(): repository for repository in catalog.repositories}
         if catalog is not None
@@ -351,7 +354,6 @@ def build_graph(inventory: Inventory, catalog: Catalog | None = None) -> Graph:
         repositories=inventory.repositories,
         catalog=catalog,
         projects=projects,
-        project_repositories=project_repositories,
         instances=instances,
         instance_repositories={
             key: frozenset(values) for key, values in instance_repositories.items()
@@ -455,9 +457,8 @@ def why(
         return WhyResult(query, (), (), False)
     paths: list[WhyPath] = []
     truncated = False
-    for project_id in sorted(graph.projects):
-        repository = graph.project_repositories[project_id]
-        if selected is not None and repository not in selected:
+    for repository, project_id in sorted(graph.projects):
+        if selected is not None and repository.casefold() not in selected:
             continue
         found, capped = _paths_from(graph, project_id, repository, targets, max_paths)
         paths.extend(found)
@@ -486,7 +487,7 @@ def _paths_from(
     while frontier:
         next_frontier: list[tuple[str, tuple[str, ...], tuple[Edge, ...]]] = []
         for node, nodes, edges in sorted(frontier, key=lambda item: item[1]):
-            for edge in graph.outgoing.get(node, ()):
+            for edge in graph.outgoing.get((repository, node), ()):
                 if edge.to_id in nodes:
                     continue
                 new_nodes = (*nodes, edge.to_id)
@@ -511,20 +512,14 @@ def consumers(graph: Graph, query: PackageQuery) -> tuple[Consumer, ...]:
     consumers: list[Consumer] = []
     seen: set[tuple[str, str, str]] = set()
     for instance_id in matching_instances(graph, query):
-        for edge in graph.incoming.get(instance_id, ()):
-            project = graph.projects.get(edge.from_id)
-            repository = (
-                graph.project_repositories.get(edge.from_id, "")
-                if project is not None
-                else next(iter(sorted(graph.instance_repositories.get(edge.from_id, frozenset()))), "")
-            )
-            key = (repository, edge.from_id, edge.to_id)
-            if key in seen:
-                continue
-            seen.add(key)
-            consumers.append(
-                Consumer(repository, edge.from_id, edge.from_id if project is not None else None, edge)
-            )
+        for repository in _repositories_of(graph, instance_id):
+            for edge in graph.incoming.get((repository, instance_id), ()):
+                key = (repository, edge.from_id, edge.to_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                project = edge.from_id if (repository, edge.from_id) in graph.projects else None
+                consumers.append(Consumer(repository, edge.from_id, project, edge))
     return tuple(sorted(consumers, key=lambda item: (item.repository, item.source, item.edge.to_id)))
 
 
@@ -601,9 +596,6 @@ def _native_registry() -> frozenset[str]:
 
 
 def label(graph: Graph, node: str) -> str:
-    project = graph.projects.get(node)
-    if project is not None:
-        return project.id
     instance = graph.instances.get(node)
     if instance is None:
         return node

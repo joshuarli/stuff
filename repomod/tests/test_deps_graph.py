@@ -183,6 +183,54 @@ def test_why_finds_a_path_through_a_workspace(tmp_path: Path) -> None:
     assert result.truncated is False
 
 
+def _shared_project_ids() -> list[RepositoryData]:
+    project = _project(".", Ecosystem.CARGO)
+    serde = _instance(Ecosystem.CARGO, "serde", "1.0.0")
+    tokio = _instance(Ecosystem.CARGO, "tokio", "1.40.0")
+    log = _instance(Ecosystem.CARGO, "log", "0.4.0")
+    return [
+        _repository(
+            "acme/tool",
+            ("tool",),
+            (project,),
+            (serde, tokio),
+            (
+                _edge(project.id, serde),
+                _edge(serde.id, tokio, relation=Relation.TRANSITIVE),
+            ),
+        ),
+        _repository(
+            "acme/zebra",
+            ("tool",),
+            (project,),
+            (serde, log),
+            (_edge(project.id, serde), _edge(project.id, log)),
+        ),
+    ]
+
+
+def test_repositories_sharing_project_ids_keep_their_own_edges(tmp_path: Path) -> None:
+    built = _graph(tmp_path, _shared_project_ids())
+
+    tokio = graph_module.why(built, graph_module.parse_query("tokio"))
+    assert [path.repository for path in tokio.paths] == ["acme/tool"]
+
+    serde = graph_module.consumers(built, graph_module.parse_query("serde"))
+    assert [(item.repository, item.source) for item in serde] == [
+        ("acme/tool", ".:cargo"),
+        ("acme/zebra", ".:cargo"),
+    ]
+    log = graph_module.consumers(built, graph_module.parse_query("log"))
+    assert [item.repository for item in log] == ["acme/zebra"]
+
+    concentration = cast(dict[str, object], report(built)["concentration"])
+    rows = {
+        str(row["name"]): row for row in cast(list[dict[str, object]], concentration["rows"])
+    }
+    assert cast(dict[str, int], rows["serde"]["direct_repositories"])["value"] == 2
+    assert cast(dict[str, int], rows["tokio"]["all_repositories"])["value"] == 1
+
+
 def test_package_query_parsing() -> None:
     assert graph_module.parse_query("serde") == graph_module.PackageQuery(
         "serde", None, "serde", None
