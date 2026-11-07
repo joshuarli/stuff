@@ -11,6 +11,7 @@ use super::client::{ObjectMeta, Precondition, R2Client};
 use super::manifest;
 use super::multipart;
 use super::pull::is_generation_id;
+use super::parallel::{REQUEST_CONCURRENCY, map_bounded};
 use super::put::{self, PutAction, UploadOptions};
 
 pub const MANIFEST_DIRECTORY: &str = "manifests/";
@@ -342,6 +343,17 @@ pub fn execute(
     plan: &SitePlan,
     options: &UploadOptions,
 ) -> Result<SyncReport, PublishError> {
+    execute_with_concurrency(client, site, bucket, plan, options, REQUEST_CONCURRENCY)
+}
+
+pub fn execute_with_concurrency(
+    client: &R2Client,
+    site: &Path,
+    bucket: &str,
+    plan: &SitePlan,
+    options: &UploadOptions,
+    concurrency: usize,
+) -> Result<SyncReport, PublishError> {
     let mut report = SyncReport {
         generation: plan.generation.clone(),
         aliases: plan.aliases.clone(),
@@ -352,15 +364,25 @@ pub fn execute(
             report.skipped.push(entry.key.clone());
         }
     }
-    for entry in upload_order(&plan.entries) {
+    let ordered = upload_order(&plan.entries);
+    for phase in upload_phases(&ordered) {
+        let limit = match phase.kind {
+            UploadPhaseKind::Manifests => 1,
+            UploadPhaseKind::Objects => concurrency,
+        };
+        map_bounded(phase.entries, limit, |entry| match entry.action {
+            PutAction::Put => upload_single(client, site, bucket, entry),
+            PutAction::Multipart => upload_multipart(client, site, bucket, entry, options.part_size),
+            PutAction::Skip | PutAction::Conflict => Ok(()),
+        })?;
+    }
+    for entry in ordered {
         match entry.action {
             PutAction::Put => {
-                upload_single(client, site, bucket, entry)?;
                 report.uploaded.push(entry.key.clone());
                 report.uploaded_bytes += entry.size;
             }
             PutAction::Multipart => {
-                upload_multipart(client, site, bucket, entry, options.part_size)?;
                 report.multipart.push(entry.key.clone());
                 report.uploaded.push(entry.key.clone());
                 report.uploaded_bytes += entry.size;
@@ -572,6 +594,38 @@ fn upload_order(entries: &[PlanEntry]) -> Vec<&PlanEntry> {
         }
     }
     ordered
+}
+
+enum UploadPhaseKind {
+    Objects,
+    Manifests,
+}
+
+struct UploadPhase<'a, 'b> {
+    kind: UploadPhaseKind,
+    entries: &'b [&'a PlanEntry],
+}
+
+fn upload_phases<'a, 'b>(ordered: &'b [&'a PlanEntry]) -> Vec<UploadPhase<'a, 'b>> {
+    let first_manifest = ordered
+        .iter()
+        .position(|entry| is_manifest_key(&entry.key))
+        .unwrap_or(ordered.len());
+    let (objects, manifests) = ordered.split_at(first_manifest);
+    let first_multipart = objects
+        .iter()
+        .position(|entry| entry.action == PutAction::Multipart)
+        .unwrap_or(objects.len());
+    let (puts, multiparts) = objects.split_at(first_multipart);
+    [
+        (UploadPhaseKind::Objects, puts),
+        (UploadPhaseKind::Objects, multiparts),
+        (UploadPhaseKind::Manifests, manifests),
+    ]
+    .into_iter()
+    .filter(|(_, entries)| !entries.is_empty())
+    .map(|(kind, entries)| UploadPhase { kind, entries })
+    .collect()
 }
 
 fn upload_single(

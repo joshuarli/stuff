@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use std::io::Read as _;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use h12tiny_client_sync::{http, Client};
@@ -94,7 +95,7 @@ pub struct RawRequest<'a> {
 pub struct R2Client {
     credentials: Credentials,
     http: Client,
-    sleeper: Box<dyn Fn(Duration)>,
+    sleeper: Arc<dyn Fn(Duration) + Send + Sync>,
     attempts: u32,
     list_page: usize,
     request_timeout: Duration,
@@ -105,7 +106,7 @@ impl R2Client {
         R2Client {
             credentials,
             http: Client::builder().connect_timeout(CONNECT_TIMEOUT).build(),
-            sleeper: Box::new(std::thread::sleep),
+            sleeper: Arc::new(std::thread::sleep),
             attempts: DEFAULT_ATTEMPTS,
             list_page: DEFAULT_LIST_PAGE,
             request_timeout: REQUEST_TIMEOUT,
@@ -114,9 +115,9 @@ impl R2Client {
 
     pub fn with_sleeper<F>(mut self, sleeper: F) -> Self
     where
-        F: Fn(Duration) + 'static,
+        F: Fn(Duration) + Send + Sync + 'static,
     {
-        self.sleeper = Box::new(sleeper);
+        self.sleeper = Arc::new(sleeper);
         self
     }
 

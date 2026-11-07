@@ -547,13 +547,15 @@ fn an_interrupted_upload_resumes_without_rewriting_uploaded_objects() {
         let body = fs::read(site.join(&key)).unwrap();
         fake.seed(BUCKET, &key, &body, "application/octet-stream");
     }
+    let present = fake.state().len();
     let report = transaction(&fake, &site, &state, &cache, options())
         .expect("open")
         .run()
         .expect("resume");
     assert_eq!(report.status, Status::Published);
-    assert_eq!(report.uploaded_objects, 4);
-    assert_eq!(report.skipped_objects, 3);
+    assert_eq!(report.skipped_objects, present);
+    assert_eq!(report.uploaded_objects + report.skipped_objects, 7);
+    assert!(remote_has(&fake, "manifests/g1.json"));
     assert_eq!(current_body(&fake), b"g1");
 }
 

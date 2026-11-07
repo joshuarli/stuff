@@ -8,6 +8,7 @@ use super::adopt::{NativeRecord, Record, UpstreamRecord, View, reconstruct_index
 use super::render::{mirror_config_json, native_config_json};
 use crate::publish::config::Config;
 use crate::publish::r2::pull::{PART_SIZE, is_generation_id, object_etag, safe_relative};
+use crate::publish::r2::parallel::{REQUEST_CONCURRENCY, map_bounded};
 use crate::publish::snapshot::Snapshot;
 use crate::publish::PublishError;
 
@@ -103,12 +104,10 @@ pub fn load(snapshot: &Snapshot, config: &Config) -> Result<LiveSnapshot, Publis
             .filter(|key| key.starts_with(&prefix))
             .collect();
         keys.sort();
-        for key in keys {
+        keys.retain(|key| &key[prefix.len()..] != "config.json");
+        let fetched = map_bounded(&keys, REQUEST_CONCURRENCY, |key| fetch(snapshot, bucket, key))?;
+        for (key, bytes) in keys.into_iter().zip(fetched) {
             let relative = key[prefix.len()..].to_string();
-            if relative == "config.json" {
-                continue;
-            }
-            let bytes = fetch(snapshot, bucket, key)?;
             let text = std::str::from_utf8(&bytes).map_err(|error| {
                 PublishError::Integrity(format!("{key} is not UTF-8: {error}"))
             })?;

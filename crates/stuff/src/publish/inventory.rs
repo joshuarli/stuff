@@ -15,6 +15,7 @@ use mynpm::inventory_store::{load_inventory, save_inventory};
 use mynpm::lock_npm::{parse_npm_lock, NpmOptions};
 use mynpm::lock_pnpm::{parse_pnpm_lock, PnpmOptions};
 
+use crate::publish::r2::parallel::{REQUEST_CONCURRENCY, map_bounded};
 use crate::publish::r2::pull::{is_generation_id, safe_relative};
 use crate::publish::snapshot::{SharedStore, Snapshot};
 use crate::publish::PublishError;
@@ -106,9 +107,9 @@ pub fn pull_live_generation(
     std::fs::create_dir_all(mirror).map_err(|error| {
         PublishError::Config(format!("could not create {}: {error}", mirror.display()))
     })?;
-    for key in keys {
-        let bytes = snapshot.fetch(bucket, &key)?;
-        let path = mirror.join(safe_relative(&key)?);
+    map_bounded(&keys, REQUEST_CONCURRENCY, |key| {
+        let bytes = snapshot.fetch(bucket, key)?;
+        let path = mirror.join(safe_relative(key)?);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
                 PublishError::Config(format!("could not create {}: {error}", parent.display()))
@@ -116,8 +117,8 @@ pub fn pull_live_generation(
         }
         std::fs::write(&path, &bytes).map_err(|error| {
             PublishError::Config(format!("could not write {}: {error}", path.display()))
-        })?;
-    }
+        })
+    })?;
     let manifest_key = format!("manifests/{generation}.json");
     if let Some(object) = snapshot.metadata().get(&manifest_key) {
         let bytes = snapshot.fetch(bucket, &object.key)?;

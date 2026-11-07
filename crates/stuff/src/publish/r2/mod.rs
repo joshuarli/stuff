@@ -5,6 +5,7 @@ pub mod credentials;
 pub mod guard;
 pub mod manifest;
 pub mod multipart;
+pub mod parallel;
 pub mod promote;
 pub mod pull;
 pub mod put;
