@@ -1601,6 +1601,42 @@ fn write_pretty(v: &deser_value::Value, out: &mut String, indent: usize) {
     }
 }
 
+pub fn adopt_mirror_tarballs(project: &mut ProjectRecord, public_base_url: &str) {
+    for record in &mut project.packages {
+        let mirrored = record.source_kind == SourceKind::ExternalUrl
+            && record
+                .resolved
+                .as_deref()
+                .is_some_and(|url| is_mirror_tarball(url, record.integrity.as_deref(), public_base_url));
+        if mirrored {
+            record.source_kind = SourceKind::Registry;
+            record.resolved = None;
+        }
+    }
+}
+
+fn is_mirror_tarball(url: &str, integrity: Option<&str>, public_base_url: &str) -> bool {
+    let Some(sha512) = integrity
+        .and_then(|text| crate::value::check_integrity_string(text, "integrity").ok())
+        .and_then(|claims| claims.get("sha512").cloned())
+    else {
+        return false;
+    };
+    let Some(path) = url.strip_prefix(public_base_url.trim_end_matches('/')) else {
+        return false;
+    };
+    let Some(mount) = path.strip_suffix(&format!("/-/tarballs/{sha512}.tgz")) else {
+        return false;
+    };
+    match mount.strip_prefix('/') {
+        None => mount.is_empty(),
+        Some(segment) => {
+            !segment.is_empty()
+                && segment.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+        }
+    }
+}
+
 pub fn merge_project(inv: &Inventory, project: ProjectRecord) -> Result<Inventory> {
     let reparsed = parse_inventory(&inventory_roundtrip(inv)?)?;
     let checked = normalize_project(&project_to_value(&project)?, "imported project", Category::Input)?;

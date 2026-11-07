@@ -170,7 +170,7 @@ pub fn import_lockfile(
         .extension()
         .and_then(|extension| extension.to_str())
         .unwrap_or("");
-    let project = if extension == "yaml" || extension == "yml" {
+    let mut project = if extension == "yaml" || extension == "yml" {
         parse_pnpm_lock(
             &text,
             PnpmOptions {
@@ -195,6 +195,7 @@ pub fn import_lockfile(
         )
         .map_err(library_error)?
     };
+    mynpm::inventory::adopt_mirror_tarballs(&mut project, &library.public_base_url);
     merge_project(&inventory, project).map_err(library_error)
 }
 

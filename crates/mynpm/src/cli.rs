@@ -476,8 +476,9 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
             project_directory: project_dir.to_str().unwrap_or(""),
             lockfile_text: &text,
             project: &initial,
+            public_base_url: &config.public_base_url,
         })?;
-        let project = parse_npm_lock(
+        let mut project = parse_npm_lock(
             &text,
             NpmOptions {
                 project_id: project_id.clone(),
@@ -487,6 +488,7 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
                 snapshot: Some(snapshot),
             },
         )?;
+        crate::inventory::adopt_mirror_tarballs(&mut project, &config.public_base_url);
         let state_dir = cwd.join(parsed.state_dir.clone().unwrap_or_else(|| "state".to_string()));
         update_inventory(&state_dir, |inv| {
             let mut acc = inv.clone();
@@ -515,8 +517,9 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
             project_directory: project_dir.to_str().unwrap_or(""),
             lockfile_text: &text,
             project: &initial,
+            public_base_url: &config.public_base_url,
         })?;
-        let project = parse_pnpm_lock(
+        let mut project = parse_pnpm_lock(
             &text,
             PnpmOptions {
                 project_id: project_id.clone(),
@@ -526,6 +529,7 @@ fn run_import_lock(parsed: &Parsed, config: &Config, cwd: &Path) -> Result<()> {
                 snapshot: Some(snapshot),
             },
         )?;
+        crate::inventory::adopt_mirror_tarballs(&mut project, &config.public_base_url);
         let state_dir = cwd.join(parsed.state_dir.clone().unwrap_or_else(|| "state".to_string()));
         update_inventory(&state_dir, |inv| {
             let mut acc = inv.clone();

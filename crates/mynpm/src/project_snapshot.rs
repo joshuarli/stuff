@@ -188,7 +188,7 @@ fn parse_manifest(text: &str, label: &str, manager: &Manager) -> Result<deser_va
     Ok(manifest)
 }
 
-fn parse_npmrc(text: Option<&str>, manager: &Manager) -> Result<NpmInstallOptions> {
+fn parse_npmrc(text: Option<&str>, manager: &Manager, public_base_url: &str) -> Result<NpmInstallOptions> {
     let mut options = NpmInstallOptions { legacy_peer_deps: None, install_links: None };
     let Some(text) = text else { return Ok(options) };
     let mut seen: std::collections::BTreeSet<String> = Default::default();
@@ -201,6 +201,12 @@ fn parse_npmrc(text: Option<&str>, manager: &Manager) -> Result<NpmInstallOption
             Some(sep) => (line[..sep].trim().to_lowercase(), line[sep + 1..].trim().to_lowercase()),
             None => (line.trim().to_lowercase(), "true".to_string()),
         };
+        if key == "registry" && is_own_registry(&raw_value, public_base_url) {
+            if !seen.insert(key.clone()) {
+                return Err(Error::Input(format!("duplicate .npmrc setting {key}")));
+            }
+            continue;
+        }
         let slot = if key == "legacy-peer-deps" {
             "legacyPeerDeps"
         } else if key == "install-links" {
@@ -229,6 +235,14 @@ fn parse_npmrc(text: Option<&str>, manager: &Manager) -> Result<NpmInstallOption
         }
     }
     Ok(options)
+}
+
+fn is_own_registry(value: &str, public_base_url: &str) -> bool {
+    let base = public_base_url.trim_end_matches('/').to_lowercase();
+    match value.strip_prefix(&base) {
+        Some(rest) => rest.is_empty() || rest.starts_with('/'),
+        None => false,
+    }
 }
 
 fn parse_yaml_documents(text: &str, label: &str) -> Result<Vec<deser_value::Value>> {
@@ -439,6 +453,7 @@ pub struct CaptureOptions<'a> {
     pub project_directory: &'a str,
     pub lockfile_text: &'a str,
     pub project: &'a ProjectRecord,
+    pub public_base_url: &'a str,
 }
 
 pub fn capture_project_snapshot(options: &CaptureOptions) -> Result<ProjectSnapshot> {
@@ -446,7 +461,7 @@ pub fn capture_project_snapshot(options: &CaptureOptions) -> Result<ProjectSnaps
         .map_err(|_| Error::Input(format!("could not resolve project directory {}", options.project_directory)))?;
     let manifest = read_project_file(&project_root, "package.json", true)?;
     let npmrc = read_project_file(&project_root, ".npmrc", true)?;
-    let npm_install_options = parse_npmrc(npmrc.as_deref(), options.manager)?;
+    let npm_install_options = parse_npmrc(npmrc.as_deref(), options.manager, options.public_base_url)?;
     if *options.manager == Manager::Pnpm {
         for hook in [".pnpmfile.cjs", ".pnpmfile.mjs"] {
             if read_project_file(&project_root, hook, true)?.is_some() {
@@ -486,14 +501,19 @@ pub fn capture_project_snapshot(options: &CaptureOptions) -> Result<ProjectSnaps
 mod tests {
     use super::*;
 
+    const MIRROR: &str = "https://npm.example/";
+
     #[test]
     fn parses_npmrc_options() {
-        let options = parse_npmrc(Some("legacy-peer-deps=true\ninstall-links=false\n"), &Manager::Npm).unwrap();
+        let options = parse_npmrc(Some("legacy-peer-deps=true\ninstall-links=false\n"), &Manager::Npm, MIRROR).unwrap();
         assert_eq!(options.legacy_peer_deps, Some(true));
         assert_eq!(options.install_links, Some(false));
-        assert!(parse_npmrc(Some("registry=https://example.test/\n"), &Manager::Npm).is_err());
-        assert!(parse_npmrc(Some("legacy-peer-deps=true\n"), &Manager::Pnpm).is_err());
-        assert!(parse_npmrc(Some("legacy-peer-deps=1\n"), &Manager::Npm).is_err());
+        assert!(parse_npmrc(Some("registry=https://example.test/\n"), &Manager::Npm, MIRROR).is_err());
+        assert!(parse_npmrc(Some("registry=https://npm.example.evil/current/\n"), &Manager::Pnpm, MIRROR).is_err());
+        assert!(parse_npmrc(Some("registry=https://npm.example/current/\nregistry=https://npm.example/\n"), &Manager::Pnpm, MIRROR).is_err());
+        assert!(parse_npmrc(Some("registry=https://npm.example/current/\n"), &Manager::Pnpm, MIRROR).is_ok());
+        assert!(parse_npmrc(Some("legacy-peer-deps=true\n"), &Manager::Pnpm, MIRROR).is_err());
+        assert!(parse_npmrc(Some("legacy-peer-deps=1\n"), &Manager::Npm, MIRROR).is_err());
     }
 
     #[test]
@@ -528,6 +548,7 @@ mod tests {
             project_directory: root.to_str().unwrap(),
             lockfile_text: lock,
             project: &project,
+            public_base_url: MIRROR,
         })
         .unwrap();
         assert!(snapshot.manifest.is_some());
@@ -560,6 +581,7 @@ mod tests {
             project_directory: dir.path().to_str().unwrap(),
             lockfile_text: lock,
             project: &project,
+            public_base_url: MIRROR,
         })
         .unwrap();
     }
@@ -575,6 +597,7 @@ mod tests {
             project_directory: dir.path().to_str().unwrap(),
             lockfile_text: lock,
             project: &project,
+            public_base_url: MIRROR,
         })
         .unwrap_err();
         assert!(format!("{err}").contains("configuration dependency"));
@@ -600,6 +623,7 @@ mod tests {
             project_directory: dir.path().to_str().unwrap(),
             lockfile_text: "lockfileVersion: '9.0'\n",
             project: &project,
+            public_base_url: MIRROR,
         })
         .unwrap_err();
         assert!(format!("{err}").contains("executable hook"));

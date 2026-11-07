@@ -706,4 +706,18 @@ mod tests {
         let keys = pnpm_build_package_keys(&read_lock("pnpm-v12-peer.yaml")).unwrap();
         assert!(keys.windows(2).all(|w| w[0] <= w[1]));
     }
+    const MIRROR_LOCK: &str = "lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n    dependencies:\n      '@vitest/ui':\n        specifier: 5.0.5\n        version: 5.0.5\n      other:\n        specifier: 1.0.0\n        version: 1.0.0\n      foreign:\n        specifier: 1.0.0\n        version: 1.0.0\n\npackages:\n\n  '@vitest/ui@5.0.5':\n    resolution: {integrity: sha512-dCoGUOdgmCaSB2g+WQ/spPCBkytAWdNUkFSXY4z+eYp2d8JEOY8v0uDRaJTG9qf/kTlTVZ4CuYMYMz/f1HS/qQ==, tarball: https://npm.example/current/-/tarballs/742a0650e76098269207683e590feca4f081932b4059d354905497638cfe798a7677c244398f2fd2e0d16894c6f6a7ff913953559e02b98318333fdfd474bfa9.tgz}\n\n  other@1.0.0:\n    resolution: {integrity: sha512-dCoGUOdgmCaSB2g+WQ/spPCBkytAWdNUkFSXY4z+eYp2d8JEOY8v0uDRaJTG9qf/kTlTVZ4CuYMYMz/f1HS/qQ==, tarball: https://npm.example/current/-/tarballs/00000650e76098269207683e590feca4f081932b4059d354905497638cfe798a7677c244398f2fd2e0d16894c6f6a7ff913953559e02b98318333fdfd474bfa9.tgz}\n\n  foreign@1.0.0:\n    resolution: {integrity: sha512-dCoGUOdgmCaSB2g+WQ/spPCBkytAWdNUkFSXY4z+eYp2d8JEOY8v0uDRaJTG9qf/kTlTVZ4CuYMYMz/f1HS/qQ==, tarball: https://npm.example.evil/current/-/tarballs/742a0650e76098269207683e590feca4f081932b4059d354905497638cfe798a7677c244398f2fd2e0d16894c6f6a7ff913953559e02b98318333fdfd474bfa9.tgz}\n";
+
+    #[test]
+    fn mirror_tarballs_matching_their_integrity_are_registry_sources() {
+        let mut project = parse_pnpm_lock(MIRROR_LOCK, opts()).unwrap();
+        crate::inventory::adopt_mirror_tarballs(&mut project, "https://npm.example");
+        let kind = |name: &str| {
+            let record = project.packages.iter().find(|p| p.name == name).unwrap();
+            (record.source_kind.clone(), record.resolved.is_some())
+        };
+        assert_eq!(kind("@vitest/ui"), (SourceKind::Registry, false));
+        assert_eq!(kind("other"), (SourceKind::ExternalUrl, true));
+        assert_eq!(kind("foreign"), (SourceKind::ExternalUrl, true));
+    }
 }

@@ -29,15 +29,6 @@ Next: 62
 - **Fix with:** none
 - **Effort:** S
 
-### STUF-59 · P2 · npm lockfiles resolved through the mirror cannot be published
-
-- **Area:** npm
-- **Where:** `crates/mynpm/src/lock_pnpm.rs`, `crates/mynpm/src/acquire.rs`, `crates/stuff/src/publish/inventory.rs:277`
-- **Problem:** tansu's `.npmrc` sets `registry=https://npm.17166969.xyz/current/`, so its `pnpm-lock.yaml` records mirror tarball URLs. mynpm classifies those as external-url sources: `stuff publish npm --lockfile pnpm-lock.yaml --project tansu --dry-run` exits 2 with `fetch rejects external-url source @vitest/ui@5.0.5`, although that version is live. The legacy `mynpm import-lock` fails earlier with `unsupported .npmrc setting registry`. Any consumer that installs from the mirror loses the ability to publish its lockfile.
-- **Recommendation:** Treat a tarball URL under the configured `public_base_url` as the registry source for the named version, verified against the live manifest's integrity, and accept a project `.npmrc` whose only setting is that registry. Reproduce with tansu's lockfile first.
-- **Fix with:** root-cause
-- **Effort:** M
-
 ### STUF-60 · P3 · mynpm cannot publish a first-party npm package
 
 - **Area:** npm
