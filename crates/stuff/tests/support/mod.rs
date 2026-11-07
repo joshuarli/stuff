@@ -263,6 +263,12 @@ impl FakeS3 {
         assert_eq!(reply.status, 200);
     }
 
+    pub fn inject_resets(&self, count: u64) {
+        let document = object(vec![("count", Value::from(count))]);
+        let reply = self.control("/_fake/reset", &document);
+        assert_eq!(reply.status, 200);
+    }
+
     pub fn put_conditions(&self) -> Vec<PutCondition> {
         let reply = self.control_get("/_fake/conditions");
         assert_eq!(reply.status, 200);

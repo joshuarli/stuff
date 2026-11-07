@@ -9,6 +9,8 @@ import importlib.util
 import json
 import os
 import signal
+import socket
+import struct
 import sys
 import threading
 import urllib.parse
@@ -36,6 +38,7 @@ def _load_r2():
 class FakeS3Server(http.server.ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+    request_queue_size = 256
 
     def __init__(self, server_address=("127.0.0.1", 0), handler=None):
         super().__init__(server_address, handler or FakeS3Handler)
@@ -49,6 +52,7 @@ class FakeS3Server(http.server.ThreadingHTTPServer):
         self.fail_status = 429
         self.fail_retry_after = "0"
         self.fail_complete = False
+        self.reset_remaining = 0
         self.current = None
         self.current_etag = ""
         self.change_current_on_head = False
@@ -222,6 +226,11 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             server.fail_retry_after = str(document.get("retry_after", "0"))
             self._reply(200, b'{"ok":true}')
             return
+        if parsed.path == "/_fake/reset" and self.command == "POST":
+            document = json.loads(body or b"{}")
+            server.reset_remaining = int(document.get("count", 1))
+            self._reply(200, b'{"ok":true}')
+            return
         if parsed.path == "/_fake/conditions" and self.command == "GET":
             conditions = [
                 {"if_match": condition, "if_none_match": none_match, "body": text}
@@ -383,6 +392,13 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             if server.fail_retry_after is not None:
                 headers["Retry-After"] = server.fail_retry_after
             self._reply(server.fail_status, b"injected failure", headers)
+            return
+        if server.reset_remaining > 0:
+            server.reset_remaining -= 1
+            self.connection.setsockopt(
+                socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
+            )
+            self.connection.close()
             return
         if self.command == "POST" and "uploads" in query:
             upload_id = f"test-upload-{len(server.uploads) + 1}"

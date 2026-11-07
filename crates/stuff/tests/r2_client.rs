@@ -175,3 +175,34 @@ fn a_request_signed_with_the_wrong_secret_is_rejected_as_config() {
     assert_eq!(error.exit_code(), 2, "{error}");
     assert!(error.to_string().contains("SignatureDoesNotMatch"), "{error}");
 }
+
+#[test]
+fn retries_after_a_connection_reset() {
+    let fake = FakeS3::start_verified();
+    fake.inject_resets(1);
+    let (sleeps, sleeper) = recorder();
+    let client = R2Client::new(credentials(&fake)).with_sleeper(sleeper);
+
+    client
+        .put_object("bucket", "blobs/reset", b"body", "text/plain", Precondition::None)
+        .expect("retried PUT");
+
+    assert_eq!(sleeps.lock().unwrap().len(), 1);
+    let state = fake.state();
+    assert_eq!(state.len(), 1);
+    assert_eq!(state[0].key, "blobs/reset");
+    assert_eq!(state[0].body, b"body");
+}
+
+#[test]
+fn connection_reset_with_single_attempt_becomes_a_transport_error() {
+    let fake = FakeS3::start_verified();
+    fake.inject_resets(1);
+    let client = R2Client::new(credentials(&fake)).with_attempts(1);
+
+    let error = client
+        .put_object("bucket", "blobs/reset-fail", b"body", "text/plain", Precondition::None)
+        .unwrap_err();
+    assert_eq!(error.exit_code(), 5, "{error}");
+    assert!(fake.state().is_empty());
+}
