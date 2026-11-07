@@ -41,6 +41,7 @@ def _parser() -> argparse.ArgumentParser:
     _filters(lint)
     _checkout_option(lint)
     lint.add_argument("--rule", action="append", default=[])
+    lint.add_argument("--workers", type=int, default=16)
     lint.add_argument("--json", action="store_true")
     lint.add_argument("--strict", action="store_true", help="treat warnings as violations")
 

@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import contextlib
 import time
 from collections.abc import Callable
 from pathlib import Path
 
 from repomod.audit import (
-    _audit_cache_path,
     _collect_locked,
     _collect_vuln_candidates,
     _policy_findings,
-    _read_cache,
-    _write_cache,
+    audit_cache,
     resolve_vulns,
 )
 from repomod.run_cache import cached
@@ -34,22 +31,18 @@ def _policy_rule(
 
 
 def _vuln_check(root: Path, repository: Repository) -> list[Finding]:
-    cache = _read_cache(_audit_cache_path())
-    if not isinstance(cache.get("osv"), dict):
-        cache["osv"] = {}
-    locked, _ = _collect_locked(root, repository)
-    if not locked:
-        return []
-    candidates = _collect_vuln_candidates(root, repository, locked)
-    vulns = resolve_vulns(
-        candidates,
-        offline=False,
-        refresh=False,
-        cache=cache,
-        now=time.time(),
-    )
-    with contextlib.suppress(OSError):
-        _write_cache(_audit_cache_path(), cache)
+    with audit_cache() as cache:
+        locked, _ = _collect_locked(root, repository)
+        if not locked:
+            return []
+        candidates = _collect_vuln_candidates(root, repository, locked)
+        vulns = resolve_vulns(
+            candidates,
+            offline=False,
+            refresh=False,
+            cache=cache,
+            now=time.time(),
+        )
     findings: list[Finding] = []
     for item in sorted(
         candidates, key=lambda entry: (entry.ecosystem, entry.name.casefold(), entry.locked)
