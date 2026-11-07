@@ -202,3 +202,28 @@ fn an_oci_dry_run_leaves_local_state_and_remote_unchanged() {
         .count();
     assert_eq!(mutations, 0, "the dry run mutated the remote");
 }
+
+#[test]
+fn oci_bootstrap_reuses_cached_layers_without_redownload() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().expect("temp dir");
+    let home = work.path().join("home");
+    let environment = environment(&fake, &home);
+    let paths = OciPaths::from_environment(&environment);
+
+    let outcome = stuff::publish::run(request(false), &environment).expect("first publish");
+    assert_eq!(outcome.status, Status::Published);
+
+    let _ = std::fs::remove_dir_all(&paths.site_dir);
+
+    let gets_before = fake.requests().iter().filter(|r| r.method == "GET").count();
+
+    let second = stuff::publish::run(request(false), &environment).expect("second publish");
+    assert_eq!(second.status, Status::Unchanged);
+
+    let blob_gets = fake.requests()[gets_before..]
+        .iter()
+        .filter(|r| r.method == "GET" && r.path.starts_with(&format!("/{BLOB_BUCKET}/")))
+        .count();
+    assert_eq!(blob_gets, 0, "expected 0 blob GETs because layers were cached");
+}

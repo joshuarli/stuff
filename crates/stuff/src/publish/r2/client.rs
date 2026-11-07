@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
-use std::io::Read as _;
+use std::io::{Read as _, Write as _};
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -151,6 +152,31 @@ impl R2Client {
         })?;
         self.check_status(&response, &format!("GET {bucket}/{key}"))?;
         Ok(response.body)
+    }
+
+    pub fn download_object_to_file(
+        &self,
+        bucket: &str,
+        key: &str,
+        destination: &Path,
+    ) -> Result<(String, u64), PublishError> {
+        let attempts = self.attempts.max(1);
+        let mut last_error = None;
+        for attempt in 1..=attempts {
+            match self.download_once(bucket, key, destination) {
+                Ok(result) => return Ok(result),
+                Err(error) => {
+                    if attempt == attempts {
+                        last_error = Some(error);
+                        break;
+                    }
+                    (self.sleeper)(backoff(attempt));
+                }
+            }
+        }
+        Err(last_error.unwrap_or_else(|| {
+            PublishError::Transport(format!("GET {bucket}/{key}: exhausted {attempts} attempts"))
+        }))
     }
 
     pub fn head_object(
@@ -307,7 +333,10 @@ impl R2Client {
         }))
     }
 
-    fn send_once(&self, request: &RawRequest<'_>) -> Result<RawResponse, PublishError> {
+    fn build_http_request(
+        &self,
+        request: &RawRequest<'_>,
+    ) -> Result<(String, http::Request<Vec<u8>>), PublishError> {
         let path = object_path(request.bucket, request.key);
         let query = encode_query(&request.query);
         let url = if query.is_empty() {
@@ -344,6 +373,11 @@ impl R2Client {
         let http_request = builder.body(request.body.to_vec()).map_err(|error| {
             PublishError::Config(format!("could not build {} {url}: {error}", request.method))
         })?;
+        Ok((url, http_request))
+    }
+
+    fn send_once(&self, request: &RawRequest<'_>) -> Result<RawResponse, PublishError> {
+        let (url, http_request) = self.build_http_request(request)?;
         let mut response = self
             .http
             .request_with_timeout(http_request, Some(self.request_timeout))
@@ -372,6 +406,70 @@ impl R2Client {
             PublishError::Transport(format!("{} {url}: {error}", request.method))
         })?;
         Ok(RawResponse { status, headers, body })
+    }
+
+    fn download_once(
+        &self,
+        bucket: &str,
+        key: &str,
+        destination: &Path,
+    ) -> Result<(String, u64), PublishError> {
+        let (url, http_request) = self.build_http_request(&RawRequest {
+            method: "GET",
+            bucket,
+            key,
+            query: Vec::new(),
+            body: &[],
+            content_type: None,
+            extra_headers: Vec::new(),
+        })?;
+        let mut response = self
+            .http
+            .request_with_timeout(http_request, Some(self.request_timeout))
+            .map_err(|error| PublishError::Transport(format!("GET {url}: {error}")))?;
+        let status = response.status().as_u16();
+        if status == 429 || status >= 500 {
+            return Err(PublishError::Transport(format!("GET {url}: HTTP {status}")));
+        }
+        if status != 200 {
+            let mut err_body = Vec::new();
+            let _ = response.body_mut().read_to_end(&mut err_body);
+            let detail = error_detail(&err_body);
+            return Err(PublishError::Integrity(format!(
+                "GET {url}: unexpected HTTP {status}: {detail}"
+            )));
+        }
+        response
+            .body_mut()
+            .set_read_timeout(Some(self.request_timeout))
+            .map_err(|error| PublishError::Transport(format!("GET {url}: {error}")))?;
+
+        let mut file = std::fs::File::create(destination).map_err(|error| {
+            PublishError::Config(format!("could not create {}: {error}", destination.display()))
+        })?;
+        use sha2::Digest as _;
+        let mut hasher = sha2::Sha256::new();
+        let mut buf = [0u8; 65536];
+        let mut total = 0u64;
+        let mut reader = response.into_body();
+        loop {
+            let n = reader.read(&mut buf).map_err(|error| {
+                PublishError::Transport(format!("GET {url}: {error}"))
+            })?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+            file.write_all(&buf[..n]).map_err(|error| {
+                PublishError::Config(format!("could not write {}: {error}", destination.display()))
+            })?;
+            total += n as u64;
+        }
+        file.flush().map_err(|error| {
+            PublishError::Config(format!("could not flush {}: {error}", destination.display()))
+        })?;
+        let digest_hex = format!("{:x}", hasher.finalize());
+        Ok((digest_hex, total))
     }
 
     fn check_status(

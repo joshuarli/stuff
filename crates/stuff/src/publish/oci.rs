@@ -105,6 +105,7 @@ pub fn publish_with(
         import_source(&state, source)?;
         myoci::publish::publish(&state, &paths.site_dir, &context.config.oci.public_base_url)
             .map_err(map_myoci_error)?;
+        cache_site_blobs(&paths.site_dir, &paths.cache_dir)?;
         Ok(Staged::new(paths.site_dir.clone()))
     })?;
     let mut outcome = report.outcome();
@@ -151,7 +152,7 @@ fn sync_live_state(
             &paths.site_dir,
             PullOptions::default(),
         )?;
-        pull_generation_blobs(client, blobs_bucket, &paths.site_dir, &report.generation)?;
+        pull_generation_blobs(client, blobs_bucket, paths, &report.generation)?;
     }
 
     remove_dir_if_present(&paths.state_dir)?;
@@ -163,10 +164,11 @@ fn sync_live_state(
 fn pull_generation_blobs(
     client: &R2Client,
     blobs_bucket: &str,
-    site_dir: &Path,
+    paths: &OciPaths,
     generation: &str,
 ) -> Result<(), PublishError> {
-    let blobs_path = site_dir
+    let blobs_path = paths
+        .site_dir
         .join("generations")
         .join(generation)
         .join("blobs.json");
@@ -177,25 +179,117 @@ fn pull_generation_blobs(
         ))
     })?;
     let digests = parse_blobs_json(&text).map_err(|error| PublishError::Integrity(error.to_string()))?;
-    let directory = site_dir.join("blobs/sha256");
+    let directory = paths.site_dir.join("blobs/sha256");
     std::fs::create_dir_all(&directory).map_err(|error| {
         PublishError::Config(format!(
             "could not create {}: {error}",
             directory.display()
         ))
     })?;
+    let cache_dir = paths.cache_dir.join("blobs/sha256");
+    std::fs::create_dir_all(&cache_dir).map_err(|error| {
+        PublishError::Config(format!(
+            "could not create {}: {error}",
+            cache_dir.display()
+        ))
+    })?;
     for digest in digests {
-        let bytes = client.get_object(blobs_bucket, &format!("sha256/{}", digest.hex()))?;
-        let actual = Digest::from_bytes(&bytes);
-        if actual != digest {
+        let dest_path = directory.join(digest.hex());
+        let cached_path = cache_dir.join(digest.hex());
+
+        if is_file_valid(&dest_path, &digest)? {
+            continue;
+        }
+        if is_file_valid(&cached_path, &digest)? {
+            link_or_copy(&cached_path, &dest_path)?;
+            continue;
+        }
+
+        let tmp_path = cache_dir.join(format!("{}.tmp-{}", digest.hex(), std::process::id()));
+        let (actual_hex, _) = client.download_object_to_file(
+            blobs_bucket,
+            &format!("sha256/{}", digest.hex()),
+            &tmp_path,
+        )?;
+        if actual_hex != digest.hex() {
+            let _ = std::fs::remove_file(&tmp_path);
             return Err(PublishError::Integrity(format!(
-                "blob {digest} hashes to {actual}"
+                "blob {digest} hashes to sha256:{actual_hex}"
             )));
         }
-        let path = directory.join(digest.hex());
-        std::fs::write(&path, &bytes).map_err(|error| {
-            PublishError::Config(format!("could not write {}: {error}", path.display()))
+        std::fs::rename(&tmp_path, &cached_path).map_err(|error| {
+            PublishError::Config(format!(
+                "could not rename {} to {}: {error}",
+                tmp_path.display(),
+                cached_path.display()
+            ))
         })?;
+        link_or_copy(&cached_path, &dest_path)?;
+    }
+    Ok(())
+}
+
+fn is_file_valid(path: &Path, digest: &Digest) -> Result<bool, PublishError> {
+    if !path.is_file() {
+        return Ok(false);
+    }
+    let mut file = match std::fs::File::open(path) {
+        Ok(file) => file,
+        Err(_) => return Ok(false),
+    };
+    use std::io::Read as _;
+    use sha2::Digest as _;
+    let mut hasher = sha2::Sha256::new();
+    let mut buf = [0u8; 65536];
+    loop {
+        match file.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => hasher.update(&buf[..n]),
+            Err(_) => return Ok(false),
+        }
+    }
+    let actual = format!("{:x}", hasher.finalize());
+    Ok(actual == digest.hex())
+}
+
+fn link_or_copy(source: &Path, destination: &Path) -> Result<(), PublishError> {
+    if destination.exists() {
+        let _ = std::fs::remove_file(destination);
+    }
+    if std::fs::hard_link(source, destination).is_ok() {
+        return Ok(());
+    }
+    std::fs::copy(source, destination).map_err(|error| {
+        PublishError::Config(format!(
+            "could not copy {} to {}: {error}",
+            source.display(),
+            destination.display()
+        ))
+    })?;
+    Ok(())
+}
+
+fn cache_site_blobs(site_dir: &Path, cache_dir: &Path) -> Result<(), PublishError> {
+    let source_dir = site_dir.join("blobs/sha256");
+    if !source_dir.is_dir() {
+        return Ok(());
+    }
+    let target_dir = cache_dir.join("blobs/sha256");
+    std::fs::create_dir_all(&target_dir).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", target_dir.display()))
+    })?;
+    if let Ok(entries) = std::fs::read_dir(&source_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(name) = path.file_name() {
+                    let dest = target_dir.join(name);
+                    if !dest.exists() {
+                        let _ = link_or_copy(&path, &dest);
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }
