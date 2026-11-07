@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![allow(dead_code)]
 
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::time::Duration;
 
@@ -13,6 +13,27 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 
 pub const ACCESS_KEY: &str = "test-access";
 pub const SECRET_KEY: &str = "test-secret";
+
+pub fn write_executable(path: &std::path::Path, contents: &str) {
+    let mut child = Command::new("/bin/sh")
+        .arg("-c")
+        .arg("cat > \"$1\" && chmod 755 \"$1\"")
+        .arg("sh")
+        .arg(path)
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap_or_else(|error| panic!("spawn shell to write {}: {error}", path.display()));
+    child
+        .stdin
+        .take()
+        .expect("shell stdin")
+        .write_all(contents.as_bytes())
+        .unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
+    let status = child
+        .wait()
+        .unwrap_or_else(|error| panic!("wait for {}: {error}", path.display()));
+    assert!(status.success(), "could not create {}: {status}", path.display());
+}
 
 pub fn seed_pypi_generation(
     wheel: &std::path::Path,

@@ -3,7 +3,6 @@
 mod support;
 
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -12,7 +11,7 @@ use mypypi::models::{Target, ValidatedArtifact, WheelIdentity};
 use stuff::publish::config::Config;
 use stuff::publish::pypi::project_settings;
 use stuff::publish::r2::{Credentials, R2Client};
-use support::{seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{seed_pypi_generation, write_executable, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mypypi";
 const FIXTURE_WHEEL: &str = "validation_fixture-1.0-py3-none-any.whl";
@@ -130,12 +129,11 @@ impl Workspace {
         let bin = root.path().join("bin");
         fs::create_dir(&bin).unwrap();
         let python = bin.join("python");
-        fs::write(&python, FAKE_PYTHON).unwrap();
-        fs::set_permissions(&python, fs::Permissions::from_mode(0o755)).unwrap();
+        write_executable(&python, FAKE_PYTHON);
         let uv = bin.join("uv");
-        fs::write(
+        write_executable(
             &uv,
-            format!(
+            &format!(
                 r#"#!/bin/sh
 echo "$*" >> "{log}"
 case "$1" in
@@ -156,9 +154,7 @@ esac
                 log = root.path().join("uv.log").display(),
                 version = mypypi::build::UV_VERSION,
             ),
-        )
-        .unwrap();
-        fs::set_permissions(&uv, fs::Permissions::from_mode(0o755)).unwrap();
+        );
         let wheels = root.path().join("state/pypi/wheels");
         fs::create_dir_all(&wheels).unwrap();
         fs::copy(fixture_wheel(), wheels.join(FIXTURE_WHEEL)).unwrap();

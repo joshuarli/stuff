@@ -4,7 +4,6 @@ mod support;
 
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -24,7 +23,7 @@ use stuff::publish::npm;
 use stuff::publish::r2::{Credentials, R2Client};
 use stuff::publish::snapshot::Snapshot;
 use stuff::publish::{Environment, NpmPublish, Options, PublishRequest, Request, Registry, Status};
-use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{write_executable, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mynpm";
 const STALE_BASE: &str = "http://127.0.0.1:9/mirror/";
@@ -328,8 +327,10 @@ fn decoy_path(work: &Path) -> (String, PathBuf) {
     fs::create_dir(&directory).unwrap();
     let marker = work.join("mynpm-was-run");
     let script = directory.join("mynpm");
-    fs::write(&script, format!("#!/bin/sh\ntouch '{}'\nexit 1\n", marker.display())).unwrap();
-    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+    write_executable(
+        &script,
+        &format!("#!/bin/sh\ntouch '{}'\nexit 1\n", marker.display()),
+    );
     let path = format!(
         "{}:{}",
         directory.display(),

@@ -1,11 +1,14 @@
 #![forbid(unsafe_code)]
 
+mod support;
+
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use stuff::publish::r2::credentials::resolve;
 use stuff::publish::{Environment, ExitCode};
+
+use support::write_executable;
 
 const FAKE_CF: &str = r#"#!/bin/sh
 case "$1 $2" in
@@ -59,10 +62,7 @@ fn fake_cf() -> FakeCf {
     let bin = work.path().join("bin");
     fs::create_dir_all(&bin).unwrap();
     let script = bin.join("cf");
-    fs::write(&script, FAKE_CF).unwrap();
-    let mut permissions = fs::metadata(&script).unwrap().permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&script, permissions).unwrap();
+    write_executable(&script, FAKE_CF);
     let log = work.path().join("cf.log");
     FakeCf { _work: work, log, bin }
 }
