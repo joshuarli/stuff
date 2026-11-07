@@ -59,15 +59,27 @@ impl Reply {
 
 impl FakeS3 {
     pub fn start() -> Self {
-        Self::spawn(false)
+        Self::spawn(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../deploy/fake_s3.py"
+        ), false)
     }
 
     pub fn start_verified() -> Self {
-        Self::spawn(true)
+        Self::spawn(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../deploy/fake_s3.py"
+        ), true)
     }
 
-    fn spawn(verify_signature: bool) -> Self {
-        let script = concat!(env!("CARGO_MANIFEST_DIR"), "/../../deploy/fake_s3.py");
+    pub fn start_retry() -> Self {
+        Self::spawn(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/support/fake_s3_retry.py"
+        ), true)
+    }
+
+    fn spawn(script: &str, verify_signature: bool) -> Self {
         let mut command = Command::new("python3");
         command
             .arg(script)
@@ -185,6 +197,15 @@ impl FakeS3 {
                 }
             })
             .collect()
+    }
+
+    pub fn reject_current(&self, count: u64, generation: Option<&str>) {
+        let mut pairs = vec![("count", Value::from(count))];
+        if let Some(generation) = generation {
+            pairs.push(("generation", text_value(generation)));
+        }
+        let reply = self.control("/_fake/reject-current", &object(pairs));
+        assert_eq!(reply.status, 200);
     }
 
     pub fn inject_failures(&self, count: u64, status: u16, retry_after: &str) {

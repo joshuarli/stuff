@@ -124,21 +124,32 @@ impl Snapshot {
 
     pub fn fetch(&self, bucket: &str, key: &str) -> Result<Vec<u8>, PublishError> {
         let cache_path = self.cache.join(bucket).join(safe_relative(key)?);
+        let listed = self.listings.get(bucket).and_then(|objects| objects.get(key));
         if cache_path.is_file() {
-            return fs::read(&cache_path).map_err(|error| {
+            let cached = fs::read(&cache_path).map_err(|error| {
                 PublishError::Config(format!(
                     "could not read {}: {error}",
                     cache_path.display()
                 ))
-            });
-        }
-        let listed = self
-            .listings
-            .get(bucket)
-            .and_then(|objects| objects.get(key))
-            .ok_or_else(|| {
-                PublishError::Integrity(format!("{bucket}/{key} is not in the live listing"))
             })?;
+            match listed {
+                Some(listed)
+                    if cached.len() as u64 == listed.size
+                        && object_etag(&cached, &listed.etag, PART_SIZE) == listed.etag =>
+                {
+                    return Ok(cached);
+                }
+                Some(_) => {}
+                None => {
+                    return Err(PublishError::Integrity(format!(
+                        "{bucket}/{key} is not in the live listing"
+                    )));
+                }
+            }
+        }
+        let listed = listed.ok_or_else(|| {
+            PublishError::Integrity(format!("{bucket}/{key} is not in the live listing"))
+        })?;
         let bytes = self.client.get_object(bucket, key)?;
         if bytes.len() as u64 != listed.size || object_etag(&bytes, &listed.etag, PART_SIZE) != listed.etag
         {

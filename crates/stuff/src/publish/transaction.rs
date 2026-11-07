@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -16,6 +17,7 @@ use crate::publish::{Outcome, PublishError, Registry, Status};
 
 pub const LOCK_FILE: &str = "publish.lock";
 pub const RECORD_FILE: &str = "promoted-generation";
+pub const MAX_CONFLICT_RETRIES: u32 = 3;
 
 const DEFAULT_LIST_PAGE: usize = 1000;
 const DEFAULT_ATTEMPTS: u32 = 6;
@@ -51,6 +53,7 @@ pub struct TransactionReport {
     pub registry: Registry,
     pub status: Status,
     pub generation: String,
+    pub packages: Vec<String>,
     pub uploaded_objects: usize,
     pub uploaded_bytes: u64,
     pub skipped_objects: usize,
@@ -65,12 +68,33 @@ impl TransactionReport {
             registry: self.registry,
             status: self.status,
             generation: self.generation.clone(),
+            packages: self.packages.clone(),
             dry_run: self.dry_run,
             uploaded_objects: self.uploaded_objects,
             uploaded_bytes: self.uploaded_bytes,
             skipped_objects: self.skipped_objects,
         }
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Staged {
+    pub site: PathBuf,
+    pub known: BTreeMap<String, ObjectMeta>,
+}
+
+impl Staged {
+    pub fn new(site: impl Into<PathBuf>) -> Self {
+        Staged {
+            site: site.into(),
+            known: BTreeMap::new(),
+        }
+    }
+}
+
+enum Attempt {
+    Committed(TransactionReport),
+    Precondition(TransactionReport),
 }
 
 pub struct Pending {
@@ -83,7 +107,10 @@ pub struct Pending {
     options: TransactionOptions,
     marker: Option<promote::Marker>,
     expected: Option<String>,
-    _lock: FileLock,
+    credentials: Credentials,
+    config: Config,
+    cache_dir: PathBuf,
+    _lock: Option<FileLock>,
 }
 
 pub struct Transaction {
@@ -98,7 +125,7 @@ pub struct Transaction {
     expected: Option<String>,
     marker: Option<promote::Marker>,
     plan: SitePlan,
-    _lock: FileLock,
+    _lock: Option<FileLock>,
 }
 
 impl Transaction {
@@ -117,12 +144,48 @@ impl Transaction {
             ))
         })?;
         let lock = acquire_lock(&state_dir, options.lock_wait)?;
+        let expected = options.expected.clone().or(read_record(&state_dir)?);
+        Pending::open(PendingSource {
+            credentials,
+            registry,
+            config: config.clone(),
+            state_dir,
+            cache_dir,
+            options,
+            expected,
+            lock: Some(lock),
+        })
+    }
+}
+
+struct PendingSource {
+    credentials: Credentials,
+    registry: Registry,
+    config: Config,
+    state_dir: PathBuf,
+    cache_dir: PathBuf,
+    options: TransactionOptions,
+    expected: Option<String>,
+    lock: Option<FileLock>,
+}
+
+impl Pending {
+    fn open(source: PendingSource) -> Result<Self, PublishError> {
+        let PendingSource {
+            credentials,
+            registry,
+            config,
+            state_dir,
+            cache_dir,
+            options,
+            expected,
+            lock,
+        } = source;
         let client = build_client(&credentials, &options);
         let snapshot_client = build_client(&credentials, &options);
-        let snapshot = Snapshot::open(snapshot_client, registry, config, cache_dir)?;
-        let metadata_bucket = snapshot::metadata_bucket(registry, config);
+        let snapshot = Snapshot::open(snapshot_client, registry, &config, cache_dir.clone())?;
+        let metadata_bucket = snapshot::metadata_bucket(registry, &config);
         let marker = promote::read_marker(&client, &metadata_bucket)?;
-        let expected = options.expected.clone().or(read_record(&state_dir)?);
         let blobs_bucket = (registry == Registry::Oci).then(|| config.oci.blobs_bucket.clone());
         Ok(Pending {
             client,
@@ -134,12 +197,13 @@ impl Transaction {
             options,
             marker,
             expected,
+            credentials,
+            config,
+            cache_dir,
             _lock: lock,
         })
     }
-}
 
-impl Pending {
     pub fn client(&self) -> &R2Client {
         &self.client
     }
@@ -148,8 +212,66 @@ impl Pending {
         &self.snapshot
     }
 
+    pub fn publish<F>(mut self, mut stage: F) -> Result<TransactionReport, PublishError>
+    where
+        F: FnMut(&Pending) -> Result<Staged, PublishError>,
+    {
+        let credentials = self.credentials.clone();
+        let registry = self.registry;
+        let config = self.config.clone();
+        let state_dir = self.state_dir.clone();
+        let cache_dir = self.cache_dir.clone();
+        let options = self.options.clone();
+        let _lock = self._lock.take();
+        let mut uploaded_objects = 0;
+        let mut uploaded_bytes = 0_u64;
+        let mut multipart_objects = 0;
+        let mut retries = 0;
+        loop {
+            let staged = stage(&self)?;
+            let attempt = self.stage_with(staged)?.run_attempt()?;
+            match attempt {
+                Attempt::Committed(mut report) => {
+                    report.uploaded_objects += uploaded_objects;
+                    report.uploaded_bytes += uploaded_bytes;
+                    report.multipart_objects += multipart_objects;
+                    return Ok(report);
+                }
+                Attempt::Precondition(report) => {
+                    uploaded_objects += report.uploaded_objects;
+                    uploaded_bytes += report.uploaded_bytes;
+                    multipart_objects += report.multipart_objects;
+                }
+            }
+            if retries == MAX_CONFLICT_RETRIES {
+                return Err(PublishError::Conflict(format!(
+                    "current changed during promotion on {} attempts; refusing to overwrite a competing publication",
+                    MAX_CONFLICT_RETRIES + 1
+                )));
+            }
+            retries += 1;
+            self = Pending::open(PendingSource {
+                credentials: credentials.clone(),
+                registry,
+                config: config.clone(),
+                state_dir: state_dir.clone(),
+                cache_dir: cache_dir.clone(),
+                options: TransactionOptions {
+                    expected: None,
+                    ..options.clone()
+                },
+                expected: None,
+                lock: None,
+            })?;
+        }
+    }
+
     pub fn stage_complete(self, site: impl Into<PathBuf>) -> Result<Transaction, PublishError> {
-        let site = site.into();
+        self.stage_with(Staged::new(site))
+    }
+
+    fn stage_with(self, staged: Staged) -> Result<Transaction, PublishError> {
+        let site = staged.site;
         let generation = sync::active_generation(&site)?;
         if let Some(expected) = &self.expected {
             let current = self.marker.as_ref().map(|marker| marker.generation.as_str());
@@ -173,7 +295,7 @@ impl Pending {
         } else {
             &[]
         };
-        let local = sync::collect(&site, &self.options.upload, excludes)?;
+        let local = sync::collect_with_known(&site, &self.options.upload, excludes, &staged.known)?;
         let plan = sync::plan(&local, &remote, &self.options.upload)?;
         let blobs = match &self.blobs_bucket {
             Some(bucket) => {
@@ -206,6 +328,16 @@ impl Pending {
 
 impl Transaction {
     pub fn run(self) -> Result<TransactionReport, PublishError> {
+        match self.run_attempt()? {
+            Attempt::Committed(report) => Ok(report),
+            Attempt::Precondition(_) => Err(PublishError::Conflict(
+                "current changed during promotion; refusing to overwrite a competing publication"
+                    .to_string(),
+            )),
+        }
+    }
+
+    fn run_attempt(self) -> Result<Attempt, PublishError> {
         let metadata = self.plan.report();
         let blobs = self.blobs.as_ref().map(|(_, plan)| plan.report());
         let mut report = report_for(
@@ -222,7 +354,7 @@ impl Transaction {
             } else {
                 Status::Published
             };
-            return Ok(report);
+            return Ok(Attempt::Committed(report));
         }
         let mut uploaded = metadata.uploaded.len();
         if let Some((bucket, plan)) = &self.blobs {
@@ -247,12 +379,18 @@ impl Transaction {
         if !executed.uploaded.is_empty() {
             uploaded += executed.uploaded.len();
         }
-        let promotion = promote::promote(
+        let promotion = match promote::promote_attempt(
             &self.client,
             &self.metadata_bucket,
             &self.generation,
             self.expected.as_deref(),
-        )?;
+        )? {
+            promote::PromotionAttempt::Promoted(promotion) => promotion,
+            promote::PromotionAttempt::Precondition => {
+                report.status = Status::Conflict;
+                return Ok(Attempt::Precondition(report));
+            }
+        };
         let changed = promotion.promoted || uploaded > 0;
         report.status = if changed {
             Status::Published
@@ -262,7 +400,7 @@ impl Transaction {
         if changed {
             write_record(&self.state_dir, &self.generation)?;
         }
-        Ok(report)
+        Ok(Attempt::Committed(report))
     }
 
     pub fn generation(&self) -> &str {
@@ -326,6 +464,7 @@ pub fn rollback(
         registry,
         status,
         generation: generation.to_string(),
+        packages: Vec::new(),
         uploaded_objects: 0,
         uploaded_bytes: 0,
         skipped_objects: 0,
@@ -428,6 +567,7 @@ fn report_for(
         registry,
         status: Status::Unchanged,
         generation: generation.to_string(),
+        packages: Vec::new(),
         uploaded_objects,
         uploaded_bytes,
         skipped_objects,
@@ -500,6 +640,7 @@ mod tests {
                 registry: Registry::Cargo,
                 status: Status::Unchanged,
                 generation: "g1".to_string(),
+                packages: Vec::new(),
                 dry_run: true,
                 uploaded_objects: 4,
                 uploaded_bytes: 16,

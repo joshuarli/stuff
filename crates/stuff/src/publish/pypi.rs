@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use deser_value::Value;
+use stuff_store::{HashAlg, stream_file_hash};
 
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
@@ -11,7 +12,7 @@ use crate::publish::r2::credentials;
 use crate::publish::r2::promote;
 use crate::publish::r2::pull::{self, PART_SIZE};
 use crate::publish::staging::Staging;
-use crate::publish::transaction::{Transaction, TransactionOptions};
+use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, Options, Outcome, PublishError, PypiSpec, Registry};
 
 const PYTHON_SPECIFIER: &str = ">=3.15,<3.16";
@@ -25,13 +26,12 @@ pub fn run(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let settings = project_settings(&config.pypi.public_base_url)?;
-    let catalog = package_catalog(specs)?;
     let credentials = credentials::resolve(environment, &config.pypi.bucket)?;
     publish(
         credentials,
         &config,
         &settings,
-        &catalog,
+        specs,
         &paths.state_dir("pypi"),
         &paths.cache_dir("pypi"),
         options,
@@ -69,16 +69,14 @@ fn publish(
     credentials: Credentials,
     config: &Config,
     settings: &mypypi::config::ProjectSettings,
-    catalog: &mypypi::catalog::Catalog,
+    specs: &[PypiSpec],
     state_dir: &Path,
     cache_dir: &Path,
     options: &Options,
 ) -> Result<Outcome, PublishError> {
+    let catalog = package_catalog(specs)?;
     let staging = Staging::create(cache_dir, "pypi-site")?;
     let site = staging.path().join("site");
-    std::fs::create_dir_all(&site).map_err(|error| {
-        PublishError::Config(format!("could not create {}: {error}", site.display()))
-    })?;
     let transaction_state = if options.dry_run {
         staging.join("transaction")
     } else {
@@ -100,20 +98,65 @@ fn publish(
             ..TransactionOptions::default()
         },
     )?;
-    pull_live(pending.client(), &config.pypi.bucket, &site)?;
-    mypypi::publish::publish(&mypypi::publish::PublishOptions {
-        settings,
-        output: &site,
-        state_dir,
-        catalog,
-        platforms: &[],
-    })
-    .map_err(map_mypypi)?;
-    let transaction = pending.stage_complete(site)?;
-    Ok(transaction.run()?.outcome())
+    let report = pending.publish(|pending| {
+        remove_dir_if_present(&site)?;
+        std::fs::create_dir_all(&site).map_err(|error| {
+            PublishError::Config(format!("could not create {}: {error}", site.display()))
+        })?;
+        pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
+        mypypi::publish::publish(&mypypi::publish::PublishOptions {
+            settings,
+            output: &site,
+            state_dir,
+            catalog: &catalog,
+            platforms: &[],
+        })
+        .map_err(map_mypypi)?;
+        Ok(Staged::new(site.clone()))
+    })?;
+    let mut outcome = report.outcome();
+    outcome.packages = specs
+        .iter()
+        .map(|spec| format!("{}=={}", spec.name, spec.version))
+        .collect();
+    Ok(outcome)
 }
 
-fn pull_live(client: &R2Client, bucket: &str, site: &Path) -> Result<(), PublishError> {
+fn remove_dir_if_present(path: &Path) -> Result<(), PublishError> {
+    match std::fs::remove_dir_all(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(PublishError::Config(format!(
+            "could not remove {}: {error}",
+            path.display()
+        ))),
+    }
+}
+
+fn link_or_copy(source: &Path, target: &Path) -> Result<(), PublishError> {
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            PublishError::Config(format!("could not create {}: {error}", parent.display()))
+        })?;
+    }
+    match std::fs::hard_link(source, target) {
+        Ok(()) => Ok(()),
+        Err(_) => std::fs::copy(source, target).map(|_| ()).map_err(|error| {
+            PublishError::Config(format!(
+                "could not copy {} to {}: {error}",
+                source.display(),
+                target.display()
+            ))
+        }),
+    }
+}
+
+fn pull_live(
+    client: &R2Client,
+    bucket: &str,
+    site: &Path,
+    state_dir: &Path,
+) -> Result<(), PublishError> {
     let Some(marker) = promote::read_marker(client, bucket)? else {
         return Ok(());
     };
@@ -148,11 +191,16 @@ fn pull_live(client: &R2Client, bucket: &str, site: &Path) -> Result<(), Publish
             PublishError::Config(format!("could not link {}: {error}", alias.display()))
         })?;
     }
-    for filename in published_filenames(&generation_dir)? {
-        for key in [
-            format!("wheels/{filename}"),
-            format!("wheels/{filename}.metadata"),
-        ] {
+    for (filename, sha256) in published_filenames(&generation_dir)? {
+        let local = state_dir.join("wheels").join(&filename);
+        let matches = local.is_file()
+            && stream_file_hash(&local, HashAlg::Sha256)
+                .map(|actual| actual == sha256)
+                .unwrap_or(false);
+        if matches {
+            link_or_copy(&local, &wheels.join(&filename))?;
+        } else {
+            let key = format!("wheels/{filename}");
             let object = objects.iter().find(|object| object.key == key).ok_or_else(|| {
                 PublishError::Integrity(format!(
                     "live generation {generation} references missing {key}"
@@ -160,11 +208,21 @@ fn pull_live(client: &R2Client, bucket: &str, site: &Path) -> Result<(), Publish
             })?;
             pull::download(client, bucket, site, object, PART_SIZE)?;
         }
+        let metadata_key = format!("wheels/{filename}.metadata");
+        let object = objects
+            .iter()
+            .find(|object| object.key == metadata_key)
+            .ok_or_else(|| {
+                PublishError::Integrity(format!(
+                    "live generation {generation} references missing {metadata_key}"
+                ))
+            })?;
+        pull::download(client, bucket, site, object, PART_SIZE)?;
     }
     Ok(())
 }
 
-fn published_filenames(generation: &Path) -> Result<Vec<String>, PublishError> {
+fn published_filenames(generation: &Path) -> Result<Vec<(String, String)>, PublishError> {
     let path = generation.join("manifest.json");
     let text = std::fs::read_to_string(&path).map_err(|error| {
         PublishError::Integrity(format!("could not read {}: {error}", path.display()))
@@ -184,9 +242,14 @@ fn published_filenames(generation: &Path) -> Result<Vec<String>, PublishError> {
         })?;
     let mut filenames = Vec::with_capacity(artifacts.len());
     for artifact in artifacts.iter() {
-        let filename = artifact
-            .as_map()
-            .and_then(|map| map.get("filename"))
+        let map = artifact.as_map().ok_or_else(|| {
+            PublishError::Integrity(format!(
+                "{} has an artifact that is not an object",
+                path.display()
+            ))
+        })?;
+        let filename = map
+            .get("filename")
             .and_then(|filename| filename.as_str())
             .ok_or_else(|| {
                 PublishError::Integrity(format!(
@@ -194,7 +257,16 @@ fn published_filenames(generation: &Path) -> Result<Vec<String>, PublishError> {
                     path.display()
                 ))
             })?;
-        filenames.push(filename.to_string());
+        let sha256 = map
+            .get("sha256")
+            .and_then(|sha256| sha256.as_str())
+            .ok_or_else(|| {
+                PublishError::Integrity(format!(
+                    "{} has an artifact without a sha256",
+                    path.display()
+                ))
+            })?;
+        filenames.push((filename.to_string(), sha256.to_string()));
     }
     Ok(filenames)
 }

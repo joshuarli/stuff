@@ -196,6 +196,7 @@ pub struct Outcome {
     pub registry: Registry,
     pub status: Status,
     pub generation: String,
+    pub packages: Vec<String>,
     pub dry_run: bool,
     pub uploaded_objects: usize,
     pub uploaded_bytes: u64,

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -13,10 +14,11 @@ use super::store::Store;
 use super::{Limits, Rejection, RejectionKind};
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
+use crate::publish::r2::client::ObjectMeta;
 use crate::publish::r2::credentials::resolve;
 use crate::publish::staging::Staging;
 use crate::publish::state::CargoLayout;
-use crate::publish::transaction::{Transaction, TransactionOptions};
+use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{CargoPublish, Environment, Options, Outcome, PublishError, Registry};
 
 pub const DEFAULT_REGISTRY: &str = "stuff";
@@ -119,34 +121,59 @@ pub fn publish(
     if let Some(work_store) = &work_store {
         blob_stores.push(work_store.clone());
     }
-    store
-        .with_lock(|| {
-            let mut local_native = store.load_native_records()?;
-            if let Some(work_store) = &work_store {
-                local_native.extend(work_store.load_native_records()?);
-            }
-            let native = merge_native(local_native, live.native().to_vec())
-                .map_err(publish_to_rejection)?;
-            let upstream = merge_upstream(store.load_upstream_records()?, live.upstream().to_vec())
-                .map_err(publish_to_rejection)?;
-            SiteBuild {
-                snapshot: pending.snapshot(),
-                shared: &shared,
-                site_dir: &site_dir,
-                native: &native,
-                upstream: &upstream,
-                stores: &blob_stores,
-                live: &live,
-                public_base_url: &config.cargo.public_base_url,
-                auth_required: false,
-            }
-            .run()
-            .map_err(publish_to_rejection)
+    let mut packages = Vec::new();
+    let report = pending.publish(|pending| {
+        let live = snapshot::load(pending.snapshot(), &config)?;
+        let known = store
+            .with_lock(|| {
+                let mut local_native = store.load_native_records()?;
+                if let Some(work_store) = &work_store {
+                    local_native.extend(work_store.load_native_records()?);
+                }
+                let native = merge_native(local_native, live.native().to_vec())
+                    .map_err(publish_to_rejection)?;
+                let upstream =
+                    merge_upstream(store.load_upstream_records()?, live.upstream().to_vec())
+                        .map_err(publish_to_rejection)?;
+                packages = package_ids(&native, &request.packages);
+                SiteBuild {
+                    snapshot: pending.snapshot(),
+                    shared: &shared,
+                    site_dir: &site_dir,
+                    native: &native,
+                    upstream: &upstream,
+                    stores: &blob_stores,
+                    live: &live,
+                    public_base_url: &config.cargo.public_base_url,
+                    auth_required: false,
+                }
+                .run()
+                .map_err(publish_to_rejection)
+            })
+            .map_err(rejection_error)?;
+        Ok(Staged {
+            site: site_dir.clone(),
+            known,
         })
-        .map_err(rejection_error)?;
+    })?;
+    let mut outcome = report.outcome();
+    outcome.packages = packages;
+    Ok(outcome)
+}
 
-    let transaction = pending.stage_complete(site_dir)?;
-    Ok(transaction.run()?.outcome())
+fn package_ids(native: &[NativeRecord], requested: &[String]) -> Vec<String> {
+    let mut ids: Vec<String> = native
+        .iter()
+        .filter(|record| {
+            requested
+                .iter()
+                .any(|name| name.eq_ignore_ascii_case(&record.entry.name))
+        })
+        .map(|record| format!("{}@{}", record.entry.name, record.entry.vers))
+        .collect();
+    ids.sort();
+    ids.dedup();
+    ids
 }
 
 struct SiteBuild<'a> {
@@ -162,7 +189,7 @@ struct SiteBuild<'a> {
 }
 
 impl SiteBuild<'_> {
-    fn run(&self) -> Result<(), PublishError> {
+    fn run(&self) -> Result<BTreeMap<String, ObjectMeta>, PublishError> {
         let site_dir = self.site_dir;
         let blobs_dir = site_dir.join("blobs");
         let site = Site::new(site_dir.to_path_buf());
@@ -176,6 +203,7 @@ impl SiteBuild<'_> {
             ))
         })?;
         sync_dir(&blobs_dir).map_err(store_error)?;
+        let mut known = BTreeMap::new();
         for checksum in self
             .native
             .iter()
@@ -206,13 +234,19 @@ impl SiteBuild<'_> {
                 }
                 None if self.live.has_blob(checksum) => {
                     let key = format!("{}{checksum}.crate", self.shared.prefix);
-                    let bytes = self.snapshot.fetch_shared(self.shared, &key)?;
-                    if sha256_hex(&bytes) != checksum {
-                        return Err(PublishError::Integrity(format!(
-                            "shared blob {key} does not hash to its name"
-                        )));
-                    }
-                    write_file_durable(&destination, &bytes).map_err(store_error)?;
+                    let listed = self.snapshot.metadata().get(&key).ok_or_else(|| {
+                        PublishError::Integrity(format!(
+                            "live generation references a blob that is not in the listing: {key}"
+                        ))
+                    })?;
+                    known.insert(
+                        key,
+                        ObjectMeta {
+                            size: listed.size,
+                            etag: listed.etag.clone(),
+                            content_type: None,
+                        },
+                    );
                 }
                 None => {
                     return Err(PublishError::Integrity(format!(
@@ -257,7 +291,7 @@ impl SiteBuild<'_> {
             },
         )
         .map_err(store_error)?;
-        Ok(())
+        Ok(known)
     }
 }
 

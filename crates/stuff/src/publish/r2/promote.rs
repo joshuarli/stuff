@@ -25,6 +25,12 @@ pub struct Promotion {
     pub promoted: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PromotionAttempt {
+    Promoted(Promotion),
+    Precondition,
+}
+
 pub fn validate_generation(generation: &str) -> Result<(), PublishError> {
     if generation.len() > MAX_GENERATION_LENGTH || !is_generation_id(generation) {
         return Err(PublishError::Usage(format!(
@@ -158,6 +164,21 @@ pub fn promote(
     generation: &str,
     expected: Option<&str>,
 ) -> Result<Promotion, PublishError> {
+    match promote_attempt(client, bucket, generation, expected)? {
+        PromotionAttempt::Promoted(promotion) => Ok(promotion),
+        PromotionAttempt::Precondition => Err(PublishError::Conflict(
+            "current changed during promotion; refusing to overwrite a competing publication"
+                .to_string(),
+        )),
+    }
+}
+
+pub fn promote_attempt(
+    client: &R2Client,
+    bucket: &str,
+    generation: &str,
+    expected: Option<&str>,
+) -> Result<PromotionAttempt, PublishError> {
     validate_generation(generation)?;
     let marker = read_marker(client, bucket)?;
     check_expected(marker.as_ref(), expected, generation)?;
@@ -166,10 +187,10 @@ pub fn promote(
         .as_ref()
         .is_some_and(|marker| marker.generation == generation)
     {
-        return Ok(Promotion {
+        return Ok(PromotionAttempt::Promoted(Promotion {
             generation: generation.to_string(),
             promoted: false,
-        });
+        }));
     }
     let condition = precondition(marker.as_ref());
     match client.put_object(
@@ -180,12 +201,7 @@ pub fn promote(
         condition,
     ) {
         Ok(_) => {}
-        Err(PublishError::Conflict(_)) => {
-            return Err(PublishError::Conflict(
-                "current changed during promotion; refusing to overwrite a competing publication"
-                    .to_string(),
-            ));
-        }
+        Err(PublishError::Conflict(_)) => return Ok(PromotionAttempt::Precondition),
         Err(error) => return Err(error),
     }
     let committed = read_marker(client, bucket)?;
@@ -198,10 +214,10 @@ pub fn promote(
             actual.unwrap_or("<missing>")
         )));
     }
-    Ok(Promotion {
+    Ok(PromotionAttempt::Promoted(Promotion {
         generation: generation.to_string(),
         promoted: true,
-    })
+    }))
 }
 
 #[cfg(test)]

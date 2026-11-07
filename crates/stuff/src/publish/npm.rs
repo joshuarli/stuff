@@ -3,6 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use mynpm::config::{Config as LibraryConfig, DarwinTarget, LinuxTarget, Policy, Target};
+use mynpm::inventory::SourceKind;
+use mynpm::inventory_store::load_inventory;
 use mynpm::publish::{publish_site, PublishOptions};
 
 use crate::publish::config::Config;
@@ -10,7 +12,7 @@ use crate::publish::inventory::{library_error, prepare, PrepareOptions};
 use crate::publish::paths::Paths;
 use crate::publish::r2::credentials;
 use crate::publish::staging::Staging;
-use crate::publish::transaction::{Transaction, TransactionOptions};
+use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, NpmPublish, Options, Outcome, PublishError, Registry};
 
 const NODE_VERSION: &str = "26.12.0";
@@ -159,31 +161,54 @@ pub fn publish(
         .first()
         .cloned()
         .ok_or_else(|| PublishError::Config("npm has no shared tarball store".to_string()))?;
-    prepare(
-        pending.snapshot(),
-        &PrepareOptions {
-            bucket: &bucket,
-            store: &store,
-            site_dir: &site_dir,
-            state_dir: &work_state,
-            lockfile: &lockfile,
-            project_id: &request.project,
-            library: &library,
-        },
-    )?;
+    let report = pending.publish(|pending| {
+        prepare(
+            pending.snapshot(),
+            &PrepareOptions {
+                bucket: &bucket,
+                store: &store,
+                site_dir: &site_dir,
+                state_dir: &work_state,
+                lockfile: &lockfile,
+                project_id: &request.project,
+                library: &library,
+            },
+        )?;
 
-    publish_site(&PublishOptions {
-        state_directory: &work_state,
-        site_directory: &site_dir,
-        config: &library,
-        render_base_url: None,
-    })
-    .map_err(library_error)?;
-    prune_stale_generations(&mirror)?;
+        publish_site(&PublishOptions {
+            state_directory: &work_state,
+            site_directory: &site_dir,
+            config: &library,
+            render_base_url: None,
+        })
+        .map_err(library_error)?;
+        prune_stale_generations(&mirror)?;
+        Ok(Staged::new(mirror.clone()))
+    })?;
+    let mut outcome = report.outcome();
+    outcome.packages = package_ids(&work_state, &request.project)?;
+    Ok(outcome)
+}
 
-    let transaction = pending.stage_complete(mirror)?;
-    let report = transaction.run()?;
-    Ok(report.outcome())
+fn package_ids(state_dir: &Path, project: &str) -> Result<Vec<String>, PublishError> {
+    let inventory = load_inventory(state_dir).map_err(library_error)?;
+    let mut ids = Vec::new();
+    for record in &inventory.projects {
+        if record.id != project {
+            continue;
+        }
+        for package in &record.packages {
+            if package.source_kind != SourceKind::Registry {
+                continue;
+            }
+            if let Some(version) = &package.version {
+                ids.push(format!("{}@{}", package.name, version));
+            }
+        }
+    }
+    ids.sort();
+    ids.dedup();
+    Ok(ids)
 }
 
 fn copy_inventory(from: &Path, to: &Path) -> Result<(), PublishError> {

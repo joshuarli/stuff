@@ -105,6 +105,20 @@ fn number_field(value: &Value, name: &str) -> u64 {
         .unwrap_or_else(|| panic!("{name} is not a number in {value:?}"))
 }
 
+fn string_list(value: &Value, name: &str) -> Vec<String> {
+    field(value, name)
+        .as_seq()
+        .unwrap_or_else(|| panic!("{name} is not a list in {value:?}"))
+        .iter()
+        .map(|entry| {
+            entry
+                .as_str()
+                .unwrap_or_else(|| panic!("{name} has a non-string entry in {value:?}"))
+                .to_string()
+        })
+        .collect()
+}
+
 fn bool_field(value: &Value, name: &str) -> bool {
     field(value, name)
         .as_bool()
@@ -131,6 +145,10 @@ fn json_reports_published_unchanged_and_conflict() {
     assert!(!bool_field(&published, "dry_run"));
     assert!(number_field(&published, "uploaded_objects") > 0, "{published:?}");
     assert!(number_field(&published, "uploaded_bytes") > 0, "{published:?}");
+    assert_eq!(
+        string_list(&published, "packages"),
+        vec![format!("{REPOSITORY}:latest")]
+    );
     let generation = text_field(&published, "generation");
 
     let second = run(work.path(), &fake, &oci_args(REPOSITORY, true));
@@ -142,6 +160,10 @@ fn json_reports_published_unchanged_and_conflict() {
     assert_eq!(text_field(&unchanged, "status"), "unchanged");
     assert_eq!(text_field(&unchanged, "generation"), generation);
     assert_eq!(number_field(&unchanged, "uploaded_objects"), 0);
+    assert_eq!(
+        string_list(&unchanged, "packages"),
+        vec![format!("{REPOSITORY}:latest")]
+    );
 
     let record = record_path(work.path());
     assert!(record.is_file(), "the first publish wrote no {}", record.display());
@@ -159,6 +181,7 @@ fn json_reports_published_unchanged_and_conflict() {
     assert_eq!(number_field(&conflicted, "uploaded_objects"), 0);
     assert_eq!(number_field(&conflicted, "uploaded_bytes"), 0);
     assert_eq!(number_field(&conflicted, "skipped_objects"), 0);
+    assert_eq!(string_list(&conflicted, "packages"), Vec::<String>::new());
 }
 
 #[test]

@@ -137,7 +137,13 @@ fn sync_promotes_through_s3() {
 
     let options = UploadOptions::default();
     let manifest_keys = vec!["generations/g1/catalog.json".to_string()];
-    let document = manifest::build(site.path(), &manifest_keys, &options).expect("manifest");
+    let document = manifest::build(
+        site.path(),
+        &manifest_keys,
+        &options,
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("manifest");
     manifest::write(&site.path().join("manifests/g1.json"), &document).expect("write manifest");
 
     let keys = vec![

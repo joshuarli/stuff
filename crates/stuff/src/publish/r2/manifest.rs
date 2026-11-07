@@ -1,11 +1,13 @@
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use deser_value::Value;
 
 use crate::publish::PublishError;
 
+use super::client::ObjectMeta;
 use super::multipart;
 use super::put::{self, UploadOptions};
 
@@ -27,6 +29,7 @@ pub fn build(
     site: &Path,
     keys: &[String],
     options: &UploadOptions,
+    known: &BTreeMap<String, ObjectMeta>,
 ) -> Result<Manifest, PublishError> {
     let mut keys: Vec<String> = keys
         .iter()
@@ -37,12 +40,24 @@ pub fn build(
     let mut objects = Vec::with_capacity(keys.len());
     for key in keys {
         let path = manifest_site_path(site, &key)?;
-        let size = std::fs::metadata(&path)
-            .map_err(|error| {
-                PublishError::Integrity(format!("could not stat {}: {error}", path.display()))
-            })?
-            .len();
-        let etag = multipart::etag_file(&path, options.single_put_max, options.part_size)?;
+        let (size, etag) = match std::fs::metadata(&path) {
+            Ok(metadata) => (
+                metadata.len(),
+                multipart::etag_file(&path, options.single_put_max, options.part_size)?,
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let listed = known.get(&key).ok_or_else(|| {
+                    PublishError::Integrity(format!("could not stat {}: {error}", path.display()))
+                })?;
+                (listed.size, listed.etag.clone())
+            }
+            Err(error) => {
+                return Err(PublishError::Integrity(format!(
+                    "could not stat {}: {error}",
+                    path.display()
+                )));
+            }
+        };
         objects.push(ManifestObject { key, size, etag });
     }
     Ok(Manifest { objects })
@@ -195,6 +210,7 @@ mod tests {
             site.path(),
             &["b.txt".to_string(), "a/catalog.json".to_string()],
             &options,
+            &BTreeMap::new(),
         )
         .unwrap();
         let large_etag = multipart::multipart_etag_file(&site.path().join("b.txt"), 2).unwrap();
@@ -238,6 +254,7 @@ mod tests {
             site.path(),
             &["catalog.json".to_string(), "empty.txt".to_string()],
             &UploadOptions::default(),
+            &BTreeMap::new(),
         )
         .unwrap();
         let text = render(&manifest);

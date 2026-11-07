@@ -6,6 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use deser_value::Value;
 use stuff::publish::config::Config;
 use stuff::publish::pypi::{package_catalog, project_settings};
 use stuff::publish::r2::{Credentials, R2Client};
@@ -225,6 +226,62 @@ fn a_publish_from_the_pulled_generation_is_unchanged_and_promotes_nothing() {
             .iter()
             .any(|request| request.method == "GET" && request.path == manifest),
         "the repeated publish did not pull the live generation"
+    );
+}
+
+#[test]
+fn json_output_reports_the_requested_package() {
+    let work = Workspace::new();
+    let output = work.publish_args(&["publish", "pypi", "validation-fixture==1.0", "--json"]);
+    assert_success(&output);
+    let value: Value = deser_json::from_slice(&output.stdout).expect("stdout is JSON");
+    let packages: Vec<String> = value
+        .as_map()
+        .and_then(|map| map.get("packages"))
+        .and_then(|packages| packages.as_seq())
+        .expect("packages list")
+        .iter()
+        .map(|entry| entry.as_str().expect("package string").to_string())
+        .collect();
+    assert_eq!(packages, vec!["validation-fixture==1.0".to_string()]);
+}
+
+#[test]
+fn a_fresh_cache_publish_reuses_stored_wheels_instead_of_downloading_them() {
+    let work = Workspace::new();
+    assert_success(&work.publish());
+    let generation = work.current();
+    let remote_before = object_snapshot(&work.fake);
+    let manifest_before = work
+        .client()
+        .get_object(BUCKET, &format!("generations/{generation}/manifest.json"))
+        .expect("generation manifest");
+
+    fs::remove_dir_all(work.root.path().join("cache")).unwrap();
+    let requests = work.fake.requests().len();
+    assert_success(&work.publish());
+    assert_eq!(work.current(), generation);
+    assert_eq!(
+        object_snapshot(&work.fake),
+        remote_before,
+        "the repeated publish changed the remote"
+    );
+    assert_eq!(
+        work.client()
+            .get_object(BUCKET, &format!("generations/{generation}/manifest.json"))
+            .expect("generation manifest"),
+        manifest_before,
+        "the generation manifest bytes changed"
+    );
+    let wheel_path = format!("/{BUCKET}/wheels/{FIXTURE_WHEEL}");
+    let downloads: Vec<String> = work.fake.requests()[requests..]
+        .iter()
+        .filter(|request| request.method == "GET" && request.path == wheel_path)
+        .map(|request| request.path.clone())
+        .collect();
+    assert!(
+        downloads.is_empty(),
+        "the fresh cache downloaded wheels already stored locally: {downloads:?}"
     );
 }
 

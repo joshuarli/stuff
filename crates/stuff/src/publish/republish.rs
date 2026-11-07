@@ -57,7 +57,7 @@ fn cargo(
     let credentials = credentials::resolve(environment, &config.cargo.bucket)?;
     let staging = Staging::create(&layout.cache_dir, "cargo-republish")?;
     let site_dir = staging.join("site");
-    let snapshot_cache = staging.join("cache");
+    let snapshot_cache = layout.cache_dir.clone();
     let transaction_state = if options.dry_run {
         staging.join("transaction")
     } else {
@@ -201,7 +201,7 @@ fn npm(
     let staging = Staging::create(&cache_dir, "npm-republish")?;
     let site_dir = staging.join("site");
     let work_state = staging.join("state");
-    let snapshot_cache = staging.join("cache");
+    let snapshot_cache = cache_dir.clone();
     let transaction_state = if options.dry_run {
         staging.join("transaction")
     } else {
@@ -340,7 +340,7 @@ fn pypi(
     let state_dir = paths.state_dir("pypi");
     let staging = Staging::create(&cache_dir, "pypi-republish")?;
     let site = staging.path().join("site");
-    let snapshot_cache = staging.join("cache");
+    let snapshot_cache = cache_dir.clone();
     let transaction_state = if options.dry_run {
         staging.join("transaction")
     } else {
@@ -373,7 +373,7 @@ fn oci(
     let config = Config::load(&Paths::from_environment(environment).config_file())?;
     let credentials = credentials::resolve(environment, &config.oci.bucket)?;
     let staging = Staging::create(&paths.cache_dir, "oci-republish")?;
-    let snapshot_cache = staging.join("cache");
+    let snapshot_cache = paths.cache_dir.clone();
     let work = if options.dry_run {
         OciPaths {
             state_dir: staging.join("state"),

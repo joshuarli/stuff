@@ -324,13 +324,10 @@ fn a_fresh_machine_rebuilds_the_live_generation_and_fetches_only_referenced_blob
         "the fresh-machine no-op changed the remote"
     );
     let downloads = blob_downloads(&fake, requests_before);
-    let expected: Vec<String> = referenced
-        .iter()
-        .map(|name| format!("/stuff-mycrates/blobs/{name}"))
-        .collect();
     assert_eq!(
-        downloads, expected,
-        "the fresh machine fetched shared blobs it does not read"
+        downloads,
+        Vec::<String>::new(),
+        "the fresh machine fetched shared blobs already present in the live listing"
     );
     assert!(
         !second_site
@@ -411,6 +408,7 @@ fn a_repeated_publish_is_unchanged_and_promotes_nothing() {
     let first = stuff::publish::run(publish(PACKAGE, &manifest), &environment)
         .expect("first cargo publish");
     assert_eq!(first.status, Status::Published);
+    assert_eq!(first.packages, vec![format!("{PACKAGE}@0.1.0")]);
     let generation = generation_id(&work.path().join("cache/cargo/site"));
 
     let requests_before = fake.requests().len();

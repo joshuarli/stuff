@@ -126,6 +126,15 @@ pub fn collect(
     options: &UploadOptions,
     excludes: &[&str],
 ) -> Result<LocalSite, PublishError> {
+    collect_with_known(site, options, excludes, &BTreeMap::new())
+}
+
+pub fn collect_with_known(
+    site: &Path,
+    options: &UploadOptions,
+    excludes: &[&str],
+    known: &BTreeMap<String, ObjectMeta>,
+) -> Result<LocalSite, PublishError> {
     let generation = active_generation(site)?;
     let mut files = BTreeMap::new();
     let mut aliases = Vec::new();
@@ -137,6 +146,16 @@ pub fn collect(
         &mut files,
         &mut aliases,
     )?;
+    for (key, object) in known {
+        if excludes.iter().any(|prefix| key.starts_with(prefix)) {
+            continue;
+        }
+        files.entry(key.clone()).or_insert_with(|| LocalFile {
+            size: object.size,
+            etag: object.etag.clone(),
+            path: PathBuf::new(),
+        });
+    }
     let mut manifests = BTreeMap::new();
     for directory in generations(site)? {
         let prefix = format!("generations/{directory}/");
@@ -145,7 +164,7 @@ pub fn collect(
             .filter(|key| key.starts_with(&prefix) || !key.starts_with("generations/"))
             .cloned()
             .collect();
-        let built = manifest::build(site, &keys, options)?;
+        let built = manifest::build(site, &keys, options, known)?;
         let key = format!("{MANIFEST_DIRECTORY}{directory}.json");
         let body = manifest::render(&built).into_bytes();
         let (size, etag) = match built.objects.iter().find(|object| object.key == key) {

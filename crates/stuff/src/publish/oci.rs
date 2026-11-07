@@ -11,7 +11,7 @@ use crate::publish::r2::pull::{self, PullOptions};
 use crate::publish::r2::promote;
 use crate::publish::r2::{Credentials, R2Client};
 use crate::publish::staging::Staging;
-use crate::publish::transaction::{Transaction, TransactionOptions};
+use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, OciSource, Options, Outcome, PublishError, Registry};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,20 +93,42 @@ pub fn publish_with(
             ..TransactionOptions::default()
         },
     )?;
-    sync_live_state(
-        pending.client(),
-        &context.config.oci.bucket,
-        &context.config.oci.blobs_bucket,
-        &paths,
-    )?;
+    let report = pending.publish(|pending| {
+        sync_live_state(
+            pending.client(),
+            &context.config.oci.bucket,
+            &context.config.oci.blobs_bucket,
+            &paths,
+        )?;
 
-    let state = myoci::state::State::new(paths.state_dir.clone());
-    import_source(&state, source)?;
-    myoci::publish::publish(&state, &paths.site_dir, &context.config.oci.public_base_url)
-        .map_err(map_myoci_error)?;
+        let state = myoci::state::State::new(paths.state_dir.clone());
+        import_source(&state, source)?;
+        myoci::publish::publish(&state, &paths.site_dir, &context.config.oci.public_base_url)
+            .map_err(map_myoci_error)?;
+        Ok(Staged::new(paths.site_dir.clone()))
+    })?;
+    let mut outcome = report.outcome();
+    outcome.packages = package_ids(source);
+    Ok(outcome)
+}
 
-    let transaction = pending.stage_complete(paths.site_dir)?;
-    Ok(transaction.run()?.outcome())
+fn package_ids(source: &OciSource) -> Vec<String> {
+    let mut ids: Vec<String> = match source {
+        OciSource::Images(images) => images
+            .iter()
+            .map(|image| format!("{}:{}", image.repository, image.reference))
+            .collect(),
+        OciSource::Layout {
+            repository, tag, ..
+        } => vec![format!(
+            "{}:{}",
+            repository,
+            tag.as_deref().unwrap_or("latest")
+        )],
+    };
+    ids.sort();
+    ids.dedup();
+    ids
 }
 
 fn sync_live_state(
