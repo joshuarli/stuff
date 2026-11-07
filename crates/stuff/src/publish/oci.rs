@@ -6,12 +6,13 @@ use stuff_oci::{parse_blobs_json, Digest, RepositoryName, Tag};
 
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
-use crate::publish::r2::credentials::{self, Environment};
+use crate::publish::r2::credentials;
 use crate::publish::r2::pull::{self, PullOptions};
 use crate::publish::r2::promote;
 use crate::publish::r2::{Credentials, R2Client};
+use crate::publish::staging::Staging;
 use crate::publish::transaction::{Transaction, TransactionOptions};
-use crate::publish::{OciSource, Options, Outcome, PublishError, Registry};
+use crate::publish::{Environment, OciSource, Options, Outcome, PublishError, Registry};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OciPaths {
@@ -22,11 +23,8 @@ pub struct OciPaths {
 }
 
 impl OciPaths {
-    pub fn from_env<F>(env: F) -> Self
-    where
-        F: Fn(&str) -> Option<String>,
-    {
-        let paths = Paths::from_env(env);
+    pub fn from_environment(env: &Environment) -> Self {
+        let paths = Paths::from_environment(env);
         let base = paths.state_dir("oci");
         OciPaths {
             state_dir: base.join("state"),
@@ -43,10 +41,14 @@ pub struct Context {
     pub paths: OciPaths,
 }
 
-pub fn publish(source: &OciSource, options: &Options) -> Result<Outcome, PublishError> {
-    let paths = OciPaths::from_env(|key| std::env::var(key).ok());
-    let config = Config::load(&Paths::from_env(|key| std::env::var(key).ok()).config_file())?;
-    let credentials = credentials::resolve(&Environment::from_process(), &config.oci.bucket)?;
+pub fn publish(
+    source: &OciSource,
+    options: &Options,
+    environment: &Environment,
+) -> Result<Outcome, PublishError> {
+    let paths = OciPaths::from_environment(environment);
+    let config = Config::load(&Paths::from_environment(environment).config_file())?;
+    let credentials = credentials::resolve(environment, &config.oci.bucket)?;
     publish_with(
         source,
         options,
@@ -63,35 +65,47 @@ pub fn publish_with(
     options: &Options,
     context: &Context,
 ) -> Result<Outcome, PublishError> {
-    let client = R2Client::new(context.credentials.clone());
-    sync_live_state(
-        &client,
-        &context.config.oci.bucket,
-        &context.config.oci.blobs_bucket,
-        &context.paths,
-    )?;
-
-    let state = myoci::state::State::new(context.paths.state_dir.clone());
-    import_source(&state, source)?;
-    myoci::publish::publish(
-        &state,
-        &context.paths.site_dir,
-        &context.config.oci.public_base_url,
-    )
-    .map_err(map_myoci_error)?;
-
-    let transaction = Transaction::open(
+    let staging = if options.dry_run {
+        Some(Staging::create(&context.paths.cache_dir, "oci-dry-run")?)
+    } else {
+        None
+    };
+    let (paths, snapshot_cache) = match &staging {
+        Some(staging) => (
+            OciPaths {
+                state_dir: staging.join("state"),
+                site_dir: staging.join("site"),
+                transaction_state_dir: staging.join("transaction"),
+                cache_dir: context.paths.cache_dir.clone(),
+            },
+            staging.join("cache"),
+        ),
+        None => (context.paths.clone(), context.paths.cache_dir.clone()),
+    };
+    let pending = Transaction::begin(
         context.credentials.clone(),
         Registry::Oci,
         &context.config,
-        context.paths.site_dir.clone(),
-        context.paths.transaction_state_dir.clone(),
-        context.paths.cache_dir.clone(),
+        paths.transaction_state_dir.clone(),
+        snapshot_cache,
         TransactionOptions {
             dry_run: options.dry_run,
             ..TransactionOptions::default()
         },
     )?;
+    sync_live_state(
+        pending.client(),
+        &context.config.oci.bucket,
+        &context.config.oci.blobs_bucket,
+        &paths,
+    )?;
+
+    let state = myoci::state::State::new(paths.state_dir.clone());
+    import_source(&state, source)?;
+    myoci::publish::publish(&state, &paths.site_dir, &context.config.oci.public_base_url)
+        .map_err(map_myoci_error)?;
+
+    let transaction = pending.stage_complete(paths.site_dir)?;
     Ok(transaction.run()?.outcome())
 }
 
@@ -227,11 +241,10 @@ mod tests {
 
     #[test]
     fn paths_are_scoped_to_the_oci_registry() {
-        let paths = OciPaths::from_env(|key| match key {
-            "STUFF_STATE_HOME" => Some("/state".to_string()),
-            "STUFF_CACHE_HOME" => Some("/cache".to_string()),
-            _ => None,
-        });
+        let paths = OciPaths::from_environment(&Environment::from_pairs([
+            ("STUFF_STATE_HOME", "/state"),
+            ("STUFF_CACHE_HOME", "/cache"),
+        ]));
         assert_eq!(paths.state_dir, PathBuf::from("/state/oci/state"));
         assert_eq!(paths.site_dir, PathBuf::from("/state/oci/site"));
         assert_eq!(

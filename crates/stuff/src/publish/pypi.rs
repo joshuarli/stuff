@@ -1,30 +1,32 @@
 #![forbid(unsafe_code)]
 
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::Path;
 
 use deser_value::Value;
 
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
 use crate::publish::r2::client::{Credentials, R2Client};
-use crate::publish::r2::credentials::{self, Environment};
+use crate::publish::r2::credentials;
 use crate::publish::r2::promote;
 use crate::publish::r2::pull::{self, PART_SIZE};
+use crate::publish::staging::Staging;
 use crate::publish::transaction::{Transaction, TransactionOptions};
-use crate::publish::{Options, Outcome, PublishError, PypiSpec, Registry};
+use crate::publish::{Environment, Options, Outcome, PublishError, PypiSpec, Registry};
 
 const PYTHON_SPECIFIER: &str = ">=3.15,<3.16";
 const LINUX_REPAIR_POLICY: &str = "manylinux_2_28";
 
-pub fn run(specs: &[PypiSpec], options: &Options) -> Result<Outcome, PublishError> {
-    let environment = Environment::from_process();
-    let paths = Paths::from_env(|name| environment.get(name).map(str::to_string));
+pub fn run(
+    specs: &[PypiSpec],
+    options: &Options,
+    environment: &Environment,
+) -> Result<Outcome, PublishError> {
+    let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let settings = project_settings(&config.pypi.public_base_url)?;
     let catalog = package_catalog(specs)?;
-    let credentials = credentials::resolve(&environment, &config.pypi.bucket)?;
+    let credentials = credentials::resolve(environment, &config.pypi.bucket)?;
     publish(
         credentials,
         &config,
@@ -72,29 +74,42 @@ fn publish(
     cache_dir: &Path,
     options: &Options,
 ) -> Result<Outcome, PublishError> {
-    let client = R2Client::new(credentials.clone());
-    let site = Staging::create(cache_dir)?;
-    pull_live(&client, &config.pypi.bucket, site.path())?;
-    mypypi::publish::publish(&mypypi::publish::PublishOptions {
-        settings,
-        output: site.path(),
-        state_dir,
-        catalog,
-        platforms: &[],
-    })
-    .map_err(map_mypypi)?;
-    let transaction = Transaction::open(
+    let staging = Staging::create(cache_dir, "pypi-site")?;
+    let site = staging.path().join("site");
+    std::fs::create_dir_all(&site).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", site.display()))
+    })?;
+    let transaction_state = if options.dry_run {
+        staging.join("transaction")
+    } else {
+        state_dir.to_path_buf()
+    };
+    let snapshot_cache = if options.dry_run {
+        staging.join("cache")
+    } else {
+        cache_dir.to_path_buf()
+    };
+    let pending = Transaction::begin(
         credentials,
         Registry::Pypi,
         config,
-        site.path().to_path_buf(),
-        state_dir.to_path_buf(),
-        cache_dir.to_path_buf(),
+        transaction_state,
+        snapshot_cache,
         TransactionOptions {
             dry_run: options.dry_run,
             ..TransactionOptions::default()
         },
     )?;
+    pull_live(pending.client(), &config.pypi.bucket, &site)?;
+    mypypi::publish::publish(&mypypi::publish::PublishOptions {
+        settings,
+        output: &site,
+        state_dir,
+        catalog,
+        platforms: &[],
+    })
+    .map_err(map_mypypi)?;
+    let transaction = pending.stage_complete(site)?;
     Ok(transaction.run()?.outcome())
 }
 
@@ -205,54 +220,6 @@ fn toml_string(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-struct Staging {
-    path: PathBuf,
-}
-
-impl Staging {
-    fn create(cache: &Path) -> Result<Self, PublishError> {
-        static COUNTER: AtomicU64 = AtomicU64::new(1);
-        std::fs::create_dir_all(cache).map_err(|error| {
-            PublishError::Config(format!("could not create {}: {error}", cache.display()))
-        })?;
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or(0);
-        for _ in 0..100 {
-            let counter = COUNTER.fetch_add(1, Ordering::SeqCst);
-            let path = cache.join(format!(
-                "pypi-site-{}-{nanos}-{counter}",
-                std::process::id()
-            ));
-            match std::fs::create_dir(&path) {
-                Ok(()) => return Ok(Staging { path }),
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => {
-                    return Err(PublishError::Config(format!(
-                        "could not create {}: {error}",
-                        path.display()
-                    )));
-                }
-            }
-        }
-        Err(PublishError::Config(format!(
-            "could not create a staging site under {}",
-            cache.display()
-        )))
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for Staging {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,14 +295,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_staging_site_is_unique_and_removed() {
-        let work = tempfile::tempdir().unwrap();
-        let first = Staging::create(work.path()).unwrap();
-        let second = Staging::create(work.path()).unwrap();
-        assert_ne!(first.path(), second.path());
-        let path = first.path().to_path_buf();
-        drop(first);
-        assert!(!path.exists());
-    }
 }

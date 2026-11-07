@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+use crate::publish::Environment;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
     config_root: PathBuf,
@@ -10,10 +12,8 @@ pub struct Paths {
 }
 
 impl Paths {
-    pub fn from_env<F>(env: F) -> Self
-    where
-        F: Fn(&str) -> Option<String>,
-    {
+    pub fn from_environment(env: &Environment) -> Self {
+        let env = |name: &str| env.get(name).map(str::to_string);
         let home = env("HOME").map(PathBuf::from).unwrap_or_default();
         let config_root = env("STUFF_CONFIG_HOME")
             .map(PathBuf::from)
@@ -46,17 +46,14 @@ impl Paths {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
-    fn env(pairs: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
-        let map: HashMap<String, String> =
-            pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect();
-        move |key| map.get(key).cloned()
+    fn env(pairs: &[(&str, &str)]) -> Environment {
+        Environment::from_pairs(pairs.iter().copied())
     }
 
     #[test]
     fn home_defaults_apply_when_nothing_is_set() {
-        let paths = Paths::from_env(env(&[("HOME", "/home/person")]));
+        let paths = Paths::from_environment(&env(&[("HOME", "/home/person")]));
         assert_eq!(paths.config_file(), PathBuf::from("/home/person/.config/stuff/config.json"));
         assert_eq!(paths.cache_dir("cargo"), PathBuf::from("/home/person/.cache/stuff/cargo"));
         assert_eq!(
@@ -67,7 +64,7 @@ mod tests {
 
     #[test]
     fn xdg_overrides_home() {
-        let paths = Paths::from_env(env(&[
+        let paths = Paths::from_environment(&env(&[
             ("HOME", "/home/person"),
             ("XDG_CONFIG_HOME", "/xdg/config"),
             ("XDG_CACHE_HOME", "/xdg/cache"),
@@ -80,7 +77,7 @@ mod tests {
 
     #[test]
     fn stuff_overrides_xdg_and_home() {
-        let paths = Paths::from_env(env(&[
+        let paths = Paths::from_environment(&env(&[
             ("HOME", "/home/person"),
             ("XDG_CONFIG_HOME", "/xdg/config"),
             ("XDG_CACHE_HOME", "/xdg/cache"),
@@ -96,7 +93,7 @@ mod tests {
 
     #[test]
     fn each_registry_gets_its_own_cache_and_state_directory() {
-        let paths = Paths::from_env(env(&[("HOME", "/home/person")]));
+        let paths = Paths::from_environment(&env(&[("HOME", "/home/person")]));
         assert_eq!(paths.cache_dir("cargo"), PathBuf::from("/home/person/.cache/stuff/cargo"));
         assert_eq!(paths.cache_dir("npm"), PathBuf::from("/home/person/.cache/stuff/npm"));
         assert_eq!(paths.cache_dir("pypi"), PathBuf::from("/home/person/.cache/stuff/pypi"));

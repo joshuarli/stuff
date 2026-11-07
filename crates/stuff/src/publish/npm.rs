@@ -8,11 +8,10 @@ use mynpm::publish::{publish_site, PublishOptions};
 use crate::publish::config::Config;
 use crate::publish::inventory::{library_error, prepare, PrepareOptions};
 use crate::publish::paths::Paths;
-use crate::publish::r2::client::R2Client;
-use crate::publish::r2::credentials::{self, Environment};
-use crate::publish::snapshot::Snapshot;
+use crate::publish::r2::credentials;
+use crate::publish::staging::Staging;
 use crate::publish::transaction::{Transaction, TransactionOptions};
-use crate::publish::{NpmPublish, Options, Outcome, PublishError, Registry};
+use crate::publish::{Environment, NpmPublish, Options, Outcome, PublishError, Registry};
 
 const NODE_VERSION: &str = "26.12.0";
 const SITE_DIRECTORY: &str = "site";
@@ -105,33 +104,68 @@ fn prune_stale_generations(mirror: &Path) -> Result<(), PublishError> {
     Ok(())
 }
 
-pub fn publish(request: &NpmPublish, options: Options) -> Result<Outcome, PublishError> {
-    let paths = Paths::from_env(|name| std::env::var(name).ok());
+pub fn publish(
+    request: &NpmPublish,
+    options: Options,
+    environment: &Environment,
+) -> Result<Outcome, PublishError> {
+    let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.npm.bucket.clone();
-    let credentials = credentials::resolve(&Environment::from_process(), &bucket)?;
+    let credentials = credentials::resolve(environment, &bucket)?;
     let library = library_config(&config);
 
     let cache_dir = paths.cache_dir("npm");
     let state_dir = paths.state_dir("npm");
-    let site_dir = cache_dir.join(SITE_DIRECTORY);
+    let staging = if options.dry_run {
+        Some(Staging::create(&cache_dir, "npm-dry-run")?)
+    } else {
+        None
+    };
+    let (work_state, site_dir, transaction_state, snapshot_cache) = match &staging {
+        Some(staging) => (
+            staging.join("state"),
+            staging.join("site"),
+            staging.join("transaction"),
+            staging.join("cache"),
+        ),
+        None => (
+            state_dir.clone(),
+            cache_dir.join(SITE_DIRECTORY),
+            state_dir.clone(),
+            cache_dir,
+        ),
+    };
     let mirror = site_dir.join("mirror");
     let lockfile = resolve_lockfile(&request.lockfile)?;
 
-    let client = R2Client::new(credentials.clone());
-    let snapshot = Snapshot::open(client, Registry::Npm, &config, cache_dir.join("snapshot"))?;
-    let store = snapshot
+    let pending = Transaction::begin(
+        credentials,
+        Registry::Npm,
+        &config,
+        transaction_state,
+        snapshot_cache,
+        TransactionOptions {
+            dry_run: options.dry_run,
+            ..TransactionOptions::default()
+        },
+    )?;
+    if options.dry_run {
+        copy_inventory(&state_dir, &work_state)?;
+    }
+    let store = pending
+        .snapshot()
         .shared_stores()
         .first()
         .cloned()
         .ok_or_else(|| PublishError::Config("npm has no shared tarball store".to_string()))?;
     prepare(
-        &snapshot,
+        pending.snapshot(),
         &PrepareOptions {
             bucket: &bucket,
             store: &store,
             site_dir: &site_dir,
-            state_dir: &state_dir,
+            state_dir: &work_state,
             lockfile: &lockfile,
             project_id: &request.project,
             library: &library,
@@ -139,7 +173,7 @@ pub fn publish(request: &NpmPublish, options: Options) -> Result<Outcome, Publis
     )?;
 
     publish_site(&PublishOptions {
-        state_directory: &state_dir,
+        state_directory: &work_state,
         site_directory: &site_dir,
         config: &library,
         render_base_url: None,
@@ -147,20 +181,27 @@ pub fn publish(request: &NpmPublish, options: Options) -> Result<Outcome, Publis
     .map_err(library_error)?;
     prune_stale_generations(&mirror)?;
 
-    let transaction = Transaction::open(
-        credentials,
-        Registry::Npm,
-        &config,
-        mirror,
-        state_dir,
-        cache_dir,
-        TransactionOptions {
-            dry_run: options.dry_run,
-            ..TransactionOptions::default()
-        },
-    )?;
+    let transaction = pending.stage_complete(mirror)?;
     let report = transaction.run()?;
     Ok(report.outcome())
+}
+
+fn copy_inventory(from: &Path, to: &Path) -> Result<(), PublishError> {
+    let source = from.join("inventory.json");
+    if !source.is_file() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(to).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", to.display()))
+    })?;
+    let target = to.join("inventory.json");
+    std::fs::copy(&source, &target).map(|_| ()).map_err(|error| {
+        PublishError::Config(format!(
+            "could not copy {} to {}: {error}",
+            source.display(),
+            target.display()
+        ))
+    })
 }
 
 #[cfg(test)]

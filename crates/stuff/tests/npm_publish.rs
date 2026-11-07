@@ -1,10 +1,11 @@
+#![forbid(unsafe_code)]
+
 mod support;
 
 use std::fs;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 
 use base64::Engine;
 use deser_value::Value;
@@ -20,7 +21,7 @@ use stuff::publish::inventory;
 use stuff::publish::npm;
 use stuff::publish::r2::{Credentials, R2Client};
 use stuff::publish::snapshot::Snapshot;
-use stuff::publish::{NpmPublish, Options, PublishRequest, Request, Registry, Status};
+use stuff::publish::{Environment, NpmPublish, Options, PublishRequest, Request, Registry, Status};
 use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mynpm";
@@ -30,40 +31,22 @@ const TARBALL_FIXTURE: &str =
 const LOCK_FIXTURE: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/fixtures/mynpm/locks/pnpm-v9-local.yaml");
 
-static ENV_LOCK: Mutex<()> = Mutex::new(());
-
-struct EnvGuard {
-    _lock: std::sync::MutexGuard<'static, ()>,
-    saved: Vec<(String, Option<String>)>,
-}
-
-impl EnvGuard {
-    fn set(pairs: &[(&str, String)]) -> Self {
-        let lock = ENV_LOCK.lock().unwrap_or_else(|error| error.into_inner());
-        let mut saved = Vec::new();
-        for (name, value) in pairs {
-            saved.push((name.to_string(), std::env::var(name).ok()));
-            unsafe {
-                std::env::set_var(name, value);
-            }
-        }
-        EnvGuard { _lock: lock, saved }
+fn environment(work: &Path, fake: &FakeS3, path: &str) -> Environment {
+    let mut pairs: Vec<(String, String)> = std::env::vars()
+        .filter(|(name, _)| !name.starts_with("STUFF_") && !name.starts_with("R2_"))
+        .collect();
+    for (name, value) in [
+        ("R2_S3_ENDPOINT", fake.base_url().to_string()),
+        ("R2_S3_ACCESS_KEY_ID", ACCESS_KEY.to_string()),
+        ("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY.to_string()),
+        ("STUFF_CACHE_HOME", work.join("stuff-cache").display().to_string()),
+        ("STUFF_STATE_HOME", work.join("stuff-state").display().to_string()),
+        ("STUFF_CONFIG_HOME", work.join("stuff-config").display().to_string()),
+        ("PATH", path.to_string()),
+    ] {
+        pairs.push((name.to_string(), value));
     }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        for (name, value) in self.saved.drain(..).rev() {
-            match value {
-                Some(value) => unsafe {
-                    std::env::set_var(&name, value);
-                },
-                None => unsafe {
-                    std::env::remove_var(&name);
-                },
-            }
-        }
-    }
+    Environment::from_pairs(pairs)
 }
 
 fn credentials(fake: &FakeS3) -> Credentials {
@@ -255,13 +238,16 @@ fn direct_generation(work: &Path, fake: &FakeS3, lockfile: &Path) -> String {
     summary.generation_id
 }
 
-fn request(lockfile: &Path) -> Request {
+fn request(lockfile: &Path, dry_run: bool) -> Request {
     Request::Publish {
         request: PublishRequest::Npm(NpmPublish {
             lockfile: lockfile.to_string_lossy().into_owned(),
             project: "demo".to_string(),
         }),
-        options: Options::default(),
+        options: Options {
+            dry_run,
+            ..Options::default()
+        },
     }
 }
 
@@ -270,6 +256,50 @@ fn remote_body(fake: &FakeS3, key: &str) -> Option<Vec<u8>> {
         .into_iter()
         .find(|object| object.bucket == BUCKET && object.key == key)
         .map(|object| object.body)
+}
+
+fn tree(root: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let mut files = std::collections::BTreeMap::new();
+    let mut stack = if root.exists() {
+        vec![root.to_path_buf()]
+    } else {
+        Vec::new()
+    };
+    while let Some(directory) = stack.pop() {
+        for entry in fs::read_dir(&directory).unwrap() {
+            let entry = entry.unwrap();
+            let file_type = entry.file_type().unwrap();
+            if file_type.is_dir() {
+                stack.push(entry.path());
+            } else if file_type.is_file() {
+                let path = entry.path();
+                let relative = path
+                    .strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                files.insert(relative, fs::read(&path).unwrap());
+            }
+        }
+    }
+    files
+}
+
+fn remote_snapshot(fake: &FakeS3) -> Vec<(String, String, u64, String, Vec<u8>)> {
+    let mut objects: Vec<_> = fake
+        .state()
+        .into_iter()
+        .map(|object| (object.bucket, object.key, object.size, object.etag, object.body))
+        .collect();
+    objects.sort_by(|left, right| (&left.0, &left.1).cmp(&(&right.0, &right.1)));
+    objects
+}
+
+fn mutation_count(fake: &FakeS3, after: usize) -> usize {
+    fake.requests()[after..]
+        .iter()
+        .filter(|request| matches!(request.method.as_str(), "PUT" | "POST" | "DELETE"))
+        .count()
 }
 
 fn compare_generation(fake: &FakeS3, generation: &str, direct_site: &Path) {
@@ -321,21 +351,10 @@ fn publish_matches_the_library_and_retains_the_live_packages() {
     let direct = direct_generation(work.path(), &fake, &lockfile);
     assert_ne!(direct, live_generation);
 
-    let cache = work.path().join("stuff-cache");
-    let state = work.path().join("stuff-state");
-    let config = work.path().join("stuff-config");
     let (path, marker) = decoy_path(work.path());
-    let _env = EnvGuard::set(&[
-        ("R2_S3_ENDPOINT", fake.base_url().to_string()),
-        ("R2_S3_ACCESS_KEY_ID", ACCESS_KEY.to_string()),
-        ("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY.to_string()),
-        ("STUFF_CACHE_HOME", cache.display().to_string()),
-        ("STUFF_STATE_HOME", state.display().to_string()),
-        ("STUFF_CONFIG_HOME", config.display().to_string()),
-        ("PATH", path),
-    ]);
+    let environment = environment(work.path(), &fake, &path);
 
-    let outcome = stuff::publish::run(request(&lockfile)).unwrap();
+    let outcome = stuff::publish::run(request(&lockfile, false), &environment).unwrap();
     assert_eq!(outcome.registry, Registry::Npm);
     assert_eq!(outcome.status, Status::Published, "{outcome:?}");
     assert!(!marker.exists(), "an mynpm child process was spawned");
@@ -352,7 +371,7 @@ fn publish_matches_the_library_and_retains_the_live_packages() {
     assert!(text.contains("\"flatdemo\""), "{text}");
     assert!(text.contains("\"retained-demo\""), "{text}");
 
-    let second = stuff::publish::run(request(&lockfile)).unwrap();
+    let second = stuff::publish::run(request(&lockfile, false), &environment).unwrap();
     assert_eq!(second.status, Status::Unchanged, "{second:?}");
     assert!(!marker.exists(), "an mynpm child process was spawned");
     assert_eq!(
@@ -376,22 +395,12 @@ fn publish_without_local_state_keeps_the_live_packages() {
     seed_bucket(&fake, &live_site, &live_generation);
 
     let lockfile = PathBuf::from(LOCK_FIXTURE);
-    let cache = work.path().join("stuff-cache");
     let state = work.path().join("stuff-state");
-    let config = work.path().join("stuff-config");
     let (path, marker) = decoy_path(work.path());
-    let _env = EnvGuard::set(&[
-        ("R2_S3_ENDPOINT", fake.base_url().to_string()),
-        ("R2_S3_ACCESS_KEY_ID", ACCESS_KEY.to_string()),
-        ("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY.to_string()),
-        ("STUFF_CACHE_HOME", cache.display().to_string()),
-        ("STUFF_STATE_HOME", state.display().to_string()),
-        ("STUFF_CONFIG_HOME", config.display().to_string()),
-        ("PATH", path),
-    ]);
+    let environment = environment(work.path(), &fake, &path);
     assert!(!state.join("npm").exists(), "the test started with local mynpm state");
 
-    let outcome = stuff::publish::run(request(&lockfile)).unwrap();
+    let outcome = stuff::publish::run(request(&lockfile, false), &environment).unwrap();
     assert_eq!(outcome.status, Status::Published, "{outcome:?}");
     assert!(!marker.exists(), "an mynpm child process was spawned");
 
@@ -403,6 +412,47 @@ fn publish_without_local_state_keeps_the_live_packages() {
     assert!(text.contains("\"flatdemo\""), "{text}");
     assert!(text.contains("\"retained-demo\""), "{text}");
 
-    let second = stuff::publish::run(request(&lockfile)).unwrap();
+    let second = stuff::publish::run(request(&lockfile, false), &environment).unwrap();
     assert_eq!(second.status, Status::Unchanged, "{second:?}");
+}
+
+#[test]
+fn an_npm_dry_run_leaves_local_state_and_remote_unchanged() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let (live_site, live_generation) = build_live(
+        work.path(),
+        &[
+            ("flatdemo", "1.2.3", fs::read(TARBALL_FIXTURE).unwrap()),
+            ("retained-demo", "1.0.0", tarball("retained-demo", "1.0.0")),
+        ],
+    );
+    seed_bucket(&fake, &live_site, &live_generation);
+
+    let lockfile = PathBuf::from(LOCK_FIXTURE);
+    let (path, marker) = decoy_path(work.path());
+    let environment = environment(work.path(), &fake, &path);
+    let first = stuff::publish::run(request(&lockfile, false), &environment).unwrap();
+    assert_eq!(first.status, Status::Published, "{first:?}");
+    assert!(!marker.exists(), "an mynpm child process was spawned");
+
+    let state = work.path().join("stuff-state");
+    let site = work.path().join("stuff-cache/npm/site");
+    let state_before = tree(&state);
+    let site_before = tree(&site);
+    let remote_before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+    let conditions_before = fake.put_conditions().len();
+    assert!(!state_before.is_empty(), "the first publish wrote no local state");
+    assert!(!site_before.is_empty(), "the first publish wrote no local site");
+
+    let dry = stuff::publish::run(request(&lockfile, true), &environment).unwrap();
+    assert_eq!(dry.registry, Registry::Npm);
+
+    assert_eq!(tree(&state), state_before, "the dry run changed local state");
+    assert_eq!(tree(&site), site_before, "the dry run changed the local site");
+    assert_eq!(remote_snapshot(&fake), remote_before, "the dry run changed the remote");
+    assert_eq!(fake.put_conditions().len(), conditions_before);
+    assert_eq!(mutation_count(&fake, requests_before), 0, "the dry run mutated the remote");
+    assert!(!marker.exists(), "an mynpm child process was spawned");
 }

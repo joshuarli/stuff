@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use deser_value::Value;
 
-use crate::publish::PublishError;
+use crate::publish::{Environment, PublishError};
 
 use super::client::Credentials;
 
@@ -13,42 +13,6 @@ const MAX_TTL_SECONDS: i64 = 604_800;
 const ATTEMPTS: u32 = 3;
 const LOGIN_HINT: &str =
     "run `cf auth login`, or set R2_ACCOUNT_ID and R2_PARENT_ACCESS_KEY_ID to mint without cf";
-
-#[derive(Debug, Clone, Default)]
-pub struct Environment {
-    variables: Vec<(String, String)>,
-}
-
-impl Environment {
-    pub fn from_process() -> Self {
-        Self { variables: std::env::vars().collect() }
-    }
-
-    pub fn from_pairs<I, K, V>(pairs: I) -> Self
-    where
-        I: IntoIterator<Item = (K, V)>,
-        K: Into<String>,
-        V: Into<String>,
-    {
-        Self {
-            variables: pairs
-                .into_iter()
-                .map(|(key, value)| (key.into(), value.into()))
-                .collect(),
-        }
-    }
-
-    pub fn get(&self, name: &str) -> Option<&str> {
-        self.variables
-            .iter()
-            .find(|(key, _)| key == name)
-            .map(|(_, value)| value.as_str())
-    }
-
-    fn non_empty(&self, name: &str) -> Option<&str> {
-        self.get(name).filter(|value| !value.is_empty())
-    }
-}
 
 pub fn resolve(env: &Environment, bucket: &str) -> Result<Credentials, PublishError> {
     if let Some(credentials) = direct_credentials(env) {
@@ -243,7 +207,7 @@ fn run_cf(env: &Environment, args: &[&str]) -> Result<String, String> {
         let output = Command::new(&program)
             .args(args)
             .env_clear()
-            .envs(env.variables.iter().map(|(key, value)| (key, value)))
+            .envs(env.variables())
             .stdin(Stdio::null())
             .output()
             .map_err(|error| format!("could not run cf: {error}"))?;

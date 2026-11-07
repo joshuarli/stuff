@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod support;
 
 use std::collections::BTreeMap;
@@ -5,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use stuff::publish::oci::OciPaths;
 use stuff::publish::r2::{Credentials, R2Client};
-use stuff::publish::{OciSource, Options, PublishRequest, Request, Status};
+use stuff::publish::{Environment, OciSource, Options, PublishRequest, Registry, Request, Status};
 use stuff_oci::RepositoryName;
 use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
 
@@ -17,27 +19,34 @@ fn layout() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/oci/layout")
 }
 
-fn configure(fake: &FakeS3, home: &Path) {
-    unsafe {
-        std::env::set_var("R2_S3_ENDPOINT", fake.base_url());
-        std::env::set_var("R2_S3_ACCESS_KEY_ID", ACCESS_KEY);
-        std::env::set_var("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY);
-        std::env::remove_var("R2_S3_REGION");
-        std::env::remove_var("R2_S3_SESSION_TOKEN");
-        std::env::set_var("STUFF_STATE_HOME", home.join("state"));
-        std::env::set_var("STUFF_CACHE_HOME", home.join("cache"));
-        std::env::set_var("STUFF_CONFIG_HOME", home.join("config"));
+fn environment(fake: &FakeS3, home: &Path) -> Environment {
+    let mut pairs: Vec<(String, String)> = std::env::vars()
+        .filter(|(name, _)| !name.starts_with("STUFF_") && !name.starts_with("R2_"))
+        .collect();
+    for (name, value) in [
+        ("R2_S3_ENDPOINT", fake.base_url().to_string()),
+        ("R2_S3_ACCESS_KEY_ID", ACCESS_KEY.to_string()),
+        ("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY.to_string()),
+        ("STUFF_STATE_HOME", home.join("state").display().to_string()),
+        ("STUFF_CACHE_HOME", home.join("cache").display().to_string()),
+        ("STUFF_CONFIG_HOME", home.join("config").display().to_string()),
+    ] {
+        pairs.push((name.to_string(), value));
     }
+    Environment::from_pairs(pairs)
 }
 
-fn request() -> Request {
+fn request(dry_run: bool) -> Request {
     Request::Publish {
         request: PublishRequest::Oci(OciSource::Layout {
             dir: layout().to_string_lossy().into_owned(),
             repository: REPOSITORY.to_string(),
             tag: None,
         }),
-        options: Options::default(),
+        options: Options {
+            dry_run,
+            ..Options::default()
+        },
     }
 }
 
@@ -95,8 +104,8 @@ fn the_fixture_publishes_like_myoci_and_the_second_run_is_unchanged() {
     let fake = FakeS3::start_verified();
     let work = tempfile::tempdir().expect("temp dir");
     let home = work.path().join("home");
-    configure(&fake, &home);
-    let paths = OciPaths::from_env(|key| std::env::var(key).ok());
+    let environment = environment(&fake, &home);
+    let paths = OciPaths::from_environment(&environment);
 
     let direct_site = work.path().join("direct-site");
     let direct_state = work.path().join("direct-state");
@@ -110,7 +119,7 @@ fn the_fixture_publishes_like_myoci_and_the_second_run_is_unchanged() {
     )
     .expect("direct publish");
 
-    let outcome = stuff::publish::run(request()).expect("publish oci");
+    let outcome = stuff::publish::run(request(false), &environment).expect("publish oci");
     assert_eq!(outcome.status, Status::Published);
 
     let generation = current_generation(&paths.site_dir);
@@ -143,7 +152,7 @@ fn the_fixture_publishes_like_myoci_and_the_second_run_is_unchanged() {
     }));
 
     let writes = mutation_count(&fake);
-    let second = stuff::publish::run(request()).expect("second publish");
+    let second = stuff::publish::run(request(false), &environment).expect("second publish");
     assert_eq!(second.status, Status::Unchanged);
     assert_eq!(mutation_count(&fake), writes);
     assert_eq!(fake.put_conditions().len(), 1);
@@ -153,4 +162,43 @@ fn the_fixture_publishes_like_myoci_and_the_second_run_is_unchanged() {
             .expect("current"),
         generation.as_bytes()
     );
+}
+
+fn remote_snapshot(fake: &FakeS3) -> Vec<(String, String, u64, String, Vec<u8>)> {
+    let mut objects: Vec<_> = fake
+        .state()
+        .into_iter()
+        .map(|object| (object.bucket, object.key, object.size, object.etag, object.body))
+        .collect();
+    objects.sort_by(|left, right| (&left.0, &left.1).cmp(&(&right.0, &right.1)));
+    objects
+}
+
+#[test]
+fn an_oci_dry_run_leaves_local_state_and_remote_unchanged() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().expect("temp dir");
+    let home = work.path().join("home");
+    let environment = environment(&fake, &home);
+
+    let first = stuff::publish::run(request(false), &environment).expect("publish oci");
+    assert_eq!(first.status, Status::Published);
+
+    let local_before = tree(&home.join("state"));
+    let remote_before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+    let conditions_before = fake.put_conditions().len();
+    assert!(!local_before.is_empty(), "the first publish wrote no local state");
+
+    let dry = stuff::publish::run(request(true), &environment).expect("dry run oci");
+    assert_eq!(dry.registry, Registry::Oci);
+
+    assert_eq!(tree(&home.join("state")), local_before, "the dry run changed local state");
+    assert_eq!(remote_snapshot(&fake), remote_before, "the dry run changed the remote");
+    assert_eq!(fake.put_conditions().len(), conditions_before);
+    let mutations = fake.requests()[requests_before..]
+        .iter()
+        .filter(|request| matches!(request.method.as_str(), "PUT" | "POST" | "DELETE"))
+        .count();
+    assert_eq!(mutations, 0, "the dry run mutated the remote");
 }

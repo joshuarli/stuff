@@ -53,15 +53,15 @@ fn transaction(
     cache: &Path,
     options: TransactionOptions,
 ) -> Result<Transaction, PublishError> {
-    Transaction::open(
+    let pending = Transaction::begin(
         credentials(fake),
         Registry::Cargo,
         &Config::default(),
-        site.to_path_buf(),
         state.to_path_buf(),
         cache.to_path_buf(),
         options,
-    )
+    )?;
+    pending.stage_complete(site.to_path_buf())
 }
 
 fn catalog(generation: &str, packages: &[&str]) -> String {
@@ -605,15 +605,13 @@ fn a_held_file_lock_blocks_the_publish_transaction() {
     let writes = mutation_count(&fake);
 
     let credentials = credentials(&fake);
-    let site_path = site.clone();
     let state_path = state.clone();
     let cache_path = cache.clone();
     let handle = std::thread::spawn(move || {
-        Transaction::open(
+        Transaction::begin(
             credentials,
             Registry::Cargo,
             &Config::default(),
-            site_path,
             state_path,
             cache_path,
             TransactionOptions {
@@ -636,6 +634,91 @@ fn a_held_file_lock_blocks_the_publish_transaction() {
         .expect("publish after release");
     assert_eq!(report.status, Status::Published);
     assert_eq!(current_body(&fake), b"g1");
+}
+
+#[test]
+fn a_second_begin_conflicts_while_the_first_is_still_staging() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let site = base_site(work.path(), 2);
+    let state = work.path().join("state");
+    let cache = work.path().join("cache");
+    let lock_wait = Duration::from_millis(200);
+
+    let first = Transaction::begin(
+        credentials(&fake),
+        Registry::Cargo,
+        &Config::default(),
+        state.clone(),
+        cache.clone(),
+        TransactionOptions {
+            lock_wait,
+            ..options()
+        },
+    )
+    .expect("first begin");
+    let writes = mutation_count(&fake);
+
+    let error = Transaction::begin(
+        credentials(&fake),
+        Registry::Cargo,
+        &Config::default(),
+        state.clone(),
+        cache,
+        TransactionOptions {
+            lock_wait,
+            ..options()
+        },
+    )
+    .map(|_| ())
+    .expect_err("second begin");
+    assert_eq!(error.exit_code(), 3, "{error}");
+    assert!(error.to_string().contains("another publish holds"), "{error}");
+    assert_eq!(mutation_count(&fake), writes);
+    assert!(!remote_has(&fake, "current"));
+
+    let report = first
+        .stage_complete(site)
+        .expect("stage complete")
+        .run()
+        .expect("first publisher still wins");
+    assert_eq!(report.status, Status::Published);
+    assert_eq!(current_body(&fake), b"g1");
+}
+
+#[test]
+fn a_first_publication_with_no_remote_or_local_current_succeeds() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let state = work.path().join("state");
+    let cache = work.path().join("cache");
+    let site = work.path().join("site");
+    assert!(!state.exists());
+    assert!(!site.exists());
+    assert!(fake.state().is_empty());
+
+    let pending = Transaction::begin(
+        credentials(&fake),
+        Registry::Cargo,
+        &Config::default(),
+        state.clone(),
+        cache,
+        options(),
+    )
+    .expect("begin without a local site");
+    let site = base_site(work.path(), 2);
+    let report = pending
+        .stage_complete(site)
+        .expect("stage complete")
+        .run()
+        .expect("first publish");
+    assert_eq!(report.status, Status::Published);
+    assert_eq!(report.generation, "g1");
+    assert_eq!(current_body(&fake), b"g1");
+    assert_eq!(
+        transaction::read_record(&state).unwrap(),
+        Some("g1".to_string())
+    );
 }
 
 fn seed_generation(fake: &FakeS3, generation: &str, body: &[u8]) {

@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod support;
 
 use std::collections::BTreeMap;
@@ -10,7 +12,7 @@ use std::process::{Child, Command, Stdio};
 use deser_value::Value;
 use stuff::publish::cargo::wirejson::json_string;
 use stuff::publish::{
-    CargoPublish, Options, PublishRequest, Registry, Request, Status,
+    CargoPublish, Environment, Options, PublishRequest, Registry, Request, Status,
 };
 use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
 
@@ -67,8 +69,11 @@ fn write_config(work: &Path) {
     .expect("write stuff config");
 }
 
-fn set_env(work: &Path, fake: &FakeS3) {
-    let pairs = [
+fn environment(work: &Path, fake: &FakeS3) -> Environment {
+    let mut pairs: Vec<(String, String)> = std::env::vars()
+        .filter(|(name, _)| !name.starts_with("STUFF_") && !name.starts_with("R2_"))
+        .collect();
+    for (name, value) in [
         ("STUFF_CONFIG_HOME", work.join("config").display().to_string()),
         ("STUFF_CACHE_HOME", work.join("cache").display().to_string()),
         ("STUFF_STATE_HOME", work.join("state").display().to_string()),
@@ -78,14 +83,10 @@ fn set_env(work: &Path, fake: &FakeS3) {
         ("R2_S3_REGION", "auto".to_string()),
         ("CARGO_HTTP_PROXY", "http://127.0.0.1:1".to_string()),
         ("NO_PROXY", "127.0.0.1,localhost".to_string()),
-    ];
-    // SAFETY: this test binary has a single test, which sets these variables
-    // before it starts any thread, child process, or library call that reads them.
-    unsafe {
-        for (name, value) in pairs {
-            std::env::set_var(name, value);
-        }
+    ] {
+        pairs.push((name.to_string(), value));
     }
+    Environment::from_pairs(pairs)
 }
 
 fn publish_request(manifest: &Path) -> Request {
@@ -96,6 +97,16 @@ fn publish_request(manifest: &Path) -> Request {
             registry: Some(REGISTRY.to_string()),
         }),
         options: Options::default(),
+    }
+}
+
+fn dry_run_request(manifest: &Path) -> Request {
+    match publish_request(manifest) {
+        Request::Publish { request, mut options } => {
+            options.dry_run = true;
+            Request::Publish { request, options }
+        }
+        other => other,
     }
 }
 
@@ -296,18 +307,70 @@ fn put_paths(fake: &FakeS3, after: usize) -> Vec<String> {
         .collect()
 }
 
+fn tree(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    if root.exists() {
+        collect_tree(root, root, &mut files);
+    }
+    files
+}
+
+fn collect_tree(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+    let mut entries: Vec<_> = fs::read_dir(directory)
+        .expect("read tree directory")
+        .map(|entry| entry.expect("tree entry"))
+        .collect();
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        let file_type = entry.file_type().expect("tree file type");
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            collect_tree(root, &path, files);
+            continue;
+        }
+        if !file_type.is_file() {
+            continue;
+        }
+        files.insert(
+            path.strip_prefix(root).expect("relative tree path").to_path_buf(),
+            fs::read(&path).expect("read tree file"),
+        );
+    }
+}
+
+fn remote_snapshot(fake: &FakeS3) -> Vec<(String, String, u64, String, Vec<u8>)> {
+    let mut objects: Vec<_> = fake
+        .state()
+        .into_iter()
+        .map(|object| (object.bucket, object.key, object.size, object.etag, object.body))
+        .collect();
+    objects.sort_by(|left, right| (&left.0, &left.1).cmp(&(&right.0, &right.1)));
+    objects
+}
+
+fn mutation_count(fake: &FakeS3, after: usize) -> usize {
+    fake.requests()[after..]
+        .iter()
+        .filter(|request| matches!(request.method.as_str(), "PUT" | "POST" | "DELETE"))
+        .count()
+}
+
 #[test]
 fn cargo_publish_round_trips_and_republishes_unchanged() {
     let work = scratch_root();
     let fake = FakeS3::start_verified();
-    set_env(work.path(), &fake);
+    let environment = environment(work.path(), &fake);
     write_config(work.path());
 
     let crate_dir = work.path().join("crate");
     copy_tree(&fixture_crate(), &crate_dir);
     let manifest = crate_dir.join("Cargo.toml");
 
-    let first = stuff::publish::run(publish_request(&manifest)).expect("first cargo publish");
+    let first =
+        stuff::publish::run(publish_request(&manifest), &environment).expect("first cargo publish");
     assert_eq!(
         first,
         stuff::publish::Outcome {
@@ -366,7 +429,8 @@ fn cargo_publish_round_trips_and_republishes_unchanged() {
 
     let requests_before = fake.requests().len();
     let conditions_before = fake.put_conditions().len();
-    let second = stuff::publish::run(publish_request(&manifest)).expect("second cargo publish");
+    let second =
+        stuff::publish::run(publish_request(&manifest), &environment).expect("second cargo publish");
     assert_eq!(
         second,
         stuff::publish::Outcome {
@@ -386,4 +450,41 @@ fn cargo_publish_round_trips_and_republishes_unchanged() {
         "second run returned unchanged with no PUT and {} promote conditions",
         conditions_before
     );
+}
+
+#[test]
+fn a_cargo_dry_run_leaves_the_local_store_and_remote_unchanged() {
+    let work = scratch_root();
+    let fake = FakeS3::start_verified();
+    let environment = environment(work.path(), &fake);
+    write_config(work.path());
+
+    let crate_dir = work.path().join("crate");
+    copy_tree(&fixture_crate(), &crate_dir);
+    let manifest = crate_dir.join("Cargo.toml");
+
+    let first =
+        stuff::publish::run(publish_request(&manifest), &environment).expect("first cargo publish");
+    assert_eq!(first.status, Status::Published, "{first:?}");
+
+    let state_dir = work.path().join("state/cargo");
+    let rust_site = work.path().join("cache/cargo/site");
+    let state_before = tree(&state_dir);
+    let site_before = tree(&rust_site);
+    let generation_before = generation_id(&rust_site);
+    let remote_before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+    let conditions_before = fake.put_conditions().len();
+    assert!(!state_before.is_empty(), "the first publish wrote no local state");
+    assert!(!site_before.is_empty(), "the first publish wrote no local site");
+
+    let dry = stuff::publish::run(dry_run_request(&manifest), &environment).expect("dry run");
+    assert_eq!(dry.registry, Registry::Cargo);
+
+    assert_eq!(tree(&state_dir), state_before, "the dry run changed local state");
+    assert_eq!(tree(&rust_site), site_before, "the dry run changed the local site");
+    assert_eq!(generation_id(&rust_site), generation_before);
+    assert_eq!(remote_snapshot(&fake), remote_before, "the dry run changed the remote");
+    assert_eq!(fake.put_conditions().len(), conditions_before);
+    assert_eq!(mutation_count(&fake, requests_before), 0, "the dry run mutated the remote");
 }

@@ -1,9 +1,11 @@
+#![forbid(unsafe_code)]
+
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use stuff::publish::ExitCode;
-use stuff::publish::r2::credentials::{Environment, resolve};
+use stuff::publish::r2::credentials::resolve;
+use stuff::publish::{Environment, ExitCode};
 
 const FAKE_CF: &str = r#"#!/bin/sh
 case "$1 $2" in

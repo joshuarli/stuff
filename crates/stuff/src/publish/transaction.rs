@@ -68,6 +68,19 @@ impl TransactionReport {
     }
 }
 
+pub struct Pending {
+    client: R2Client,
+    snapshot: Snapshot,
+    registry: Registry,
+    metadata_bucket: String,
+    blobs_bucket: Option<String>,
+    state_dir: PathBuf,
+    options: TransactionOptions,
+    marker: Option<promote::Marker>,
+    expected: Option<String>,
+    _lock: FileLock,
+}
+
 pub struct Transaction {
     client: R2Client,
     registry: Registry,
@@ -84,41 +97,57 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn open(
+    pub fn begin(
         credentials: Credentials,
         registry: Registry,
         config: &Config,
-        site: PathBuf,
         state_dir: PathBuf,
         cache_dir: PathBuf,
         options: TransactionOptions,
-    ) -> Result<Self, PublishError> {
+    ) -> Result<Pending, PublishError> {
         std::fs::create_dir_all(&state_dir).map_err(|error| {
             PublishError::Config(format!(
                 "could not create {}: {error}",
                 state_dir.display()
             ))
         })?;
-        let lock_path = state_dir.join(LOCK_FILE);
-        let lock = FileLock::acquire(&lock_path, options.lock_wait).map_err(|error| match error {
-            LockError::TimedOut => PublishError::Conflict(format!(
-                "another publish holds {}",
-                lock_path.display()
-            )),
-            LockError::Io(error) => PublishError::Config(format!(
-                "could not lock {}: {error}",
-                lock_path.display()
-            )),
-        })?;
+        let lock = acquire_lock(&state_dir, options.lock_wait)?;
         let client = build_client(&credentials, &options);
         let snapshot_client = build_client(&credentials, &options);
         let snapshot = Snapshot::open(snapshot_client, registry, config, cache_dir)?;
         let metadata_bucket = snapshot::metadata_bucket(registry, config);
-        let generation = sync::active_generation(&site)?;
         let marker = promote::read_marker(&client, &metadata_bucket)?;
         let expected = options.expected.clone().or(read_record(&state_dir)?);
-        if let Some(expected) = &expected {
-            let current = marker.as_ref().map(|marker| marker.generation.as_str());
+        let blobs_bucket = (registry == Registry::Oci).then(|| config.oci.blobs_bucket.clone());
+        Ok(Pending {
+            client,
+            snapshot,
+            registry,
+            metadata_bucket,
+            blobs_bucket,
+            state_dir,
+            options,
+            marker,
+            expected,
+            _lock: lock,
+        })
+    }
+}
+
+impl Pending {
+    pub fn client(&self) -> &R2Client {
+        &self.client
+    }
+
+    pub fn snapshot(&self) -> &Snapshot {
+        &self.snapshot
+    }
+
+    pub fn stage_complete(self, site: impl Into<PathBuf>) -> Result<Transaction, PublishError> {
+        let site = site.into();
+        let generation = sync::active_generation(&site)?;
+        if let Some(expected) = &self.expected {
+            let current = self.marker.as_ref().map(|marker| marker.generation.as_str());
             if current != Some(expected.as_str()) && current != Some(generation.as_str()) {
                 return Err(PublishError::Conflict(format!(
                     "remote current is '{}', expected '{expected}'; refusing to overwrite a competing publication",
@@ -126,42 +155,51 @@ impl Transaction {
                 )));
             }
         }
-        guard::check(&client, &metadata_bucket, &site, &generation, options.allow_drops)?;
-        let remote = metadata_index(&snapshot);
-        let excludes: &[&str] = if registry == Registry::Oci {
+        guard::check(
+            &self.client,
+            &self.metadata_bucket,
+            &site,
+            &generation,
+            self.options.allow_drops,
+        )?;
+        let remote = metadata_index(&self.snapshot);
+        let excludes: &[&str] = if self.registry == Registry::Oci {
             &["blobs/"]
         } else {
             &[]
         };
-        let local = sync::collect(&site, &options.upload, excludes)?;
-        let plan = sync::plan(&local, &remote, &options.upload)?;
-        let blobs = if registry == Registry::Oci {
-            let bucket = config.oci.blobs_bucket.clone();
-            let remote = snapshot
-                .listing(&bucket)
-                .map(index_from_listing)
-                .unwrap_or_default();
-            let plan = sync::plan_blobs(&site, &remote, &options.upload)?;
-            Some((bucket, plan))
-        } else {
-            None
+        let local = sync::collect(&site, &self.options.upload, excludes)?;
+        let plan = sync::plan(&local, &remote, &self.options.upload)?;
+        let blobs = match &self.blobs_bucket {
+            Some(bucket) => {
+                let remote = self
+                    .snapshot
+                    .listing(bucket)
+                    .map(index_from_listing)
+                    .unwrap_or_default();
+                let plan = sync::plan_blobs(&site, &remote, &self.options.upload)?;
+                Some((bucket.clone(), plan))
+            }
+            None => None,
         };
         Ok(Transaction {
-            client,
-            registry,
-            metadata_bucket,
+            client: self.client,
+            registry: self.registry,
+            metadata_bucket: self.metadata_bucket,
             blobs,
             site,
-            state_dir,
-            options,
+            state_dir: self.state_dir,
+            options: self.options,
             generation,
-            expected,
-            marker,
+            expected: self.expected,
+            marker: self.marker,
             plan,
-            _lock: lock,
+            _lock: self._lock,
         })
     }
+}
 
+impl Transaction {
     pub fn run(self) -> Result<TransactionReport, PublishError> {
         let metadata = self.plan.report();
         let blobs = self.blobs.as_ref().map(|(_, plan)| plan.report());
@@ -253,17 +291,7 @@ pub fn rollback(
             state_dir.display()
         ))
     })?;
-    let lock_path = state_dir.join(LOCK_FILE);
-    let _lock = FileLock::acquire(&lock_path, lock_wait).map_err(|error| match error {
-        LockError::TimedOut => PublishError::Conflict(format!(
-            "another publish holds {}",
-            lock_path.display()
-        )),
-        LockError::Io(error) => PublishError::Config(format!(
-            "could not lock {}: {error}",
-            lock_path.display()
-        )),
-    })?;
+    let _lock = acquire_lock(&state_dir, lock_wait)?;
     let client = R2Client::new(credentials);
     let marker = promote::read_marker(&client, bucket)?;
     let would_change = marker
@@ -331,6 +359,20 @@ pub fn write_record(state_dir: &Path, generation: &str) -> Result<(), PublishErr
     })?;
     std::fs::rename(&temporary, &path).map_err(|error| {
         PublishError::Config(format!("could not rename {}: {error}", path.display()))
+    })
+}
+
+fn acquire_lock(state_dir: &Path, wait: Duration) -> Result<FileLock, PublishError> {
+    let lock_path = state_dir.join(LOCK_FILE);
+    FileLock::acquire(&lock_path, wait).map_err(|error| match error {
+        LockError::TimedOut => PublishError::Conflict(format!(
+            "another publish holds {}",
+            lock_path.display()
+        )),
+        LockError::Io(error) => PublishError::Config(format!(
+            "could not lock {}: {error}",
+            lock_path.display()
+        )),
     })
 }
 

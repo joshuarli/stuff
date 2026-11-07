@@ -56,7 +56,8 @@ fn run_publish(parsed: &stuff::cli::Parsed) -> Result<i32> {
         .request
         .clone()
         .ok_or_else(|| Error::usage("missing publishing request"))?;
-    match stuff::publish::run(request) {
+    let environment = stuff::publish::Environment::from_pairs(std::env::vars());
+    match stuff::publish::run(request, &environment) {
         Ok(_outcome) => Ok(0),
         Err(error) => {
             eprintln!("stuff: {error}");

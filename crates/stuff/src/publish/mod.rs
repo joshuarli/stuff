@@ -2,6 +2,7 @@
 
 pub mod cargo;
 pub mod config;
+pub mod environment;
 pub mod inventory;
 pub mod npm;
 pub mod oci;
@@ -9,7 +10,10 @@ pub mod paths;
 pub mod pypi;
 pub mod r2;
 pub mod snapshot;
+pub(crate) mod staging;
 pub mod transaction;
+
+pub use environment::Environment;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Registry {
@@ -236,24 +240,24 @@ impl std::fmt::Display for PublishError {
 
 impl std::error::Error for PublishError {}
 
-pub fn run(request: Request) -> Result<Outcome, PublishError> {
+pub fn run(request: Request, environment: &Environment) -> Result<Outcome, PublishError> {
     match request {
         Request::Publish {
             request: PublishRequest::Cargo(cargo),
             options,
-        } => cargo::run::publish(&cargo, options),
+        } => cargo::run::publish(&cargo, options, environment),
         Request::Publish {
             request: PublishRequest::Npm(request),
             options,
-        } => npm::publish(&request, options),
+        } => npm::publish(&request, options, environment),
         Request::Publish {
             request: PublishRequest::Oci(source),
             options,
-        } => oci::publish(&source, &options),
+        } => oci::publish(&source, &options, environment),
         Request::Publish {
             request: PublishRequest::Pypi(specs),
             options,
-        } => pypi::run(&specs, &options),
+        } => pypi::run(&specs, &options, environment),
         request => Err(PublishError::Unavailable {
             command: request.command(),
             registry: request.registry().as_str(),
@@ -334,7 +338,7 @@ mod tests {
     #[test]
     fn unavailable_names_the_command_and_registry() {
         for registry in [Registry::Cargo, Registry::Npm, Registry::Pypi, Registry::Oci] {
-            let error = run(request(registry)).unwrap_err();
+            let error = run(request(registry), &Environment::default()).unwrap_err();
             assert_eq!(
                 error.to_string(),
                 format!("republish {} is not available in this build", registry.as_str())

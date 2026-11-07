@@ -50,8 +50,16 @@ impl Workspace {
     }
 
     fn publish(&self) -> Output {
+        self.publish_args(&["publish", "pypi", "validation-fixture==1.0"])
+    }
+
+    fn dry_run(&self) -> Output {
+        self.publish_args(&["publish", "pypi", "validation-fixture==1.0", "--dry-run"])
+    }
+
+    fn publish_args(&self, args: &[&str]) -> Output {
         Command::new(env!("CARGO_BIN_EXE_stuff"))
-            .args(["publish", "pypi", "validation-fixture==1.0"])
+            .args(args)
             .env("R2_S3_ENDPOINT", self.fake.base_url())
             .env("R2_S3_ACCESS_KEY_ID", ACCESS_KEY)
             .env("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY)
@@ -218,4 +226,31 @@ fn a_publish_from_the_pulled_generation_is_unchanged_and_promotes_nothing() {
             .any(|request| request.method == "GET" && request.path == manifest),
         "the repeated publish did not pull the live generation"
     );
+}
+
+#[test]
+fn a_pypi_dry_run_leaves_local_state_and_remote_unchanged() {
+    let work = Workspace::new();
+    assert_success(&work.publish());
+
+    let state_before = tree(&work.root.path().join("state"));
+    let remote_before = object_snapshot(&work.fake);
+    let requests = work.fake.requests().len();
+    let conditions = work.fake.put_conditions().len();
+    assert!(!state_before.is_empty(), "the first publish wrote no local state");
+
+    assert_success(&work.dry_run());
+
+    assert_eq!(
+        tree(&work.root.path().join("state")),
+        state_before,
+        "the dry run changed local state"
+    );
+    assert_eq!(object_snapshot(&work.fake), remote_before, "the dry run changed the remote");
+    assert_eq!(work.fake.put_conditions().len(), conditions);
+    let mutations = work.fake.requests()[requests..]
+        .iter()
+        .filter(|request| matches!(request.method.as_str(), "PUT" | "POST" | "DELETE"))
+        .count();
+    assert_eq!(mutations, 0, "the dry run mutated the remote");
 }

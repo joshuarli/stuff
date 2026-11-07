@@ -9,13 +9,18 @@ use super::store::Store;
 use super::{Limits, Rejection, RejectionKind};
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
-use crate::publish::r2::credentials::{Environment, resolve};
+use crate::publish::r2::credentials::resolve;
+use crate::publish::staging::Staging;
 use crate::publish::transaction::{Transaction, TransactionOptions};
-use crate::publish::{CargoPublish, Options, Outcome, PublishError, Registry};
+use crate::publish::{CargoPublish, Environment, Options, Outcome, PublishError, Registry};
 
 pub const DEFAULT_REGISTRY: &str = "stuff";
 
-pub fn publish(request: &CargoPublish, options: Options) -> Result<Outcome, PublishError> {
+pub fn publish(
+    request: &CargoPublish,
+    options: Options,
+    environment: &Environment,
+) -> Result<Outcome, PublishError> {
     if request.packages.is_empty() {
         return Err(PublishError::Usage(
             "publish cargo requires at least one -p NAME".to_string(),
@@ -24,13 +29,32 @@ pub fn publish(request: &CargoPublish, options: Options) -> Result<Outcome, Publ
     let registry = request.registry.as_deref().unwrap_or(DEFAULT_REGISTRY);
     validate_registry_name(registry)?;
 
-    let paths = Paths::from_env(|name| std::env::var(name).ok());
+    let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let state_dir = paths.state_dir(Registry::Cargo.as_str());
     let cache_dir = paths.cache_dir(Registry::Cargo.as_str());
-    let site_dir = cache_dir.join("site");
-    let r2_cache = cache_dir.join("r2");
-    let cargo_home = cache_dir.join("cargo-home");
+    let credentials = resolve(environment, &config.cargo.bucket)?;
+    let staging = if options.dry_run {
+        Some(Staging::create(&cache_dir, "cargo-dry-run")?)
+    } else {
+        None
+    };
+    let (store_state, site_dir, transaction_state, cargo_home, snapshot_cache) = match &staging {
+        Some(staging) => (
+            staging.join("state"),
+            staging.join("site"),
+            staging.join("transaction"),
+            staging.join("cargo-home"),
+            staging.join("cache"),
+        ),
+        None => (
+            state_dir.clone(),
+            cache_dir.join("site"),
+            state_dir,
+            cache_dir.join("cargo-home"),
+            cache_dir,
+        ),
+    };
     std::fs::create_dir_all(&cargo_home).map_err(|error| {
         PublishError::Config(format!(
             "could not create {}: {error}",
@@ -38,8 +62,20 @@ pub fn publish(request: &CargoPublish, options: Options) -> Result<Outcome, Publ
         ))
     })?;
 
+    let pending = Transaction::begin(
+        credentials,
+        Registry::Cargo,
+        &config,
+        transaction_state,
+        snapshot_cache,
+        TransactionOptions {
+            dry_run: options.dry_run,
+            ..TransactionOptions::default()
+        },
+    )?;
+
     let server = PublishServer::start(ServerConfig {
-        state_dir: state_dir.clone(),
+        state_dir: store_state.clone(),
         site_dir: site_dir.clone(),
         public_base_url: config.cargo.public_base_url.clone(),
         auth_required: false,
@@ -54,11 +90,12 @@ pub fn publish(request: &CargoPublish, options: Options) -> Result<Outcome, Publ
             server.base_url(),
             server.token(),
             &cargo_home,
+            environment,
         )?;
     }
     drop(server);
 
-    let store = Store::new(&state_dir);
+    let store = Store::new(&store_state);
     store
         .with_lock(|| {
             Publisher::new(
@@ -71,19 +108,7 @@ pub fn publish(request: &CargoPublish, options: Options) -> Result<Outcome, Publ
         })
         .map_err(rejection_error)?;
 
-    let credentials = resolve(&Environment::from_process(), &config.cargo.bucket)?;
-    let transaction = Transaction::open(
-        credentials,
-        Registry::Cargo,
-        &config,
-        site_dir,
-        state_dir,
-        r2_cache,
-        TransactionOptions {
-            dry_run: options.dry_run,
-            ..TransactionOptions::default()
-        },
-    )?;
+    let transaction = pending.stage_complete(site_dir)?;
     Ok(transaction.run()?.outcome())
 }
 
@@ -94,10 +119,13 @@ fn cargo_publish(
     base_url: &str,
     token: &str,
     cargo_home: &Path,
+    environment: &Environment,
 ) -> Result<(), PublishError> {
     let suffix = registry.to_ascii_uppercase().replace('-', "_");
     let mut command = Command::new("cargo");
     command
+        .env_clear()
+        .envs(environment.variables())
         .arg("publish")
         .arg("--registry")
         .arg(registry)
