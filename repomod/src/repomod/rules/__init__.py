@@ -18,6 +18,7 @@ from repomod.rules.python_standard import python_standard_rules
 from repomod.rules.registry_sources import registry_sources_rules
 from repomod.rules.release import release_rules
 from repomod.rules.runners import runner_rules
+from repomod.rules.rust_collections import rust_collection_rules
 from repomod.rules.rust_profiles import rust_release_profiles_rules
 from repomod.rules.rust_toolchain import rust_toolchain_rules
 from repomod.rules.template import template_rules
@@ -59,6 +60,7 @@ def rules() -> tuple[Rule, ...]:
         *release_rules(),
         *rust_toolchain_rules(),
         *rust_release_profiles_rules(),
+        *rust_collection_rules(),
         Rule(
             "topics",
             "Compare GitHub repository topics with catalog tags",

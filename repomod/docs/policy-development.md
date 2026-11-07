@@ -319,6 +319,15 @@ Applications use `anyhow`; libraries use `thiserror`. Parametrize with
 `rstest`; keep `proptest` for property-based tests and migrate `test-case`
 to `rstest` when touched.
 
+`rust-collections` bans `std::collections::BTreeMap` and `std::collections::BTreeSet` in
+first-party Rust source. It reports every usage with its file, line, and column. Use a hash
+collection instead: `rustc-hash` 2.x for small integer-heavy maps and sets, `rapidhash::fast`
+for general-purpose performance, and `foldhash::fast` when using `hashbrown` without a
+compelling reason to override its default. Hash collections are unordered, so code that
+depends on sorted iteration must sort explicitly. The rule skips repositories tagged `fork`
+and paths excluded from the Cargo workspace, ignores comments and string literals, and has no
+fixer because the replacement and ordering behavior are per-site decisions.
+
 `conventional-commits` requires Conventional Commit subjects (`type[(scope)][!]: description`
 with one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `revert`)
 on open pull requests; drafts are skipped and overlong subjects warn. It is lint-only with no
