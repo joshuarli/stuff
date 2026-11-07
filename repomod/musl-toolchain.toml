@@ -151,20 +151,20 @@ zlib-dev = "1.3.2-r1"
 zlib-static = "1.3.2-r1"
 
 [toolchain]
-llvm_version = "23.1.0-rc2"
-llvm_release = "6eb5fb9"
+llvm_version = "23.1.5"
+llvm_release = "4c2254e"
 mold_version = "3.0.0"
 mold_release = "cfb4aab"
 rustup_version = "1.29.1"
 musl_sha256 = "d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a"
 
 [toolchain.archives.llvm.x86_64]
-url = "https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.0-rc2-6eb5fb9/clang+llvm-23.1.0-rc2-x86_64-linux-musl.tar.xz"
-sha256 = "36647cca0bf57d206a6ce757d07a9d8489ef6ccf283a2cc7f740d1cba99a088b"
+url = "https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-x86_64-linux-musl.tar.xz"
+sha256 = "9f599abd0caf81df64fdf70442ef2c39cb701d346030643193b39a743ad43ce0"
 
 [toolchain.archives.llvm.aarch64]
-url = "https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.0-rc2-6eb5fb9/clang+llvm-23.1.0-rc2-aarch64-linux-musl.tar.xz"
-sha256 = "0c9bd6f0fefa26dbdb7d6ed568f3799b558428b1ce1264656aa328fc6fd9e32d"
+url = "https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-aarch64-linux-musl.tar.xz"
+sha256 = "187e71574399adaedd6077ffb5e4b20900aa29f32c3f131db2f4440273b75444"
 
 [toolchain.archives.mold.x86_64]
 url = "https://github.com/joshuarli/mold/releases/download/mold-musl-3.0.0-cfb4aab/mold-3.0.0-x86_64-linux-musl.tar.gz"
