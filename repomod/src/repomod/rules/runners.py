@@ -18,7 +18,8 @@ _UBUNTU_RUNNER = re.compile(
     r"(?<![\w.-])ubuntu-(?P<version>latest|\d+(?:\.\d+)?)"
     r"(?P<arm>-arm)?(?![\w.-])"
 )
-_UBUNTU_ARM_RUNNER = "ubuntu-24.04-arm"
+_UBUNTU_ARM_RUNNER = "ubuntu-26.04-arm"
+_UBUNTU_X86_RUNNER = "ubuntu-26.04"
 _RUNNER_DECLARATION = re.compile(
     r"(?:^|[\s{,])(?:runs-on|os|macos|ubuntu|runner)\s*:"
 )
@@ -52,17 +53,15 @@ def _macos_repaired(match: re.Match[str]) -> str:
 
 
 def _ubuntu_accepted(match: re.Match[str]) -> bool:
-    version = str(match.group("version"))
-    arm = match.group("arm")
-    return (version == "latest" and arm is None) or (
-        version == "24.04" and arm is not None
-    )
+    return str(match.group("version")) == "26.04"
 
 
 def _ubuntu_repaired(match: re.Match[str]) -> str:
     if _ubuntu_accepted(match):
         return str(match.group(0))
-    return _UBUNTU_ARM_RUNNER if match.group("arm") is not None else "ubuntu-latest"
+    if match.group("arm") is not None or str(match.group("version")) == "latest":
+        return _UBUNTU_ARM_RUNNER
+    return _UBUNTU_X86_RUNNER
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,11 +147,11 @@ _MACOS_POLICY = RunnerPolicy(
 )
 _UBUNTU_POLICY = RunnerPolicy(
     "gha-ubuntu",
-    "Require ubuntu-latest GitHub Actions runners",
+    "Require Ubuntu 26.04 runners and prefer the ARM image",
     "chore(repomod): update ubuntu runners",
     "Ubuntu",
     _UBUNTU_RUNNER,
-    f"use ubuntu-latest or {_UBUNTU_ARM_RUNNER}",
+    f"use {_UBUNTU_ARM_RUNNER}, or {_UBUNTU_X86_RUNNER} for an x86-only job",
     _ubuntu_accepted,
     _ubuntu_repaired,
 )

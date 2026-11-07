@@ -120,7 +120,7 @@ def test_version_pinned_ubuntu_runners_are_fixable(tmp_path: Path) -> None:
         "        os: [ubuntu-24.04, ubuntu-26.04, ubuntu-latest-arm]\n"
         "  arm:\n"
         "    runs-on: ubuntu-22.04-arm\n"
-        "  accepted:\n"
+        "  old_arm:\n"
         "    runs-on: ubuntu-24.04-arm\n"
         "  custom:\n"
         "    runs-on: ubuntu-24.04-16core\n"
@@ -131,20 +131,22 @@ def test_version_pinned_ubuntu_runners_are_fixable(tmp_path: Path) -> None:
 
     assert [(finding.line, finding.column) for finding in current] == [
         (3, 14),
+        (5, 14),
         (9, 14),
-        (9, 28),
         (9, 42),
         (11, 14),
+        (13, 14),
     ]
     assert all(finding.fixable for finding in current)
+    assert all("ubuntu-26.04-arm" in finding.message for finding in current)
 
     plan = _UBUNTU_POLICY.fix(tmp_path, repository())
 
     assert list(plan) == [".github/workflows/ci.yml"]
     repaired = plan[".github/workflows/ci.yml"]
-    assert "runs-on: ubuntu-latest\n" in repaired
-    assert "[ubuntu-latest, ubuntu-latest, ubuntu-24.04-arm]" in repaired
-    assert "runs-on: ubuntu-24.04-arm\n" in repaired
+    assert "runs-on: ubuntu-26.04\n" in repaired
+    assert "runs-on: ubuntu-26.04-arm\n" in repaired
+    assert "[ubuntu-26.04, ubuntu-26.04, ubuntu-26.04-arm]" in repaired
     assert "runs-on: ubuntu-24.04-16core\n" in repaired
     path.write_text(repaired, encoding="utf-8")
 
@@ -176,7 +178,7 @@ def test_comments_and_non_runner_mentions_are_not_reported(tmp_path: Path) -> No
         "jobs:\n"
         "  test:\n"
         "    name: build on macos-15\n"
-        "    runs-on: ubuntu-latest\n"
+        "    runs-on: ubuntu-26.04-arm\n"
         "    steps:\n"
         "      - name: build on macos-15\n"
         "      - name: test on ubuntu-22.04\n"

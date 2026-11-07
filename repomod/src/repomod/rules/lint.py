@@ -164,7 +164,7 @@ def _lint_workflow_source(root: Path, languages: set[str]) -> str:
         "jobs:",
         "  lint:",
         "    name: lint",
-        "    runs-on: ubuntu-latest",
+        "    runs-on: ubuntu-26.04-arm",
         "    permissions:",
         "      contents: read",
         "    steps:",

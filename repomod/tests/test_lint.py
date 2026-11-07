@@ -44,6 +44,7 @@ def test_missing_lint_workflow_is_fixable_and_template_runs_make_lint(
     rendered = (tmp_path / ".github" / "workflows" / "lint.yml").read_text(encoding="utf-8")
     assert "run: make lint" in rendered
     assert "actions/checkout@" in rendered
+    assert "runs-on: ubuntu-26.04-arm" in rendered
 
 
 def test_lint_template_provisions_python_and_typescript_toolchains(tmp_path: Path) -> None:
