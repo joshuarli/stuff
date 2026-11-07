@@ -95,6 +95,7 @@ pub fn publish(
 
     let server = PublishServer::start(ServerConfig {
         state_dir: work_state.clone(),
+        published_state_dir: layout.state_dir.clone(),
         site_dir: server_site,
         public_base_url: config.cargo.public_base_url.clone(),
         auth_required: false,

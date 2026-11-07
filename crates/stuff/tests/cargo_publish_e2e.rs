@@ -478,3 +478,40 @@ fn a_cargo_dry_run_leaves_the_local_store_and_remote_unchanged() {
     assert_eq!(fake.put_conditions().len(), conditions_before);
     assert_eq!(mutation_count(&fake, requests_before), 0, "the dry run mutated the remote");
 }
+
+#[test]
+fn a_native_crate_depending_on_a_published_native_crate_verifies_and_publishes() {
+    let work = scratch_root();
+    let fake = FakeS3::start_verified();
+    let environment = environment(work.path(), &fake);
+    write_config(work.path());
+
+    let base_dir = work.path().join("base");
+    copy_tree(&fixture_crate(), &base_dir);
+    let base = stuff::publish::run(publish_request(&base_dir.join("Cargo.toml")), &environment)
+        .expect("publish the dependency");
+    assert_eq!(base.status, Status::Published, "{base:?}");
+
+    let dependent_dir = work.path().join("dependent");
+    fs::create_dir_all(dependent_dir.join("src")).expect("create dependent source");
+    fs::write(
+        dependent_dir.join("Cargo.toml"),
+        format!(
+            "[package]\nname = \"stuff-cargo-publish-dependent\"\nversion = \"0.1.0\"\nedition = \"2021\"\ndescription = \"Depends on a native crate that is already published\"\nlicense = \"Apache-2.0\"\n\n[dependencies]\n{PACKAGE} = {{ version = \"0.1.0\", registry = \"{REGISTRY}\" }}\n\n[workspace]\n"
+        ),
+    )
+    .expect("write dependent manifest");
+    fs::write(dependent_dir.join("src/lib.rs"), "pub fn present() {}\n")
+        .expect("write dependent source");
+
+    let request = Request::Publish {
+        request: PublishRequest::Cargo(CargoPublish {
+            packages: vec!["stuff-cargo-publish-dependent".to_string()],
+            manifest_path: Some(dependent_dir.join("Cargo.toml").display().to_string()),
+            registry: Some(REGISTRY.to_string()),
+        }),
+        options: Options::default(),
+    };
+    let outcome = stuff::publish::run(request, &environment).expect("publish the dependent");
+    assert_eq!(outcome.status, Status::Published, "{outcome:?}");
+}

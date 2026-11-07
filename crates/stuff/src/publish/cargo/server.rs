@@ -20,6 +20,7 @@ const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub state_dir: PathBuf,
+    pub published_state_dir: PathBuf,
     pub site_dir: PathBuf,
     pub public_base_url: String,
     pub auth_required: bool,
@@ -49,6 +50,7 @@ impl PublishServer {
         let flag = Arc::clone(&shutdown);
         let context = Arc::new(Context {
             state_dir: config.state_dir,
+            published_state_dir: config.published_state_dir,
             site_dir: config.site_dir,
             public_base_url: config.public_base_url,
             auth_required: config.auth_required,
@@ -94,6 +96,7 @@ impl Drop for PublishServer {
 
 struct Context {
     state_dir: PathBuf,
+    published_state_dir: PathBuf,
     site_dir: PathBuf,
     public_base_url: String,
     auth_required: bool,
@@ -211,6 +214,12 @@ fn serve_read(stream: &mut TcpStream, context: &Context, path: &str, head: bool)
             respond(stream, 200, "application/json", body.as_bytes())
         };
     }
+    if let Some(rest) = path.strip_prefix("/blobs/")
+        && let Some(checksum) = blob_checksum(rest)
+        && !context.site_dir.join("blobs").join(rest).is_file()
+    {
+        return serve_published_blob(stream, context, checksum, head);
+    }
     let (root, rest) = if let Some(rest) = path.strip_prefix("/index/") {
         (context.site_dir.join("current").join("registry"), rest)
     } else if let Some(rest) = path.strip_prefix("/blobs/") {
@@ -237,6 +246,41 @@ fn serve_read(stream: &mut TcpStream, context: &Context, path: &str, head: bool)
         let mut file = file;
         io::copy(&mut file, stream)?;
     }
+    stream.flush()
+}
+
+fn blob_checksum(segment: &str) -> Option<&str> {
+    let checksum = segment.strip_suffix(".crate")?;
+    let valid = checksum.len() == 64
+        && checksum
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+    valid.then_some(checksum)
+}
+
+fn serve_published_blob(
+    stream: &mut TcpStream,
+    context: &Context,
+    checksum: &str,
+    head: bool,
+) -> io::Result<()> {
+    let local = Store::new(&context.published_state_dir).blob_path(checksum);
+    if let Ok(file) = fs::File::open(&local) {
+        write_head(stream, 200, "application/x-tar", file.metadata()?.len())?;
+        if !head {
+            let mut file = file;
+            io::copy(&mut file, stream)?;
+        }
+        return stream.flush();
+    }
+    let location = format!(
+        "{}/blobs/{checksum}.crate",
+        context.public_base_url.trim_end_matches('/')
+    );
+    let response = format!(
+        "HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    );
+    stream.write_all(response.as_bytes())?;
     stream.flush()
 }
 
@@ -410,6 +454,54 @@ fn safe_relative(rest: &str) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Read;
+
+    fn get(server: &PublishServer, target: &str) -> String {
+        let mut stream = TcpStream::connect(server.address).unwrap();
+        write!(stream, "GET {target} HTTP/1.1\r\nHost: x\r\n\r\n").unwrap();
+        let mut response = String::new();
+        stream.read_to_string(&mut response).unwrap();
+        response
+    }
+
+    #[test]
+    fn a_blob_missing_from_the_site_is_served_locally_or_redirected_to_the_public_registry() {
+        let root = tempfile::tempdir().unwrap();
+        let published = root.path().join("published");
+        let store = Store::new(&published);
+        store.ensure_dirs().unwrap();
+        let local = "a".repeat(64);
+        fs::write(store.blob_path(&local), b"local bytes").unwrap();
+        let server = PublishServer::start(ServerConfig {
+            state_dir: root.path().join("work"),
+            published_state_dir: published,
+            site_dir: root.path().join("site"),
+            public_base_url: "https://crates.example.test/".to_string(),
+            auth_required: false,
+            token: "token".to_string(),
+            limits: Limits::default(),
+        })
+        .unwrap();
+
+        let served = get(&server, &format!("/blobs/{local}.crate"));
+        assert!(served.starts_with("HTTP/1.1 200 "), "{served}");
+        assert!(served.ends_with("local bytes"), "{served}");
+
+        let remote = "b".repeat(64);
+        let redirected = get(&server, &format!("/blobs/{remote}.crate"));
+        assert!(redirected.starts_with("HTTP/1.1 307 "), "{redirected}");
+        assert!(
+            redirected.contains(&format!(
+                "Location: https://crates.example.test/blobs/{remote}.crate\r\n"
+            )),
+            "{redirected}"
+        );
+
+        for bad in ["..%2f..", "ABCDEF", &format!("{}.crate", "A".repeat(64)), "short.crate"] {
+            let response = get(&server, &format!("/blobs/{bad}"));
+            assert!(response.starts_with("HTTP/1.1 404 "), "{bad}: {response}");
+        }
+    }
 
     #[test]
     fn only_plain_relative_paths_are_served() {
