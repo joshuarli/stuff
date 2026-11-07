@@ -1,6 +1,12 @@
 #![forbid(unsafe_code)]
 
 use crate::error::Error;
+use crate::publish::config::Config;
+use crate::publish::paths::Paths;
+use crate::publish::r2::client::{Credentials, R2Client};
+use crate::publish::r2::promote;
+use crate::publish::snapshot;
+use crate::publish::{Environment, Registry};
 use crate::source::{fetch_bytes, LocalSite};
 use stuff_catalog::{
     DEFAULT_CARGO_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_OCI_ORIGIN, DEFAULT_PYPI_ORIGIN,
@@ -19,11 +25,15 @@ pub struct RegistrySources {
 }
 
 impl RegistrySources {
-    pub fn from_parsed(parsed: &crate::cli::Parsed) -> crate::error::Result<Self> {
-        let cargo_base = parsed.cargo_base.clone().or_else(|| std::env::var("STUFF_CARGO_BASE").ok());
-        let npm_base = parsed.npm_base.clone().or_else(|| std::env::var("STUFF_NPM_BASE").ok());
-        let pypi_base = parsed.pypi_base.clone().or_else(|| std::env::var("STUFF_PYPI_BASE").ok());
-        let oci_base = parsed.oci_base.clone().or_else(|| std::env::var("STUFF_OCI_BASE").ok());
+    pub fn from_parsed(
+        parsed: &crate::cli::Parsed,
+        environment: &Environment,
+    ) -> crate::error::Result<Self> {
+        let from_environment = |name: &str| environment.get(name).map(str::to_string);
+        let cargo_base = parsed.cargo_base.clone().or_else(|| from_environment("STUFF_CARGO_BASE"));
+        let npm_base = parsed.npm_base.clone().or_else(|| from_environment("STUFF_NPM_BASE"));
+        let pypi_base = parsed.pypi_base.clone().or_else(|| from_environment("STUFF_PYPI_BASE"));
+        let oci_base = parsed.oci_base.clone().or_else(|| from_environment("STUFF_OCI_BASE"));
         let explicit_base = [
             ("cargo", cargo_base.is_some()),
             ("npm", npm_base.is_some()),
@@ -157,14 +167,20 @@ impl Check {
     }
 }
 
-pub fn run_doctor(parsed: &crate::cli::Parsed) -> crate::error::Result<bool> {
-    let checks = doctor_checks(parsed)?;
+pub fn run_doctor(
+    parsed: &crate::cli::Parsed,
+    environment: &Environment,
+) -> crate::error::Result<bool> {
+    let checks = doctor_checks(parsed, environment)?;
     report(&checks);
     Ok(checks.iter().all(|c| c.state != CheckState::Fail))
 }
 
-fn doctor_checks(parsed: &crate::cli::Parsed) -> crate::error::Result<Vec<Check>> {
-    let sources = RegistrySources::from_parsed(parsed)?;
+fn doctor_checks(
+    parsed: &crate::cli::Parsed,
+    environment: &Environment,
+) -> crate::error::Result<Vec<Check>> {
+    let sources = RegistrySources::from_parsed(parsed, environment)?;
     let filter = parsed.registry_filter();
     let sample = parsed.sample_artifacts;
     let mut checks: Vec<Check> = Vec::new();
@@ -224,8 +240,52 @@ fn doctor_checks(parsed: &crate::cli::Parsed) -> crate::error::Result<Vec<Check>
         } else {
             run_remote_checks(&mut checks, name, catalog, &sources, sample);
         }
+        checks.push(live_generation_check(name, environment));
     }
     Ok(checks)
+}
+
+fn live_generation_check(name: &str, environment: &Environment) -> Check {
+    let label = format!("{name} live generation");
+    let credentials =
+        match Credentials::from_env(|variable| environment.get(variable).map(str::to_string)) {
+            Ok(credentials) => credentials,
+            Err(_) => {
+                return Check::skip(
+                    label,
+                    "set R2_S3_ENDPOINT, R2_S3_ACCESS_KEY_ID, and R2_S3_SECRET_ACCESS_KEY to verify the live bucket",
+                )
+            }
+        };
+    let Some(registry) = Registry::parse(name) else {
+        return Check::skip(label, format!("{name} is not a publishing registry"));
+    };
+    let config = match Config::load(&Paths::from_environment(environment).config_file()) {
+        Ok(config) => config,
+        Err(error) => return Check::fail(label, error),
+    };
+    let bucket = snapshot::metadata_bucket(registry, &config);
+    let client = R2Client::new(credentials);
+    let marker = match promote::read_marker(&client, &bucket) {
+        Ok(Some(marker)) => marker,
+        Ok(None) => {
+            return Check::fail(label, format!("{bucket}/current is missing"));
+        }
+        Err(error) => {
+            return Check::fail(label, format!("{error} [exit {}]", error.exit_code()));
+        }
+    };
+    match promote::verify_generation(&client, &bucket, &marker.generation) {
+        Ok(manifest) => Check::pass(
+            label,
+            format!(
+                "current {} manifest verifies ({} objects)",
+                marker.generation,
+                manifest.objects.len()
+            ),
+        ),
+        Err(error) => Check::fail(label, format!("{error} [exit {}]", error.exit_code())),
+    }
 }
 
 fn origin_for(name: &str, sources: &RegistrySources) -> String {
@@ -1051,7 +1111,7 @@ mod tests {
     fn usage_errors_exit_two() {
         let mut parsed = doctor_parsed();
         parsed.cargo_base = Some("http://example.com".to_string());
-        let err = run_doctor(&parsed).unwrap_err();
+        let err = run_doctor(&parsed, &Environment::default()).unwrap_err();
         assert!(matches!(err, Error::Usage(_)), "{err}");
         assert_eq!(err.exit_code(), 2);
     }
@@ -1163,7 +1223,11 @@ mod tests {
             let mut parsed = doctor_parsed();
             parsed.cargo_dir = Some(input.to_string_lossy().to_string());
             parsed.sample_artifacts = true;
-            assert!(run_doctor(&parsed).unwrap(), "doctor failed for {}", input.display());
+            assert!(
+                run_doctor(&parsed, &Environment::default()).unwrap(),
+                "doctor failed for {}",
+                input.display()
+            );
         }
     }
 
@@ -1241,12 +1305,12 @@ mod tests {
 
         let mut parsed = doctor_parsed();
         parsed.oci_dir = Some(site.to_string_lossy().to_string());
-        let checks = doctor_checks(&parsed).unwrap();
+        let checks = doctor_checks(&parsed, &Environment::default()).unwrap();
         for name in ["oci manifest example/app:stable", "oci config example/app:stable"] {
             let check = checks.iter().find(|check| check.name == name).unwrap();
             assert_eq!(check.state, CheckState::Pass, "{}: {}", check.name, check.detail);
         }
-        assert!(run_doctor(&parsed).unwrap());
+        assert!(run_doctor(&parsed, &Environment::default()).unwrap());
     }
 
     #[test]
@@ -1255,21 +1319,22 @@ mod tests {
         let (_, site, _) = cargo_fixture(dir.path(), b"crate-bytes");
         let mut parsed = doctor_parsed();
         parsed.cargo_dir = Some(site.to_string_lossy().to_string());
-        let checks = doctor_checks(&parsed).unwrap();
+        let checks = doctor_checks(&parsed, &Environment::default()).unwrap();
         let skipped: Vec<&str> = checks
             .iter()
             .filter(|check| check.state == CheckState::Skip)
             .map(|check| check.name.as_str())
+            .filter(|name| name.ends_with(" registry"))
             .collect();
         assert_eq!(skipped, vec!["npm registry", "pypi registry", "oci registry"]);
         assert!(checks.iter().all(|check| check.state != CheckState::Fail));
 
         parsed.expected_generation = Some("gen1".to_string());
-        let err = run_doctor(&parsed).unwrap_err();
+        let err = run_doctor(&parsed, &Environment::default()).unwrap_err();
         assert!(matches!(err, Error::Usage(_)), "{err}");
 
         parsed.registry = Some(crate::cli::RegistryFilter::Cargo);
-        assert!(run_doctor(&parsed).unwrap());
+        assert!(run_doctor(&parsed, &Environment::default()).unwrap());
     }
 
     #[test]

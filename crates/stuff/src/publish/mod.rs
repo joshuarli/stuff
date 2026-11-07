@@ -9,6 +9,7 @@ pub mod oci;
 pub mod paths;
 pub mod pypi;
 pub mod r2;
+pub mod rollback;
 pub mod snapshot;
 pub(crate) mod staging;
 pub mod transaction;
@@ -258,6 +259,11 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             request: PublishRequest::Pypi(specs),
             options,
         } => pypi::run(&specs, &options, environment),
+        Request::Rollback {
+            registry,
+            generation,
+            options,
+        } => rollback::rollback(registry, &generation, &options, environment),
         request => Err(PublishError::Unavailable {
             command: request.command(),
             registry: request.registry().as_str(),

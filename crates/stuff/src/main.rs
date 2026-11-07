@@ -3,6 +3,7 @@
 use stuff::cli::{parse_args, print_help, render_table, Command};
 use stuff::doctor::{load_catalogs, run_doctor, RegistrySources};
 use stuff::error::{Error, Result};
+use stuff::publish::Environment;
 
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
@@ -23,7 +24,7 @@ fn main() {
             std::process::exit(e.exit_code());
         }
     };
-    let code = match run(&parsed) {
+    let code = match run(&parsed, &Environment::from_pairs(std::env::vars())) {
         Ok(code) => code,
         Err(e) => {
             eprintln!("stuff: {e}");
@@ -40,24 +41,25 @@ fn is_publishing(argv: &[String]) -> bool {
     )
 }
 
-fn run(parsed: &stuff::cli::Parsed) -> Result<i32> {
+fn run(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<i32> {
     match parsed.command {
-        Command::Ls => run_ls(parsed).map(|()| 0),
-        Command::Search => run_search(parsed).map(|()| 0),
+        Command::Ls => run_ls(parsed, environment).map(|()| 0),
+        Command::Search => run_search(parsed, environment).map(|()| 0),
         Command::Diff => run_diff(parsed).map(|()| 0),
-        Command::Doctor => Ok(if run_doctor(parsed)? { 0 } else { 1 }),
-        Command::Render => run_render(parsed).map(|()| 0),
-        Command::Publish | Command::Republish | Command::Rollback => run_publish(parsed),
+        Command::Doctor => Ok(if run_doctor(parsed, environment)? { 0 } else { 1 }),
+        Command::Render => run_render(parsed, environment).map(|()| 0),
+        Command::Publish | Command::Republish | Command::Rollback => {
+            run_publish(parsed, environment)
+        }
     }
 }
 
-fn run_publish(parsed: &stuff::cli::Parsed) -> Result<i32> {
+fn run_publish(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<i32> {
     let request = parsed
         .request
         .clone()
         .ok_or_else(|| Error::usage("missing publishing request"))?;
-    let environment = stuff::publish::Environment::from_pairs(std::env::vars());
-    match stuff::publish::run(request, &environment) {
+    match stuff::publish::run(request, environment) {
         Ok(_outcome) => Ok(0),
         Err(error) => {
             eprintln!("stuff: {error}");
@@ -66,8 +68,8 @@ fn run_publish(parsed: &stuff::cli::Parsed) -> Result<i32> {
     }
 }
 
-fn run_ls(parsed: &stuff::cli::Parsed) -> Result<()> {
-    let sources = RegistrySources::from_parsed(parsed)?;
+fn run_ls(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<()> {
+    let sources = RegistrySources::from_parsed(parsed, environment)?;
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     if parsed.json {
         print!("{{\"catalogs\":[");
@@ -84,8 +86,8 @@ fn run_ls(parsed: &stuff::cli::Parsed) -> Result<()> {
     Ok(())
 }
 
-fn run_search(parsed: &stuff::cli::Parsed) -> Result<()> {
-    let sources = RegistrySources::from_parsed(parsed)?;
+fn run_search(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<()> {
+    let sources = RegistrySources::from_parsed(parsed, environment)?;
     let mut catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let query = parsed.positionals[0].to_lowercase();
     for catalog in &mut catalogs {
@@ -256,12 +258,12 @@ fn print_diff_json(diff: &stuff_catalog::CatalogDiff) {
     print!("{out}");
 }
 
-fn run_render(parsed: &stuff::cli::Parsed) -> Result<()> {
+fn run_render(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<()> {
     let output = parsed
         .output
         .as_deref()
         .ok_or_else(|| Error::usage("--output is required"))?;
-    let sources = RegistrySources::from_parsed(parsed)?;
+    let sources = RegistrySources::from_parsed(parsed, environment)?;
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
     let body = if output.ends_with(".txt") || output.ends_with(".md") {
         let origins = stuff_catalog::CatalogOrigins::new(
