@@ -18,16 +18,15 @@ use sha2::{Digest, Sha512};
 use stuff::publish::cargo::{adopt_site, Publisher, Store};
 use stuff::publish::config::Config;
 use stuff::publish::npm::library_config;
-use stuff::publish::pypi::{package_catalog, project_settings};
+use stuff::publish::pypi::project_settings;
 use stuff::publish::r2::pull::{self as r2_pull, PullOptions};
 use stuff::publish::r2::sync;
 use stuff::publish::r2::{Credentials, R2Client, UploadOptions};
-use stuff::publish::PypiSpec;
 use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_repository_json, Digest as OciDigest,
     RepositoryName,
 };
-use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BINARY: &str = env!("CARGO_BIN_EXE_stuff");
 const CARGO_BUCKET: &str = "stuff-mycrates";
@@ -377,25 +376,11 @@ fn materialize_npm_aliases(mirror: &Path) {
 }
 
 fn build_pypi_live(work: &Path) -> PathBuf {
-    let state = work.join("state/pypi");
-    fs::create_dir_all(state.join("wheels")).unwrap();
-    fs::copy(WHEEL_FIXTURE, state.join("wheels").join(Path::new(WHEEL_FIXTURE).file_name().unwrap()))
-        .unwrap();
     let site = work.join("pypi-live-site");
     let settings = project_settings(PYPI_LIVE).unwrap();
-    let catalog = package_catalog(&[PypiSpec {
-        name: "validation-fixture".to_string(),
-        version: "1.0".to_string(),
-    }])
-    .unwrap();
-    mypypi::publish::publish(&mypypi::publish::PublishOptions {
-        settings: &settings,
-        output: &site,
-        state_dir: &state,
-        catalog: &catalog,
-        platforms: &[],
-    })
-    .unwrap();
+    let (_, no_op) =
+        seed_pypi_generation(Path::new(WHEEL_FIXTURE), settings.targets(), &site, PYPI_LIVE);
+    assert!(!no_op);
     site
 }
 

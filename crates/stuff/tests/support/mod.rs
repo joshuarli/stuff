@@ -14,6 +14,30 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 pub const ACCESS_KEY: &str = "test-access";
 pub const SECRET_KEY: &str = "test-secret";
 
+pub fn seed_pypi_generation(
+    wheel: &std::path::Path,
+    targets: Vec<mypypi::models::Target>,
+    output: &std::path::Path,
+    public_base_url: &str,
+) -> (String, bool) {
+    let identity = mypypi::models::WheelIdentity::parse(
+        wheel.file_name().and_then(|name| name.to_str()).expect("wheel filename"),
+    )
+    .expect("fixture wheel filename");
+    let sha256 = mypypi::acquire::sha256_file(wheel).expect("hash the fixture wheel");
+    let artifact =
+        mypypi::models::ValidatedArtifact::new(identity, wheel.to_path_buf(), sha256, targets)
+            .expect("validated fixture artifact");
+    let (_, activation) = mypypi::store::publish(
+        &[artifact],
+        output,
+        &std::collections::BTreeMap::new(),
+        public_base_url,
+    )
+    .expect("seed the pypi generation");
+    (activation.generation_id, activation.is_noop)
+}
+
 pub struct FakeS3 {
     child: Child,
     stdin: Option<ChildStdin>,

@@ -9,10 +9,9 @@ use std::process::{Command, Output};
 
 use deser_value::Value;
 use stuff::publish::config::Config;
-use stuff::publish::pypi::{package_catalog, project_settings};
+use stuff::publish::pypi::project_settings;
 use stuff::publish::r2::{Credentials, R2Client};
-use stuff::publish::PypiSpec;
-use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mypypi";
 const FIXTURE_WHEEL: &str = "validation_fixture-1.0-py3-none-any.whl";
@@ -30,13 +29,6 @@ fn fixture_wheel() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/mypypi/wheels")
         .join(FIXTURE_WHEEL)
-}
-
-fn spec() -> PypiSpec {
-    PypiSpec {
-        name: "validation-fixture".to_string(),
-        version: "1.0".to_string(),
-    }
 }
 
 struct Workspace {
@@ -233,18 +225,15 @@ fn first_publish_matches_the_direct_mypypi_generation() {
     assert!(!id.is_empty());
 
     let settings = project_settings(&Config::default().pypi.public_base_url).unwrap();
-    let catalog = package_catalog(&[spec()]).unwrap();
     let oracle = work.root.path().join("oracle");
-    let summary = mypypi::publish::publish(&mypypi::publish::PublishOptions {
-        settings: &settings,
-        output: &oracle,
-        state_dir: &work.state_dir(),
-        catalog: &catalog,
-        platforms: &[],
-    })
-    .unwrap();
-    assert!(!summary.no_op);
-    assert_eq!(summary.generation_id, id);
+    let (oracle_id, no_op) = seed_pypi_generation(
+        &fixture_wheel(),
+        settings.targets(),
+        &oracle,
+        &settings.public_base_url,
+    );
+    assert!(!no_op);
+    assert_eq!(oracle_id, id);
 
     let generation = oracle.join("generations").join(&id);
     let files = tree(&generation);

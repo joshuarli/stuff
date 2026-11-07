@@ -96,7 +96,20 @@ fn publish_summary_matches_the_generation_on_disk() {
 fn identical_publishes_report_no_op_false_then_true() {
     let dir = tempfile::tempdir().unwrap();
     let (output, state) = staged_fixture(dir.path());
-    let (settings, catalog) = settings_and_catalog();
+    let (mut settings, catalog) = settings_and_catalog();
+    let staged = state.join("wheels").join(FIXTURE_WHEEL);
+    let identity = WheelIdentity::parse(FIXTURE_WHEEL).unwrap();
+    let sha256 = mypypi::acquire::sha256_file(&staged).unwrap();
+    let artifact =
+        ValidatedArtifact::new(identity, staged, sha256, settings.targets()).unwrap();
+    mypypi::store::publish(
+        &[artifact],
+        &output,
+        &BTreeMap::new(),
+        &settings.public_base_url,
+    )
+    .unwrap();
+    settings.public_base_url = "https://fresh.example.test".to_string();
     let options = || PublishOptions {
         settings: &settings,
         output: &output,
