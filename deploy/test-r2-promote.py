@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 import hashlib
-import http.server
 import importlib.util
 import os
 import pathlib
-import threading
+import sys
 import unittest
-import urllib.parse
-import xml.sax.saxutils
 
 SCRIPT = pathlib.Path(__file__).with_name("r2-promote.py")
+sys.path.insert(0, str(SCRIPT.parent))
+import fake_s3
 spec = importlib.util.spec_from_file_location("r2_promote", SCRIPT)
 r2 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r2)
@@ -22,102 +21,13 @@ ENDPOINT_KEYS = {
 }
 
 
-class FakeR2(http.server.BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, *_args):
-        pass
-
-    def _reply(self, status, body=b"", headers=None):
-        self.send_response(status)
-        for name, value in (headers or {}).items():
-            self.send_header(name, value)
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        if body and self.command != "HEAD":
-            self.wfile.write(body)
-
-    def _path(self):
-        path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
-        return path.lstrip("/").split("/", 1)[1]
-
-    def _handle(self):
-        parsed = urllib.parse.urlsplit(self.path)
-        query = urllib.parse.parse_qs(parsed.query)
-        server = self.server
-        if self.command == "GET" and query.get("list-type") == ["2"]:
-            if server.change_current_on_head:
-                server.change_current_on_head = False
-                server.current = "g2"
-                server.current_etag = '"e2"'
-            entries = []
-            for key, (body, etag) in sorted(server.objects.items()):
-                entries.append(
-                    "<Contents>"
-                    f"<Key>{xml.sax.saxutils.escape(key)}</Key>"
-                    f"<Size>{len(body)}</Size>"
-                    f"<ETag>{xml.sax.saxutils.escape(etag)}</ETag>"
-                    "</Contents>"
-                )
-            body = (
-                '<?xml version="1.0" encoding="UTF-8"?>'
-                '<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
-                "<IsTruncated>false</IsTruncated>"
-                f"{''.join(entries)}</ListBucketResult>"
-            ).encode()
-            self._reply(200, body)
-            return
-        key = self._path()
-        if self.command == "GET" and key == "current":
-            if server.current is None:
-                self._reply(404)
-            else:
-                self._reply(200, server.current.encode(), {"ETag": server.current_etag})
-            return
-        if self.command == "GET" and key == server.manifest_key:
-            self._reply(200, server.manifest.encode(), {"ETag": '"manifest"'})
-            return
-        if self.command == "HEAD":
-            if server.change_current_on_head:
-                server.change_current_on_head = False
-                server.current = "g2"
-                server.current_etag = '"e2"'
-            found = server.objects.get(key)
-            if found is None:
-                self._reply(404)
-            else:
-                body, etag = found
-                self._reply(200, body, {"ETag": etag})
-            return
-        if self.command == "PUT" and key == "current":
-            condition = self.headers.get("if-match")
-            none_match = self.headers.get("if-none-match")
-            body = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode()
-            server.put_conditions.append((condition, none_match, body))
-            if condition is not None and condition != server.current_etag:
-                self._reply(412)
-                return
-            if none_match == "*" and server.current is not None:
-                self._reply(412)
-                return
-            server.current = body
-            server.current_etag = '"e3"'
-            self._reply(200)
-            return
-        self._reply(404)
-
-    do_GET = _handle
-    do_HEAD = _handle
-    do_PUT = _handle
-
-
 class PromoteTests(unittest.TestCase):
     def setUp(self):
         self.saved = dict(os.environ)
-        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeR2)
+        self.server = fake_s3.serve()
         body = b"artifact"
         self.server.objects = {
-            "blobs/a": (body, '"' + hashlib.md5(body).hexdigest() + '"'),
+            ("bucket", "blobs/a"): (body, ""),
         }
         self.server.manifest_key = "manifests/g1.json"
         self.server.manifest = (
@@ -128,8 +38,6 @@ class PromoteTests(unittest.TestCase):
         self.server.current_etag = '"e0"'
         self.server.change_current_on_head = False
         self.server.put_conditions = []
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
         for key, value in ENDPOINT_KEYS.items():
             os.environ[key] = value
         os.environ["R2_S3_ENDPOINT"] = f"http://127.0.0.1:{self.server.server_port}"

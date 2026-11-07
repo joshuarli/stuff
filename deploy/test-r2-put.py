@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 import hashlib
-import http.server
 import importlib.util
 import os
 import pathlib
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 import unittest
-import urllib.parse
-import xml.sax.saxutils
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import fake_s3
 import r2_common
 
 spec = importlib.util.spec_from_file_location("r2_put", HERE / "r2-put.py")
@@ -39,132 +36,6 @@ ENV_NAMES = (
 )
 
 
-class FakeS3(http.server.BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, *args):
-        pass
-
-    def respond(self, status, body=b"", headers=None):
-        self.send_response(status)
-        self.send_header("Content-Length", str(len(body)))
-        for name, value in (headers or {}).items():
-            self.send_header(name, value)
-        self.end_headers()
-        if body:
-            self.wfile.write(body)
-
-    def do_PUT(self):
-        parsed = urllib.parse.urlsplit(self.path)
-        if parsed.query:
-            self.respond(404)
-            return
-        parts = parsed.path.split("/", 2)
-        if len(parts) != 3 or not parts[1] or not parts[2]:
-            self.respond(404)
-            return
-        bucket = urllib.parse.unquote(parts[1])
-        key = urllib.parse.unquote(parts[2])
-        body = self.rfile.read(int(self.headers["Content-Length"]))
-        if self.server.fail_next:
-            self.server.fail_next -= 1
-            self.respond(429, b"slow down", {"Retry-After": "0"})
-            return
-        self.server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))
-        self.server.requests.append(("PUT", bucket, key))
-        digest = hashlib.md5(body).hexdigest()
-        self.respond(200, headers={"ETag": f'"{digest}"'})
-
-    def do_GET(self):
-        parsed = urllib.parse.urlsplit(self.path)
-        query = urllib.parse.parse_qs(parsed.query)
-        if query.get("list-type") != ["2"]:
-            parts = parsed.path.split("/", 2)
-            if len(parts) != 3 or not parts[1] or not parts[2]:
-                self.respond(404)
-                return
-            bucket = urllib.parse.unquote(parts[1])
-            key = urllib.parse.unquote(parts[2])
-            found = self.server.objects.get((bucket, key))
-            if found is None:
-                self.respond(404)
-                return
-            body, kind = found
-            digest = hashlib.md5(body).hexdigest()
-            self.respond(
-                200,
-                body,
-                {"ETag": f'"{digest}"', "Content-Type": kind or "application/octet-stream"},
-            )
-            return
-        bucket = urllib.parse.unquote(parsed.path.strip("/"))
-        after = query.get("continuation-token", [""])[0]
-        page = int(query.get("max-keys", ["1000"])[0])
-        keys = sorted(key for name, key in self.server.objects if name == bucket)
-        if after:
-            keys = [key for key in keys if key > after]
-        selected = keys[:page]
-        truncated = len(keys) > len(selected)
-        entries = []
-        for key in selected:
-            body, _ = self.server.objects[(bucket, key)]
-            etag = hashlib.md5(body).hexdigest()
-            entries.append(
-                "<Contents>"
-                f"<Key>{xml.sax.saxutils.escape(key)}</Key>"
-                f"<Size>{len(body)}</Size>"
-                f'<ETag>&quot;{etag}&quot;</ETag>'
-                "</Contents>"
-            )
-        token = (
-            f"<NextContinuationToken>{xml.sax.saxutils.escape(selected[-1])}</NextContinuationToken>"
-            if truncated
-            else ""
-        )
-        body = (
-            '<?xml version="1.0" encoding="UTF-8"?>'
-            '<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
-            f"<IsTruncated>{'true' if truncated else 'false'}</IsTruncated>"
-            f"{''.join(entries)}{token}"
-            "</ListBucketResult>"
-        ).encode()
-        self.respond(200, body)
-
-
-class FakeS3Server:
-    def __init__(self):
-        self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeS3)
-        self.httpd.objects = {}
-        self.httpd.requests = []
-        self.httpd.fail_next = 0
-        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
-        self.thread.start()
-
-    @property
-    def objects(self):
-        return self.httpd.objects
-
-    @property
-    def requests(self):
-        return self.httpd.requests
-
-    @property
-    def fail_next(self):
-        return self.httpd.fail_next
-
-    @fail_next.setter
-    def fail_next(self, value):
-        self.httpd.fail_next = value
-
-    def close(self):
-        self.httpd.shutdown()
-        self.httpd.server_close()
-
-    @property
-    def endpoint(self):
-        return f"http://127.0.0.1:{self.httpd.server_port}"
-
-
 class R2PutTests(unittest.TestCase):
     def setUp(self):
         self.saved = {name: os.environ.get(name) for name in ENV_NAMES}
@@ -172,7 +43,8 @@ class R2PutTests(unittest.TestCase):
         self.root = pathlib.Path(self.work.name)
         self.site = self.root / "site"
         self.site.mkdir()
-        self.server = FakeS3Server()
+        self.server = fake_s3.serve()
+        self.server.request_log_style = "put"
 
     def tearDown(self):
         self.server.close()

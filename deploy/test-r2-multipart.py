@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 import datetime
-import hashlib
-import http.server
 import importlib.util
 import os
 import pathlib
 import sys
 import tempfile
-import threading
 import unittest
-import urllib.parse
 
 SCRIPT = pathlib.Path(__file__).with_name("r2-multipart.py")
+sys.path.insert(0, str(SCRIPT.parent))
+import fake_s3
 spec = importlib.util.spec_from_file_location("r2_multipart", SCRIPT)
 r2 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r2)
@@ -109,79 +107,12 @@ class SigV4Tests(unittest.TestCase):
         self.assertEqual(r2.completion_error(b""), "")
 
 
-class FakeS3(http.server.BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, *_args):
-        pass
-
-    def _reply(self, status, body=b"", headers=None):
-        self.send_response(status)
-        for name, value in (headers or {}).items():
-            self.send_header(name, value)
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        if body:
-            self.wfile.write(body)
-
-    def _handle(self):
-        length = int(self.headers.get("Content-Length", "0"))
-        body = self.rfile.read(length)
-        url = f"http://{self.headers['host']}{self.path}"
-        authorization = self.headers["Authorization"]
-        signed = authorization.split("SignedHeaders=", 1)[1].split(",", 1)[0].split(";")
-        content_type = self.headers.get("content-type", "") if "content-type" in signed else ""
-        amzdate = self.headers["x-amz-date"]
-        now = datetime.datetime.strptime(amzdate, "%Y%m%dT%H%M%SZ").replace(
-            tzinfo=datetime.timezone.utc
-        )
-        expected = r2.signature_headers(
-            self.command,
-            url,
-            hashlib.sha256(body).hexdigest(),
-            content_type,
-            now=now,
-        )
-        if self.headers.get("Authorization") != expected["Authorization"]:
-            self._reply(403, b"<Error><Code>SignatureDoesNotMatch</Code></Error>")
-            return
-        parsed = urllib.parse.urlsplit(self.path)
-        query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
-        self.server.requests.append((self.command, parsed.path, query, body))
-        if self.command == "POST" and "uploads" in query:
-            self._reply(
-                200,
-                b"<InitiateMultipartUploadResult><UploadId>test-upload</UploadId></InitiateMultipartUploadResult>",
-            )
-        elif self.command == "PUT" and "partNumber" in query:
-            etag = '"' + hashlib.md5(body).hexdigest() + '"'
-            self._reply(200, b"", {"ETag": etag})
-        elif self.command == "POST" and "uploadId" in query:
-            if self.server.fail_complete:
-                self._reply(
-                    200,
-                    b"<Error><Code>InternalError</Code><Message>retry</Message></Error>",
-                )
-            else:
-                self._reply(200, b"<CompleteMultipartUploadResult></CompleteMultipartUploadResult>")
-        elif self.command == "DELETE":
-            self._reply(204)
-        else:
-            self._reply(404)
-
-    do_POST = _handle
-    do_PUT = _handle
-    do_DELETE = _handle
-
-
 class MultipartFlowTests(unittest.TestCase):
     def setUp(self):
         self.saved = dict(os.environ)
-        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeS3)
-        self.server.requests = []
-        self.server.fail_complete = False
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
+        self.server = fake_s3.serve()
+        self.server.verify_signature = True
+        self.server.request_log_style = "full"
         os.environ["R2_S3_ENDPOINT"] = f"http://127.0.0.1:{self.server.server_port}"
         os.environ["R2_S3_ACCESS_KEY_ID"] = AWS_ACCESS
         os.environ["R2_S3_SECRET_ACCESS_KEY"] = AWS_SECRET
