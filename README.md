@@ -44,17 +44,17 @@ Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## Exit codes
 
-All four publish CLIs share one exit-code contract: `2` usage/input,
-`3` integrity, `4` conflict, `5` limit, `6` network, `1` other
-operational failures (`stuff doctor` exits `1` on a failed check and
-`2` on its own error).
+All four publish CLIs share one exit-code contract: `0` ok or no-op, `2`
+usage/configuration/validation, `3` conflict or stale generation, `4`
+integrity/invariant failure, `5` transport/network failure (`stuff doctor`
+exits `1` on a failed check and `2` on its own error).
 
 ## Release
 
 Run the `release` workflow from the default branch to publish the `stuff`
 CLI. It builds Apple Silicon and Linux musl binaries, verifies them, and
-attaches `stuff-<target>.zip` plus `SHA256SUMS` to a `release-<sha>`
-prerelease. Install a release with `sh dl stuff` from `~/usr`.
+attaches standalone executable binaries `stuff-<target>` plus `SHA256SUMS` to a
+`release-<sha>` prerelease. Install a release with `sh dl stuff` from `~/usr`.
 
 ## Serve
 
