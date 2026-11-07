@@ -72,7 +72,7 @@ jobs:
           sudo apt-get install -y musl-tools
           rustup target add "${{ matrix.target }}"
       - name: Test
-        run: cargo test --locked -p stuff
+        run: cargo test --locked -p stuff -p mynpm -p mypypi -p myoci
       - name: Build release
         env:
           TARGET: ${{ matrix.target }}
@@ -105,11 +105,13 @@ jobs:
           cp "target/$TARGET/release/stuff" "dist/stuff-$TARGET"
           cp LICENSE NOTICE dist/
           chmod +x "dist/stuff-$TARGET"
-          (cd dist && zip -9 "stuff-$TARGET.zip" "stuff-$TARGET" LICENSE NOTICE)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: stuff-${{ matrix.target }}
-          path: dist/stuff-${{ matrix.target }}.zip
+          path: |
+            dist/stuff-${{ matrix.target }}
+            dist/LICENSE
+            dist/NOTICE
 
   release:
     name: Create pre-release
@@ -149,17 +151,18 @@ jobs:
           path: dist
       - name: Validate and package release artifacts
         run: |
-          expected=$'stuff-aarch64-apple-darwin.zip\nstuff-aarch64-unknown-linux-musl.zip\nstuff-x86_64-unknown-linux-musl.zip'
+          expected=$'stuff-aarch64-apple-darwin\nstuff-aarch64-unknown-linux-musl\nstuff-x86_64-unknown-linux-musl'
           mkdir release
-          find dist -name 'stuff-*.zip' -exec cp {} release/ \;
-          actual=$(find release -maxdepth 1 -name 'stuff-*.zip' -printf '%f\n' | LC_ALL=C sort)
+          find dist -name 'stuff-*' -type f -exec cp {} release/ \;
+          actual=$(find release -maxdepth 1 -name 'stuff-*' -type f -printf '%f\n' | LC_ALL=C sort)
           if [[ "$actual" != "$expected" ]]; then
             echo "Unexpected release artifacts:" >&2
             printf '%s\n' "$actual" >&2
             exit 1
           fi
-          (cd release && sha256sum *.zip | LC_ALL=C sort -k2 > SHA256SUMS)
+          (cd release && sha256sum stuff-* | LC_ALL=C sort -k2 > SHA256SUMS)
           (cd release && sha256sum -c SHA256SUMS)
+          cp dist/stuff-aarch64-apple-darwin/LICENSE dist/stuff-aarch64-apple-darwin/NOTICE release/
       - name: Create release tag at triggering SHA
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,4 +194,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: release-${{ github.sha }}
-        run: gh release create "$RELEASE_TAG" release/*.zip release/SHA256SUMS --repo "$GITHUB_REPOSITORY" --prerelease --verify-tag --title "$RELEASE_TAG"
+        run: gh release create "$RELEASE_TAG" release/stuff-* release/SHA256SUMS release/LICENSE release/NOTICE --repo "$GITHUB_REPOSITORY" --prerelease --verify-tag --title "$RELEASE_TAG"
