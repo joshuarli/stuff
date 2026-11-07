@@ -18,7 +18,11 @@ L2 (`tools/sync/installer.py`, tested by `tools/sync/test_installer.py`) and L4 
 
 **Known gaps:** the `pypi` and `oci` libraries need local blob bytes, so a fresh machine downloads retained wheels and OCI blobs; npm project snapshot capture is not ported; the Cargo end-to-end proof covers a crate without dependencies; the doctor live check needs `R2_S3_*`; a pypi dry run keeps the wheels it acquires in persistent state; pypi network acquisition is proved only by the pilot.
 
-**Next:** the release path above, then L5.
+**Landed (2026-11-07):** `publisher` is on `main`; release `release-2b88175…` ships the raw assets; L2 and L4 are on `~/usr` `main`; L3 is on each consumer's default branch; the installed `stuff` replaced the wrappers in every consumer Makefile. The h12tiny pilot ran a real `make publish-mycrates`: exit 0, `unchanged` (0.8.0 was already live), and `stuff doctor` verified the live cargo manifest. No real upload or promotion has run yet, because every consumer version is already published. Release CI exposed two test bugs, both fixed: three pypi tests depended on a host CPython 3.15, and fake executables raced ETXTBSY on Linux. Consumer dry runs found a pypi planning regression (fixed) and STUF-59 (tansu's lockfile resolves through the mirror; the legacy wrapper fails on it too).
+
+**L5:** docs and the usage line are updated (P16). The P13 deletion is parked: `make test-oci-publish` (`deploy/test-oci-publish.sh:45,108`) drives `deploy/publish` and `r2-rollback.sh`, which pull in every other wrapper, and the kept `r2-pull.py:73` and `r2-gc.py:79` call `r2-temp-credentials.py`. Retry when the OCI publish acceptance test runs against `stuff publish oci`/`stuff rollback` and the kept scripts mint through `stuff`.
+
+**Next:** port `deploy/test-oci-publish.sh` to `stuff`, then delete the P13 wrappers; publish a new version through `stuff` to prove upload and promotion against R2.
 
 ## Charter
 

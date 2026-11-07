@@ -47,18 +47,27 @@ for repair.
   ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;
   verify with `CF_LOCAL_STATE` via `test-r2-sync.sh`), R2 pull
   (`r2-pull.py`, verified by `test-r2-pull.sh`), local fleet
-  ingestion (`fleet-ingest.sh`), OCI publish (`publish-myoci.sh`), the blob
-  writer (`myoci-writer.sh`), and the pinned conformance harness
-  (`oci-conformance.sh`).
+  ingestion (`fleet-ingest.sh`), the blob writer (`myoci-writer.sh`), and
+  the pinned conformance harness (`oci-conformance.sh`). The legacy
+  `publish`/`publish-*.sh` wrappers remain only because the offline OCI
+  publish acceptance test drives `deploy/publish` (`make test-oci-publish`).
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels, and the OCI image layout at `tests/fixtures/oci/layout`).
-- Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
+- Publishing: `stuff publish cargo|npm|pypi|oci` (native Rust;
+  `stuff publish cargo` is the only Cargo publishing entry point),
+  `stuff republish`, and `stuff rollback`; `stuff publish --help` and
+  [docs/PUBLISHING.md](docs/PUBLISHING.md) are authoritative. The Python
+  mycrates publish path (`publish.py`, `server.py`) is the legacy parity
+  oracle only.
 - Open tickets: [TODO.md](TODO.md).
 
 ## Commands
 
 - Rust: `cargo build --workspace`, `cargo test --workspace`,
   `cargo clippy --locked --all-targets -- -D warnings`.
+- Publishing: `stuff publish cargo|npm|pypi|oci`, `stuff republish
+  cargo|npm|pypi|oci`, and `stuff rollback <registry> <generation>`;
+  `stuff publish --help` is authoritative.
 - mycrates: `make test-mycrates` (`python3 -m unittest discover` from
   `crates/mycrates`; the Cargo publication proof needs `cargo`).
 - One toolchain for the workspace: `rust-toolchain.toml` (nightly-2026-09-15).

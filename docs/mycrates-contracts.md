@@ -2,6 +2,8 @@
 
 The wire and on-disk formats that `mycrates` produces and consumes. The Cloudflare Worker, Cargo, the `stuff` CLI, and `deploy/r2-*.py` read these artifacts, so the implementation is free to change but the bytes are not.
 
+`stuff publish cargo` is the only Cargo publishing entry point. The upload API and `serve-publish` described below are the legacy Python oracle (`publish.py`, `server.py`), kept for the golden tests and the kept maintenance commands; they are not a publishing entry point.
+
 Executable form: `crates/mycrates/tests/golden/` holds inputs and the exact outputs the original Rust implementation produced for them. `tests/test_golden.py` fails on any byte of difference. `tests/test_contracts.py` checks the structural rules below against generated artifacts.
 
 ## State directory

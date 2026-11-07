@@ -19,7 +19,9 @@ fn main() {
         Err(e) => {
             eprintln!("stuff: {e}");
             if !is_publishing(&argv) {
-                eprintln!("usage: stuff <ls|search|diff|doctor|render> [options]");
+                eprintln!(
+                    "usage: stuff <ls|search|diff|doctor|render|publish|republish|rollback> [options]"
+                );
             }
             std::process::exit(e.exit_code());
         }
