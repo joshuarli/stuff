@@ -7,8 +7,11 @@ pub mod names;
 pub mod publish;
 pub mod render;
 pub mod requirements;
+pub mod run;
 pub mod semver;
+pub mod server;
 pub mod store;
+pub mod wire;
 pub mod wirejson;
 
 pub use adopt::{AdoptSummary, AdoptedLine, NativeRecord, Record, UpstreamRecord, View, adopt_site};

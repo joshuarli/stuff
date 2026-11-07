@@ -239,6 +239,10 @@ impl std::error::Error for PublishError {}
 pub fn run(request: Request) -> Result<Outcome, PublishError> {
     match request {
         Request::Publish {
+            request: PublishRequest::Cargo(cargo),
+            options,
+        } => cargo::run::publish(&cargo, options),
+        Request::Publish {
             request: PublishRequest::Npm(request),
             options,
         } => npm::publish(&request, options),

@@ -1,0 +1,8 @@
+[package]
+name = "stuff-cargo-publish-fixture"
+version = "0.1.0"
+edition = "2021"
+description = "Fixture crate for the stuff cargo publish loopback test"
+license = "Apache-2.0"
+
+[workspace]
