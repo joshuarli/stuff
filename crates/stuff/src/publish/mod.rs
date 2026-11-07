@@ -2,6 +2,8 @@
 
 pub mod cargo;
 pub mod config;
+pub mod inventory;
+pub mod npm;
 pub mod oci;
 pub mod paths;
 pub mod pypi;
@@ -236,6 +238,10 @@ impl std::error::Error for PublishError {}
 
 pub fn run(request: Request) -> Result<Outcome, PublishError> {
     match request {
+        Request::Publish {
+            request: PublishRequest::Npm(request),
+            options,
+        } => npm::publish(&request, options),
         Request::Publish {
             request: PublishRequest::Oci(source),
             options,
