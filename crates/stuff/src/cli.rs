@@ -363,9 +363,15 @@ fn parse_publish(args: &[String]) -> Result<Parsed> {
 fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPublish, Options)> {
     let mut cargo = CargoPublish { packages: Vec::new(), manifest_path: None, registry: None };
     let mut options = Options::default();
+    let mut seen_common: Vec<&str> = Vec::new();
     while *index < args.len() {
         let arg = args[*index].as_str();
-        if take_common_option(arg, &mut options) {
+        if matches!(arg, "--dry-run" | "--json" | "--verbose") {
+            if seen_common.contains(&arg) {
+                return Err(usage_error(format!("{arg} may only be specified once")));
+            }
+            seen_common.push(arg);
+            take_common_option(arg, &mut options);
             *index += 1;
             continue;
         }

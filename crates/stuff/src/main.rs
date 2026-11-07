@@ -3,7 +3,7 @@
 use stuff::cli::{parse_args, print_help, render_table, Command};
 use stuff::doctor::{load_catalogs, run_doctor, RegistrySources};
 use stuff::error::{Error, Result};
-use stuff::publish::Environment;
+use stuff::publish::{output, Environment, PublishError, Status};
 
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
@@ -59,11 +59,25 @@ fn run_publish(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result
         .request
         .clone()
         .ok_or_else(|| Error::usage("missing publishing request"))?;
+    let registry = request.registry();
+    let options = request.options();
     match stuff::publish::run(request, environment) {
-        Ok(_outcome) => Ok(0),
+        Ok(outcome) => {
+            if options.json {
+                println!("{}", output::json(&outcome));
+            } else {
+                println!("{}", output::human(&outcome));
+            }
+            Ok(if outcome.status == Status::Conflict { 3 } else { 0 })
+        }
         Err(error) => {
-            eprintln!("stuff: {error}");
-            Ok(error.exit_code())
+            if options.json && matches!(error, PublishError::Conflict(_)) {
+                println!("{}", output::conflict_json(registry, options.dry_run));
+                Ok(3)
+            } else {
+                eprintln!("{}", output::error(&error));
+                Ok(error.exit_code())
+            }
         }
     }
 }

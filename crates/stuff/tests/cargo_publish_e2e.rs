@@ -371,13 +371,8 @@ fn cargo_publish_round_trips_and_republishes_unchanged() {
 
     let first =
         stuff::publish::run(publish_request(&manifest), &environment).expect("first cargo publish");
-    assert_eq!(
-        first,
-        stuff::publish::Outcome {
-            registry: Registry::Cargo,
-            status: Status::Published,
-        }
-    );
+    assert_eq!(first.registry, Registry::Cargo);
+    assert_eq!(first.status, Status::Published);
 
     let state_dir = work.path().join("state/cargo");
     let rust_site = work.path().join("cache/cargo/site");
@@ -431,13 +426,8 @@ fn cargo_publish_round_trips_and_republishes_unchanged() {
     let conditions_before = fake.put_conditions().len();
     let second =
         stuff::publish::run(publish_request(&manifest), &environment).expect("second cargo publish");
-    assert_eq!(
-        second,
-        stuff::publish::Outcome {
-            registry: Registry::Cargo,
-            status: Status::Unchanged,
-        }
-    );
+    assert_eq!(second.registry, Registry::Cargo);
+    assert_eq!(second.status, Status::Unchanged);
     let puts = put_paths(&fake, requests_before);
     assert!(puts.is_empty(), "the no-op wrote remote objects: {puts:?}");
     assert_eq!(fake.put_conditions().len(), conditions_before);

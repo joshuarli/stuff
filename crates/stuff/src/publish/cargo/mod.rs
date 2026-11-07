@@ -1,5 +1,7 @@
 
 pub mod adopt;
+#[cfg(test)]
+mod cli;
 pub mod crate_file;
 pub mod index;
 pub mod model;

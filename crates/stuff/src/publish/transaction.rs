@@ -64,6 +64,11 @@ impl TransactionReport {
         Outcome {
             registry: self.registry,
             status: self.status,
+            generation: self.generation.clone(),
+            dry_run: self.dry_run,
+            uploaded_objects: self.uploaded_objects,
+            uploaded_bytes: self.uploaded_bytes,
+            skipped_objects: self.skipped_objects,
         }
     }
 }
@@ -494,6 +499,11 @@ mod tests {
             Outcome {
                 registry: Registry::Cargo,
                 status: Status::Unchanged,
+                generation: "g1".to_string(),
+                dry_run: true,
+                uploaded_objects: 4,
+                uploaded_bytes: 16,
+                skipped_objects: 2,
             }
         );
     }

@@ -6,6 +6,7 @@ pub mod environment;
 pub mod inventory;
 pub mod npm;
 pub mod oci;
+pub mod output;
 pub mod paths;
 pub mod pypi;
 pub mod r2;
@@ -162,6 +163,14 @@ impl Request {
             Request::Republish { registry, .. } | Request::Rollback { registry, .. } => *registry,
         }
     }
+
+    pub fn options(&self) -> Options {
+        match self {
+            Request::Publish { options, .. }
+            | Request::Republish { options, .. }
+            | Request::Rollback { options, .. } => *options,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -171,10 +180,25 @@ pub enum Status {
     Conflict,
 }
 
+impl Status {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Status::Published => "published",
+            Status::Unchanged => "unchanged",
+            Status::Conflict => "conflict",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub registry: Registry,
     pub status: Status,
+    pub generation: String,
+    pub dry_run: bool,
+    pub uploaded_objects: usize,
+    pub uploaded_bytes: u64,
+    pub skipped_objects: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
