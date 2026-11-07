@@ -18,7 +18,7 @@ use crate::publish::r2::promote;
 use crate::publish::r2::pull::{self, PART_SIZE};
 use crate::publish::staging::Staging;
 use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
-use crate::publish::{Environment, Options, Outcome, PublishError, PypiSpec, Registry};
+use crate::publish::{Environment, Options, Outcome, PublishError, PypiPublish, PypiSpec, Registry};
 
 const PYTHON_SPECIFIER: &str = ">=3.15,<3.16";
 const LINUX_REPAIR_POLICY: &str = "manylinux_2_28";
@@ -31,7 +31,7 @@ const SUPPORTED_PLATFORMS: [&str; 4] = [
 ];
 
 pub fn run(
-    specs: &[PypiSpec],
+    publish: &PypiPublish,
     options: &Options,
     environment: &Environment,
 ) -> Result<Outcome, PublishError> {
@@ -39,11 +39,12 @@ pub fn run(
     let config = Config::load(&paths.config_file())?;
     let settings = project_settings(&config.pypi.public_base_url)?;
     let credentials = credentials::resolve(environment, &config.cf_profile, &config.pypi.bucket)?;
-    publish(
+    publish_internal(
         credentials,
         &config,
         &settings,
-        specs,
+        &publish.specs,
+        publish.allow_sdist,
         &paths.state_dir("pypi"),
         &paths.cache_dir("pypi"),
         options,
@@ -109,11 +110,12 @@ pub fn package_catalog(
     mypypi::catalog::parse_catalog(&source).map_err(map_mypypi)
 }
 
-fn publish(
+fn publish_internal(
     credentials: Credentials,
     config: &Config,
     settings: &mypypi::config::ProjectSettings,
     specs: &[PypiSpec],
+    allow_sdist: bool,
     state_dir: &Path,
     cache_dir: &Path,
     options: &Options,
@@ -152,7 +154,7 @@ fn publish(
         })?;
         pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
         if !acquired {
-            acquire_wheels(&catalog, settings, &targets, &site, state_dir)?;
+            acquire_wheels(&catalog, settings, &targets, &site, state_dir, allow_sdist)?;
             acquired = true;
         }
         mypypi::publish::publish(&mypypi::publish::PublishOptions {
@@ -210,6 +212,7 @@ fn acquire_wheels(
     targets: &[Target],
     site: &Path,
     state_dir: &Path,
+    allow_sdist: bool,
 ) -> Result<(), PublishError> {
     let wheels = state_dir.join("wheels");
     std::fs::create_dir_all(&wheels).map_err(|error| {
@@ -222,8 +225,16 @@ fn acquire_wheels(
     })?;
     for outcome in &data.outcomes {
         let (package, target) = match outcome {
-            PlanOutcome::DownloadWheel { package, target, .. }
-            | PlanOutcome::BuildSdist { package, target, .. } => (package, target),
+            PlanOutcome::DownloadWheel { package, target, .. } => (package, target),
+            PlanOutcome::BuildSdist { package, target, .. } => {
+                if !allow_sdist {
+                    return Err(PublishError::Usage(format!(
+                        "{package} has no prebuilt wheel for {}; pass --allow-sdist to permit building from source",
+                        target.platform
+                    )));
+                }
+                (package, target)
+            }
             _ => continue,
         };
         let entry = entries.get(package).ok_or_else(|| {

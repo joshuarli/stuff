@@ -524,3 +524,10 @@ fn a_pypi_dry_run_leaves_local_state_and_remote_unchanged() {
         .count();
     assert_eq!(mutations, 0, "the dry run mutated the remote");
 }
+
+#[test]
+fn publish_pypi_accepts_allow_sdist_flag() {
+    let work = Workspace::new();
+    let output = work.publish_args(&["publish", "pypi", "validation-fixture==1.0", "--allow-sdist"]);
+    assert_success(&output);
+}

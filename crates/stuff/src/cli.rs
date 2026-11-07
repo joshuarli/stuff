@@ -4,8 +4,8 @@ use std::fmt::Write as _;
 
 use crate::error::{Error, Result};
 use crate::publish::{
-    CargoPublish, NpmPublish, OciImage, OciSource, Options, PublishRequest, PypiSpec, Registry,
-    Request,
+    CargoPublish, NpmPublish, OciImage, OciSource, Options, PublishRequest, PypiPublish, PypiSpec,
+    Registry, Request,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -471,12 +471,18 @@ fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(PublishReque
     Ok((PublishRequest::Npm(NpmPublish { lockfile, project }), options))
 }
 
-fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(Vec<PypiSpec>, Options)> {
+fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(PypiPublish, Options)> {
     let mut specs = Vec::new();
+    let mut allow_sdist = false;
     let mut options = Options::default();
     while *index < args.len() {
         let arg = args[*index].as_str();
         if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        if arg == "--allow-sdist" {
+            allow_sdist = true;
             *index += 1;
             continue;
         }
@@ -491,7 +497,7 @@ fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(Vec<PypiSpe
     if specs.is_empty() {
         return Err(usage_error("publish pypi requires at least one name==version"));
     }
-    Ok((specs, options))
+    Ok((PypiPublish { specs, allow_sdist }, options))
 }
 
 fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, Options)> {
@@ -949,12 +955,13 @@ mod tests {
     #[test]
     fn parses_publish_pypi_grammar() {
         let (request, options) =
-            publish_request(&["publish", "pypi", "alpha==1.0.0", "beta==2.0.0", "--dry-run"]);
-        let PublishRequest::Pypi(specs) = request else { panic!("{request:?}") };
-        assert_eq!(specs.len(), 2);
-        assert_eq!(specs[0].name, "alpha");
-        assert_eq!(specs[0].version, "1.0.0");
-        assert_eq!(specs[1].name, "beta");
+            publish_request(&["publish", "pypi", "alpha==1.0.0", "beta==2.0.0", "--allow-sdist", "--dry-run"]);
+        let PublishRequest::Pypi(pypi) = request else { panic!("{request:?}") };
+        assert_eq!(pypi.specs.len(), 2);
+        assert_eq!(pypi.specs[0].name, "alpha");
+        assert_eq!(pypi.specs[0].version, "1.0.0");
+        assert_eq!(pypi.specs[1].name, "beta");
+        assert!(pypi.allow_sdist);
         assert!(options.dry_run);
     }
 

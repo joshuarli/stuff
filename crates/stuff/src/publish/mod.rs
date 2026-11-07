@@ -89,6 +89,12 @@ impl PypiSpec {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PypiPublish {
+    pub specs: Vec<PypiSpec>,
+    pub allow_sdist: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OciImage {
     pub repository: String,
     pub reference: String,
@@ -118,7 +124,7 @@ pub enum PublishRequest {
     Cargo(CargoPublish),
     Npm(NpmPublish),
     NpmTarballs(Vec<String>),
-    Pypi(Vec<PypiSpec>),
+    Pypi(PypiPublish),
     Oci(OciSource),
 }
 
@@ -289,9 +295,9 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             options,
         } => oci::publish(&source, &options, environment),
         Request::Publish {
-            request: PublishRequest::Pypi(specs),
+            request: PublishRequest::Pypi(pypi),
             options,
-        } => pypi::run(&specs, &options, environment),
+        } => pypi::run(&pypi, &options, environment),
         Request::Republish {
             registry,
             allow_drops,
@@ -324,7 +330,7 @@ pub fn help_text(command: &str) -> Option<String> {
             "  stuff publish npm (--lockfile PATH --project ID | --tarball PATH [--tarball PATH...])\n",
             "    [--dry-run] [--json] [--verbose]\n",
             "    --tarball publishes first-party packages packed by npm pack or pnpm pack\n",
-            "  stuff publish pypi SPEC [SPEC...] [--dry-run] [--json] [--verbose]\n",
+            "  stuff publish pypi SPEC [SPEC...] [--allow-sdist] [--dry-run] [--json] [--verbose]\n",
             "    SPEC is name==version\n",
             "  stuff publish oci (--image REPO=REF [--image REPO=REF...] |\n",
             "    --layout DIR --repository NAME [--tag TAG])\n",
