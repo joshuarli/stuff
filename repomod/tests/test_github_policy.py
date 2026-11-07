@@ -1176,7 +1176,7 @@ def test_protection_lint_flags_required_approvals(tmp_path: Path, monkeypatch) -
     catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), True, 1, (), None) for repository in repositories],
+        lambda repositories, jobs=4: [(str(repository.id), True, 1, (), None) for repository in repositories],
     )
 
     findings = lint_repositories(catalog, rule_ids=("github-protection",))
@@ -1199,14 +1199,14 @@ def test_protection_lint_skips_unprotected_and_reports_errors(
     catalog = load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path)})
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), False, 0, (), None) for repository in repositories],
+        lambda repositories, jobs=4: [(str(repository.id), False, 0, (), None) for repository in repositories],
     )
 
     assert lint_repositories(catalog, rule_ids=("github-protection",)) == []
 
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [(str(repository.id), False, 0, (), "boom") for repository in repositories],
+        lambda repositories, jobs=4: [(str(repository.id), False, 0, (), "boom") for repository in repositories],
     )
     findings = lint_repositories(catalog, rule_ids=("github-protection",))
 
@@ -1228,7 +1228,7 @@ def _stale_check_findings(tmp_path: Path, monkeypatch, workflow: str, required: 
     (workflows / "ci.yml").write_text(workflow, encoding="utf-8")
     monkeypatch.setattr(
         "repomod.policy.protection_many",
-        lambda repositories: [
+        lambda repositories, jobs=4: [
             (str(repository.id), True, 0, required, None) for repository in repositories
         ],
     )

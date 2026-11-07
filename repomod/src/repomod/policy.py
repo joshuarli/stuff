@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import contextvars
 from collections.abc import Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from repomod.catalog import (
@@ -108,6 +109,15 @@ def _check_rule(rule: Rule, root: Path, repository: Repository) -> list[Finding]
         return rule.check(root, repository)
     except (OSError, ValueError, RuntimeError) as error:
         return [operational(repository, rule.id, None, f"rule could not complete: {error}")]
+
+
+def _check_rule_in_context(
+    context: contextvars.Context,
+    rule: Rule,
+    root: Path,
+    repository: Repository,
+) -> list[Finding]:
+    return context.run(_check_rule, rule, root, repository)
 
 
 def _batched_findings(
@@ -236,44 +246,48 @@ def lint_repositories(
         for repository in selected
     }
     findings: list[Finding] = []
-    topic_results = {}
     repositories_with_topics = tuple(
         repository
         for repository in selected
         if any(rule.id == "topics" for rule in rules_by_repository[str(repository.id)])
     )
-    if repositories_with_topics:
-        topic_results = {
+
+    def fetch_topics() -> dict[str, tuple[Sequence[str], Sequence[str], str | None]]:
+        return {
             name: (additions, removals, error)
             for name, _, additions, removals, error in topics_many(
-                repositories_with_topics, apply=False
+                repositories_with_topics, apply=False, jobs=workers
             )
         }
-    protection_results: dict[str, tuple[bool, int, tuple[str, ...], str | None]] = {}
+
     repositories_with_protection = tuple(
         repository
         for repository in selected
         if any(rule.id == "github-protection" for rule in rules_by_repository[str(repository.id)])
     )
-    if repositories_with_protection:
-        protection_results = {
+
+    def fetch_protection() -> dict[str, tuple[bool, int, tuple[str, ...], str | None]]:
+        return {
             name: (has_protection, count, contexts, error)
             for name, has_protection, count, contexts, error in protection_many(
-                repositories_with_protection
+                repositories_with_protection, jobs=workers
             )
         }
-    pull_results: dict[str, tuple[list[OpenPullRequest], str | None]] = {}
+
     repositories_with_pulls = tuple(
         repository
         for repository in selected
         if any(rule.id == "conventional-commits" for rule in rules_by_repository[str(repository.id)])
     )
-    if repositories_with_pulls:
-        pull_results = {
+
+    def fetch_pulls() -> dict[str, tuple[list[OpenPullRequest], str | None]]:
+        return {
             name: (requests, error)
             for name, (requests, error) in open_pull_requests(repositories_with_pulls).items()
         }
+
     tasks: list[tuple[Rule, Path, Repository]] = []
+    batched_tasks: list[tuple[Rule, Path, Repository]] = []
     for repository in selected:
         try:
             root = (checkouts or {}).get(str(repository.id)) or repository_path(catalog, repository)
@@ -283,30 +297,48 @@ def lint_repositories(
             )
             continue
         for rule in rules_by_repository[str(repository.id)]:
-            if not rule.applies_to.matches(repository.tags):
+            if rule.id in _BATCHED_RULE_IDS:
+                if rule.applies_to.matches(repository.tags):
+                    batched_tasks.append((rule, root, repository))
                 continue
-            batched = _batched_findings(
-                rule, root, repository, topic_results, protection_results, pull_results
-            )
-            if batched is not None:
-                findings.extend(batched)
+            if not rule.applies_to.matches(repository.tags):
                 continue
             tasks.append((rule, root, repository))
     tasks.sort(key=lambda task: _RULE_PRIORITY.get(task[0].id, len(_RULE_PRIORITY)))
-    with run_cache():
-        if workers == 1:
-            for rule, root, repository in tasks:
-                findings.extend(_check_rule(rule, root, repository))
-        elif tasks:
-            with ThreadPoolExecutor(
-                max_workers=min(workers, len(tasks)), thread_name_prefix="repomod-policy"
-            ) as pool:
-                futures = [
-                    pool.submit(_check_rule, rule, root, repository)
-                    for rule, root, repository in tasks
-                ]
-                for future in futures:
-                    findings.extend(future.result())
+    with ThreadPoolExecutor(
+        max_workers=3, thread_name_prefix="repomod-lint-fetch"
+    ) as fetch_pool:
+        topics_future = fetch_pool.submit(fetch_topics) if repositories_with_topics else None
+        protection_future = (
+            fetch_pool.submit(fetch_protection) if repositories_with_protection else None
+        )
+        pulls_future = fetch_pool.submit(fetch_pulls) if repositories_with_pulls else None
+        with run_cache():
+            if workers == 1:
+                for rule, root, repository in tasks:
+                    findings.extend(_check_rule(rule, root, repository))
+            elif tasks:
+                with ThreadPoolExecutor(
+                    max_workers=min(workers, len(tasks)), thread_name_prefix="repomod-policy"
+                ) as pool:
+                    futures = [
+                        pool.submit(_check_rule_in_context, contextvars.copy_context(), rule, root, repository)
+                        for rule, root, repository in tasks
+                    ]
+                    for future in as_completed(futures):
+                        findings.extend(future.result())
+            topic_results = topics_future.result() if topics_future is not None else {}
+            protection_results: dict[str, tuple[bool, int, tuple[str, ...], str | None]]
+            protection_results = (
+                protection_future.result() if protection_future is not None else {}
+            )
+            pull_results: dict[str, tuple[list[OpenPullRequest], str | None]]
+            pull_results = pulls_future.result() if pulls_future is not None else {}
+            for rule, root, repository in batched_tasks:
+                batched = _batched_findings(
+                    rule, root, repository, topic_results, protection_results, pull_results
+                )
+                findings.extend(batched or [])
     return sorted(
         findings,
         key=lambda finding: (

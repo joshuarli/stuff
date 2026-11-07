@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import os
 import re
 import shutil
@@ -14,7 +13,6 @@ from typing import Any
 from repomod.audit import (
     RegistrySources,
     UpgradeTask,
-    _audit_cache_path,
     _cargo_manifests,
     _cargo_req_satisfies,
     _collect_locked,
@@ -30,11 +28,10 @@ from repomod.audit import (
     _pep508_is_filesystem,
     _pep508_name,
     _python_direct_specs,
-    _read_cache,
     _rust_direct_dependencies,
     _upgrade_tasks,
     _version_key,
-    _write_cache,
+    audit_cache,
     resolve_latest,
 )
 from repomod.catalog import parse_dependency_ignore
@@ -388,16 +385,8 @@ def _outdated_findings(
 
 
 def _check(root: Path, repository: Repository) -> list[Finding]:
-    cache = _read_cache(_audit_cache_path())
-    if not isinstance(cache.get("latest"), dict):
-        cache["latest"] = {}
-    if not isinstance(cache.get("osv"), dict):
-        cache["osv"] = {}
-    sources = _configured_sources(root)
-    findings = _outdated_findings(root, repository, cache, time.time(), None, sources)
-    with contextlib.suppress(OSError):
-        _write_cache(_audit_cache_path(), cache)
-    return findings
+    with audit_cache() as cache:
+        return _outdated_findings(root, repository, cache, time.time(), None, _configured_sources(root))
 
 
 def _copy_tree(root: Path, destination: Path) -> None:

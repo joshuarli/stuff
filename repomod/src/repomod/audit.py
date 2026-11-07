@@ -9,10 +9,11 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -969,6 +970,22 @@ def _read_cache(path: Path) -> dict[str, Any]:
 
 def _write_cache(path: Path, data: dict[str, Any]) -> None:
     atomic_write(path, json.dumps(data, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+_AUDIT_CACHE_LOCK = threading.Lock()
+
+
+@contextlib.contextmanager
+def audit_cache() -> Generator[dict[str, Any]]:
+    with _AUDIT_CACHE_LOCK:
+        cache = _read_cache(_audit_cache_path())
+        if not isinstance(cache.get("latest"), dict):
+            cache["latest"] = {}
+        if not isinstance(cache.get("osv"), dict):
+            cache["osv"] = {}
+        yield cache
+        with contextlib.suppress(OSError):
+            _write_cache(_audit_cache_path(), cache)
 
 
 def _cache_fresh(fetched_at: Any, now: float) -> bool:

@@ -8,6 +8,9 @@ from . import common
 
 
 def _lint(args: argparse.Namespace) -> int:
+    workers = getattr(args, "workers", 16)
+    if workers < 1:
+        raise ValueError("--workers must be at least one")
     catalog = common.default_catalog()
     repositories = common.select_repositories(catalog, args.repo, args.tag)
     findings = policy.lint_repositories(
@@ -16,6 +19,7 @@ def _lint(args: argparse.Namespace) -> int:
         tags=common._tags(args.tag),
         rule_ids=args.rule,
         checkouts=common._checkouts(getattr(args, "checkout", None), args.repo, repositories),
+        workers=workers,
     )
     if args.json:
         common.print_json([policy.finding_dict(finding) for finding in findings])
