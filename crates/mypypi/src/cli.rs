@@ -200,16 +200,16 @@ pub fn print_command_help(command: &Command) {
 
 use crate::acquire::{Release, fetch_release, validate_wheel_architectures, validate_wheel_metadata};
 use crate::build::{BuildOptions, acquire_or_build, require_native_target, validate_build_index};
-use crate::catalog::{Catalog, PackageEntry, parse_catalog};
+use crate::catalog::{Catalog, parse_catalog};
 use crate::config::{ProjectSettings, load_project_settings};
-use crate::models::{PackageVersion, Target, ValidatedArtifact, WheelIdentity};
+use crate::models::{PackageVersion, Target, WheelIdentity};
 use crate::planner::{
     ArtifactRecord, PlanOutcome, UpstreamArtifact, UpstreamSdist, UpstreamWheel, plan,
     validate_catalog_targets,
 };
-use crate::platforms::{ordered_target_tags, target_python_version};
-use crate::validate::{ValidationException, ValidationPolicy, ExceptionKind};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use crate::platforms::target_python_version;
+use crate::publish::{collect_validated, real_directory, selected_targets, sha256_of, wheel_paths};
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 const DEFAULT_BUILD_INDEX: &str = "https://pypi.org/simple";
@@ -261,102 +261,10 @@ pub fn runtime_description(settings: &ProjectSettings) -> Result<String> {
     Ok(format!("using CPython {actual} ABI {abi} on {platform_tag}; executable {exe}"))
 }
 
-fn selected_targets(settings: &ProjectSettings, requested: &[String]) -> Result<Vec<Target>> {
-    if requested.is_empty() {
-        return Ok(settings.targets());
-    }
-    {
-        let mut seen = BTreeSet::new();
-        for p in requested {
-            if !seen.insert(p.clone()) {
-                return Err(fail("--platform values must be unique"));
-            }
-        }
-    }
-    let configured: BTreeMap<&str, &Target> = BTreeMap::new();
-    let targets = settings.targets();
-    let mut map: BTreeMap<&str, Target> = BTreeMap::new();
-    for t in &targets {
-        map.insert(t.platform.as_str(), t.clone());
-    }
-    let _ = configured;
-    let mut out = Vec::new();
-    for name in requested {
-        match map.get(name.as_str()) {
-            Some(t) => out.push(t.clone()),
-            None => return Err(fail(format!("unconfigured platform: {name}"))),
-        }
-    }
-    Ok(out)
-}
-
 fn load_catalog(path: &Path) -> Result<Catalog> {
     let text = std::fs::read_to_string(path)
         .map_err(|_| Error::io(format!("could not read catalog at {}", path.display()), Stage::Configuration))?;
     parse_catalog(&text)
-}
-
-fn real_directory(path: &Path, create: bool) -> Result<bool> {
-    let md = match std::fs::symlink_metadata(path) {
-        Ok(m) => m,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            if !create {
-                return Ok(false);
-            }
-            std::fs::create_dir_all(path).map_err(|_| {
-                Error::io(format!("could not create directory {}", path.display()), Stage::Command)
-            })?;
-            std::fs::symlink_metadata(path).map_err(|_| {
-                Error::io(format!("could not inspect directory {}", path.display()), Stage::Command)
-            })?
-        }
-        Err(_) => {
-            return Err(Error::io(format!("could not inspect directory {}", path.display()), Stage::Command));
-        }
-    };
-    if md.file_type().is_symlink() || !md.file_type().is_dir() {
-        return Err(Error::invalid_input(format!("path must be a real directory: {}", path.display()), Stage::Command));
-    }
-    Ok(true)
-}
-
-fn wheel_paths(state_dir: &Path) -> Result<Vec<PathBuf>> {
-    if !real_directory(state_dir, false)? {
-        return Ok(Vec::new());
-    }
-    let wheel_dir = state_dir.join("wheels");
-    if !real_directory(&wheel_dir, false)? {
-        return Ok(Vec::new());
-    }
-    let mut entries: Vec<_> = std::fs::read_dir(&wheel_dir)
-        .map_err(|_| Error::io(format!("could not inspect wheel {}", wheel_dir.display()), Stage::Command))?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("whl"))
-        .map(|e| e.path())
-        .collect();
-    entries.sort();
-    for path in &entries {
-        let md = std::fs::symlink_metadata(path).map_err(|_| {
-            Error::io(format!("could not inspect wheel {}", path.display()), Stage::Command)
-        })?;
-        if !md.file_type().is_file() {
-            return Err(Error::invalid_input(
-                format!("wheel path must be a regular file: {}", path.display()),
-                Stage::Command,
-            ));
-        }
-        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-        if WheelIdentity::parse(name).is_err() {
-            return Err(Error::integrity(format!("invalid wheel filename {name}"), Stage::Command));
-        }
-    }
-    Ok(entries)
-}
-
-fn sha256_of(path: &Path) -> Result<String> {
-    crate::acquire::sha256_file(path).map_err(|_| {
-        Error::io(format!("could not read wheel {}", path.display()), Stage::Command)
-    })
 }
 
 type ArtifactKey = (PackageVersion, Target);
@@ -667,8 +575,11 @@ fn command_republish(parsed: &Parsed) -> Result<i32> {
         .public_url
         .as_deref()
         .ok_or_else(|| Error::usage("the following arguments are required: --public-url"))?;
-    let current = crate::store::republish(Path::new(output), public_url)?;
-    println!("republished {}", current.display());
+    let summary = crate::publish::republish(&crate::publish::RepublishOptions {
+        output: Path::new(output),
+        public_url,
+    })?;
+    println!("republished {}", summary.generation.display());
     Ok(0)
 }
 
@@ -855,301 +766,6 @@ fn command_build(
     Ok(0)
 }
 
-fn validation_policy(entry: &PackageEntry) -> Result<ValidationPolicy> {
-    let extras: Vec<(String, String)> = entry.validation.validate_extras.clone();
-    if extras.len() > 1 {
-        return Err(Error::configuration(format!("{} may configure one validation extra set", entry.package))
-        .with_package(&entry.package));
-    }
-    let mut exceptions = Vec::new();
-    if let Some((value, reason)) = extras.first() {
-        exceptions.push(ValidationException::new(ExceptionKind::Extras, value, reason)?);
-    }
-    for (value, reason) in &entry.validation.validate_incorrect_missing_deps {
-        exceptions.push(ValidationException::new(ExceptionKind::MissingDependency, value, reason)?);
-    }
-    for (value, reason) in &entry.validation.validate_skip_imports {
-        exceptions.push(ValidationException::new(ExceptionKind::SkipImport, value, reason)?);
-    }
-    ValidationPolicy::new(exceptions)
-}
-
-pub struct TempScope {
-    pub path: PathBuf,
-}
-
-impl TempScope {
-    pub fn create(prefix: &str) -> Result<Self> {
-        for counter in 0..100u32 {
-            let name = format!("{prefix}{}-{}-{counter}", std::process::id(), rand_hex());
-            let path = std::env::temp_dir().join(name);
-            match std::fs::create_dir(&path) {
-                Ok(()) => return Ok(Self { path }),
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(e) => {
-                    return Err(Error::io(format!("could not create temporary directory: {e}"), Stage::Validation));
-                }
-            }
-        }
-        Err(Error::io("could not create temporary directory", Stage::Validation))
-    }
-}
-
-impl Drop for TempScope {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
-}
-
-fn rand_hex() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-    (nanos as u64) ^ ((std::process::id() as u64).wrapping_mul(0x9E3779B97F4A7C15))
-}
-
-pub struct ValidatedSet {
-    pub artifacts: Vec<ValidatedArtifact>,
-    pub no_imports: usize,
-    pub _scope: TempScope,
-}
-
-pub fn collect_validated(
-    settings: &ProjectSettings,
-    output: &Path,
-    state_dir: &Path,
-    requested_platforms: &[String],
-    catalog: &Catalog,
-) -> Result<ValidatedSet> {
-    let targets = selected_targets(settings, requested_platforms)?;
-    validate_catalog_targets(catalog, &settings.targets())?;
-    let entries = catalog.by_package();
-    let published = crate::store::published_artifacts(output).map_err(|e| {
-        Error::validation(e.detail.clone(), Stage::Validation)
-    })?;
-    let published_by_filename: BTreeMap<&str, &ValidatedArtifact> =
-        published.iter().map(|a| (a.wheel.filename.as_str(), a)).collect();
-    let mut staged: BTreeMap<String, (WheelIdentity, PathBuf, String, Vec<Target>)> = BTreeMap::new();
-    for path in wheel_paths(state_dir)? {
-        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
-        let identity = WheelIdentity::parse(&name).map_err(|e| {
-            Error::integrity(format!("invalid wheel filename {name}: {}", e.detail), Stage::Validation)
-        })?;
-        let entry = entries.get(&identity.package).ok_or_else(|| {
-            Error::invalid_input(
-                format!("wheel is not listed at this version in the catalog: {}", identity.package),
-                Stage::Validation,
-            )
-            .with_package(&identity.package)
-        })?;
-        let mut applicable = Vec::new();
-        for target in &targets {
-            if let Some(platforms) = entry.platforms.as_ref()
-                && !platforms.contains(&target.platform)
-            {
-                continue;
-            }
-            if entry.excluded_platforms.iter().any(|(p, _)| p == &target.platform) {
-                continue;
-            }
-            let wheel_tags: BTreeSet<String> = crate::platforms::wheel_tag_triples(&name)
-                .map_err(|e| Error::integrity(format!("invalid wheel {name}: {}", e.detail), Stage::Validation))?
-                .iter()
-                .map(|t| t.as_string())
-                .collect();
-            let supported: BTreeSet<String> = ordered_target_tags(target, &settings.linux_repair_policy)
-                .map_err(|e| Error::integrity(e.detail, Stage::Validation))?
-                .iter()
-                .map(|t| t.as_string())
-                .collect();
-            if wheel_tags.intersection(&supported).next().is_none() {
-                continue;
-            }
-            applicable.push(target.clone());
-        }
-        if applicable.is_empty() {
-            continue;
-        }
-        let checksum = sha256_of(&path)?;
-        if let Some(existing) = published_by_filename.get(name.as_str())
-            && existing.sha256 != checksum {
-                return Err(Error::conflict(
-                    format!("wheel filename differs from published bytes: {name}"),
-                    Stage::Validation,
-                )
-                .with_package(&identity.package));
-            }
-        staged.insert(name.clone(), (identity, path, checksum, applicable));
-    }
-    let mut obligations: Vec<(&PackageEntry, &Target)> = Vec::new();
-    for entry in &catalog.entries {
-        for t in &targets {
-            let in_scope = entry.platforms.is_none()
-                || entry.platforms.as_ref().is_some_and(|p| p.contains(&t.platform));
-            if in_scope && !entry.excluded_platforms.iter().any(|(p, _)| p == &t.platform) {
-                obligations.push((entry, t));
-            }
-        }
-    }
-    for (entry, target) in &obligations {
-        let covered = published.iter().any(|a| a.wheel.package == entry.package && a.targets.contains(target));
-        let staged_candidate = staged.values().any(|(id, _, _, applicable)| id.package == entry.package && applicable.contains(target));
-        if !covered && !staged_candidate {
-            return Err(Error::missing_artifact(
-                format!("catalog package has no candidate wheel for {}", target.platform),
-                Stage::Validation,
-            )
-            .with_package(&entry.package)
-            .with_target(&target.python_version.to_string(), &target.platform));
-        }
-    }
-    let mut targets_to_validate: BTreeMap<String, Vec<Target>> = BTreeMap::new();
-    for (filename, (_, _, _, applicable)) in &staged {
-        let mut needed = Vec::new();
-        for target in applicable {
-            let covered = published_by_filename
-                .get(filename.as_str())
-                .is_some_and(|a| a.targets.contains(target));
-            if !covered {
-                needed.push(target.clone());
-            }
-        }
-        if !needed.is_empty() {
-            targets_to_validate.insert(filename.clone(), needed);
-        }
-    }
-    let local = crate::validate::local_platform();
-    {
-        let mut need_platforms: BTreeSet<&str> = BTreeSet::new();
-        for targets_needed in targets_to_validate.values() {
-            for t in targets_needed {
-                need_platforms.insert(t.platform.as_str());
-            }
-        }
-        let mut sorted: Vec<&str> = need_platforms.into_iter().collect();
-        sorted.sort();
-        for platform in sorted {
-            let target = targets.iter().find(|t| t.platform == platform).unwrap();
-            if local.as_deref() != Some(platform) {
-                return Err(Error::incompatible(
-                    format!(
-                        "validation requires a native {platform} runner; current runner is {}",
-                        local.as_deref().unwrap_or("unsupported")
-                    ),
-                    Stage::Validation,
-                )
-                .with_target(&target.python_version.to_string(), &target.platform));
-            }
-        }
-    }
-    let mut policies: BTreeMap<PackageVersion, ValidationPolicy> = BTreeMap::new();
-    for (package, entry) in &entries {
-        policies.insert((*package).clone(), validation_policy(entry)?);
-    }
-    let scope = TempScope::create("mypypi-candidate-")?;
-    let snapshot_root = scope.path.clone();
-    let mut validated_targets: BTreeMap<String, Vec<Target>> = BTreeMap::new();
-    let mut copied_paths: BTreeMap<String, PathBuf> = BTreeMap::new();
-    let mut no_imports = 0usize;
-    for target in &targets {
-        let mut candidate_sources: BTreeMap<String, (PathBuf, String)> = BTreeMap::new();
-        for artifact in &published {
-            if artifact.targets.contains(target) {
-                candidate_sources.insert(artifact.wheel.filename.clone(), (artifact.path.clone(), artifact.sha256.clone()));
-            }
-        }
-        for (filename, (_, path, checksum, applicable)) in &staged {
-            if !applicable.contains(target) {
-                continue;
-            }
-            if published_by_filename.get(filename.as_str()).is_some_and(|a| a.targets.contains(target)) {
-                continue;
-            }
-            candidate_sources.insert(filename.clone(), (path.clone(), checksum.clone()));
-        }
-        if candidate_sources.is_empty() {
-            continue;
-        }
-        let wheel_set = snapshot_root.join(&target.platform);
-        std::fs::create_dir(&wheel_set).map_err(|e| {
-            Error::io(format!("could not create validation snapshot: {e}"), Stage::Validation)
-        })?;
-        let mut target_paths: BTreeMap<String, PathBuf> = BTreeMap::new();
-        for (filename, (source, expected_hash)) in &candidate_sources {
-            let wheel_path = wheel_set.join(filename);
-            std::fs::copy(source, &wheel_path).map_err(|e| {
-                Error::io(format!("could not copy validation snapshot: {e}"), Stage::Validation)
-            })?;
-            if sha256_of(&wheel_path)? != *expected_hash {
-                return Err(Error::integrity(
-                    format!("wheel changed while making candidate snapshot: {filename}"),
-                    Stage::Validation,
-                ));
-            }
-            target_paths.insert(filename.clone(), wheel_path.clone());
-            copied_paths.entry(filename.clone()).or_insert(wheel_path);
-        }
-        let mut pending = Vec::new();
-        for (filename, required) in &targets_to_validate {
-            if !required.contains(target) {
-                continue;
-            }
-            let wheel_path = target_paths.get(filename).ok_or_else(|| {
-                Error::integrity(format!("candidate wheel is absent from target snapshot: {filename}"), Stage::Validation)
-            })?;
-            crate::validate::inspect_wheel(wheel_path, target, &settings.linux_repair_policy)?;
-            pending.push(wheel_path.clone());
-        }
-        let metadata = crate::validate::validate_wheels(&pending, std::slice::from_ref(target), &wheel_set, &policies, &settings.linux_repair_policy)?;
-        for (item, t) in metadata {
-            validated_targets.entry(item.identity.filename.clone()).or_default().push(t);
-            if item.imports.is_empty() {
-                no_imports += 1;
-            }
-        }
-        for (filename, wheel_path) in &target_paths {
-            if sha256_of(wheel_path)? != candidate_sources[filename].1 {
-                return Err(Error::integrity(
-                    format!("candidate wheel changed during validation: {filename}"),
-                    Stage::Validation,
-                ));
-            }
-        }
-    }
-    let mut new_artifacts = Vec::new();
-    let mut staged_names: Vec<String> = staged.keys().cloned().collect();
-    staged_names.sort();
-    for filename in staged_names {
-        let (identity, _, checksum, _) = &staged[&filename];
-        if let Some(covered) = validated_targets.get(&filename) {
-            let path = copied_paths[&filename].clone();
-            new_artifacts.push(ValidatedArtifact::new(identity.clone(), path, checksum.clone(), covered.clone())?);
-        }
-    }
-    let mut coverage: BTreeSet<(PackageVersion, Target)> = BTreeSet::new();
-    for artifact in &published {
-        for target in &artifact.targets {
-            coverage.insert((artifact.wheel.package.clone(), target.clone()));
-        }
-    }
-    for (filename, covered) in &validated_targets {
-        let identity = WheelIdentity::parse(filename).expect("staged filename parses");
-        for target in covered {
-            coverage.insert((identity.package.clone(), target.clone()));
-        }
-    }
-    for (entry, target) in &obligations {
-        if !coverage.contains(&(entry.package.clone(), (*target).clone())) {
-            return Err(Error::missing_artifact(
-                format!("catalog package has no validated wheel for {}", target.platform),
-                Stage::Validation,
-            )
-            .with_package(&entry.package)
-            .with_target(&target.python_version.to_string(), &target.platform));
-        }
-    }
-    Ok(ValidatedSet { artifacts: new_artifacts, no_imports, _scope: scope })
-}
-
 fn command_validate(
     settings: &ProjectSettings,
     paths: &ResolvedPaths,
@@ -1171,35 +787,18 @@ fn command_publish(
     catalog: &Catalog,
     platforms: &[String],
 ) -> Result<i32> {
-    let set = collect_validated(settings, &paths.output, &paths.state_dir, platforms, catalog)?;
-    let entries = catalog.by_package();
-    let mut yanked: BTreeMap<String, Option<String>> = BTreeMap::new();
-    for artifact in crate::store::published_artifacts(&paths.output).map_err(|e| {
-        Error::new(Kind::Integrity, e.detail.clone(), Stage::Publication)
-    })? {
-        if let Some(entry) = entries.get(&artifact.wheel.package) {
-            if entry.clear_yanked {
-                yanked.insert(artifact.wheel.filename.clone(), None);
-            } else if let Some(reason) = &entry.yanked_reason {
-                yanked.insert(artifact.wheel.filename.clone(), Some(reason.clone()));
-            }
-        }
-    }
-    for artifact in &set.artifacts {
-        if let Some(entry) = entries.get(&artifact.wheel.package) {
-            if entry.clear_yanked {
-                yanked.insert(artifact.wheel.filename.clone(), None);
-            } else if let Some(reason) = &entry.yanked_reason {
-                yanked.insert(artifact.wheel.filename.clone(), Some(reason.clone()));
-            }
-        }
-    }
-    let current = crate::store::publish(&set.artifacts, &paths.output, &yanked, &settings.public_base_url)?;
+    let summary = crate::publish::publish(&crate::publish::PublishOptions {
+        settings,
+        output: &paths.output,
+        state_dir: &paths.state_dir,
+        catalog,
+        platforms,
+    })?;
     println!(
         "published {} new wheel(s) at {}; {} wheel-target pair(s) had no importable modules",
-        set.artifacts.len(),
-        current.display(),
-        set.no_imports
+        summary.new_wheels,
+        summary.generation.display(),
+        summary.no_imports
     );
     Ok(0)
 }

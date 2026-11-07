@@ -13,6 +13,7 @@ pub mod models;
 pub mod platforms;
 pub mod planner;
 pub mod process_policy;
+pub mod publish;
 pub mod store;
 pub mod validate;
 pub mod wheel_metadata;
