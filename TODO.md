@@ -20,11 +20,11 @@ Next: 63
 - **Fix with:** none
 - **Effort:** S
 
-### STUF-62 · P2 · Publishing one crate re-uploads the whole generation one object at a time
+### STUF-62 · P3 · A one-crate publish still rewrites every index file under the new generation
 
 - **Area:** Performance
-- **Where:** `crates/stuff/src/publish/r2/sync.rs:355` (`execute`'s serial `for entry in upload_order(...)`), `crates/stuff/src/publish/r2/sync.rs:161` (generation-scoped `generations/<id>/` prefix), `crates/stuff/src/publish/cargo/run.rs`
-- **Problem:** Publishing stats-producer 0.1.1 (one 18.6 KiB crate) to mycrates took over seven minutes. The dry run reported `uploaded 1223 objects (5475578 bytes), skipped 1932 objects`: every index file is rewritten under the new generation's prefix, so the upload grows with the registry rather than with the change. A `sample` of the live publish showed the main thread in `r2::sync::execute` → `R2Client::put_object`, blocked in `h12tiny_client_sync::read_response`, with about 0.4% CPU and one TCP connection open: each object is a full HTTPS round trip to R2, made one after another. The dry run also spent minutes fetching the live snapshot before building.
-- **Recommendation:** Measure the per-object round trip and the snapshot fetch first. Then upload with bounded concurrency over kept-alive connections, keeping manifest-last ordering and the conditional `current` promotion. Separately decide whether unchanged index files can be shared across generations (content-addressed, like blobs) so a one-crate publish uploads only the changed index files.
-- **Fix with:** make-it-fast
+- **Where:** `crates/stuff/src/publish/r2/sync.rs:161` (generation-scoped `generations/<id>/` prefix), `crates/stuff/src/publish/cargo/run.rs`
+- **Problem:** Every index file is rewritten under the new generation's prefix, so a publish uploads about 1220 objects (4.9 MB) for an 18.6 KiB crate; the upload grows with the registry rather than with the change. Concurrent uploads and live-snapshot fetches (32 workers) cut the upload from about 495 s to 15 s and the dry run from about 360 s to 45 s, so this is now a cost in R2 writes and bytes, not minutes. The HTTP client has no idle connection pool, so each request still pays a TCP and TLS handshake.
+- **Recommendation:** Decide whether unchanged index files can be shared across generations (content-addressed, like blobs) so a one-crate publish uploads only the changed index files. Optionally add an idle pool to `h12tiny-client-sync` if request count stays high.
+- **Fix with:** architect
 - **Effort:** M
