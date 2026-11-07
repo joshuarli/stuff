@@ -43,8 +43,7 @@ pub fn run(
         credentials,
         &config,
         &settings,
-        &publish.specs,
-        publish.allow_sdist,
+        publish,
         &paths.state_dir("pypi"),
         &paths.cache_dir("pypi"),
         options,
@@ -114,13 +113,12 @@ fn publish_internal(
     credentials: Credentials,
     config: &Config,
     settings: &mypypi::config::ProjectSettings,
-    specs: &[PypiSpec],
-    allow_sdist: bool,
+    publish: &PypiPublish,
     state_dir: &Path,
     cache_dir: &Path,
     options: &Options,
 ) -> Result<Outcome, PublishError> {
-    let catalog = resolved_catalog(specs, settings, cache_dir)?;
+    let catalog = resolved_catalog(&publish.specs, settings, cache_dir)?;
     let platform = local_platform()?;
     let targets = local_targets(settings)?;
     let staging = Staging::create(cache_dir, "pypi-site")?;
@@ -154,7 +152,7 @@ fn publish_internal(
         })?;
         pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
         if !acquired {
-            acquire_wheels(&catalog, settings, &targets, &site, state_dir, allow_sdist)?;
+            acquire_wheels(&catalog, settings, &targets, &site, state_dir, publish.allow_sdist)?;
             acquired = true;
         }
         mypypi::publish::publish(&mypypi::publish::PublishOptions {
@@ -168,7 +166,8 @@ fn publish_internal(
         Ok(Staged::new(site.clone()))
     })?;
     let mut outcome = report.outcome();
-    outcome.packages = specs
+    outcome.packages = publish
+        .specs
         .iter()
         .map(|spec| format!("{}=={}", spec.name, spec.version))
         .collect();

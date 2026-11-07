@@ -281,12 +281,13 @@ fn cache_site_blobs(site_dir: &Path, cache_dir: &Path) -> Result<(), PublishErro
     if let Ok(entries) = std::fs::read_dir(&source_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() {
-                if let Some(name) = path.file_name() {
-                    let dest = target_dir.join(name);
-                    if !dest.exists() {
-                        let _ = link_or_copy(&path, &dest);
-                    }
+            if !path.is_file() {
+                continue;
+            }
+            if let Some(name) = path.file_name() {
+                let dest = target_dir.join(name);
+                if !dest.exists() {
+                    let _ = link_or_copy(&path, &dest);
                 }
             }
         }
