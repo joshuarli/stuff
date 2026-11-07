@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 62
+Next: 63
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -27,4 +27,13 @@ Next: 62
 - **Problem:** `mynpm` only mirrors upstream packages named in a lockfile, so a package that exists nowhere upstream cannot be published. Niceforge's Core depends on `@stats/producer` 0.1.0 from `~/d/stats/packages/producer`, which is on neither npmjs nor npm.17166969.xyz. With no registry to install it from, Niceforge had to vendor its packed build into `apps/forge/vendor/stats-producer` (niceforge `050b263`) so a clean checkout or CI VM could run `pnpm install`.
 - **Recommendation:** Add a native npm publish path, `stuff publish npm --package DIR` or a packed `.tgz`, that hosts a first-party package beside the mirror under the same immutable-generation and conflict rules. Then publish `@stats/producer`, point Niceforge at the version through an `@stats:registry` `.npmrc` line, and delete the vendored copy.
 - **Fix with:** do
+- **Effort:** M
+
+### STUF-62 · P2 · Publishing one crate re-uploads the whole generation one object at a time
+
+- **Area:** Performance
+- **Where:** `crates/stuff/src/publish/r2/sync.rs:355` (`execute`'s serial `for entry in upload_order(...)`), `crates/stuff/src/publish/r2/sync.rs:161` (generation-scoped `generations/<id>/` prefix), `crates/stuff/src/publish/cargo/run.rs`
+- **Problem:** Publishing stats-producer 0.1.1 (one 18.6 KiB crate) to mycrates took over seven minutes. The dry run reported `uploaded 1223 objects (5475578 bytes), skipped 1932 objects`: every index file is rewritten under the new generation's prefix, so the upload grows with the registry rather than with the change. A `sample` of the live publish showed the main thread in `r2::sync::execute` → `R2Client::put_object`, blocked in `h12tiny_client_sync::read_response`, with about 0.4% CPU and one TCP connection open: each object is a full HTTPS round trip to R2, made one after another. The dry run also spent minutes fetching the live snapshot before building.
+- **Recommendation:** Measure the per-object round trip and the snapshot fetch first. Then upload with bounded concurrency over kept-alive connections, keeping manifest-last ordering and the conditional `current` promotion. Separately decide whether unchanged index files can be shared across generations (content-addressed, like blobs) so a one-crate publish uploads only the changed index files.
+- **Fix with:** make-it-fast
 - **Effort:** M
