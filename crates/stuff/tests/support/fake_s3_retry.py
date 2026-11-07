@@ -49,8 +49,14 @@ class RetryHandler(base.FakeS3Handler):
             if generation:
                 data = generation.encode()
                 etag = base.md5_etag(data)
-                server.current = generation
-                server.current_etag = etag
+                if isinstance(server.current, dict):
+                    server.current[bucket] = generation
+                else:
+                    server.current = {bucket: generation}
+                if isinstance(server.current_etag, dict):
+                    server.current_etag[bucket] = etag
+                else:
+                    server.current_etag = {bucket: etag}
                 server.objects[(bucket, "current")] = (data, "text/plain")
                 server.etags[(bucket, "current")] = etag
                 server.reject_current_generation = None

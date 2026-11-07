@@ -341,16 +341,23 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             none_match = self.headers.get("if-none-match")
             text = body.decode("utf-8", "replace")
             server.put_conditions.append((condition, none_match, text))
-            bucket_etag = server.current_etag.get(bucket)
+            bucket_etag = server.current_etag.get(bucket) if isinstance(server.current_etag, dict) else server.current_etag
             if condition is not None and condition != bucket_etag:
                 self._reply(412)
                 return
-            if none_match == "*" and bucket in server.current:
+            has_current = (bucket in server.current) if isinstance(server.current, dict) else (server.current is not None)
+            if none_match == "*" and has_current:
                 self._reply(412)
                 return
             etag = md5_etag(body)
-            server.current[bucket] = text
-            server.current_etag[bucket] = etag
+            if isinstance(server.current, dict):
+                server.current[bucket] = text
+            else:
+                server.current = {bucket: text}
+            if isinstance(server.current_etag, dict):
+                server.current_etag[bucket] = etag
+            else:
+                server.current_etag = {bucket: etag}
             server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))
             server.etags[(bucket, key)] = etag
             self._log_put(bucket, key)
