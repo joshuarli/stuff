@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use deser_value::Value;
+use mynpm::acquire::{fetch_inventory, Exchange};
 use mynpm::inventory::{
     artifact_to_value, merge_project, normalize_metadata_only_record, record_metadata_only,
     record_verified_artifacts, validate_artifact_record, ArtifactRecord, Category, Inventory,
@@ -216,6 +217,34 @@ fn link_or_copy(source: &Path, target: &Path) -> Result<(), PublishError> {
     }
 }
 
+fn ensure_objects(
+    snapshot: &Snapshot,
+    store: &SharedStore,
+    state_dir: &Path,
+    artifacts: impl IntoIterator<Item = ArtifactRecord>,
+) -> Result<(), PublishError> {
+    let objects = state_dir.join("objects").join("sha512");
+    std::fs::create_dir_all(&objects).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", objects.display()))
+    })?;
+    let mut digests = BTreeSet::new();
+    for artifact in artifacts {
+        digests.insert(artifact.artifact.sha512);
+    }
+    for digest in digests {
+        let object = objects.join(format!("{digest}.tgz"));
+        if object.is_file() {
+            continue;
+        }
+        let key = format!("{}{digest}.tgz", store.prefix);
+        let bytes = snapshot.fetch_shared(store, &key)?;
+        std::fs::write(&object, &bytes).map_err(|error| {
+            PublishError::Config(format!("could not write {}: {error}", object.display()))
+        })?;
+    }
+    Ok(())
+}
+
 fn materialize(
     snapshot: &Snapshot,
     store: &SharedStore,
@@ -237,6 +266,10 @@ fn materialize(
     for artifact in retained.iter().chain(incoming) {
         digests.insert(artifact.artifact.sha512.clone());
     }
+    let mut live_digests = BTreeSet::new();
+    for artifact in retained {
+        live_digests.insert(artifact.artifact.sha512.clone());
+    }
     for digest in digests {
         let object = objects.join(format!("{digest}.tgz"));
         if !object.is_file() {
@@ -249,6 +282,9 @@ fn materialize(
         let shared = tarballs.join(format!("{digest}.tgz"));
         if shared.symlink_metadata().is_err() {
             link_or_copy(&object, &shared)?;
+        }
+        if !live_digests.contains(&digest) {
+            continue;
         }
         for alias in ["tarballs", "-/tarballs"] {
             let directory = mirror.join("generations").join(generation).join(alias);
@@ -272,6 +308,7 @@ pub struct PrepareOptions<'a> {
     pub lockfile: &'a Path,
     pub project_id: &'a str,
     pub library: &'a mynpm::config::Config,
+    pub exchange: &'a dyn Exchange,
 }
 
 pub fn prepare(snapshot: &Snapshot, options: &PrepareOptions<'_>) -> Result<(), PublishError> {
@@ -312,6 +349,9 @@ pub fn prepare(snapshot: &Snapshot, options: &PrepareOptions<'_>) -> Result<(), 
         inventory = record_metadata_only(&inventory, &metadata_only).map_err(library_error)?;
     }
     save_inventory(state_dir, &inventory).map_err(library_error)?;
+    ensure_objects(snapshot, options.store, state_dir, inventory.artifacts.clone())?;
+    fetch_inventory(state_dir, options.library, options.exchange).map_err(library_error)?;
+    let inventory = load_inventory(state_dir).map_err(library_error)?;
     materialize(
         snapshot,
         options.store,

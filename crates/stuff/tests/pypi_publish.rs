@@ -3,6 +3,7 @@
 mod support;
 
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -15,6 +16,15 @@ use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mypypi";
 const FIXTURE_WHEEL: &str = "validation_fixture-1.0-py3-none-any.whl";
+
+const FAKE_PYTHON: &str = r#"#!/bin/sh
+case "$*" in
+*implementation.name*) echo 'cpython 3 15' ;;
+*version_info.micro*) echo '3 15 1' ;;
+*sys.executable*) echo /fake/python ;;
+*cache_tag*) printf 'cpython\n3.15.1\ncpython-315\nfake-platform\n' ;;
+esac
+"#;
 
 fn fixture_wheel() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -32,17 +42,51 @@ fn spec() -> PypiSpec {
 struct Workspace {
     fake: FakeS3,
     root: tempfile::TempDir,
+    bin: PathBuf,
 }
 
 impl Workspace {
     fn new() -> Self {
         let root = tempfile::tempdir().unwrap();
+        let bin = root.path().join("bin");
+        fs::create_dir(&bin).unwrap();
+        let python = bin.join("python");
+        fs::write(&python, FAKE_PYTHON).unwrap();
+        fs::set_permissions(&python, fs::Permissions::from_mode(0o755)).unwrap();
+        let uv = bin.join("uv");
+        fs::write(
+            &uv,
+            format!(
+                r#"#!/bin/sh
+echo "$*" >> "{log}"
+case "$1" in
+--version) echo "uv {version} (fake)" ;;
+venv)
+  for last; do :; done
+  mkdir -p "$last/bin"
+  printf '#!/bin/sh\nexit 0\n' > "$last/bin/python"
+  chmod +x "$last/bin/python"
+  ;;
+pip)
+  case "$2" in
+  compile) cat ;;
+  esac
+  ;;
+esac
+"#,
+                log = root.path().join("uv.log").display(),
+                version = mypypi::build::UV_VERSION,
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&uv, fs::Permissions::from_mode(0o755)).unwrap();
         let wheels = root.path().join("state/pypi/wheels");
         fs::create_dir_all(&wheels).unwrap();
         fs::copy(fixture_wheel(), wheels.join(FIXTURE_WHEEL)).unwrap();
         Workspace {
             fake: FakeS3::start_verified(),
             root,
+            bin,
         }
     }
 
@@ -59,8 +103,15 @@ impl Workspace {
     }
 
     fn publish_args(&self, args: &[&str]) -> Output {
+        let path = format!(
+            "{}:{}",
+            self.bin.display(),
+            std::env::var("PATH").unwrap_or_default()
+        );
         Command::new(env!("CARGO_BIN_EXE_stuff"))
             .args(args)
+            .env("PATH", path)
+            .env("PYTHON", self.bin.join("python"))
             .env("R2_S3_ENDPOINT", self.fake.base_url())
             .env("R2_S3_ACCESS_KEY_ID", ACCESS_KEY)
             .env("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY)
@@ -138,6 +189,40 @@ fn object_snapshot(fake: &FakeS3) -> Vec<(String, String, u64, String)> {
         .collect();
     objects.sort();
     objects
+}
+
+#[test]
+fn a_spec_absent_from_live_and_state_is_added_validated_and_published() {
+    let work = Workspace::new();
+    assert!(
+        work.fake.state().is_empty(),
+        "the test started with a live index"
+    );
+
+    assert_success(&work.publish());
+    let id = work.current();
+    assert!(!id.is_empty());
+
+    let manifest = work
+        .client()
+        .get_object(BUCKET, &format!("generations/{id}/manifest.json"))
+        .expect("generation manifest");
+    let text = String::from_utf8(manifest).unwrap();
+    assert!(text.contains("validation-fixture"), "{text}");
+
+    let page = work
+        .client()
+        .get_object(BUCKET, &format!("generations/{id}/simple/validation-fixture/index.html"))
+        .expect("project page");
+    let page = String::from_utf8(page).unwrap();
+    assert!(page.contains(FIXTURE_WHEEL), "{page}");
+
+    let log = fs::read_to_string(work.root.path().join("uv.log")).unwrap();
+    assert!(log.contains("pip compile"), "the add step never ran: {log}");
+    assert!(
+        log.contains("pip install") && log.contains("--no-index"),
+        "the validate step never ran: {log}"
+    );
 }
 
 #[test]

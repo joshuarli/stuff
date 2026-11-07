@@ -3,6 +3,10 @@
 use std::path::Path;
 
 use deser_value::Value;
+use mypypi::build::{acquire_or_build, BuildOptions};
+use mypypi::catalog::{parse_catalog, Catalog};
+use mypypi::cli::create_plan;
+use mypypi::planner::PlanOutcome;
 use stuff_store::{HashAlg, stream_file_hash};
 
 use crate::publish::config::Config;
@@ -17,6 +21,7 @@ use crate::publish::{Environment, Options, Outcome, PublishError, PypiSpec, Regi
 
 const PYTHON_SPECIFIER: &str = ">=3.15,<3.16";
 const LINUX_REPAIR_POLICY: &str = "manylinux_2_28";
+const PYPI_SIMPLE_INDEX: &str = "https://pypi.org/simple";
 
 pub fn run(
     specs: &[PypiSpec],
@@ -74,7 +79,7 @@ fn publish(
     cache_dir: &Path,
     options: &Options,
 ) -> Result<Outcome, PublishError> {
-    let catalog = package_catalog(specs)?;
+    let catalog = resolved_catalog(specs, settings, cache_dir)?;
     let staging = Staging::create(cache_dir, "pypi-site")?;
     let site = staging.path().join("site");
     let transaction_state = if options.dry_run {
@@ -98,12 +103,17 @@ fn publish(
             ..TransactionOptions::default()
         },
     )?;
+    let mut acquired = false;
     let report = pending.publish(|pending| {
         remove_dir_if_present(&site)?;
         std::fs::create_dir_all(&site).map_err(|error| {
             PublishError::Config(format!("could not create {}: {error}", site.display()))
         })?;
         pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
+        if !acquired {
+            acquire_wheels(&catalog, settings, &site, state_dir)?;
+            acquired = true;
+        }
         mypypi::publish::publish(&mypypi::publish::PublishOptions {
             settings,
             output: &site,
@@ -120,6 +130,93 @@ fn publish(
         .map(|spec| format!("{}=={}", spec.name, spec.version))
         .collect();
     Ok(outcome)
+}
+
+fn resolved_catalog(
+    specs: &[PypiSpec],
+    settings: &mypypi::config::ProjectSettings,
+    cache_dir: &Path,
+) -> Result<Catalog, PublishError> {
+    let staging = Staging::create(cache_dir, "pypi-catalog")?;
+    let path = staging.path().join("packages.toml");
+    let mut source = String::new();
+    let mut requirements = Vec::with_capacity(specs.len());
+    for spec in specs {
+        source.push_str("[[packages]]\n");
+        source.push_str(&format!("name = \"{}\"\n", toml_string(&spec.name)));
+        source.push_str(&format!("version = \"{}\"\n", toml_string(&spec.version)));
+        requirements.push(format!("{}=={}", spec.name, spec.version));
+    }
+    std::fs::write(&path, source).map_err(|error| {
+        PublishError::Config(format!("could not write {}: {error}", path.display()))
+    })?;
+    mypypi::add::add_packages(
+        &path,
+        &requirements,
+        &settings.targets(),
+        &mypypi::platforms::python_binary(),
+    )
+    .map_err(map_mypypi)?;
+    let text = std::fs::read_to_string(&path).map_err(|error| {
+        PublishError::Config(format!("could not read {}: {error}", path.display()))
+    })?;
+    parse_catalog(&text).map_err(map_mypypi)
+}
+
+fn acquire_wheels(
+    catalog: &Catalog,
+    settings: &mypypi::config::ProjectSettings,
+    site: &Path,
+    state_dir: &Path,
+) -> Result<(), PublishError> {
+    let wheels = state_dir.join("wheels");
+    std::fs::create_dir_all(&wheels).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", wheels.display()))
+    })?;
+    let targets = settings.targets();
+    let data = create_plan(catalog, settings, &targets, site, state_dir).map_err(map_mypypi)?;
+    let entries = catalog.by_package();
+    let prebuild_cwd = std::env::current_dir().map_err(|error| {
+        PublishError::Config(format!("could not determine the working directory: {error}"))
+    })?;
+    for outcome in &data.outcomes {
+        let (package, target) = match outcome {
+            PlanOutcome::DownloadWheel { package, target, .. }
+            | PlanOutcome::BuildSdist { package, target, .. } => (package, target),
+            _ => continue,
+        };
+        let entry = entries.get(package).ok_or_else(|| {
+            PublishError::Integrity(format!("catalog has no entry for {package}"))
+        })?;
+        let release = data.releases.get(package).ok_or_else(|| {
+            PublishError::Integrity(format!("plan has no upstream release for {package}"))
+        })?;
+        let ignore: Vec<String> = entry
+            .build
+            .likely_binary_ignore
+            .iter()
+            .map(|(package, _)| package.clone())
+            .collect();
+        let prebuild: Vec<(String, String)> = entry.build.custom_prebuild.clone();
+        acquire_or_build(
+            release,
+            target,
+            &wheels,
+            &BuildOptions {
+                index_url: PYPI_SIMPLE_INDEX,
+                likely_binary_ignore: &ignore,
+                custom_prebuild: &prebuild,
+                linux_repair_policy: &settings.linux_repair_policy,
+                build_constraints: None,
+                require_build_hashes: false,
+                env: None,
+                prebuild_cwd: Some(&prebuild_cwd),
+            },
+            entry.yanked_reason.as_deref(),
+        )
+        .map_err(map_mypypi)?;
+    }
+    Ok(())
 }
 
 fn remove_dir_if_present(path: &Path) -> Result<(), PublishError> {

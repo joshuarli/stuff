@@ -2,6 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
+use mynpm::acquire::{Exchange, HttpsExchange};
 use mynpm::config::{Config as LibraryConfig, DarwinTarget, LinuxTarget, Policy, Target};
 use mynpm::inventory::SourceKind;
 use mynpm::inventory_store::load_inventory;
@@ -111,6 +112,15 @@ pub fn publish(
     options: Options,
     environment: &Environment,
 ) -> Result<Outcome, PublishError> {
+    publish_with_exchange(request, options, environment, &HttpsExchange::new())
+}
+
+pub fn publish_with_exchange(
+    request: &NpmPublish,
+    options: Options,
+    environment: &Environment,
+    exchange: &dyn Exchange,
+) -> Result<Outcome, PublishError> {
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.npm.bucket.clone();
@@ -172,6 +182,7 @@ pub fn publish(
                 lockfile: &lockfile,
                 project_id: &request.project,
                 library: &library,
+                exchange,
             },
         )?;
 

@@ -6,9 +6,11 @@ use std::fs;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use base64::Engine;
 use deser_value::Value;
+use mynpm::acquire::{Exchange, FetchedResponse};
 use mynpm::inventory::{
     validate_artifact_record, ArtifactRecord, Inventory, LockfileVersion, Manager, PackageFlags,
     PackageRecord, PlatformConstraints, ProjectRecord, SourceKind,
@@ -207,6 +209,7 @@ fn seed_bucket(fake: &FakeS3, live_site: &Path, generation: &str) {
 }
 
 fn direct_generation(work: &Path, fake: &FakeS3, lockfile: &Path) -> String {
+    let exchange = UnreachableExchange;
     let site = work.join("direct-site");
     let state = work.join("direct-state");
     let cache = work.join("direct-cache");
@@ -225,6 +228,7 @@ fn direct_generation(work: &Path, fake: &FakeS3, lockfile: &Path) -> String {
             lockfile,
             project_id: "demo",
             library: &library,
+            exchange: &exchange,
         },
     )
     .unwrap();
@@ -332,6 +336,138 @@ fn decoy_path(work: &Path) -> (String, PathBuf) {
         std::env::var("PATH").unwrap_or_default()
     );
     (path, marker)
+}
+
+const NETWORK_NAME: &str = "network-demo";
+const NETWORK_VERSION: &str = "2.0.0";
+const NETWORK_TARBALL: &str =
+    "https://registry.npmjs.org/network-demo/-/network-demo-2.0.0.tgz";
+const NETWORK_PACKUMENT: &str = "https://registry.npmjs.org/network-demo";
+
+fn integrity(bytes: &[u8]) -> String {
+    format!(
+        "sha512-{}",
+        base64::engine::general_purpose::STANDARD.encode(Sha512::digest(bytes))
+    )
+}
+
+struct UnreachableExchange;
+
+impl Exchange for UnreachableExchange {
+    fn fetch(&self, url: &stuff_url::Url) -> mynpm::error::Result<FetchedResponse> {
+        Err(mynpm::error::Error::Operation(format!(
+            "unexpected upstream request {url}"
+        )))
+    }
+}
+
+struct RecordingExchange {
+    tarball: Vec<u8>,
+    requests: Mutex<Vec<String>>,
+}
+
+impl RecordingExchange {
+    fn new(tarball: Vec<u8>) -> Self {
+        RecordingExchange {
+            tarball,
+            requests: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requests(&self) -> Vec<String> {
+        self.requests.lock().unwrap().clone()
+    }
+}
+
+impl Exchange for RecordingExchange {
+    fn fetch(&self, url: &stuff_url::Url) -> mynpm::error::Result<FetchedResponse> {
+        self.requests.lock().unwrap().push(url.as_str().to_string());
+        match url.as_str() {
+            NETWORK_TARBALL => Ok(FetchedResponse {
+                status: 200,
+                location: None,
+                body: self.tarball.clone(),
+            }),
+            NETWORK_PACKUMENT => {
+                let integrity = integrity(&self.tarball);
+                let body = format!(
+                    "{{\"name\":\"{NETWORK_NAME}\",\"dist-tags\":{{\"latest\":\"{NETWORK_VERSION}\"}},\"versions\":{{\"{NETWORK_VERSION}\":{{\"name\":\"{NETWORK_NAME}\",\"version\":\"{NETWORK_VERSION}\",\"dist\":{{\"tarball\":\"{NETWORK_TARBALL}\",\"integrity\":\"{integrity}\"}}}}}}}}"
+                );
+                Ok(FetchedResponse {
+                    status: 200,
+                    location: None,
+                    body: body.into_bytes(),
+                })
+            }
+            other => Err(mynpm::error::Error::Operation(format!(
+                "unexpected upstream request {other}"
+            ))),
+        }
+    }
+}
+
+fn network_lockfile(work: &Path, integrity: &str) -> PathBuf {
+    let path = work.join("package-lock.json");
+    let text = format!(
+        "{{\"name\":\"demo\",\"version\":\"1.0.0\",\"lockfileVersion\":3,\"requires\":true,\"packages\":{{\"\":{{\"name\":\"demo\",\"version\":\"1.0.0\",\"dependencies\":{{\"{NETWORK_NAME}\":\"{NETWORK_VERSION}\"}}}},\"node_modules/{NETWORK_NAME}\":{{\"version\":\"{NETWORK_VERSION}\",\"resolved\":\"{NETWORK_TARBALL}\",\"integrity\":\"{integrity}\"}}}}}}"
+    );
+    fs::write(&path, text).unwrap();
+    path
+}
+
+#[test]
+fn a_lockfile_package_absent_from_live_and_state_is_downloaded_and_published() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let (live_site, live_generation) =
+        build_live(work.path(), &[("retained-demo", "1.0.0", tarball("retained-demo", "1.0.0"))]);
+    seed_bucket(&fake, &live_site, &live_generation);
+
+    let tarball_bytes = tarball(NETWORK_NAME, NETWORK_VERSION);
+    let lockfile = network_lockfile(work.path(), &integrity(&tarball_bytes));
+    let exchange = RecordingExchange::new(tarball_bytes.clone());
+    assert!(!work.path().join("stuff-state/npm").exists(), "the test started with npm state");
+
+    let (path, marker) = decoy_path(work.path());
+    let environment = environment(work.path(), &fake, &path);
+    let outcome = stuff::publish::npm::publish_with_exchange(
+        &NpmPublish {
+            lockfile: lockfile.to_string_lossy().into_owned(),
+            project: "demo".to_string(),
+        },
+        Options::default(),
+        &environment,
+        &exchange,
+    )
+    .unwrap();
+    assert_eq!(outcome.status, Status::Published, "{outcome:?}");
+    assert!(!marker.exists(), "an mynpm child process was spawned");
+
+    let requests = exchange.requests();
+    assert!(
+        requests.iter().any(|url| url == NETWORK_TARBALL),
+        "the tarball was never requested: {requests:?}"
+    );
+    assert!(
+        requests.iter().any(|url| url == NETWORK_PACKUMENT),
+        "the packument was never requested: {requests:?}"
+    );
+
+    let digest = format!("{:x}", Sha512::digest(&tarball_bytes));
+    assert!(
+        work.path()
+            .join("stuff-state/npm/objects/sha512")
+            .join(format!("{digest}.tgz"))
+            .is_file(),
+        "the acquired tarball was not stored in state"
+    );
+
+    let generation = String::from_utf8(remote_body(&fake, "current").unwrap()).unwrap();
+    let manifest =
+        remote_body(&fake, &format!("generations/{generation}/manifest.json")).unwrap();
+    let text = String::from_utf8(manifest).unwrap();
+    assert!(text.contains(NETWORK_NAME), "{text}");
+    assert!(text.contains("retained-demo"), "{text}");
 }
 
 #[test]
