@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod client;
+pub mod credentials;
 pub mod sigv4;
 pub mod xml;
 
