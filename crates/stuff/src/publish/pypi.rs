@@ -6,6 +6,7 @@ use deser_value::Value;
 use mypypi::build::{acquire_or_build, BuildOptions};
 use mypypi::catalog::{parse_catalog, Catalog};
 use mypypi::cli::create_plan;
+use mypypi::models::Target;
 use mypypi::planner::PlanOutcome;
 use stuff_store::{HashAlg, stream_file_hash};
 
@@ -22,6 +23,12 @@ use crate::publish::{Environment, Options, Outcome, PublishError, PypiSpec, Regi
 const PYTHON_SPECIFIER: &str = ">=3.15,<3.16";
 const LINUX_REPAIR_POLICY: &str = "manylinux_2_28";
 const PYPI_SIMPLE_INDEX: &str = "https://pypi.org/simple";
+const SUPPORTED_PLATFORMS: [&str; 4] = [
+    "linux-x86_64",
+    "linux-aarch64",
+    "macos-x86_64",
+    "macos-arm64",
+];
 
 pub fn run(
     specs: &[PypiSpec],
@@ -46,16 +53,48 @@ pub fn run(
 pub fn project_settings(
     public_base_url: &str,
 ) -> Result<mypypi::config::ProjectSettings, PublishError> {
-    let platform = mypypi::validate::local_platform().ok_or_else(|| {
+    let platform = local_platform()?;
+    let platforms = SUPPORTED_PLATFORMS
+        .iter()
+        .map(|name| format!("\"{name}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let source = format!(
+        "[project]\nrequires-python = \"{PYTHON_SPECIFIER}\"\n\n[tool.mypypi]\npublic_base_url = \"{}\"\n\n[tool.mypypi.targets]\nplatforms = [{platforms}]\nlinux_repair_policy = \"{LINUX_REPAIR_POLICY}\"\n",
+        toml_string(public_base_url)
+    );
+    let settings = mypypi::config::parse_project_settings(&source).map_err(map_mypypi)?;
+    if !settings.platforms.iter().any(|name| name == &platform) {
+        return Err(PublishError::Config(format!(
+            "pypi publish requires a supported host platform for wheel validation: {platform}"
+        )));
+    }
+    Ok(settings)
+}
+
+fn local_platform() -> Result<String, PublishError> {
+    mypypi::validate::local_platform().ok_or_else(|| {
         PublishError::Config(
             "pypi publish requires a supported host platform for wheel validation".to_string(),
         )
-    })?;
-    let source = format!(
-        "[project]\nrequires-python = \"{PYTHON_SPECIFIER}\"\n\n[tool.mypypi]\npublic_base_url = \"{}\"\n\n[tool.mypypi.targets]\nplatforms = [\"{platform}\"]\nlinux_repair_policy = \"{LINUX_REPAIR_POLICY}\"\n",
-        toml_string(public_base_url)
-    );
-    mypypi::config::parse_project_settings(&source).map_err(map_mypypi)
+    })
+}
+
+fn local_targets(
+    settings: &mypypi::config::ProjectSettings,
+) -> Result<Vec<Target>, PublishError> {
+    let platform = local_platform()?;
+    let targets: Vec<Target> = settings
+        .targets()
+        .into_iter()
+        .filter(|target| target.platform == platform)
+        .collect();
+    if targets.is_empty() {
+        return Err(PublishError::Config(format!(
+            "pypi publish requires the host platform {platform} in the target configuration"
+        )));
+    }
+    Ok(targets)
 }
 
 pub fn package_catalog(
@@ -80,6 +119,8 @@ fn publish(
     options: &Options,
 ) -> Result<Outcome, PublishError> {
     let catalog = resolved_catalog(specs, settings, cache_dir)?;
+    let platform = local_platform()?;
+    let targets = local_targets(settings)?;
     let staging = Staging::create(cache_dir, "pypi-site")?;
     let site = staging.path().join("site");
     let transaction_state = if options.dry_run {
@@ -111,7 +152,7 @@ fn publish(
         })?;
         pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
         if !acquired {
-            acquire_wheels(&catalog, settings, &site, state_dir)?;
+            acquire_wheels(&catalog, settings, &targets, &site, state_dir)?;
             acquired = true;
         }
         mypypi::publish::publish(&mypypi::publish::PublishOptions {
@@ -119,7 +160,7 @@ fn publish(
             output: &site,
             state_dir,
             catalog: &catalog,
-            platforms: &[],
+            platforms: std::slice::from_ref(&platform),
         })
         .map_err(map_mypypi)?;
         Ok(Staged::new(site.clone()))
@@ -166,6 +207,7 @@ fn resolved_catalog(
 fn acquire_wheels(
     catalog: &Catalog,
     settings: &mypypi::config::ProjectSettings,
+    targets: &[Target],
     site: &Path,
     state_dir: &Path,
 ) -> Result<(), PublishError> {
@@ -173,8 +215,7 @@ fn acquire_wheels(
     std::fs::create_dir_all(&wheels).map_err(|error| {
         PublishError::Config(format!("could not create {}: {error}", wheels.display()))
     })?;
-    let targets = settings.targets();
-    let data = create_plan(catalog, settings, &targets, site, state_dir).map_err(map_mypypi)?;
+    let data = create_plan(catalog, settings, targets, site, state_dir).map_err(map_mypypi)?;
     let entries = catalog.by_package();
     let prebuild_cwd = std::env::current_dir().map_err(|error| {
         PublishError::Config(format!("could not determine the working directory: {error}"))
@@ -394,12 +435,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn project_settings_select_the_local_platform() {
+    fn project_settings_configure_all_platforms_and_select_the_local_one() {
         let Some(platform) = mypypi::validate::local_platform() else {
             return;
         };
         let settings = project_settings("https://pypi.example.test").unwrap();
-        assert_eq!(settings.platforms, vec![platform]);
+        assert_eq!(
+            settings.platforms,
+            vec![
+                "linux-x86_64",
+                "linux-aarch64",
+                "macos-x86_64",
+                "macos-arm64"
+            ]
+        );
+        let targets = local_targets(&settings).unwrap();
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets[0].platform, platform);
+        assert_eq!(targets[0].python_version.to_string(), "3.15");
         assert_eq!(settings.python_version.to_string(), "3.15");
         assert_eq!(settings.public_base_url, "https://pypi.example.test");
         assert_eq!(settings.linux_repair_policy, LINUX_REPAIR_POLICY);

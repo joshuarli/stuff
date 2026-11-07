@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use deser_value::Value;
+use mypypi::models::{Target, ValidatedArtifact, WheelIdentity};
 use stuff::publish::config::Config;
 use stuff::publish::pypi::project_settings;
 use stuff::publish::r2::{Credentials, R2Client};
@@ -15,6 +16,7 @@ use support::{seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mypypi";
 const FIXTURE_WHEEL: &str = "validation_fixture-1.0-py3-none-any.whl";
+const RETAINED_WHEEL: &str = "retained_fixture-1.0-py3-none-any.whl";
 
 const FAKE_PYTHON: &str = r#"#!/bin/sh
 case "$*" in
@@ -29,6 +31,91 @@ fn fixture_wheel() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/mypypi/wheels")
         .join(FIXTURE_WHEEL)
+}
+
+fn write_retained_wheel(path: &Path) {
+    let script = r#"
+import sys, zipfile
+path = sys.argv[1]
+dist = "retained_fixture-1.0.dist-info"
+metadata = "Metadata-Version: 2.4\nName: retained-fixture\nVersion: 1.0\nRequires-Python: >=3.15,<3.16\n\n"
+wheel = "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+record = f"{dist}/METADATA,,\n{dist}/WHEEL,,\n{dist}/RECORD,,\n"
+with zipfile.ZipFile(path, "w") as archive:
+    archive.writestr(f"{dist}/METADATA", metadata)
+    archive.writestr(f"{dist}/WHEEL", wheel)
+    archive.writestr(f"{dist}/RECORD", record)
+"#;
+    let status = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(path)
+        .status()
+        .expect("run python3 to build the retained wheel");
+    assert!(status.success(), "python3 could not build {RETAINED_WHEEL}");
+}
+
+fn seed_live_generation(fake: &FakeS3, wheel: &Path, targets: Vec<Target>) -> String {
+    let root = tempfile::tempdir().unwrap();
+    let site = root.path().join("site");
+    let identity = WheelIdentity::parse(
+        wheel
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("wheel filename"),
+    )
+    .expect("retained wheel filename");
+    let sha256 = mypypi::acquire::sha256_file(wheel).expect("hash the retained wheel");
+    let artifact = ValidatedArtifact::new(identity, wheel.to_path_buf(), sha256, targets)
+        .expect("validated retained artifact");
+    let (_, activation) = mypypi::store::publish(
+        &[artifact],
+        &site,
+        &std::collections::BTreeMap::new(),
+        &Config::default().pypi.public_base_url,
+    )
+    .expect("seed the live pypi generation");
+    for (key, body) in tree(&site) {
+        fake.seed(BUCKET, &key, &body, "application/octet-stream");
+    }
+    fake.seed(
+        BUCKET,
+        "current",
+        activation.generation_id.as_bytes(),
+        "text/plain",
+    );
+    activation.generation_id
+}
+
+fn manifest_targets(work: &Workspace, generation: &str) -> Vec<(String, Vec<String>)> {
+    let body = work
+        .client()
+        .get_object(BUCKET, &format!("generations/{generation}/manifest.json"))
+        .expect("promoted generation manifest");
+    let value: Value = deser_json::from_slice(&body).expect("manifest is JSON");
+    value
+        .as_map()
+        .and_then(|map| map.get("artifacts"))
+        .and_then(|artifacts| artifacts.as_seq())
+        .expect("manifest artifacts")
+        .iter()
+        .map(|artifact| {
+            let map = artifact.as_map().expect("manifest artifact");
+            let filename = map
+                .get("filename")
+                .and_then(|value| value.as_str())
+                .expect("artifact filename")
+                .to_string();
+            let targets = map
+                .get("targets")
+                .and_then(|value| value.as_seq())
+                .expect("artifact targets")
+                .iter()
+                .map(|target| target.as_str().expect("target string").to_string())
+                .collect();
+            (filename, targets)
+        })
+        .collect()
 }
 
 struct Workspace {
@@ -218,6 +305,60 @@ fn a_spec_absent_from_live_and_state_is_added_validated_and_published() {
 }
 
 #[test]
+fn a_live_wheel_for_another_platform_does_not_block_the_local_publish() {
+    let Some(local) = mypypi::validate::local_platform() else {
+        return;
+    };
+    let non_local = if local.starts_with("macos") {
+        "linux-aarch64"
+    } else {
+        "macos-arm64"
+    };
+
+    let work = Workspace::new();
+    let retained = tempfile::tempdir().unwrap();
+    let retained_wheel = retained.path().join(RETAINED_WHEEL);
+    write_retained_wheel(&retained_wheel);
+    let live = seed_live_generation(
+        &work.fake,
+        &retained_wheel,
+        vec![Target::new("3.15", non_local).unwrap()],
+    );
+
+    assert_success(&work.publish());
+
+    let promoted = work.current();
+    assert_ne!(promoted, live, "the publish promoted no new generation");
+    let artifacts = manifest_targets(&work, &promoted);
+
+    let retained_targets = &artifacts
+        .iter()
+        .find(|(filename, _)| filename == RETAINED_WHEEL)
+        .unwrap_or_else(|| panic!("the retained wheel was dropped: {artifacts:?}"))
+        .1;
+    assert_eq!(
+        retained_targets,
+        &vec![format!("3.15:{non_local}")],
+        "{artifacts:?}"
+    );
+
+    let new_targets = &artifacts
+        .iter()
+        .find(|(filename, _)| filename == FIXTURE_WHEEL)
+        .unwrap_or_else(|| panic!("the new wheel was not published: {artifacts:?}"))
+        .1;
+    assert_eq!(
+        new_targets,
+        &vec![format!("3.15:{local}")],
+        "{artifacts:?}"
+    );
+
+    work.client()
+        .get_object(BUCKET, &format!("wheels/{RETAINED_WHEEL}"))
+        .expect("the retained wheel object is still in the bucket");
+}
+
+#[test]
 fn first_publish_matches_the_direct_mypypi_generation() {
     let work = Workspace::new();
     assert_success(&work.publish());
@@ -225,13 +366,15 @@ fn first_publish_matches_the_direct_mypypi_generation() {
     assert!(!id.is_empty());
 
     let settings = project_settings(&Config::default().pypi.public_base_url).unwrap();
+    let local = mypypi::validate::local_platform().unwrap();
+    let local_targets: Vec<_> = settings
+        .targets()
+        .into_iter()
+        .filter(|target| target.platform == local)
+        .collect();
     let oracle = work.root.path().join("oracle");
-    let (oracle_id, no_op) = seed_pypi_generation(
-        &fixture_wheel(),
-        settings.targets(),
-        &oracle,
-        &settings.public_base_url,
-    );
+    let (oracle_id, no_op) =
+        seed_pypi_generation(&fixture_wheel(), local_targets, &oracle, &settings.public_base_url);
     assert!(!no_op);
     assert_eq!(oracle_id, id);
 
