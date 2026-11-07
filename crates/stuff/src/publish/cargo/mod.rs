@@ -10,6 +10,7 @@ pub mod requirements;
 pub mod run;
 pub mod semver;
 pub mod server;
+pub mod snapshot;
 pub mod store;
 pub mod wire;
 pub mod wirejson;

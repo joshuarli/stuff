@@ -11,6 +11,7 @@ pub mod pypi;
 pub mod r2;
 pub mod rollback;
 pub mod snapshot;
+pub mod state;
 pub(crate) mod staging;
 pub mod transaction;
 
