@@ -84,7 +84,10 @@ pub fn pull_live_generation(
     snapshot: &Snapshot,
     bucket: &str,
     mirror: &Path,
-) -> Result<String, PublishError> {
+) -> Result<Option<String>, PublishError> {
+    let Some(_) = snapshot.metadata().get("current") else {
+        return Ok(None);
+    };
     let current = snapshot.fetch(bucket, "current")?;
     let generation = String::from_utf8_lossy(&current).trim().to_string();
     if !is_generation_id(&generation) {
@@ -151,7 +154,7 @@ pub fn pull_live_generation(
             "generation {generation} has no manifest object"
         )));
     }
-    Ok(generation)
+    Ok(Some(generation))
 }
 
 pub fn import_lockfile(
@@ -430,7 +433,16 @@ pub fn prepare_first_party(
         PublishError::Config(format!("could not create {}: {error}", mirror.display()))
     })?;
     let generation = pull_live_generation(snapshot, options.bucket, &mirror)?;
-    let manifest = read_generation_manifest(&mirror, &generation)?;
+    let (manifest, generation_id) = match generation {
+        Some(generation) => (read_generation_manifest(&mirror, &generation)?, generation),
+        None => (
+            GenerationManifest {
+                artifacts: Vec::new(),
+                metadata_only: Vec::new(),
+            },
+            String::new(),
+        ),
+    };
     let incoming = plan_first_party(&manifest, options)?;
     let records: Vec<ArtifactRecord> = incoming.iter().map(|(_, record)| record.clone()).collect();
 
@@ -451,7 +463,7 @@ pub fn prepare_first_party(
         options.store,
         &mirror,
         options.state_dir,
-        &generation,
+        &generation_id,
         &manifest.artifacts,
         &records,
     )?;
@@ -481,12 +493,21 @@ pub fn prepare(snapshot: &Snapshot, options: &PrepareOptions<'_>) -> Result<(), 
         PublishError::Config(format!("could not create {}: {error}", mirror.display()))
     })?;
     let generation = pull_live_generation(snapshot, options.bucket, &mirror)?;
+    let (manifest, generation_id) = match generation {
+        Some(generation) => (read_generation_manifest(&mirror, &generation)?, generation),
+        None => (
+            GenerationManifest {
+                artifacts: Vec::new(),
+                metadata_only: Vec::new(),
+            },
+            String::new(),
+        ),
+    };
 
     let state_dir = options.state_dir;
     let mut inventory = load_inventory(state_dir).map_err(library_error)?;
     inventory = import_lockfile(inventory, options.lockfile, options.project_id, options.library)?;
 
-    let manifest = read_generation_manifest(&mirror, &generation)?;
     refuse_first_party_name_clashes(&inventory, options.project_id, &manifest)?;
     let values: Vec<Value> = manifest
         .artifacts
@@ -516,7 +537,7 @@ pub fn prepare(snapshot: &Snapshot, options: &PrepareOptions<'_>) -> Result<(), 
         options.store,
         &mirror,
         state_dir,
-        &generation,
+        &generation_id,
         &manifest.artifacts,
         &inventory.artifacts,
     )

@@ -820,3 +820,20 @@ fn a_first_party_dry_run_plans_without_touching_state_or_remote() {
     assert_eq!(mutation_count(&fake, requests_before), 0);
     assert!(tree(&state).is_empty(), "the dry run wrote local state");
 }
+
+#[test]
+fn a_first_party_tarball_publishes_into_an_empty_bucket() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let (path, _) = pack(work.path(), "ui-boot", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+
+    let published = stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+    assert_eq!(published.packages, vec!["@scope/ui@0.1.0".to_string()]);
+    assert!(!published.generation.is_empty());
+    assert!(published.uploaded_objects > 0);
+
+    let again = stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+    assert!(again.packages.is_empty());
+    assert_eq!(again.uploaded_objects, 0);
+}
