@@ -6,8 +6,7 @@ Swift is out of scope and is not audited.
 
 `audit-upgrades` is the fixable rule for stale direct dependencies. The
 `audit-lock`, `audit-banned`, `audit-registry`, and `audit-vuln` rules are
-manual. `audit-vuln` queries OSV over the network, so it is excluded from
-`status --offline` along with `audit-upgrades`.
+manual. `audit-vuln` and `audit-upgrades` query registries over the network.
 
 ```sh
 uv run repomod fix --rule audit-upgrades
@@ -85,8 +84,7 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
 - `audit-vuln`: a locked dependency has a known OSV vulnerability.
 - `audit-upstream`: a fork is behind its upstream parent. The finding names the
   parent, its branch, and how many commits behind (and ahead, when diverged) the
-  fork is. Unresolvable comparisons are operational findings. `status` shows the
-  same comparison per fork and `--failed` includes forks that are behind.
+  fork is. Unresolvable comparisons are operational findings.
 
 Catalog `[overrides."OWNER/REPO"]` entries with `ignore = ["audit-*"]` skip
 selected audit rules per repository.
@@ -108,7 +106,7 @@ uv run repomod fix --rule audit-upgrades
 ```
 
 The rule reports only outdated direct dependencies as fixable findings, so
-`lint` and `status` surface upgrade debt. A finding is manual, not fixable,
+`lint` surfaces upgrade debt. A finding is manual, not fixable,
 when the upgrader cannot reach the latest version:
 
 - a Python specifier excludes it (`==`, `<`, `~=`, ...);
@@ -123,8 +121,7 @@ when the upgrader cannot reach the latest version:
 Crate release metadata comes from the configured Cargo source and is cached
 with the rest.
 Vulnerability, ban, and lockfile findings stay manual because the upgraders
-cannot fix them deterministically. The rule is excluded from `status --offline`
-because its check refreshes the registry cache over the network. A repository
+cannot fix them deterministically. A repository
 can opt out with `ignore = ["audit-upgrades"]` in its catalog override.
 
 A deliberate pin can be exempted alone with

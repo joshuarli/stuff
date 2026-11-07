@@ -75,8 +75,8 @@ and fake GitHub responses. Follow the commands in [AGENTS.md](../AGENTS.md).
 `gha-settings` requires the shared concurrency group (G001), cancellation
 (G002), and `bash -euo pipefail {0}` defaults (G003) in every GitHub workflow.
 Its fixer inserts or corrects those root blocks and validates the result with Pinact.
-Findings carry the file, line, column, and code; `status` and `lint` share the
-`file line:col CODE` format and print each code's description as a legend. `gha-triggers`
+Findings carry the file, line, column, and code; `lint` prints the
+`file line:col CODE` format and each code's description as a legend. `gha-triggers`
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
@@ -340,7 +340,7 @@ release as fixable findings. It resolves against the repository's configured Car
 registry, and default Python index, so a version the mirror does not carry is not reported;
 repositories without an override use the public registries. Its check refreshes the shared audit
 cache over the network, so it
-is excluded from `status --offline`. Its fixer runs the native upgraders (`uv lock --upgrade`,
+is excluded from offline checks. Its fixer runs the native upgraders (`uv lock --upgrade`,
 per-project `pnpm update --latest`, `cargo update`, `go get -u ./...` plus `go mod tidy`) in a
 disposable copy and returns the changed lockfiles and manifests as its file plan. Upgrades that
 need manifest edits, such as Rust majors constrained by `Cargo.toml`, fail the fixer postcondition

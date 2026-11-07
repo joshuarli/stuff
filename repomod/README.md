@@ -70,13 +70,13 @@ uv run repomod gc
 
 ## Status and lint
 
-`repomod status` shows only what needs attention: repositories with local Git work, CI or workflow
-failures, conflicting pull requests, forks behind their upstream, or lint findings. Passing
-repositories and passing workflow entries are omitted. `--json` still reports every selected
-repository.
-`status --offline` reads cached CI and upstream data without network calls. `--failed` narrows the
-report to CI failures, error-level policy findings, operational lint findings, and forks behind
-their upstream.
+`repomod status` shows default-branch CI and how far each default branch is from its last
+successful release (latest published GitHub Release, or newest version tag when the
+repository has no releases). Text output lists only repositories that
+need attention: CI or workflow failures, or commits since the release. Passing repositories
+and passing workflow entries are omitted. `--json` still reports every selected
+repository. `status --offline` reads cached CI and release data without network calls.
+`--failed` narrows the report to CI failures.
 
 ```sh
 uv run repomod status --offline
@@ -86,7 +86,7 @@ uv run repomod status --failed
 `repomod lint` reports policy findings. Use `--tag` or `--repo`
 to select repositories. See [tagging semantics](docs/tagging.md) for catalog tag meanings.
 
-`lint` and `status` accept `--checkout PATH` with exactly one `--repo` to evaluate a Git worktree
+`lint` accepts `--checkout PATH` with exactly one `--repo` to evaluate a Git worktree
 (for example a fix branch) instead of the canonical checkout, so a fix can be verified before it is
 fast-forwarded. The path must be a real directory with no symlink components, a Git work tree
 whose `origin` matches the catalogued repository. It is only read.

@@ -33,7 +33,7 @@ GRAPHQL_BATCH_SIZE = 20
 MAX_API_WORKERS = 8
 ACTION_TAG_PAGE_SIZE = 100
 ACTION_TAG_RESOLUTION_DEPTH = 6
-_WORKFLOW_CACHE_SOURCE = "actions-runs-v3"
+_WORKFLOW_CACHE_SOURCE = "actions-runs-v4"
 _FORK_CHECK_CACHE_SOURCE = "fork-workflows-v1"
 _FIX_BRANCH = re.compile(r"repomod/fix/[0-9a-f]{32}\Z")
 _TRANSIENT = ("http 429", "http 500", "http 502", "http 503", "http 504", "rate limit", "timed out")
@@ -811,7 +811,9 @@ def _workflow_run_state(run: dict[str, Any]) -> CiState:
     return states.get(conclusion.casefold(), "unknown")
 
 
-def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
+def _workflow_runs(
+    repository: Repository, default_branch: str | None = None
+) -> tuple[WorkflowStatus, ...]:
     data = _gh_json(
         [f"repos/{repository.id.owner}/{repository.id.name}/actions/runs?per_page=100"]
     )
@@ -822,6 +824,10 @@ def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
     for run in raw_runs:
         if not isinstance(run, dict):
             raise GitHubError(f"GitHub returned an invalid workflow run for {repository.id}")
+        if default_branch is not None:
+            head_branch = run.get("head_branch")
+            if head_branch != default_branch:
+                continue
         name = run.get("name")
         if not isinstance(name, str) or not name:
             continue
@@ -866,16 +872,25 @@ def _workflow_runs(repository: Repository) -> tuple[WorkflowStatus, ...]:
 
 def _latest_workflow_statuses(
     repositories: tuple[Repository, ...],
+    remotes: dict[str, RemoteRepository] | None = None,
 ) -> tuple[dict[str, tuple[WorkflowStatus, ...]], dict[str, str]]:
     results: dict[str, tuple[WorkflowStatus, ...]] = {}
     errors: dict[str, str] = {}
     if not repositories:
         return results, errors
+
+    def branch_of(repository: Repository) -> str | None:
+        if remotes is None:
+            return None
+        remote = remotes.get(str(repository.id))
+        return remote.default_branch if remote is not None else None
+
+    branches = {str(repository.id): branch_of(repository) for repository in repositories}
     with ThreadPoolExecutor(
         max_workers=min(MAX_API_WORKERS, len(repositories)), thread_name_prefix="repomod-workflows"
     ) as pool:
         futures = {
-            pool.submit(_workflow_runs, repository): str(repository.id)
+            pool.submit(_workflow_runs, repository, branches[str(repository.id)]): str(repository.id)
             for repository in repositories
         }
         for future in as_completed(futures):
@@ -1085,7 +1100,7 @@ def ci_status(
     if pending:
         with ThreadPoolExecutor(max_workers=4, thread_name_prefix="repomod-status-api") as pool:
             checks_future = pool.submit(_status_check_pages, pending)
-            workflows_future = pool.submit(_latest_workflow_statuses, tuple(query))
+            workflows_future = pool.submit(_latest_workflow_statuses, tuple(query), remote_values)
             try:
                 pages, errors = checks_future.result()
             except GitHubError as error:
@@ -1402,6 +1417,326 @@ def upstream_status(
                 "state": state,
                 "fetched_at": current_time,
             }
+        if fetched:
+            cache.update(fetched)
+            _write_cache(path, cache)
+    return found
+
+
+RELEASE_CACHE_TTL_SECONDS = 3600
+_RELEASE_STATES = ("up-to-date", "behind", "diverged", "no-releases", "unknown")
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseStatus:
+    repository: str
+    tag: str | None
+    release_sha: str | None
+    url: str | None
+    published_at: str | None
+    head_sha: str | None
+    commits_since: int | None
+    state: str
+    cached: bool = False
+    age_seconds: int | None = None
+    error: str | None = None
+    prerelease: bool = False
+
+
+def _release_cache_path() -> Path:
+    return cache_file("releases-v2.json")
+
+
+def _release_from_cache(
+    repository: str, entry: dict[str, Any], now: float
+) -> ReleaseStatus | None:
+    state = entry.get("state")
+    fetched = entry.get("fetched_at")
+    if state not in _RELEASE_STATES:
+        return None
+    if (
+        not isinstance(fetched, (int, float))
+        or isinstance(fetched, bool)
+        or not math.isfinite(fetched)
+    ):
+        return None
+    commits_since = entry.get("commits_since")
+    if commits_since is not None and (
+        not isinstance(commits_since, int) or isinstance(commits_since, bool)
+    ):
+        return None
+    tag = entry.get("tag")
+    release_sha = entry.get("release_sha")
+    url = entry.get("url")
+    published_at = entry.get("published_at")
+    head_sha = entry.get("head_sha")
+    prerelease = entry.get("prerelease")
+    return ReleaseStatus(
+        repository,
+        tag if isinstance(tag, str) else None,
+        release_sha if isinstance(release_sha, str) else None,
+        url if isinstance(url, str) else None,
+        published_at if isinstance(published_at, str) else None,
+        head_sha if isinstance(head_sha, str) else None,
+        commits_since,
+        state,
+        True,
+        max(0, int(now - fetched)),
+        entry.get("error") if isinstance(entry.get("error"), str) else None,
+        prerelease is True,
+    )
+
+
+def _release_entry_fresh(entry: dict[str, Any], head_sha: str, now: float) -> bool:
+    fetched = entry.get("fetched_at")
+    if not isinstance(fetched, (int, float)) or isinstance(fetched, bool):
+        return False
+    if not math.isfinite(fetched):
+        return False
+    cached_head = entry.get("head_sha")
+    return (
+        now - fetched < RELEASE_CACHE_TTL_SECONDS
+        and isinstance(cached_head, str)
+        and cached_head == head_sha
+    )
+
+
+_VERSION_TAG = re.compile(r"v?\d+\.\d+\.\d+")
+
+
+def _latest_release(repository: Repository) -> dict[str, Any] | None:
+    data = _gh_json(
+        [f"repos/{repository.id.owner}/{repository.id.name}/releases?per_page=20"]
+    )
+    if not isinstance(data, list):
+        raise GitHubError(f"GitHub returned invalid release data for {repository.id}")
+    for item in data:
+        if not isinstance(item, dict):
+            raise GitHubError(f"GitHub returned invalid release data for {repository.id}")
+        if item.get("draft") is True:
+            continue
+        tag = item.get("tag_name")
+        if not isinstance(tag, str) or not tag:
+            raise GitHubError(f"GitHub returned invalid release data for {repository.id}")
+        return item
+    return None
+
+
+def _latest_version_tag(repository: Repository) -> str | None:
+    data = _gh_json(
+        [f"repos/{repository.id.owner}/{repository.id.name}/tags?per_page=30"]
+    )
+    if not isinstance(data, list):
+        raise GitHubError(f"GitHub returned invalid tag data for {repository.id}")
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if isinstance(name, str) and name and _VERSION_TAG.search(name) is not None:
+            return name
+    return None
+
+
+def _release_commit_sha(repository: Repository, tag: str, target: Any) -> str | None:
+    if isinstance(target, str) and _COMMIT_SHA.fullmatch(target) is not None:
+        return target
+    try:
+        data = _gh_json(
+            [f"repos/{repository.id.owner}/{repository.id.name}/commits/{quote(tag, safe='')}"]
+        )
+    except GitHubError:
+        return None
+    sha = data.get("sha") if isinstance(data, dict) else None
+    if isinstance(sha, str) and _COMMIT_SHA.fullmatch(sha) is not None:
+        return sha
+    return None
+
+
+def _compare_release_with_head(
+    owner: str, name: str, release_ref: str, head_sha: str
+) -> tuple[str, int, int]:
+    base = quote(release_ref, safe="")
+    head = quote(head_sha, safe="")
+    data = _gh_json([f"repos/{owner}/{name}/compare/{base}...{head}"])
+    if not isinstance(data, dict):
+        raise GitHubError(f"GitHub returned invalid comparison for {owner}/{name}")
+    ahead = data.get("ahead_by")
+    behind = data.get("behind_by")
+    if (
+        not isinstance(ahead, int)
+        or isinstance(ahead, bool)
+        or not isinstance(behind, int)
+        or isinstance(behind, bool)
+    ):
+        raise GitHubError(f"GitHub returned invalid comparison counts for {owner}/{name}")
+    if ahead == 0 and behind == 0:
+        state = "up-to-date"
+    elif behind == 0:
+        state = "behind"
+    else:
+        state = "diverged"
+    return state, ahead, behind
+
+
+def _release_status_for(
+    repository: Repository, remote: RemoteRepository, current_time: float
+) -> tuple[ReleaseStatus, dict[str, Any] | None]:
+    name = str(repository.id)
+    head_sha = remote.sha
+    assert head_sha is not None
+    release = _latest_release(repository)
+    tag_fallback = _latest_version_tag(repository) if release is None else None
+    if release is None and tag_fallback is None:
+        status = ReleaseStatus(name, None, None, None, None, head_sha, None, "no-releases")
+        entry: dict[str, Any] = {
+            "tag": None,
+            "release_sha": None,
+            "url": None,
+            "published_at": None,
+            "head_sha": head_sha,
+            "commits_since": None,
+            "state": "no-releases",
+            "fetched_at": current_time,
+            "prerelease": False,
+        }
+        return status, entry
+    if release is not None:
+        tag = str(release["tag_name"])
+        target = release.get("target_commitish")
+        release_sha = _release_commit_sha(repository, tag, target)
+        url = release.get("html_url")
+        published_at = release.get("published_at")
+        prerelease = release.get("prerelease") is True
+    else:
+        assert tag_fallback is not None
+        tag = tag_fallback
+        release_sha = _release_commit_sha(repository, tag, None)
+        url = None
+        published_at = None
+        prerelease = False
+    compare_ref = release_sha if release_sha is not None else tag
+    state, ahead, _behind = _compare_release_with_head(
+        repository.id.owner, repository.id.name, compare_ref, head_sha
+    )
+    status = ReleaseStatus(
+        name,
+        tag,
+        release_sha,
+        url if isinstance(url, str) else None,
+        published_at if isinstance(published_at, str) else None,
+        head_sha,
+        ahead,
+        state,
+        prerelease=prerelease,
+    )
+    entry = {
+        "tag": tag,
+        "release_sha": release_sha,
+        "url": url if isinstance(url, str) else None,
+        "published_at": published_at if isinstance(published_at, str) else None,
+        "head_sha": head_sha,
+        "commits_since": ahead,
+        "state": state,
+        "fetched_at": current_time,
+        "prerelease": prerelease,
+    }
+    return status, entry
+
+
+def release_status(
+    repositories: tuple[Repository, ...],
+    remotes: dict[str, RemoteRepository] | None = None,
+    *,
+    offline: bool = False,
+    refresh: bool = False,
+    cache_path: Path | None = None,
+    now: float | None = None,
+) -> dict[str, ReleaseStatus]:
+    current_time = time.time() if now is None else now
+    path = cache_path or _release_cache_path()
+    cache, _ = _read_cache(path)
+    remote_values = remote_metadata(repositories) if remotes is None and not offline else (remotes or {})
+    found: dict[str, ReleaseStatus] = {}
+    pending: list[tuple[Repository, RemoteRepository]] = []
+    for repository in repositories:
+        name = str(repository.id)
+        remote = remote_values.get(name)
+        candidates = _cached_for(cache, name)
+        entry = candidates[1] if candidates is not None else None
+        if offline:
+            if isinstance(entry, dict):
+                status = _release_from_cache(name, entry, current_time)
+                if status is not None:
+                    found[name] = status
+                    continue
+            found[name] = ReleaseStatus(
+                name, None, None, None, None, None, None, "unknown", error="no cached release result"
+            )
+            continue
+        if (
+            remote is None
+            or remote.error is not None
+            or remote.default_branch is None
+            or remote.sha is None
+            or _COMMIT_SHA.fullmatch(remote.sha) is None
+        ):
+            if isinstance(entry, dict):
+                cached_status = _release_from_cache(name, entry, current_time)
+                if cached_status is not None:
+                    found[name] = replace(
+                        cached_status,
+                        error=(
+                            remote.error
+                            if remote is not None and remote.error is not None
+                            else "current remote default branch or HEAD is unavailable"
+                        ),
+                    )
+                    continue
+            found[name] = ReleaseStatus(
+                name,
+                None,
+                None,
+                None,
+                None,
+                remote.sha if remote is not None else None,
+                None,
+                "unknown",
+                error=(
+                    remote.error
+                    if remote is not None and remote.error is not None
+                    else "current remote default branch or HEAD is unavailable"
+                ),
+            )
+            continue
+        if not refresh and isinstance(entry, dict) and _release_entry_fresh(
+            entry, remote.sha, current_time
+        ):
+            status = _release_from_cache(name, entry, current_time)
+            if status is not None:
+                found[name] = status
+                continue
+        pending.append((repository, remote))
+    if pending:
+        fetched: dict[str, dict[str, Any]] = {}
+        with ThreadPoolExecutor(
+            max_workers=min(MAX_API_WORKERS, len(pending)), thread_name_prefix="repomod-release"
+        ) as pool:
+            futures = {
+                pool.submit(_release_status_for, repository, remote, current_time): str(repository.id)
+                for repository, remote in pending
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    status, entry = future.result()
+                    found[name] = status
+                    if entry is not None:
+                        fetched[f"{name}@{status.head_sha}"] = entry
+                except GitHubError as error:
+                    repository, remote = next(item for item in pending if str(item[0].id) == name)
+                    found[name] = ReleaseStatus(
+                        name, None, None, None, None, remote.sha, None, "unknown", error=str(error)
+                    )
         if fetched:
             cache.update(fetched)
             _write_cache(path, cache)

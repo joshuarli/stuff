@@ -15,7 +15,7 @@ from repomod.catalog import load_catalog
 from repomod.cmd import common as cmd_common
 from repomod.cmd.fix import _fix
 from repomod.cmd.lint import _lint
-from repomod.cmd.status import _local_color, _state_color, _status, status_text
+from repomod.cmd.status import _state_color, _status, status_text
 from repomod.fix import FixOutcome
 from repomod.policy import (
     filter_repositories,
@@ -35,8 +35,6 @@ from repomod.types import (
     CheckResult,
     CiResult,
     Finding,
-    GitStatus,
-    OpenPullRequest,
     RemoteRepository,
     RepoId,
     Repository,
@@ -892,7 +890,6 @@ def test_status_offline_never_calls_remote_metadata(
         tag=[],
         offline=True,
         refresh=False,
-        dirty=False,
         failed=False,
         json=True,
         details=False,
@@ -914,7 +911,6 @@ def test_status_colors_respect_terminal_and_environment(monkeypatch) -> None:
     assert cmd_common._paint("FAIL", "31") == "\033[31mFAIL\033[0m"
     assert _state_color("failed") == "31"
     assert _state_color("passed") == "32"
-    assert _local_color("dirty (1)") == "33"
 
 
 
@@ -1403,7 +1399,7 @@ def test_gha_triggers_handles_flow_on_block_and_unknown_default(tmp_path: Path) 
     assert _fix_triggers(plain, repository) == {}
 
 
-def test_lint_and_status_share_short_format_with_legend(
+def test_lint_uses_short_format_with_legend(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     repository = repo()
@@ -1425,44 +1421,6 @@ def test_lint_and_status_share_short_format_with_legend(
     assert out[2] == "    .github/workflows/ci.yml 6:5 G003"
     assert out[3] == "G001: concurrency.group must be 'x'"
     assert out[4] == "G003: defaults.run.shell must be 'y'"
-
-    rows: list[dict[str, object]] = [{
-        "repository": "acme/tool",
-        "local": "clean",
-        "lint": 2,
-        "lint_errors": 2,
-        "lint_warnings": 0,
-        "lint_operational": 0,
-        "todo_items": 0,
-    }]
-    ci = {"acme/tool": CiResult("acme/tool", None, None, "passed", (), workflows=())}
-    status_text(rows, {"acme/tool": findings}, ci)
-    out = capsys.readouterr().out
-    assert ".github/workflows/ci.yml 2:1 G001" in out
-    assert ".github/workflows/ci.yml 6:5 G003" in out
-    assert "G001: concurrency.group must be 'x'" in out
-    assert "G003: defaults.run.shell must be 'y'" in out
-
-    many = [
-        Finding("acme/tool", "gha-settings", f"flow-{index}.yml", f"message {index}",
-                line=index + 1, column=1, code="G001")
-        for index in range(5)
-    ]
-    many_rows: list[dict[str, object]] = [{
-        "repository": "acme/tool",
-        "local": "clean",
-        "lint": 5,
-        "lint_errors": 5,
-        "lint_warnings": 0,
-        "lint_operational": 0,
-        "todo_items": 0,
-    }]
-    status_text(many_rows, {"acme/tool": many}, ci)
-    out = capsys.readouterr().out
-
-    for index in range(5):
-        assert f"flow-{index}.yml {index + 1}:1 G001" in out
-    assert "more (use --details" not in out
 
 
 def test_lint_groups_findings_by_repository(
@@ -1589,7 +1547,23 @@ def test_operational_lint_failure_has_distinct_exit_code(    tmp_path: Path, mon
     assert _lint(args) == 2
 
 
-def test_status_failed_excludes_warning_only_lint_findings(
+def _release_for(name: str, commits: int | None, state: str, error: str | None = None) -> github.ReleaseStatus:
+    return github.ReleaseStatus(
+        name,
+        "v1.0.0" if commits is not None else None,
+        "b" * 40 if commits is not None else None,
+        "https://github.invalid/acme/tool/releases/v1.0.0" if commits is not None else None,
+        "2026-01-01T00:00:00Z" if commits is not None else None,
+        "a" * 40,
+        commits,
+        state,
+        False,
+        None,
+        error,
+    )
+
+
+def test_status_failed_only_matches_ci_failures(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     catalog_path = tmp_path / "catalog.toml"
@@ -1609,16 +1583,11 @@ def test_status_failed_excludes_warning_only_lint_findings(
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status.checkout_status",
-        lambda *_: (
-            tmp_path / "tool",
-            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
-        ),
+        "repomod.github.release_status",
+        lambda *args, **kwargs: {"acme/tool": _release_for("acme/tool", 7, "behind")},
     )
-    warning = Finding("acme/tool", "binary-release-tags", "release.yml", "review", severity="warning")
-    monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [warning])
     args = argparse.Namespace(
-        repo=[], tag=[], offline=True, refresh=False, dirty=False,
+        repo=[], tag=[], offline=True, refresh=False,
         failed=True, json=True, details=False,
     )
 
@@ -1627,9 +1596,9 @@ def test_status_failed_excludes_warning_only_lint_findings(
     args.failed = False
     assert _status(args) == 0
     row = json.loads(capsys.readouterr().out)[0]
-    assert row["lint"] == 1
-    assert row["lint_warnings"] == 1
-    assert row["lint_errors"] == 0
+    assert row["ci_state"] == "passed"
+    assert row["release"]["commits_since"] == 7
+    assert "lint" not in row
 
 
 def test_open_pull_requests_reports_merge_state_and_invalid_data(monkeypatch) -> None:
@@ -1687,65 +1656,70 @@ def test_open_pull_requests_batch_errors_are_reported_per_repository(monkeypatch
     assert github.open_pull_requests(()) == {}
 
 
-def test_status_failed_includes_conflicting_prs_and_renders_them(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
-    catalog_path = tmp_path / "catalog.toml"
-    catalog_path.write_text(
-        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
-        '[repos."acme"]\ndemo = ["tool"]\n',
-        encoding="utf-8",
-    )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
-    monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
-    monkeypatch.setattr(
-        "repomod.github.ci_status",
-        lambda repos, remotes, **kwargs: {
-            str(repository.id): CiResult(str(repository.id), None, None, "passed", ())
-        },
-    )
-    monkeypatch.setattr(
-        "repomod.github.open_pull_requests",
-        lambda repositories: {
-            str(repository.id): (
-                [OpenPullRequest(3, "https://github.invalid/acme/demo/pull/3", "CONFLICTING", "BLOCKED")],
-                None,
-            )
-        },
-    )
-    monkeypatch.setattr(
-        "repomod.cmd.status.checkout_status",
-        lambda *_: (
-            tmp_path / "tool",
-            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
-        ),
-    )
-    monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
-    args = argparse.Namespace(
-        repo=[], tag=[], offline=False, refresh=False, dirty=False,
-        failed=True, json=True, details=False,
-    )
-
-    assert _status(args) == 0
-    rows = json.loads(capsys.readouterr().out)
-
-    assert len(rows) == 1
-    assert rows[0]["open_prs"] == [
+def test_status_text_renders_release_line(capsys) -> None:
+    rows: list[dict[str, object]] = [
         {
-            "number": 3,
-            "url": "https://github.invalid/acme/demo/pull/3",
-            "mergeable": "CONFLICTING",
-            "merge_state": "BLOCKED",
-        }
+            "repository": "acme/behind",
+            "release": {
+                "tag": "v1.2.3",
+                "release_sha": "b" * 40,
+                "behind_by": None,
+                "commits_since": 7,
+                "state": "behind",
+                "cached": False,
+                "age_seconds": None,
+                "error": None,
+            },
+        },
+        {
+            "repository": "acme/current",
+            "release": {
+                "tag": "v1.2.3",
+                "release_sha": "a" * 40,
+                "commits_since": 0,
+                "state": "up-to-date",
+                "cached": True,
+                "age_seconds": 42,
+                "error": None,
+            },
+        },
+        {
+            "repository": "acme/broken",
+            "release": {
+                "tag": None,
+                "release_sha": None,
+                "commits_since": None,
+                "state": "unknown",
+                "cached": False,
+                "age_seconds": None,
+                "error": "boom",
+            },
+        },
+        {
+            "repository": "acme/plain",
+            "release": {
+                "tag": None,
+                "release_sha": None,
+                "commits_since": None,
+                "state": "no-releases",
+                "cached": False,
+                "age_seconds": None,
+                "error": None,
+            },
+        },
     ]
-
-    args.failed = False
-    args.json = False
-    assert _status(args) == 0
-    assert "#3 CONFLICTING·BLOCKED" in capsys.readouterr().out
-
+    ci = {
+        f"acme/{name}": CiResult(f"acme/{name}", None, None, "passed", (), workflows=())
+        for name in ("behind", "current", "broken", "plain")
+    }
+    status_text(rows, ci)
+    out = capsys.readouterr().out
+    assert "release v1.2.3 · 7 since" in out
+    assert "release unavailable" in out
+    assert "up to date" not in out
+    assert "acme/current" not in out
+    assert "acme/plain" not in out
+    assert out.count("  release ") == 2
 
 
 def _fork_remote(name: str = "acme/demo") -> RemoteRepository:
@@ -1893,46 +1867,211 @@ def test_upstream_status_compare_errors_are_unknown_and_uncached(
     assert not cache.exists()
 
 
-def _upstream_status_for(
-    behind: int | None,
-    ahead: int | None,
-    state: str,
-    error: str | None = None,
-) -> github.UpstreamStatus:
-    return github.UpstreamStatus(
-        "acme/tool",
-        "cli/cli",
-        "trunk",
-        "b" * 40,
-        "c" * 40,
-        behind,
-        ahead,
-        state,
-        False,
-        None,
-        error,
+def _remote(name: str = "acme/demo", branch: str = "main", sha: str = "a" * 40) -> RemoteRepository:
+    return RemoteRepository(name, branch, sha, False)
+
+
+def test_release_status_reports_commits_since(tmp_path: Path, monkeypatch) -> None:
+    remotes = {"acme/demo": _remote()}
+    calls: list[list[str]] = []
+
+    def gh_json(arguments: list[str]):
+        calls.append(arguments)
+        endpoint = arguments[0]
+        if "/releases?" in endpoint:
+            return [
+                {
+                    "tag_name": "v1.2.3",
+                    "target_commitish": "b" * 40,
+                    "html_url": "https://github.invalid/acme/demo/releases/v1.2.3",
+                    "published_at": "2026-01-01T00:00:00Z",
+                    "draft": False,
+                    "prerelease": False,
+                }
+            ]
+        assert "/compare/" in endpoint
+        return {"status": "ahead", "ahead_by": 7, "behind_by": 0, "total_commits": 7}
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    cache = tmp_path / "releases.json"
+    first = github.release_status((repo("demo"),), remotes, cache_path=cache, now=1000.0)
+    status = first["acme/demo"]
+    assert status.tag == "v1.2.3"
+    assert status.release_sha == "b" * 40
+    assert status.commits_since == 7
+    assert status.state == "behind"
+    assert status.cached is False
+    assert status.error is None
+    assert len(calls) == 2
+
+    second = github.release_status((repo("demo"),), remotes, cache_path=cache, now=1100.0)
+    assert len(calls) == 2
+    assert second["acme/demo"].cached is True
+    assert second["acme/demo"].age_seconds == 100
+
+    refreshed = github.release_status(
+        (repo("demo"),), remotes, refresh=True, cache_path=cache, now=1200.0
     )
+    assert len(calls) == 4
+    assert refreshed["acme/demo"].cached is False
+
+
+def test_release_status_no_releases(tmp_path: Path, monkeypatch) -> None:
+    def gh_json(arguments: list[str]):
+        return []
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    result = github.release_status(
+        (repo("demo"),), {"acme/demo": _remote()}, cache_path=tmp_path / "r.json", now=1000.0
+    )
+    assert result["acme/demo"].state == "no-releases"
+    assert result["acme/demo"].commits_since is None
+
+
+def test_release_status_uses_prerelease_release(tmp_path: Path, monkeypatch) -> None:
+    def gh_json(arguments: list[str]):
+        endpoint = arguments[0]
+        if "/releases?" in endpoint:
+            return [
+                {
+                    "tag_name": "release-c3c6ac09",
+                    "target_commitish": "main",
+                    "html_url": "https://github.invalid/acme/demo/releases/release-c3c6ac09",
+                    "published_at": "2026-10-27T15:06:49Z",
+                    "draft": False,
+                    "prerelease": True,
+                }
+            ]
+        if "/commits/" in endpoint:
+            raise github.GitHubError("HTTP 404")
+        assert "/compare/" in endpoint
+        return {"status": "ahead", "ahead_by": 2, "behind_by": 0, "total_commits": 2}
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    result = github.release_status(
+        (repo("demo"),), {"acme/demo": _remote()}, cache_path=tmp_path / "r.json", now=1000.0
+    )
+    assert result["acme/demo"].tag == "release-c3c6ac09"
+    assert result["acme/demo"].prerelease is True
+    assert result["acme/demo"].commits_since == 2
+
+
+def test_release_status_falls_back_to_version_tag(tmp_path: Path, monkeypatch) -> None:
+    def gh_json(arguments: list[str]):
+        endpoint = arguments[0]
+        if "/releases?" in endpoint:
+            return []
+        if "/tags?" in endpoint:
+            return [{"name": "h12tiny-web-v0.8.0"}]
+        if "/commits/" in endpoint:
+            raise github.GitHubError("HTTP 404")
+        assert "/compare/" in endpoint
+        return {"status": "ahead", "ahead_by": 4, "behind_by": 0, "total_commits": 4}
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    result = github.release_status(
+        (repo("demo"),), {"acme/demo": _remote()}, cache_path=tmp_path / "r.json", now=1000.0
+    )
+    assert result["acme/demo"].tag == "h12tiny-web-v0.8.0"
+    assert result["acme/demo"].commits_since == 4
+
+
+def test_release_status_offline_reads_cache(tmp_path: Path) -> None:
+    cache = tmp_path / "releases.json"
+    cache.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": {
+                    "acme/demo@" + "a" * 40: {
+                        "tag": "v0.9.0",
+                        "release_sha": "b" * 40,
+                        "url": "https://github.invalid/acme/demo/releases/v0.9.0",
+                        "published_at": "2025-01-01T00:00:00Z",
+                        "head_sha": "a" * 40,
+                        "commits_since": 3,
+                        "state": "behind",
+                        "fetched_at": 1000.0,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = github.release_status(
+        (repo("demo"), repo("other")), {}, offline=True, cache_path=cache, now=4600.0
+    )
+    assert set(result) == {"acme/demo", "acme/other"}
+    assert result["acme/demo"].commits_since == 3
+    assert result["acme/demo"].cached is True
+    assert result["acme/other"].state == "unknown"
+
+
+def test_workflow_runs_filter_to_default_branch(monkeypatch) -> None:
+    def gh_json(arguments: list[str]):
+        return {
+            "workflow_runs": [
+                {
+                    "name": "ci",
+                    "path": ".github/workflows/ci.yml",
+                    "workflow_id": 1,
+                    "run_number": 3,
+                    "run_attempt": 1,
+                    "created_at": "2026-02-01T00:00:00Z",
+                    "id": 3,
+                    "status": "completed",
+                    "conclusion": "success",
+                    "head_branch": "main",
+                    "html_url": "https://github.invalid/acme/demo/runs/3",
+                },
+                {
+                    "name": "ci",
+                    "path": ".github/workflows/ci.yml",
+                    "workflow_id": 1,
+                    "run_number": 2,
+                    "run_attempt": 1,
+                    "created_at": "2026-01-01T00:00:00Z",
+                    "id": 2,
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "head_branch": "fix",
+                    "html_url": "https://github.invalid/acme/demo/runs/2",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(github, "_gh_json", gh_json)
+    filtered = github._workflow_runs(repo("demo"), "main")
+    assert [(w.name, w.state) for w in filtered] == [("ci", "passed")]
+    unfiltered = github._workflow_runs(repo("demo"))
+    assert [(w.name, w.state) for w in unfiltered] == [("ci", "passed")]
 
 
 def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
     rows: list[dict[str, object]] = [
         {
             "repository": "acme/passing",
-            "local": "clean",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 0,
+            "release": {
+                "tag": "v1.0.0",
+                "release_sha": "b" * 40,
+                "commits_since": 0,
+                "state": "up-to-date",
+                "cached": False,
+                "age_seconds": None,
+                "error": None,
+            },
         },
         {
             "repository": "acme/failing",
-            "local": "dirty (1)",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 4,
+            "release": {
+                "tag": "v1.0.0",
+                "release_sha": "b" * 40,
+                "commits_since": 0,
+                "state": "up-to-date",
+                "cached": False,
+                "age_seconds": None,
+                "error": None,
+            },
         },
     ]
     ci = {
@@ -1954,165 +2093,17 @@ def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
         ),
     }
 
-    status_text(rows, {}, ci)
+    status_text(rows, ci)
     out = capsys.readouterr().out
 
     assert "acme/passing" not in out
     assert "acme/failing" in out
-    assert "local dirty (1)" in out
     assert "CI failed" in out
     assert "FAIL CI" in out
     assert "PASS build" not in out
-    assert "TODO" not in out
 
 
-def test_status_text_renders_upstream_line(tmp_path: Path, capsys) -> None:
-    rows: list[dict[str, object]] = [
-        {
-            "repository": "acme/behind",
-            "local": "clean",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 0,
-            "upstream": {
-                "parent": "cli/cli",
-                "parent_branch": "trunk",
-                "parent_sha": "b" * 40,
-                "behind_by": 12,
-                "ahead_by": 0,
-                "state": "behind",
-                "cached": False,
-                "age_seconds": None,
-                "error": None,
-            },
-        },
-        {
-            "repository": "acme/synced",
-            "local": "clean",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 0,
-            "upstream": {
-                "parent": "cli/cli",
-                "parent_branch": "trunk",
-                "parent_sha": "b" * 40,
-                "behind_by": 0,
-                "ahead_by": 0,
-                "state": "identical",
-                "cached": True,
-                "age_seconds": 42,
-                "error": None,
-            },
-        },
-        {
-            "repository": "acme/broken",
-            "local": "clean",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 0,
-            "upstream": {
-                "parent": "cli/cli",
-                "parent_branch": "trunk",
-                "parent_sha": None,
-                "behind_by": None,
-                "ahead_by": None,
-                "state": "unknown",
-                "cached": False,
-                "age_seconds": None,
-                "error": "boom",
-            },
-        },
-        {
-            "repository": "acme/plain",
-            "local": "clean",
-            "lint": 0,
-            "lint_errors": 0,
-            "lint_warnings": 0,
-            "lint_operational": 0,
-            "todo_items": 0,
-            "upstream": None,
-        },
-    ]
-    ci = {
-        f"acme/{name}": CiResult(f"acme/{name}", None, None, "passed", (), workflows=())
-        for name in ("behind", "synced", "broken", "plain")
-    }
-    status_text(rows, {}, ci)
-    out = capsys.readouterr().out
-    assert "upstream cli/cli behind 12" in out
-    assert "upstream cli/cli unavailable" in out
-    assert "upstream cli/cli in sync (cached 42s)" not in out
-    assert "acme/plain" not in out
-    assert out.count("  upstream ") == 2
-
-
-def test_status_failed_includes_behind_forks(tmp_path: Path, monkeypatch, capsys) -> None:
-    catalog_path = tmp_path / "catalog.toml"
-    catalog_path.write_text(
-        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
-        '[repos."acme"]\ntool = ["tool"]\n',
-        encoding="utf-8",
-    )
-    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path)})
-    repository = catalog.repositories[0]
-    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
-    monkeypatch.setattr("repomod.github.remote_metadata", lambda _: {})
-    monkeypatch.setattr(
-        "repomod.github.ci_status",
-        lambda repos, remotes, **kwargs: {
-            str(repository.id): CiResult(str(repository.id), None, None, "passed", ())
-        },
-    )
-    monkeypatch.setattr(
-        "repomod.cmd.status.checkout_status",
-        lambda *_: (
-            tmp_path / "tool",
-            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
-        ),
-    )
-    monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
-    behind = {"acme/tool": _upstream_status_for(5, 0, "behind")}
-    monkeypatch.setattr("repomod.github.upstream_status", lambda *args, **kwargs: behind)
-    args = argparse.Namespace(
-        repo=[], tag=[], offline=True, refresh=False, dirty=False,
-        failed=True, json=True, details=False,
-    )
-
-    assert _status(args) == 0
-    rows = json.loads(capsys.readouterr().out)
-    assert len(rows) == 1
-    assert rows[0]["upstream"] == {
-        "parent": "cli/cli",
-        "parent_branch": "trunk",
-        "parent_sha": "b" * 40,
-        "behind_by": 5,
-        "ahead_by": 0,
-        "state": "behind",
-        "cached": False,
-        "age_seconds": None,
-        "error": None,
-    }
-
-    monkeypatch.setattr(
-        "repomod.github.upstream_status",
-        lambda *args, **kwargs: {"acme/tool": _upstream_status_for(0, 0, "identical")},
-    )
-    assert _status(args) == 0
-    assert json.loads(capsys.readouterr().out) == []
-
-    args.failed = False
-    assert _status(args) == 0
-    assert len(json.loads(capsys.readouterr().out)) == 1
-
-
-
-def test_status_details_reports_upstream_errors(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_status_details_reports_release_errors(tmp_path: Path, monkeypatch, capsys) -> None:
     catalog_path = tmp_path / "catalog.toml"
     catalog_path.write_text(
         'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
@@ -2130,28 +2121,22 @@ def test_status_details_reports_upstream_errors(tmp_path: Path, monkeypatch, cap
         },
     )
     monkeypatch.setattr(
-        "repomod.cmd.status.checkout_status",
-        lambda *_: (
-            tmp_path / "tool",
-            GitStatus("acme/tool", tmp_path / "tool", False, False, None, False, 0, 0, 0, None, None, None, False),
-        ),
-    )
-    monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
-    monkeypatch.setattr(
-        "repomod.github.upstream_status",
+        "repomod.github.release_status",
         lambda *args, **kwargs: {
-            "acme/demo": github.UpstreamStatus(
-                "acme/demo", "cli/cli", "trunk", None, "c" * 40,
-                None, None, "unknown", error="boom",
+            "acme/demo": github.ReleaseStatus(
+                "acme/demo", None, None, None, None, "c" * 40,
+                None, "unknown", error="boom",
             )
         },
     )
     args = argparse.Namespace(
-        repo=[], tag=[], offline=True, refresh=False, dirty=False,
+        repo=[], tag=[], offline=True, refresh=False,
         failed=False, json=False, details=True,
     )
 
     assert _status(args) == 0
     out = capsys.readouterr()
-    assert "upstream cli/cli unavailable" in out.out
-    assert "upstream detail: boom" in out.err
+    assert "release unavailable" in out.out
+    assert "release detail: boom" in out.err
+
+

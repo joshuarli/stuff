@@ -62,18 +62,6 @@ def test_checkout_override_lints_the_worktree_while_canonical_keeps_its_finding(
     assert not (canonical / "Makefile").exists()
 
 
-def test_status_override_reports_the_worktree_state(
-    fleet: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
-) -> None:
-    _, worktree = fleet
-    cli.main(["status", "--offline", "--json", "--repo", "acme/tool", "--checkout", str(worktree)])
-    row = json.loads(capsys.readouterr().out)[0]
-
-    assert row["branch"] == "fix"
-    assert row["untracked"] == 1
-    assert row["origin_valid"] is True
-
-
 def test_checkout_requires_exactly_one_repo(
     fleet: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
 ) -> None:

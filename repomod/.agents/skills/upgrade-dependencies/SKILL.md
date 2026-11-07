@@ -19,7 +19,7 @@ changing repomod code, because `fix` runs the working tree's rules against the l
   remote write: never run it without the confirmation step below.
 - The rule only reports outdated direct dependencies as fixable. `audit-vuln`, `audit-banned`,
   `audit-registry`, and `audit-lock` findings are always manual.
-- `status --offline` does not run `audit-upgrades`. Use `lint` for the survey.
+- `lint` is the survey tool for audit rules; `status` only reports CI and release gap.
 - Registry and OSV data is cached for 24 hours. A survey older than that is stale.
 - The rule compares against what the repository can install: npm releases newer than pnpm's
   `minimumReleaseAge` do not count, `uv`/`ruff`/`ty` follow `python-tools.toml` (bumped with
@@ -32,10 +32,10 @@ changing repomod code, because `fix` runs the working tree's rules against the l
 
 ## Survey
 
-1. Confirm checkout state without mutating anything: `uv run repomod status --dirty --offline`.
-   A dirty, detached, ahead, or fix-branch checkout is not eligible for `fix`; list it and
-   leave it alone. Never reset, stash, clean, switch, or discard changes in canonical
-   checkouts.
+1. Confirm checkout state without mutating anything: for each catalog checkout run
+   `git status --porcelain --branch` in the checkout. A dirty, detached, ahead, or fix-branch
+   checkout is not eligible for `fix`; list it and leave it alone. Never reset, stash, clean,
+   switch, or discard changes in canonical checkouts.
 2. Run `uv run repomod lint --rule audit-upgrades --rule audit-vuln --rule audit-banned
    --rule audit-registry --rule audit-lock --json` and group findings per repository and
    rule. Repositories with `ignore` entries for an audit rule are out of scope for that rule;
