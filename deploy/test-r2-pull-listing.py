@@ -140,11 +140,8 @@ class ListingTests(unittest.TestCase):
             pull.list_all("bucket")
 
 
-HELPER = pathlib.Path(__file__).with_name("test-r2-put.py")
-helper_spec = importlib.util.spec_from_file_location("test_r2_put_helper", HELPER)
-helper = importlib.util.module_from_spec(helper_spec)
-helper_spec.loader.exec_module(helper)
-FakeS3Server = helper.FakeS3Server
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+import fake_s3
 
 S3_ENV = (
     "PATH",
@@ -163,7 +160,7 @@ class S3PullTests(unittest.TestCase):
         self.saved = {name: os.environ.get(name) for name in S3_ENV}
         self.work = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.work.name)
-        self.server = FakeS3Server()
+        self.server = fake_s3.serve()
         os.environ["R2_S3_ENDPOINT"] = self.server.endpoint
         os.environ["R2_S3_ACCESS_KEY_ID"] = "key"
         os.environ["R2_S3_SECRET_ACCESS_KEY"] = "secret"
