@@ -5,6 +5,7 @@ pub mod config;
 pub mod paths;
 pub mod r2;
 pub mod snapshot;
+pub mod transaction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Registry {

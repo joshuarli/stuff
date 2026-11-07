@@ -41,6 +41,13 @@ pub struct RequestRecord {
     pub body: Vec<u8>,
 }
 
+#[derive(Debug)]
+pub struct PutCondition {
+    pub if_match: Option<String>,
+    pub if_none_match: Option<String>,
+    pub body: String,
+}
+
 impl Reply {
     pub fn header(&self, name: &str) -> Option<&str> {
         self.headers
@@ -190,6 +197,34 @@ impl FakeS3 {
         assert_eq!(reply.status, 200);
     }
 
+    pub fn put_conditions(&self) -> Vec<PutCondition> {
+        let reply = self.control_get("/_fake/conditions");
+        assert_eq!(reply.status, 200);
+        let value: Value = deser_json::from_slice(&reply.body).expect("conditions json");
+        let entries = value
+            .as_map()
+            .and_then(|map| map.get("conditions"))
+            .and_then(|value| value.kind().as_seq())
+            .expect("conditions");
+        entries
+            .iter()
+            .map(|entry| {
+                let map = entry.as_map().expect("condition entry");
+                PutCondition {
+                    if_match: optional_text_field(map, "if_match"),
+                    if_none_match: optional_text_field(map, "if_none_match"),
+                    body: text_field(map, "body"),
+                }
+            })
+            .collect()
+    }
+
+    pub fn change_current_on_head(&self, enabled: bool) {
+        let document = object(vec![("enabled", Value::from(u64::from(enabled)))]);
+        let reply = self.control("/_fake/current-on-head", &document);
+        assert_eq!(reply.status, 200);
+    }
+
     pub fn list_keys(&self, bucket: &str, page: u32) -> Vec<String> {
         let mut keys = Vec::new();
         let mut token = String::new();
@@ -289,6 +324,12 @@ fn text_field(map: &Map, name: &str) -> String {
         .and_then(|value| value.kind().as_str())
         .unwrap_or("")
         .to_string()
+}
+
+fn optional_text_field(map: &Map, name: &str) -> Option<String> {
+    map.get(name)
+        .and_then(|value| value.kind().as_str())
+        .map(str::to_string)
 }
 
 fn xml_values(text: &str, tag: &str) -> Vec<String> {

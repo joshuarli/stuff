@@ -222,6 +222,22 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             server.fail_retry_after = str(document.get("retry_after", "0"))
             self._reply(200, b'{"ok":true}')
             return
+        if parsed.path == "/_fake/conditions" and self.command == "GET":
+            conditions = [
+                {"if_match": condition, "if_none_match": none_match, "body": text}
+                for condition, none_match, text in server.put_conditions
+            ]
+            self._reply(
+                200,
+                json.dumps({"conditions": conditions}).encode(),
+                {"Content-Type": "application/json"},
+            )
+            return
+        if parsed.path == "/_fake/current-on-head" and self.command == "POST":
+            document = json.loads(body or b"{}")
+            server.change_current_on_head = bool(document.get("enabled", 1))
+            self._reply(200, b'{"ok":true}')
+            return
         self._reply(404)
 
     def _list(self, parsed, query):
@@ -328,7 +344,7 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))
             server.etags[(bucket, key)] = etag
             self._log_put(bucket, key)
-            self._reply(200)
+            self._reply(200, b"", {"ETag": etag})
             return
         etag = md5_etag(body)
         server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))

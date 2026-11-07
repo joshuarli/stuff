@@ -2,11 +2,14 @@
 
 pub mod client;
 pub mod credentials;
+pub mod guard;
 pub mod manifest;
 pub mod multipart;
+pub mod promote;
 pub mod pull;
 pub mod put;
 pub mod sigv4;
+pub mod sync;
 pub mod xml;
 
 pub use client::{Credentials, ObjectMeta, Precondition, R2Client, RawRequest, RawResponse};
