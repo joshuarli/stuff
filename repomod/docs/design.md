@@ -48,26 +48,38 @@ ensures a conventional `upstream` remote pointing at the parent and fetches the 
 branch, so fork-behind comparisons stay verifiable locally; a failing upstream fetch is reported
 in the result without failing the sync.
 
-`status` is a read-only GitHub check. Text output lists only repositories that need
-attention: non-passing CI or workflow states on the default branch, and commits since the
-latest published GitHub Release. Passing repositories and passing workflow entries are omitted;
-`--json` still carries every selected repository. Online status checks CI for GitHub's current
-default-branch commit. The CI cache is keyed by repository and commit SHA and expires after five
-minutes. Offline status reads cached CI without network calls. Online status also reports how
-many commits the default branch is ahead of its latest published release (the last successful
-release) via a GitHub compare between the release commit and the default-branch tip. The
-release is the newest non-draft GitHub Release (stable or prerelease); a repository with no
-releases falls back to its newest version tag. Workflow states cover only runs on the default
-branch. The
-release cache is keyed by repository and default-branch commit SHA and expires after one hour.
-Offline status reads cached release comparisons. `--failed` narrows the report to CI
-failures.
+Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
+upstream, so they are not current remote state. Text output lists only repositories that need
+attention: local Git failures, non-passing CI or workflow states on the default branch, conflicting
+pull requests, forks behind upstream, and commits since the latest published GitHub Release.
+Passing repositories and passing workflow entries are omitted; `--json` still carries every
+selected repository. Online status checks CI for GitHub's current default-branch commit. The CI
+cache is keyed by repository and commit SHA and expires after five minutes. Offline status reads
+cached CI without network calls. Online status also reports how many commits the default branch is
+ahead of its latest published release (the last successful release) via a GitHub compare between
+the release commit and the default-branch tip. The release is the newest non-draft GitHub Release
+(stable or prerelease); a repository with no releases falls back to its newest version tag.
+Workflow states cover only runs on the default branch. The release cache is keyed by repository
+and default-branch commit SHA and expires after one hour. Offline status reads cached release
+comparisons. For repositories that GitHub reports as forks, online status also compares the fork
+default branch against its upstream parent and reports behind and ahead counts. The upstream cache
+is keyed by repository and fork commit SHA and expires after one hour. Offline status reads cached
+upstream comparisons. Online status also lists open pull requests with their mergeable and
+merge-state status; `--failed` includes repositories with conflicting PRs and forks behind their
+upstream. Offline status omits pull requests.
 
-`lint` accepts `--checkout PATH`, valid only with exactly one `--repo`. It replaces the
-canonical checkout for that repository in policy rules, so a
+`lint` and `status` accept `--checkout PATH`, valid only with exactly one `--repo`. It replaces the
+canonical checkout for that repository in policy rules, local Git state, and the TODO count, so a
 worktree can be verified before it is fast-forwarded. The path must contain no symlink components,
 be a Git work tree, and have an `origin` matching the catalogue, the same check sync applies. GitHub
 data still follows catalog identity, and no other command accepts the option.
+
+The local item also shows how old unpushed work is, derived only from Git data. When the branch is
+ahead of its last-fetched upstream it adds `oldest unpushed Nd`, the age of the oldest commit not in
+the upstream. When the checkout is on a non-default branch it adds `for Nd`, the time since HEAD's
+reflog last switched onto that branch (omitted if the reflog has no such entry). An age of seven days
+or more turns the item red and sets `stale_local_work` in `--json`, which also carries the raw
+`branch_checked_out_at` and `oldest_unpushed_commit_at` timestamps.
 
 ## Dependency inventory
 

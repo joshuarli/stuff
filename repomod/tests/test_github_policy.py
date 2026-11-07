@@ -1660,6 +1660,7 @@ def test_status_text_renders_release_line(capsys) -> None:
     rows: list[dict[str, object]] = [
         {
             "repository": "acme/behind",
+            "local": "clean",
             "release": {
                 "tag": "v1.2.3",
                 "release_sha": "b" * 40,
@@ -1673,6 +1674,7 @@ def test_status_text_renders_release_line(capsys) -> None:
         },
         {
             "repository": "acme/current",
+            "local": "clean",
             "release": {
                 "tag": "v1.2.3",
                 "release_sha": "a" * 40,
@@ -1685,6 +1687,7 @@ def test_status_text_renders_release_line(capsys) -> None:
         },
         {
             "repository": "acme/broken",
+            "local": "clean",
             "release": {
                 "tag": None,
                 "release_sha": None,
@@ -1697,6 +1700,7 @@ def test_status_text_renders_release_line(capsys) -> None:
         },
         {
             "repository": "acme/plain",
+            "local": "clean",
             "release": {
                 "tag": None,
                 "release_sha": None,
@@ -2051,6 +2055,7 @@ def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
     rows: list[dict[str, object]] = [
         {
             "repository": "acme/passing",
+            "local": "clean",
             "release": {
                 "tag": "v1.0.0",
                 "release_sha": "b" * 40,
@@ -2063,6 +2068,7 @@ def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
         },
         {
             "repository": "acme/failing",
+            "local": "clean",
             "release": {
                 "tag": "v1.0.0",
                 "release_sha": "b" * 40,
