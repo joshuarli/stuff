@@ -4,6 +4,7 @@ import argparse
 import shutil
 import sys
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from repomod import github
@@ -147,7 +148,12 @@ def status_text(
         ci = ci_by_repository[name]
         print(common._paint(name, "36"))
         items = []
-        if ci.state not in {"passed", "none"}:
+        failed_workflows = ci.workflows is not None and any(
+            workflow.state == "failed" for workflow in ci.workflows
+        )
+        if ci.state not in {"passed", "none"} and not (
+            ci.state == "failed" and failed_workflows
+        ):
             items.append((f"CI {_ci_label(ci)}", _state_color(ci.state)))
         if items:
             _print_wrapped_items(items)
@@ -184,8 +190,15 @@ def _status(args: argparse.Namespace) -> int:
     catalog = common.default_catalog()
     repositories = common.select_repositories(catalog, args.repo, args.tag)
     remotes = {} if args.offline else github.remote_metadata(repositories)
-    ci = github.ci_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
-    releases = github.release_status(repositories, remotes, offline=args.offline, refresh=args.refresh)
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="repomod-status") as pool:
+        ci_future = pool.submit(
+            github.ci_status, repositories, remotes, offline=args.offline, refresh=args.refresh
+        )
+        releases_future = pool.submit(
+            github.release_status, repositories, remotes, offline=args.offline, refresh=args.refresh
+        )
+        ci = ci_future.result()
+        releases = releases_future.result()
     rows: list[dict[str, object]] = []
     for repository in repositories:
         name = str(repository.id)

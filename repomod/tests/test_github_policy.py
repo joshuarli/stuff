@@ -2098,7 +2098,7 @@ def test_status_text_hides_passing_repositories_and_workflows(capsys) -> None:
 
     assert "acme/passing" not in out
     assert "acme/failing" in out
-    assert "CI failed" in out
+    assert "CI failed" not in out
     assert "FAIL CI" in out
     assert "PASS build" not in out
 
