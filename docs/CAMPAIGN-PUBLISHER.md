@@ -4,19 +4,21 @@
 
 **Goal:** make one Rust executable, `stuff`, own the complete publication transaction for the cargo, npm, PyPI, and OCI registries. The live R2 generation is authoritative; publishing needs no stuff checkout, no distributed shell helper, and no Python runtime.
 
-**Preflight:** ready. Baseline captured on 2026-11-06 (macOS arm64, 18 cores, load average 4.29). No slices are accepted; the campaign has not started.
+**Accepted on `publisher`:** G1-G3, R1-R5, C1-C5, N1-N6, L1, and three slices added during review:
 
-**Red:** none in the baseline suites. The environment-gated proofs are listed under **Needs environment**.
+- **T1:** the transaction takes the lock, snapshot, and marker before staging; the process environment is read once in `main.rs`; dry runs stage into throwaway state.
+- **T2:** a 412 on the current marker re-stages against the new snapshot up to three times (P10); JSON output names the published packages (P8); fresh machines plan retained objects from listing size and ETag instead of downloading them (P5); cached snapshot objects revalidate against the listing.
+- **T3:** `stuff publish npm` fetches lockfile tarballs and `stuff publish pypi` acquires, builds, and validates wheels in-process, so new versions publish without the wrappers.
 
-**Next:** G3, so a toolchain-incompatible dependency surfaces first. Then G1, G2, and the R and C workstreams. N2-N4 wait for R4 and N1.
+L2 (`tools/sync/installer.py`, tested by `tools/sync/test_installer.py`) and L4 are committed on `~/usr` branches; L3 is committed on an `l3-stuff-cli` branch in each consumer repository.
 
-**Resume:** "Execute `docs/CAMPAIGN-PUBLISHER.md` from G3. Work serially except for the parallel pairs named in **Sequence**. Commit locally; do not push or write to a real registry. Stop at the hard stops in the charter."
+**G3 record:** `stuff` release binary 4,423,456 B on macOS arm64.
 
-First command:
+**Ruling (owner, 2026-11-06):** the owner lifted the push, workflow-dispatch, and real-publish hard stops for the release path: land `publisher` on `main`, dispatch `release.yml`, install the release through L2, merge L2-L4, then run the h12tiny pilot as the real-publish receipt that unblocks L5.
 
-```sh
-cd ~/repos/stuff && git status --short && cargo test -p stuff
-```
+**Known gaps:** the `pypi` and `oci` libraries need local blob bytes, so a fresh machine downloads retained wheels and OCI blobs; npm project snapshot capture is not ported; the Cargo end-to-end proof covers a crate without dependencies; the doctor live check needs `R2_S3_*`; a pypi dry run keeps the wheels it acquires in persistent state; pypi network acquisition is proved only by the pilot.
+
+**Next:** the release path above, then L5.
 
 ## Charter
 
@@ -251,9 +253,9 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 
 ### L2 — Installer raw asset (S)
 
-- **Owned:** `~/usr/tools/sync/install.sh`, `~/usr/dotfiles/sync-tools-test.sh`.
+- **Owned:** `~/usr/tools/sync/installer.py`, `~/usr/tools/sync/test_installer.py`.
 - **Prerequisites:** L1.
-- **Acceptance:** `sh ~/usr/dotfiles/sync-tools-test.sh` passes; a new case downloads raw `stuff-<target>`, verifies the SHA-256 from `SHA256SUMS`, installs it executable, and rejects a bad checksum. No zip path remains for `stuff`.
+- **Acceptance:** `python3 -m unittest tools/sync/test_installer.py` passes; a new case downloads raw `stuff-<target>`, verifies the SHA-256 from `SHA256SUMS`, installs it executable, and rejects a bad checksum. No zip path remains for `stuff`.
 
 ### L3 — Consumer Makefiles (M)
 
