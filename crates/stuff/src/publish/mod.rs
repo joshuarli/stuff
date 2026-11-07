@@ -4,6 +4,7 @@ pub mod cargo;
 pub mod config;
 pub mod oci;
 pub mod paths;
+pub mod pypi;
 pub mod r2;
 pub mod snapshot;
 pub mod transaction;
@@ -239,6 +240,10 @@ pub fn run(request: Request) -> Result<Outcome, PublishError> {
             request: PublishRequest::Oci(source),
             options,
         } => oci::publish(&source, &options),
+        Request::Publish {
+            request: PublishRequest::Pypi(specs),
+            options,
+        } => pypi::run(&specs, &options),
         request => Err(PublishError::Unavailable {
             command: request.command(),
             registry: request.registry().as_str(),
