@@ -10,6 +10,7 @@ pub mod output;
 pub mod paths;
 pub mod pypi;
 pub mod r2;
+pub mod republish;
 pub mod rollback;
 pub mod snapshot;
 pub mod state;
@@ -284,15 +285,16 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             request: PublishRequest::Pypi(specs),
             options,
         } => pypi::run(&specs, &options, environment),
+        Request::Republish {
+            registry,
+            allow_drops,
+            options,
+        } => republish::republish(registry, allow_drops, &options, environment),
         Request::Rollback {
             registry,
             generation,
             options,
         } => rollback::rollback(registry, &generation, &options, environment),
-        request => Err(PublishError::Unavailable {
-            command: request.command(),
-            registry: request.registry().as_str(),
-        }),
     }
 }
 
@@ -367,15 +369,23 @@ mod tests {
     }
 
     #[test]
-    fn unavailable_names_the_command_and_registry() {
+    fn republish_dispatches_to_the_registry_and_reads_its_config() {
         for registry in [Registry::Cargo, Registry::Npm, Registry::Pypi, Registry::Oci] {
-            let error = run(request(registry), &Environment::default()).unwrap_err();
-            assert_eq!(
-                error.to_string(),
-                format!("republish {} is not available in this build", registry.as_str())
-            );
-            assert_eq!(error.exit_code(), 2);
+            let request = request(registry);
+            assert_eq!(request.command(), "republish");
+            assert_eq!(request.registry(), registry);
         }
+        let work = tempfile::tempdir().unwrap();
+        std::fs::write(work.path().join("config.json"), "{not json").unwrap();
+        let environment = Environment::from_pairs([
+            ("STUFF_CONFIG_HOME", work.path().display().to_string()),
+            ("R2_S3_ENDPOINT", "http://127.0.0.1:9".to_string()),
+            ("R2_S3_ACCESS_KEY_ID", "test".to_string()),
+            ("R2_S3_SECRET_ACCESS_KEY", "test".to_string()),
+        ]);
+        let error = run(request(Registry::Cargo), &environment).unwrap_err();
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("config"), "{error}");
     }
 
     #[test]

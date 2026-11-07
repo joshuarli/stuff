@@ -63,6 +63,7 @@ worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 
 DEPLOY_JOBS ?= 3
 OCI_DEPLOY ?=
+STUFF ?= target/release/stuff
 
 deploy: ## Test and deploy the worker, republish registries, then check the live site
 	@cf auth whoami >/dev/null
@@ -71,16 +72,20 @@ deploy: ## Test and deploy the worker, republish registries, then check the live
 	$(MAKE) smoke-deployed
 
 republish-mycrates: ## Republish the mycrates site from state
-	deploy/publish mycrates --republish
+	cargo build -q --release -p stuff
+	$(STUFF) republish cargo
 
 republish-mynpm: ## Republish the mynpm site from state
-	deploy/publish mynpm --republish
+	cargo build -q --release -p stuff
+	$(STUFF) republish npm
 
 republish-mypypi: ## Republish the mypypi site from state
-	deploy/publish mypypi --republish
+	cargo build -q --release -p stuff
+	$(STUFF) republish pypi
 
 republish-oci: ## Republish the OCI site from state
-	deploy/publish oci --republish
+	cargo build -q --release -p stuff
+	$(STUFF) republish oci
 
 SITE_DIR ?= .work/site
 BUCKET ?=
