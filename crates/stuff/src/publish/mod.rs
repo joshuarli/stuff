@@ -3,6 +3,7 @@
 pub mod cargo;
 pub mod config;
 pub mod paths;
+pub mod r2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Registry {

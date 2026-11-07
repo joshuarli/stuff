@@ -11,6 +11,9 @@ use h12tiny_client_sync::{http, Client};
 
 const TIMEOUT: Duration = Duration::from_secs(5);
 
+pub const ACCESS_KEY: &str = "test-access";
+pub const SECRET_KEY: &str = "test-secret";
+
 pub struct FakeS3 {
     child: Child,
     stdin: Option<ChildStdin>,
@@ -49,12 +52,28 @@ impl Reply {
 
 impl FakeS3 {
     pub fn start() -> Self {
+        Self::spawn(false)
+    }
+
+    pub fn start_verified() -> Self {
+        Self::spawn(true)
+    }
+
+    fn spawn(verify_signature: bool) -> Self {
         let script = concat!(env!("CARGO_MANIFEST_DIR"), "/../../deploy/fake_s3.py");
-        let mut child = Command::new("python3")
+        let mut command = Command::new("python3");
+        command
             .arg(script)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        if verify_signature {
+            command
+                .arg("--verify-signature")
+                .env("R2_S3_ACCESS_KEY_ID", ACCESS_KEY)
+                .env("R2_S3_SECRET_ACCESS_KEY", SECRET_KEY);
+        }
+        let mut child = command
             .spawn()
             .unwrap_or_else(|error| panic!("spawn python3 {script}: {error}"));
         let stdout = child.stdout.take().expect("fake s3 stdout");

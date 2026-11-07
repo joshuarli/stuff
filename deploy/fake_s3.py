@@ -2,8 +2,8 @@
 """A small S3/R2 stand-in shared by the deployment tests and Rust parity tests."""
 
 import base64
-import datetime
 import hashlib
+import hmac
 import http.server
 import importlib.util
 import json
@@ -111,27 +111,61 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
         return bucket, (key or None)
 
     def _authorized(self, body):
-        authorization = self.headers.get("Authorization")
-        if not authorization:
+        authorization = self.headers.get("Authorization", "")
+        if not authorization.startswith("AWS4-HMAC-SHA256 "):
             return False
         try:
+            credential = authorization.split("Credential=", 1)[1].split(",", 1)[0]
             signed = authorization.split("SignedHeaders=", 1)[1].split(",", 1)[0].split(";")
-            content_type = self.headers.get("content-type", "") if "content-type" in signed else ""
+            signature = authorization.split("Signature=", 1)[1].split(",", 1)[0].strip()
+            access_key, datestamp, region, service, terminator = credential.split("/")
+            expected_access = os.environ.get("R2_S3_ACCESS_KEY_ID")
+            if expected_access and access_key != expected_access:
+                return False
             amzdate = self.headers["x-amz-date"]
-            now = datetime.datetime.strptime(amzdate, "%Y%m%dT%H%M%SZ").replace(
-                tzinfo=datetime.timezone.utc
+            payload_hash = (
+                self.headers.get("x-amz-content-sha256")
+                or hashlib.sha256(body).hexdigest()
             )
-            url = f"http://{self.headers['host']}{self.path}"
-            expected = _load_r2().signature_headers(
-                self.command,
-                url,
-                hashlib.sha256(body).hexdigest(),
-                content_type,
-                now=now,
+            parsed = urllib.parse.urlsplit(self.path)
+            signed_headers = {}
+            for name in signed:
+                lowered = name.lower()
+                value = self.headers.get(lowered)
+                if value is None:
+                    return False
+                signed_headers[lowered] = " ".join(value.split())
+            names = sorted(signed_headers)
+            canonical_headers = "".join(
+                f"{name}:{signed_headers[name]}\n" for name in names
             )
+            canonical = "\n".join(
+                [
+                    self.command,
+                    parsed.path or "/",
+                    _load_r2().canonical_query(parsed.query),
+                    canonical_headers,
+                    ";".join(names),
+                    payload_hash,
+                ]
+            )
+            scope = f"{datestamp}/{region}/{service}/{terminator}"
+            string_to_sign = "\n".join(
+                [
+                    "AWS4-HMAC-SHA256",
+                    amzdate,
+                    scope,
+                    hashlib.sha256(canonical.encode()).hexdigest(),
+                ]
+            )
+            secret = os.environ["R2_S3_SECRET_ACCESS_KEY"]
         except (KeyError, IndexError, ValueError):
             return False
-        return authorization == expected["Authorization"]
+        key = ("AWS4" + secret).encode()
+        for part in (datestamp, region, service, terminator):
+            key = hmac.new(key, part.encode(), hashlib.sha256).digest()
+        expected = hmac.new(key, string_to_sign.encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, signature)
 
     def _control(self, parsed, body):
         server = self.server
@@ -417,6 +451,7 @@ def _watch_stdin(stop):
 
 def main():
     server = FakeS3Server(("127.0.0.1", 0), FakeS3Handler)
+    server.verify_signature = "--verify-signature" in sys.argv[1:]
     print(f"PORT {server.server_port}", flush=True)
     stop = threading.Event()
 
