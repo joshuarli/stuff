@@ -1,14 +1,21 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use deser_value::Value;
 
 use super::model::IndexEntry;
 use super::names;
-use super::{input, integrity, Rejection};
+use super::store::Store;
+use super::{Rejection, RejectionKind, input, integrity};
+
+const VIEWS: [(View, &str); 2] = [(View::Native, "registry"), (View::Upstream, "crates-io")];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum View {
     Native,
     Upstream,
 }
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NativeRecord {
@@ -34,6 +41,168 @@ pub enum Record {
 pub struct AdoptedLine {
     pub record: Record,
     pub checksum: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AdoptSummary {
+    pub native: usize,
+    pub upstream: usize,
+    pub blobs: usize,
+}
+
+pub fn adopt_site(store: &Store, site_dir: &Path) -> Result<AdoptSummary, Rejection> {
+    store.assert_current_format()?;
+    let generation = current_generation_dir(site_dir)?;
+    let mut summary = AdoptSummary::default();
+    store.with_lock(|| {
+        for (view, directory) in VIEWS {
+            let root = generation.join(directory);
+            for path in index_files(&root)? {
+                let relative = path
+                    .strip_prefix(&root)
+                    .map_err(|error| operation(format!("could not read {}: {error}", path.display())))?
+                    .to_string_lossy()
+                    .to_string();
+                let text = fs::read_to_string(&path).map_err(|error| {
+                    operation(format!("could not read {}: {error}", path.display()))
+                })?;
+                for raw_line in text.split('\n') {
+                    let line = raw_line.trim_end_matches('\r');
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    let adopted = reconstruct_line(view, &relative, line)?;
+                    summary.blobs += adopt_blob(store, site_dir, &adopted.checksum)?;
+                    match adopted.record {
+                        Record::Native(record) => {
+                            store.put_native_record(&record)?;
+                            summary.native += 1;
+                        }
+                        Record::Upstream(record) => {
+                            store.put_upstream_record(&record)?;
+                            summary.upstream += 1;
+                        }
+                    }
+                }
+            }
+        }
+        store.verify_locked()
+    })?;
+    Ok(summary)
+}
+
+fn adopt_blob(store: &Store, site_dir: &Path, checksum: &str) -> Result<usize, Rejection> {
+    if !is_sha256_hex(checksum) {
+        return Err(integrity(format!(
+            "index checksum is not lowercase SHA-256 hex: {checksum}"
+        )));
+    }
+    let present = store.blob_path(checksum).exists();
+    let source = site_dir.join("blobs").join(format!("{checksum}.crate"));
+    let file = fs::File::open(&source).map_err(|error| {
+        integrity(format!("missing blob {}: {error}", source.display()))
+    })?;
+    let actual = store.ingest_blob(file)?;
+    if actual != checksum {
+        return Err(integrity(format!(
+            "blob {} hashes to {actual}, not the index checksum",
+            source.display()
+        )));
+    }
+    Ok(if present { 0 } else { 1 })
+}
+
+fn current_generation_dir(site_dir: &Path) -> Result<PathBuf, Rejection> {
+    let current = site_dir.join("current");
+    let target = fs::read_link(&current).map_err(|error| {
+        input(format!(
+            "{} is not a current symlink: {error}",
+            current.display()
+        ))
+    })?;
+    let target_text = target.to_string_lossy().to_string();
+    let generation_name = target_text
+        .strip_prefix("generations/")
+        .filter(|name| {
+            !name.is_empty()
+                && name
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric())
+        })
+        .ok_or_else(|| integrity(format!("unsafe current target: {target_text}")))?;
+    let generation = site_dir.join("generations").join(generation_name);
+    if !generation.is_dir() {
+        return Err(integrity(format!(
+            "current generation is missing: {}",
+            generation.display()
+        )));
+    }
+    Ok(generation)
+}
+
+fn index_files(root: &Path) -> Result<Vec<PathBuf>, Rejection> {
+    let mut files = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in read_dir(&directory)? {
+            let path = entry.path();
+            let file_type = entry.file_type().map_err(|error| {
+                operation(format!("could not inspect {}: {error}", path.display()))
+            })?;
+            if file_type.is_symlink() {
+                return Err(integrity(format!(
+                    "unexpected index entry: {}",
+                    path.display()
+                )));
+            }
+            if file_type.is_dir() {
+                pending.push(path);
+            } else if file_type.is_file() {
+                if !(directory.as_path() == root
+                    && entry.file_name().to_string_lossy() == "config.json")
+                {
+                    files.push(path);
+                }
+            } else {
+                return Err(integrity(format!(
+                    "unexpected index entry: {}",
+                    path.display()
+                )));
+            }
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn read_dir(directory: &Path) -> Result<Vec<fs::DirEntry>, Rejection> {
+    let mut entries = Vec::new();
+    for entry in fs::read_dir(directory).map_err(|error| {
+        operation(format!(
+            "could not read {}: {error}",
+            directory.display()
+        ))
+    })? {
+        let entry = entry.map_err(|error| {
+            operation(format!(
+                "could not read {}: {error}",
+                directory.display()
+            ))
+        })?;
+        entries.push(entry);
+    }
+    Ok(entries)
+}
+
+fn is_sha256_hex(text: &str) -> bool {
+    text.len() == 64
+        && text
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn operation(message: impl Into<String>) -> Rejection {
+    Rejection::new(RejectionKind::Operation, message)
 }
 
 pub fn reconstruct_index(

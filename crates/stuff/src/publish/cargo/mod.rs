@@ -4,17 +4,23 @@ pub mod crate_file;
 pub mod index;
 pub mod model;
 pub mod names;
+pub mod publish;
+pub mod render;
 pub mod requirements;
 pub mod semver;
+pub mod store;
 pub mod wirejson;
 
-pub use adopt::{AdoptedLine, NativeRecord, Record, UpstreamRecord, View};
+pub use adopt::{AdoptSummary, AdoptedLine, NativeRecord, Record, UpstreamRecord, View, adopt_site};
 pub use crate_file::{Limits, PackagedDep, PackagedManifest, ScanResult};
 pub use index::build_entry;
 pub use model::{
     DependencyKind, Features, IndexDep, IndexEntry, PublishDependency, PublishRequest,
 };
+pub use publish::{PublishOutcome, Publisher};
+pub use render::Rendered;
 pub use semver::Version;
+pub use store::Store;
 
 pub const PUBLISH_RESPONSE: &str =
     "{\"warnings\":{\"invalid_categories\":[],\"invalid_badges\":[],\"other\":[]}}";
