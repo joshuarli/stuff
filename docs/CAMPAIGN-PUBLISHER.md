@@ -8,9 +8,9 @@
 
 **Red:** none in the baseline suites. The environment-gated proofs are listed under **Needs environment**.
 
-**Next:** G1. Then G2, G3, and the R and C workstreams. N2-N4 wait for R4 and N1.
+**Next:** G3, so a toolchain-incompatible dependency surfaces first. Then G1, G2, and the R and C workstreams. N2-N4 wait for R4 and N1.
 
-**Resume:** "Execute `docs/CAMPAIGN-PUBLISHER.md` from G1. Work serially except for the parallel pairs named in **Sequence**. Commit locally; do not push or write to a real registry. Stop at the hard stops in the charter."
+**Resume:** "Execute `docs/CAMPAIGN-PUBLISHER.md` from G3. Work serially except for the parallel pairs named in **Sequence**. Commit locally; do not push or write to a real registry. Stop at the hard stops in the charter."
 
 First command:
 
@@ -24,14 +24,14 @@ cd ~/repos/stuff && git status --short && cargo test -p stuff
 - The owner's grant is local: edit `joshuarli/stuff`, `laputa-systems/h12tiny`, `laputa-systems/smolith`, `joshuarli/tansu`, `joshuarli/pytest-parallel`, and `joshuarli/usr`; run their local tests and builds; create worktrees under `.work/wt/<lane>`; use `.work/tmp` for scratch. Do not modify canonical checkouts other than a clean fast-forward if the owner asks. No `/tmp` or `$TMPDIR` work.
 - Hard stops, each parks the item: a push, a pull request, a release tag or workflow dispatch, a real R2/crates.io/npm/PyPI/OCI write, a credential or Cloudflare-permission change, deletion of user state, or a loop that cannot check anything. Put the proof on **Needs environment** with the command the owner would run.
 - Fix an egregious problem met on the way only when the slice caused it: a broken test, a stale reference, or a malformed artifact the slice writes. Put it in its own commit. Record anything else and leave it. No general cleanup and no formatter runs.
-- Parity before optimization. The Python implementations are the behavioral oracle until the close deletes them. A slice is accepted only when its parity command and the narrowest affected suite pass on the integrated tree.
+- Parity before optimization. The Python implementations are the behavioral oracle. The close deletes only the P13 wrappers; the Python mycrates publish path (`publish.py`, `server.py`) stays as the legacy oracle and is not a publishing entry point afterwards (P16). A slice is accepted only when its parity command and the narrowest affected suite pass on the integrated tree.
 - One writer by default. Parallel lanes are allowed only for the disjoint pairs named in **Sequence**; each lane works in its own worktree and the coordinator owns `crates/stuff/src/publish/mod.rs`, `crates/stuff/src/cli.rs`, `crates/stuff/Cargo.toml`, and `Makefile`.
 - Every commit is a Conventional Commit with `publish` as the scope for stuff and the repository's normal scope elsewhere. Put the item ID in the body. Code comments never cite this document.
 - Time-box each item at three attempts. On the third failure, park it with the failing command, the diff or output, and a retry condition. Never retry an unchanged failure.
 - Run the full suite at M1, M2, M3, M4, and the close. The focused loop is `cargo test -p stuff`; the full parity loop is `make test-stuff-parity`. Report before running anything expected to exceed ten minutes.
 - Performance floors: a focused Rust test target finishes under 60 seconds on the baseline host; `make test-stuff` under 120 seconds; `make test-stuff-parity` under 600 seconds. The existing Python R2 suite is 434.5 seconds, so run it at milestones, not per slice.
 - Use `stuff-store::Site` and `stuff-store::FileLock` for generation staging, activation, and local serialization. Do not add a second site or lock implementation.
-- After each accepted slice, run the parent steering checkpoint in the orchestrate campaign reference. Rewrite **Status** only when the ruling changes; git history is the log.
+- After each accepted slice, confirm the next item's prerequisites still hold and that no accepted slice's suite went red. Rewrite **Status** only when the ruling changes; git history is the log.
 
 ## Decisions
 
@@ -55,17 +55,18 @@ cd ~/repos/stuff && git status --short && cargo test -p stuff
 - **P3 — Dependencies.** Add `hmac` 0.12, `md-5` 0.10, and `quick-xml` 0.38 (or the newest mirror version compatible with the pinned rustc and `sha2` 0.10); reuse `sha2`, `deser-json`, `deser-toml`, `h12tiny-client-sync`, `httparse`, `stuff-store`, `stuff-catalog`, and `stuff-oci`. The stuff mirror already serves these crates. Implement SigV4 over `hmac` + `sha2`; do not add an AWS SDK. Update `NOTICE` and record the release-binary size delta. Reason: the smallest tested primitives; hand-rolled HMAC/MD5/XML is rejected for an untrusted remote parser. Reverses if a dependency cannot meet the release build.
 
 - **P4 — State paths.** Defaults: config at `$XDG_CONFIG_HOME/stuff/config.json`; disposable cache at `$XDG_CACHE_HOME/stuff/<registry>`; durable admin state at `$XDG_STATE_HOME/stuff/<registry>`. Credentials come from the environment or `cf`; never store them. Tests may set `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME`, but the publish API never requires them. Preserve and back up the existing mycrates state before migration; pins and upstream provenance stay durable local admin state. Do not make them disposable and do not add a private R2 snapshot in this campaign. Reverses if the owner requires state portability.
-- **P5 — Live snapshot construction.** Pull the current generation, its manifest, and the shared stores into the cache; verify size and ETag; reconstruct the cargo records from the published index (the adopt path) and run the existing Rust publish functions for npm, PyPI, and OCI against the pulled site. Never rebuild the published set from a local subset.
+- **P5 — Live snapshot construction.** Pull the current generation and its manifest into the cache and verify size and ETag. Know the shared immutable stores (`blobs/`, `tarballs/`, wheels) by listing key, size, and ETag; fetch a shared object's bytes only when a publish function reads them, so a fresh-cache publish does not download the bucket. R3 proves which reads each registry needs. With no local mynpm state, the inventory starts empty and the retained set comes from the pulled generation, which N2 proves. Then reconstruct the cargo records from the published index (the adopt path) and run the existing Rust publish functions for npm, PyPI, and OCI against the pulled site. Never rebuild the published set from a local subset.
 - **P6 — Consumers.** Migrate all four source repositories, not only `h12tiny`. `h12tiny` is the pilot; `smolith`, `tansu`, and `pytest-parallel` follow before the wrappers are deleted. Reverses only by keeping the old wrappers for an unmigrated repository, which blocks the close.
-- **P7 — Oracle.** Keep the Python implementations and their tests as the parity oracle until the close. Byte-identical outputs are proven by `diff -r`/`cmp`, not by semantic comparison. Reuse the existing fake S3 server; extracting it into `deploy/fake_s3.py` is allowed.
+- **P7 — Oracle.** Keep the Python implementations and their tests as the parity oracle; P16 says what survives the close. Byte-identical outputs are proven by `diff -r`/`cmp`, not by semantic comparison. Reuse the existing fake S3 server; extracting it into `deploy/fake_s3.py` is allowed.
 - **P8 — Exit codes and output.** 0 success or no-op; 2 usage/config; 3 conflict/stale generation; 4 integrity/verification; 5 transport/network. Document them in `--help`. `--json` emits a stable object with `registry`, `generation`, `status` (`published|unchanged|conflict`), `packages`, `uploaded_objects`, `uploaded_bytes`, and `skipped_objects`.
 - **P9 — No-op.** Compare the requested inputs and the complete generated generation with the live snapshot. If identical, do not upload and do not promote; report `unchanged`.
 - **P10 — Conflict.** On promotion `412`, re-read the live snapshot, re-plan the additive change, and retry up to three times. A non-additive or byte-conflicting request exits 3 without a plain-put fallback. Partial uploads are harmless because the manifest is uploaded last.
 - **P11 — Maintenance.** `stuff republish <registry>` is the renderer/generation refresh. `--allow-drops`, repair, and unconditional promotion appear only on explicit maintenance or rollback paths, never on `publish`.
 - **P12 — Release and installer.** `release.yml` uploads raw `stuff-<target>` and `SHA256SUMS`; the installer for `stuff` downloads the raw asset, verifies the SHA-256 from `SHA256SUMS`, and installs it executable. Keep the `release-<sha>` tag and the three-platform matrix.
-- **P13 — Deletion boundary.** At the close, delete only the publishing wrappers the Rust CLI supersedes: `deploy/publish`, `deploy/publish-mycrates.sh`, `deploy/publish-mynpm.sh`, `deploy/publish-mypypi.sh`, `deploy/r2-sync.sh`, `deploy/r2-put.py`, `deploy/r2-multipart.py`, `deploy/r2-promote.py`, `deploy/r2-plan.py`, `deploy/r2-manifest.py`, `deploy/r2-catalog-guard.py`, `deploy/r2-temp-credentials.py`, `deploy/r2-s3-credentials.sh`, `deploy/r2-rollback.sh`, and any now-unused lock wrapper, after proving no reference remains. Keep `r2-pull.py`, `r2-gc.py`, `r2-gc-blobs.py`, `import-cargo-locks.sh`, `fleet-ingest.sh`, `mypypi-container.sh`, `myoci-writer.sh`, `prune-generations.sh`, and the Python mycrates acquisition/archival commands; they are maintenance or the oracle.
+- **P13 — Deletion boundary.** At the close, delete only the publishing wrappers the Rust CLI supersedes: `deploy/publish`, `deploy/publish-mycrates.sh`, `deploy/publish-mynpm.sh`, `deploy/publish-mypypi.sh`, `deploy/r2-sync.sh`, `deploy/r2-put.py`, `deploy/r2-multipart.py`, `deploy/r2-promote.py`, `deploy/r2-plan.py`, `deploy/r2-manifest.py`, `deploy/r2-catalog-guard.py`, `deploy/r2-temp-credentials.py`, `deploy/r2-s3-credentials.sh`, `deploy/r2-rollback.sh`, and any now-unused lock wrapper, after proving no reference remains. `deploy/publish` goes only after N6 moves `make deploy` and the `republish-*` targets to `stuff republish`. Keep `r2-pull.py`, `r2-gc.py`, `r2-gc-blobs.py`, `import-cargo-locks.sh`, `fleet-ingest.sh`, `mypypi-container.sh`, `myoci-writer.sh`, `prune-generations.sh`, and the Python mycrates acquisition/archival commands; they are maintenance or the oracle.
 - **P14 — Version.** Keep `stuff` at 0.1.0. The release tag identifies the build.
 - **P15 — Tests are the gate.** No slice is accepted on a claim alone. The parity command named in its item must pass, and the narrowest affected suite must be green.
+- **P16 — Legacy cargo oracle.** After the close, `stuff publish cargo` is the only Cargo publishing entry point. The Python mycrates publish and loopback server remain only as the parity oracle for the golden tests and as the dependency of the kept maintenance commands; removing them is a later campaign. L5 updates `AGENTS.md`, `crates/mycrates/AGENTS.md`, and `docs/mycrates-contracts.md` to say so. Reverses if the owner wants the Python publish path deleted in this campaign.
 
 ### Delegated
 
@@ -110,10 +111,10 @@ Current caller surface: registry state lives under `$STUFF_STATE_HOME` (`promote
 
 ### Foundation proof
 
-- **Linkable libraries (rung 3-4).** `cargo check -p mynpm -p mypypi -p myoci` passes in 4.8 s; all three are library crates. `cargo tree -i stuff` shows nothing depends on `stuff`, so linking them into it is acyclic. `mynpm::publish_site` is public at `crates/mynpm/src/publish.rs:986` and called by `crates/mynpm/src/cli.rs:716`; `myoci::publish` is public at `crates/myoci/src/publish.rs:38`. `mypypi` has no public publish entry point; `command_publish` is CLI-bound at `crates/mypypi/src/cli.rs:1168`, so N1 is required, not assumed.
-- **Live snapshot suffices for cargo (rung 4).** `make test-mycrates` passes 176 tests, including the `adopt-publish` golden. `docs/mycrates-contracts.md` documents that adopt rebuilds native/upstream records from the published site and that pins and upstream provenance are local-only. P4 preserves the local admin state.
-- **Conditional promotion (rung 4).** `python3 deploy/test-r2-promote.py` passes in the R2 suite; `docs/PUBLISHING.md` documents `If-Match`/`If-None-Match:*` and 412. The Rust port's parity is R4.
-- **Site activation and no-op (rung 3-4).** `crates/stuff-store/src/site.rs:200` publishes through staging and activation; mynpm, mypypi, and myoci already use it, and the 357-test workspace suite passes. The cargo port reuses it.
+- **Linkable libraries.** `cargo check -p mynpm -p mypypi -p myoci` passes in 4.8 s; all three are library crates. `cargo tree -i stuff` shows nothing depends on `stuff`, so linking them into it is acyclic. `mynpm::publish_site` is public at `crates/mynpm/src/publish.rs:986` and called by `crates/mynpm/src/cli.rs:716`; `myoci::publish` is public at `crates/myoci/src/publish.rs:38`. `mypypi` has no public publish entry point; `command_publish` is CLI-bound at `crates/mypypi/src/cli.rs:1168`, so N1 is required, not assumed.
+- **Live snapshot suffices for cargo.** `make test-mycrates` passes 176 tests, including the `adopt-publish` golden. `docs/mycrates-contracts.md` documents that adopt rebuilds native/upstream records from the published site and that pins and upstream provenance are local-only. P4 preserves the local admin state.
+- **Conditional promotion.** `python3 deploy/test-r2-promote.py` passes in the R2 suite; `docs/PUBLISHING.md` documents `If-Match`/`If-None-Match:*` and 412. The Rust port's parity is R4.
+- **Site activation and no-op.** `crates/stuff-store/src/site.rs:200` publishes through staging and activation; mynpm, mypypi, and myoci already use it, and the 357-test workspace suite passes. The cargo port reuses it.
 
 Unproven until the named slice: the Rust S3 client against the fake (G1/R1), the cargo port (C1-C3), and the raw-asset installer path (L2).
 
@@ -123,82 +124,82 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 
 ### G1 — Shared fake-S3 fixture and Rust harness (S)
 
-- **Owned:** `deploy/fake_s3.py` (new, extracted from `deploy/test-r2-put.py:42` and `deploy/test-r2-promote.py:25`), both Python tests, `crates/stuff/tests/support/mod.rs` (new), `Makefile` (`test-stuff-s3`, `test-stuff-parity`).
+- **Owned:** `deploy/fake_s3.py` (new, extracted from `deploy/test-r2-put.py:42` and `deploy/test-r2-promote.py:25`), both Python tests, `crates/stuff/tests/support/mod.rs` (new), `Makefile` (`test-stuff-parity`).
 - **Prerequisites:** none.
-- **Acceptance:** `cargo test -p stuff --test fake_s3` passes; `python3 deploy/test-r2-put.py` and `python3 deploy/test-r2-promote.py` pass; `make test-stuff-s3` finishes under 60 s. `test-stuff-parity` is the aggregate Rust publish suite; it starts as `cargo test -p stuff` and grows with each R/C slice, staying under 600 s.
+- **Acceptance:** `cargo test -p stuff --test fake_s3` passes; `python3 deploy/test-r2-put.py` and `python3 deploy/test-r2-promote.py` pass; the fake-S3 test finishes under 60 s. The Makefile gains only `test-stuff` and `test-stuff-parity`; every slice suite below is a `cargo test -p stuff` filter. `test-stuff-parity` is the aggregate Rust publish suite; it starts as `cargo test -p stuff` and grows with each R/C slice, staying under 600 s.
 - **Notes:** the fake supports PUT, GET, HEAD, paginated list, and conditional PUT. Extract, do not fork behavior; the Python tests stay green.
 
 ### G2 — CLI, config, paths, exit codes (M)
 
 - **Owned:** `crates/stuff/src/cli.rs`, `main.rs`, `error.rs`, `publish/mod.rs`, `publish/config.rs`, `publish/paths.rs`, parser tests, `Makefile` (`test-stuff`).
-- **Prerequisites:** G1.
+- **Prerequisites:** none.
 - **Acceptance:** `cargo test -p stuff cli paths` passes; `target/debug/stuff publish --help` shows the four grammars, `--dry-run`, and `--json`; `stuff publish cargo` with no package exits 2; `cargo test --workspace` passes.
 - **Notes:** keep the existing `ls`, `search`, `diff`, `doctor`, and `render` commands and flags unchanged.
 
 ### G3 — Dependency admission and license record (S)
 
 - **Owned:** `crates/stuff/Cargo.toml`, `Cargo.lock`, `NOTICE`, dependency tests.
-- **Prerequisites:** G2.
+- **Prerequisites:** none.
 - **Acceptance:** `cargo build --release -p stuff` passes; the binary size and build time are recorded in **Status**; `cargo test -p stuff` passes; `NOTICE` names every new crate and its license; `cargo tree -p stuff` contains no AWS SDK and no `serde` direct dependency.
 - **Notes:** pin the exact versions in the mirror; if a version needs a newer rustc than the pinned toolchain, stop and report rather than updating the toolchain.
 
 ### R1 — SigV4 and S3 client (M)
 
 - **Owned:** `publish/r2/mod.rs`, `sigv4.rs`, `client.rs`, `xml.rs`, tests.
-- **Prerequisites:** G3.
-- **Acceptance:** `cargo test -p stuff publish::r2` passes; SigV4 output matches the Python `deploy/r2-multipart.py:97` oracle and the published AWS vectors; the fake-S3 test exercises PUT, GET, HEAD, paginated list, and error mapping; `make test-stuff-r2-client` finishes under 60 s.
+- **Prerequisites:** G1, G3.
+- **Acceptance:** `cargo test -p stuff publish::r2` passes; SigV4 output matches the Python `deploy/r2-multipart.py:97` oracle and the published AWS vectors; the fake-S3 test exercises PUT, GET, HEAD, paginated list, and error mapping; the filter finishes under 60 s.
 
 ### R2 — Uploads and manifest (M)
 
 - **Owned:** `publish/r2/put.rs`, `multipart.rs`, `manifest.rs`, tests.
 - **Prerequisites:** R1.
-- **Acceptance:** Rust parity with `python3 deploy/test-r2-put.py` (8 tests) and `python3 deploy/test-r2-multipart.py` (10 tests), including 429/`Retry-After`, content types, skip-if-equal, byte conflict, and multipart ETags; `make test-stuff-r2-put` finishes under 120 s.
+- **Acceptance:** Rust parity with `python3 deploy/test-r2-put.py` (8 tests) and `python3 deploy/test-r2-multipart.py` (10 tests), including 429/`Retry-After`, content types, skip-if-equal, byte conflict, and multipart ETags; `cargo test -p stuff -- publish::r2::put publish::r2::multipart` finishes under 120 s.
 
 ### R3 — Pull and live snapshot (M)
 
 - **Owned:** `publish/r2/pull.rs`, `publish/snapshot.rs`, tests.
 - **Prerequisites:** R1.
-- **Acceptance:** Rust pull of a fixture generation matches `python3 deploy/test-r2-pull.py` (6 tests) and `python3 deploy/test-r2-pull-listing.py` (4 tests) byte for byte, including multipart ETag verification and shared-store paths; `make test-stuff-r2-pull` passes.
+- **Acceptance:** Rust pull of a fixture generation matches `python3 deploy/test-r2-pull.py` (6 tests) and `python3 deploy/test-r2-pull-listing.py` (4 tests) byte for byte, including multipart ETag verification and shared-store paths; a test records which shared-store bytes each registry's publish reads, and a fresh-cache publish fetches no other shared object; `cargo test -p stuff -- publish::r2::pull publish::snapshot` passes.
 
 ### R4 — Transaction: sync, guard, promote, rollback, dry-run, lock (M)
 
 - **Owned:** `publish/r2/sync.rs`, `publish/r2/promote.rs`, `publish/r2/guard.rs`, `publish/transaction.rs`, tests.
-- **Prerequisites:** R2, R3.
-- **Acceptance:** parity with the scenarios in `deploy/test-r2-sync.sh` (120 objects) and `python3 deploy/test-r2-promote.py`; tests for `If-Match`, `If-None-Match:*`, 412, partial upload, interrupted promotion, stale recorded generation, dry-run, catalog guard, and rollback; `make test-stuff-r2-sync` finishes under 180 s.
+- **Prerequisites:** R2, R3, G2 (exit codes).
+- **Acceptance:** parity with the scenarios in `deploy/test-r2-sync.sh` (120 objects) and `python3 deploy/test-r2-promote.py`; tests for `If-Match`, `If-None-Match:*`, 412, partial upload, interrupted promotion, stale recorded generation, dry-run, catalog guard, and rollback; `cargo test -p stuff -- publish::r2::sync publish::r2::promote publish::r2::guard publish::transaction` finishes under 180 s.
 - **Notes:** hold the local `stuff-store::FileLock` across a publish; the remote conditional write is the cross-machine fence.
 
 ### R5 — Credentials (S)
 
 - **Owned:** `publish/r2/credentials.rs`, tests.
 - **Prerequisites:** R1.
-- **Acceptance:** parity with `python3 deploy/test-r2-temp-credentials.py`; direct `R2_S3_*`, `cf` minting, missing-login, and expired-token cases; `make test-stuff-r2-credentials` passes.
+- **Acceptance:** parity with `python3 deploy/test-r2-temp-credentials.py`; direct `R2_S3_*`, `cf` minting, missing-login, and expired-token cases; `cargo test -p stuff publish::r2::credentials` passes.
 - **Parallel:** may run alongside R2-R4; it owns `credentials.rs` and its tests only.
 
 ### C1 — Cargo core: model, index, archive gate, adopt (M)
 
 - **Owned:** `publish/cargo/mod.rs`, `model.rs`, `index.rs`, `crate_file.rs`, `adopt.rs`, `store.rs`, tests.
 - **Prerequisites:** G3. May run parallel with R1-R3.
-- **Acceptance:** byte-identical index lines and accept/reject decisions for all 10 `crates/mycrates/tests/golden/publish/` fixtures; the contract rules in `docs/mycrates-contracts.md`; `make test-stuff-cargo-core` finishes under 120 s.
+- **Acceptance:** byte-identical index lines and accept/reject decisions for all 10 `crates/mycrates/tests/golden/publish/` fixtures; the contract rules in `docs/mycrates-contracts.md`; `cargo test -p stuff publish::cargo` finishes under 120 s.
 - **Notes:** normalizations are exact: requirement intervals, renamed dependencies, feature-set comparison, key order, escaping, shard paths, and SemVer ordering.
 
 ### C2 — Cargo render and generation (M)
 
 - **Owned:** `publish/cargo/render.rs`, `publish/cargo/publish.rs`, tests.
 - **Prerequisites:** C1.
-- **Acceptance:** rendering `crates/mycrates/tests/golden/adopt-publish/input-site` produces `expected-generation` byte for byte and `expected-generation-id`; `make test-stuff-cargo-render` passes.
+- **Acceptance:** rendering `crates/mycrates/tests/golden/adopt-publish/input-site` produces `expected-generation` byte for byte and `expected-generation-id`; `cargo test -p stuff -- publish::cargo::render publish::cargo::publish` passes.
 
 ### C3 — Cargo loopback server and end-to-end publish (M)
 
 - **Owned:** `publish/cargo/server.rs`, `publish/cargo/wire.rs`, `publish/cargo/run.rs`, `crates/stuff/tests/cargo_publish_e2e.rs`, a fixture crate.
 - **Prerequisites:** C2, R4.
-- **Acceptance:** a real `cargo publish` against the in-process server completes through `stuff publish cargo`; the resulting generation bytes and id equal the Python path on the same inputs; the second run reports `unchanged` and promotes nothing; `make test-stuff-cargo-e2e` finishes under 180 s.
+- **Acceptance:** a real `cargo publish` against the in-process server completes through `stuff publish cargo`; the resulting generation bytes and id equal the Python path on the same inputs; the second run reports `unchanged` and promotes nothing; `cargo test -p stuff --test cargo_publish_e2e` finishes under 180 s.
 - **Notes:** bind an ephemeral loopback port, generate the Cargo registry config in the child environment, never mutate the persistent public URL, and stop the listener on every exit path.
 
 ### C4 — Cargo live state, cache, pins, provenance (M)
 
 - **Owned:** `publish/cargo/snapshot.rs`, `publish/state.rs`, migration notes, tests.
 - **Prerequisites:** R3, C3.
-- **Acceptance:** with an empty cache and no old state, a publish against a pulled fixture produces the same generation as the full-state path; an existing mycrates state is backed up and its pins/provenance survive; repeated publish is a no-op; `make test-stuff-cargo-state` passes.
+- **Acceptance:** with an empty cache and no old state, a publish against a pulled fixture produces the same generation as the full-state path; an existing mycrates state is backed up and its pins/provenance survive; repeated publish is a no-op; `cargo test -p stuff -- publish::cargo::snapshot publish::state` passes.
 
 ### C5 — Cargo CLI and output (S)
 
@@ -216,30 +217,36 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 
 - **Owned:** `publish/npm.rs`, `publish/inventory.rs`, tests.
 - **Prerequisites:** R4 and linked `mynpm`; N1 is not required.
-- **Acceptance:** a fixture pnpm lockfile publishes through `stuff publish npm` and produces the same generation as `mynpm publish` on the same pulled site/state; no `mynpm` subprocess; `make test-stuff-npm` passes.
+- **Acceptance:** a fixture pnpm lockfile publishes through `stuff publish npm` and produces the same generation as `mynpm publish` on the same pulled site/state; with no local mynpm state, a publish against a pulled fixture keeps every retained package from the generation; no `mynpm` subprocess; `cargo test -p stuff -- publish::npm publish::inventory` passes.
 
 ### N3 — `stuff publish pypi` (M)
 
 - **Owned:** `publish/pypi.rs`, tests.
 - **Prerequisites:** R4, N1.
-- **Acceptance:** fixture packages and wheels publish through `stuff publish pypi` and produce the same index/generation as the current `mypypi publish`; `make test-stuff-pypi` passes. Native repair and Linux build proof is in **Needs environment**.
+- **Acceptance:** fixture packages and wheels publish through `stuff publish pypi` and produce the same index/generation as the current `mypypi publish`; `cargo test -p stuff publish::pypi` passes. Native repair and Linux build proof is in **Needs environment**.
 
 ### N4 — `stuff publish oci` (M)
 
 - **Owned:** `publish/oci.rs`, tests.
 - **Prerequisites:** R4.
-- **Acceptance:** `tests/fixtures/oci/layout` publishes through `stuff publish oci` and produces the same generation as `myoci publish`; `make test-oci-publish` stays green; `make test-stuff-oci` passes.
+- **Acceptance:** `tests/fixtures/oci/layout` publishes through `stuff publish oci` and produces the same generation as `myoci publish`; `make test-oci-publish` stays green; `cargo test -p stuff publish::oci` passes.
 
 ### N5 — Rollback and doctor (S)
 
 - **Owned:** `publish/rollback.rs`, `doctor.rs`, CLI wiring, tests.
 - **Prerequisites:** R4, N2-N4.
-- **Acceptance:** `stuff rollback <registry> <generation>` verifies the manifest and promotes conditionally for all four registries; `stuff doctor` keeps the current read-only checks and adds the live generation check; `make test-stuff-rollback` passes.
+- **Acceptance:** `stuff rollback <registry> <generation>` verifies the manifest and promotes conditionally for all four registries; `stuff doctor` keeps the current read-only checks and adds the live generation check; `cargo test -p stuff -- publish::rollback doctor` passes.
+
+### N6 — `stuff republish` (M)
+
+- **Owned:** `publish/republish.rs`, CLI wiring, the `deploy` and `republish-*` targets in `Makefile`, tests.
+- **Prerequisites:** R4, C4, N2-N4.
+- **Acceptance:** for all four registries, `stuff republish <registry>` against the fake S3 produces the same generation as `deploy/publish <registry> --republish` on the same inputs and promotes conditionally; `--allow-drops` exists only on this command; `make -n deploy` and each `make -n republish-<registry>` resolve `stuff republish`; `cargo test -p stuff publish::republish` passes.
 
 ### L1 — Raw release assets (S)
 
 - **Owned:** `.github/workflows/release.yml`.
-- **Prerequisites:** C5, N5.
+- **Prerequisites:** C5, N5, N6.
 - **Acceptance:** a local macOS `cargo build --release -p stuff` produces a raw binary and `shasum -a 256` matches a generated `SHA256SUMS`; the workflow uploads `stuff-<target>` and `SHA256SUMS` with no zip; the build job runs `cargo test -p stuff` and the three registry crates. Linux targets are proved by CI under **Needs environment**.
 
 ### L2 — Installer raw asset (S)
@@ -262,16 +269,16 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 
 ### L5 — Close (M)
 
-- **Owned:** the P13 deletion list, `Makefile`, `docs/PUBLISHING.md`, crate READMEs, tests, **Status**.
+- **Owned:** the P13 deletion list, `Makefile`, `docs/PUBLISHING.md`, `AGENTS.md`, `crates/mycrates/AGENTS.md`, `docs/mycrates-contracts.md`, crate READMEs, tests, **Status**.
 - **Prerequisites:** L1-L4 and the owner's real-pilot receipt.
-- **Acceptance:** `rg` finds no reference to a deleted wrapper; `make test`, `cargo test --workspace`, `make test-stuff-parity`, `make test-oci-publish`, and `make test-publish-lock` pass; `mdtool check --untracked docs/CAMPAIGN-PUBLISHER.md` is clean apart from documented out-of-repo paths; `ultrareview` P1/P2 findings are fixed; worktrees and scratch are removed; the final report is written.
+- **Acceptance:** `rg` finds no reference to a deleted wrapper; `make test`, `cargo test --workspace`, `make test-stuff-parity`, `make test-oci-publish`, and `make test-publish-lock` pass; `mdtool check --untracked docs/CAMPAIGN-PUBLISHER.md` is clean apart from documented out-of-repo paths; `AGENTS.md` and the mycrates docs name `stuff publish cargo` as the Cargo write path and the Python publish path as the legacy oracle (P16); an independent review of the campaign diff (the `review` skill) finds no unfixed defect; worktrees and scratch are removed; the final report is written.
 - **Hard stop:** if the owner has not reported the real publication exercise, delete nothing and park the item with the receipt still open.
 
 ### Milestones and parallelism
 
 - **M1 (after R4):** `make test-r2` plus `cargo test --workspace`. This is the R2 parity milestone.
 - **M2 (after C3):** `make test-mycrates`, the golden render diff, and `cargo test --workspace`.
-- **M3 (after N5):** `make test-oci-publish`, `cargo test -p mynpm -p mypypi -p myoci`, and `make test`.
+- **M3 (after N6):** `make test-oci-publish`, `cargo test -p mynpm -p mypypi -p myoci`, and `make test`.
 - **M4 (after L3):** `make test`, the macOS raw build, the installer test, and the four consumer dry-runs.
 - **Parallel pairs:** after G3, C1 may run with R1-R3 (files under `publish/cargo/` versus `publish/r2/`), and N1 may run with any of them. R5 may run with R2-R4. N2, N3, and N4 may run in parallel after N1 and R4 because each owns one `publish/<registry>.rs` and its tests; the coordinator owns `publish/mod.rs` and the CLI wiring. All other items are serial.
 
@@ -285,7 +292,7 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 | A4 | Live state and concurrency | Fresh cache with no old state publishes from the live fixture; repeated publish is a no-op; interrupted upload resumes; a concurrent 412 is retried additively and never overwritten; stale state is refused; pins/provenance survive the backup. | A local subset replaces the live set; a 412 overwrites; a no-op promotes; provenance is lost. |
 | A5 | Release and installer | Raw `stuff-<target>` plus `SHA256SUMS`; the installer verifies the checksum and installs the binary; no zip for stuff. | A zip-only asset, an unverified binary, or a failed installer test. |
 | A6 | Consumers and skill | All four Makefiles invoke `stuff publish ...` with no sibling checkout; the skill passes its check at 30-50 lines. | A remaining `STUFF_DIR` path, a wrapper invocation, or a skill longer than 50 lines. |
-| A7 | Close | The P13 wrappers are deleted with no references; all suites pass; ultrareview P1/P2 fixed; no worktrees or scratch. | A dead reference, a red suite, or an unresolved P1/P2. |
+| A7 | Close | The P13 wrappers are deleted with no references; all suites pass; `make deploy` runs through `stuff republish`; the independent review finds no unfixed defect; no worktrees or scratch. | A dead reference, a red suite, a `make` target that calls a deleted wrapper, or an unfixed review defect. |
 
 ## Needs environment
 
@@ -330,6 +337,7 @@ Every item is a slice with one local acceptance command. Sizes: S is hours, M is
 | `docs/mycrates-contracts.md` | State, index, upload API, site layout, and generation identity contracts. |
 | `docs/PUBLISHING.md` | Current operator procedures; rewrite at the close. |
 | `deploy/publish:1` | Current wrapper; deleted at the close. |
+| `Makefile:64` | `deploy` and `republish-*` call `deploy/publish`; N6 moves them to `stuff republish`. |
 | `deploy/publish-mycrates.sh:1` | Current Cargo transaction; C3 replaces it. |
 | `deploy/r2-sync.sh:1` | Current sync/promotion transaction; R4 replaces it. |
 | `deploy/r2-promote.py:1` | Conditional-promotion oracle; R4 replaces it. |
