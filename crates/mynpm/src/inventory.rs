@@ -846,8 +846,12 @@ fn normalize_artifact(
         }
     let source_url = require_text(record.get("sourceUrl").unwrap_or(&null), &format!("{label}.sourceUrl"), category)?;
     let url = stuff_url::Url::parse(&source_url).map_err(|_| err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")))?;
-    let source_host_allowed = first_party || url.host_str() == Some("registry.npmjs.org");
-    if url.scheme() != "https" || !source_host_allowed || (!first_party && url.port().is_some()) || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
+    let host = url.host_str().unwrap_or("");
+    let is_loopback = url.scheme() == "http"
+        && matches!(host, "127.0.0.1" | "localhost" | "::1" | "[::1]");
+    let scheme_allowed = url.scheme() == "https" || (first_party && is_loopback);
+    let source_host_allowed = first_party || host == "registry.npmjs.org";
+    if !scheme_allowed || !source_host_allowed || (!first_party && url.port().is_some()) || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
         return Err(err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")));
     }
     let dist = metadata.and_then(|m| m.as_map()).and_then(|m| m.get("dist")).cloned();

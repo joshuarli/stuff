@@ -53,8 +53,8 @@ class FakeS3Server(http.server.ThreadingHTTPServer):
         self.fail_retry_after = "0"
         self.fail_complete = False
         self.reset_remaining = 0
-        self.current = None
-        self.current_etag = ""
+        self.current = {}
+        self.current_etag = {}
         self.change_current_on_head = False
         self.put_conditions = []
         self.manifest_key = None
@@ -215,8 +215,8 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             server.objects[(bucket, key)] = (data, content_type)
             server.etags[(bucket, key)] = etag
             if key == "current":
-                server.current = data.decode("utf-8", "replace")
-                server.current_etag = etag
+                server.current[bucket] = data.decode("utf-8", "replace")
+                server.current_etag[bucket] = etag
             self._reply(200, b'{"ok":true}')
             return
         if parsed.path == "/_fake/fail" and self.command == "POST":
@@ -251,14 +251,14 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
 
     def _list(self, parsed, query):
         server = self.server
-        if server.change_current_on_head:
-            server.change_current_on_head = False
-            server.current = "g2"
-            server.current_etag = '"e2"'
         bucket, _ = self._bucket_key(parsed.path)
         if not bucket:
             self._reply(404)
             return
+        if server.change_current_on_head:
+            server.change_current_on_head = False
+            server.current[bucket] = "g2"
+            server.current_etag[bucket] = '"e2"'
         prefix = query.get("prefix", [""])[0]
         after = query.get("continuation-token", [""])[0]
         page = int(query.get("max-keys", ["1000"])[0])
@@ -304,17 +304,17 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             return
         if self.command == "HEAD" and server.change_current_on_head:
             server.change_current_on_head = False
-            server.current = "g2"
-            server.current_etag = '"e2"'
+            server.current[bucket] = "g2"
+            server.current_etag[bucket] = '"e2"'
         if server.manifest_key and key == server.manifest_key:
             body = server.manifest.encode() if isinstance(server.manifest, str) else server.manifest
             self._reply(200, body, {"ETag": '"manifest"'})
             return
-        if key == "current" and server.current is not None:
+        if key == "current" and bucket in server.current:
             self._reply(
                 200,
-                server.current.encode(),
-                {"ETag": server.current_etag},
+                server.current[bucket].encode(),
+                {"ETag": server.current_etag.get(bucket, "")},
             )
             return
         found = server.objects.get((bucket, key))
@@ -341,15 +341,16 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             none_match = self.headers.get("if-none-match")
             text = body.decode("utf-8", "replace")
             server.put_conditions.append((condition, none_match, text))
-            if condition is not None and condition != server.current_etag:
+            bucket_etag = server.current_etag.get(bucket)
+            if condition is not None and condition != bucket_etag:
                 self._reply(412)
                 return
-            if none_match == "*" and server.current is not None:
+            if none_match == "*" and bucket in server.current:
                 self._reply(412)
                 return
             etag = md5_etag(body)
-            server.current = text
-            server.current_etag = etag
+            server.current[bucket] = text
+            server.current_etag[bucket] = etag
             server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))
             server.etags[(bucket, key)] = etag
             self._log_put(bucket, key)
