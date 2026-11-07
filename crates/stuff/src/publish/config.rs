@@ -21,6 +21,7 @@ pub struct OciConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
+    pub cf_profile: String,
     pub cargo: RegistryConfig,
     pub npm: RegistryConfig,
     pub pypi: RegistryConfig,
@@ -30,6 +31,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
+            cf_profile: "stuff".to_string(),
             cargo: RegistryConfig {
                 bucket: "stuff-mycrates".to_string(),
                 public_base_url: "https://crates.17166969.xyz".to_string(),
@@ -70,6 +72,12 @@ impl Config {
             return Err(PublishError::Config("must be a JSON object".to_string()));
         }
         let mut config = Config::default();
+        if let Some(profile) = string_field(&value, "cf_profile", "config")? {
+            if profile.is_empty() {
+                return Err(PublishError::Config("cf_profile must not be empty".to_string()));
+            }
+            config.cf_profile = profile;
+        }
         if let Some(section) = section(&value, "cargo")? {
             config.cargo = registry_config(section, "cargo", &config.cargo)?;
         }
@@ -139,6 +147,7 @@ mod tests {
     #[test]
     fn defaults_match_the_deploy_scripts() {
         let config = Config::default();
+        assert_eq!(config.cf_profile, "stuff");
         assert_eq!(config.cargo.bucket, "stuff-mycrates");
         assert_eq!(config.cargo.public_base_url, "https://crates.17166969.xyz");
         assert_eq!(config.npm.bucket, "stuff-mynpm");
@@ -164,6 +173,7 @@ mod tests {
         std::fs::write(
             &path,
             r#"{
+                "cf_profile": "publisher",
                 "cargo": {"bucket": "custom-cargo"},
                 "npm": {"public_base_url": "https://npm.example"},
                 "oci": {"bucket": "custom-meta", "blobs_bucket": "custom-blobs"}
@@ -171,6 +181,7 @@ mod tests {
         )
         .unwrap();
         let config = Config::load(&path).unwrap();
+        assert_eq!(config.cf_profile, "publisher");
         assert_eq!(config.cargo.bucket, "custom-cargo");
         assert_eq!(config.cargo.public_base_url, "https://crates.17166969.xyz");
         assert_eq!(config.npm.bucket, "stuff-mynpm");
@@ -196,6 +207,8 @@ mod tests {
         for text in [
             r#"[]"#,
             r#"{"cargo": "bucket"}"#,
+            r#"{"cf_profile": 1}"#,
+            r#"{"cf_profile": ""}"#,
             r#"{"cargo": {"bucket": 7}}"#,
             r#"{"oci": {"blobs_bucket": false}}"#,
         ] {

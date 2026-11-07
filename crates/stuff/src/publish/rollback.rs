@@ -16,7 +16,7 @@ pub fn rollback(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = snapshot::metadata_bucket(registry, &config);
-    let credentials = credentials::resolve(environment, &bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let report = transaction::rollback(
         credentials,
         registry,

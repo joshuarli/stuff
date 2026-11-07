@@ -124,7 +124,7 @@ pub fn publish_with_exchange(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.npm.bucket.clone();
-    let credentials = credentials::resolve(environment, &bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let library = library_config(&config);
 
     let cache_dir = paths.cache_dir("npm");

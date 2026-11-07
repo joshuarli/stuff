@@ -11,21 +11,23 @@ use super::client::Credentials;
 const DEFAULT_TTL_SECONDS: i64 = 3600;
 const MAX_TTL_SECONDS: i64 = 604_800;
 const ATTEMPTS: u32 = 3;
-const LOGIN_HINT: &str =
-    "run `cf auth login`, or set R2_ACCOUNT_ID and R2_PARENT_ACCESS_KEY_ID to mint without cf";
-
-pub fn resolve(env: &Environment, bucket: &str) -> Result<Credentials, PublishError> {
+pub fn resolve(
+    env: &Environment,
+    profile: &str,
+    bucket: &str,
+) -> Result<Credentials, PublishError> {
     if let Some(credentials) = direct_credentials(env) {
         return Ok(credentials);
     }
     if bucket.is_empty() {
         return Err(config("bucket is empty"));
     }
-    let account = account_id(env)?;
-    let parents = parent_keys(env)?;
+    let cf = Cf { env, profile };
+    let account = account_id(&cf)?;
+    let parents = parent_keys(&cf)?;
     let mut last = None;
     for parent in &parents {
-        match mint(env, bucket, parent, &account) {
+        match mint(&cf, bucket, parent, &account) {
             Ok(credentials) => return Ok(credentials),
             Err(MintFailure::Rejected(detail)) => last = Some(detail),
             Err(MintFailure::Fatal(error)) => return Err(error),
@@ -46,12 +48,30 @@ fn direct_credentials(env: &Environment) -> Option<Credentials> {
     Credentials::from_env(|name| env.get(name).map(str::to_string)).ok()
 }
 
-fn account_id(env: &Environment) -> Result<String, PublishError> {
-    if let Some(configured) = env.non_empty("R2_ACCOUNT_ID") {
+struct Cf<'a> {
+    env: &'a Environment,
+    profile: &'a str,
+}
+
+impl Cf<'_> {
+    fn login_hint(&self) -> String {
+        format!(
+            "run `cf auth create {}` to log in to the publishing profile, or export R2_S3_ENDPOINT, R2_S3_ACCESS_KEY_ID and R2_S3_SECRET_ACCESS_KEY",
+            self.profile
+        )
+    }
+}
+
+fn account_id(cf: &Cf) -> Result<String, PublishError> {
+    if let Some(configured) = cf.env.non_empty("R2_ACCOUNT_ID") {
         return Ok(configured.to_string());
     }
-    let output = run_cf(env, &["auth", "whoami"]).map_err(|detail| {
-        config(format!("cannot determine the R2 account: {detail} ({LOGIN_HINT})"))
+    let output = run_cf(cf, &["auth", "whoami"]).map_err(|detail| {
+        config(format!(
+            "cannot determine the R2 account with cf profile {}: {detail} ({})",
+            cf.profile,
+            cf.login_hint()
+        ))
     })?;
     let document: Value = deser_json::from_str(&output).map_err(|error| {
         config(format!("cf auth whoami returned invalid JSON: {error}"))
@@ -68,16 +88,18 @@ fn account_id(env: &Environment) -> Result<String, PublishError> {
     match account {
         Some(id) => Ok(id.to_string()),
         None => Err(config(format!(
-            "cf auth whoami returned no account ({LOGIN_HINT})"
+            "cf auth whoami returned no account for profile {} ({})",
+            cf.profile,
+            cf.login_hint()
         ))),
     }
 }
 
-fn parent_keys(env: &Environment) -> Result<Vec<String>, PublishError> {
-    if let Some(configured) = env.non_empty("R2_PARENT_ACCESS_KEY_ID") {
+fn parent_keys(cf: &Cf) -> Result<Vec<String>, PublishError> {
+    if let Some(configured) = cf.env.non_empty("R2_PARENT_ACCESS_KEY_ID") {
         return Ok(vec![configured.to_string()]);
     }
-    let output = run_cf(env, &["accounts", "tokens", "list", "--per-page", "50"])
+    let output = run_cf(cf, &["accounts", "tokens", "list", "--per-page", "50"])
         .map_err(|detail| config(format!("cannot list account tokens: {detail}")))?;
     let document: Value = deser_json::from_str(&output).map_err(|error| {
         config(format!("cf accounts tokens list returned invalid JSON: {error}"))
@@ -155,14 +177,14 @@ impl From<PublishError> for MintFailure {
 }
 
 fn mint(
-    env: &Environment,
+    cf: &Cf,
     bucket: &str,
     parent: &str,
     account: &str,
 ) -> Result<Credentials, MintFailure> {
-    let ttl = ttl_seconds(env)?.to_string();
+    let ttl = ttl_seconds(cf.env)?.to_string();
     let output = run_cf(
-        env,
+        cf,
         &[
             "r2",
             "temporary-credentials",
@@ -198,13 +220,15 @@ fn mint(
     })
 }
 
-fn run_cf(env: &Environment, args: &[&str]) -> Result<String, String> {
+fn run_cf(cf: &Cf, args: &[&str]) -> Result<String, String> {
+    let env = cf.env;
     let program = find_program(env.get("PATH").unwrap_or_default(), "cf").ok_or_else(|| {
-        format!("cf is not on PATH ({LOGIN_HINT})")
+        format!("cf is not on PATH ({})", cf.login_hint())
     })?;
     let mut last = String::new();
     for attempt in 1..=ATTEMPTS {
         let output = Command::new(&program)
+            .args(["--profile", cf.profile])
             .args(args)
             .env_clear()
             .envs(env.variables())
@@ -257,7 +281,7 @@ mod tests {
             ("R2_S3_SESSION_TOKEN", "token"),
             ("PATH", "/nonexistent"),
         ]);
-        let credentials = resolve(&env, "bucket").unwrap();
+        let credentials = resolve(&env, "stuff", "bucket").unwrap();
         assert_eq!(
             credentials,
             Credentials {
@@ -273,7 +297,7 @@ mod tests {
     #[test]
     fn a_partial_direct_environment_falls_back_to_minting() {
         let env = Environment::from_pairs([("R2_S3_ENDPOINT", "https://example")]);
-        let error = resolve(&env, "bucket").unwrap_err();
+        let error = resolve(&env, "stuff", "bucket").unwrap_err();
         assert!(error.to_string().contains("cf"), "{error}");
     }
 }

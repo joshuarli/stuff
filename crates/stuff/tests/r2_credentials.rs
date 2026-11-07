@@ -11,6 +11,15 @@ use stuff::publish::{Environment, ExitCode};
 use support::write_executable;
 
 const FAKE_CF: &str = r#"#!/bin/sh
+if [ "$1" != "--profile" ]; then
+  echo "cf invoked without --profile: $*" >&2
+  exit 1
+fi
+if [ "$2" != "stuff" ]; then
+  printf '%s\n' '{"authenticated":false,"error":"Not logged in"}'
+  exit 1
+fi
+shift 2
 case "$1 $2" in
   "auth whoami")
     if [ -n "$FAKE_CF_LOGIN_FAIL" ]; then
@@ -94,7 +103,7 @@ fn read_log(path: &Path) -> Vec<String> {
 #[test]
 fn mints_scoped_credentials_from_the_r2_parent() {
     let fake = fake_cf();
-    let credentials = resolve(&fake.environment(&[]), "bucket").unwrap();
+    let credentials = resolve(&fake.environment(&[]), "stuff", "bucket").unwrap();
     assert_eq!(credentials.endpoint, "https://acct.r2.cloudflarestorage.com");
     assert_eq!(credentials.access_key_id, "access");
     assert_eq!(credentials.secret_access_key, "secret");
@@ -111,7 +120,7 @@ fn parent_override_skips_token_discovery() {
         ("FAKE_CF_ALLOW", "1"),
         ("FAKE_CF_NO_TOKENS", "1"),
     ]);
-    let credentials = resolve(&env, "bucket").unwrap();
+    let credentials = resolve(&env, "stuff", "bucket").unwrap();
     assert_eq!(credentials.access_key_id, "access");
     assert_eq!(fake.parents(), vec!["other"]);
 }
@@ -119,7 +128,7 @@ fn parent_override_skips_token_discovery() {
 #[test]
 fn no_active_token_fails_without_printing_credentials() {
     let fake = fake_cf();
-    let error = resolve(&fake.environment(&[("FAKE_CF_NO_TOKENS", "1")]), "bucket").unwrap_err();
+    let error = resolve(&fake.environment(&[("FAKE_CF_NO_TOKENS", "1")]), "stuff", "bucket").unwrap_err();
     assert_eq!(error.classification(), ExitCode::Usage);
     let message = error.to_string();
     assert!(message.contains("no active account token"), "{message}");
@@ -132,6 +141,7 @@ fn ttl_must_stay_within_the_api_limit() {
     let fake = fake_cf();
     let error = resolve(
         &fake.environment(&[("R2_TEMP_CREDENTIALS_TTL", "604801")]),
+        "stuff",
         "bucket",
     )
     .unwrap_err();
@@ -148,7 +158,7 @@ fn direct_r2_s3_environment_wins_over_cf() {
         ("R2_S3_SECRET_ACCESS_KEY", "direct-secret"),
         ("R2_S3_SESSION_TOKEN", "direct-session"),
     ]);
-    let credentials = resolve(&env, "bucket").unwrap();
+    let credentials = resolve(&env, "stuff", "bucket").unwrap();
     assert_eq!(credentials.endpoint, "https://account.r2.cloudflarestorage.com");
     assert_eq!(credentials.access_key_id, "direct-access");
     assert_eq!(credentials.secret_access_key, "direct-secret");
@@ -159,7 +169,7 @@ fn direct_r2_s3_environment_wins_over_cf() {
 #[test]
 fn missing_cf_login_is_an_actionable_config_error() {
     let fake = fake_cf();
-    let error = resolve(&fake.environment(&[("FAKE_CF_LOGIN_FAIL", "1")]), "bucket").unwrap_err();
+    let error = resolve(&fake.environment(&[("FAKE_CF_LOGIN_FAIL", "1")]), "stuff", "bucket").unwrap_err();
     assert_eq!(error.classification(), ExitCode::Usage);
     let message = error.to_string();
     assert!(message.contains("Not logged in"), "{message}");
@@ -169,10 +179,21 @@ fn missing_cf_login_is_an_actionable_config_error() {
 #[test]
 fn expired_token_is_a_config_error_and_tries_every_parent() {
     let fake = fake_cf();
-    let error = resolve(&fake.environment(&[("FAKE_CF_MINT_FAIL", "1")]), "bucket").unwrap_err();
+    let error = resolve(&fake.environment(&[("FAKE_CF_MINT_FAIL", "1")]), "stuff", "bucket").unwrap_err();
     assert_eq!(error.classification(), ExitCode::Usage);
     let message = error.to_string();
     assert!(message.contains("token expired"), "{message}");
     assert!(!message.contains("secret"), "{message}");
     assert_eq!(fake.parents(), vec!["r2", "other"]);
+}
+
+#[test]
+fn minting_uses_the_configured_cf_profile_from_any_directory() {
+    let fake = fake_cf();
+    let error = resolve(&fake.environment(&[]), "unbound", "bucket").unwrap_err();
+    assert_eq!(error.classification(), ExitCode::Usage);
+    let message = error.to_string();
+    assert!(message.contains("cf profile unbound"), "{message}");
+    assert!(message.contains("cf auth create unbound"), "{message}");
+    assert!(fake.parents().is_empty(), "{:?}", fake.parents());
 }

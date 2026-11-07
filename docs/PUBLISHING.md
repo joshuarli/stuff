@@ -17,9 +17,9 @@
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 | OCI writer host (optional) | Large anonymous `docker push`; reads/writes `stuff-oci-blobs` | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
 
-If `cf auth whoami` reports no active session, run `cf auth login --use-keyring`. To keep publishing credentials separate, create a profile and bind it to the source repository with `cf auth activate stuff .`. `cf` selects the profile by directory binding, so bind every consumer repository (`cf auth activate stuff <dir>`) or export `R2_S3_*` there before `make publish-*`.
+`stuff` mints R2 credentials through the `cf` profile named by `cf_profile` in its configuration (default `stuff`) and passes `--profile` on every `cf` call, so `make publish-*` works from any directory without a directory binding. Create the profile once with `cf auth create stuff`; check it with `cf --profile stuff auth whoami`. The kept shell scripts (`r2-temp-credentials.py`, `r2-sync.sh`) still use `cf`'s directory binding, so run them from the stuff checkout, which is bound with `cf auth activate stuff .`.
 
-`stuff` keeps configuration in `${XDG_CONFIG_HOME:-$HOME/.config}/stuff/config.json`, a disposable cache in `${XDG_CACHE_HOME:-$HOME/.cache}/stuff/<registry>`, and durable state in `${XDG_STATE_HOME:-$HOME/.local/state}/stuff/<registry>`; `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME` override each. The kept maintenance scripts use the same state root. Back up the state directories. The live generation, not local state, is the publication source of truth.
+`stuff` keeps configuration (`cf_profile` and the per-registry `bucket` and `public_base_url`) in `${XDG_CONFIG_HOME:-$HOME/.config}/stuff/config.json`, a disposable cache in `${XDG_CACHE_HOME:-$HOME/.cache}/stuff/<registry>`, and durable state in `${XDG_STATE_HOME:-$HOME/.local/state}/stuff/<registry>`; `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME` override each. The kept maintenance scripts use the same state root. Back up the state directories. The live generation, not local state, is the publication source of truth.
 
 ## Publish a registry
 
@@ -161,7 +161,7 @@ The `cf` API allows roughly four requests a second per account. A republish afte
 
 Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI. Listing and uploads then use the S3 API: the remote plan comes from one paginated list, uploads run `R2_PUT_JOBS` in parallel (default 8), and the generation is verified against that list. If minting fails, listing through `cf` (`deploy/r2-plan.py`) and a cross-process pacer remain the fallback. The local simulation (`CF_LOCAL_STATE`) stays single-threaded.
 
-Promotion is a conditional write, so publishing needs these credentials. `stuff` uses `R2_S3_*` when the three variables are set, and otherwise mints short-lived credentials through `cf` before it writes; it fails before writing if minting fails. Minting needs an authenticated `cf` (`cf auth login --use-keyring`, check with `cf auth whoami`) and an active account token whose policies mention R2. `cf` selects its profile by directory binding, so bind the repository you publish from to the publishing profile (`cf auth activate stuff <dir>`) or export `R2_S3_*` there; a consumer repository that is neither bound nor exported cannot mint during `make publish-*`.
+Promotion is a conditional write, so publishing needs these credentials. `stuff` uses `R2_S3_*` when the three variables are set, and otherwise mints short-lived credentials through `cf` before it writes; it fails before writing if minting fails. Minting needs a logged-in `cf_profile` profile (`cf auth create stuff`, check with `cf --profile stuff auth whoami`) and an active account token whose policies mention R2. The working directory does not matter.
 
 To mint credentials by hand, for the bucket you will write (`stuff-mycrates`, `stuff-mynpm`, or `stuff-mypypi`):
 
@@ -272,7 +272,7 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | Message | Cause | Fix |
 | --- | --- | --- |
 | `cf is not authenticated` | No active cf session | Run `cf auth login --use-keyring` |
-| `cannot determine the R2 account` or `no active account token can mint R2 credentials` | `stuff` could not mint R2 credentials through `cf` | Run `cf auth login --use-keyring`, bind the directory to the publishing profile with `cf auth activate stuff <dir>`, or export `R2_S3_*` |
+| `cannot determine the R2 account` or `no active account token can mint R2 credentials` | `stuff` could not mint R2 credentials through `cf` | Run `cf auth create stuff` (or the configured `cf_profile`), or export `R2_S3_*` |
 | `current changed during promotion` | Another publisher moved `current` | Pull the new generation, merge your changes, and publish again |
 | `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
 | `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |

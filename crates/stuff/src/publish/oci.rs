@@ -48,7 +48,7 @@ pub fn publish(
 ) -> Result<Outcome, PublishError> {
     let paths = OciPaths::from_environment(environment);
     let config = Config::load(&Paths::from_environment(environment).config_file())?;
-    let credentials = credentials::resolve(environment, &config.oci.bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &config.oci.bucket)?;
     publish_with(
         source,
         options,

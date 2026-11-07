@@ -38,7 +38,7 @@ pub fn run(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let settings = project_settings(&config.pypi.public_base_url)?;
-    let credentials = credentials::resolve(environment, &config.pypi.bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &config.pypi.bucket)?;
     publish(
         credentials,
         &config,

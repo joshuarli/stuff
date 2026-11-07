@@ -54,7 +54,7 @@ fn cargo(
     let layout = CargoLayout::from_environment(environment);
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
-    let credentials = credentials::resolve(environment, &config.cargo.bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &config.cargo.bucket)?;
     let staging = Staging::create(&layout.cache_dir, "cargo-republish")?;
     let site_dir = staging.join("site");
     let snapshot_cache = layout.cache_dir.clone();
@@ -194,7 +194,7 @@ fn npm(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.npm.bucket.clone();
-    let credentials = credentials::resolve(environment, &bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let library = library_config(&config);
     let cache_dir = paths.cache_dir("npm");
     let state_dir = paths.state_dir("npm");
@@ -335,7 +335,7 @@ fn pypi(
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.pypi.bucket.clone();
-    let credentials = credentials::resolve(environment, &bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let cache_dir = paths.cache_dir("pypi");
     let state_dir = paths.state_dir("pypi");
     let staging = Staging::create(&cache_dir, "pypi-republish")?;
@@ -371,7 +371,7 @@ fn oci(
 ) -> Result<Outcome, PublishError> {
     let paths = OciPaths::from_environment(environment);
     let config = Config::load(&Paths::from_environment(environment).config_file())?;
-    let credentials = credentials::resolve(environment, &config.oci.bucket)?;
+    let credentials = credentials::resolve(environment, &config.cf_profile, &config.oci.bucket)?;
     let staging = Staging::create(&paths.cache_dir, "oci-republish")?;
     let snapshot_cache = paths.cache_dir.clone();
     let work = if options.dry_run {
