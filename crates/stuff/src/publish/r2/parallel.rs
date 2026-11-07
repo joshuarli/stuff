@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use crate::publish::PublishError;
 
-pub const REQUEST_CONCURRENCY: usize = 16;
+pub const REQUEST_CONCURRENCY: usize = 32;
 
 pub fn map_bounded<T, R, F>(items: &[T], limit: usize, work: F) -> Result<Vec<R>, PublishError>
 where
