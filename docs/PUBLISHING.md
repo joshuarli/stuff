@@ -254,6 +254,26 @@ cf deploy --prebuilt
 
 The Worker uses Workers Caching. The default entrypoint is an uncached gateway. The `Registry` entrypoint caches responses under a key that includes the host, so the four domains cannot share cache entries. Immutable artifacts carry a one-year TTL. Mutable generation views carry 60 seconds, so a promotion becomes visible within that window without a cache purge. The gateway costs one extra worker-to-worker request per request; a cache hit skips `Registry` but still runs the gateway. Two requests to the same URL should show `cf-cache-status: HIT` on the second. Range requests are sliced from the cached full object, so a cold range fetch downloads the whole artifact.
 
+## Edge protection
+
+The registry hosts serve package clients, not browsers, so they must never receive an
+interactive challenge. Keep these zone settings for `17166969.xyz`:
+
+- Bot Fight Mode and Browser Integrity Check off.
+- Security Level `medium`, with the Cloudflare managed WAF ruleset enabled.
+- The `/ingest/` rate limit at 20 requests per 10 seconds per source IP and colo; do not
+  rate-limit or challenge the read paths.
+- No Managed Challenge, JS Challenge, or Turnstile rule on `crates.`, `npm.`, `pypi.`,
+  `oci.`, or `stuff.`.
+
+A challenge breaks `cargo` with `403` and a `Just a moment...` body from
+`https://crates.17166969.xyz/current/crates-io/config.json`. Verify a fetch returns `200`:
+
+```sh
+curl -fsS -o /dev/null -w '%{http_code}\n' \
+  https://crates.17166969.xyz/current/crates-io/config.json
+```
+
 ## Verify the publication
 
 ```sh

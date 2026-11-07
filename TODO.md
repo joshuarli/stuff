@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 58
+Next: 59
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -18,4 +18,13 @@ Next: 58
 - **Problem:** In CI run 41935480336 (ubuntu-24.04, job `worker-runtime`), the final step of `deploy/test-oci-publish.sh`, `STUFF_STATE_HOME=$WORK/home-adopt deploy/publish oci --republish`, printed `adopting the live publication` and produced nothing for ten minutes before the job timed out. The earlier publish, republish, GC, tag-move and rollback steps of the same test against the same fixture finished in about two minutes together, so this is a stall, not slowness. The cause has not been located: the suspects are `r2-pull.py` listing or fetching the meta bucket through `cf --local`, the per-blob `cf r2 objects get` loop, or the republish that follows adoption. CI no longer runs the test (stuff `527abaf`); it needs workerd, which does not run on musl hosts.
 - **Recommendation:** Run `deploy/test-oci-publish.sh` on macOS with `sh -x` on `deploy/publish`, find the step that stops making progress, and fix it with a failing reproduction first.
 - **Fix with:** root-cause
+- **Effort:** S
+
+### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
+
+- **Area:** Deploy
+- **Where:** `repomod/musl-toolchain.toml:210`, `repomod/docker/musl/Dockerfile:7`
+- **Problem:** The lock and canonical builder now pin `llvm-musl-23.1.5-4c2254e`, but `[image].digest` still names the published image built with `23.1.0-rc2`. An image-mode builder would silently keep the old toolchain. Nothing uses image mode today, and the local token has no `write:packages`, so publication was deferred.
+- **Recommendation:** Build `docker/musl/Dockerfile` for `linux/amd64` and `linux/arm64`, run its smoke test, publish the manifest to `ghcr.io/joshuarli/musl-toolchain`, and replace `[image].digest` with the new multi-arch manifest digest.
+- **Fix with:** none
 - **Effort:** S
