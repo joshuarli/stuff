@@ -2,6 +2,7 @@
 
 pub mod client;
 pub mod credentials;
+pub mod pull;
 pub mod sigv4;
 pub mod xml;
 
