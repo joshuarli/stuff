@@ -2,6 +2,7 @@
 
 pub mod cargo;
 pub mod config;
+pub mod oci;
 pub mod paths;
 pub mod r2;
 pub mod snapshot;
@@ -233,10 +234,16 @@ impl std::fmt::Display for PublishError {
 impl std::error::Error for PublishError {}
 
 pub fn run(request: Request) -> Result<Outcome, PublishError> {
-    Err(PublishError::Unavailable {
-        command: request.command(),
-        registry: request.registry().as_str(),
-    })
+    match request {
+        Request::Publish {
+            request: PublishRequest::Oci(source),
+            options,
+        } => oci::publish(&source, &options),
+        request => Err(PublishError::Unavailable {
+            command: request.command(),
+            registry: request.registry().as_str(),
+        }),
+    }
 }
 
 const EXIT_CODES: &str = "\
