@@ -1162,7 +1162,9 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "deser-json",
+ "deser-toml",
  "deser-value",
+ "flate2",
  "h12tiny-client-sync",
  "hmac",
  "md-5",
@@ -1173,6 +1175,7 @@ dependencies = [
  "stuff-oci",
  "stuff-store",
  "stuff-url",
+ "tar",
  "tempfile",
 ]
 

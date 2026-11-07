@@ -18,8 +18,10 @@ path = "src/main.rs"
 
 [dependencies]
 deser-json = "0.10"
+deser-toml = "0.10"
 deser-value = "0.10"
 base64 = "0.22"
+flate2 = { version = "1.0", features = ["miniz_oxide"] }
 h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", features = ["tls"] }
 hmac = "0.12"
 md-5 = "0.10"
@@ -30,6 +32,7 @@ stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-oci = { version = "0.1.0", path = "../stuff-oci" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
 stuff-url = { version = "0.1.0", path = "../stuff-url" }
+tar = "0.4"
 
 [dev-dependencies]
 tempfile = "3.13"
