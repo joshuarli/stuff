@@ -3,6 +3,10 @@
 use std::fmt::Write as _;
 
 use crate::error::{Error, Result};
+use crate::publish::{
+    CargoPublish, NpmPublish, OciImage, OciSource, Options, PublishRequest, PypiSpec, Registry,
+    Request,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegistryFilter {
@@ -40,6 +44,9 @@ pub enum Command {
     Diff,
     Doctor,
     Render,
+    Publish,
+    Republish,
+    Rollback,
 }
 
 impl Command {
@@ -50,6 +57,9 @@ impl Command {
             Command::Diff => "diff",
             Command::Doctor => "doctor",
             Command::Render => "render",
+            Command::Publish => "publish",
+            Command::Republish => "republish",
+            Command::Rollback => "rollback",
         }
     }
 
@@ -86,6 +96,7 @@ impl Command {
                 output: true,
                 ..AllowedFlags::default()
             },
+            Command::Publish | Command::Republish | Command::Rollback => AllowedFlags::default(),
         }
     }
 }
@@ -120,6 +131,7 @@ pub struct Parsed {
     pub output: Option<String>,
     pub expected_generation: Option<String>,
     pub positionals: Vec<String>,
+    pub request: Option<Request>,
 }
 
 impl Parsed {
@@ -140,6 +152,15 @@ fn ensure_allowed(command: Command, flag: &str, present: bool, allowed: bool) ->
 }
 
 pub fn parse_args(argv: &[String]) -> Result<Parsed> {
+    match argv.first().map(String::as_str) {
+        Some("publish") => parse_publish(&argv[1..]),
+        Some("republish") => parse_republish(&argv[1..]),
+        Some("rollback") => parse_rollback(&argv[1..]),
+        _ => parse_read_only(argv),
+    }
+}
+
+fn parse_read_only(argv: &[String]) -> Result<Parsed> {
     let mut args = argv.iter().peekable();
     let command = match args.next().map(|s| s.as_str()) {
         Some("ls") => Command::Ls,
@@ -167,6 +188,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         output: None,
         expected_generation: None,
         positionals: Vec::new(),
+        request: None,
     };
     let mut seen_registry = false;
     while let Some(arg) = args.next() {
@@ -250,8 +272,312 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 return Err(usage_error("diff requires two catalog paths"));
             }
         }
+        Command::Publish | Command::Republish | Command::Rollback => {}
     }
     Ok(parsed)
+}
+
+fn request_parsed(command: Command, request: Request) -> Parsed {
+    Parsed {
+        command,
+        registry: None,
+        versions: false,
+        json: false,
+        sample_artifacts: false,
+        cargo_base: None,
+        npm_base: None,
+        pypi_base: None,
+        oci_base: None,
+        cargo_dir: None,
+        npm_dir: None,
+        pypi_dir: None,
+        oci_dir: None,
+        output: None,
+        expected_generation: None,
+        positionals: Vec::new(),
+        request: Some(request),
+    }
+}
+
+fn publish_registry(args: &[String], command: &str) -> Result<(Registry, usize)> {
+    match args.first().map(String::as_str) {
+        Some(name) => {
+            let registry = Registry::parse(name)
+                .ok_or_else(|| usage_error(format!("unsupported {command} registry '{name}'")))?;
+            Ok((registry, 1))
+        }
+        None => Err(usage_error(format!(
+            "{command} requires a registry: cargo, npm, pypi, or oci"
+        ))),
+    }
+}
+
+fn next_value<'a>(args: &'a [String], index: &mut usize, flag: &str) -> Result<&'a str> {
+    *index += 1;
+    args.get(*index)
+        .map(String::as_str)
+        .ok_or_else(|| usage_error(format!("{flag} requires a value")))
+}
+
+fn assign_once(slot: &mut Option<String>, flag: &str, value: &str) -> Result<()> {
+    if slot.is_some() {
+        return Err(usage_error(format!("{flag} may only be specified once")));
+    }
+    *slot = Some(value.to_string());
+    Ok(())
+}
+
+fn take_common_option(arg: &str, options: &mut Options) -> bool {
+    match arg {
+        "--dry-run" => options.dry_run = true,
+        "--json" => options.json = true,
+        "--verbose" => options.verbose = true,
+        _ => return false,
+    }
+    true
+}
+
+fn parse_publish(args: &[String]) -> Result<Parsed> {
+    let (registry, mut index) = publish_registry(args, "publish")?;
+    let (request, options) = match registry {
+        Registry::Cargo => {
+            let (cargo, options) = parse_cargo_publish(args, &mut index)?;
+            (PublishRequest::Cargo(cargo), options)
+        }
+        Registry::Npm => {
+            let (npm, options) = parse_npm_publish(args, &mut index)?;
+            (PublishRequest::Npm(npm), options)
+        }
+        Registry::Pypi => {
+            let (pypi, options) = parse_pypi_publish(args, &mut index)?;
+            (PublishRequest::Pypi(pypi), options)
+        }
+        Registry::Oci => {
+            let (oci, options) = parse_oci_publish(args, &mut index)?;
+            (PublishRequest::Oci(oci), options)
+        }
+    };
+    Ok(request_parsed(Command::Publish, Request::Publish { request, options }))
+}
+
+fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPublish, Options)> {
+    let mut cargo = CargoPublish { packages: Vec::new(), manifest_path: None, registry: None };
+    let mut options = Options::default();
+    while *index < args.len() {
+        let arg = args[*index].as_str();
+        if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        match arg {
+            "-p" => {
+                let value = next_value(args, index, "-p")?;
+                if value.is_empty() {
+                    return Err(usage_error("-p requires a package name"));
+                }
+                cargo.packages.push(value.to_string());
+            }
+            "--manifest-path" => {
+                let value = next_value(args, index, "--manifest-path")?;
+                assign_once(&mut cargo.manifest_path, "--manifest-path", value)?;
+            }
+            "--registry" => {
+                let value = next_value(args, index, "--registry")?;
+                assign_once(&mut cargo.registry, "--registry", value)?;
+            }
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                return Err(usage_error(format!(
+                    "publish cargo does not take positional argument '{other}'"
+                )));
+            }
+        }
+        *index += 1;
+    }
+    if cargo.packages.is_empty() {
+        return Err(usage_error("publish cargo requires at least one -p NAME"));
+    }
+    Ok((cargo, options))
+}
+
+fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(NpmPublish, Options)> {
+    let mut lockfile = None;
+    let mut project = None;
+    let mut options = Options::default();
+    while *index < args.len() {
+        let arg = args[*index].as_str();
+        if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        match arg {
+            "--lockfile" => {
+                let value = next_value(args, index, "--lockfile")?;
+                assign_once(&mut lockfile, "--lockfile", value)?;
+            }
+            "--project" => {
+                let value = next_value(args, index, "--project")?;
+                assign_once(&mut project, "--project", value)?;
+            }
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                return Err(usage_error(format!(
+                    "publish npm does not take positional argument '{other}'"
+                )));
+            }
+        }
+        *index += 1;
+    }
+    let lockfile = lockfile.ok_or_else(|| usage_error("publish npm requires --lockfile PATH"))?;
+    let project = project.ok_or_else(|| usage_error("publish npm requires --project ID"))?;
+    Ok((NpmPublish { lockfile, project }, options))
+}
+
+fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(Vec<PypiSpec>, Options)> {
+    let mut specs = Vec::new();
+    let mut options = Options::default();
+    while *index < args.len() {
+        let arg = args[*index].as_str();
+        if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        if arg.starts_with('-') {
+            return Err(usage_error(format!("unknown option: {arg}")));
+        }
+        let spec = PypiSpec::parse(arg)
+            .ok_or_else(|| usage_error(format!("invalid SPEC '{arg}': expected name==version")))?;
+        specs.push(spec);
+        *index += 1;
+    }
+    if specs.is_empty() {
+        return Err(usage_error("publish pypi requires at least one name==version"));
+    }
+    Ok((specs, options))
+}
+
+fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, Options)> {
+    let mut images = Vec::new();
+    let mut layout = None;
+    let mut repository = None;
+    let mut tag = None;
+    let mut options = Options::default();
+    while *index < args.len() {
+        let arg = args[*index].as_str();
+        if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        match arg {
+            "--image" => {
+                let value = next_value(args, index, "--image")?;
+                let image = OciImage::parse(value).ok_or_else(|| {
+                    usage_error(format!("invalid image '{value}': expected REPO=REF"))
+                })?;
+                images.push(image);
+            }
+            "--layout" => {
+                let value = next_value(args, index, "--layout")?;
+                assign_once(&mut layout, "--layout", value)?;
+            }
+            "--repository" => {
+                let value = next_value(args, index, "--repository")?;
+                assign_once(&mut repository, "--repository", value)?;
+            }
+            "--tag" => {
+                let value = next_value(args, index, "--tag")?;
+                assign_once(&mut tag, "--tag", value)?;
+            }
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                return Err(usage_error(format!(
+                    "publish oci does not take positional argument '{other}'"
+                )));
+            }
+        }
+        *index += 1;
+    }
+    if images.is_empty() {
+        let dir = layout.ok_or_else(|| {
+            usage_error("publish oci requires --image REPO=REF or --layout DIR")
+        })?;
+        let repository = repository
+            .ok_or_else(|| usage_error("publish oci --layout requires --repository NAME"))?;
+        Ok((OciSource::Layout { dir, repository, tag }, options))
+    } else {
+        if layout.is_some() || repository.is_some() || tag.is_some() {
+            return Err(usage_error(
+                "publish oci accepts either --image or --layout, not both",
+            ));
+        }
+        Ok((OciSource::Images(images), options))
+    }
+}
+
+fn parse_republish(args: &[String]) -> Result<Parsed> {
+    let (registry, mut index) = publish_registry(args, "republish")?;
+    let mut allow_drops = false;
+    let mut options = Options::default();
+    while index < args.len() {
+        let arg = args[index].as_str();
+        if take_common_option(arg, &mut options) {
+            index += 1;
+            continue;
+        }
+        match arg {
+            "--allow-drops" => allow_drops = true,
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                return Err(usage_error(format!(
+                    "republish does not take positional argument '{other}'"
+                )));
+            }
+        }
+        index += 1;
+    }
+    Ok(request_parsed(
+        Command::Republish,
+        Request::Republish { registry, allow_drops, options },
+    ))
+}
+
+fn parse_rollback(args: &[String]) -> Result<Parsed> {
+    let (registry, mut index) = publish_registry(args, "rollback")?;
+    let mut generation = None;
+    let mut options = Options::default();
+    while index < args.len() {
+        let arg = args[index].as_str();
+        if take_common_option(arg, &mut options) {
+            index += 1;
+            continue;
+        }
+        match arg {
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                if generation.is_some() {
+                    return Err(usage_error("rollback takes exactly one generation"));
+                }
+                generation = Some(other.to_string());
+            }
+        }
+        index += 1;
+    }
+    let generation =
+        generation.ok_or_else(|| usage_error("rollback requires a generation"))?;
+    Ok(request_parsed(
+        Command::Rollback,
+        Request::Rollback { registry, generation, options },
+    ))
 }
 
 pub fn help_text() -> String {
@@ -525,6 +851,171 @@ mod tests {
             checked += 1;
         }
         assert_eq!(checked, COMMANDS.len());
+    }
+
+    fn publish_request(argv: &[&str]) -> (PublishRequest, Options) {
+        match parse_args(&args(argv)).unwrap().request.unwrap() {
+            Request::Publish { request, options } => (request, options),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn usage_rejected(argv: &[&str]) {
+        let error = parse_args(&args(argv)).unwrap_err();
+        assert!(matches!(error, Error::Usage(_)), "{argv:?}: {error}");
+        assert_eq!(error.exit_code(), 2, "{argv:?}");
+    }
+
+    #[test]
+    fn parses_publish_cargo_grammar() {
+        let (request, options) = publish_request(&[
+            "publish",
+            "cargo",
+            "-p",
+            "alpha",
+            "-p",
+            "beta",
+            "--manifest-path",
+            "Cargo.toml",
+            "--registry",
+            "local",
+            "--dry-run",
+            "--json",
+            "--verbose",
+        ]);
+        let PublishRequest::Cargo(cargo) = request else { panic!("{request:?}") };
+        assert_eq!(cargo.packages, vec!["alpha", "beta"]);
+        assert_eq!(cargo.manifest_path.as_deref(), Some("Cargo.toml"));
+        assert_eq!(cargo.registry.as_deref(), Some("local"));
+        assert!(options.dry_run && options.json && options.verbose);
+    }
+
+    #[test]
+    fn parses_publish_npm_grammar() {
+        let (request, options) =
+            publish_request(&["publish", "npm", "--lockfile", "pnpm-lock.yaml", "--project", "site", "--json"]);
+        let PublishRequest::Npm(npm) = request else { panic!("{request:?}") };
+        assert_eq!(npm.lockfile, "pnpm-lock.yaml");
+        assert_eq!(npm.project, "site");
+        assert!(options.json && !options.dry_run);
+    }
+
+    #[test]
+    fn parses_publish_pypi_grammar() {
+        let (request, options) =
+            publish_request(&["publish", "pypi", "alpha==1.0.0", "beta==2.0.0", "--dry-run"]);
+        let PublishRequest::Pypi(specs) = request else { panic!("{request:?}") };
+        assert_eq!(specs.len(), 2);
+        assert_eq!(specs[0].name, "alpha");
+        assert_eq!(specs[0].version, "1.0.0");
+        assert_eq!(specs[1].name, "beta");
+        assert!(options.dry_run);
+    }
+
+    #[test]
+    fn parses_both_publish_oci_forms() {
+        let (request, _) =
+            publish_request(&["publish", "oci", "--image", "repo/a=1.0", "--image", "repo/b=2.0"]);
+        let PublishRequest::Oci(OciSource::Images(images)) = request else { panic!("{request:?}") };
+        assert_eq!(images.len(), 2);
+        assert_eq!(images[0].repository, "repo/a");
+        assert_eq!(images[0].reference, "1.0");
+
+        let (request, options) = publish_request(&[
+            "publish",
+            "oci",
+            "--layout",
+            "dir",
+            "--repository",
+            "repo/name",
+            "--tag",
+            "latest",
+            "--dry-run",
+        ]);
+        let PublishRequest::Oci(OciSource::Layout { dir, repository, tag }) = request else {
+            panic!("{request:?}")
+        };
+        assert_eq!(dir, "dir");
+        assert_eq!(repository, "repo/name");
+        assert_eq!(tag.as_deref(), Some("latest"));
+        assert!(options.dry_run);
+    }
+
+    #[test]
+    fn publish_rejects_bad_grammar_with_exit_two() {
+        for argv in [
+            vec!["publish"],
+            vec!["publish", "bogus"],
+            vec!["publish", "cargo"],
+            vec!["publish", "cargo", "-p"],
+            vec!["publish", "cargo", "-p", "x", "--allow-drops"],
+            vec!["publish", "cargo", "-p", "x", "extra"],
+            vec!["publish", "npm"],
+            vec!["publish", "npm", "--lockfile", "l"],
+            vec!["publish", "npm", "--project", "p"],
+            vec!["publish", "npm", "--lockfile", "l", "--project", "p", "--tag", "t"],
+            vec!["publish", "pypi"],
+            vec!["publish", "pypi", "not-a-spec"],
+            vec!["publish", "pypi", "name=="],
+            vec!["publish", "pypi", "==1.0"],
+            vec!["publish", "oci"],
+            vec!["publish", "oci", "--layout", "dir"],
+            vec!["publish", "oci", "--repository", "repo"],
+            vec!["publish", "oci", "--tag", "latest"],
+            vec!["publish", "oci", "--image", "bad"],
+            vec!["publish", "oci", "--image", "repo="],
+            vec!["publish", "oci", "--image", "=ref"],
+            vec!["publish", "oci", "--image", "repo=ref", "--layout", "dir"],
+            vec!["publish", "oci", "--image", "repo=ref", "--repository", "repo"],
+            vec!["publish", "oci", "--image", "repo=ref", "--tag", "latest"],
+            vec!["publish", "oci", "--layout", "dir", "--repository", "repo", "extra"],
+        ] {
+            usage_rejected(&argv);
+        }
+    }
+
+    #[test]
+    fn parses_republish_and_rollback_grammar() {
+        match parse_args(&args(&["republish", "cargo", "--allow-drops", "--dry-run", "--json"]))
+            .unwrap()
+            .request
+            .unwrap()
+        {
+            Request::Republish { registry, allow_drops, options } => {
+                assert_eq!(registry, Registry::Cargo);
+                assert!(allow_drops && options.dry_run && options.json && !options.verbose);
+            }
+            other => panic!("{other:?}"),
+        }
+        match parse_args(&args(&["rollback", "oci", "gen-42", "--json", "--verbose"]))
+            .unwrap()
+            .request
+            .unwrap()
+        {
+            Request::Rollback { registry, generation, options } => {
+                assert_eq!(registry, Registry::Oci);
+                assert_eq!(generation, "gen-42");
+                assert!(options.json && options.verbose && !options.dry_run);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn republish_and_rollback_reject_bad_grammar_with_exit_two() {
+        for argv in [
+            vec!["republish"],
+            vec!["republish", "bogus"],
+            vec!["republish", "cargo", "extra"],
+            vec!["republish", "cargo", "--image", "repo=ref"],
+            vec!["rollback"],
+            vec!["rollback", "bogus", "gen"],
+            vec!["rollback", "cargo"],
+            vec!["rollback", "cargo", "gen-1", "gen-2"],
+            vec!["rollback", "cargo", "gen", "--allow-drops"],
+        ] {
+            usage_rejected(&argv);
+        }
     }
 
     fn check_advertised(command: &str, advertised: &[String]) {

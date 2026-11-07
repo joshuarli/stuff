@@ -1043,6 +1043,7 @@ mod tests {
             output: None,
             expected_generation: None,
             positionals: Vec::new(),
+            request: None,
         }
     }
 

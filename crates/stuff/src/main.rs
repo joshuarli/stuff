@@ -7,14 +7,19 @@ use stuff::error::{Error, Result};
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if argv.iter().any(|a| a == "-h" || a == "--help") {
-        print_help();
+        match argv.first().and_then(|command| stuff::publish::help_text(command)) {
+            Some(help) => print!("{help}"),
+            None => print_help(),
+        }
         return;
     }
     let parsed = match parse_args(&argv) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("stuff: {e}");
-            eprintln!("usage: stuff <ls|search|diff|doctor|render> [options]");
+            if !is_publishing(&argv) {
+                eprintln!("usage: stuff <ls|search|diff|doctor|render> [options]");
+            }
             std::process::exit(e.exit_code());
         }
     };
@@ -28,6 +33,13 @@ fn main() {
     std::process::exit(code);
 }
 
+fn is_publishing(argv: &[String]) -> bool {
+    matches!(
+        argv.first().map(String::as_str),
+        Some("publish" | "republish" | "rollback")
+    )
+}
+
 fn run(parsed: &stuff::cli::Parsed) -> Result<i32> {
     match parsed.command {
         Command::Ls => run_ls(parsed).map(|()| 0),
@@ -35,6 +47,21 @@ fn run(parsed: &stuff::cli::Parsed) -> Result<i32> {
         Command::Diff => run_diff(parsed).map(|()| 0),
         Command::Doctor => Ok(if run_doctor(parsed)? { 0 } else { 1 }),
         Command::Render => run_render(parsed).map(|()| 0),
+        Command::Publish | Command::Republish | Command::Rollback => run_publish(parsed),
+    }
+}
+
+fn run_publish(parsed: &stuff::cli::Parsed) -> Result<i32> {
+    let request = parsed
+        .request
+        .clone()
+        .ok_or_else(|| Error::usage("missing publishing request"))?;
+    match stuff::publish::run(request) {
+        Ok(_outcome) => Ok(0),
+        Err(error) => {
+            eprintln!("stuff: {error}");
+            Ok(error.exit_code())
+        }
     }
 }
 
