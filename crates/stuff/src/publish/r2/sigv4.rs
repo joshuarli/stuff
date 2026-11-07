@@ -241,7 +241,7 @@ pub fn format_amz_date(epoch_seconds: u64) -> (String, String) {
     (datestamp, amz_date)
 }
 
-fn civil_from_days(days: i64) -> (i64, u32, u32) {
+pub(crate) fn civil_from_days(days: i64) -> (i64, u32, u32) {
     let shifted = days + 719_468;
     let era = if shifted >= 0 { shifted } else { shifted - 146_096 } / 146_097;
     let day_of_era = shifted - era * 146_097;

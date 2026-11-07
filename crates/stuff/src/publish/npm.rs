@@ -12,6 +12,7 @@ use crate::publish::config::Config;
 use crate::publish::inventory::{library_error, prepare, PrepareOptions};
 use crate::publish::paths::Paths;
 use crate::publish::r2::credentials;
+use crate::publish::snapshot::{SharedStore, Snapshot};
 use crate::publish::staging::Staging;
 use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, NpmPublish, Options, Outcome, PublishError, Registry};
@@ -121,6 +122,45 @@ pub fn publish_with_exchange(
     environment: &Environment,
     exchange: &dyn Exchange,
 ) -> Result<Outcome, PublishError> {
+    let lockfile = resolve_lockfile(&request.lockfile)?;
+    run_publication(options, environment, |snapshot, publication| {
+        prepare(
+            snapshot,
+            &PrepareOptions {
+                bucket: publication.bucket,
+                store: &publication.store,
+                site_dir: &publication.site_dir,
+                state_dir: &publication.state_dir,
+                lockfile: &lockfile,
+                project_id: &request.project,
+                library: &publication.library,
+                exchange,
+            },
+        )?;
+        publish_site(&PublishOptions {
+            state_directory: &publication.state_dir,
+            site_directory: &publication.site_dir,
+            config: &publication.library,
+            render_base_url: None,
+        })
+        .map_err(library_error)?;
+        package_ids(&publication.state_dir, &request.project)
+    })
+}
+
+pub struct Publication<'a> {
+    pub bucket: &'a str,
+    pub store: SharedStore,
+    pub site_dir: PathBuf,
+    pub state_dir: PathBuf,
+    pub library: LibraryConfig,
+}
+
+pub fn run_publication(
+    options: Options,
+    environment: &Environment,
+    mut stage: impl FnMut(&Snapshot, &Publication<'_>) -> Result<Vec<String>, PublishError>,
+) -> Result<Outcome, PublishError> {
     let paths = Paths::from_environment(environment);
     let config = Config::load(&paths.config_file())?;
     let bucket = config.npm.bucket.clone();
@@ -149,7 +189,6 @@ pub fn publish_with_exchange(
         ),
     };
     let mirror = site_dir.join("mirror");
-    let lockfile = resolve_lockfile(&request.lockfile)?;
 
     let pending = Transaction::begin(
         credentials,
@@ -171,33 +210,21 @@ pub fn publish_with_exchange(
         .first()
         .cloned()
         .ok_or_else(|| PublishError::Config("npm has no shared tarball store".to_string()))?;
+    let publication = Publication {
+        bucket: &bucket,
+        store,
+        site_dir,
+        state_dir: work_state,
+        library,
+    };
+    let mut packages = Vec::new();
     let report = pending.publish(|pending| {
-        prepare(
-            pending.snapshot(),
-            &PrepareOptions {
-                bucket: &bucket,
-                store: &store,
-                site_dir: &site_dir,
-                state_dir: &work_state,
-                lockfile: &lockfile,
-                project_id: &request.project,
-                library: &library,
-                exchange,
-            },
-        )?;
-
-        publish_site(&PublishOptions {
-            state_directory: &work_state,
-            site_directory: &site_dir,
-            config: &library,
-            render_base_url: None,
-        })
-        .map_err(library_error)?;
+        packages = stage(pending.snapshot(), &publication)?;
         prune_stale_generations(&mirror)?;
         Ok(Staged::new(mirror.clone()))
     })?;
     let mut outcome = report.outcome();
-    outcome.packages = package_ids(&work_state, &request.project)?;
+    outcome.packages = packages;
     Ok(outcome)
 }
 

@@ -26,6 +26,14 @@ fn has_control_character(path: &str) -> bool {
 }
 
 pub fn inspect_package_archive(archive_path: &str, expected_name: &str, expected_version: &str) -> Result<InspectedPackageArchive> {
+    inspect_archive(archive_path, Some((expected_name, expected_version)))
+}
+
+pub fn inspect_unidentified_package_archive(archive_path: &str) -> Result<InspectedPackageArchive> {
+    inspect_archive(archive_path, None)
+}
+
+fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result<InspectedPackageArchive> {
     let meta = fs::symlink_metadata(archive_path)
         .map_err(|_| Error::Input(format!("could not inspect package archive {archive_path}")))?;
     if !meta.is_file() {
@@ -37,7 +45,7 @@ pub fn inspect_package_archive(archive_path: &str, expected_name: &str, expected
             crate::limits::format_bytes(crate::limits::TARBALL_BYTES)
         )));
     }
-    let expected_directory = expected_name.rsplit('/').next().unwrap_or("");
+    let expected_directory = expected.map_or("package", |(name, _)| name.rsplit('/').next().unwrap_or(""));
 
     let file = fs::File::open(archive_path)
         .map_err(|_| Error::Input(format!("could not inspect package archive {archive_path}")))?;
@@ -155,7 +163,9 @@ pub fn inspect_package_archive(archive_path: &str, expected_name: &str, expected
     let mmap = manifest.as_map().ok_or_else(|| Error::Input("package archive package.json must contain an object".to_string()))?;
     let name = mmap.get("name").and_then(|v| v.as_str()).unwrap_or("");
     let version = mmap.get("version").and_then(|v| v.as_str()).unwrap_or("");
-    if name != expected_name || version != expected_version {
+    if let Some((expected_name, expected_version)) = expected
+        && (name != expected_name || version != expected_version)
+    {
         return Err(Error::Input(format!(
             "package archive identity mismatch: expected {expected_name}@{expected_version}, found {name}@{version}"
         )));

@@ -1428,6 +1428,7 @@ fn artifact_value(result: &PackageResult) -> Result<deser_value::Value> {
             shasum: result.artifact_shasum.clone(),
             source_url: result.artifact_source_url.clone(),
             legacy_sha1_only: result.artifact_legacy_sha1_only,
+            first_party: false,
         },
     };
     validate_artifact_record(&crate::inventory::artifact_to_value(&artifact)?)?;

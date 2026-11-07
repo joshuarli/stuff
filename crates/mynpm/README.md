@@ -50,6 +50,17 @@ version 3 inventory. Publication renderer 6 adds `metadataOnly` to
 at another origin publishes its own registry instructions. Generations of
 renderer 1 to 6 stay valid.
 
+## First-party packages
+
+`stuff publish npm --tarball PATH` hosts a package that exists nowhere upstream
+(see [docs/PUBLISHING.md](../../docs/PUBLISHING.md)). It is an ordinary artifact
+record whose `artifact` object carries the extra key `"firstParty": true`; the key
+is absent from every other record, so existing manifests, inventories and
+generation ids are unchanged. A first-party record's `sourceUrl` is its own
+`dist.tarball` on the publishing registry instead of a `registry.npmjs.org` URL.
+The live generation manifest is the only place the records persist. Older binaries
+reject a manifest that contains one.
+
 ## Adopting a pulled publication
 
 `mynpm publish` extends the `mirror/current` generation of its site directory, so a

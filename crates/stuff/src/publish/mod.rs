@@ -5,6 +5,7 @@ pub mod config;
 pub mod environment;
 pub mod inventory;
 pub mod npm;
+pub mod npm_first_party;
 pub mod oci;
 pub mod output;
 pub mod paths;
@@ -116,6 +117,7 @@ pub enum OciSource {
 pub enum PublishRequest {
     Cargo(CargoPublish),
     Npm(NpmPublish),
+    NpmTarballs(Vec<String>),
     Pypi(Vec<PypiSpec>),
     Oci(OciSource),
 }
@@ -124,7 +126,7 @@ impl PublishRequest {
     pub fn registry(&self) -> Registry {
         match self {
             PublishRequest::Cargo(_) => Registry::Cargo,
-            PublishRequest::Npm(_) => Registry::Npm,
+            PublishRequest::Npm(_) | PublishRequest::NpmTarballs(_) => Registry::Npm,
             PublishRequest::Pypi(_) => Registry::Pypi,
             PublishRequest::Oci(_) => Registry::Oci,
         }
@@ -279,6 +281,10 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             options,
         } => npm::publish(&request, options, environment),
         Request::Publish {
+            request: PublishRequest::NpmTarballs(tarballs),
+            options,
+        } => npm_first_party::publish(&tarballs, options, environment),
+        Request::Publish {
             request: PublishRequest::Oci(source),
             options,
         } => oci::publish(&source, &options, environment),
@@ -315,7 +321,9 @@ pub fn help_text(command: &str) -> Option<String> {
             "Usage:\n",
             "  stuff publish cargo -p NAME [-p NAME...] [--manifest-path PATH]\n",
             "    [--registry NAME] [--dry-run] [--json] [--verbose]\n",
-            "  stuff publish npm --lockfile PATH --project ID [--dry-run] [--json] [--verbose]\n",
+            "  stuff publish npm (--lockfile PATH --project ID | --tarball PATH [--tarball PATH...])\n",
+            "    [--dry-run] [--json] [--verbose]\n",
+            "    --tarball publishes first-party packages packed by npm pack or pnpm pack\n",
             "  stuff publish pypi SPEC [SPEC...] [--dry-run] [--json] [--verbose]\n",
             "    SPEC is name==version\n",
             "  stuff publish oci (--image REPO=REF [--image REPO=REF...] |\n",

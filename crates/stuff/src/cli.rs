@@ -360,8 +360,7 @@ fn parse_publish(args: &[String]) -> Result<Parsed> {
             (PublishRequest::Cargo(cargo), options)
         }
         Registry::Npm => {
-            let (npm, options) = parse_npm_publish(args, &mut index)?;
-            (PublishRequest::Npm(npm), options)
+            parse_npm_publish(args, &mut index)?
         }
         Registry::Pypi => {
             let (pypi, options) = parse_pypi_publish(args, &mut index)?;
@@ -423,8 +422,9 @@ fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPubli
     Ok((cargo, options))
 }
 
-fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(NpmPublish, Options)> {
+fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(PublishRequest, Options)> {
     let mut lockfile = None;
+    let mut tarballs = Vec::new();
     let mut project = None;
     let mut options = Options::default();
     while *index < args.len() {
@@ -442,6 +442,10 @@ fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(NpmPublish, 
                 let value = next_value(args, index, "--project")?;
                 assign_once(&mut project, "--project", value)?;
             }
+            "--tarball" => {
+                let value = next_value(args, index, "--tarball")?;
+                tarballs.push(value.to_string());
+            }
             other if other.starts_with('-') => {
                 return Err(usage_error(format!("unknown option: {other}")));
             }
@@ -453,9 +457,18 @@ fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(NpmPublish, 
         }
         *index += 1;
     }
-    let lockfile = lockfile.ok_or_else(|| usage_error("publish npm requires --lockfile PATH"))?;
+    if !tarballs.is_empty() {
+        if lockfile.is_some() || project.is_some() {
+            return Err(usage_error(
+                "publish npm takes either --tarball PATH or --lockfile PATH --project ID, not both",
+            ));
+        }
+        return Ok((PublishRequest::NpmTarballs(tarballs), options));
+    }
+    let lockfile = lockfile
+        .ok_or_else(|| usage_error("publish npm requires --lockfile PATH or --tarball PATH"))?;
     let project = project.ok_or_else(|| usage_error("publish npm requires --project ID"))?;
-    Ok((NpmPublish { lockfile, project }, options))
+    Ok((PublishRequest::Npm(NpmPublish { lockfile, project }), options))
 }
 
 fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(Vec<PypiSpec>, Options)> {
@@ -925,6 +938,15 @@ mod tests {
     }
 
     #[test]
+    fn parses_publish_npm_tarballs() {
+        let (request, options) =
+            publish_request(&["publish", "npm", "--tarball", "a.tgz", "--tarball", "b.tgz", "--dry-run"]);
+        let PublishRequest::NpmTarballs(tarballs) = request else { panic!("{request:?}") };
+        assert_eq!(tarballs, vec!["a.tgz", "b.tgz"]);
+        assert!(options.dry_run);
+    }
+
+    #[test]
     fn parses_publish_pypi_grammar() {
         let (request, options) =
             publish_request(&["publish", "pypi", "alpha==1.0.0", "beta==2.0.0", "--dry-run"]);
@@ -978,6 +1000,9 @@ mod tests {
             vec!["publish", "npm", "--lockfile", "l"],
             vec!["publish", "npm", "--project", "p"],
             vec!["publish", "npm", "--lockfile", "l", "--project", "p", "--tag", "t"],
+            vec!["publish", "npm", "--tarball"],
+            vec!["publish", "npm", "--tarball", "a.tgz", "--lockfile", "l"],
+            vec!["publish", "npm", "--tarball", "a.tgz", "--project", "p"],
             vec!["publish", "pypi"],
             vec!["publish", "pypi", "not-a-spec"],
             vec!["publish", "pypi", "name=="],

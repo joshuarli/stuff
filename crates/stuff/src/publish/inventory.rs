@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
 
 use std::collections::BTreeSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use deser_value::Value;
 use mynpm::acquire::{fetch_inventory, Exchange};
+use mynpm::first_party::{first_party_artifact, FirstPartyTimes};
 use mynpm::inventory::{
     artifact_to_value, merge_project, normalize_metadata_only_record, record_metadata_only,
     record_verified_artifacts, validate_artifact_record, ArtifactRecord, Category, Inventory,
@@ -301,6 +302,161 @@ fn materialize(
     Ok(())
 }
 
+fn refuse_first_party_name_clashes(
+    inventory: &Inventory,
+    project_id: &str,
+    manifest: &GenerationManifest,
+) -> Result<(), PublishError> {
+    for project in inventory.projects.iter().filter(|project| project.id == project_id) {
+        for package in &project.packages {
+            if package.source_kind != SourceKind::Registry {
+                continue;
+            }
+            let Some(version) = package.version.as_deref() else { continue };
+            let first_party_name = manifest
+                .artifacts
+                .iter()
+                .any(|artifact| artifact.artifact.first_party && artifact.name == package.name);
+            let first_party_identity = manifest.artifacts.iter().any(|artifact| {
+                artifact.artifact.first_party && artifact.name == package.name && artifact.version == version
+            });
+            if first_party_name && !first_party_identity {
+                return Err(PublishError::Conflict(format!(
+                    "{}@{version} is not a first-party version; {} is a first-party package name",
+                    package.name, package.name
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+pub struct FirstPartyOptions<'a> {
+    pub bucket: &'a str,
+    pub store: &'a SharedStore,
+    pub site_dir: &'a Path,
+    pub state_dir: &'a Path,
+    pub tarballs: &'a [PathBuf],
+    pub library: &'a mynpm::config::Config,
+    pub published_at: &'a str,
+}
+
+fn existing_creation_time(manifest: &GenerationManifest, name: &str) -> Option<String> {
+    manifest
+        .artifacts
+        .iter()
+        .filter(|artifact| artifact.artifact.first_party && artifact.name == name)
+        .filter_map(|artifact| {
+            artifact
+                .packument
+                .as_map()?
+                .get("time")?
+                .as_map()?
+                .get("created")?
+                .as_str()
+                .map(str::to_string)
+        })
+        .min()
+}
+
+fn plan_first_party<'a>(
+    manifest: &GenerationManifest,
+    options: &FirstPartyOptions<'a>,
+) -> Result<Vec<(&'a Path, ArtifactRecord)>, PublishError> {
+    let mut incoming: Vec<(&'a Path, ArtifactRecord)> = Vec::new();
+    for tarball in options.tarballs {
+        let now = FirstPartyTimes { created: options.published_at, published: options.published_at };
+        let mut record =
+            first_party_artifact(tarball, &options.library.public_base_url, &now).map_err(library_error)?;
+        if let Some(created) = existing_creation_time(manifest, &record.name) {
+            let times = FirstPartyTimes { created: &created, published: options.published_at };
+            record = first_party_artifact(tarball, &options.library.public_base_url, &times)
+                .map_err(library_error)?;
+        }
+        let identity = format!("{}@{}", record.name, record.version);
+        if let Some(previous) = incoming
+            .iter()
+            .map(|(_, other)| other)
+            .find(|other| other.name == record.name && other.version == record.version)
+        {
+            if previous.artifact.sha512 != record.artifact.sha512 {
+                return Err(PublishError::Conflict(format!(
+                    "{identity} is given twice with different bytes"
+                )));
+            }
+            continue;
+        }
+        if manifest
+            .artifacts
+            .iter()
+            .any(|live| live.name == record.name && !live.artifact.first_party)
+            || manifest.metadata_only.iter().any(|live| live.name == record.name)
+        {
+            return Err(PublishError::Conflict(format!(
+                "{} is hosted by the upstream mirror; a first-party package cannot reuse its name",
+                record.name
+            )));
+        }
+        if let Some(live) = manifest
+            .artifacts
+            .iter()
+            .find(|live| live.name == record.name && live.version == record.version)
+        {
+            if live.artifact.sha512 != record.artifact.sha512 {
+                return Err(PublishError::Conflict(format!(
+                    "{identity} is already published with different bytes; versions are immutable"
+                )));
+            }
+            continue;
+        }
+        incoming.push((tarball.as_path(), record));
+    }
+    Ok(incoming)
+}
+
+pub fn prepare_first_party(
+    snapshot: &Snapshot,
+    options: &FirstPartyOptions<'_>,
+) -> Result<Vec<ArtifactRecord>, PublishError> {
+    let site_dir = options.site_dir;
+    if site_dir.symlink_metadata().is_ok() {
+        std::fs::remove_dir_all(site_dir).map_err(|error| {
+            PublishError::Config(format!("could not clear {}: {error}", site_dir.display()))
+        })?;
+    }
+    let mirror = site_dir.join("mirror");
+    std::fs::create_dir_all(&mirror).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", mirror.display()))
+    })?;
+    let generation = pull_live_generation(snapshot, options.bucket, &mirror)?;
+    let manifest = read_generation_manifest(&mirror, &generation)?;
+    let incoming = plan_first_party(&manifest, options)?;
+    let records: Vec<ArtifactRecord> = incoming.iter().map(|(_, record)| record.clone()).collect();
+
+    let objects = options.state_dir.join("objects").join("sha512");
+    std::fs::create_dir_all(&objects).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", objects.display()))
+    })?;
+    for (tarball, record) in &incoming {
+        let object = objects.join(format!("{}.tgz", record.artifact.sha512));
+        if !object.is_file() {
+            std::fs::copy(tarball, &object).map_err(|error| {
+                PublishError::Config(format!("could not write {}: {error}", object.display()))
+            })?;
+        }
+    }
+    materialize(
+        snapshot,
+        options.store,
+        &mirror,
+        options.state_dir,
+        &generation,
+        &manifest.artifacts,
+        &records,
+    )?;
+    Ok(records)
+}
+
 pub struct PrepareOptions<'a> {
     pub bucket: &'a str,
     pub store: &'a SharedStore,
@@ -330,6 +486,7 @@ pub fn prepare(snapshot: &Snapshot, options: &PrepareOptions<'_>) -> Result<(), 
     inventory = import_lockfile(inventory, options.lockfile, options.project_id, options.library)?;
 
     let manifest = read_generation_manifest(&mirror, &generation)?;
+    refuse_first_party_name_clashes(&inventory, options.project_id, &manifest)?;
     let values: Vec<Value> = manifest
         .artifacts
         .iter()

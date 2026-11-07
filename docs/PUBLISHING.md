@@ -30,6 +30,8 @@ stuff publish cargo -p crate-a -p crate-b
 
 stuff publish npm --lockfile pnpm-lock.yaml --project my-project
 
+stuff publish npm --tarball joshuarli-ui-0.1.0.tgz
+
 stuff publish pypi six==1.16.0
 ```
 
@@ -40,6 +42,32 @@ A publish holds the registry's lock, a `flock` on `$STUFF_STATE_HOME/<registry>/
 For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build and validation (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; publish through `stuff publish`.
+
+## Publish a first-party npm package
+
+`stuff publish npm --tarball PATH.tgz` hosts a package that exists nowhere upstream beside the mirror. Pack it first with `npm pack` or `pnpm pack` (`--tarball` may repeat), and run the pack's `prepack` build yourself; `stuff` reads the tarball and never runs package scripts. `--tarball` and `--lockfile`/`--project` are separate modes and do not combine.
+
+```sh
+(cd packages/ui && npm pack --pack-destination /tmp/packs)
+stuff publish npm --tarball /tmp/packs/joshuarli-ui-0.1.0.tgz --dry-run
+stuff publish npm --tarball /tmp/packs/joshuarli-ui-0.1.0.tgz
+```
+
+The publish extends the live generation exactly as a lockfile publish does, so every mirrored package and version stays. The tarball is stored in the shared tarball store and served at `current/-/tarballs/<sha512>.tgz`; the packument carries `dist.integrity` (sha512), `dist.shasum`, `dist-tags.latest` (the newest publish), `time`, and these `package.json` fields: `description`, `license`, `type`, `main`, `module`, `types`, `exports`, `sideEffects`, `bin`, `engines`, `os`, `cpu`, `libc`, and the dependency maps (`dependencies`, `optionalDependencies`, `peerDependencies`, `peerDependenciesMeta`, `bundleDependencies`).
+
+Rules, all exit 3 on violation:
+
+- A published `name@version` is immutable. The same bytes report `unchanged`; different bytes conflict.
+- A first-party name cannot reuse a name the mirror hosts (any mirrored version or metadata-only stub).
+- A later lockfile publish cannot mirror another version of a first-party name from upstream.
+
+First-party records live in the generation manifest as artifacts marked `"firstParty": true`, with no local state of their own, so later mirror publishes and `stuff republish npm` carry them forward and a machine with no state sees them. Consumers install by version:
+
+```ini
+@joshuarli:registry=https://npm.17166969.xyz/current/
+```
+
+A lockfile that names a first-party `name@version` resolves from the generation, not from npmjs.
 
 ## Publish the OCI registry
 

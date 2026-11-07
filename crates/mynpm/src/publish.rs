@@ -1003,6 +1003,24 @@ pub fn publish_site(options: &PublishOptions) -> Result<PublishSummary> {
     )
 }
 
+pub fn publish_first_party(options: &PublishOptions, incoming: &[ArtifactRecord]) -> Result<PublishSummary> {
+    let mirror = open_mirror(options.site_directory)?;
+    let (_, retained, retained_metadata_only) = read_current(&mirror.root, &mirror.generations)?;
+    let artifacts = merge_publish_targets(&retained, incoming)?;
+    let metadata_only = merge_metadata_only(&retained_metadata_only, &[], &artifacts)?;
+    let public_base_url = options
+        .render_base_url
+        .clone()
+        .unwrap_or_else(|| options.config.public_base_url.clone());
+    activate(
+        &mirror,
+        &artifacts,
+        &metadata_only,
+        &public_base_url,
+        Some(options.state_directory),
+    )
+}
+
 pub fn adopt_site(site_directory: &Path) -> Result<PublishSummary> {
     let mirror = open_mirror(site_directory)?;
     let id = mirror

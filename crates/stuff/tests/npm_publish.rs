@@ -79,11 +79,17 @@ fn artifact(name: &str, version: &str, tarball: &[u8]) -> ArtifactRecord {
 }
 
 fn tarball(name: &str, version: &str) -> Vec<u8> {
-    let manifest = format!("{{\"name\":\"{name}\",\"version\":\"{version}\"}}");
+    tarball_with(name, version, b"module.exports=1;")
+}
+
+fn tarball_with(name: &str, version: &str, index: &[u8]) -> Vec<u8> {
+    let manifest = format!(
+        "{{\"name\":\"{name}\",\"version\":\"{version}\",\"description\":\"first party\",\"type\":\"module\",\"peerDependencies\":{{\"solid-js\":\">=2.0.0\"}},\"scripts\":{{\"build\":\"never copied\"}}}}"
+    );
     let mut data = Vec::new();
     for (path, contents) in [
         ("package/package.json", manifest.as_bytes()),
-        ("package/index.js", b"module.exports=1;".as_slice()),
+        ("package/index.js", index),
     ] {
         let mut header = vec![0u8; 512];
         header[..path.len()].copy_from_slice(path.as_bytes());
@@ -592,4 +598,225 @@ fn an_npm_dry_run_leaves_local_state_and_remote_unchanged() {
     assert_eq!(fake.put_conditions().len(), conditions_before);
     assert_eq!(mutation_count(&fake, requests_before), 0, "the dry run mutated the remote");
     assert!(!marker.exists(), "an mynpm child process was spawned");
+}
+
+const FIRST_PARTY: &str = "@scope/ui";
+
+fn pack(work: &Path, label: &str, name: &str, version: &str, index: &[u8]) -> (String, Vec<u8>) {
+    let bytes = tarball_with(name, version, index);
+    let path = work.join(format!("{label}.tgz"));
+    fs::write(&path, &bytes).unwrap();
+    (path.to_string_lossy().into_owned(), bytes)
+}
+
+fn tarball_request(paths: &[&str], dry_run: bool) -> Request {
+    Request::Publish {
+        request: PublishRequest::NpmTarballs(paths.iter().map(|path| path.to_string()).collect()),
+        options: Options {
+            dry_run,
+            ..Options::default()
+        },
+    }
+}
+
+fn current_file(fake: &FakeS3, relative: &str) -> Option<Vec<u8>> {
+    let generation = String::from_utf8(remote_body(fake, "current")?).unwrap();
+    remote_body(fake, &format!("generations/{generation}/{relative}"))
+}
+
+fn packument(fake: &FakeS3, name: &str) -> Value {
+    let body = current_file(fake, name).unwrap_or_else(|| panic!("no packument for {name}"));
+    deser_json::from_str(std::str::from_utf8(&body).unwrap()).unwrap()
+}
+
+fn live_with_retained(work: &Path, fake: &FakeS3) -> String {
+    let (live_site, live_generation) = build_live(
+        work,
+        &[
+            ("flatdemo", "1.2.3", fs::read(TARBALL_FIXTURE).unwrap()),
+            ("retained-demo", "1.0.0", tarball("retained-demo", "1.0.0")),
+        ],
+    );
+    seed_bucket(fake, &live_site, &live_generation);
+    live_generation
+}
+
+#[test]
+fn a_first_party_scoped_package_is_hosted_beside_the_mirror() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (path, bytes) = pack(work.path(), "ui-1", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+
+    let outcome = stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+    assert_eq!(outcome.status, Status::Published, "{outcome:?}");
+    assert_eq!(outcome.packages, vec!["@scope/ui@0.1.0".to_string()]);
+
+    let document = packument(&fake, FIRST_PARTY);
+    let map = document.as_map().unwrap();
+    assert_eq!(map.get("name").and_then(|v| v.as_str()), Some(FIRST_PARTY));
+    let tags = map.get("dist-tags").and_then(|v| v.as_map()).unwrap();
+    assert_eq!(tags.get("latest").and_then(|v| v.as_str()), Some("0.1.0"));
+    let version = map.get("versions").and_then(|v| v.as_map()).unwrap().get("0.1.0").unwrap();
+    let version = version.as_map().unwrap();
+    assert_eq!(version.get("description").and_then(|v| v.as_str()), Some("first party"));
+    assert!(version.get("scripts").is_none(), "scripts must not reach the packument");
+    assert!(version.get("peerDependencies").is_some());
+    let dist = version.get("dist").and_then(|v| v.as_map()).unwrap();
+    assert_eq!(dist.get("integrity").and_then(|v| v.as_str()), Some(integrity(&bytes).as_str()));
+    let digest = format!("{:x}", Sha512::digest(&bytes));
+    assert_eq!(
+        dist.get("tarball").and_then(|v| v.as_str()),
+        Some(format!("https://npm.17166969.xyz/current/-/tarballs/{digest}.tgz").as_str())
+    );
+    assert!(
+        fake.state().iter().any(|object| object.bucket == BUCKET && object.body == bytes),
+        "the tarball was not uploaded"
+    );
+    for retained in ["flatdemo", "retained-demo"] {
+        assert!(current_file(&fake, retained).is_some(), "{retained} was dropped");
+    }
+}
+
+#[test]
+fn republishing_identical_bytes_changes_nothing_and_new_versions_append() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (first, _) = pack(work.path(), "ui-1", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    stuff::publish::run(tarball_request(&[&first], false), &environment).unwrap();
+    let promoted = remote_body(&fake, "current").unwrap();
+    let before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+
+    let again = stuff::publish::run(tarball_request(&[&first], false), &environment).unwrap();
+    assert_eq!(again.status, Status::Unchanged, "{again:?}");
+    assert!(again.packages.is_empty(), "{again:?}");
+    assert_eq!(remote_body(&fake, "current").unwrap(), promoted);
+    assert_eq!(remote_snapshot(&fake), before);
+    assert_eq!(mutation_count(&fake, requests_before), 0);
+
+    let (second, _) = pack(work.path(), "ui-2", FIRST_PARTY, "0.2.0", b"export const two = 2;");
+    let appended = stuff::publish::run(tarball_request(&[&second], false), &environment).unwrap();
+    assert_eq!(appended.status, Status::Published, "{appended:?}");
+    let document = packument(&fake, FIRST_PARTY);
+    let map = document.as_map().unwrap();
+    let versions = map.get("versions").and_then(|v| v.as_map()).unwrap();
+    assert!(versions.get("0.1.0").is_some() && versions.get("0.2.0").is_some());
+    let tags = map.get("dist-tags").and_then(|v| v.as_map()).unwrap();
+    assert_eq!(tags.get("latest").and_then(|v| v.as_str()), Some("0.2.0"));
+    let time = map.get("time").and_then(|v| v.as_map()).unwrap();
+    assert!(time.get("0.1.0").is_some() && time.get("0.2.0").is_some());
+}
+
+#[test]
+fn different_bytes_for_a_published_first_party_version_conflict() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (first, _) = pack(work.path(), "ui-1", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    stuff::publish::run(tarball_request(&[&first], false), &environment).unwrap();
+    let before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+
+    let (changed, _) = pack(work.path(), "ui-changed", FIRST_PARTY, "0.1.0", b"export const x = 1;");
+    let error = stuff::publish::run(tarball_request(&[&changed], false), &environment).unwrap_err();
+    assert_eq!(error.exit_code(), 3, "{error}");
+    assert_eq!(remote_snapshot(&fake), before);
+    assert_eq!(mutation_count(&fake, requests_before), 0);
+}
+
+#[test]
+fn a_first_party_name_cannot_reuse_a_mirrored_name() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (path, _) = pack(work.path(), "clash", "retained-demo", "9.0.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    let before = remote_snapshot(&fake);
+
+    let error = stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap_err();
+    assert_eq!(error.exit_code(), 3, "{error}");
+    assert!(error.to_string().contains("mirror"), "{error}");
+    assert_eq!(remote_snapshot(&fake), before);
+}
+
+#[test]
+fn first_party_packages_survive_a_later_mirror_publish() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (path, _) = pack(work.path(), "ui-1", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+
+    let mirrored = stuff::publish::run(request(&PathBuf::from(LOCK_FIXTURE), false), &environment).unwrap();
+    assert_ne!(mirrored.status, Status::Conflict, "{mirrored:?}");
+    let document = packument(&fake, FIRST_PARTY);
+    let versions = document.as_map().unwrap().get("versions").and_then(|v| v.as_map()).unwrap();
+    assert!(versions.get("0.1.0").is_some());
+    for retained in ["flatdemo", "retained-demo"] {
+        assert!(current_file(&fake, retained).is_some(), "{retained} was dropped");
+    }
+    let generation = String::from_utf8(remote_body(&fake, "current").unwrap()).unwrap();
+    let manifest = remote_body(&fake, &format!("generations/{generation}/manifest.json")).unwrap();
+    assert!(String::from_utf8(manifest).unwrap().contains("\"firstParty\": true"));
+
+    let again = stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+    assert_eq!(again.status, Status::Unchanged, "{again:?}");
+
+    stuff::publish::run(
+        Request::Republish { registry: Registry::Npm, allow_drops: false, options: Options::default() },
+        &environment,
+    )
+    .unwrap();
+    assert!(packument(&fake, FIRST_PARTY).as_map().is_some());
+}
+
+#[test]
+fn a_lockfile_cannot_mirror_another_version_of_a_first_party_name() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (path, _) = pack(work.path(), "network", NETWORK_NAME, "1.0.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    stuff::publish::run(tarball_request(&[&path], false), &environment).unwrap();
+
+    let upstream = tarball(NETWORK_NAME, NETWORK_VERSION);
+    let lockfile = network_lockfile(work.path(), &integrity(&upstream));
+    let exchange = RecordingExchange::new(upstream);
+    let error = stuff::publish::npm::publish_with_exchange(
+        &NpmPublish {
+            lockfile: lockfile.to_string_lossy().into_owned(),
+            project: "demo".to_string(),
+        },
+        Options::default(),
+        &environment,
+        &exchange,
+    )
+    .unwrap_err();
+    assert_eq!(error.exit_code(), 3, "{error}");
+    assert!(exchange.requests().is_empty(), "{:?}", exchange.requests());
+}
+
+#[test]
+fn a_first_party_dry_run_plans_without_touching_state_or_remote() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    live_with_retained(work.path(), &fake);
+    let (path, _) = pack(work.path(), "ui-1", FIRST_PARTY, "0.1.0", b"export {};");
+    let environment = environment(work.path(), &fake, &std::env::var("PATH").unwrap());
+    let state = work.path().join("stuff-state");
+    let before = remote_snapshot(&fake);
+    let requests_before = fake.requests().len();
+
+    let dry = stuff::publish::run(tarball_request(&[&path], true), &environment).unwrap();
+    assert!(dry.dry_run);
+    assert_eq!(dry.packages, vec!["@scope/ui@0.1.0".to_string()]);
+    assert_eq!(remote_snapshot(&fake), before);
+    assert_eq!(mutation_count(&fake, requests_before), 0);
+    assert!(tree(&state).is_empty(), "the dry run wrote local state");
 }

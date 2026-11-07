@@ -178,6 +178,7 @@ pub struct ArtifactVerification {
     pub shasum: Option<String>,
     pub source_url: String,
     pub legacy_sha1_only: bool,
+    pub first_party: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -817,7 +818,16 @@ fn normalize_artifact(
         return Ok(None);
     }
     let record = require_record(v, label, category)?;
-    exact_keys(record, &["sha512", "integrity", "shasum", "sourceUrl", "legacySha1Only"], label, category)?;
+    let first_party = match record.get("firstParty") {
+        None => false,
+        Some(flag) if flag.as_bool() == Some(true) => true,
+        Some(_) => return Err(err(category, format!("{label}.firstParty must be true when present"))),
+    };
+    let mut keys = vec!["sha512", "integrity", "shasum", "sourceUrl", "legacySha1Only"];
+    if first_party {
+        keys.push("firstParty");
+    }
+    exact_keys(record, &keys, label, category)?;
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let sha512 = require_text(record.get("sha512").unwrap_or(&null), &format!("{label}.sha512"), category)?;
     if !is_sha512_hex(&sha512) {
@@ -836,7 +846,8 @@ fn normalize_artifact(
         }
     let source_url = require_text(record.get("sourceUrl").unwrap_or(&null), &format!("{label}.sourceUrl"), category)?;
     let url = stuff_url::Url::parse(&source_url).map_err(|_| err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")))?;
-    if url.scheme() != "https" || url.host_str() != Some("registry.npmjs.org") || !url.port().is_none() || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
+    let source_host_allowed = first_party || url.host_str() == Some("registry.npmjs.org");
+    if url.scheme() != "https" || !source_host_allowed || (!first_party && url.port().is_some()) || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
         return Err(err(category, format!("{label}.sourceUrl must be a public npm HTTPS URL")));
     }
     let dist = metadata.and_then(|m| m.as_map()).and_then(|m| m.get("dist")).cloned();
@@ -876,7 +887,7 @@ fn normalize_artifact(
     meta_out.insert("dist".to_string(), deser_value::Value::from(meta_dist));
     let mut meta_val = deser_value::Value::from(meta_out);
     sort_canonical_value(&mut meta_val);
-    Ok(Some((meta_val, ArtifactVerification { sha512, integrity, shasum, source_url, legacy_sha1_only: legacy })))
+    Ok(Some((meta_val, ArtifactVerification { sha512, integrity, shasum, source_url, legacy_sha1_only: legacy, first_party })))
 }
 
 pub fn normalize_artifact_record(v: &deser_value::Value, label: &str, category: Category) -> Result<ArtifactRecord> {
@@ -1513,6 +1524,9 @@ pub fn artifact_to_value(a: &ArtifactRecord) -> Result<deser_value::Value> {
     });
     am.insert("sourceUrl".to_string(), deser_value::Value::from(a.artifact.source_url.clone()));
     am.insert("legacySha1Only".to_string(), deser_value::Value::from(a.artifact.legacy_sha1_only));
+    if a.artifact.first_party {
+        am.insert("firstParty".to_string(), deser_value::Value::from(true));
+    }
     m.insert("artifact".to_string(), deser_value::Value::from(am));
     Ok(deser_value::Value::from(m))
 }

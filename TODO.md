@@ -20,15 +20,6 @@ Next: 63
 - **Fix with:** none
 - **Effort:** S
 
-### STUF-60 · P3 · mynpm cannot publish a first-party npm package
-
-- **Area:** npm
-- **Where:** `crates/mynpm/`, `stuff publish npm --lockfile PATH --project ID`, `docs/PUBLISHING.md`
-- **Problem:** `mynpm` only mirrors upstream packages named in a lockfile, so a package that exists nowhere upstream cannot be published. Niceforge's Core depends on `@stats/producer` 0.1.0 from `~/d/stats/packages/producer`, which is on neither npmjs nor npm.17166969.xyz. With no registry to install it from, Niceforge had to vendor its packed build into `apps/forge/vendor/stats-producer` (niceforge `050b263`) so a clean checkout or CI VM could run `pnpm install`.
-- **Recommendation:** Add a native npm publish path, `stuff publish npm --package DIR` or a packed `.tgz`, that hosts a first-party package beside the mirror under the same immutable-generation and conflict rules. Then publish `@stats/producer`, point Niceforge at the version through an `@stats:registry` `.npmrc` line, and delete the vendored copy.
-- **Fix with:** do
-- **Effort:** M
-
 ### STUF-62 · P2 · Publishing one crate re-uploads the whole generation one object at a time
 
 - **Area:** Performance

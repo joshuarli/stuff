@@ -6,6 +6,7 @@ pub mod cli;
 pub mod config;
 pub mod doctor;
 pub mod error;
+pub mod first_party;
 pub mod fetch_budget;
 pub mod inventory;
 pub mod inventory_store;
