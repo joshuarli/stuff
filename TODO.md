@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 61
+Next: 62
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -46,3 +46,12 @@ Next: 61
 - **Recommendation:** Add a native npm publish path, `stuff publish npm --package DIR` or a packed `.tgz`, that hosts a first-party package beside the mirror under the same immutable-generation and conflict rules. Then publish `@stats/producer`, point Niceforge at the version through an `@stats:registry` `.npmrc` line, and delete the vendored copy.
 - **Fix with:** do
 - **Effort:** M
+
+### STUF-61 · P2 · Publishing a native crate that depends on another native crate fails verification
+
+- **Area:** Cargo
+- **Where:** `crates/stuff/src/publish/cargo/run.rs:45-67` (dry-run staging), `crates/stuff/src/publish/cargo/run.rs:191-240` (`SiteBuild::run` blob materialization), `crates/stuff/src/publish/cargo/server.rs:216`
+- **Problem:** `stuff publish cargo -p stats-producer --registry mycrates --dry-run` in `~/d/stats` at `35f5c52` (stats-producer 0.1.1, which depends on the native `h12tiny-client-sync` 0.7.0 from mycrates) fails in `cargo publish` verification: `failed to download from http://127.0.0.1:<port>/blobs/4ef7862202992a23100a6347155bda3cab6a237cd161a4d3998ccdaebbb65207.crate ... got 404`. That blob is live (`https://crates.17166969.xyz/blobs/4ef786….crate` returns 200) and present locally in both `state/blobs/` and `site/blobs/`, and the local promoted generation equals the live one (`2fa92d16d1bad37f9ff5cae9`). Without `--registry mycrates`, the publish server rejects the same dependency with `422 integrity: dependency 'h12tiny-client-sync' uses unsupported registry 'sparse+https://crates.17166969.xyz/current/registry/'`. The non-dry-run path was not tried.
+- **Recommendation:** Reproduce with the command above, establish whether the server site is built before cargo's verification downloads dependencies (so native blobs are missing), and fix it with a failing test for a native crate depending on another native crate. Then publish stats-producer 0.1.1 so tansu can drop its `[patch.mycrates]` path to a sibling checkout.
+- **Fix with:** root-cause
+- **Effort:** S
