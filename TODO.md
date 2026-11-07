@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 60
+Next: 61
 
 ### STUF-45 · P3 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -36,4 +36,13 @@ Next: 60
 - **Problem:** tansu's `.npmrc` sets `registry=https://npm.17166969.xyz/current/`, so its `pnpm-lock.yaml` records mirror tarball URLs. mynpm classifies those as external-url sources: `stuff publish npm --lockfile pnpm-lock.yaml --project tansu --dry-run` exits 2 with `fetch rejects external-url source @vitest/ui@5.0.5`, although that version is live. The legacy `mynpm import-lock` fails earlier with `unsupported .npmrc setting registry`. Any consumer that installs from the mirror loses the ability to publish its lockfile.
 - **Recommendation:** Treat a tarball URL under the configured `public_base_url` as the registry source for the named version, verified against the live manifest's integrity, and accept a project `.npmrc` whose only setting is that registry. Reproduce with tansu's lockfile first.
 - **Fix with:** root-cause
+- **Effort:** M
+
+### STUF-60 · P3 · mynpm cannot publish a first-party npm package
+
+- **Area:** npm
+- **Where:** `crates/mynpm/`, `stuff publish npm --lockfile PATH --project ID`, `docs/PUBLISHING.md`
+- **Problem:** `mynpm` only mirrors upstream packages named in a lockfile, so a package that exists nowhere upstream cannot be published. Niceforge's Core depends on `@stats/producer` 0.1.0 from `~/d/stats/packages/producer`, which is on neither npmjs nor npm.17166969.xyz. With no registry to install it from, Niceforge had to vendor its packed build into `apps/forge/vendor/stats-producer` (niceforge `050b263`) so a clean checkout or CI VM could run `pnpm install`.
+- **Recommendation:** Add a native npm publish path, `stuff publish npm --package DIR` or a packed `.tgz`, that hosts a first-party package beside the mirror under the same immutable-generation and conflict rules. Then publish `@stats/producer`, point Niceforge at the version through an `@stats:registry` `.npmrc` line, and delete the vendored copy.
+- **Fix with:** do
 - **Effort:** M
