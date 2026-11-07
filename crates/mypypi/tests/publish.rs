@@ -2,6 +2,7 @@
 
 use mypypi::catalog::parse_catalog;
 use mypypi::config::parse_project_settings;
+use mypypi::error::Kind;
 use mypypi::models::{Target, ValidatedArtifact, WheelIdentity};
 use mypypi::publish::{publish, PublishOptions};
 use std::collections::BTreeMap;
@@ -13,6 +14,25 @@ fn fixture_wheel() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/mypypi/wheels")
         .join(FIXTURE_WHEEL)
+}
+
+fn settings_and_catalog() -> (mypypi::config::ProjectSettings, mypypi::catalog::Catalog) {
+    let platform = mypypi::validate::local_platform().expect("test host has a supported platform");
+    let settings_text = format!(
+        "[project]\nrequires-python = \">=3.15,<3.16\"\n\n[tool.mypypi]\npublic_base_url = \"https://seed.example.test\"\n\n[tool.mypypi.targets]\nplatforms = [\"{platform}\"]\nlinux_repair_policy = \"manylinux_2_28\"\n"
+    );
+    let settings = parse_project_settings(&settings_text).unwrap();
+    let catalog = parse_catalog("[[packages]]\nname = \"validation-fixture\"\nversion = \"1.0\"\n").unwrap();
+    (settings, catalog)
+}
+
+fn staged_fixture(dir: &Path) -> (PathBuf, PathBuf) {
+    let output = dir.join("out");
+    let state = dir.join("state");
+    let wheels = state.join("wheels");
+    std::fs::create_dir_all(&wheels).unwrap();
+    std::fs::copy(fixture_wheel(), wheels.join(FIXTURE_WHEEL)).unwrap();
+    (output, state)
 }
 
 #[test]
@@ -70,4 +90,60 @@ fn publish_summary_matches_the_generation_on_disk() {
     assert!(repeated.no_op);
     assert_eq!(repeated.generation_id, summary.generation_id);
     assert_eq!(repeated.new_wheels, 0);
+}
+
+#[test]
+fn identical_publishes_report_no_op_false_then_true() {
+    let dir = tempfile::tempdir().unwrap();
+    let (output, state) = staged_fixture(dir.path());
+    let (settings, catalog) = settings_and_catalog();
+    let options = || PublishOptions {
+        settings: &settings,
+        output: &output,
+        state_dir: &state,
+        catalog: &catalog,
+        platforms: &[],
+    };
+
+    let first = publish(&options()).unwrap();
+    assert!(!first.no_op, "first publish must activate a new generation");
+
+    let second = publish(&options()).unwrap();
+    assert!(second.no_op, "identical second publish must report no_op");
+    assert_eq!(second.generation_id, first.generation_id);
+    assert_eq!(second.generation, first.generation);
+}
+
+#[test]
+fn garbage_current_pointer_is_an_error_not_a_silent_non_no_op() {
+    let dir = tempfile::tempdir().unwrap();
+    let (settings, catalog) = settings_and_catalog();
+
+    let regular = dir.path().join("regular");
+    std::fs::create_dir(&regular).unwrap();
+    std::fs::write(regular.join("current"), b"not a link").unwrap();
+    let err = publish(&PublishOptions {
+        settings: &settings,
+        output: &regular,
+        state_dir: &dir.path().join("regular-state"),
+        catalog: &catalog,
+        platforms: &[],
+    })
+    .unwrap_err();
+    assert!(matches!(err.kind, Kind::Validation), "kind: {:?}", err.kind);
+    assert!(err.detail.contains("not a symlink"), "{}", err.detail);
+
+    let dangling = dir.path().join("dangling");
+    std::fs::create_dir(&dangling).unwrap();
+    std::os::unix::fs::symlink("elsewhere", dangling.join("current")).unwrap();
+    let err = publish(&PublishOptions {
+        settings: &settings,
+        output: &dangling,
+        state_dir: &dir.path().join("dangling-state"),
+        catalog: &catalog,
+        platforms: &[],
+    })
+    .unwrap_err();
+    assert!(matches!(err.kind, Kind::Validation), "kind: {:?}", err.kind);
+    assert!(err.detail.contains("invalid current link"), "{}", err.detail);
 }

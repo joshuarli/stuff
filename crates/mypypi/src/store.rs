@@ -4,7 +4,7 @@ use crate::error::{Error, Kind, Result, Stage};
 use crate::index::{IndexArtifact, prepare_index_artifacts, project_name, render_project_page, render_root_page};
 use crate::models::{Target, ValidatedArtifact, WheelIdentity};
 use sha2::{Digest, Sha256};
-use stuff_store::{write_file_durable, FileLock, Site};
+use stuff_store::{write_file_durable, Activation, FileLock, Site};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -353,7 +353,7 @@ fn write_generation(
     items: &[IndexArtifact],
     manifest: &[u8],
     public_base_url: &str,
-) -> Result<()> {
+) -> Result<Activation> {
     let pages = project_pages(items);
     let generation = generation_id(manifest, &pages, items, public_base_url);
     let build = |staging: &Path| -> stuff_store::Result<()> {
@@ -389,7 +389,7 @@ fn write_generation(
         )
         .is_ok())
     };
-    site.publish(&generation, &build, &verify).map_err(|e| {
+    let activation = site.publish(&generation, &build, &verify).map_err(|e| {
         let kind = match &e {
             stuff_store::Error::Input(_) => Kind::InvalidInput,
             stuff_store::Error::Integrity(_) => Kind::Integrity,
@@ -400,7 +400,7 @@ fn write_generation(
         };
         pub_error(kind, format!("could not publish package index generation: {e}"), None, None)
     })?;
-    Ok(())
+    Ok(activation)
 }
 
 fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
@@ -630,7 +630,7 @@ fn item_target_path(output: &Path, item: &IndexArtifact) -> PathBuf {
     output.join("wheels").join(&item.wheel_filename)
 }
 
-pub fn republish(output: &Path, public_base_url: &str) -> Result<PathBuf> {
+pub fn republish(output: &Path, public_base_url: &str) -> Result<(PathBuf, Activation)> {
     if published_artifacts(output)?.is_empty() {
         return Err(pub_error(Kind::InvalidInput, "no published index to republish", Some(output), None));
     }
@@ -642,7 +642,7 @@ pub fn publish(
     output: &Path,
     yanked: &BTreeMap<String, Option<String>>,
     public_base_url: &str,
-) -> Result<PathBuf> {
+) -> Result<(PathBuf, Activation)> {
     for (filename, reason) in yanked {
         if filename.is_empty() {
             return Err(pub_error(Kind::InvalidInput, "yanked metadata filenames must be non-empty strings", None, None));
@@ -733,8 +733,8 @@ pub fn publish(
         store_wheel(&output, item, &source)?;
     }
     let manifest = manifest_bytes(&items);
-    write_generation(&site, &items, &manifest, public_base_url)?;
-    Ok(output.join("current"))
+    let activation = write_generation(&site, &items, &manifest, public_base_url)?;
+    Ok((output.join("current"), activation))
 }
 
 #[cfg(test)]

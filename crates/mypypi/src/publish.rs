@@ -9,7 +9,6 @@ use crate::platforms::ordered_target_tags;
 use crate::validate::{ExceptionKind, ValidationException, ValidationPolicy};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use stuff_store::Site;
 
 pub struct PublishOptions<'a> {
     pub settings: &'a ProjectSettings,
@@ -40,26 +39,8 @@ pub struct RepublishSummary {
     pub no_op: bool,
 }
 
-fn current_generation_id(output: &Path) -> Option<String> {
-    let site = Site::new(std::path::absolute(output).ok()?);
-    site.current_generation().ok().flatten()
-}
-
-fn generation_id(current: &Path) -> Result<String> {
-    let parent = current.parent().ok_or_else(|| {
-        Error::new(Kind::Integrity, "published index has no parent directory", Stage::Publication)
-    })?;
-    Site::new(parent.to_path_buf())
-        .current_generation()
-        .map_err(|e| Error::new(Kind::Integrity, e.to_string(), Stage::Publication))?
-        .ok_or_else(|| {
-            Error::new(Kind::Integrity, "published index has no current generation", Stage::Publication)
-        })
-}
-
 pub fn publish(options: &PublishOptions<'_>) -> Result<PublishSummary> {
     let set = collect_validated(options.settings, options.output, options.state_dir, options.platforms, options.catalog)?;
-    let before = current_generation_id(options.output);
     let entries = options.catalog.by_package();
     let mut yanked: BTreeMap<String, Option<String>> = BTreeMap::new();
     for artifact in crate::store::published_artifacts(options.output).map_err(|e| {
@@ -82,25 +63,22 @@ pub fn publish(options: &PublishOptions<'_>) -> Result<PublishSummary> {
             }
         }
     }
-    let current = crate::store::publish(&set.artifacts, options.output, &yanked, &options.settings.public_base_url)?;
-    let generation_id = generation_id(&current)?;
+    let (current, activation) = crate::store::publish(&set.artifacts, options.output, &yanked, &options.settings.public_base_url)?;
     Ok(PublishSummary {
-        no_op: before.as_deref() == Some(generation_id.as_str()),
+        no_op: activation.is_noop,
         generation: current,
-        generation_id,
+        generation_id: activation.generation_id,
         new_wheels: set.artifacts.len(),
         no_imports: set.no_imports,
     })
 }
 
 pub fn republish(options: &RepublishOptions<'_>) -> Result<RepublishSummary> {
-    let before = current_generation_id(options.output);
-    let current = crate::store::republish(options.output, options.public_url)?;
-    let generation_id = generation_id(&current)?;
+    let (current, activation) = crate::store::republish(options.output, options.public_url)?;
     Ok(RepublishSummary {
-        no_op: before.as_deref() == Some(generation_id.as_str()),
+        no_op: activation.is_noop,
         generation: current,
-        generation_id,
+        generation_id: activation.generation_id,
     })
 }
 
