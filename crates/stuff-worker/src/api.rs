@@ -906,8 +906,6 @@ mod tests {
         .expect("parses");
         assert_eq!(plain.alias_key, None);
 
-        // Mirrors the r2-sync.sh skip list: generation-scoped tarball
-        // hardlinks resolve to the shared store instead of being uploaded.
         let tarballs: PointerJson = deser_json::from_str(&resolve_pointer_json(
             "current",
             "abc123",
@@ -1224,7 +1222,7 @@ mod tests {
     }
 
     #[test]
-    fn shared_store_alias_list_matches_r2_sync_patterns() {
+    fn shared_store_alias_list_matches_the_publisher_skip_list() {
         let patterns: Vec<&str> = include_str!("../../../deploy/shared-store-paths.txt")
             .lines()
             .map(str::trim)
@@ -1237,7 +1235,7 @@ mod tests {
             assert!(alias_key_for("", rel).is_some(), "{rel} must resolve to the shared store");
             assert!(
                 patterns.iter().any(|p| glob_matches(p, &generation_key)),
-                "{generation_key} must be skipped by deploy/r2-sync.sh"
+                "{generation_key} must be skipped by stuff publish"
             );
         }
         for rel in ["catalog.json", "registry/flatdemo", "simple/index.html", "-/other"] {
@@ -1245,7 +1243,7 @@ mod tests {
             assert!(alias_key_for("", rel).is_none(), "{rel} must not alias");
             assert!(
                 !patterns.iter().any(|p| glob_matches(p, &generation_key)),
-                "{generation_key} must be uploaded by deploy/r2-sync.sh"
+                "{generation_key} must be uploaded by stuff publish"
             );
         }
     }

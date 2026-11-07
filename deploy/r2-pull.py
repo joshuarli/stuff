@@ -11,7 +11,7 @@ the generation named by the `current` marker, the manifest of that generation
 when the bucket has one, and every shared immutable store (blobs/, tarballs/,
 wheels/). Each object is verified by size and ETag against the listing, then
 every entry of the generation's manifest is checked against the pulled tree.
-Then it restores the layout r2-sync leaves out: the `current` symlink and,
+Then it restores the layout the publisher leaves out: the `current` symlink and,
 when the bucket has a wheels/ store, the generation's `wheels` symlink to it.
 Other generations are not pulled.
 
@@ -25,7 +25,6 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import subprocess
 import sys
 import time
@@ -34,6 +33,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 from r2_common import (
+    mint_s3_credentials,
     PART_SIZE,
     Pacer,
     cf_command,
@@ -70,19 +70,11 @@ def enable_s3(bucket):
         return True
     if os.environ.get("CF_LOCAL_STATE") or os.environ.get("R2_PULL_CF_ONLY"):
         return False
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "r2-temp-credentials.py")
-    done = subprocess.run([sys.executable, script, bucket], capture_output=True, text=True)
-    if done.returncode != 0:
-        detail = (done.stderr or done.stdout).strip()
-        print(f"note: could not mint temporary R2 S3 credentials; using cf downloads", file=sys.stderr)
-        if detail:
-            print(f"note: {detail}", file=sys.stderr)
+    detail = mint_s3_credentials(bucket)
+    if detail is not None:
+        print("note: could not mint temporary R2 S3 credentials; using cf downloads", file=sys.stderr)
+        print(f"note: {detail}", file=sys.stderr)
         return False
-    for line in done.stdout.splitlines():
-        if not line.startswith("export "):
-            continue
-        name, _, raw = line[len("export ") :].partition("=")
-        os.environ[name] = shlex.split(raw)[0]
     return s3_ready()
 
 

@@ -215,6 +215,24 @@ mod tests {
     }
 
     #[test]
+    fn the_mycrates_golden_catalog_yields_every_served_version() {
+        let text = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../mycrates/tests/golden/adopt-publish/expected-generation/catalog.json"
+        ))
+        .unwrap();
+        let found = versions(&text, "golden").unwrap();
+        let version = |source: &str, name: &str, version: &str| Version {
+            source: source.to_string(),
+            name: name.to_string(),
+            version: version.to_string(),
+        };
+        assert!(found.contains(&version("native", "alpha", "0.2.0")));
+        assert!(found.contains(&version("upstream", "serde", "1.0.1")));
+        assert_eq!(found.len(), 10);
+    }
+
+    #[test]
     fn malformed_catalogs_are_integrity_errors() {
         for text in [
             "not json",

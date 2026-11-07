@@ -18,7 +18,25 @@ printf 'wheel bytes\n' > "$SITE/wheels/a-1-py3-none-any.whl"
 printf 'blob bytes\n' > "$SITE/blobs/0000.crate"
 ln -s ../../wheels "$SITE/generations/g1/wheels"
 ln -s generations/g1 "$SITE/current"
-"$HERE/r2-sync.sh" "$SITE" t > "$WORK/sync.log"
+python3 - "$SITE" "$WORK/manifest.json" <<'PY'
+import hashlib, json, pathlib, sys
+site = pathlib.Path(sys.argv[1])
+keys = ["generations/g1/catalog.json", "generations/g1/simple/index.html", "wheels/a-1-py3-none-any.whl", "blobs/0000.crate"]
+objects = []
+for key in keys:
+    body = (site / key).read_bytes()
+    objects.append({"key": key, "size": len(body), "etag": hashlib.md5(body).hexdigest()})
+pathlib.Path(sys.argv[2]).write_text(json.dumps({"schemaVersion": 1, "objects": objects}, indent=2))
+PY
+printf g1 > "$WORK/current"
+put() {
+  cf r2 objects put "$1" --file "$2" --bucket-name t --local --persist-to "$CF_LOCAL_STATE" >/dev/null
+}
+for key in generations/g1/catalog.json generations/g1/simple/index.html generations/g2/catalog.json wheels/a-1-py3-none-any.whl blobs/0000.crate; do
+  put "$key" "$SITE/$key"
+done
+put manifests/g1.json "$WORK/manifest.json"
+put current "$WORK/current"
 
 check() { [ "$1" = "$2" ] || { echo "FAIL: $3: got '$1', want '$2'"; exit 1; }; }
 

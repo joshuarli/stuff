@@ -38,6 +38,24 @@ pub fn resolve(
     ))
 }
 
+pub fn shell_exports(env: &Environment, bucket: &str) -> Result<String, PublishError> {
+    let paths = crate::publish::paths::Paths::from_environment(env);
+    let config = crate::publish::config::Config::load(&paths.config_file())?;
+    let credentials = resolve(env, &config.cf_profile, bucket)?;
+    let mut lines = vec![
+        ("R2_S3_ENDPOINT", credentials.endpoint),
+        ("R2_S3_ACCESS_KEY_ID", credentials.access_key_id),
+        ("R2_S3_SECRET_ACCESS_KEY", credentials.secret_access_key),
+    ];
+    if let Some(token) = credentials.session_token {
+        lines.push(("R2_S3_SESSION_TOKEN", token));
+    }
+    Ok(lines
+        .into_iter()
+        .map(|(name, value)| format!("export {name}='{}'\n", value.replace('\'', "'\\''")))
+        .collect())
+}
+
 fn direct_credentials(env: &Environment) -> Option<Credentials> {
     let configured = ["R2_S3_ENDPOINT", "R2_S3_ACCESS_KEY_ID", "R2_S3_SECRET_ACCESS_KEY"]
         .iter()
@@ -291,6 +309,23 @@ mod tests {
                 region: "auto".to_string(),
                 session_token: Some("token".to_string()),
             }
+        );
+    }
+
+    #[test]
+    fn shell_exports_quote_values_for_eval() {
+        let env = Environment::from_pairs([
+            ("R2_S3_ENDPOINT", "https://account.r2.cloudflarestorage.com"),
+            ("R2_S3_ACCESS_KEY_ID", "access"),
+            ("R2_S3_SECRET_ACCESS_KEY", "se'cret"),
+            ("STUFF_CONFIG_HOME", "/nonexistent"),
+            ("PATH", "/nonexistent"),
+        ]);
+        assert_eq!(
+            shell_exports(&env, "bucket").unwrap(),
+            "export R2_S3_ENDPOINT='https://account.r2.cloudflarestorage.com'\n\
+             export R2_S3_ACCESS_KEY_ID='access'\n\
+             export R2_S3_SECRET_ACCESS_KEY='se'\\''cret'\n"
         );
     }
 

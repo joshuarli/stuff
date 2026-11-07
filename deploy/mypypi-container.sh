@@ -4,7 +4,7 @@
 #
 # usage: mypypi-container.sh ARCH(arm64|amd64) PLATFORM(linux-aarch64|linux-x86_64) COMMAND [ARGS...]
 # Optional env: STUFF_STATE_HOME STATE_DIR SITE_DIR CATALOG_FILE CONFIG_FILE
-# LOCK_DIR (defaults match deploy/publish-mypypi.sh), IMAGE_REBUILD=1.
+# LOCK_DIR (defaults match stuff publish pypi), IMAGE_REBUILD=1.
 # Holds the host's mypypi publish lock for the whole container run, so
 # platforms publish one at a time against the shared state.
 # The image is built from deploy/mypypi-linux.Dockerfile. The container is

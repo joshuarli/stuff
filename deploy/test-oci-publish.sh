@@ -1,6 +1,4 @@
 #!/bin/sh
-# Publish the OCI fixture under the local R2 simulation, sync blobs before
-# metadata, reclaim an unreferenced blob, and roll back a tag move.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${1:-"$ROOT/.work/oci-publish"}
@@ -9,62 +7,73 @@ export TMPDIR
 mkdir -p "$TMPDIR"
 rm -rf "$WORK"
 mkdir -p "$WORK"
+LAYOUT=$ROOT/tests/fixtures/oci/layout
 
 fail() {
   echo "FAIL: $1" >&2
   exit 1
 }
-if ! command -v cf >/dev/null 2>&1; then
-  CF_BIN=$ROOT/crates/stuff-worker/node_modules/.bin
-  [ -x "$CF_BIN/cf" ] || fail "the cf CLI is required"
-  PATH="$CF_BIN:$PATH"
-  export PATH
-fi
-export STUFF_STATE_HOME="$WORK/home"
-export CF_LOCAL_STATE="$WORK/r2"
-export CF_AUTH_CHECKED=1
 
-(cd "$ROOT" && cargo build -q -p myoci)
-BIN=${CARGO_TARGET_DIR:-"$ROOT/target"}/debug/myoci
-STATE=$STUFF_STATE_HOME/oci/state
-SITE=$STUFF_STATE_HOME/oci/site
+(cd "$ROOT" && cargo build -q -p stuff -p myoci)
+BIN_DIR=${CARGO_TARGET_DIR:-"$ROOT/target"}/debug
+STUFF=$BIN_DIR/stuff
+MYOCI=$BIN_DIR/myoci
 
-list_bucket() {
-  cf r2 objects list --per-page 1000 --bucket-name "$1" \
-    --local --persist-to "$CF_LOCAL_STATE" > "$WORK/$1.list.json"
+FIFO=$WORK/fake-s3.stdin
+mkfifo "$FIFO"
+python3 "$ROOT/deploy/fake_s3.py" <"$FIFO" >"$WORK/fake-s3.out" &
+FAKE_PID=$!
+exec 3>"$FIFO"
+trap 'exec 3>&-; wait "$FAKE_PID" 2>/dev/null || true' EXIT
+for _ in $(seq 50); do
+  grep -q '^PORT ' "$WORK/fake-s3.out" 2>/dev/null && break
+  sleep 0.1
+done
+PORT=$(sed -n 's/^PORT //p' "$WORK/fake-s3.out")
+[ -n "$PORT" ] || fail "fake S3 did not start"
+ENDPOINT=http://127.0.0.1:$PORT
+export R2_S3_ENDPOINT="$ENDPOINT" R2_S3_ACCESS_KEY_ID=test R2_S3_SECRET_ACCESS_KEY=secret
+
+use_home() {
+  export STUFF_STATE_HOME="$WORK/$1/state" STUFF_CACHE_HOME="$WORK/$1/cache" STUFF_CONFIG_HOME="$WORK/$1/config"
 }
-current_gen() {
-  cf r2 objects get current --text --bucket-name "$1" \
-    --local --persist-to "$CF_LOCAL_STATE"
+live_current() {
+  curl -fsS "$ENDPOINT/$1/current" | tr -d '[:space:]'
+}
+local_current() {
+  basename "$(readlink "$WORK/$1/state/oci/site/current")"
+}
+remote_keys() {
+  curl -fsS "$ENDPOINT/_fake/state" | python3 -c '
+import json, sys
+bucket = sys.argv[1]
+for item in json.load(sys.stdin)["objects"]:
+    if item["bucket"] == bucket:
+        print(item["key"])
+' "$1"
 }
 
-FIRST_R2=$WORK/r2-first
-FIRST_HOME=$WORK/home-first
-(cd "$ROOT" && STUFF_STATE_HOME="$FIRST_HOME" CF_LOCAL_STATE="$FIRST_R2" \
-  OCI_LAYOUT="$ROOT/tests/fixtures/oci/layout" OCI_REPOSITORY=example/app \
-  deploy/publish oci --promote=cf >/dev/null) || fail "first publication into empty buckets failed"
-FIRST_LIVE=$(cf r2 objects get current --text --bucket-name stuff-oci --local --persist-to "$FIRST_R2" | tr -d '[:space:]')
-FIRST_LOCAL=$(basename "$(readlink "$FIRST_HOME/oci/site/current")")
-[ -n "$FIRST_LIVE" ] && [ "$FIRST_LIVE" = "$FIRST_LOCAL" ] || fail "first publication promoted '$FIRST_LIVE', expected '$FIRST_LOCAL'"
-if (cd "$ROOT" && STUFF_STATE_HOME="$WORK/home-empty" CF_LOCAL_STATE="$WORK/r2-empty" \
-  deploy/publish oci --republish --promote=cf >/dev/null 2>"$WORK/empty-republish.err"); then
+use_home empty
+mkdir -p "$STUFF_CONFIG_HOME"
+printf '%s\n' '{"oci": {"bucket": "empty-oci", "blobs_bucket": "empty-oci-blobs"}}' >"$STUFF_CONFIG_HOME/config.json"
+if "$STUFF" republish oci >/dev/null 2>"$WORK/empty-republish.err"; then
   fail "republish of empty buckets succeeded"
 fi
-grep -q "nothing to republish" "$WORK/empty-republish.err" || fail "republish of empty buckets gave no clear reason"
+grep -q "empty-oci has no live publication to republish" "$WORK/empty-republish.err" || {
+  cat "$WORK/empty-republish.err" >&2
+  fail "republish of empty buckets gave no clear reason"
+}
 
-"$BIN" init --state-dir "$STATE" >/dev/null
-"$BIN" import --state-dir "$STATE" --layout "$ROOT/tests/fixtures/oci/layout" --repository example/app >/dev/null
-"$BIN" publish --state-dir "$STATE" --site-dir "$SITE" >/dev/null
-GEN1=$(basename "$(readlink "$SITE/current")")
-
-(cd "$ROOT" && deploy/publish oci --republish --promote=cf >/dev/null)
-list_bucket stuff-oci
-list_bucket stuff-oci-blobs
-python3 - "$WORK/stuff-oci.list.json" "$WORK/stuff-oci-blobs.list.json" "$GEN1" <<'PY'
-import json
+use_home main
+"$STUFF" publish oci --layout "$LAYOUT" --repository example/app >/dev/null || fail "first publication into empty buckets failed"
+GEN1=$(local_current main)
+[ "$(live_current stuff-oci)" = "$GEN1" ] || fail "first publication promoted '$(live_current stuff-oci)', expected '$GEN1'"
+remote_keys stuff-oci >"$WORK/meta.keys"
+remote_keys stuff-oci-blobs >"$WORK/blobs.keys"
+python3 - "$WORK/meta.keys" "$WORK/blobs.keys" "$GEN1" <<'PY'
 import sys
-meta = [entry["key"] for entry in json.load(open(sys.argv[1], encoding="utf-8"))]
-blobs = [entry["key"] for entry in json.load(open(sys.argv[2], encoding="utf-8"))]
+meta = open(sys.argv[1], encoding="utf-8").read().split()
+blobs = open(sys.argv[2], encoding="utf-8").read().split()
 generation = sys.argv[3]
 assert "current" in meta, meta
 assert f"generations/{generation}/catalog.json" in meta, meta
@@ -75,42 +84,30 @@ assert len([key for key in blobs if key.startswith("sha256/")]) == 6, blobs
 PY
 
 ORPHAN_FILE=$WORK/orphan
-echo orphan > "$ORPHAN_FILE"
-if command -v sha256sum >/dev/null 2>&1; then
-  ORPHAN=$(sha256sum "$ORPHAN_FILE" | cut -d' ' -f1)
-else
-  ORPHAN=$(shasum -a 256 "$ORPHAN_FILE" | cut -d' ' -f1)
-fi
-cf r2 objects put "sha256/$ORPHAN" --file "$ORPHAN_FILE" \
-  --bucket-name stuff-oci-blobs --local --persist-to "$CF_LOCAL_STATE" >/dev/null
-
-python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs --dry-run > "$WORK/gc-dry.txt"
+echo orphan >"$ORPHAN_FILE"
+ORPHAN=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$ORPHAN_FILE")
+curl -fsS -X PUT --data-binary "@$ORPHAN_FILE" "$ENDPOINT/stuff-oci-blobs/sha256/$ORPHAN" >/dev/null
+python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs --dry-run >"$WORK/gc-dry.txt"
 grep -q "drop sha256/$ORPHAN" "$WORK/gc-dry.txt" || {
   cat "$WORK/gc-dry.txt" >&2
   fail "dry run did not plan the unreferenced blob"
 }
-python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs > "$WORK/gc.txt"
-list_bucket stuff-oci-blobs
-python3 - "$WORK/stuff-oci-blobs.list.json" "$ORPHAN" <<'PY'
-import json
-import sys
-keys = [entry["key"] for entry in json.load(open(sys.argv[1], encoding="utf-8"))]
-orphan = sys.argv[2]
-assert f"sha256/{orphan}" not in keys, keys
-assert len([key for key in keys if key.startswith("sha256/")]) == 6, keys
-PY
+python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs >"$WORK/gc.txt"
+remote_keys stuff-oci-blobs >"$WORK/blobs-after.keys"
+! grep -qx "sha256/$ORPHAN" "$WORK/blobs-after.keys" || fail "gc kept the unreferenced blob"
+[ "$(grep -c '^sha256/' "$WORK/blobs-after.keys")" = 6 ] || fail "gc dropped a referenced blob"
 
-"$BIN" tag --state-dir "$STATE" --repository example/app --tag stable \
-  --digest sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4 >/dev/null
-(cd "$ROOT" && deploy/publish oci --republish --promote=cf >/dev/null)
-GEN2=$(basename "$(readlink "$SITE/current")")
+"$STUFF" publish oci --layout "$LAYOUT" --repository example/app --tag moved >/dev/null
+GEN2=$(local_current main)
 [ "$GEN2" != "$GEN1" ] || fail "tag move did not create a new generation"
-(cd "$ROOT" && deploy/r2-rollback.sh stuff-oci "$GEN1" --promote=cf >/dev/null)
-[ "$(current_gen stuff-oci)" = "$GEN1" ] || fail "rollback did not restore the first generation"
+[ "$(live_current stuff-oci)" = "$GEN2" ] || fail "tag move did not promote $GEN2"
+"$STUFF" rollback oci "$GEN1" >/dev/null
+[ "$(live_current stuff-oci)" = "$GEN1" ] || fail "rollback did not restore the first generation"
 
-STUFF_STATE_HOME="$WORK/home-adopt" TMPDIR="$TMPDIR" deploy/publish oci --republish --promote=cf >/dev/null
-"$BIN" verify --state-dir "$WORK/home-adopt/oci/state" >/dev/null
-ADOPTED=$(basename "$(readlink "$WORK/home-adopt/oci/site/current")")
-[ "$ADOPTED" = "$GEN1" ] || fail "adoption restored $ADOPTED, expected $GEN1"
+use_home adopt
+"$STUFF" publish oci --layout "$LAYOUT" --repository example/app >"$WORK/adopt.out"
+grep -q unchanged "$WORK/adopt.out" || fail "a fresh state home republished the live generation: $(cat "$WORK/adopt.out")"
+[ "$(live_current stuff-oci)" = "$GEN1" ] || fail "adoption moved current"
+"$MYOCI" verify --state-dir "$WORK/adopt/state/oci/state" >/dev/null || fail "adopted state does not verify"
 
 echo "OK: OCI publish, blob sync, blob GC, rollback, and adoption are green ($GEN1 -> $GEN2)"

@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test sync gc serve test-sync test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -88,13 +88,6 @@ republish-oci: ## Republish the OCI site from state
 	$(STUFF) republish oci
 
 SITE_DIR ?= .work/site
-BUCKET ?=
-LOCAL_STATE ?= .work/r2-local
-
-sync: ## Sync a published site dir to its R2 bucket (SITE_DIR= BUCKET=, LOCAL=1 for the local simulation)
-	@test -n "$(BUCKET)" || (echo "usage: make sync SITE_DIR=<dir> BUCKET=<name> [LOCAL=1]"; exit 1)
-	@if [ -n "$(LOCAL)" ]; then CF_LOCAL_STATE="$(LOCAL_STATE)" deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); \
-	else deploy/with-publish-lock.sh $(BUCKET) deploy/r2-sync.sh $(SITE_DIR) $(BUCKET); fi
 
 GC_BUCKETS ?= stuff-mycrates stuff-mynpm stuff-mypypi
 GC_KEEP_PREVIOUS ?= 1
@@ -111,30 +104,22 @@ SERVE_PORT ?= 8000
 serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
 	cargo run -q -p stuff-server -- --bind 127.0.0.1:$(SERVE_PORT) --route /=$(SITE_DIR)
 
-test-sync: ## Check r2-sync pagination and idempotency on the local R2 simulation ([SYNC_OBJECTS=120])
-	@mkdir -p .work/tmp
-	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),120)
-
 test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAITERS=4])
 	@mkdir -p .work/tmp
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-publish-lock.sh $(or $(WAITERS),4)
 
-test-r2: ## Check S3 uploads, credentials, multipart SigV4, pagination, and promotion without network access
+test-r2: ## Check S3 uploads, multipart SigV4, pull, gc, and pagination without network access
 	@mkdir -p .work/tmp
-	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-sync.sh $(or $(SYNC_OBJECTS),120)
-	deploy/test-r2-pull.sh
+	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-pull.sh
 	python3 deploy/test-r2-pull.py
 	deploy/test-prune-generations.sh
 	python3 deploy/test-r2-pull-listing.py
 	python3 deploy/test-r2-gc.py
 	python3 deploy/test-r2-multipart.py
-	python3 deploy/test-r2-plan.py
-	python3 deploy/test-r2-promote.py
 	python3 deploy/test-r2-put.py
-	python3 deploy/test-r2-temp-credentials.py
 	python3 deploy/test-r2-gc-blobs.py
 
-test-oci-publish: ## Check OCI publication, blob sync, blob GC, rollback, and adoption offline
+test-oci-publish: ## Check stuff OCI publication, blob GC, rollback, and adoption against a fake S3 endpoint
 	deploy/test-oci-publish.sh
 
 test-r2-gc-blobs: ## Check OCI blob GC against a fake S3 endpoint

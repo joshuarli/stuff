@@ -17,7 +17,7 @@ authenticated pushes through a separate blob writer. Protocol logic lives in
 `publish --site-dir DIR` writes generation-local repository views, catalog
 JSON/HTML/`llms.txt`, and an `oci/manifests/sha256/<hex>` tree under the
 generation. Metadata and blobs are synced to `stuff-oci` and
-`stuff-oci-blobs`; `deploy/publish oci` drives that rollout.
+`stuff-oci-blobs`; `stuff publish oci` drives that rollout.
 
 ## Commands
 

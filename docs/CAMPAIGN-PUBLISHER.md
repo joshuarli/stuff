@@ -20,9 +20,9 @@ L2 (`tools/sync/installer.py`, tested by `tools/sync/test_installer.py`) and L4 
 
 **Landed (2026-11-07):** `publisher` is on `main`; release `release-2b88175…` ships the raw assets; L2 and L4 are on `~/usr` `main`; L3 is on each consumer's default branch; the installed `stuff` replaced the wrappers in every consumer Makefile. The h12tiny pilot ran a real `make publish-mycrates`: exit 0, `unchanged` (0.8.0 was already live), and `stuff doctor` verified the live cargo manifest. No real upload or promotion has run yet, because every consumer version is already published. Release CI exposed two test bugs, both fixed: three pypi tests depended on a host CPython 3.15, and fake executables raced ETXTBSY on Linux. Consumer dry runs found a pypi planning regression (fixed) and STUF-59 (tansu's lockfile resolves through the mirror; the legacy wrapper fails on it too).
 
-**L5:** docs and the usage line are updated (P16). The P13 deletion is parked: `make test-oci-publish` (`deploy/test-oci-publish.sh:45,108`) drives `deploy/publish` and `r2-rollback.sh`, which pull in every other wrapper, and the kept `r2-pull.py:73` and `r2-gc.py:79` call `r2-temp-credentials.py`. Retry when the OCI publish acceptance test runs against `stuff publish oci`/`stuff rollback` and the kept scripts mint through `stuff`.
+**L5 (2026-11-07):** docs and the usage line are updated (P16), and the P13 wrappers are deleted. `make test-oci-publish` now drives `stuff publish oci` and `stuff rollback` against `deploy/fake_s3.py`, so it no longer needs workerd (STUF-57 closed with the code it described). The kept `r2-pull.py` and `r2-gc.py` mint through the new `stuff credentials BUCKET`. `r2-put.py` and `r2-multipart.py` stay despite the P13 list: `myoci writer` uploads through them, and `r2-pull.py`, `r2-gc.py`, and `fake_s3.py` load `r2-multipart.py` as their S3 client. The owner accepted the no-op pilot as the L5 receipt. STUF-59 is fixed: mirror tarball URLs whose file name is the entry's sha512 classify as registry sources.
 
-**Next:** port `deploy/test-oci-publish.sh` to `stuff`, then delete the P13 wrappers; publish a new version through `stuff` to prove upload and promotion against R2.
+**Next:** the independent L5 review of the campaign diff; publish a new version through `stuff` to prove upload and promotion against R2.
 
 ## Charter
 

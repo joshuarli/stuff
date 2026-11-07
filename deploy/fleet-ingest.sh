@@ -13,7 +13,6 @@
 #   OUT_DIR/mycrates/{state,site}   Cargo sparse registry
 #   OUT_DIR/mynpm/{state,site}      npm archive; serve site/mirror
 #   OUT_DIR/mypypi/{state,site}     wheel index
-# Sync a finished site with r2-sync.sh (LOCAL=1 / CF_LOCAL_STATE to simulate).
 #
 # Registries are independent: a failure in one is reported at the end and the
 # others still run. Exit status is non-zero when any registry failed.

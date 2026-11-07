@@ -51,7 +51,7 @@ silicon. Publish the Linux wheels from a real x86_64 runner when that matters.
 `add` takes no `--platform` and rewrites the shared catalog; run it before the
 per-platform commands. The container mounts the same
 `$STUFF_STATE_HOME/mypypi/{packages.toml,pyproject.toml,state,site}` paths as
-`deploy/publish mypypi`, so every platform must use that one state home.
+`stuff publish pypi`, so every platform must use that one state home.
 
 ## Build environment
 

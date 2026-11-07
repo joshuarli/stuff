@@ -1,7 +1,7 @@
 #!/bin/sh
 # Ingest every pnpm lockfile listed in deploy/npm-fleet.txt into one mynpm
 # state directory, fetch the artifacts, and publish a local site. Never writes
-# to R2; sync the site afterwards with deploy/r2-sync.sh.
+# to R2.
 #
 # Re-running is safe: an unchanged lockfile and project snapshot merge as a
 # no-op, a changed one is recorded as an additional import of the same project

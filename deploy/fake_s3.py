@@ -425,6 +425,10 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             upload_id = query.get("uploadId", [None])[0]
             if upload_id:
                 server.uploads.pop(upload_id, None)
+            else:
+                bucket, key = self._bucket_key(parsed.path)
+                server.objects.pop((bucket, key), None)
+                server.etags.pop((bucket, key), None)
             self._reply(204)
             return
         if self.command in ("GET", "HEAD") and query.get("list-type") == ["2"]:

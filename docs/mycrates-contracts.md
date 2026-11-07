@@ -148,7 +148,7 @@ Schema 4 is what `crates/stuff-catalog` writes and reads; schema 3 added the per
 
 Packages are sorted by (name, source), versions by SemVer precedence, dependency names sorted and unique. `latest` is the highest stable non-yanked version, falling back to the highest non-yanked, then the highest yanked. Dependencies are those of the latest version, by real crate name (`package` when renamed); `normal` is `runtime`. Formatting is fixed: two-space indent, one version per line, a trailing newline.
 
-`deploy/r2-catalog-guard.py` reads `packages[].versions[].version` and `source` from this file to refuse promotions that drop a served version.
+The promotion guard in `crates/stuff/src/publish/r2/guard.rs` reads `packages[].versions[].version` and `source` from this file to refuse promotions that drop a served version.
 
 ## index.html and llms.txt
 

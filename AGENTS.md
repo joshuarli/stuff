@@ -44,13 +44,14 @@ for repair.
   [crates/stuff-worker/README.md](crates/stuff-worker/README.md).
 - `deploy/`: pipeline checks (`check-pipeline-independence.sh`), npm fleet
   ingest (`ingest-npm-fleet.sh`),
-  ecosystem smoke (`ecosystem-smoke.sh`), and R2 sync (`r2-sync.sh`;
-  verify with `CF_LOCAL_STATE` via `test-r2-sync.sh`), R2 pull
-  (`r2-pull.py`, verified by `test-r2-pull.sh`), local fleet
-  ingestion (`fleet-ingest.sh`), the blob writer (`myoci-writer.sh`), and
-  the pinned conformance harness (`oci-conformance.sh`). The legacy
-  `publish`/`publish-*.sh` wrappers remain only because the offline OCI
-  publish acceptance test drives `deploy/publish` (`make test-oci-publish`).
+  ecosystem smoke (`ecosystem-smoke.sh`), R2 pull (`r2-pull.py`,
+  verified by `test-r2-pull.sh`), R2 gc (`r2-gc.py`, `r2-gc-blobs.py`),
+  local fleet ingestion (`fleet-ingest.sh`), the blob writer
+  (`myoci-writer.sh`, which uploads through `r2-put.py` and
+  `r2-multipart.py`), the stuff OCI acceptance test against the fake S3
+  endpoint (`test-oci-publish.sh`), and the pinned conformance harness
+  (`oci-conformance.sh`). Kept scripts mint R2 credentials with
+  `stuff credentials BUCKET`.
 - `tests/fixtures`: shared registry fixtures (lockfiles, configs,
   tarballs, wheels, and the OCI image layout at `tests/fixtures/oci/layout`).
 - Publishing: `stuff publish cargo|npm|pypi|oci` (native Rust;

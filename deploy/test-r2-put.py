@@ -3,7 +3,6 @@ import hashlib
 import importlib.util
 import os
 import pathlib
-import subprocess
 import sys
 import tempfile
 import time
@@ -112,29 +111,6 @@ class R2PutTests(unittest.TestCase):
         )
         puts = [key for method, _, key in self.server.requests if method == "PUT"]
         self.assertCountEqual(puts, files)
-
-    def test_sync_promotes_through_s3(self):
-        self.use_s3()
-        generation = self.site / "generations" / "g1"
-        generation.mkdir(parents=True)
-        (generation / "catalog.json").write_text("{}\n")
-        os.symlink("generations/g1", self.site / "current")
-        os.environ["R2_PUT_JOBS"] = "2"
-        os.environ.pop("R2_PROMOTE_UNCONDITIONAL", None)
-        os.environ.pop("CF_LOCAL_STATE", None)
-        os.environ["STUFF_STATE_HOME"] = str(self.root / "home")
-        done = subprocess.run(
-            [str(HERE / "r2-sync.sh"), str(self.site), "bucket", "--promote=s3"],
-            env=os.environ.copy(),
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertEqual(
-            self.server.objects[("bucket", "current")][0], b"g1"
-        )
-        self.assertIn(("bucket", "generations/g1/catalog.json"), self.server.objects)
-        self.assertIn(("bucket", "manifests/g1.json"), self.server.objects)
 
     def test_shared_pacer_spaces_concurrent_syncs(self):
         path = self.root / "pace"

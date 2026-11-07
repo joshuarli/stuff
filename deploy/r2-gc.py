@@ -28,13 +28,11 @@ import datetime
 import json
 import os
 import re
-import shlex
-import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from r2_common import fail, object_url, publish_lock, s3_list_meta, s3_ready, safe_object_key
+from r2_common import fail, mint_s3_credentials, object_url, publish_lock, s3_list_meta, s3_ready, safe_object_key
 
 CURRENT_KEY = "current"
 MANIFEST_PREFIX = "manifests/"
@@ -76,16 +74,9 @@ def clear_s3():
 
 
 def mint_credentials(bucket):
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "r2-temp-credentials.py")
-    done = subprocess.run([sys.executable, script, bucket], capture_output=True, text=True)
-    if done.returncode != 0:
-        detail = (done.stderr or done.stdout).strip()
+    detail = mint_s3_credentials(bucket)
+    if detail is not None:
         fail(f"could not mint temporary R2 credentials for {bucket}: {detail}")
-    for line in done.stdout.splitlines():
-        if not line.startswith("export "):
-            continue
-        name, _, raw = line[len("export ") :].partition("=")
-        os.environ[name] = shlex.split(raw)[0]
 
 
 def load_api():

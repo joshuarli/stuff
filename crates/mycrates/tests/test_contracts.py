@@ -1,8 +1,6 @@
 import hashlib
-import importlib.util
 import json
 import os
-import sys
 import unittest
 
 from mycrates.names import shard_for_name
@@ -10,7 +8,6 @@ from mycrates.semver import Version
 
 from .support import GOLDEN, PACKAGE_ROOT, ScratchTestCase
 
-DEPLOY = PACKAGE_ROOT.parents[1] / "deploy"
 GENERATION = GOLDEN / "adopt-publish" / "expected-generation"
 KINDS = ["runtime", "peer", "build", "dev"]
 NATIVE_KEYS = ["name", "vers", "deps", "cksum", "features", "yanked"]
@@ -41,17 +38,6 @@ def parse_catalog(text):
         identities.append((package["name"], package["source"]))
     assert identities == sorted(identities) and len(set(identities)) == len(identities)
     return document
-
-
-def read_guard():
-    sys.path.insert(0, str(DEPLOY))
-    try:
-        spec = importlib.util.spec_from_file_location("r2_catalog_guard", DEPLOY / "r2-catalog-guard.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    finally:
-        sys.path.remove(str(DEPLOY))
-    return module
 
 
 def file_sha256(path):
@@ -152,13 +138,6 @@ class GoldenContractTest(unittest.TestCase):
         self.assertIn('registry = "sparse+https://crates.example.test/current/registry/"', text)
         self.assertIn("- `serde` — latest `1.0.0` (2 versions): `1.0.0`, `1.0.1` (yanked) [upstream]\n", text)
         self.assertTrue(text.endswith("\n\n"))
-
-    def test_the_promotion_guard_reads_versions_straight_from_the_catalog(self):
-        guard = read_guard()
-        found = guard.versions((GENERATION / "catalog.json").read_text(), "golden")
-        self.assertIn(("native", "alpha", "0.2.0"), found)
-        self.assertIn(("upstream", "serde", "1.0.1"), found)
-        self.assertEqual(len(found), 10)
 
 
 class GeneratedArtifactContractTest(ScratchTestCase):

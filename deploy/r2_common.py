@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shlex
 import subprocess
 import sys
 import threading
@@ -31,6 +32,21 @@ def load_sibling(name, filename):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def mint_s3_credentials(bucket):
+    stuff = os.environ.get("STUFF", "stuff")
+    try:
+        done = subprocess.run([stuff, "credentials", bucket], capture_output=True, text=True)
+    except FileNotFoundError:
+        return f"{stuff} is not on PATH; install the stuff CLI or set STUFF"
+    if done.returncode != 0:
+        return (done.stderr or done.stdout).strip() or f"{stuff} credentials {bucket} failed"
+    for line in done.stdout.splitlines():
+        if line.startswith("export "):
+            name, _, raw = line[len("export ") :].partition("=")
+            os.environ[name] = shlex.split(raw)[0]
+    return None
 
 
 def list_page():

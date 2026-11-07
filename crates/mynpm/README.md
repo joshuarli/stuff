@@ -10,8 +10,7 @@ README for serving and the exit-code contract).
 `deploy/npm-fleet.txt` (`<path under REPOS_DIR> <project id>`) with all six
 darwin/linux targets from `mynpm init-config --all-targets` (mac-arm64,
 mac-x64, linux-x64-gnu, linux-x64-musl, linux-arm64-gnu, linux-arm64-musl),
-then runs `fetch` and `publish`. It never writes to R2; sync the site with
-`deploy/r2-sync.sh`.
+then runs `fetch` and `publish`. It never writes to R2.
 
 Re-running is safe. A project import is identified by its content (id,
 lockfile path, targets, roots, packages including platform and optional flags,
@@ -58,7 +57,7 @@ site without it would drop everything live. `deploy/r2-pull.py BUCKET SITE/mirro
 fetches the live generation and tarball store, and `mynpm adopt --site-dir SITE` makes
 it publishable:
 
-- It re-creates the `tarballs/` and `-/tarballs/` hardlink aliases that `r2-sync.sh`
+- It re-creates the `tarballs/` and `-/tarballs/` hardlink aliases that `stuff publish`
   does not upload.
 - It verifies the generation: manifest shape, packuments re-rendered from the manifest
   records, every tarball's SHA-512, and the generation id. A generation published before

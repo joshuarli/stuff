@@ -226,29 +226,28 @@ class S3PullTests(unittest.TestCase):
         self.assertFalse((dest / "generations" / "old").exists())
         self.assertEqual((dest / "blobs" / "0000.crate").read_bytes(), objects["blobs/0000.crate"])
 
-    def test_mints_credentials_from_cf_when_they_are_absent(self):
+    def test_mints_credentials_through_stuff_when_they_are_absent(self):
         for name in ("R2_S3_ENDPOINT", "R2_S3_ACCESS_KEY_ID", "R2_S3_SECRET_ACCESS_KEY"):
             os.environ.pop(name, None)
         bin_dir = self.root / "bin"
         bin_dir.mkdir()
-        cf = bin_dir / "cf"
-        cf.write_text(
+        stuff = bin_dir / "stuff"
+        stuff.write_text(
             "#!/bin/sh\n"
-            "if [ \"$1 $2\" = 'auth whoami' ]; then\n"
-            "  echo '{\"accounts\":[{\"id\":\"acct\"}]}'\n"
-            "elif [ \"$1 $2 $3\" = 'accounts tokens list' ]; then\n"
-            "  echo '{\"result\":[{\"id\":\"parent\",\"status\":\"active\",\"policies\":[]}]}'\n"
-            "else\n"
-            "  echo '{\"accessKeyId\":\"minted\",\"secretAccessKey\":\"minted-secret\","
-            "\"sessionToken\":\"minted-token\"}'\n"
-            "fi\n"
+            "[ \"$1 $2\" = 'credentials bucket' ] || exit 2\n"
+            "echo \"export R2_S3_ENDPOINT='https://acct.r2.cloudflarestorage.com'\"\n"
+            "echo \"export R2_S3_ACCESS_KEY_ID='minted'\"\n"
+            "echo \"export R2_S3_SECRET_ACCESS_KEY='minted-secret'\"\n"
+            "echo \"export R2_S3_SESSION_TOKEN='minted-token'\"\n"
         )
-        cf.chmod(0o755)
-        os.environ["PATH"] = f"{bin_dir}:{self.saved['PATH']}"
-        self.assertTrue(pull.enable_s3("bucket"))
+        stuff.chmod(0o755)
+        os.environ["STUFF"] = str(stuff)
+        try:
+            self.assertTrue(pull.enable_s3("bucket"))
+        finally:
+            os.environ.pop("STUFF", None)
         self.assertEqual(os.environ["R2_S3_ACCESS_KEY_ID"], "minted")
         self.assertEqual(os.environ["R2_S3_SESSION_TOKEN"], "minted-token")
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,7 +17,7 @@
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 | OCI writer host (optional) | Large anonymous `docker push`; reads/writes `stuff-oci-blobs` | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
 
-`stuff` mints R2 credentials through the `cf` profile named by `cf_profile` in its configuration (default `stuff`) and passes `--profile` on every `cf` call, so `make publish-*` works from any directory without a directory binding. Create the profile once with `cf auth create stuff`; check it with `cf --profile stuff auth whoami`. The kept shell scripts (`r2-temp-credentials.py`, `r2-sync.sh`) still use `cf`'s directory binding, so run them from the stuff checkout, which is bound with `cf auth activate stuff .`.
+`stuff` mints R2 credentials through the `cf` profile named by `cf_profile` in its configuration (default `stuff`) and passes `--profile` on every `cf` call, so `make publish-*` works from any directory without a directory binding. Create the profile once with `cf auth create stuff`; check it with `cf --profile stuff auth whoami`. The kept maintenance scripts (`r2-pull.py`, `r2-gc.py`) mint through `stuff credentials`, so they use the same profile.
 
 `stuff` keeps configuration (`cf_profile` and the per-registry `bucket` and `public_base_url`) in `${XDG_CONFIG_HOME:-$HOME/.config}/stuff/config.json`, a disposable cache in `${XDG_CACHE_HOME:-$HOME/.cache}/stuff/<registry>`, and durable state in `${XDG_STATE_HOME:-$HOME/.local/state}/stuff/<registry>`; `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME` override each. The kept maintenance scripts use the same state root. Back up the state directories. The live generation, not local state, is the publication source of truth.
 
@@ -35,11 +35,11 @@ stuff publish pypi six==1.16.0
 
 `--dry-run` reports the planned change without uploading or promoting. `stuff` prepares the change against the live generation, so a machine with no local state publishes safely: it never rebuilds the published set from a local subset, and a non-additive or byte-conflicting request exits 3 instead of overwriting a competing publisher.
 
-A publish holds the registry's lock, a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. `stuff` and the kept maintenance scripts (`r2-sync.sh`, `make gc`, and `mypypi-container.sh`) take the same lock, and `deploy/with-publish-lock.sh BUCKET COMMAND...` runs any other command under it. A failure stops the run before any R2 write.
+A publish holds the registry's lock, a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. `stuff` and the kept maintenance scripts (`make gc`, `deploy/r2-gc-blobs.py`, and `mypypi-container.sh`) take the same lock. A failure stops the run before any R2 write.
 
 For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build and validation (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
 
-To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; sync each site afterwards (`make sync LOCAL=1` to rehearse).
+To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; publish through `stuff publish`.
 
 ## Publish the OCI registry
 
@@ -107,12 +107,11 @@ Worker bindings: `OCI` and `OCI_BLOBS`, `STUFF_OCI_HOST`,
 `STUFF_OCI_WRITER_ORIGIN`. `STUFF_OCI_BLOB_ORIGIN` is set in `cloudflare.config.ts` to
 `https://oci-blobs.17166969.xyz`, so blob GET/HEAD returns a `307` to
 `<origin>/sha256/<hex>`; the `oci-blobs` bucket domain needs the Cache Rule
-for `/sha256/*`. Layers over 300 MB upload through S3 multipart;
-`deploy/r2-sync-blobs.sh` mints `R2_S3_*` for `stuff-oci-blobs` when they are
-unset. To mint them by hand:
+for `/sha256/*`. Layers over 300 MB upload through S3 multipart. The writer
+host needs `R2_S3_*` for `stuff-oci-blobs`; mint them with:
 
 ```sh
-eval "$(python3 deploy/r2-temp-credentials.py stuff-oci-blobs)"
+eval "$(stuff credentials stuff-oci-blobs)"
 ```
 
 Offline proofs: `make test-oci-pull`, `make test-oci-push`,
@@ -132,46 +131,23 @@ stuff republish pypi
 
 `make deploy` runs the whole rollout in order. It builds one Worker bundle, tests it, and deploys that bundle with `cf deploy --prebuilt`. It then runs the three republishes in parallel (and `republish-oci` with `OCI_DEPLOY=1`), then `make smoke-deployed`. Each publish mints its own temporary S3 credentials through `cf` when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failure stops the rollout before the live check.
 
-## Sync a site you already built
+## Shared stores
 
-Use `deploy/r2-sync.sh SITE_DIR BUCKET [--expected GEN] [--repair] [--dry-run] [--promote=cf|s3] [--allow-drops]` when the site is already on disk:
-
-```sh
-H=${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}
-
-deploy/r2-sync.sh "$H/mycrates/site" stuff-mycrates
-deploy/r2-sync.sh "$H/mynpm/site/mirror" stuff-mynpm
-deploy/r2-sync.sh "$H/mypypi/site" stuff-mypypi
-```
-
-`r2-sync.sh` requires `SITE_DIR/current` to be a symlink, so for `mynpm` pass `site/mirror`, not `site`. It translates `current` into a marker object holding the generation id. The sync is incremental and content-aware: remote objects whose size and content hash match are skipped, so re-syncing an unchanged generation uploads nothing. It writes `manifests/<id>.json` for each local generation and uploads it after every object it lists, so a generation directory without a manifest is always a sync in flight. It then verifies every listed object remotely and replaces `current`.
-
-After each promotion the sync records the generation in `$STUFF_STATE_HOME/<registry>/promoted-generation`. Adoption and rollback write the same record. The next sync expects the bucket to still be on that generation and refuses to promote otherwise, so a site built from state that another publisher has since superseded cannot replace the live generation. Without a record, the first sync promotes unconditionally and writes one.
-
-- `--dry-run` lists the bucket read-only and prints the object and byte counts it would upload. It writes manifests into the site, needs no S3 credentials, and stops before any upload or promotion.
-- Before uploading, `deploy/r2-catalog-guard.py` compares the new generation's `catalog.json` with the live one and refuses the sync when any (source, package, version) the live catalog serves is missing from the new one. The recorded base generation only proves the bucket has not moved; the guard also catches state that never held another machine's records. `--allow-drops` (or `R2_ALLOW_DROPS=1`) is the explicit way to remove versions. Rollback does not run the guard. A live generation without a `catalog.json` is refused the same way.
-- `--expected <generation>` requires the bucket to be on that generation before promotion, in place of the recorded one.
-- An existing immutable object with different bytes is a conflict. `--repair` is the separate, explicit overwrite path.
-
-Generation-scoped aliases (`wheels/`, `tarballs/`, `-/tarballs/`, listed in `deploy/shared-store-paths.txt`) are not uploaded. The Worker resolves them to the shared store, including direct `generations/<id>/...` requests. Files over the 300 MB single-PUT cap upload through S3 multipart (`deploy/r2-multipart.py`, needs `R2_S3_*`). They are skipped when the remote multipart ETag already matches.
+Generation-scoped aliases (`wheels/`, `tarballs/`, `-/tarballs/`, listed in `deploy/shared-store-paths.txt`) are not uploaded. The Worker resolves them to the shared store, including direct `generations/<id>/...` requests. Files over the 300 MB single-PUT cap upload through S3 multipart and are skipped when the remote multipart ETag already matches.
 
 ## Upload and promote with S3
-
-The `cf` API allows roughly four requests a second per account. A republish after a catalog change uploads a new generation's whole index tree, so listing and uploading through `cf` costs several minutes even though the files are small.
-
-Before a sync, `r2-sync.sh` mints short-lived S3 credentials from the authenticated `cf` CLI. Listing and uploads then use the S3 API: the remote plan comes from one paginated list, uploads run `R2_PUT_JOBS` in parallel (default 8), and the generation is verified against that list. If minting fails, listing through `cf` (`deploy/r2-plan.py`) and a cross-process pacer remain the fallback. The local simulation (`CF_LOCAL_STATE`) stays single-threaded.
 
 Promotion is a conditional write, so publishing needs these credentials. `stuff` uses `R2_S3_*` when the three variables are set, and otherwise mints short-lived credentials through `cf` before it writes; it fails before writing if minting fails. Minting needs a logged-in `cf_profile` profile (`cf auth create stuff`, check with `cf --profile stuff auth whoami`) and an active account token whose policies mention R2. The working directory does not matter.
 
 To mint credentials by hand, for the bucket you will write (`stuff-mycrates`, `stuff-mynpm`, or `stuff-mypypi`):
 
 ```sh
-eval "$(python3 deploy/r2-temp-credentials.py stuff-mycrates)"
+eval "$(stuff credentials stuff-mycrates)"
 ```
 
 The variables exist only in that shell and expire after an hour, so mint again when a long session outlives them. If minting fails, the message names the failing `cf` call. Typical causes are a missing login, no token that mentions R2, or an account `cf auth whoami` cannot resolve. Set `R2_PARENT_ACCESS_KEY_ID` or `R2_ACCOUNT_ID` to pick them explicitly.
 
-`r2-temp-credentials.py` picks the first active account token whose policies mention R2 and calls `cf r2 temporary-credentials create` with `object-read-write` scoped to the bucket. It exports `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`, and `R2_S3_SESSION_TOKEN`, and never writes them to disk. `R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, and `R2_ACCOUNT_ID` overrides the account used for the endpoint. `R2_TEMP_CREDENTIALS_TTL` sets the lifetime in seconds (default 3600).
+`stuff credentials` tries active account tokens whose policies mention R2 first and calls `cf r2 temporary-credentials create` with `object-read-write` scoped to the bucket. It prints exports for `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY`, and `R2_S3_SESSION_TOKEN`, and never writes them to disk. `R2_PARENT_ACCESS_KEY_ID` picks a specific parent token, and `R2_ACCOUNT_ID` overrides the account used for the endpoint. `R2_TEMP_CREDENTIALS_TTL` sets the lifetime in seconds (default 3600).
 
 To use long-lived credentials instead, export them before publishing:
 
@@ -274,10 +250,9 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | `cf is not authenticated` | No active cf session | Run `cf auth login --use-keyring` |
 | `cannot determine the R2 account` or `no active account token can mint R2 credentials` | `stuff` could not mint R2 credentials through `cf` | Run `cf auth create stuff` (or the configured `cf_profile`), or export `R2_S3_*` |
 | `current changed during promotion` | Another publisher moved `current` | Pull the new generation, merge your changes, and publish again |
-| `FAIL: immutable object differs` | A local immutable file differs from R2 | Verify the local site. Use `--repair` only to overwrite intentionally |
-| `FAIL: .../current is not a symlink` | Wrong site directory | For `mynpm`, use `site/mirror` |
+| `immutable object differs` | A local immutable file differs from R2 | Find which side is wrong; immutable objects are never overwritten |
 | `exceeds the 300 MB single-PUT cap` | Large object without S3 credentials | Set `R2_S3_*` |
 | `differs from its manifest ETag` | A pulled object does not match the generation's manifest | Rerun the pull; if it repeats, the bucket is inconsistent |
-| `publish: waiting for active writer` | Another publish, sync, rollback, or gc holds the lock | Wait for it to finish |
-| `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Update the local site from the live generation before syncing again |
+| `publish: waiting for active writer` | Another publish, rollback, or gc holds the lock | Wait for it to finish |
+| `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Publish again; `stuff` prepares the change against the new live generation |
 | `generation ... drops N versions served by live generation ...` | The new catalog lacks versions the live catalog serves, usually because this machine's state predates another publisher's | Re-adopt the live publication, or pass `--allow-drops` to remove them on purpose |

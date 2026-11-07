@@ -537,10 +537,14 @@ fn is_shared_alias(key: &str) -> bool {
     let Some((_generation, remainder)) = rest.split_once('/') else {
         return false;
     };
-    remainder.starts_with("wheels/")
-        || remainder.starts_with("tarballs/")
-        || remainder.starts_with("-/tarballs/")
+    SHARED_STORE_PATHS
+        .lines()
+        .map(str::trim)
+        .filter_map(|line| line.strip_prefix("generations/*/")?.strip_suffix('*'))
+        .any(|prefix| remainder.starts_with(prefix))
 }
+
+const SHARED_STORE_PATHS: &str = include_str!("../../../../../deploy/shared-store-paths.txt");
 
 fn is_manifest_key(key: &str) -> bool {
     key.starts_with(MANIFEST_DIRECTORY) && key.ends_with(".json")

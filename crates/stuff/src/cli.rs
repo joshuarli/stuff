@@ -47,6 +47,7 @@ pub enum Command {
     Publish,
     Republish,
     Rollback,
+    Credentials,
 }
 
 impl Command {
@@ -60,6 +61,7 @@ impl Command {
             Command::Publish => "publish",
             Command::Republish => "republish",
             Command::Rollback => "rollback",
+            Command::Credentials => "credentials",
         }
     }
 
@@ -96,7 +98,9 @@ impl Command {
                 output: true,
                 ..AllowedFlags::default()
             },
-            Command::Publish | Command::Republish | Command::Rollback => AllowedFlags::default(),
+            Command::Publish | Command::Republish | Command::Rollback | Command::Credentials => {
+                AllowedFlags::default()
+            }
         }
     }
 }
@@ -156,6 +160,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         Some("publish") => parse_publish(&argv[1..]),
         Some("republish") => parse_republish(&argv[1..]),
         Some("rollback") => parse_rollback(&argv[1..]),
+        Some("credentials") => parse_credentials(&argv[1..]),
         _ => parse_read_only(argv),
     }
 }
@@ -272,12 +277,22 @@ fn parse_read_only(argv: &[String]) -> Result<Parsed> {
                 return Err(usage_error("diff requires two catalog paths"));
             }
         }
-        Command::Publish | Command::Republish | Command::Rollback => {}
+        Command::Publish | Command::Republish | Command::Rollback | Command::Credentials => {}
     }
     Ok(parsed)
 }
 
-fn request_parsed(command: Command, request: Request) -> Parsed {
+fn parse_credentials(args: &[String]) -> Result<Parsed> {
+    match args {
+        [bucket] if !bucket.is_empty() && !bucket.starts_with('-') => Ok(Parsed {
+            positionals: vec![bucket.clone()],
+            ..request_parsed(Command::Credentials, None)
+        }),
+        _ => Err(usage_error("credentials requires exactly one bucket")),
+    }
+}
+
+fn request_parsed(command: Command, request: impl Into<Option<Request>>) -> Parsed {
     Parsed {
         command,
         registry: None,
@@ -295,7 +310,7 @@ fn request_parsed(command: Command, request: Request) -> Parsed {
         output: None,
         expected_generation: None,
         positionals: Vec::new(),
-        request: Some(request),
+        request: request.into(),
     }
 }
 
@@ -606,6 +621,9 @@ Commands:
   render --output FILE [--registry cargo|npm|pypi|oci]
      [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
      [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
+  credentials <bucket>
+     print shell exports of short-lived R2 S3 credentials for one bucket,
+     minted through the configured cf_profile; use with eval
 
 Sources default to the live registries (no credentials needed).
 Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir (site, generation, or

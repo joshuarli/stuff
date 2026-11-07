@@ -20,7 +20,7 @@ fn main() {
             eprintln!("stuff: {e}");
             if !is_publishing(&argv) {
                 eprintln!(
-                    "usage: stuff <ls|search|diff|doctor|render|publish|republish|rollback> [options]"
+                    "usage: stuff <ls|search|diff|doctor|render|publish|republish|rollback|credentials> [options]"
                 );
             }
             std::process::exit(e.exit_code());
@@ -52,6 +52,18 @@ fn run(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<i32> {
         Command::Render => run_render(parsed, environment).map(|()| 0),
         Command::Publish | Command::Republish | Command::Rollback => {
             run_publish(parsed, environment)
+        }
+        Command::Credentials => {
+            match stuff::publish::r2::credentials::shell_exports(environment, &parsed.positionals[0]) {
+                Ok(exports) => {
+                    print!("{exports}");
+                    Ok(0)
+                }
+                Err(error) => {
+                    eprintln!("{}", output::error(&error));
+                    Ok(error.exit_code())
+                }
+            }
         }
     }
 }

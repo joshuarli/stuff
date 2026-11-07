@@ -93,7 +93,7 @@ push that changes any tag, manifest, or referrer produces a new
 content-derived generation (`sha256` over the canonical repository view, first
 24 hex). Re-publishing the identical view is a no-op. A tag move is activated
 atomically with `current`; rollback is
-`deploy/r2-rollback.sh stuff-oci <id>`.
+`stuff rollback oci <id>`.
 
 Manifest activation accepts a manifest only when every referenced blob exists
 in the blob bucket (except a non-distributable layer with `urls`) and every
@@ -143,8 +143,8 @@ path.
 
 ## Sync, GC, and rollback
 
-Each generation carries `manifests/<id>.json`; the local publisher writes it
-with `r2-manifest.py`, and the Worker writes it during push from the ETags it
+Each generation carries `manifests/<id>.json`; `stuff publish oci` writes it,
+and the Worker writes it during push from the ETags it
 receives. Blob GC is separate: `deploy/r2-gc-blobs.py` unions `blobs.json`
 from retained metadata generations and deletes unreferenced `sha256/*` from
 the blob bucket, with the existing `--dry-run` preview. Generation GC and
@@ -212,5 +212,5 @@ Catalog schema 4 and `registry:"oci"`; `myoci` CLI and flags; the `oci` and
 `oci-blobs` hosts, `stuff-oci` and `stuff-oci-blobs` buckets, Worker bindings
 (`OCI`, `OCI_BLOBS`, `STUFF_OCI_HOST`, `STUFF_OCI_PUSH_TOKEN`,
 `STUFF_OCI_PUSH_SECRET`, `STUFF_OCI_WRITER_ORIGIN`,
-`STUFF_OCI_BLOB_ORIGIN`); `deploy/publish oci`; the `stuff-oci` and `myoci`
+`STUFF_OCI_BLOB_ORIGIN`); `stuff publish oci`; the `stuff-oci` and `myoci`
 public APIs; and the writer's HTTP surface with its HMAC session token.

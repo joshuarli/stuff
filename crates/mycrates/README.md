@@ -147,7 +147,7 @@ Start the temporary write service for a publication:
 mycrates serve-publish --bind 127.0.0.1:8080 --token-file ~/.local/state/stuff/mycrates/token
 ```
 
-`serve-publish` binds loopback addresses only; it refuses any other host. It is the whole local registry for the duration of a publication: besides the write API it serves `current/`, `generations/`, and `blobs/` from the site directory, so Cargo can read the sparse index and a dependent native crate can download its dependency during `cargo publish`. The public registry is the static site on R2 behind the Worker. The server accepts up to `limits.serve_connections` connections, admits up to `limits.serve_writes` authenticated writes at once, and bounds each upload by `limits.upload_timeout_secs`. `deploy/publish-mycrates.sh` runs it for you.
+`serve-publish` binds loopback addresses only; it refuses any other host. It is the whole local registry for the duration of a publication: besides the write API it serves `current/`, `generations/`, and `blobs/` from the site directory, so Cargo can read the sparse index and a dependent native crate can download its dependency during `cargo publish`. The public registry is the static site on R2 behind the Worker. The server accepts up to `limits.serve_connections` connections, admits up to `limits.serve_writes` authenticated writes at once, and bounds each upload by `limits.upload_timeout_secs`.
 
 Point Cargo at the registry in `~/.cargo/config.toml`. For a publication, use the loopback address; consumers use the public one:
 
