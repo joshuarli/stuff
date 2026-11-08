@@ -43,23 +43,23 @@ pipecheck: ## Prove one registry's publication never touches another's output
 WORKER_DIR ?= crates/stuff-worker
 SEARCH_DIR ?= crates/stuff-catalog
 
-search-bundle: ## Rebuild the inline search script from web/ (needs npm ci in crates/stuff-worker)
+search-bundle: ## Rebuild the inline search script from web/ (needs pnpm install --frozen-lockfile in crates/stuff-worker)
 	cd $(WORKER_DIR) && node_modules/.bin/vite build --config vite.search.config.ts
 
 test-search: ## Run the package search tests
 	node --test $(SEARCH_DIR)/web/search.test.ts
 
 worker-build: ## Compile the worker wasm glue into crates/stuff-worker/build
-	cd $(WORKER_DIR) && npm run build:wasm
+	cd $(WORKER_DIR) && pnpm run build:wasm
 
 worker-check: ## Validate the worker build and deploy plan without credentials
-	cd $(WORKER_DIR) && npm run build && cf deploy --prebuilt --dry-run
+	cd $(WORKER_DIR) && pnpm run build && cf deploy --prebuilt --dry-run
 
 worker-bundle: ## Build the Cloudflare worker bundle once for test and deploy
-	cd $(WORKER_DIR) && npm run build
+	cd $(WORKER_DIR) && pnpm run build
 
 worker-test: worker-bundle ## Exercise the worker bundle under the workerd runtime
-	cd $(WORKER_DIR) && npm run test:runtime
+	cd $(WORKER_DIR) && pnpm run test:runtime
 
 worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 	cd $(WORKER_DIR) && cf deploy --prebuilt --mode production

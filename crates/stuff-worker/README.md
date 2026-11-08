@@ -11,7 +11,7 @@ The thin fetch handler `entry.ts` initializes the compiled wasm once
 
 ## Build
 
-`npm run build` (`scripts/build.mjs`) produces the Cloudflare Build Output
+`pnpm run build` (`scripts/build.mjs`) produces the Cloudflare Build Output
 Specification under `.cloudflare/output/v0`: the wasm module and bindgen glue
 from `scripts/build-wasm.sh`, `entry.ts` compiled by `tsrs` to
 `bundle/entry.js`, and the `worker.config.json` manifest that names the
@@ -23,8 +23,8 @@ sh scripts/build-wasm.sh     # cargo build + wasm-bindgen + wasm-opt
 tsrs -p tsconfig.json --fast # type-check and compile entry.ts into the bundle
 ```
 
-`npm run build:wasm` runs only the wasm step. `npm run typecheck` checks
-the TypeScript without emitting. `npm run dev` starts the Vite dev server that
+`pnpm run build:wasm` runs only the wasm step. `pnpm run typecheck` checks
+the TypeScript without emitting. `pnpm run dev` starts the Vite dev server that
 `cf dev` discovers through `@cloudflare/vite-plugin`. `cf deploy --prebuilt`
 uploads the spec as-is without rebuilding it. Validate without credentials
 with `cf deploy --prebuilt --dry-run`.
@@ -57,9 +57,9 @@ integration test harness. The tests seed local R2 bindings and use the built
 Worker's compatibility date. They cover cold-HEAD caching, root links, pinned
 artifact aliases, OCI reads, and OCI writes.
 
-`npm run check` builds the Worker, runs Oxlint and the TypeScript checker, and
-runs the Worker tests. It requires Node.js 26.12.1 or newer.
+`pnpm run check` builds the Worker, runs Oxlint and the TypeScript checker, and
+runs the Worker tests. It requires Node.js 26.13.0 or newer.
 
-CI runs `npm run build` and then `npm run test:runtime` in the same build
+CI runs `pnpm run build` and then `pnpm run test:runtime` in the same build
 directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that
 only `scripts/build.mjs` generates, so the wasm step must run before `tsrs`.
