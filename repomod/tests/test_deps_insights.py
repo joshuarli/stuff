@@ -421,6 +421,36 @@ def test_split_target_prefers_comparable_versions_then_the_most_common_ref(tmp_p
     }
 
 
+def test_splits_merge_docker_digests_and_show_untagged_as_latest(tmp_path: Path) -> None:
+    def alpine(tag: str | None, digest: str | None = None) -> Instance:
+        qualifiers = {"digest": digest} if digest is not None else None
+        from repomod.dependencies.model import purl as purl_of
+
+        component = purl_of(Ecosystem.DOCKER, "alpine", qualifiers=qualifiers)
+        value = purl_of(Ecosystem.DOCKER, "alpine", tag, qualifiers=qualifiers)
+        return Instance(value + "#", value, component, tag, SourceKind.IMAGE)
+
+    graph = build_graph(
+        tmp_path,
+        [
+            _app("acme/one", [alpine("3.24.1", "sha256:aaa")]),
+            _app("acme/two", [alpine("3.24.2", "sha256:aaa")]),
+            _app("acme/three", [alpine(None)]),
+        ],
+    )
+    [row] = insights.splits(insights.declarations(graph), {}, pins={})
+    assert row.component.name == "alpine"
+    assert row.component.ecosystem is Ecosystem.DOCKER
+    assert sorted(use.version for use in row.uses) == [
+        "3.24.1@sha256:aaa",
+        "3.24.2@sha256:aaa",
+        "latest",
+    ]
+    assert row.basis is insights.TargetBasis.MOST_COMMON
+    assert row.target == "3.24.2@sha256:aaa"
+    assert sorted(row.off_target) == ["acme/one", "acme/three"]
+
+
 def test_approved_action_pins_set_the_alignment_target(tmp_path: Path) -> None:
     approved = "3d3c42e5aac5ba805825da76410c181273ba90b1"
 

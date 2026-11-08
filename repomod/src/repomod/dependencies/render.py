@@ -606,11 +606,11 @@ def _split_table(rows: Sequence[insights.Split]) -> str:
     for row in rows:
         uses = "".join(
             f'<div class="{"on-target" if use.version == row.target else ""}">'
-            f'<span class="mono">{_e(use.version)}</span> {_repo_list(use.repositories)}</div>'
+            f'<span class="mono">{_e(_short_ref(use.version))}</span> {_repo_list(use.repositories)}</div>'
             for use in row.uses
         )
         target = (
-            f'<span class="mono">{_e(row.target)}</span> '
+            f'<span class="mono">{_e(_short_ref(row.target))}</span> '
             f'<span class="sub">{_e(row.basis.value)}</span>'
         )
         body.append(
@@ -622,6 +622,13 @@ def _split_table(rows: Sequence[insights.Split]) -> str:
         )
     body.append("</tbody></table></div>")
     return "".join(body)
+
+
+def _short_ref(version: str) -> str:
+    if "@sha256:" in version:
+        tag, digest = version.split("@sha256:", 1)
+        return f"{tag}@sha256:{digest[:12]}…"
+    return version
 
 
 def _choice_options(use: insights.RoleUse, repository: str) -> tuple[str, ...]:
@@ -744,7 +751,9 @@ def _alignment(site: _Site) -> str:
             '<p class="sub">Packages declared directly by two or more repositories at different '
             "versions. The target is the registry's latest release when known, otherwise the "
             "newest version in use, or the most common ref when versions are tags or commits. "
-            "Alpine packages follow their base image and are left out.</p>",
+            "Docker images are compared by tag and digest combined; a bare image name means "
+            "the implicit <span class=\"mono\">latest</span>. Alpine (apk) packages follow "
+            "their base image and are left out.</p>",
             _split_table(site.splits),
         ]
     )
@@ -1102,9 +1111,20 @@ def _eco_hubs(
             if instance.component == purl
             for repository in site.graph.instance_repositories.get(instance.id, ())
         }
+        if component.ecosystem is Ecosystem.DOCKER:
+            tags = sorted(
+                {
+                    (instance.version or "latest")
+                    for instance in site.graph.instances.values()
+                    if instance.component == purl
+                }
+            )
+            label = f"{component.display_name}@{','.join(tags)}"
+        else:
+            label = component.display_name
         rows.append(
             (
-                component.display_name,
+                label,
                 len(all_repos),
                 "#1f5fa8",
                 f"packages.html#pkg={_fragment(purl)}",

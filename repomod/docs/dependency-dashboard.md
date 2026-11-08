@@ -30,7 +30,9 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
   upper bounds.
 - **Alignment** — packages declared directly by two or more repositories at different
   versions, with a target and the repositories off it. The target is the latest release,
-  else the newest version in use, else the most common ref for tags and commits. Alpine packages follow their base image and are left out.
+  else the newest version in use, else the most common ref for tags and commits. Docker
+  images are compared by tag and digest combined (a bare name counts as `latest`);
+  Alpine (apk) packages follow their base image and are left out.
 - **Choices** — one card per contested role with an adoption bar (preferred in green,
   other options in amber, banned in red) and repository lists behind expanders; settled
   roles become pills. The how-it-works explanation sits behind a disclosure.

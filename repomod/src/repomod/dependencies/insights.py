@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import urllib.parse
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -173,30 +174,38 @@ class Scorecard:
 
 
 def declarations(graph: Graph) -> tuple[Declaration, ...]:
-    found: dict[tuple[str, str], tuple[Instance, Component, set[Scope]]] = {}
+    found: dict[tuple[str, str], tuple[Instance, Component, str, set[Scope]]] = {}
     for repository, data in graph.repositories.items():
         projects = {project.id for project in data.projects}
         for edge in data.edges:
             if edge.relation is not Relation.DIRECT or edge.from_id not in projects:
                 continue
             instance = graph.instances.get(edge.to_id)
-            if (
-                instance is None
-                or instance.version is None
-                or instance.source_kind in _LOCAL_SOURCES
-            ):
+            if instance is None or instance.source_kind in _LOCAL_SOURCES:
+                continue
+            version = _declaration_version(instance)
+            if version is None:
                 continue
             component = graph.components.get(instance.component)
             if component is None:
                 continue
-            entry = found.setdefault((repository, instance.id), (instance, component, set()))
-            entry[2].add(edge.scope)
+            entry = found.setdefault((repository, instance.id), (instance, component, version, set()))
+            entry[3].add(edge.scope)
     return tuple(
-        Declaration(repository, instance, component, cast(str, instance.version), frozenset(scopes))
-        for (repository, _), (instance, component, scopes) in sorted(
+        Declaration(repository, instance, component, version, frozenset(scopes))
+        for (repository, _), (instance, component, version, scopes) in sorted(
             found.items(), key=lambda item: (item[0][0].casefold(), item[0][1])
         )
     )
+
+
+def _declaration_version(instance: Instance) -> str | None:
+    component_ecosystem = instance.purl.removeprefix("pkg:").split("/", 1)[0]
+    if component_ecosystem == Ecosystem.DOCKER.value:
+        tag = instance.version or "latest"
+        digest = _purl_digest(instance.purl)
+        return f"{tag}@{digest}" if digest is not None else tag
+    return instance.version
 
 
 def forks(graph: Graph) -> tuple[str, ...]:
@@ -369,8 +378,19 @@ def splits(
     for declaration in found:
         if declaration.component.ecosystem in _UNALIGNED_ECOSYSTEMS:
             continue
-        purl = declaration.component.purl
-        components[purl] = declaration.component
+        if declaration.component.ecosystem is Ecosystem.DOCKER:
+            name = declaration.component.name.split("?", 1)[0]
+            purl = f"pkg:docker/{name}"
+        else:
+            purl = declaration.component.purl
+        if purl not in components:
+            clean = declaration.component.name.split("?", 1)[0]
+            components[purl] = Component(
+                purl,
+                declaration.component.ecosystem,
+                clean,
+                declaration.component.display_name.split("?", 1)[0],
+            )
         versions[purl][declaration.version].add(declaration.repository)
         latest = _latest(enrichment, declaration.instance)
         if latest is not None:
@@ -512,11 +532,28 @@ def _advisories(entry: Mapping[str, object] | None) -> tuple[str, ...]:
 def _fallback_target(
     component: Component, uses: tuple[VersionUse, ...]
 ) -> tuple[str, TargetBasis]:
+    if component.ecosystem is Ecosystem.DOCKER:
+        floating = {"latest", "edge", "master", "main", "stable", "current"}
+        pinned = [use for use in uses if use.version.split("@", 1)[0] not in floating]
+        pool = pinned or list(uses)
+        common = max(pool, key=lambda use: (len(use.repositories), use.version))
+        return common.version, TargetBasis.MOST_COMMON
     comparable = [use for use in uses if release(component.ecosystem, use.version) is not None]
     if comparable:
         return comparable[0].version, TargetBasis.NEWEST_IN_USE
     common = max(uses, key=lambda use: (len(use.repositories), use.version))
     return common.version, TargetBasis.MOST_COMMON
+
+
+def _purl_digest(purl: str) -> str | None:
+    if "?" not in purl:
+        return None
+    query = purl.partition("?")[2]
+    for pair in query.split("&"):
+        key, _, value = pair.partition("=")
+        if key == "digest":
+            return urllib.parse.unquote(value) if value else None
+    return None
 
 
 def _closure(start: str, children: Mapping[str, set[str]]) -> set[str]:
