@@ -15,7 +15,7 @@ from repomod.catalog import load_catalog
 from repomod.cmd import common as cmd_common
 from repomod.cmd.fix import _fix
 from repomod.cmd.lint import _lint
-from repomod.cmd.status import _state_color, _status, status_text
+from repomod.cmd.status import _state_color, _status, status_items, status_text
 from repomod.fix import FixOutcome
 from repomod.policy import (
     filter_repositories,
@@ -38,6 +38,9 @@ from repomod.types import (
     RemoteRepository,
     RepoId,
     Repository,
+    StatusArea,
+    StatusItem,
+    StatusLevel,
     TagPredicate,
     WorkflowStatus,
 )
@@ -1724,6 +1727,67 @@ def test_status_text_renders_release_line(capsys) -> None:
     assert "acme/current" not in out
     assert "acme/plain" not in out
     assert out.count("  release ") == 2
+
+
+def test_status_items_report_what_status_text_surfaces() -> None:
+    row: dict[str, object] = {
+        "repository": "acme/demo",
+        "local": "dirty (2)",
+        "open_prs": [
+            {
+                "number": 4,
+                "url": "https://github.com/acme/demo/pull/4",
+                "mergeable": "CONFLICTING",
+                "merge_state": "DIRTY",
+            },
+            {
+                "number": 5,
+                "url": "https://github.com/acme/demo/pull/5",
+                "mergeable": "MERGEABLE",
+                "merge_state": "CLEAN",
+            },
+        ],
+        "release": {
+            "tag": "v1",
+            "url": "https://github.com/acme/demo/releases/tag/v1",
+            "state": "behind",
+            "commits_since": 3,
+            "error": None,
+        },
+    }
+    workflows = (
+        WorkflowStatus("build", "failed", "https://github.com/acme/demo/actions/runs/1"),
+        WorkflowStatus("lint", "passed"),
+    )
+    ci = CiResult("acme/demo", "main", "a" * 40, "failed", (), workflows=workflows)
+
+    assert status_items(row, ci) == (
+        StatusItem(StatusArea.LOCAL, "dirty (2)", StatusLevel.ATTENTION),
+        StatusItem(
+            StatusArea.WORKFLOWS,
+            "FAIL build",
+            StatusLevel.FAILING,
+            "https://github.com/acme/demo/actions/runs/1",
+        ),
+        StatusItem(
+            StatusArea.PULL_REQUESTS,
+            "#4 CONFLICTING·DIRTY",
+            StatusLevel.FAILING,
+            "https://github.com/acme/demo/pull/4",
+        ),
+        StatusItem(
+            StatusArea.RELEASE,
+            "v1 · 3 since",
+            StatusLevel.ATTENTION,
+            "https://github.com/acme/demo/releases/tag/v1",
+        ),
+    )
+
+
+def test_status_items_are_empty_for_a_repository_status_text_hides() -> None:
+    row: dict[str, object] = {"repository": "acme/demo", "local": "clean"}
+    ci = CiResult("acme/demo", "main", "a" * 40, "passed", (), workflows=())
+    assert status_items(row, ci) == ()
 
 
 def _fork_remote(name: str = "acme/demo") -> RemoteRepository:

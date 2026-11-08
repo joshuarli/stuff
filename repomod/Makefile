@@ -11,7 +11,7 @@ PORT ?= 8765
 PNPM ?= pnpm dlx pnpm@12.18.0
 
 deps:
-	@uv run repomod deps render
+	@uv run repomod deps render --status
 	@exec srv -p $(PORT) .work/dependencies/dashboard
 
 dashboard-ts:

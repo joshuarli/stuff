@@ -187,6 +187,11 @@ def _parser() -> argparse.ArgumentParser:
         "--output",
         help="output directory (default .work/dependencies/dashboard)",
     )
+    render.add_argument(
+        "--status",
+        action="store_true",
+        help="also read live CI, release, upstream, pull request, and checkout status",
+    )
 
     topics = commands.add_parser("topics", help="compare or replace GitHub repository topics")
     topic_commands = topics.add_subparsers(dest="operation", required=True)

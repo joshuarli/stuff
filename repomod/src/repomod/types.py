@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Literal, override
 
@@ -204,6 +205,30 @@ class WorkflowStatus:
     state: CiState
     url: str | None = None
     path: str | None = None
+
+
+class StatusArea(Enum):
+    LOCAL = "local"
+    CI = "CI"
+    WORKFLOWS = "workflows"
+    PULL_REQUESTS = "PRs"
+    UPSTREAM = "upstream"
+    RELEASE = "release"
+
+
+class StatusLevel(Enum):
+    OK = "32"
+    ATTENTION = "33"
+    FAILING = "31"
+    MUTED = "90"
+
+
+@dataclass(frozen=True, slots=True)
+class StatusItem:
+    area: StatusArea
+    label: str
+    level: StatusLevel
+    url: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

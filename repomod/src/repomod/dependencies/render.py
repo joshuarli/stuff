@@ -31,12 +31,20 @@ from repomod.dependencies.ui import Bar, Column, Line, Mark, NavGroup, NavLink, 
 from repomod.dependencies.ui import escape as _e
 from repomod.rules import actions as actions_rule
 from repomod.rules.python_standard import PYTHON_TOOL_NAMES
+from repomod.types import StatusItem, StatusLevel
 
 MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
 _LIST_ROWS = 25
 _PREVIEW_ROWS = 8
 _SHOWN_REPOSITORIES = 4
+_STATUS_CARDS = 12
+_STATUS_TONES = {
+    StatusLevel.OK: Tone.OK,
+    StatusLevel.ATTENTION: Tone.WARN,
+    StatusLevel.FAILING: Tone.BAD,
+    StatusLevel.MUTED: Tone.NEUTRAL,
+}
 _CLEAN_TIER = "Clean"
 _TIERS = (
     ("Vulnerable", "Security issues first"),
@@ -80,6 +88,7 @@ class _Site:
     scorecards: tuple[insights.Scorecard, ...]
     forks: tuple[str, ...]
     actions: tuple[triage.Action, ...]
+    status: Mapping[str, Sequence[StatusItem]] | None
 
 
 def render(
@@ -89,8 +98,9 @@ def render(
     *,
     root: Path | None = None,
     diff_value: diff_module.Diff | None = None,
+    status: Mapping[str, Sequence[StatusItem]] | None = None,
 ) -> Dashboard:
-    site = _site(inventory, graph, root, diff_value)
+    site = _site(inventory, graph, root, diff_value, status)
     if output.is_symlink():
         raise ValueError(f"refusing to write a dashboard through a symlink: {output}")
     if output.exists():
@@ -131,6 +141,7 @@ def _site(
     graph: Graph,
     root: Path | None,
     diff_value: diff_module.Diff | None,
+    status: Mapping[str, Sequence[StatusItem]] | None,
 ) -> _Site:
     cache = enrich.load_cache()
     report_value = analysis.report(graph)
@@ -187,6 +198,7 @@ def _site(
         ),
         forks,
         _triage(graph, vulnerable, outdated, forks),
+        status,
     )
 
 
@@ -1033,9 +1045,68 @@ def _repositories(site: _Site) -> str:
                 f"{_owned_count(site)} repositories · {len(tiers[_CLEAN_TIER])} clean · "
                 f"{len(site.forks)} forks · {_enrichment_stamp(site)}",
             ),
+            _status_section(site),
             ui.legend(_WORK_LEGEND),
             ui.scope("".join(groups), search="Filter repositories"),
         )
+    )
+
+
+def _status_section(site: _Site) -> str:
+    if site.status is None:
+        return ui.notice(
+            'CI, releases, upstreams, and checkouts are not collected. Run '
+            '<span class="mono">make deps</span> to include them.'
+        )
+    flagged = sorted(((name, items) for name, items in site.status.items() if items), key=_status_rank)
+    if not flagged:
+        return ui.panel("Status", ui.empty_state("Nothing flagged"), flush=True)
+    cards = [
+        ui.card(
+            f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
+            _status_lines(items),
+        )
+        for name, items in flagged
+    ]
+    return ui.scope(
+        ui.group(
+            "Status",
+            ui.card_grid(cards),
+            count=len(cards),
+            note="CI, releases, upstreams, pull request conflicts, and local checkouts",
+            group_id="status",
+        ),
+        limit=_STATUS_CARDS,
+        total=len(cards),
+    )
+
+
+def _status_rank(item: tuple[str, Sequence[StatusItem]]) -> tuple[int, int, str]:
+    name, items = item
+    levels = Counter(entry.level for entry in items)
+    return (-levels[StatusLevel.FAILING], -levels[StatusLevel.ATTENTION], name.casefold())
+
+
+def _status_lines(items: Sequence[StatusItem]) -> str:
+    return ui.lines(
+        [Line(ui.badge(item.area.value, _STATUS_TONES[item.level], dot=True), _status_label(item)) for item in items]
+    )
+
+
+def _status_label(item: StatusItem) -> str:
+    if item.url is None or not item.url.startswith("https://"):
+        return _e(item.label)
+    return f'<a href="{_e(item.url)}">{_e(item.label)}</a>'
+
+
+def _repository_status_panel(site: _Site, name: str) -> str:
+    if site.status is None:
+        return ""
+    items = site.status.get(name, ())
+    return ui.panel(
+        "Status",
+        _status_lines(items) if items else '<p class="zero">nothing flagged</p>',
+        panel_id="status",
     )
 
 
@@ -1357,6 +1428,7 @@ def _repository(site: _Site, name: str) -> str:
                 )
             )
         )
+    body.append(_repository_status_panel(site, name))
     body.append(_todo_panel(site, name))
     if not data.edges:
         body.append(

@@ -1,15 +1,15 @@
 # Dependency dashboard
 
 `repomod deps render` writes a static, offline dashboard. It reads the tracked inventory and
-the local enrichment cache only; it never opens a socket. The default output is
-`.work/dependencies/dashboard/`, which is disposable and not tracked.
+the local enrichment cache only; it never opens a socket unless `--status` asks for live repository
+status. The default output is `.work/dependencies/dashboard/`, which is disposable and not tracked.
 
 ```sh
 uv run repomod deps render
 open file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html
 ```
 
-For a local server, `make deps` renders the dashboard and serves it at
+For a local server, `make deps` renders the dashboard with `--status` and serves it at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
 
 The site has no fetch, CDN, web font, or chart library, and it works from `file://`. Python
@@ -32,9 +32,11 @@ one lookup surface, reached through search.
   this list.
 - **Repositories** groups repositories with work to do as Vulnerable, Breaking upgrades, or
   Maintenance, with bars on one scale. Clean repositories are a count. Forks appear only when
-  they carry vulnerable versions.
+  they carry vulnerable versions. With `--status`, a Status group comes first: one card for each
+  repository, forks included, with whatever `repomod status` flags (CI and workflows, releases,
+  upstreams, pull request conflicts, and local checkout state), most failures first.
 - **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
-  including coverage issues with a link to the file.
+  including coverage issues with a link to the file, and the repository's status with `--status`.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest
   release counts as a clean upgrade only when it is newer than the vulnerable version and has no
   advisories of its own. Forks with vulnerable versions sit in a collapsed panel.

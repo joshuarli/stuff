@@ -20,6 +20,7 @@ from repomod.dependencies.model import (
     Scope,
     SourceKind,
 )
+from repomod.types import StatusArea, StatusItem, StatusLevel
 
 HOSTILE_PURL = "pkg:cargo/evil</script><script>alert(1)</script>"
 
@@ -500,3 +501,64 @@ def test_coverage_shows_fixable_issues_and_only_counts_known_limits(tmp_path: Pa
     assert "upstream" not in main
     assert "weird.lock" not in main
     assert "1 files in formats with no parser" in main
+
+
+def _page_text(result: render.Dashboard, *parts: str) -> str:
+    return result.output.joinpath(*parts).read_text(encoding="utf-8")
+
+
+def test_status_appears_on_repositories_and_the_repository_page(tmp_path: Path) -> None:
+    inventory, built = _fixture(tmp_path)
+    result = render.render(
+        inventory,
+        built,
+        tmp_path / "dashboard",
+        status={
+            "acme/empty": (
+                StatusItem(StatusArea.RELEASE, "v1.2.3 · 7 since", StatusLevel.ATTENTION),
+            ),
+            "acme/broken": (
+                StatusItem(
+                    StatusArea.WORKFLOWS,
+                    "FAIL build",
+                    StatusLevel.FAILING,
+                    "https://github.com/acme/broken/actions/runs/1",
+                ),
+            ),
+            "acme/hostile": (),
+        },
+    )
+    repositories = _page_text(result, "repositories.html")
+    assert repositories.index("FAIL build") < repositories.index("v1.2.3 · 7 since")
+    assert 'href="https://github.com/acme/broken/actions/runs/1"' in repositories
+    assert "not collected" not in repositories
+    assert "FAIL build" in _page_text(result, "repos", "acme", "broken", "index.html")
+    assert "nothing flagged" in _page_text(result, "repos", "acme", "hostile", "index.html")
+
+
+def test_status_labels_and_urls_cannot_inject_markup(tmp_path: Path) -> None:
+    inventory, built = _fixture(tmp_path)
+    result = render.render(
+        inventory,
+        built,
+        tmp_path / "dashboard",
+        status={
+            "acme/empty": (
+                StatusItem(
+                    StatusArea.LOCAL,
+                    "dirty (1) on <script>alert(1)</script>",
+                    StatusLevel.ATTENTION,
+                    "javascript:alert(2)",
+                ),
+            ),
+        },
+    )
+    repositories = _page_text(result, "repositories.html")
+    assert "<script>alert(1)" not in repositories
+    assert "javascript:alert(2)" not in repositories
+
+
+def test_uncollected_status_is_reported_rather_than_shown_as_clean(tmp_path: Path) -> None:
+    result = _render(tmp_path)
+    assert "not collected" in _page_text(result, "repositories.html")
+    assert 'id="status"' not in _page_text(result, "repos", "acme", "empty", "index.html")

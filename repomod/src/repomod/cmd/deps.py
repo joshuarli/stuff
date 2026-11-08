@@ -12,6 +12,7 @@ from repomod.dependencies.model import RepositoryData, RepositoryState
 if TYPE_CHECKING:
     from repomod.dependencies.enrich import EnrichReport
     from repomod.dependencies.graph import Graph, WhyPath, WhyResult
+    from repomod.types import Catalog, Repository, StatusItem
 
 
 def _root() -> Path:
@@ -107,7 +108,8 @@ def _deps(args: argparse.Namespace) -> int:
         from repomod.dependencies import render as render_module
 
         output = _render_output(args.output)
-        result = render_module.render(loaded, built, output, root=_root())
+        status = _repository_status(catalog, repositories, built) if args.status else None
+        result = render_module.render(loaded, built, output, root=_root(), status=status)
         print(
             f"wrote {len(result.pages)} pages to {_display(result.output)} "
             f"({result.bytes} bytes)"
@@ -128,6 +130,24 @@ def _deps(args: argparse.Namespace) -> int:
         for line in analysis.report_text(value):
             print(line)
     return 0
+
+
+def _repository_status(
+    catalog: Catalog, repositories: tuple[Repository, ...], built: Graph
+) -> dict[str, tuple[StatusItem, ...]]:
+    from repomod.cmd import status as status_module
+
+    report = status_module.collect_status(
+        catalog,
+        tuple(repository for repository in repositories if str(repository.id) in built.repositories),
+        {},
+        offline=False,
+        refresh=False,
+    )
+    return {
+        str(row["repository"]): status_module.status_items(row, report.ci[str(row["repository"])])
+        for row in report.rows
+    }
 
 
 def _enrich_dict(value: EnrichReport) -> dict[str, object]:

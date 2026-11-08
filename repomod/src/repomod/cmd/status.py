@@ -6,15 +6,25 @@ import re
 import shutil
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from repomod import github
 from repomod.catalog import CatalogError, repository_path
 from repomod.git import branch_checked_out_time, oldest_unpushed_commit_time, status
-from repomod.types import Catalog, CiResult, GitStatus, Repository, WorkflowStatus
+from repomod.types import (
+    Catalog,
+    CiResult,
+    GitStatus,
+    Repository,
+    StatusArea,
+    StatusItem,
+    StatusLevel,
+    WorkflowStatus,
+)
 
 from . import common
 
@@ -22,6 +32,12 @@ STALE_LOCAL_WORK_DAYS = 7
 _SECONDS_PER_DAY = 86400
 
 _TODO_ITEM = re.compile(r"### [A-Z][A-Z0-9]*-\d+ · P\d+ · .+")
+
+
+@dataclass(frozen=True, slots=True)
+class StatusReport:
+    rows: list[dict[str, object]]
+    ci: dict[str, CiResult]
 
 
 def _age_days(since: int | None, now: float) -> int | None:
@@ -324,16 +340,93 @@ def _workflow_surfaced(workflow: WorkflowStatus) -> bool:
     return workflow.state not in {"passed", "skipped"}
 
 
-def _status_row_visible(row: dict[str, object], ci: CiResult) -> bool:
-    if _local_surfaced(row) or _upstream_surfaced(row) or _has_conflicting_pr(row):
-        return True
-    if _release_surfaced(row):
-        return True
-    if ci.state not in {"passed", "none"}:
-        return True
+def _url(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def status_items(row: dict[str, object], ci: CiResult) -> tuple[StatusItem, ...]:
+    items: list[StatusItem] = []
+    if _local_surfaced(row):
+        local = str(row["local"])
+        color = _local_color(local, row.get("stale_local_work") is True)
+        items.append(StatusItem(StatusArea.LOCAL, local, StatusLevel(color)))
+    failed_workflows = ci.workflows is not None and any(
+        workflow.state == "failed" for workflow in ci.workflows
+    )
+    if ci.state not in {"passed", "none"} and not (ci.state == "failed" and failed_workflows):
+        items.append(StatusItem(StatusArea.CI, _ci_label(ci), StatusLevel(_state_color(ci.state))))
     if ci.workflows is None:
-        return True
-    return any(_workflow_surfaced(workflow) for workflow in ci.workflows)
+        items.append(StatusItem(StatusArea.WORKFLOWS, "unavailable", StatusLevel.ATTENTION))
+    else:
+        items.extend(
+            StatusItem(
+                StatusArea.WORKFLOWS,
+                f"{_workflow_label(workflow.state)} {workflow.name}",
+                StatusLevel(_state_color(workflow.state)),
+                workflow.url,
+            )
+            for workflow in ci.workflows
+            if _workflow_surfaced(workflow)
+        )
+    requests = row.get("open_prs")
+    if isinstance(requests, list):
+        items.extend(
+            StatusItem(
+                StatusArea.PULL_REQUESTS,
+                _pr_label(request),
+                StatusLevel.FAILING,
+                _url(request.get("url")),
+            )
+            for request in requests
+            if isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
+        )
+    upstream: Any = row.get("upstream")
+    if _upstream_surfaced(row):
+        assert isinstance(upstream, dict)
+        label, color = _upstream_label(upstream)
+        items.append(StatusItem(StatusArea.UPSTREAM, label, StatusLevel(color)))
+    release: Any = row.get("release")
+    if _release_surfaced(row):
+        assert isinstance(release, dict)
+        label, color = _release_label(release)
+        items.append(
+            StatusItem(StatusArea.RELEASE, label, StatusLevel(color), _url(release.get("url")))
+        )
+    return tuple(items)
+
+
+def _print_workflows(items: Sequence[StatusItem], width: int) -> None:
+    labelled = [(item.label, item.level.value) for item in items]
+    length = len("  workflows ") + sum(len(label) for label, _ in labelled)
+    length += 3 * max(0, len(labelled) - 1)
+    if length > width:
+        print("  workflows")
+        _print_wrapped_items(labelled, prefix="    ")
+    else:
+        _print_wrapped_items([(f"workflows {labelled[0][0]}", labelled[0][1]), *labelled[1:]])
+
+
+def _print_status_items(items: Sequence[StatusItem], ci: CiResult, width: int) -> None:
+    def of(*areas: StatusArea) -> list[StatusItem]:
+        return [item for item in items if item.area in areas]
+
+    summary = of(StatusArea.LOCAL, StatusArea.CI)
+    if summary:
+        _print_wrapped_items([(f"{item.area.value} {item.label}", item.level.value) for item in summary])
+    if ci.workflows is None:
+        print(f"  workflows {common._paint('unavailable', StatusLevel.ATTENTION.value)}")
+    elif workflows := of(StatusArea.WORKFLOWS):
+        _print_workflows(workflows, width)
+    if requests := of(StatusArea.PULL_REQUESTS):
+        first, *rest = requests
+        _print_wrapped_items(
+            [
+                (f"{first.area.value} {first.label}", first.level.value),
+                *((item.label, item.level.value) for item in rest),
+            ]
+        )
+    for item in of(StatusArea.UPSTREAM, StatusArea.RELEASE):
+        print(f"  {item.area.value} {common._paint(item.label, item.level.value)}")
 
 
 def status_text(
@@ -341,88 +434,27 @@ def status_text(
     ci_by_repository: dict[str, CiResult],
 ) -> None:
     width = max(40, shutil.get_terminal_size((80, 24)).columns)
-    visible_rows = [
-        row
+    surfaced = [
+        (row, items)
         for row in rows
-        if _status_row_visible(row, ci_by_repository[str(row["repository"])])
+        if (items := status_items(row, ci_by_repository[str(row["repository"])]))
     ]
-    for index, row in enumerate(visible_rows):
+    for index, (row, items) in enumerate(surfaced):
         if index:
             print()
         name = str(row["repository"])
-        local = str(row["local"])
-        ci = ci_by_repository[name]
         print(common._paint(name, "36"))
-        items = []
-        if _local_surfaced(row):
-            items.append(
-                (
-                    f"local {local}",
-                    _local_color(local, row.get("stale_local_work") is True),
-                )
-            )
-        failed_workflows = ci.workflows is not None and any(
-            workflow.state == "failed" for workflow in ci.workflows
-        )
-        if ci.state not in {"passed", "none"} and not (
-            ci.state == "failed" and failed_workflows
-        ):
-            items.append((f"CI {_ci_label(ci)}", _state_color(ci.state)))
-        if items:
-            _print_wrapped_items(items)
-
-        if ci.workflows is None:
-            print(f"  workflows {common._paint('unavailable', '33')}")
-        else:
-            workflows = [
-                workflow for workflow in ci.workflows if _workflow_surfaced(workflow)
-            ]
-            if workflows:
-                workflow_items = [
-                    (f"{_workflow_label(workflow.state)} {workflow.name}", _state_color(workflow.state))
-                    for workflow in workflows
-                ]
-                workflow_length = len("  workflows ") + sum(len(item) for item, _ in workflow_items)
-                workflow_length += 3 * max(0, len(workflow_items) - 1)
-                if workflow_length > width:
-                    print("  workflows")
-                    _print_wrapped_items(workflow_items, prefix="    ")
-                else:
-                    _print_wrapped_items(
-                        [(f"workflows {workflow_items[0][0]}", workflow_items[0][1]), *workflow_items[1:]]
-                    )
-
-        prs = row.get("open_prs")
-        conflicting = (
-            [
-                request
-                for request in prs
-                if isinstance(request, dict) and request.get("mergeable") == "CONFLICTING"
-            ]
-            if isinstance(prs, list)
-            else []
-        )
-        if conflicting:
-            pr_items = [(_pr_label(request), "31") for request in conflicting]
-            _print_wrapped_items([(f"PRs {pr_items[0][0]}", pr_items[0][1]), *pr_items[1:]])
-
-        upstream: Any = row.get("upstream")
-        if _upstream_surfaced(row):
-            assert isinstance(upstream, dict)
-            label, color = _upstream_label(upstream)
-            print(f"  upstream {common._paint(label, color)}")
-
-        release: Any = row.get("release")
-        if _release_surfaced(row):
-            assert isinstance(release, dict)
-            label, color = _release_label(release)
-            print(f"  release {common._paint(label, color)}")
+        _print_status_items(items, ci_by_repository[name], width)
 
 
-def _status(args: argparse.Namespace) -> int:
-    catalog = common.default_catalog()
-    repositories = common.select_repositories(catalog, args.repo, args.tag)
-    overrides = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
+def collect_status(
+    catalog: Catalog,
+    repositories: tuple[Repository, ...],
+    overrides: Mapping[str, Path],
+    *,
+    offline: bool,
+    refresh: bool,
+) -> StatusReport:
     with ThreadPoolExecutor(
         max_workers=min(32, max(1, 2 * len(repositories))), thread_name_prefix="repomod-status"
     ) as pool:
@@ -433,19 +465,19 @@ def _status(args: argparse.Namespace) -> int:
             for repository in repositories
         }
         checkouts = {name: future.result() for name, future in checkout_futures.items()}
-    remotes = {} if args.offline else github.remote_metadata(repositories)
+    remotes = {} if offline else github.remote_metadata(repositories)
     with ThreadPoolExecutor(max_workers=4, thread_name_prefix="repomod-status") as pool:
         ci_future = pool.submit(
-            github.ci_status, repositories, remotes, offline=args.offline, refresh=args.refresh
+            github.ci_status, repositories, remotes, offline=offline, refresh=refresh
         )
         releases_future = pool.submit(
-            github.release_status, repositories, remotes, offline=args.offline, refresh=args.refresh
+            github.release_status, repositories, remotes, offline=offline, refresh=refresh
         )
         upstreams_future = pool.submit(
-            github.upstream_status, repositories, remotes, offline=args.offline, refresh=args.refresh
+            github.upstream_status, repositories, remotes, offline=offline, refresh=refresh
         )
         pull_requests_future = (
-            pool.submit(github.open_pull_requests, repositories) if not args.offline else None
+            pool.submit(github.open_pull_requests, repositories) if not offline else None
         )
         ci = ci_future.result()
         releases = releases_future.result()
@@ -525,6 +557,17 @@ def _status(args: argparse.Namespace) -> int:
             "release": _release_row(release),
         }
         rows.append(row)
+    return StatusReport(rows, ci)
+
+
+def _status(args: argparse.Namespace) -> int:
+    catalog = common.default_catalog()
+    repositories = common.select_repositories(catalog, args.repo, args.tag)
+    overrides = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
+    report = collect_status(
+        catalog, repositories, overrides, offline=args.offline, refresh=args.refresh
+    )
+    rows, ci = report.rows, report.ci
     if getattr(args, "dirty", False):
         rows = [row for row in rows if row["dirty"]]
     if args.failed:
