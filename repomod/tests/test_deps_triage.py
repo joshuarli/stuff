@@ -111,7 +111,7 @@ def test_latest_release_with_its_own_advisories_is_not_offered_as_a_fix() -> Non
         ),
         forks=("acme/fork",),
     )
-    assert found[0].change == "2.6.1, 8.6.0, latest 8.6.0 is also vulnerable"
+    assert found[0].change == "2.6.1, latest 8.6.0 is also vulnerable"
     assert found[0].blocked
 
 
