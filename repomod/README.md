@@ -168,8 +168,8 @@ See [dependency inventory](docs/dependency-inventory.md) for the data layout, co
 update flow, and limits. Open the generated dashboard with
 `file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html`; see
 [dependency dashboard](docs/dependency-dashboard.md). The repo-local
-[`audit-dependencies`](.agents/skills/audit-dependencies/SKILL.md) skill walks an investigation
-with `why`, `report`, `diff`, `enrich`, and `deps check`.
+[`upgrade-the-world`](.agents/skills/upgrade-the-world/SKILL.md) skill upgrades every public,
+non-fork repository and loops until CI is green.
 
 ## Push
 

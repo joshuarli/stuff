@@ -2,7 +2,7 @@
 
 repomod keeps a deterministic, read-only inventory of the dependency inputs in every
 catalogued repository. The inventory is tracked in `data/dependencies/v1/`, so `git show`,
-code review, `deps diff`, the dashboard, and the repo-local `audit-dependencies` skill work
+code review, `deps diff`, and the dashboard work
 without a database, a background worker, or a network connection.
 
 `snapshot` and `check` read each checkout's `refs/remotes/origin/HEAD` tree through Git
@@ -103,12 +103,6 @@ inventory and the enrichment cache only. See [the dashboard guide](dependency-da
 uv run repomod deps render
 uv run repomod deps render --output .work/dependencies/dashboard
 ```
-
-### Audit skill
-
-The repo-local `audit-dependencies` skill under `.agents/skills/` walks an investigation with
-`why`, `report`, `diff`, `enrich`, and `deps check`. It is read-only apart from the enrichment
-cache and the dashboard output.
 
 ## Data layout
 
