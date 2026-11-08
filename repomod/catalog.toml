@@ -72,7 +72,7 @@ usr = ["IGNORE", "config"]
 agent-memory = ["IGNORE", "cloudflare", "typescript", "python"]
 gdrive-fuse = ["IGNORE"]
 shck = ["IGNORE", "tool", "rust"]
-
+www = ["IGNORE"]
 [repos."laputa-systems"]
 bbtree = ["IGNORE", "library", "rust", "fork"]
 chromium-build = ["build", "python"]
@@ -125,7 +125,7 @@ oxish = ["fork", "rust", "library"]
 rust-fontconfig = ["IGNORE", "fork"]
 swash = ["IGNORE", "fork"]
 wayland-rs = ["IGNORE", "fork"]
-
+laputa-ui-dashboard = ["library", "typescript"]
 [overrides."laputa-systems/chromium-build"]
 ignore = ["mdtool:R005"]
 ignore_reason = "The macos-native README names Chromium source paths that live in the Chromium checkout."
