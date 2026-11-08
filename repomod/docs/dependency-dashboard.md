@@ -31,10 +31,13 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 - **Alignment** — packages declared directly by two or more repositories at different
   versions, with a target and the repositories off it. The target is the latest release,
   else the newest version in use, else the most common ref for tags and commits. Alpine packages follow their base image and are left out.
-- **Choices** — roles from `dependency-roles.toml`: which option each repository declares,
-  which repositories mix options, and which use something other than the preferred option.
-- **Packages** — search or pick a package. Each view shows identity, versions and sources,
-  repositories, enrichment state, and entry paths with relation, scope, and resolution.
+- **Choices** — one card per contested role with an adoption bar (preferred in green,
+  other options in amber, banned in red) and repository lists behind expanders; settled
+  roles become pills. The how-it-works explanation sits behind a disclosure.
+- **Packages** — ecosystem sections with mix charts (edge mix, scopes, sources), a
+  "most used" horizontal bar chart per ecosystem, and a table with a usage bar per row.
+  A package view adds a consumer map (fan-in SVG, direct vs transitive) for packages in
+  four or more repositories, plus versions, sources, enrichment, and entry paths.
   `packages.html#pkg=pkg:cargo/serde` deep-links to a package.
 - **Changes** — the working inventory against `HEAD~1` of `data/`, or `no baseline` when the
   previous revision has no inventory.

@@ -630,14 +630,14 @@ def _choices_summary(site: _Site) -> str:
         "<th>Deviate from preferred</th><th>Mixed</th>"
         "</tr></thead><tbody>"
     ]
-    for use in contested[:_OVERVIEW_ROWS]:
-        body.append(
-            "<tr>"
-            f'<td><a href="choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a></td>'
-            f"<td>{_e(use.role.preferred or '—')}</td>"
-            f"<td>{_choice_repo_list(use, use.off_preferred, limit=6)}</td>"
-            f"<td>{_choice_repo_list(use, use.overlapping, limit=6)}</td></tr>"
-        )
+    body.extend(
+        "<tr>"
+        f'<td><a href="choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a></td>'
+        f"<td>{_e(use.role.preferred or '—')}</td>"
+        f"<td>{_choice_repo_list(use, use.off_preferred, limit=6)}</td>"
+        f"<td>{_choice_repo_list(use, use.overlapping, limit=6)}</td></tr>"
+        for use in contested[:_OVERVIEW_ROWS]
+    )
     body.append("</tbody></table></div>")
     return "".join(body)
 
@@ -720,79 +720,112 @@ def _alignment(site: _Site) -> str:
 
 
 def _choices(site: _Site) -> str:
+    contested = [
+        use
+        for use in site.roles
+        if use.in_use and (len(use.in_use) > 1 or use.overlapping or use.off_preferred)
+    ]
+    settled = [use for use in site.roles if use.in_use and use not in contested]
+    off_total = sum(len(use.off_preferred) for use in contested)
+    mixed_total = sum(len(use.overlapping) for use in contested)
+    repos_total = len(
+        {repo for use in site.roles for repos in use.options.values() for repo in repos}
+    )
     body = [
         "<h1>Choices</h1>",
-        '<p class="sub">Curated roles from <span class="mono">dependency-roles.toml</span>: '
-        "packages that do the same job. A mixed repository declares more than one option for "
-        "a role; off preferred means it uses an option other than the preferred one. An option "
-        "allowed alongside the preferred one is flagged only when the preferred one is "
-        "missing. Fork repositories are left out.</p>",
+        f'<p class="sub">{len(site.roles)} roles · {len(contested)} contested · '
+        f"{off_total} off preferred · {mixed_total} mixed · {repos_total} repositories</p>",
+        "<details><summary>How this works</summary>"
+        '<p class="sub">Each role names packages that do the same job. Preferred is the '
+        "house choice. Mixed means a repository declares more than one option. Off preferred "
+        "means it lacks the preferred option. Complements may sit alongside it. "
+        "Fork repositories are left out.</p></details>",
     ]
-    settled = []
-    for use in site.roles:
-        if not use.in_use:
-            continue
-        if len(use.in_use) == 1 and not use.off_preferred and not use.excepted:
-            settled.append(use)
-            continue
-        body.append(
-            f'<h2 id="role-{_e(use.role.name)}">{_e(use.role.name)} '
-            f'<span class="sub">{_e(use.role.ecosystem.value)} · preferred '
-            f"{_e(use.role.preferred or 'not chosen')}"
-            + (
-                f" · {_e(', '.join(sorted(use.role.complements)))} allowed alongside it"
-                if use.role.complements
-                else ""
+    if contested:
+        body.append("<h2>Contested</h2>")
+        body.extend(
+            _role_card(use)
+            for use in sorted(
+                contested,
+                key=lambda item: (
+                    -len(item.off_preferred),
+                    -len(item.overlapping),
+                    item.role.name.casefold(),
+                ),
             )
-            + (
-                f" · audit bans {_e(', '.join(sorted(use.role.bans)))}"
-                if use.role.bans
-                else ""
-            )
-            + "</span></h2>"
         )
-        body.append(
-            '<div class="scroll"><table><thead><tr><th>Option</th><th class="num">Repos</th>'
-            "<th>Repositories</th></tr></thead><tbody>"
-        )
-        for option in use.in_use:
-            repositories = use.options[option]
-            preferred = option == use.role.preferred
-            body.append(
-                f'<tr class="{"on-target" if preferred else ""}"><td class="mono">{_e(option)}</td>'
-                f'<td class="num">{len(repositories)}</td>'
-                f"<td>{_repo_list(repositories, limit=12)}</td></tr>"
-            )
-        body.append("</tbody></table></div>")
-        if use.overlapping:
-            body.append(
-                f'<p class="sub risk">mixed: {_choice_repo_list(use, use.overlapping, limit=12)}</p>'
-            )
-        if use.off_preferred:
-            body.append(
-                f'<p class="sub risk">deviate from preferred: {_choice_repo_list(use, use.off_preferred, limit=12)}</p>'
-            )
-        if use.excepted:
-            body.append(
-                '<p class="sub">accepted exceptions:</p><ul>'
-                + "".join(
-                    f"<li>{_repo_link(repository, '')} <span class=\"sub\">{_e(reason)}</span></li>"
-                    for repository, reason in use.excepted
-                )
-                + "</ul>"
-            )
     if settled:
         body.append("<h2>Settled</h2>")
         body.append(
-            "<ul>"
+            '<div class="settled-grid">'
             + "".join(
-                f"<li>{_e(use.role.name)}: <span class=\"mono\">{_e(use.in_use[0])}</span> "
-                f'<span class="sub">{len(use.options[use.in_use[0]])} repositories</span></li>'
-                for use in settled
+                f'<span class="pillok">{_e(use.role.name)} <span class="mono">{_e(use.in_use[0])}</span> '
+                f'<span class="sub">{len(use.options[use.in_use[0]])} repos</span></span>'
+                for use in sorted(settled, key=lambda item: item.role.name.casefold())
             )
-            + "</ul>"
+            + "</div>"
         )
+    if not contested and not settled:
+        body.append('<p class="zero">no roles in use</p>')
     return "\n".join(body)
+
+
+def _role_card(use: insights.RoleUse) -> str:
+    preferred = use.role.preferred
+    options = list(use.in_use)
+    options.sort(key=lambda option: -len(use.options[option]))
+    total = max(1, sum(len(use.options[option]) for option in options))
+    pills = ""
+    if use.overlapping:
+        pills += f'<span class="pill risk">{len(use.overlapping)} mixed</span> '
+    if use.off_preferred:
+        pills += f'<span class="pill risk">{len(use.off_preferred)} off preferred</span> '
+    if preferred is None:
+        pills += '<span class="pill">no preferred</span> '
+    meta = ""
+    if use.role.complements:
+        meta += f'<span class="pill">+ {_e(", ".join(sorted(use.role.complements)))} alongside</span> '
+    if use.role.bans:
+        meta += f'<span class="pill risk">banned {_e(", ".join(sorted(use.role.bans)))}</span> '
+    parts = [
+        f'<section class="role-card" id="role-{_e(use.role.name)}">',
+        f'<div class="role-head"><span class="role-name">{_e(use.role.name)}</span>'
+        f'<span class="pill">{_e(use.role.ecosystem.value)}</span>{pills}'
+        f'<span class="sub">preferred <span class="mono">{_e(preferred or "—")}</span>{meta}</span></div>',
+        '<div class="adopt">',
+    ]
+    for option in options:
+        count = len(use.options[option])
+        color = "#1d6b3a" if option == preferred else "#b04a6d" if option in use.role.bans else "#b45309"
+        pct = count / total * 100
+        repos = use.options[option]
+        parts.append(
+            f'<div class="adopt-row"><span class="adopt-name mono">{_e(option)}</span>'
+            f'<span class="adopt-bar"><span style="width:{pct:.1f}%;background:{color}"></span></span>'
+            f'<span class="adopt-num">{count} repos</span>'
+            f'<details><summary>{len(repos)} repos</summary>{_repo_list(repos, limit=12)}</details></div>'
+        )
+    parts.append("</div>")
+    if use.off_preferred:
+        parts.append(
+            f'<p class="sub risk">deviate from preferred: {_choice_repo_list(use, use.off_preferred, limit=12)}</p>'
+        )
+    if use.overlapping:
+        parts.append(
+            f'<p class="sub risk">mixed: {_choice_repo_list(use, use.overlapping, limit=12)}</p>'
+        )
+    if use.excepted:
+        parts.append(
+            "<details><summary>accepted exceptions</summary><ul>"
+            + "".join(
+                f"<li>{_repo_link(repository, '')} "
+                f'<span class="sub">{_e(reason)}</span></li>'
+                for repository, reason in use.excepted
+            )
+            + "</ul></details>"
+        )
+    parts.append("</section>")
+    return "\n".join(parts)
 
 
 def _ecosystem_table(composition: Mapping[str, Any]) -> str:
@@ -858,35 +891,315 @@ def _risk_table(site: _Site) -> str:
         ) + "</p>")
     return "".join(out)
 
-def _packages(site: _Site) -> str:
-    body = ["<h1>Packages</h1>", '<div id="package-index">']
-    body.append(
-        "<p class=\"sub\">Pick a package by search or from the list. "
-        "Each section shows identity, versions, sources, consumers, entry paths, "
-        "and enrichment state.</p>"
+_ECO_COLORS = {
+    Ecosystem.CARGO: "#1f5fa8",
+    Ecosystem.PYPI: "#2c6e49",
+    Ecosystem.NPM: "#8a5a00",
+    Ecosystem.GOLANG: "#00707c",
+    Ecosystem.SWIFT: "#5b4ab0",
+    Ecosystem.GITHUB: "#6b7280",
+    Ecosystem.DOCKER: "#b04a6d",
+    Ecosystem.APK: "#a11d1d",
+    Ecosystem.GENERIC: "#8a8f96",
+}
+_TOP_HUBS = 12
+_FAN_IN_REPOS = 8
+_HUB_BAR_MAX = 280
+_ECO_CHART_W = 640
+_ECO_CHART_LABEL_W = 190
+
+
+def _stacked_svg(
+    parts: list[tuple[str, int, str]], width: int = _ECO_CHART_W, height: int = 22
+) -> str:
+    total = sum(count for _label, count, _color in parts)
+    if total <= 0:
+        return '<p class="zero">no edges</p>'
+    x = 0.0
+    segments = []
+    for _label, count, color in parts:
+        w = width * count / total
+        segments.append(
+            f'<rect x="{x:.1f}" y="0" width="{max(1.0, w):.1f}" height="{height}" fill="{_e(color)}" />'
+        )
+        x += w
+    legend = "".join(
+        f'<span class="legend-item"><span class="swatch" style="background:{_e(color)}"></span>'
+        f"{_e(label)} <span class=\"sub\">{count}</span></span>"
+        for label, count, color in parts
     )
-    body.append(
-        '<div class="scroll"><table><thead><tr><th>Package</th><th>Ecosystem</th>'
-        '<th>Versions</th><th class="num">Direct repositories</th></tr></thead><tbody>'
+    return (
+        f'<svg class="chart stacked" viewBox="0 0 {width} {height}" '
+        f'width="100%" height="{height}" role="img" aria-label="edge mix">{ "".join(segments) }</svg>'
+        f'<div class="legend">{legend}</div>'
     )
+
+
+def _hbar_svg(
+    rows: list[tuple[str, int, str, str | None]],
+    width: int = _ECO_CHART_W,
+    label_w: int = _ECO_CHART_LABEL_W,
+    value_w: int = 56,
+    row_h: int = 22,
+) -> str:
+    if not rows:
+        return '<p class="zero">no consumers</p>'
+    height = max(1, len(rows)) * row_h + 4
+    bar_w = width - label_w - value_w - 12
+    widest = max(value for _label, value, _color, _href in rows)
+    if widest <= 0:
+        widest = 1
+    parts = []
+    for index, (label, value, color, href) in enumerate(rows):
+        y = 4 + index * row_h
+        bw = max(1.0, bar_w * value / widest) if value else 1.0
+        text = _e(label)
+        value_text = _e(f"{value}")
+        if href is not None:
+            inner = (
+                f'<text x="{label_w - 6}" y="{y + 15}" text-anchor="end" class="svg-label">'
+                f"{text}</text>"
+                f'<rect x="{label_w}" y="{y + 3}" width="{bw:.1f}" height="13" fill="{_e(color)}" />'
+                f'<text x="{label_w + bw + 6:.1f}" y="{y + 15}" class="svg-value">{value_text}</text>'
+            )
+            parts.append(f'<a href="{_e(href)}">{inner}</a>')
+        else:
+            parts.append(
+                f'<text x="{label_w - 6}" y="{y + 15}" text-anchor="end" class="svg-label">{text}</text>'
+                f'<rect x="{label_w}" y="{y + 3}" width="{bw:.1f}" height="13" fill="{_e(color)}" />'
+                f'<text x="{label_w + bw + 6:.1f}" y="{y + 15}" class="svg-value">{value_text}</text>'
+            )
+    return (
+        f'<svg class="chart hbar" viewBox="0 0 {width} {height}" width="100%" '
+        f'height="{height}" role="img">{"".join(parts)}</svg>'
+    )
+
+
+def _fan_in_svg(
+    site: _Site, purl: str, consumers: list[tuple[str, Edge]]
+) -> str:
+    if not consumers:
+        return ""
+    unique: dict[str, bool] = {}
+    for repository, edge in consumers:
+        if repository not in unique:
+            unique[repository] = edge.relation is Relation.DIRECT
+    repos = list(unique.items())[:_FAN_IN_REPOS]
+    width = _ECO_CHART_W
+    label_w = 180
+    repo_x = width - 220
+    middle_y = (len(repos) + 1) * 13
+    height = max(44, len(repos) * 26 + 8)
+    middle_y = height / 2
+    lines = []
+    for index, (repository, direct) in enumerate(repos):
+        y = 14 + index * 26
+        color = "#1f5fa8" if direct else "#8a8f96"
+        short = repository.rsplit("/", 1)[-1]
+        lines.append(
+            f'<path d="M {label_w} {middle_y:.0f} C {label_w + 70:.0f} {middle_y:.0f}, '
+            f'{repo_x - 70} {y}, {repo_x} {y}" fill="none" stroke="{color}" stroke-width="1.2" opacity="0.85" />'
+        )
+        lines.append(
+            f'<text x="{repo_x + 6}" y="{y + 4}" class="svg-label">{_e(short)}</text>'
+        )
+    component = site.graph.components[purl]
+    label = _e(component.display_name)
+    return (
+        f'<svg class="chart fanin" viewBox="0 0 {width} {height}" width="100%" '
+        f'height="{height}" role="img" aria-label="consumer map">{"".join(lines)}'
+        f'<rect x="{label_w - 110}" y="{middle_y - 13:.0f}" width="110" height="26" rx="4"'
+        f' fill="#1f5fa8" />'
+        f'<text x="{label_w - 55}" y="{middle_y + 4:.0f}" text-anchor="middle"'
+        f' style="fill:#fff;font:12px var(--mono)">{label}</text></svg>'
+        f'<p class="sub"><span class="swatch" style="background:#1f5fa8"></span> direct '
+        f'<span class="swatch" style="background:#8a8f96"></span> transitive'
+        f"{' · ' + str(len(unique)) + ' repositories' if len(unique) > len(repos) else ''}</p>"
+    )
+
+
+def _ecosystem_groups(site: _Site) -> dict[Ecosystem, list[str]]:
+    groups: dict[Ecosystem, list[str]] = {}
     for purl in sorted(site.graph.components, key=str.casefold):
         component = site.graph.components[purl]
-        versions = sorted(
-            {
-                instance.version
-                for instance in site.graph.instances.values()
-                if instance.component == purl and instance.version is not None
-            },
-            key=lambda item: _version_sort_key(component.ecosystem, item),
+        groups.setdefault(component.ecosystem, []).append(purl)
+    return groups
+
+
+def _eco_edge_counts(site: _Site) -> dict[Ecosystem, Counter[str]]:
+    counts: dict[Ecosystem, Counter[str]] = {}
+    for item in site.graph.edges:
+        instance = site.graph.instances.get(item.edge.to_id)
+        if instance is None:
+            continue
+        component = site.graph.components.get(instance.component)
+        if component is None:
+            continue
+        bucket = counts.setdefault(component.ecosystem, Counter())
+        bucket["edges"] += 1
+        bucket[item.edge.relation.value] += 1
+        bucket[f"scope:{item.edge.scope.value}"] += 1
+        bucket[f"source:{item.edge.source_kind.value}"] += 1
+    return counts
+
+
+def _eco_overview_svg(site: _Site, groups: dict[Ecosystem, list[str]]) -> str:
+    parts = [
+        (ecosystem.value, len(groups[ecosystem]), _ECO_COLORS.get(ecosystem, "#1f5fa8"))
+        for ecosystem in sorted(groups, key=lambda item: len(groups[item]), reverse=True)
+    ]
+    if not parts:
+        return ""
+    return (
+        "<h2>Ecosystem mix</h2>"
+        + _stacked_svg(parts)
+        + f'<p class="sub">{len(groups)} ecosystems · {sum(len(v) for v in groups.values())} packages</p>'
+    )
+
+
+def _eco_hubs(
+    site: _Site, purls: list[str], limit: int = _TOP_HUBS
+) -> list[tuple[str, int, str, str | None]]:
+    rows = []
+    for purl in purls:
+        component = site.graph.components[purl]
+        direct = len(site.direct_repos.get(purl, frozenset()))
+        all_repos = {
+            repository
+            for instance in site.graph.instances.values()
+            if instance.component == purl
+            for repository in site.graph.instance_repositories.get(instance.id, ())
+        }
+        rows.append(
+            (
+                component.display_name,
+                len(all_repos),
+                _ECO_COLORS.get(component.ecosystem, "#1f5fa8"),
+                f"packages.html#pkg={_fragment(purl)}",
+                direct,
+            )
         )
+    rows.sort(key=lambda item: (-item[1], -item[4], item[0].casefold()))
+    return [(label, value, color, href) for label, value, color, href, _direct in rows[:limit]]
+
+
+def _packages(site: _Site) -> str:
+    groups = _ecosystem_groups(site)
+    edge_counts = _eco_edge_counts(site)
+    body = ["<h1>Packages</h1>"]
+    body.append(
+        f'<p class="sub">{len(site.graph.components)} packages · {len(groups)} ecosystems · '
+        "search <span class=\"mono\">/</span></p>"
+    )
+    body.append('<div id="package-index">')
+    if groups:
+        nav = " ".join(
+            f'<a class="eco-pill" href="#eco-{_e(eco.value)}"'
+            f' style="border-color:{_e(_ECO_COLORS.get(eco, "#1f5fa8"))}">'
+            f"{_e(eco.value)} <span>{len(groups[eco])}</span></a>"
+            for eco in sorted(groups, key=lambda item: len(groups[item]), reverse=True)
+        )
+        body.append(f'<nav class="eco-nav">{nav}</nav>')
+        body.append(_eco_overview_svg(site, groups))
+    for ecosystem in sorted(groups, key=lambda item: len(groups[item]), reverse=True):
+        purls = groups[ecosystem]
+        counts = edge_counts.get(ecosystem, Counter())
+        direct = counts["direct"]
+        transitive = counts["transitive"]
+        color = _ECO_COLORS.get(ecosystem, "#1f5fa8")
         body.append(
-            f'<tr data-row data-href="packages.html#pkg={_fragment(purl)}">'
-            f"<td>{_package_link(purl, '', component.display_name)}</td>"
-            f"<td>{_e(component.ecosystem.value)}</td>"
-            f'<td class="versions">{_e(", ".join(versions))}</td>'
-            f'<td class="num">{len(site.direct_repos.get(purl, frozenset()))}</td></tr>'
+            f'<section class="eco" id="eco-{_e(ecosystem.value)}">'
+            f'<h2><span class="eco-dot" style="background:{_e(color)}"></span>{_e(ecosystem.value)} '
+            f'<span class="sub">{len(purls)} packages · {counts["edges"]} edges</span></h2>'
         )
-    body.append("</tbody></table></div></div>")
+        mix = []
+        if direct:
+            mix.append(("direct", direct, "#1f5fa8"))
+        if transitive:
+            mix.append(("transitive", transitive, "#8a8f96"))
+        if mix:
+            body.append("<h3>Edge mix</h3>" + _stacked_svg(mix))
+        scopes = Counter(
+            {
+                key.split(":", 1)[1]: value
+                for key, value in counts.items()
+                if key.startswith("scope:")
+            }
+        )
+        if scopes:
+            body.append(
+                "<h3>Scopes</h3>"
+                + _stacked_svg(
+                    [
+                        (
+                            label,
+                            value,
+                            "#1f5fa8"
+                            if label == "runtime"
+                            else "#8a5a00"
+                            if label == "dev"
+                            else "#8a8f96",
+                        )
+                        for label, value in scopes.most_common(5)
+                    ]
+                )
+            )
+        sources = Counter(
+            {
+                key.split(":", 1)[1]: value
+                for key, value in counts.items()
+                if key.startswith("source:")
+            }
+        )
+        if sources and len(sources) > 1:
+            body.append(
+                "<h3>Sources</h3>"
+                + _stacked_svg(
+                    [
+                        (
+                            label,
+                            value,
+                            "#1f5fa8"
+                            if label == "registry"
+                            else "#8a5a00"
+                            if label == "git"
+                            else "#8a8f96",
+                        )
+                        for label, value in sources.most_common(5)
+                    ]
+                )
+            )
+        hubs = _eco_hubs(site, purls)
+        if hubs:
+            body.append("<h3>Most used</h3>" + _hbar_svg(hubs))
+        body.append(
+            '<div class="scroll"><table><thead><tr><th>Package</th><th>Versions</th>'
+            '<th class="num">Direct repositories</th><th></th></tr></thead><tbody>'
+        )
+        widest_direct = max(
+            (len(site.direct_repos.get(item, frozenset())) for item in purls), default=1
+        )
+        for purl in purls:
+            component = site.graph.components[purl]
+            versions = sorted(
+                {
+                    instance.version
+                    for instance in site.graph.instances.values()
+                    if instance.component == purl and instance.version is not None
+                },
+                key=lambda item: _version_sort_key(component.ecosystem, item),
+            )
+            direct_repos = len(site.direct_repos.get(purl, frozenset()))
+            bar = _bar(direct_repos, max(1, widest_direct))
+            body.append(
+                f'<tr data-row data-href="packages.html#pkg={_fragment(purl)}">'
+                f"<td>{_package_link(purl, '', component.display_name)}</td>"
+                f'<td class="versions">{_e(", ".join(versions))}</td>'
+                f'<td class="num">{direct_repos}</td>'
+                f'<td class="weight">{bar}</td></tr>'
+            )
+        body.append("</tbody></table></div></section>")
+    body.append("</div>")
     body.extend(
         _package_section(site, purl)
         for purl in sorted(site.graph.components, key=str.casefold)
@@ -932,6 +1245,11 @@ def _package_section(site: _Site, purl: str) -> str:
             f"<td>{_enrichment_cell(site, instance)}</td></tr>"
         )
     body.append("</tbody></table></div>")
+    fanin_repos = {repository for repository, _edge in consumers}
+    if len(fanin_repos) >= 4:
+        fanin = _fan_in_svg(site, purl, consumers)
+        if fanin:
+            body.append("<h3>Consumers</h3>" + fanin)
     body.append("<h3>Entry paths</h3>")
     if consumer_total > len(consumers):
         body.append(
