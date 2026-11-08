@@ -510,3 +510,20 @@ def test_one_vulnerable_version_from_two_registries_is_one_row(tmp_path: Path) -
     )
     assert len(rows) == 1
     assert rows[0].direct_in == ("acme/one", "acme/two")
+
+
+def test_one_package_from_two_registries_is_one_outdated_row() -> None:
+    crates = instance(Ecosystem.CARGO, "rustls", "0.23.45")
+    mirror = replace(crates, purl=f"{crates.purl}?repository_url=mirror")
+    component = Component(crates.component, Ecosystem.CARGO, "rustls", "rustls")
+    mirrored = Component(f"{crates.component}?repository_url=mirror", Ecosystem.CARGO, "rustls", "rustls")
+    scopes = frozenset({Scope.RUNTIME})
+    rows = insights.outdated(
+        (
+            insights.Declaration("acme/one", crates, component, "0.23.45", scopes),
+            insights.Declaration("acme/two", mirror, mirrored, "0.23.45", scopes),
+        ),
+        {crates.purl: {"latest": "0.23.46"}, mirror.purl: {"latest": "0.23.46"}},
+    )
+    assert len(rows) == 1
+    assert rows[0].uses == (insights.VersionUse("0.23.45", ("acme/one", "acme/two")),)

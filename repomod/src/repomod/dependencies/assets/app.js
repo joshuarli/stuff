@@ -18,7 +18,7 @@
         if (typing)
             return;
         if (event.key === "j" || event.key === "k") {
-            const rows = Array.from(document.querySelectorAll("tr[data-row]")).filter((row) => row.offsetParent !== null);
+            const rows = Array.from(document.querySelectorAll("[data-row]")).filter((row) => row.offsetParent !== null);
             if (rows.length === 0)
                 return;
             event.preventDefault();
@@ -62,25 +62,24 @@
         }, () => undefined);
     });
     function setupTable(scope) {
-        const rows = Array.from(scope.querySelectorAll("tbody tr"));
-        const chips = Array.from(scope.querySelectorAll("[data-filter]"));
+        const rows = Array.from(scope.querySelectorAll("tbody tr, [data-item]"));
         const search = scope.querySelector("[data-table-search]");
         const more = scope.querySelector("[data-more]");
         const empty = scope.querySelector("[data-empty]");
         const limit = Number(scope.dataset["limit"] ?? "0");
         let expanded = false;
         function matches(row) {
-            const pressed = chips.find((chip) => chip.getAttribute("aria-pressed") === "true");
-            const tag = pressed?.dataset["filter"] ?? "";
-            const tags = (row.dataset["tags"] ?? "").split(" ");
             const text = (search?.value ?? "").trim().toLowerCase();
-            return (tag === "" || tags.includes(tag)) && (text === "" || (row.textContent ?? "").toLowerCase().includes(text));
+            return text === "" || (row.textContent ?? "").toLowerCase().includes(text);
         }
         function update() {
             const matching = rows.filter(matches);
             const visible = new Set(limit > 0 && !expanded ? matching.slice(0, limit) : matching);
             for (const row of rows)
                 row.hidden = !visible.has(row);
+            for (const group of scope.querySelectorAll("[data-group]")) {
+                group.hidden = group.querySelector("[data-item]:not([hidden])") === null;
+            }
             if (empty !== null)
                 empty.hidden = matching.length > 0;
             if (more !== null) {
@@ -88,14 +87,6 @@
                 more.hidden = hidden === 0;
                 more.textContent = "Show " + hidden + " more";
             }
-        }
-        for (const chip of chips) {
-            chip.addEventListener("click", () => {
-                for (const other of chips)
-                    other.setAttribute("aria-pressed", other === chip ? "true" : "false");
-                expanded = false;
-                update();
-            });
         }
         search?.addEventListener("input", () => {
             expanded = false;
@@ -109,6 +100,29 @@
     }
     for (const scope of document.querySelectorAll("[data-table-scope]"))
         setupTable(scope);
+    const tip = document.createElement("div");
+    tip.className = "tip";
+    tip.hidden = true;
+    document.body.appendChild(tip);
+    function moveTip(event) {
+        tip.style.left = Math.min(event.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + "px";
+        tip.style.top = event.clientY + 16 + "px";
+    }
+    document.addEventListener("mouseover", (event) => {
+        const target = event.target;
+        const source = target instanceof Element ? target.closest("[data-tip]") : null;
+        if (source === null) {
+            tip.hidden = true;
+            return;
+        }
+        tip.textContent = source.getAttribute("data-tip");
+        tip.hidden = false;
+        moveTip(event);
+    });
+    document.addEventListener("mousemove", (event) => {
+        if (!tip.hidden)
+            moveTip(event);
+    });
     const input = document.querySelector("#search");
     const results = document.querySelector("#search-results");
     function closeResults() {
@@ -178,7 +192,7 @@
                 match = section;
         }
         if (list !== null)
-            list.style.display = match !== null ? "none" : "block";
+            list.style.display = match !== null ? "none" : "";
         if (match !== null)
             match.scrollIntoView({ block: "start" });
     }

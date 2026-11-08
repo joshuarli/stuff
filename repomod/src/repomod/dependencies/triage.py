@@ -126,7 +126,7 @@ def _security_action(rows: Sequence[insights.Vulnerable], forks: Collection[str]
     extra = len(advisories) - _ADVISORIES_SHOWN
     if target is not None:
         change = f"{', '.join(versions)} → {target}"
-        step = f"Upgrade the requirement to {target}" if direct else f"Update the lockfile to {target}"
+        step = "Upgrade the requirement" if direct else "Update the lockfile"
     else:
         blocker = f"latest {latest} is also vulnerable" if latest_vulnerable else "no newer release"
         change = f"{', '.join(versions)}, {blocker}"

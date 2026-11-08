@@ -19,7 +19,7 @@
     }
     if (typing) return;
     if (event.key === "j" || event.key === "k") {
-      const rows = Array.from(document.querySelectorAll<HTMLElement>("tr[data-row]")).filter(
+      const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-row]")).filter(
         (row) => row.offsetParent !== null,
       );
       if (rows.length === 0) return;
@@ -63,26 +63,25 @@
   });
 
   function setupTable(scope: HTMLElement): void {
-    const rows = Array.from(scope.querySelectorAll<HTMLTableRowElement>("tbody tr"));
-    const chips = Array.from(scope.querySelectorAll<HTMLButtonElement>("[data-filter]"));
+    const rows = Array.from(scope.querySelectorAll<HTMLElement>("tbody tr, [data-item]"));
     const search = scope.querySelector<HTMLInputElement>("[data-table-search]");
     const more = scope.querySelector<HTMLButtonElement>("[data-more]");
     const empty = scope.querySelector<HTMLElement>("[data-empty]");
     const limit = Number(scope.dataset["limit"] ?? "0");
     let expanded = false;
 
-    function matches(row: HTMLTableRowElement): boolean {
-      const pressed = chips.find((chip) => chip.getAttribute("aria-pressed") === "true");
-      const tag = pressed?.dataset["filter"] ?? "";
-      const tags = (row.dataset["tags"] ?? "").split(" ");
+    function matches(row: HTMLElement): boolean {
       const text = (search?.value ?? "").trim().toLowerCase();
-      return (tag === "" || tags.includes(tag)) && (text === "" || (row.textContent ?? "").toLowerCase().includes(text));
+      return text === "" || (row.textContent ?? "").toLowerCase().includes(text);
     }
 
     function update(): void {
       const matching = rows.filter(matches);
       const visible = new Set(limit > 0 && !expanded ? matching.slice(0, limit) : matching);
       for (const row of rows) row.hidden = !visible.has(row);
+      for (const group of scope.querySelectorAll<HTMLElement>("[data-group]")) {
+        group.hidden = group.querySelector("[data-item]:not([hidden])") === null;
+      }
       if (empty !== null) empty.hidden = matching.length > 0;
       if (more !== null) {
         const hidden = matching.length - visible.size;
@@ -91,13 +90,6 @@
       }
     }
 
-    for (const chip of chips) {
-      chip.addEventListener("click", () => {
-        for (const other of chips) other.setAttribute("aria-pressed", other === chip ? "true" : "false");
-        expanded = false;
-        update();
-      });
-    }
     search?.addEventListener("input", () => {
       expanded = false;
       update();
@@ -110,6 +102,31 @@
   }
 
   for (const scope of document.querySelectorAll<HTMLElement>("[data-table-scope]")) setupTable(scope);
+
+  const tip = document.createElement("div");
+  tip.className = "tip";
+  tip.hidden = true;
+  document.body.appendChild(tip);
+
+  function moveTip(event: MouseEvent): void {
+    tip.style.left = Math.min(event.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + "px";
+    tip.style.top = event.clientY + 16 + "px";
+  }
+
+  document.addEventListener("mouseover", (event) => {
+    const target = event.target;
+    const source = target instanceof Element ? target.closest<HTMLElement>("[data-tip]") : null;
+    if (source === null) {
+      tip.hidden = true;
+      return;
+    }
+    tip.textContent = source.getAttribute("data-tip");
+    tip.hidden = false;
+    moveTip(event);
+  });
+  document.addEventListener("mousemove", (event) => {
+    if (!tip.hidden) moveTip(event);
+  });
 
   const input = document.querySelector<HTMLInputElement>("#search");
   const results = document.querySelector<HTMLElement>("#search-results");
@@ -175,7 +192,7 @@
       section.classList.toggle("active", active);
       if (active) match = section;
     }
-    if (list !== null) list.style.display = match !== null ? "none" : "block";
+    if (list !== null) list.style.display = match !== null ? "none" : "";
     if (match !== null) match.scrollIntoView({ block: "start" });
   }
 

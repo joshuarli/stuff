@@ -327,12 +327,11 @@ def test_heaviest_dependencies_mark_dev_only_with_a_pill(tmp_path: Path) -> None
     assert "syn@2.0.0" in bloat
     assert 'ui-badge-neutral">dev</span>' in bloat
     assert "clap@4.0.0" in bloat
-    syn_row = bloat.split("syn@2.0.0", 1)[1].split("</tr>", 1)[0]
-    clap_row = bloat.split("clap@4.0.0", 1)[1].split("</tr>", 1)[0]
+    syn_row = bloat.split("syn@2.0.0", 1)[1].split("</li>", 1)[0]
+    clap_row = bloat.split("clap@4.0.0", 1)[1].split("</li>", 1)[0]
     assert 'ui-badge-neutral">dev</span>' in syn_row
     assert 'ui-badge-neutral">dev</span>' not in clap_row
     assert "Only via it" in bloat
-    assert "<th>Scope</th>" not in bloat.split("Only via it", 1)[0].split("<table")[-1]
 
 
 def test_choices_show_which_repositories_deviate_from_preferred(
@@ -434,3 +433,37 @@ def test_choices_show_which_repositories_deviate_from_preferred(
     assert section.count('class="mono">acme/mixed<') == 2
     assert section.count('class="mono">acme/clean<') == 1
     assert "clap_complete" in section
+
+
+def test_alignment_orders_versions_oldest_to_newest_and_marks_the_target(tmp_path: Path) -> None:
+    repositories = []
+    for owner, version in (("acme/new", "1.10.0"), ("acme/old", "1.9.0")):
+        package = instance(Ecosystem.CARGO, "serde", version)
+        repositories.append(
+            repository(
+                owner,
+                (package,),
+                projects=(project(".", Ecosystem.CARGO),),
+                edges=(
+                    Edge(
+                        ".:cargo",
+                        package.id,
+                        Relation.DIRECT,
+                        Scope.RUNTIME,
+                        False,
+                        None,
+                        version,
+                        None,
+                        SourceKind.REGISTRY,
+                        Resolution.RESOLVED,
+                    ),
+                ),
+            )
+        )
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    alignment = (result.output / "alignment.html").read_text(encoding="utf-8")
+    lane = alignment.split('class="lane"', 1)[1].split("</section>", 1)[0]
+    assert lane.index(">1.9.0<") < lane.index(">1.10.0<")
+    assert lane.count("stop-target") == 1
+    assert lane.index("stop-target") > lane.index(">1.9.0<")

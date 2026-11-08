@@ -28,18 +28,25 @@ from repomod.dependencies.model import (
     Scope,
 )
 from repomod.dependencies.triage import ActionKind
-from repomod.dependencies.ui import Column, Filter, NavGroup, NavLink, Row, Tile, Tone
+from repomod.dependencies.ui import Bar, Column, Line, Mark, NavGroup, NavLink, Row, Segment, Stop, Tile, Tone
 from repomod.dependencies.ui import escape as _e
 from repomod.rules import actions as actions_rule
 from repomod.rules.python_standard import PYTHON_TOOL_NAMES
 
 MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
-_ACTION_ROWS = 12
 _LIST_ROWS = 25
+_PREVIEW_ROWS = 8
+_SHOWN_REPOSITORIES = 2
+_CLEAN_TIER = "Clean"
+_TIERS = (
+    ("Vulnerable", "Security issues first"),
+    ("Breaking upgrades", "No known vulnerabilities, but breaking upgrades are waiting"),
+    ("Maintenance", "Routine upgrades, version drift, or role conflicts"),
+)
 _BLOAT_ROWS = 150
 _CONSUMER_ROWS = 20
-_TOP_PACKAGES = 12
+_TOP_PACKAGES = 5
 _KIND_LABELS = {
     ActionKind.SECURITY: ("Security", Tone.BAD),
     ActionKind.UNREADABLE: ("Unreadable", Tone.BAD),
@@ -47,11 +54,6 @@ _KIND_LABELS = {
     ActionKind.BREAKING: ("Breaking", Tone.WARN),
     ActionKind.TOOLING: ("Tooling", Tone.NEUTRAL),
     ActionKind.ROUTINE: ("Routine", Tone.NEUTRAL),
-}
-_GAP_TONES = {
-    insights.Gap.BREAKING: Tone.WARN,
-    insights.Gap.MINOR: Tone.NEUTRAL,
-    insights.Gap.PATCH: Tone.NEUTRAL,
 }
 
 
@@ -295,46 +297,6 @@ def _owned_count(site: _Site) -> int:
     return len(site.graph.repositories) - len(site.forks)
 
 
-def _overview(site: _Site) -> str:
-    body = [
-        ui.page_header(
-            "To do",
-            f"{_owned_count(site)} repositories · {_enrichment_stamp(site)} · {_changes_line(site)}",
-        ),
-        ui.status_strip(_overview_tiles(site)),
-    ]
-    if not _checked(site):
-        body.append(
-            ui.notice(
-                'Vulnerabilities and upgrades are not checked yet. Run '
-                '<span class="mono">uv run repomod deps enrich</span>, then render again.',
-                Tone.WARN,
-            )
-        )
-    body.append(
-        ui.panel(
-            "Next",
-            _action_table(site.actions)
-            if site.actions
-            else ui.empty_state(
-                "Nothing to fix",
-                "No vulnerabilities, unreadable checkouts, missing lockfiles, or pending upgrades.",
-            ),
-            meta="Most urgent first, then the changes that fix the most repositories",
-            flush=True,
-        )
-    )
-    exposed = sum(1 for count in _fork_exposure(site).values() if count)
-    if site.forks:
-        body.append(
-            ui.notice(
-                f"{len(site.forks)} forks keep upstream's dependency choices and are left out of "
-                f'this list. <a href="security.html#forks">{exposed} carry vulnerable versions</a>.'
-            )
-        )
-    return "\n".join(body)
-
-
 def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
     checked = _checked(site)
     security = _of_kind(site, ActionKind.SECURITY)
@@ -373,152 +335,6 @@ def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
     )
 
 
-def _action_table(actions: Sequence[triage.Action]) -> str:
-    kinds = Counter(action.kind for action in actions)
-    filters = [Filter("", "All", len(actions), pressed=True)]
-    filters.extend(
-        Filter(kind.value, _KIND_LABELS[kind][0], kinds[kind]) for kind in ActionKind if kinds[kind]
-    )
-    return ui.table(
-        "Next actions",
-        (
-            Column("Type"),
-            Column("Change"),
-            Column("Why", wrap=True),
-            Column("Where"),
-            Column("Next step", wrap=True),
-        ),
-        [_action_row(action) for action in actions],
-        filters=filters,
-        limit=_ACTION_ROWS,
-    )
-
-
-def _action_row(action: triage.Action) -> Row:
-    label, tone = _KIND_LABELS[action.kind]
-    subject = (
-        _package_link(action.purl, "", action.subject)
-        if action.purl is not None
-        else f'<span class="entity">{_e(action.subject)}</span>'
-    )
-    command = (
-        f'<span class="command">{_e(action.command)}</span>{ui.copy_button(action.command)}'
-        if action.command is not None
-        else ""
-    )
-    return Row(
-        (
-            ui.badge(label, tone, dot=True),
-            ui.stack(subject, _e(action.change)),
-            _e(action.reason),
-            _where(action.repositories, ""),
-            f'<span class="step"><span>{_e(action.step)}</span>{command}</span>',
-        ),
-        tags=(action.kind.value,),
-    )
-
-
-def _where(repositories: Sequence[str], prefix: str) -> str:
-    if len(repositories) == 1:
-        return _repo_link(repositories[0], prefix)
-    links = "".join(f"<span>{_repo_link(name, prefix)}</span>" for name in repositories)
-    return (
-        f"<details><summary>{len(repositories)} repositories</summary>"
-        f'<div class="where-list">{links}</div></details>'
-    )
-
-
-def _repositories(site: _Site) -> str:
-    exposure = _fork_exposure(site)
-    rows = [_scorecard_row(card) for card in site.scorecards]
-    rows.extend(
-        _fork_row(name, exposure[name])
-        for name in sorted(site.forks, key=lambda item: (-exposure[item], item.casefold()))
-    )
-    tags = Counter(tag for row in rows for tag in row.tags)
-    filters = (
-        Filter("owned", "Owned", tags["owned"], pressed=True),
-        Filter("vulnerable", "Vulnerable", tags["vulnerable"]),
-        Filter("breaking", "Breaking", tags["breaking"]),
-        Filter("clean", "Clean", tags["clean"]),
-        Filter("fork", "Forks", tags["fork"]),
-    )
-    return "\n".join(
-        (
-            ui.page_header("Repositories", "Worst first. Open one to see everything to do there."),
-            ui.panel(
-                "Repositories",
-                ui.table(
-                    "Repositories",
-                    (
-                        Column("Repository"),
-                        Column("Vulnerable", numeric=True),
-                        Column("Breaking", numeric=True),
-                        Column("Behind", numeric=True),
-                        Column("Off target", numeric=True),
-                        Column("Role conflicts", numeric=True),
-                    ),
-                    rows,
-                    filters=filters,
-                    search="Filter repositories",
-                    limit=_LIST_ROWS,
-                ),
-                meta=_enrichment_stamp(site),
-                flush=True,
-            ),
-        )
-    )
-
-
-def _scorecard_row(card: insights.Scorecard) -> Row:
-    roles = len({*card.mixed_roles, *card.off_preferred})
-    tags = ["owned"]
-    if card.vulnerable:
-        tags.append("vulnerable")
-    if card.breaking:
-        tags.append("breaking")
-    if not any(card.rank):
-        tags.append("clean")
-    return Row(
-        (
-            _repo_row_link(card.repository),
-            _count(card.vulnerable, "bad"),
-            _count(card.breaking, "warn"),
-            _count(card.behind),
-            _count(card.off_target),
-            _count(roles),
-        ),
-        tags=tags,
-        href=f"repos/{card.repository}/index.html",
-    )
-
-
-def _fork_row(name: str, vulnerable: int) -> Row:
-    tags = ["fork", "vulnerable"] if vulnerable else ["fork"]
-    return Row(
-        (
-            _repo_row_link(name),
-            _count(vulnerable, "bad"),
-            _count(0),
-            _count(0),
-            _count(0),
-            _count(0),
-        ),
-        tags=tags,
-        href=f"repos/{name}/index.html",
-    )
-
-
-def _repo_row_link(name: str) -> str:
-    return f'<a class="row-link" href="repos/{_e(name)}/index.html">{_e(name)}</a>'
-
-
-def _count(value: int, tone: str = "") -> str:
-    if not value:
-        return '<span class="count-quiet">·</span>'
-    return f'<span class="count-{tone}">{value}</span>' if tone else str(value)
-
-
 def _fork_exposure(site: _Site) -> dict[str, int]:
     exposure = dict.fromkeys(site.forks, 0)
     for row in site.vulnerable:
@@ -526,156 +342,6 @@ def _fork_exposure(site: _Site) -> dict[str, int]:
             if repository in exposure:
                 exposure[repository] += 1
     return exposure
-
-
-def _security(site: _Site) -> str:
-    actions = _of_kind(site, ActionKind.SECURITY)
-    blocked = sum(1 for action in actions if action.blocked)
-    body = [
-        ui.page_header(
-            "Security",
-            f"Known vulnerable versions in your repositories · {_enrichment_stamp(site)}",
-        )
-    ]
-    if actions:
-        table = ui.table(
-            "Vulnerable packages",
-            (
-                Column("Package"),
-                Column("Advisories", wrap=True),
-                Column("Where"),
-                Column("Next step", wrap=True),
-            ),
-            [_security_row(action) for action in actions],
-            filters=(
-                Filter("", "All", len(actions), pressed=True),
-                Filter("fixable", "Upgrade available", len(actions) - blocked),
-                Filter("blocked", "No clean upgrade", blocked),
-            ),
-            search="Filter packages",
-            limit=_LIST_ROWS,
-        )
-    elif _checked(site):
-        table = ui.empty_state("No known vulnerabilities", "Every checked version is clear.")
-    else:
-        table = '<p class="unknown">not checked</p>'
-    body.append(ui.panel("Your repositories", table, flush=True))
-    body.append(_forks_panel(site))
-    return "\n".join(body)
-
-
-def _security_row(action: triage.Action) -> Row:
-    if action.purl is None:
-        raise ValueError(f"security action has no package: {action.subject}")
-    advisories = (
-        _e(action.details[0])
-        if len(action.details) == 1
-        else f"<details><summary>{_e(action.reason)}</summary>"
-        f'<div class="where-list mono">{"".join(f"<span>{_e(item)}</span>" for item in action.details)}</div></details>'
-    )
-    return Row(
-        (
-            ui.stack(_package_link(action.purl, "", action.subject), _e(action.change)),
-            advisories,
-            _where(action.repositories, ""),
-            _e(action.step),
-        ),
-        tags=("blocked" if action.blocked else "fixable",),
-    )
-
-
-def _forks_panel(site: _Site) -> str:
-    exposure: dict[str, list[str]] = {name: [] for name in site.forks}
-    for row in site.vulnerable:
-        for repository in {*row.direct_in, *row.transitive_in}:
-            if repository in exposure:
-                exposure[repository].append(f"{row.component.display_name}@{row.version}")
-    if not site.forks:
-        return ui.collapsed_panel("Forks", '<p class="zero">no fork repositories</p>', panel_id="forks")
-    rows = [
-        Row(
-            (
-                _repo_link(name, ""),
-                _count(len(exposure[name]), "bad"),
-                f'<span class="mono">{_e(", ".join(sorted(exposure[name])))}</span>',
-            ),
-            href=f"repos/{name}/index.html",
-        )
-        for name in sorted(site.forks, key=lambda item: (-len(exposure[item]), item.casefold()))
-    ]
-    return ui.collapsed_panel(
-        "Forks",
-        ui.table(
-            "Forks",
-            (Column("Fork"), Column("Vulnerable", numeric=True), Column("Versions", wrap=True)),
-            rows,
-        ),
-        meta="Tracked only. Forks keep upstream's dependency choices.",
-        panel_id="forks",
-        flush=True,
-    )
-
-
-def _outdated(site: _Site) -> str:
-    counts = Counter(row.gap for row in site.outdated)
-    if site.outdated:
-        table = ui.table(
-            "Upgrades",
-            (Column("Package"), Column("Type"), Column("Latest"), Column("In use", wrap=True)),
-            [_outdated_row(row) for row in site.outdated],
-            filters=(
-                Filter("breaking", "Breaking", counts[insights.Gap.BREAKING], pressed=True),
-                Filter("minor", "Minor", counts[insights.Gap.MINOR]),
-                Filter("patch", "Patch", counts[insights.Gap.PATCH]),
-                Filter("", "All", len(site.outdated)),
-            ),
-            search="Filter packages",
-            limit=_LIST_ROWS,
-        )
-    elif _checked(site):
-        table = '<p class="zero">every checked direct dependency is on its latest release</p>'
-    else:
-        table = '<p class="unknown">not checked</p>'
-    return "\n".join(
-        (
-            ui.page_header("Upgrades", f"Direct dependencies behind the registry · {_enrichment_stamp(site)}"),
-            ui.notice(
-                "Apply minor and patch upgrades with "
-                f'<span class="mono">{triage.ROUTINE_COMMAND}</span>, which opens one pull request '
-                "per repository. Breaking upgrades usually need a manifest edit."
-            ),
-            ui.panel(
-                "Upgrades",
-                table,
-                meta="Breaking changes the leftmost nonzero version part",
-                flush=True,
-            ),
-        )
-    )
-
-
-def _outdated_row(row: insights.Outdated) -> Row:
-    uses = "".join(
-        f'<div class="version-use"><span class="mono">{_e(use.version)}</span> {_repo_list(use.repositories)}</div>'
-        for use in row.uses
-    )
-    in_use = (
-        uses
-        if row.repositories <= 2
-        else f"<details><summary>{row.repositories} repositories</summary>{uses}</details>"
-    )
-    return Row(
-        (
-            ui.stack(
-                _package_link(row.component.purl, "", row.component.display_name),
-                _e(row.component.ecosystem.value),
-            ),
-            ui.badge(row.gap.value.capitalize(), _GAP_TONES[row.gap]),
-            f'<span class="mono">{_e(row.latest)}</span>',
-            in_use,
-        ),
-        tags=(row.gap.value,),
-    )
 
 
 def _repo_list(repositories: Sequence[str], prefix: str = "", limit: int = 6) -> str:
@@ -688,58 +354,8 @@ def _repo_list(repositories: Sequence[str], prefix: str = "", limit: int = 6) ->
     )
 
 
-def _alignment(site: _Site) -> str:
-    rows = sorted(site.splits, key=lambda row: (-len(set(row.off_target)), row.component.name.casefold()))
-    table = (
-        ui.table(
-            "Version drift",
-            (
-                Column("Package"),
-                Column("Target"),
-                Column("Off target", numeric=True),
-                Column("Versions in use", wrap=True),
-            ),
-            [_split_row(row) for row in rows],
-            search="Filter packages",
-            limit=_LIST_ROWS,
-        )
-        if rows
-        else '<p class="zero">every package declared in two or more repositories uses one version</p>'
-    )
-    return "\n".join(
-        (
-            ui.page_header("Alignment", "Packages your repositories declare at different versions."),
-            ui.panel(
-                "Version drift",
-                table,
-                meta="Target is the approved pin, then latest, then the newest or most common in use",
-                flush=True,
-            ),
-        )
-    )
-
-
-def _split_row(row: insights.Split) -> Row:
-    uses = "".join(
-        f'<div class="version-use"><span class="mono">{_e(_short_ref(use.version))}</span> '
-        f"{_repo_list(use.repositories)}</div>"
-        for use in row.uses
-    )
-    return Row(
-        (
-            ui.stack(
-                _package_link(row.component.purl, "", row.component.display_name),
-                _e(row.component.ecosystem.value),
-            ),
-            ui.stack(f'<span class="mono">{_e(_short_ref(row.target))}</span>', _e(row.basis.value)),
-            str(len(set(row.off_target))),
-            f"<details><summary>{_plural(len(row.uses), 'version')}</summary>{uses}</details>",
-        )
-    )
-
-
-def _plural(count: int, noun: str) -> str:
-    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+def _plural(count: int, noun: str, plural: str | None = None) -> str:
+    return f"{count} {noun}" if count == 1 else f"{count} {plural or noun + 's'}"
 
 
 def _short_ref(version: str) -> str:
@@ -749,246 +365,9 @@ def _short_ref(version: str) -> str:
     return version
 
 
-def _choices(site: _Site) -> str:
-    contested = [
-        use
-        for use in site.roles
-        if use.in_use and (len(use.in_use) > 1 or use.overlapping or use.off_preferred)
-    ]
-    contested.sort(
-        key=lambda item: (-len(item.off_preferred), -len(item.overlapping), item.role.name.casefold())
-    )
-    settled = sorted(
-        (use for use in site.roles if use.in_use and use not in contested),
-        key=lambda item: item.role.name.casefold(),
-    )
-    body = [
-        ui.page_header(
-            "Choices",
-            "Each role names packages that do the same job. Preferred is the house choice. "
-            "Forks are left out.",
-        )
-    ]
-    if contested:
-        body.append(
-            ui.panel(
-                "Contested roles",
-                ui.table(
-                    "Contested roles",
-                    (
-                        Column("Role"),
-                        Column("Preferred"),
-                        Column("Adoption"),
-                        Column("Off preferred", numeric=True),
-                        Column("Mixed", numeric=True),
-                        Column("Options", wrap=True),
-                    ),
-                    [_role_row(use) for use in contested],
-                    limit=_LIST_ROWS,
-                ),
-                meta="Mixed means a repository declares more than one option",
-                flush=True,
-            )
-        )
-    if settled:
-        badges = "".join(
-            ui.badge(f"{use.role.name}: {use.in_use[0]} · {len(use.options[use.in_use[0]])}")
-            for use in settled
-        )
-        body.append(ui.collapsed_panel("Settled roles", f'<div class="badges">{badges}</div>', meta=str(len(settled))))
-    if not contested and not settled:
-        body.append('<p class="zero">no roles in use</p>')
-    return "\n".join(body)
-
-
-def _role_row(use: insights.RoleUse) -> Row:
-    preferred = use.role.preferred
-    options = sorted(use.in_use, key=lambda option: -len(use.options[option]))
-    using = len({repository for option in options for repository in use.options[option]})
-    on_preferred = len(use.options.get(preferred, ())) if preferred is not None else 0
-    if preferred is not None and preferred in use.in_use:
-        adoption = (
-            f'<span class="meter-cell start">{ui.meter(on_preferred, using)}'
-            f"{ui.note(f'{on_preferred} of {using}')}</span>"
-        )
-    else:
-        adoption = ui.note("no repository on it" if preferred is not None else "no house choice")
-    return Row(
-        (
-            ui.stack(f'<span class="entity">{_e(use.role.name)}</span>', _e(use.role.ecosystem.value)),
-            f'<span class="mono">{_e(preferred or "—")}</span>',
-            adoption,
-            _count(len(use.off_preferred), "warn"),
-            _count(len(use.overlapping), "warn"),
-            f"<details><summary>{_plural(len(options), 'option')}</summary>{_role_options(use, options)}</details>",
-        ),
-        row_id=f"role-{use.role.name}",
-    )
-
-
-def _role_options(use: insights.RoleUse, options: Sequence[str]) -> str:
-    parts = []
-    for option in options:
-        repositories = use.options[option]
-        packages = sorted(
-            {
-                package
-                for repository in repositories
-                for package in use.packages.get((repository, option), ())
-                if package != option
-            }
-        )
-        more = f" +{len(packages) - 3}" if len(packages) > 3 else ""
-        extra = f" ({', '.join(packages[:3])}{more})" if packages else ""
-        banned = " · banned" if option in use.role.bans else ""
-        parts.append(
-            f'<div class="version-use"><span class="mono">{_e(option)}</span>'
-            f"{ui.note(_e(f'{extra}{banned}'))} {_repo_list(repositories, limit=12)}</div>"
-        )
-    if use.excepted:
-        items = "".join(
-            f'<div class="version-use">{_repo_link(repository, "")} {ui.note(_e(reason))}</div>'
-            for repository, reason in use.excepted
-        )
-        parts.append(f'<div class="change-group">Accepted exceptions</div>{items}')
-    return "".join(parts)
-
-
-def _bloat(site: _Site) -> str:
-    rows = site.weights[:_BLOAT_ROWS]
-    widest = max((row.sole for row in site.weights), default=0)
-    body = [
-        ui.page_header(
-            "Bloat",
-            "Lockfile packages each direct dependency brings in. Lockfiles list every "
-            "platform's packages, so counts are upper bounds.",
-        ),
-        ui.panel(
-            "Heaviest dependencies",
-            ui.table(
-                "Heaviest dependencies",
-                (
-                    Column("Dependency"),
-                    Column("Repository"),
-                    Column("Only via it", numeric=True),
-                    Column("Pulls in", numeric=True),
-                ),
-                [_weight_row(row, widest) for row in rows],
-                search="Filter dependencies",
-                limit=_LIST_ROWS,
-            )
-            if rows
-            else '<p class="zero">no direct dependency brings in lockfile packages</p>',
-            meta="Removing it drops the packages counted in Only via it",
-            flush=True,
-        ),
-    ]
-    duplicates = sorted(
-        ((name, found) for name, data in site.graph.repositories.items() if (found := _duplicates(site, data))),
-        key=lambda item: (-len(item[1]), item[0].casefold()),
-    )
-    body.append(
-        ui.collapsed_panel(
-            "Duplicate versions",
-            ui.table(
-                "Duplicate versions",
-                (Column("Repository"), Column("Packages", numeric=True), Column("Duplicated", wrap=True)),
-                [_duplicate_row(site, name, found) for name, found in duplicates],
-                limit=_LIST_ROWS,
-            )
-            if duplicates
-            else '<p class="zero">no repository carries two versions of one package</p>',
-            meta="Both versions are built",
-            flush=True,
-        )
-    )
-    return "\n".join(body)
-
-
-def _weight_row(row: insights.Weight, widest: int) -> Row:
-    dev = " " + ui.badge("dev") if row.scopes == {Scope.DEV} else ""
-    return Row(
-        (
-            f"{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}{dev}",
-            _repo_link(row.repository, ""),
-            f'<span class="meter-cell">{ui.meter(row.sole, widest)}<span>{row.sole}</span></span>',
-            str(row.pulls),
-        )
-    )
-
-
-def _duplicate_row(site: _Site, name: str, found: Sequence[tuple[str, list[str]]]) -> Row:
-    items = "".join(
-        f"<li>{_package_link(purl, '', _display_name(site, purl))} "
-        f'<span class="mono">{_e(", ".join(versions))}</span></li>'
-        for purl, versions in found
-    )
-    return Row(
-        (
-            _repo_link(name, ""),
-            str(len(found)),
-            f'<details><summary>show</summary><ul class="plain-list">{items}</ul></details>',
-        )
-    )
-
-
 def _display_name(site: _Site, purl: str) -> str:
     component = site.graph.components.get(purl)
     return component.display_name if component is not None else purl
-
-
-def _packages(site: _Site) -> str:
-    uses = _package_uses(site)
-    ranked = sorted(uses, key=lambda use: (-use.repositories, -use.direct, use.label.casefold()))
-    ecosystems = Counter(use.ecosystem for use in uses)
-    shown: list[_PackageUse] = []
-    for ecosystem in ecosystems:
-        shown.extend([use for use in ranked if use.ecosystem is ecosystem][:_TOP_PACKAGES])
-    shown.sort(key=lambda use: (-use.repositories, -use.direct, use.label.casefold()))
-    widest = max((use.repositories for use in shown), default=0)
-    filters = [Filter("", "All", len(shown), pressed=True)]
-    filters.extend(
-        Filter(ecosystem.value, ecosystem.value, sum(1 for use in shown if use.ecosystem is ecosystem))
-        for ecosystem, _count_value in ecosystems.most_common()
-    )
-    index = ui.panel(
-        "Most used",
-        ui.table(
-            "Most used packages",
-            (
-                Column("Package"),
-                Column("Ecosystem"),
-                Column("Repositories", numeric=True),
-                Column("Declared in", numeric=True),
-            ),
-            [
-                Row(
-                    (
-                        _package_link(use.purl, "", use.label),
-                        _e(use.ecosystem.value),
-                        f'<span class="meter-cell">{ui.meter(use.repositories, widest)}'
-                        f"<span>{use.repositories}</span></span>",
-                        str(use.direct),
-                    ),
-                    tags=(use.ecosystem.value,),
-                )
-                for use in shown
-            ],
-            filters=filters,
-            limit=_LIST_ROWS,
-        ),
-        meta=f"Top {_TOP_PACKAGES} per ecosystem",
-        flush=True,
-    )
-    header = ui.page_header(
-        "Packages",
-        f"{len(site.graph.components)} packages in {len(ecosystems)} ecosystems. "
-        'Press <span class="mono">/</span> to find one.',
-    )
-    sections = "".join(
-        _package_section(site, purl) for purl in sorted(site.graph.components, key=str.casefold)
-    )
-    return f'<div id="package-index">{header}{index}</div>{sections}'
 
 
 def _package_uses(site: _Site) -> list[_PackageUse]:
@@ -1189,137 +568,10 @@ _COVERAGE_HELP = {
 }
 
 
-def _coverage(site: _Site) -> str:
-    states: Counter[str] = Counter(data.state.value for data in site.graph.repositories.values())
-    kinds: Counter[CoverageKind] = Counter(
-        issue.kind for data in site.graph.repositories.values() for issue in data.issues
-    )
-    body = [
-        ui.page_header(
-            "Coverage",
-            f"{len(site.graph.repositories)} repositories · {states['complete']} complete · "
-            f"{states['partial']} partial · {states['failed']} failed · "
-            f"{states['unavailable']} unavailable · {sum(kinds.values())} issues",
-        ),
-        ui.panel(
-            "What to fix first",
-            ui.table(
-                "Coverage issues",
-                (
-                    Column("Issue"),
-                    Column("Count", numeric=True),
-                    Column("What it means", wrap=True),
-                    Column("What to do", wrap=True),
-                ),
-                [
-                    _coverage_row(kind, count)
-                    for kind, count in sorted(kinds.items(), key=lambda item: (item[0].severity, -item[1]))
-                ],
-            )
-            if kinds
-            else ui.empty_state("Every repository is complete", "Nothing to fix."),
-            meta="Gaps are known limits with a file and a reason attached",
-            flush=True,
-        ),
-    ]
-    attention = sorted(
-        ((name, data) for name, data in site.graph.repositories.items() if data.state.value != "complete"),
-        key=lambda item: (
-            -{"unavailable": 2, "failed": 1}.get(item[1].state.value, 0),
-            -len(item[1].issues),
-            item[0].casefold(),
-        ),
-    )
-    if attention:
-        body.append(
-            ui.panel(
-                "Repositories",
-                ui.table(
-                    "Repositories with coverage issues",
-                    (
-                        Column("Repository"),
-                        Column("State"),
-                        Column("Issues", numeric=True),
-                        Column("What is missing", wrap=True),
-                    ),
-                    [_coverage_repository_row(name, data) for name, data in attention],
-                    search="Filter repositories",
-                    limit=_ACTION_ROWS,
-                ),
-                flush=True,
-            )
-        )
-    unsupported = [
-        (name, issue.path or "")
-        for name, data in site.graph.repositories.items()
-        for issue in data.issues
-        if issue.kind is CoverageKind.UNSUPPORTED_FORMAT
-    ]
-    body.append(
-        ui.collapsed_panel(
-            "Detected, not parsed",
-            ui.table(
-                "Detected, not parsed",
-                (Column("Repository"), Column("Path", wrap=True)),
-                [Row((_repo_link(name, ""), f'<span class="mono">{_e(path)}</span>')) for name, path in unsupported],
-                limit=_LIST_ROWS,
-            )
-            if unsupported
-            else '<p class="zero">none</p>',
-            meta=f"{len(unsupported)} files with no parser yet",
-            flush=True,
-        )
-    )
-    body.append(ui.collapsed_panel("Source risk", _risk_table(site), flush=True))
-    return "\n".join(body)
-
-
-def _coverage_row(kind: CoverageKind, count: int) -> Row:
-    label, meaning, action = _COVERAGE_HELP[kind]
-    tone = Tone.BAD if kind.severity == "error" else Tone.NEUTRAL
-    return Row(
-        (
-            ui.stack(ui.badge(label, tone), f'<span class="mono">{_e(kind.value)}</span>'),
-            str(count),
-            _e(meaning),
-            _e(action),
-        )
-    )
-
-
-def _coverage_repository_row(name: str, data: RepositoryData) -> Row:
-    kinds = Counter(issue.kind for issue in data.issues)
-    missing = "; ".join(
-        f"{_COVERAGE_HELP[kind][0]} x {count}"
-        for kind, count in sorted(kinds.items(), key=lambda item: -item[1])
-    )
-    return Row(
-        (_repo_link(name, ""), _state_badge(data), str(len(data.issues)), _e(missing)),
-        href=f"repos/{name}/index.html",
-    )
-
-
 def _state_badge(data: RepositoryData) -> str:
     value = data.state.value
     tone = {"complete": Tone.OK, "partial": Tone.NEUTRAL}.get(value, Tone.BAD)
     return ui.badge(value, tone, dot=True)
-
-
-def _risk_table(site: _Site) -> str:
-    risk = _table(site.report["source_risk"])
-    signals = (
-        ("Git sources", "git_sources"),
-        ("Unpinned Actions", "unpinned_actions"),
-        ("Floating image tags", "floating_images"),
-        ("Missing locks", "missing_locks"),
-        ("Unpinned artifacts", "unpinned_artifacts"),
-        ("Vendored code", "vendored"),
-    )
-    return ui.table(
-        "Source risk",
-        (Column("Signal"), Column("Count", numeric=True)),
-        [Row((_e(label), str(_value(risk.get(key))))) for label, key in signals],
-    )
 
 
 def _repository(site: _Site, name: str) -> str:
@@ -1388,79 +640,6 @@ def _repository(site: _Site, name: str) -> str:
         )
     body.append(_gaps_panel(name, commit, data))
     return "\n".join(body)
-
-
-def _todo_panel(site: _Site, name: str) -> str:
-    rows = _repository_todo(site, name)
-    if not rows:
-        return ui.panel("To do here", '<p class="zero">nothing flagged</p>', panel_id="todo", flush=True)
-    return ui.panel(
-        "To do here",
-        ui.table("To do here", (Column("Type"), Column("Item"), Column("Detail", wrap=True)), rows, limit=_ACTION_ROWS),
-        meta=str(len(rows)),
-        panel_id="todo",
-        flush=True,
-    )
-
-
-def _repository_todo(site: _Site, name: str) -> list[Row]:
-    prefix = "../../../"
-    rows: list[Row] = []
-    for row in site.vulnerable:
-        if name in row.direct_in or name in row.transitive_in:
-            how = "declared" if name in row.direct_in else "locked"
-            rows.append(
-                Row(
-                    (
-                        ui.badge("Security", Tone.BAD, dot=True),
-                        _package_link(row.component.purl, prefix, f"{row.component.display_name}@{row.version}"),
-                        f"{how} · {_e(', '.join(row.advisories))}",
-                    )
-                )
-            )
-    behind: set[str] = set()
-    for row in site.outdated:
-        for use in row.uses:
-            if name not in use.repositories:
-                continue
-            behind.add(row.component.purl)
-            severity = insights.gap(row.component.ecosystem, use.version, row.latest)
-            badge = ui.badge(severity.value.capitalize(), _GAP_TONES[severity]) if severity is not None else ""
-            rows.append(
-                Row(
-                    (
-                        badge,
-                        _package_link(row.component.purl, prefix, row.component.display_name),
-                        f'<span class="mono">{_e(use.version)} → {_e(row.latest)}</span>',
-                    )
-                )
-            )
-    for split in site.splits:
-        if name in split.off_target and split.component.purl not in behind:
-            version = next(use.version for use in split.uses if name in use.repositories)
-            rows.append(
-                Row(
-                    (
-                        ui.badge("Off target"),
-                        _package_link(split.component.purl, prefix, split.component.display_name),
-                        f'<span class="mono">{_e(_short_ref(version))} → {_e(_short_ref(split.target))}</span>',
-                    )
-                )
-            )
-    for use in site.roles:
-        if name in use.overlapping or name in use.off_preferred:
-            mine = [option for option, owners in use.options.items() if name in owners]
-            preferred = f" · preferred {use.role.preferred}" if use.role.preferred is not None else ""
-            rows.append(
-                Row(
-                    (
-                        ui.badge("Role"),
-                        f'<a href="{prefix}choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a>',
-                        f"uses {_e(', '.join(mine))}{_e(preferred)}",
-                    )
-                )
-            )
-    return rows
 
 
 def _direct_panel(
@@ -1580,6 +759,938 @@ def _gaps_panel(name: str, commit: str | None, data: RepositoryData) -> str:
         meta=str(len(rows)),
         flush=True,
     )
+
+
+def _overview(site: _Site) -> str:
+    security = _of_kind(site, ActionKind.SECURITY)
+    body = [
+        ui.page_header(
+            "To do",
+            f"{_owned_count(site)} repositories · {_enrichment_stamp(site)} · {_changes_line(site)}",
+        ),
+        ui.status_strip(_overview_tiles(site)),
+    ]
+    if not _checked(site):
+        body.append(
+            ui.notice(
+                'Vulnerabilities and upgrades are not checked yet. Run '
+                '<span class="mono">uv run repomod deps enrich</span>, then render again.',
+                Tone.WARN,
+            )
+        )
+    if not site.actions:
+        body.append(
+            ui.panel(
+                "Next",
+                ui.empty_state(
+                    "Nothing to fix",
+                    "No vulnerabilities, unreadable checkouts, missing lockfiles, or pending upgrades.",
+                ),
+                flush=True,
+            )
+        )
+    else:
+        body.append(_work_panel(site))
+        body.extend(_security_groups(security))
+        body.append(_command_group(site))
+        body.append(_plan_group(site))
+    exposed = sum(1 for count in _fork_exposure(site).values() if count)
+    if site.forks:
+        body.append(
+            ui.notice(
+                f"{len(site.forks)} forks keep upstream's dependency choices and are left out of "
+                f'this list. <a href="security.html#forks">{exposed} carry vulnerable versions</a>.'
+            )
+        )
+    return "\n".join(body)
+
+
+def _work_parts(card: insights.Scorecard) -> tuple[Segment, ...]:
+    return (
+        Segment("Vulnerable", card.vulnerable, Mark.BAD),
+        Segment("Breaking", card.breaking, Mark.WARN),
+        Segment("Minor and patch", card.behind - card.breaking, Mark.GHOST),
+    )
+
+
+def _work_total(card: insights.Scorecard) -> int:
+    return sum(part.value for part in _work_parts(card))
+
+
+_WORK_LEGEND = (("Vulnerable", Mark.BAD), ("Breaking", Mark.WARN), ("Minor and patch", Mark.GHOST))
+
+
+def _work_panel(site: _Site) -> str:
+    cards = [card for card in site.scorecards if _work_total(card)][:_PREVIEW_ROWS]
+    scale = max((_work_total(card) for card in cards), default=0)
+    bars = [
+        Bar(
+            f'<a href="repos/{_e(card.repository)}/index.html">{_e(_short_repository(card.repository))}</a>',
+            _work_parts(card),
+        )
+        for card in cards
+    ]
+    return ui.panel(
+        "Where the work is",
+        ui.legend(_WORK_LEGEND) + ui.bar_list(bars, scale, "Open work by repository"),
+        meta='<a href="repositories.html">All repositories</a>',
+    )
+
+
+def _security_groups(actions: Sequence[triage.Action]) -> list[str]:
+    ready = [action for action in actions if not action.blocked]
+    blocked = [action for action in actions if action.blocked]
+    groups = []
+    if ready:
+        groups.append(
+            ui.group(
+                "Fix now",
+                ui.card_grid(_security_card(action) for action in ready),
+                count=len(ready),
+                note="Vulnerable, with a clean upgrade available",
+            )
+        )
+    if blocked:
+        groups.append(
+            ui.group(
+                "Decide",
+                ui.card_grid(_security_card(action) for action in blocked),
+                count=len(blocked),
+                note="Vulnerable, with no clean upgrade. Replace the package or accept the risk.",
+            )
+        )
+    return groups
+
+
+def _security_card(action: triage.Action) -> str:
+    if action.purl is None:
+        raise ValueError(f"security action has no package: {action.subject}")
+    return ui.card(
+        _package_link(action.purl, "", action.subject),
+        f'<div class="card-change">{_e(action.change)}</div>'
+        f'<div class="card-foot">{_repository_names(action.repositories)} · {_e(action.step)}</div>',
+        meta=ui.badge(_advisories_label(len(action.details)), Tone.BAD if not action.blocked else Tone.WARN),
+    )
+
+
+def _advisories_label(count: int) -> str:
+    return f"{count} advisory" if count == 1 else f"{count} advisories"
+
+
+def _repository_names(repositories: Sequence[str], prefix: str = "") -> str:
+    shown = ", ".join(
+        f'<a href="{prefix}repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>'
+        for name in repositories[:_SHOWN_REPOSITORIES]
+    )
+    hidden = repositories[_SHOWN_REPOSITORIES:]
+    if not hidden:
+        return shown
+    return f'{shown} <span data-tip="{_e(", ".join(hidden))}">+{len(hidden)} more</span>'
+
+
+def _short_repository(name: str) -> str:
+    return name.rsplit("/", 1)[-1]
+
+
+def _command_group(site: _Site) -> str:
+    actions = [
+        action
+        for action in site.actions
+        if action.kind in (ActionKind.UNREADABLE, ActionKind.LOCKFILE, ActionKind.TOOLING, ActionKind.ROUTINE)
+    ]
+    if not actions:
+        return ""
+    return ui.group(
+        "Clear in one pass",
+        ui.card_grid((_command_card(action) for action in actions), wide=True),
+        count=len(actions),
+        note="Each of these is one task across many repositories",
+    )
+
+
+def _command_card(action: triage.Action) -> str:
+    label, tone = _KIND_LABELS[action.kind]
+    command = (
+        f'<div class="command-line"><code>{_e(action.command)}</code>{ui.copy_button(action.command)}</div>'
+        if action.command is not None
+        else f'<div class="card-change">{_e(action.step)}</div>'
+    )
+    return ui.card(
+        f"<span>{_e(action.subject)}</span>",
+        f'{command}<div class="card-foot">{_plural(len(action.repositories), "repository", "repositories")}: '
+        f"{_repository_names(action.repositories)}</div>",
+        meta=ui.badge(label, tone, dot=True),
+    )
+
+
+def _plan_group(site: _Site) -> str:
+    actions = _of_kind(site, ActionKind.BREAKING)
+    if not actions:
+        return ""
+    scale = max(len(action.repositories) for action in actions)
+    bars = [
+        Bar(
+            _package_link(action.purl, "", action.subject) if action.purl is not None else _e(action.subject),
+            (Segment("Repositories", len(action.repositories), Mark.WARN),),
+            note=_e(action.change),
+            tip=", ".join(_short_repository(name) for name in action.repositories),
+        )
+        for action in actions
+    ]
+    return ui.group(
+        "Plan",
+        '<div class="ui-panel card">'
+        + ui.scope(ui.bar_list(bars, scale, "Breaking upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
+        + "</div>",
+        count=len(actions),
+        note="Breaking upgrades by repositories affected. These usually need a manifest edit.",
+    )
+
+
+def _repositories(site: _Site) -> str:
+    scale = max((_work_total(card) for card in site.scorecards), default=0)
+    tiers: dict[str, list[insights.Scorecard]] = defaultdict(list)
+    for card in site.scorecards:
+        tiers[_tier(card)].append(card)
+    groups = [
+        ui.group(
+            title,
+            ui.card_grid(_repository_card(card, scale) for card in tiers[title]),
+            count=len(tiers[title]),
+            note=note,
+        )
+        for title, note in _TIERS
+        if tiers[title]
+    ]
+    if tiers[_CLEAN_TIER]:
+        groups.append(
+            ui.group(
+                _CLEAN_TIER,
+                ui.chip_links(_repository_chip(card.repository, 0) for card in tiers[_CLEAN_TIER]),
+                count=len(tiers[_CLEAN_TIER]),
+                note="Nothing flagged",
+            )
+        )
+    exposure = _fork_exposure(site)
+    if site.forks:
+        groups.append(
+            ui.group(
+                "Forks",
+                ui.chip_links(
+                    _repository_chip(name, exposure[name])
+                    for name in sorted(site.forks, key=lambda item: (-exposure[item], item.casefold()))
+                ),
+                count=len(site.forks),
+                note="Tracked only. The number is vulnerable versions.",
+            )
+        )
+    return "\n".join(
+        (
+            ui.page_header("Repositories", f"Worst first · {_enrichment_stamp(site)}"),
+            ui.legend(_WORK_LEGEND),
+            ui.scope("".join(groups), search="Filter repositories"),
+        )
+    )
+
+
+def _tier(card: insights.Scorecard) -> str:
+    if card.vulnerable:
+        return "Vulnerable"
+    if card.breaking:
+        return "Breaking upgrades"
+    if any(card.rank):
+        return "Maintenance"
+    return _CLEAN_TIER
+
+
+def _repository_card(card: insights.Scorecard, scale: int) -> str:
+    owner, _, _name = card.repository.rpartition("/")
+    extras = [
+        (card.vulnerable, "vulnerable"),
+        (card.breaking, "breaking"),
+        (card.behind - card.breaking, "minor or patch"),
+    ]
+    summary = " · ".join(f"{count} {label}" for count, label in extras if count)
+    roles = len({*card.mixed_roles, *card.off_preferred})
+    off_target = f"{card.off_target} off target" if card.off_target else ""
+    drift = " · ".join(part for part in (off_target, _plural_if(roles, "role conflict")) if part)
+    return ui.card(
+        f'<a class="row-link" href="repos/{_e(card.repository)}/index.html">'
+        f"{_e(_short_repository(card.repository))}</a>",
+        ui.segments(_work_parts(card), scale)
+        + f'<div class="card-foot">{_e(summary or "No upgrades pending")}</div>'
+        + (f'<div class="card-foot quiet">{_e(drift)}</div>' if drift else ""),
+        meta=ui.note(_e(owner)),
+        href=f"repos/{card.repository}/index.html",
+    )
+
+
+def _plural_if(count: int, noun: str) -> str:
+    return "" if not count else _plural(count, noun)
+
+
+def _repository_chip(name: str, count: int) -> str:
+    return ui.chip_link(_short_repository(name), f"repos/{name}/index.html", count, tip=name)
+
+
+def _security(site: _Site) -> str:
+    actions = _of_kind(site, ActionKind.SECURITY)
+    blocked = sum(1 for action in actions if action.blocked)
+    by_repository: dict[str, list[triage.Action]] = defaultdict(list)
+    for action in actions:
+        for repository in action.repositories:
+            by_repository[repository].append(action)
+    body = [ui.page_header("Security", f"Known vulnerable versions, by repository · {_enrichment_stamp(site)}")]
+    if actions:
+        body.append(
+            ui.status_strip(
+                (
+                    Tile(str(len(actions)), "Packages", "with known advisories", "#repositories", Tone.BAD),
+                    Tile(str(len(by_repository)), "Repositories", "need a change", "#repositories"),
+                    Tile(
+                        str(blocked),
+                        "No clean upgrade",
+                        "replace or accept",
+                        "#repositories",
+                        Tone.WARN if blocked else None,
+                    ),
+                )
+            )
+        )
+        ordered = sorted(by_repository.items(), key=lambda item: (-len(item[1]), item[0].casefold()))
+        body.append(
+            ui.group(
+                "Your repositories",
+                ui.card_grid(_security_repository_card(name, items) for name, items in ordered),
+                count=len(ordered),
+                group_id="repositories",
+            )
+        )
+    elif _checked(site):
+        body.append(ui.panel("Your repositories", ui.empty_state("No known vulnerabilities"), flush=True))
+    else:
+        body.append(ui.panel("Your repositories", '<p class="unknown">not checked</p>', flush=True))
+    body.append(_forks_panel(site))
+    return "\n".join(body)
+
+
+def _security_repository_card(name: str, actions: Sequence[triage.Action]) -> str:
+    lines = [
+        Line(
+            _package_link(action.purl, "", action.subject) if action.purl is not None else _e(action.subject),
+            f"{_e(action.change)} · {_e(action.step)}",
+            ui.badge("Blocked", Tone.WARN) if action.blocked else "",
+            ", ".join(action.details),
+        )
+        for action in actions
+    ]
+    return ui.card(
+        f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
+        ui.lines(lines),
+        meta=ui.badge(_plural(len(actions), "package"), Tone.BAD),
+    )
+
+
+def _forks_panel(site: _Site) -> str:
+    if not site.forks:
+        return ui.collapsed_panel("Forks", '<p class="zero">no fork repositories</p>', panel_id="forks")
+    exposure: dict[str, list[str]] = {name: [] for name in site.forks}
+    for row in site.vulnerable:
+        for repository in {*row.direct_in, *row.transitive_in}:
+            if repository in exposure:
+                exposure[repository].append(f"{row.component.display_name}@{row.version}")
+    chips = ui.chip_links(
+        ui.chip_link(
+            _short_repository(name),
+            f"repos/{name}/index.html",
+            len(exposure[name]),
+            tip=", ".join(sorted(exposure[name])) or name,
+        )
+        for name in sorted(site.forks, key=lambda item: (-len(exposure[item]), item.casefold()))
+    )
+    return ui.collapsed_panel(
+        "Forks",
+        chips,
+        meta="Tracked only. Forks keep upstream's dependency choices.",
+        panel_id="forks",
+    )
+
+
+def _outdated(site: _Site) -> str:
+    body = [ui.page_header("Upgrades", f"Direct dependencies behind the registry · {_enrichment_stamp(site)}")]
+    if not site.outdated:
+        message = (
+            '<p class="zero">every checked direct dependency is on its latest release</p>'
+            if _checked(site)
+            else '<p class="unknown">not checked</p>'
+        )
+        body.append(ui.panel("Upgrades", message, flush=True))
+        return "\n".join(body)
+    body.append(_ecosystem_upgrades_panel(site))
+    body.append(
+        ui.notice(
+            f'Apply minor and patch upgrades with <span class="mono">{triage.ROUTINE_COMMAND}</span>, which '
+            "opens one pull request per repository."
+        )
+    )
+    scale = max(row.repositories for row in site.outdated)
+    for gap, note in (
+        (insights.Gap.BREAKING, "Changes the leftmost nonzero version part. Usually needs a manifest edit."),
+        (insights.Gap.MINOR, "Compatible new features"),
+        (insights.Gap.PATCH, "Compatible fixes"),
+    ):
+        rows = sorted(
+            (row for row in site.outdated if row.gap is gap),
+            key=lambda row: (-row.repositories, row.component.name.casefold()),
+        )
+        if not rows:
+            continue
+        bars = [_upgrade_bar(row) for row in rows]
+        listing = ui.scope(ui.bar_list(bars, scale, f"{gap.value} upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
+        title = f"{gap.value.capitalize()} upgrades"
+        body.append(
+            ui.group(
+                title,
+                f'<div class="ui-panel card">{listing}</div>',
+                count=len(rows),
+                note=note,
+                group_id=gap.value,
+            )
+        )
+    return "\n".join(body)
+
+
+def _ecosystem_upgrades_panel(site: _Site) -> str:
+    counts: dict[Ecosystem, Counter[insights.Gap]] = defaultdict(Counter)
+    for row in site.outdated:
+        counts[row.component.ecosystem][row.gap] += 1
+    ordered = sorted(counts.items(), key=lambda item: (-sum(item[1].values()), item[0].value))
+    scale = max(sum(value.values()) for _ecosystem, value in ordered)
+    bars = [
+        Bar(
+            _e(ecosystem.value),
+            (
+                Segment("Breaking", value[insights.Gap.BREAKING], Mark.WARN),
+                Segment("Minor", value[insights.Gap.MINOR], Mark.ACCENT),
+                Segment("Patch", value[insights.Gap.PATCH], Mark.GHOST),
+            ),
+        )
+        for ecosystem, value in ordered
+    ]
+    return ui.panel(
+        "By ecosystem",
+        ui.legend((("Breaking", Mark.WARN), ("Minor", Mark.ACCENT), ("Patch", Mark.GHOST)))
+        + ui.bar_list(bars, scale, "Upgrades by ecosystem"),
+    )
+
+
+def _upgrade_bar(row: insights.Outdated) -> Bar:
+    versions = ", ".join(use.version for use in row.uses)
+    names = sorted(_short_repository(name) for use in row.uses for name in use.repositories)
+    mark = {insights.Gap.BREAKING: Mark.WARN, insights.Gap.MINOR: Mark.ACCENT, insights.Gap.PATCH: Mark.GHOST}[row.gap]
+    return Bar(
+        _package_link(row.component.purl, "", row.component.display_name),
+        (Segment("Repositories", row.repositories, mark),),
+        note=f"{_e(versions)} → {_e(row.latest)}",
+        tip=", ".join(names),
+    )
+
+
+def _alignment(site: _Site) -> str:
+    header = ui.page_header("Alignment", "Packages your repositories declare at different versions.")
+    if not site.splits:
+        return header + ui.panel(
+            "Version drift",
+            '<p class="zero">every package declared in two or more repositories uses one version</p>',
+            flush=True,
+        )
+    groups: dict[Ecosystem, list[insights.Split]] = defaultdict(list)
+    for row in site.splits:
+        groups[row.component.ecosystem].append(row)
+    sections = [
+        ui.group(
+            ecosystem.value,
+            ui.card_grid(
+                _lane_card(row)
+                for row in sorted(rows, key=lambda row: (-len(set(row.off_target)), row.component.name.casefold()))
+            ),
+            count=len(rows),
+        )
+        for ecosystem, rows in sorted(groups.items(), key=lambda item: (-len(item[1]), item[0].value))
+    ]
+    return "\n".join(
+        (
+            header,
+            ui.legend(
+                (("Target version", Mark.OK), ("Off target", Mark.GHOST)),
+                "Oldest to newest. Bigger dots mean more repositories.",
+            ),
+            ui.scope("".join(sections), search="Filter packages"),
+        )
+    )
+
+
+def _lane_card(row: insights.Split) -> str:
+    in_use = {use.version for use in row.uses}
+    uses = row.uses if row.target in in_use else (*row.uses, insights.VersionUse(row.target, ()))
+    ordered = sorted(
+        uses,
+        key=lambda use: (
+            (parsed := insights.release(row.component.ecosystem, use.version)) is None,
+            parsed or (),
+        ),
+    )
+    stops = [
+        Stop(
+            _lane_label(use.version),
+            len(use.repositories),
+            use.version == row.target,
+            f"{_short_ref(use.version)}: "
+            f"{', '.join(_short_repository(name) for name in use.repositories) or 'not in use yet'}",
+        )
+        for use in ordered
+    ]
+    off_target = len(set(row.off_target))
+    return ui.card(
+        _package_link(row.component.purl, "", row.component.display_name),
+        ui.lane(stops) + f'<div class="card-foot quiet">Target is {_e(row.basis.value)}</div>',
+        meta=ui.note(f"{off_target} off target"),
+    )
+
+
+def _lane_label(version: str) -> str:
+    if "@sha256:" in version:
+        tag, digest = version.split("@sha256:", 1)
+        return f"{tag}@{digest[:7]}"
+    if len(version) == 40 and all(character in "0123456789abcdef" for character in version):
+        return version[:7]
+    return version
+
+
+def _choices(site: _Site) -> str:
+    contested = [
+        use
+        for use in site.roles
+        if use.in_use and (len(use.in_use) > 1 or use.overlapping or use.off_preferred)
+    ]
+    settled = sorted(
+        (use for use in site.roles if use.in_use and use not in contested),
+        key=lambda item: item.role.name.casefold(),
+    )
+    body = [
+        ui.page_header(
+            "Choices",
+            "Each role names packages that do the same job. Preferred is the house choice. Forks are left out.",
+        )
+    ]
+    if contested:
+        groups: dict[Ecosystem, list[insights.RoleUse]] = defaultdict(list)
+        for use in contested:
+            groups[use.role.ecosystem].append(use)
+        body.append(ui.legend((("Preferred", Mark.OK), ("Other option", Mark.WARN), ("Banned", Mark.BAD))))
+        body.extend(
+            ui.group(
+                ecosystem.value,
+                ui.card_grid(
+                    _role_card(use)
+                    for use in sorted(
+                        uses,
+                        key=lambda item: (
+                            -len(item.off_preferred),
+                            -len(item.overlapping),
+                            item.role.name.casefold(),
+                        ),
+                    )
+                ),
+                count=len(uses),
+            )
+            for ecosystem, uses in sorted(groups.items(), key=lambda item: (-len(item[1]), item[0].value))
+        )
+    if settled:
+        badges = "".join(
+            ui.badge(f"{use.role.name}: {use.in_use[0]} · {len(use.options[use.in_use[0]])}")
+            for use in settled
+        )
+        body.append(ui.collapsed_panel("Settled roles", f'<div class="badges">{badges}</div>', meta=str(len(settled))))
+    if not contested and not settled:
+        body.append('<p class="zero">no roles in use</p>')
+    return "\n".join(body)
+
+
+def _role_card(use: insights.RoleUse) -> str:
+    options = sorted(use.in_use, key=lambda option: -len(use.options[option]))
+    scale = max(len(use.options[option]) for option in options)
+    bars = [_role_bar(use, option) for option in options]
+    pressure = [
+        label
+        for count, label in (
+            (len(use.off_preferred), f"{len(use.off_preferred)} off preferred"),
+            (len(use.overlapping), f"{len(use.overlapping)} mixed"),
+        )
+        if count
+    ]
+    badge = ui.badge(" · ".join(pressure), Tone.WARN) if pressure else ""
+    excepted = ""
+    if use.excepted:
+        items = "".join(
+            f'<div class="version-use">{_repo_link(repository, "")} {ui.note(_e(reason))}</div>'
+            for repository, reason in use.excepted
+        )
+        excepted = f"<details><summary>Accepted exceptions</summary>{items}</details>"
+    preferred = use.role.preferred or "no house choice"
+    listing = "".join(
+        f'<div class="version-use"><span class="card-option">{_e(option)}</span> '
+        f"{_repo_list(use.options[option], limit=12)}</div>"
+        for option in options
+    )
+    return ui.card(
+        f"<span>{_e(use.role.name)}</span>",
+        f'<div class="card-foot quiet">Preferred: {_e(preferred)}</div>'
+        + ui.bar_list(bars, scale, f"{use.role.name} adoption")
+        + f"<details><summary>Repositories</summary>{listing}</details>"
+        + excepted,
+        meta=badge,
+        card_id=f"role-{use.role.name}",
+    )
+
+
+def _role_bar(use: insights.RoleUse, option: str) -> Bar:
+    repositories = use.options[option]
+    packages = sorted(
+        {
+            package
+            for repository in repositories
+            for package in use.packages.get((repository, option), ())
+            if package != option
+        }
+    )
+    more = f" +{len(packages) - 2}" if len(packages) > 2 else ""
+    note = _e(f"{', '.join(packages[:2])}{more}") if packages else ""
+    mark = Mark.OK if option == use.role.preferred else Mark.BAD if option in use.role.bans else Mark.WARN
+    return Bar(
+        _e(option),
+        (Segment("Repositories", len(repositories), mark),),
+        note=note,
+    )
+
+
+def _bloat(site: _Site) -> str:
+    rows = site.weights[:_BLOAT_ROWS]
+    scale = max((row.pulls for row in rows), default=0)
+    bars = [_weight_bar(row) for row in rows]
+    body = [
+        ui.page_header(
+            "Bloat",
+            "Lockfile packages each direct dependency brings in. Lockfiles list every "
+            "platform's packages, so counts are upper bounds.",
+        ),
+        ui.panel(
+            "Heaviest dependencies",
+            ui.legend(
+                (("Only via it", Mark.ACCENT), ("Shared", Mark.GHOST)),
+                "Sorted by packages only it brings in. Removing it drops those.",
+            )
+            + ui.scope(
+                ui.bar_list(bars, scale, "Heaviest dependencies"),
+                search="Filter dependencies",
+                limit=_LIST_ROWS,
+                total=len(bars),
+            )
+            if rows
+            else '<p class="zero">no direct dependency brings in lockfile packages</p>',
+        ),
+    ]
+    duplicates = sorted(
+        ((name, found) for name, data in site.graph.repositories.items() if (found := _duplicates(site, data))),
+        key=lambda item: (-len(item[1]), item[0].casefold()),
+    )
+    widest = max((len(found) for _name, found in duplicates), default=0)
+    body.append(
+        ui.collapsed_panel(
+            "Duplicate versions",
+            ui.scope(
+                ui.bar_list(
+                    [_duplicate_bar(site, name, found) for name, found in duplicates],
+                    widest,
+                    "Duplicate versions",
+                ),
+                limit=_LIST_ROWS,
+                total=len(duplicates),
+            )
+            if duplicates
+            else '<p class="zero">no repository carries two versions of one package</p>',
+            meta="Both versions are built",
+        )
+    )
+    return "\n".join(body)
+
+
+def _weight_bar(row: insights.Weight) -> Bar:
+    dev = " " + ui.badge("dev") if row.scopes == {Scope.DEV} else ""
+    return Bar(
+        f"{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}{dev}",
+        (
+            Segment("Only via it", row.sole, Mark.ACCENT),
+            Segment("Shared", row.pulls - row.sole, Mark.GHOST),
+        ),
+        note=_e(_short_repository(row.repository)),
+    )
+
+
+def _duplicate_bar(site: _Site, name: str, found: Sequence[tuple[str, list[str]]]) -> Bar:
+    items = "".join(
+        f"<li>{_package_link(purl, '', _display_name(site, purl))} "
+        f'<span class="mono">{_e(", ".join(versions))}</span></li>'
+        for purl, versions in found
+    )
+    return Bar(
+        f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
+        (Segment("Packages", len(found), Mark.ACCENT),),
+        tail=f'<details><summary>Packages</summary><ul class="plain-list">{items}</ul></details>',
+    )
+
+
+def _packages(site: _Site) -> str:
+    uses = _package_uses(site)
+    ranked = sorted(uses, key=lambda use: (-use.repositories, -use.direct, use.label.casefold()))
+    ecosystems = Counter(use.ecosystem for use in uses)
+    bars = [
+        Bar(_e(ecosystem.value), (Segment("Packages", count, Mark.ACCENT),))
+        for ecosystem, count in ecosystems.most_common()
+    ]
+    mix = ui.panel(
+        "Packages by ecosystem",
+        ui.bar_list(bars, max(ecosystems.values(), default=0), "Packages by ecosystem"),
+    )
+    cards = []
+    for ecosystem, _count_value in ecosystems.most_common():
+        top = [use for use in ranked if use.ecosystem is ecosystem][:_TOP_PACKAGES]
+        widest = max((use.repositories for use in top), default=0)
+        cards.append(
+            ui.card(
+                f"<span>{_e(ecosystem.value)}</span>",
+                ui.bar_list(
+                    [
+                        Bar(
+                            _package_link(use.purl, "", use.label),
+                            (Segment("Repositories", use.repositories, Mark.ACCENT),),
+                        )
+                        for use in top
+                    ],
+                    widest,
+                    f"Most used {ecosystem.value} packages",
+                ),
+                meta=ui.note("repositories using each"),
+            )
+        )
+    header = ui.page_header(
+        "Packages",
+        f"{len(site.graph.components)} packages in {len(ecosystems)} ecosystems. "
+        'Press <span class="mono">/</span> to find one.',
+    )
+    grid = ui.group("Most used", ui.card_grid(cards, wide=True), note=f"Top {_TOP_PACKAGES} per ecosystem")
+    sections = "".join(
+        _package_section(site, purl) for purl in sorted(site.graph.components, key=str.casefold)
+    )
+    return f'<div id="package-index" class="page-stack">{header}{mix}{grid}</div>{sections}'
+
+
+def _coverage(site: _Site) -> str:
+    states: Counter[str] = Counter(data.state.value for data in site.graph.repositories.values())
+    kinds: Counter[CoverageKind] = Counter(
+        issue.kind for data in site.graph.repositories.values() for issue in data.issues
+    )
+    body = [
+        ui.page_header(
+            "Coverage",
+            f"{len(site.graph.repositories)} repositories · {states['complete']} complete · "
+            f"{states['partial']} partial · {states['failed']} failed · "
+            f"{states['unavailable']} unavailable · {sum(kinds.values())} issues",
+        ),
+    ]
+    if kinds:
+        body.append(
+            ui.group(
+                "What to fix first",
+                ui.card_grid(
+                    (
+                        _coverage_card(kind, count)
+                        for kind, count in sorted(kinds.items(), key=lambda item: (item[0].severity, -item[1]))
+                    ),
+                    wide=True,
+                ),
+                count=len(kinds),
+                note="Gaps are known limits with a file and a reason attached",
+            )
+        )
+    else:
+        body.append(
+            ui.panel("What to fix first", ui.empty_state("Every repository is complete", "Nothing to fix."), flush=True)
+        )
+    attention = sorted(
+        ((name, data) for name, data in site.graph.repositories.items() if data.state.value != "complete"),
+        key=lambda item: (
+            -{"unavailable": 2, "failed": 1}.get(item[1].state.value, 0),
+            -len(item[1].issues),
+            item[0].casefold(),
+        ),
+    )
+    if attention:
+        widest = max(len(data.issues) for _name, data in attention)
+        bars = [_coverage_repository_bar(name, data) for name, data in attention]
+        body.append(
+            ui.panel(
+                "Repositories",
+                ui.scope(
+                    ui.bar_list(bars, widest, "Coverage issues by repository"),
+                    search="Filter repositories",
+                    limit=_PREVIEW_ROWS,
+                    total=len(bars),
+                ),
+                meta="Issues per repository",
+            )
+        )
+    unsupported = [
+        (name, issue.path or "")
+        for name, data in site.graph.repositories.items()
+        for issue in data.issues
+        if issue.kind is CoverageKind.UNSUPPORTED_FORMAT
+    ]
+    body.append(
+        ui.collapsed_panel(
+            "Detected, not parsed",
+            ui.table(
+                "Detected, not parsed",
+                (Column("Repository"), Column("Path", wrap=True)),
+                [Row((_repo_link(name, ""), f'<span class="mono">{_e(path)}</span>')) for name, path in unsupported],
+                limit=_LIST_ROWS,
+            )
+            if unsupported
+            else '<p class="zero">none</p>',
+            meta=f"{len(unsupported)} files with no parser yet",
+            flush=True,
+        )
+    )
+    body.append(ui.collapsed_panel("Source risk", _risk_bars(site)))
+    return "\n".join(body)
+
+
+def _coverage_card(kind: CoverageKind, count: int) -> str:
+    label, meaning, action = _COVERAGE_HELP[kind]
+    tone = Tone.BAD if kind.severity == "error" else Tone.NEUTRAL
+    return ui.card(
+        f"<span>{_e(label)}</span>",
+        f'<div class="card-foot">{_e(meaning)}</div><div class="card-change">{_e(action)}</div>',
+        meta=ui.badge(str(count), tone),
+    )
+
+
+def _coverage_repository_bar(name: str, data: RepositoryData) -> Bar:
+    kinds = Counter(issue.kind for issue in data.issues)
+    missing = "; ".join(
+        f"{_COVERAGE_HELP[kind][0]} x {count}"
+        for kind, count in sorted(kinds.items(), key=lambda item: -item[1])
+    )
+    tone = Mark.BAD if data.state.value in ("failed", "unavailable") else Mark.GHOST
+    return Bar(
+        f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
+        (Segment("Issues", len(data.issues), tone),),
+        tip=missing,
+    )
+
+
+def _risk_bars(site: _Site) -> str:
+    risk = _table(site.report["source_risk"])
+    signals = (
+        ("Git sources", "git_sources"),
+        ("Unpinned Actions", "unpinned_actions"),
+        ("Floating image tags", "floating_images"),
+        ("Missing locks", "missing_locks"),
+        ("Unpinned artifacts", "unpinned_artifacts"),
+        ("Vendored code", "vendored"),
+    )
+    counted = [(label, _value(risk.get(key))) for label, key in signals]
+    bars = [
+        Bar(_e(label), (Segment("Count", value, Mark.GHOST),))
+        for label, value in sorted(counted, key=lambda item: -item[1])
+    ]
+    return ui.bar_list(bars, max(value for _label, value in counted), "Source risk")
+
+
+def _todo_panel(site: _Site, name: str) -> str:
+    sections = _repository_todo(site, name)
+    if not sections:
+        return ui.panel("To do here", '<p class="zero">nothing flagged</p>', panel_id="todo", flush=True)
+    return ui.group(
+        "To do here",
+        ui.card_grid(
+            (
+                ui.card(f"<span>{_e(title)}</span>", ui.lines(lines), meta=ui.badge(str(len(lines)), tone))
+                for title, tone, lines in sections
+            ),
+            wide=True,
+        ),
+        count=sum(len(lines) for _title, _tone, lines in sections),
+        group_id="todo",
+    )
+
+
+def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]]]:
+    prefix = "../../../"
+    security = [
+        Line(
+            _package_link(row.component.purl, prefix, f"{row.component.display_name}@{row.version}"),
+            f"{'declared' if name in row.direct_in else 'locked'} · {_advisories_label(len(row.advisories))}",
+            tip=", ".join(row.advisories),
+        )
+        for row in site.vulnerable
+        if name in row.direct_in or name in row.transitive_in
+    ]
+    breaking: list[Line] = []
+    routine: list[Line] = []
+    behind: set[str] = set()
+    for row in site.outdated:
+        for use in row.uses:
+            if name not in use.repositories:
+                continue
+            behind.add(row.component.purl)
+            severity = insights.gap(row.component.ecosystem, use.version, row.latest)
+            target = breaking if severity is insights.Gap.BREAKING else routine
+            target.append(
+                Line(
+                    _package_link(row.component.purl, prefix, row.component.display_name),
+                    f"{_e(use.version)} → {_e(row.latest)}",
+                )
+            )
+    drift = [
+        Line(
+            _package_link(split.component.purl, prefix, split.component.display_name),
+            f"{_e(_short_ref(next(use.version for use in split.uses if name in use.repositories)))} → "
+            f"{_e(_short_ref(split.target))}",
+        )
+        for split in site.splits
+        if name in split.off_target and split.component.purl not in behind
+    ]
+    roles = [
+        Line(
+            f'<a href="{prefix}choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a>',
+            f"uses {_e(', '.join(option for option, owners in use.options.items() if name in owners))}"
+            + (f" · preferred {_e(use.role.preferred)}" if use.role.preferred is not None else ""),
+        )
+        for use in site.roles
+        if name in use.overlapping or name in use.off_preferred
+    ]
+    return [
+        (title, tone, lines)
+        for title, tone, lines in (
+            ("Security", Tone.BAD, security),
+            ("Breaking upgrades", Tone.WARN, breaking),
+            ("Minor and patch upgrades", Tone.NEUTRAL, routine),
+            ("Version drift", Tone.NEUTRAL, drift),
+            ("Role conflicts", Tone.NEUTRAL, roles),
+        )
+        if lines
+    ]
 
 
 def _enrichment_stamp(site: _Site) -> str:

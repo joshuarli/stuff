@@ -260,27 +260,27 @@ def release(ecosystem: Ecosystem, version: str) -> tuple[int, ...] | None:
 def outdated(
     found: Iterable[Declaration], enrichment: Mapping[str, Mapping[str, object]]
 ) -> tuple[Outdated, ...]:
-    behind: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
-    latest_of: dict[str, str] = {}
-    components: dict[str, Component] = {}
+    behind: dict[tuple[Ecosystem, str], dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    latest_of: dict[tuple[Ecosystem, str], str] = {}
+    components: dict[tuple[Ecosystem, str], Component] = {}
     for declaration in found:
         latest = _latest(enrichment, declaration.instance)
         if latest is None:
             continue
         if gap(declaration.component.ecosystem, declaration.version, latest) is None:
             continue
-        purl = declaration.component.purl
-        components[purl] = declaration.component
-        latest_of[purl] = latest
-        behind[purl][declaration.version].add(declaration.repository)
+        key = (declaration.component.ecosystem, declaration.component.name)
+        components.setdefault(key, declaration.component)
+        latest_of[key] = latest
+        behind[key][declaration.version].add(declaration.repository)
     rows = []
-    for purl, versions in behind.items():
-        component = components[purl]
+    for key, versions in behind.items():
+        component = components[key]
         worst = min(
-            (cast(Gap, gap(component.ecosystem, version, latest_of[purl])) for version in versions),
+            (cast(Gap, gap(component.ecosystem, version, latest_of[key])) for version in versions),
             key=lambda item: item.rank,
         )
-        rows.append(Outdated(component, latest_of[purl], worst, _uses(component, versions)))
+        rows.append(Outdated(component, latest_of[key], worst, _uses(component, versions)))
     return tuple(
         sorted(rows, key=lambda row: (row.gap.rank, -row.repositories, row.component.name.casefold()))
     )

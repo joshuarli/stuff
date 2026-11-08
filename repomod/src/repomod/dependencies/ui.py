@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import html
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import Enum
+from math import sqrt
 
 _SEARCH_ICON = (
     '<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" '
@@ -17,6 +18,46 @@ class Tone(Enum):
     WARN = "warn"
     BAD = "bad"
     NEUTRAL = "neutral"
+
+
+class Mark(Enum):
+    ACCENT = "accent"
+    GHOST = "ghost"
+    OK = "ok"
+    WARN = "warn"
+    BAD = "bad"
+
+
+@dataclass(frozen=True, slots=True)
+class Segment:
+    label: str
+    value: int
+    mark: Mark
+
+
+@dataclass(frozen=True, slots=True)
+class Bar:
+    label: str
+    parts: Sequence[Segment]
+    note: str = ""
+    tip: str = ""
+    tail: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class Stop:
+    label: str
+    repositories: int
+    target: bool
+    tip: str
+
+
+@dataclass(frozen=True, slots=True)
+class Line:
+    primary: str
+    detail: str
+    badge: str = ""
+    tip: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,17 +80,6 @@ class Column:
 @dataclass(frozen=True, slots=True)
 class Row:
     cells: Sequence[str]
-    tags: Sequence[str] = ()
-    href: str | None = None
-    row_id: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class Filter:
-    tag: str
-    label: str
-    count: int
-    pressed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,19 +107,6 @@ def badge(label: str, tone: Tone = Tone.NEUTRAL, *, dot: bool = False) -> str:
 
 def note(content: str) -> str:
     return f'<span class="cell-note">{content}</span>'
-
-
-def stack(primary: str, secondary: str = "") -> str:
-    below = note(secondary) if secondary else ""
-    return f'<span class="cell-stack"><span>{primary}</span>{below}</span>'
-
-
-def meter(value: int, maximum: int, tone: Tone = Tone.NEUTRAL) -> str:
-    width = 0.0 if maximum <= 0 else max(0.0, min(100.0, value / maximum * 100))
-    return (
-        '<div class="ui-meter" aria-hidden="true">'
-        f'<span class="ui-meter-bar ui-meter-{tone.value}" style="width:{width:.1f}%"></span></div>'
-    )
 
 
 def page_header(title: str, subtitle: str = "") -> str:
@@ -130,28 +147,116 @@ def collapsed_panel(
     )
 
 
+def group(
+    title: str, body: str, *, count: int | None = None, note: str = "", group_id: str | None = None
+) -> str:
+    identity = f' id="{escape(group_id)}"' if group_id is not None else ""
+    number = f'<span class="group-count">{count}</span>' if count is not None else ""
+    below = f'<span class="group-note">{escape(note)}</span>' if note else ""
+    return (
+        f'<section class="group" data-group{identity}><header class="group-head">'
+        f"<h2>{escape(title)}</h2>{number}{below}</header>{body}</section>"
+    )
+
+
+def card_grid(cards: Iterable[str], *, wide: bool = False) -> str:
+    variant = " card-grid-wide" if wide else ""
+    return f'<div class="card-grid{variant}">{"".join(cards)}</div>'
+
+
+def card(
+    title: str, body: str, *, meta: str = "", card_id: str | None = None, href: str | None = None
+) -> str:
+    identity = f' id="{escape(card_id)}"' if card_id is not None else ""
+    target = f' data-row data-href="{escape(href)}"' if href is not None else ""
+    return (
+        f'<section class="ui-panel card" data-item{identity}{target}><div class="card-head">'
+        f'<h3>{title}</h3><div class="card-meta">{meta}</div></div>{body}</section>'
+    )
+
+
+def legend(items: Sequence[tuple[str, Mark]], caption: str = "") -> str:
+    keys = "".join(
+        f'<span class="legend-key"><span class="swatch mark-{mark.value}"></span>{escape(label)}</span>'
+        for label, mark in items
+    )
+    note_text = f'<span class="legend-note">{escape(caption)}</span>' if caption else ""
+    return f'<div class="legend">{keys}{note_text}</div>'
+
+
+def segments(parts: Sequence[Segment], scale: int) -> str:
+    total = sum(part.value for part in parts)
+    width = 0.0 if scale <= 0 else min(100.0, total / scale * 100)
+    return f'<div class="track">{_fill(parts, f"{width:.1f}%", "thin")}</div>'
+
+
+def bar_list(bars: Sequence[Bar], scale: int, label: str) -> str:
+    return f'<ul class="bar-list" aria-label="{escape(label)}">{"".join(_bar(bar, scale) for bar in bars)}</ul>'
+
+
+def lane(stops: Sequence[Stop]) -> str:
+    cells = "".join(
+        f'<div class="stop{" stop-target" if stop.target else ""}" data-tip="{escape(stop.tip)}">'
+        f'<span class="stop-dot" style="--dot:{_dot_size(stop.repositories)}px"></span>'
+        f'<span class="stop-label">{escape(stop.label)}</span></div>'
+        for stop in stops
+    )
+    return f'<div class="lane">{cells}</div>'
+
+
+def lines(items: Sequence[Line]) -> str:
+    rendered = "".join(
+        f"<li{f' data-tip="{escape(item.tip)}"' if item.tip else ''}><span>{item.primary}</span>{item.badge}"
+        f'<span class="line-detail">{item.detail}</span></li>'
+        for item in items
+    )
+    return f'<ul class="lines">{rendered}</ul>'
+
+
+def chip_links(chips: Iterable[str]) -> str:
+    return f'<div class="chip-links">{"".join(chips)}</div>'
+
+
+def chip_link(label: str, href: str, count: int, *, tip: str = "") -> str:
+    number = f'<span class="chip-count">{count}</span>' if count else ""
+    hint = f' data-tip="{escape(tip)}"' if tip else ""
+    return f'<a class="chip chip-link" data-item href="{escape(href)}"{hint}>{escape(label)}{number}</a>'
+
+
+def scope(
+    content: str,
+    *,
+    search: str | None = None,
+    limit: int | None = None,
+    total: int = 0,
+) -> str:
+    limited = limit is not None and total > limit
+    attributes = f' data-limit="{limit}"' if limited else ""
+    more = '<button type="button" class="list-more" data-more hidden></button>' if limited else ""
+    return (
+        f'<div class="scope" data-table-scope{attributes}>{_toolbar(search)}{content}'
+        '<div class="ui-empty-state" data-empty hidden><p class="ui-empty-detail">'
+        f"Nothing matches this view.</p></div>{more}</div>"
+    )
+
+
 def table(
     label: str,
     columns: Sequence[Column],
     rows: Sequence[Row],
     *,
-    filters: Sequence[Filter] = (),
     search: str | None = None,
     limit: int | None = None,
 ) -> str:
-    limited = limit is not None and len(rows) > limit
-    attributes = f' data-limit="{limit}"' if limited else ""
-    more = '<button type="button" class="list-more" data-more hidden></button>' if limited else ""
     head = "".join(f'<th scope="col"{_cell_class(column)}>{escape(column.label)}</th>' for column in columns)
     body = "".join(_row(columns, row) for row in rows)
-    return (
-        f'<div data-table-scope{attributes}>{_toolbar(filters, search)}'
+    return scope(
         f'<div class="ui-table-scroll" role="region" aria-label="{escape(label)} table">'
         f'<table class="ui-data-table" aria-label="{escape(label)}">'
-        f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"
-        '<div class="ui-empty-state" data-empty hidden><p class="ui-empty-detail">'
-        "Nothing matches this view.</p></div>"
-        f"{more}</div>"
+        f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>",
+        search=search,
+        limit=limit,
+        total=len(rows),
     )
 
 
@@ -224,6 +329,37 @@ def shell(
     )
 
 
+def _fill(parts: Sequence[Segment], width: str, variant: str) -> str:
+    drawn = [part for part in parts if part.value > 0]
+    summary = ", ".join(f"{part.label} {part.value}" for part in drawn)
+    spans = "".join(
+        f'<span class="seg mark-{part.mark.value}" style="flex-grow:{part.value}" '
+        f'data-tip="{escape(part.label)}: {part.value}"></span>'
+        for part in drawn
+    )
+    return (
+        f'<div class="fill fill-{variant}" style="width:{width}" role="img" aria-label="{escape(summary)}">'
+        f"{spans}</div>"
+    )
+
+
+def _bar(bar: Bar, scale: int) -> str:
+    total = sum(part.value for part in bar.parts)
+    width = 0.0 if scale <= 0 else min(100.0, total / scale * 100)
+    note_text = f'<span class="bar-note">{bar.note}</span>' if bar.note else ""
+    hint = f' data-tip="{escape(bar.tip)}"' if bar.tip else ""
+    tail = f'<div class="bar-tail">{bar.tail}</div>' if bar.tail else ""
+    return (
+        f'<li class="bar-row" data-item{hint}><div class="bar-label"><span>{bar.label}</span>{note_text}</div>'
+        f'<div class="bar-cell">{_fill(bar.parts, f"calc((100% - 3em) * {width / 100:.3f})", "bar")}'
+        f'<span class="bar-value">{total}</span></div>{tail}</li>'
+    )
+
+
+def _dot_size(repositories: int) -> int:
+    return min(24, 10 + round(4 * sqrt(max(0, repositories - 1))))
+
+
 def _panel_head(title: str, meta: str) -> str:
     below = f'<div class="ui-panel-meta">{meta}</div>' if meta else ""
     return (
@@ -243,37 +379,21 @@ def _cell_class(column: Column) -> str:
 
 
 def _row(columns: Sequence[Column], row: Row) -> str:
-    attributes = " data-row" if row.href is not None else ""
-    if row.tags:
-        attributes += f' data-tags="{escape(" ".join(row.tags))}"'
-    if row.href is not None:
-        attributes += f' data-href="{escape(row.href)}"'
-    if row.row_id is not None:
-        attributes += f' id="{escape(row.row_id)}"'
     cells = "".join(
         f"<td{_cell_class(column)}>{cell}</td>"
         for column, cell in zip(columns, row.cells, strict=True)
     )
-    return f"<tr{attributes}>{cells}</tr>"
+    return f"<tr>{cells}</tr>"
 
 
-def _toolbar(filters: Sequence[Filter], search: str | None) -> str:
-    if not filters and search is None:
+def _toolbar(search: str | None) -> str:
+    if search is None:
         return ""
-    chips = "".join(
-        f'<button class="chip" type="button" data-filter="{escape(item.tag)}" '
-        f'aria-pressed="{"true" if item.pressed else "false"}">{escape(item.label)}'
-        f'<span class="chip-count">{item.count}</span></button>'
-        for item in filters
+    return (
+        '<div class="ui-table-toolbar"><div></div><label class="ui-search">'
+        f'<span class="ui-sr-only">Filter</span>{_SEARCH_ICON}'
+        f'<input type="search" data-table-search placeholder="{escape(search)}"></label></div>'
     )
-    group = f'<div class="chips" role="group" aria-label="Filter rows">{chips}</div>' if chips else "<div></div>"
-    box = (
-        '<label class="ui-search"><span class="ui-sr-only">Filter rows</span>'
-        f'{_SEARCH_ICON}<input type="search" data-table-search placeholder="{escape(search)}"></label>'
-        if search is not None
-        else ""
-    )
-    return f'<div class="ui-table-toolbar">{group}{box}</div>'
 
 
 def _nav_group(group: NavGroup, index: int, prefix: str, active: str) -> str:

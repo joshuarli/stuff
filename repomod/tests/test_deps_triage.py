@@ -117,7 +117,8 @@ def test_latest_release_with_its_own_advisories_is_not_offered_as_a_fix() -> Non
 
 def test_vulnerable_only_through_the_lockfile_points_at_the_lockfile() -> None:
     found = _actions(vulnerable=(_vulnerable("zip", "1.0.0", "2.0.0", locked=("acme/one",)),))
-    assert found[0].step == "Update the lockfile to 2.0.0"
+    assert found[0].step == "Update the lockfile"
+    assert found[0].change == "1.0.0 → 2.0.0"
 
 
 def test_minor_and_patch_upgrades_collapse_into_one_command() -> None:
