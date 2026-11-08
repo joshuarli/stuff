@@ -10,6 +10,23 @@ Use this skill when the catalogued repositories should be brought up to date. It
 `docs/audit.md`: read that first for sources, rules, and fixer behaviour. Do not start it while
 changing repomod code, because `fix` runs the working tree's rules against the live catalog.
 
+## Scope
+
+When the user limits scope (for example, "only Python deps, not Rust nor TS"), apply the same
+survey/confirm/fix/report flow only to that ecosystem. Do not classify, propose, or run upgrades
+outside the requested scope. Still report out-of-scope findings only when they are directly
+relevant to the scoped decision (for example, a checkout is ineligible) and label them clearly.
+
+For a **Python-only** scope, distinguish:
+- **Regular Python packages** (`pypi`, in `pyproject.toml`/`uv.lock`): surveyed by
+  `audit-upgrades`/`audit-*` and upgraded via the `audit-upgrades` fixer flow when fixable.
+- **Approved Python tool pins** (`uv`, `ruff`, `ty`): `audit-upgrades` intentionally skips them
+  because versions are set in `python-tools.toml` and bumped with
+  `uv run repomod pins refresh --only python` (use `--check` to report drift without writing).
+  Dependency dashboards/outdated views may still show `ruff`/`ty` as packages in repositories;
+  that does not mean `audit-upgrades` will report or fix them. Treat tool-pin refresh and any
+  resulting `python-standard`/lockfile alignment as a separate, explicitly confirmed change.
+
 ## What writes where
 
 - `uv run repomod fix --rule audit-upgrades` runs native upgraders (`uv lock --upgrade`,
@@ -38,17 +55,26 @@ changing repomod code, because `fix` runs the working tree's rules against the l
 2. Run `uv run repomod lint --rule audit-upgrades --rule audit-vuln --rule audit-banned
    --rule audit-registry --rule audit-lock --json` and group findings per repository and
    rule. Repositories with `ignore` entries for an audit rule are out of scope for that rule;
-   say so rather than overriding the catalog.
-3. Classify every outdated dependency:
+   say so rather than overriding the catalog. If the request is scoped to an ecosystem, filter
+   findings to that ecosystem (for Python, `pypi`/Python-related findings and relevant lockfiles)
+   and keep out-of-scope findings out of the upgrade plan.
+3. For a Python-only scope, also check approved tool pins:
+   `uv run repomod pins refresh --check --only python`. `audit-upgrades` skips `uv`/`ruff`/`ty`,
+   so dashboard/outdated views may show them even when `audit-upgrades` has no Python findings;
+   report whether tool pins are current or drifted and treat refresh/alignment as a separate
+   confirmed change.
+4. Classify every outdated dependency in scope:
    - **Minor or patch, lockfile only:** the fixer handles it.
    - **Major, or constrained by a manifest** (Rust requirements in `Cargo.toml`, npm ranges,
-     Go majors, `requires-python` caps): manual, one subagent per repository.
+     Go majors, `requires-python` caps, or Python specifiers that block the latest): manual, one
+     subagent per repository.
    - **Fork** (`fork` tag): upgrading diverges the fork from its upstream. Do not include forks
      unless the owner asks; report `audit-upstream` drift separately.
-   - **Pinned toolchains and vendored sources:** a pinned Rust nightly, Node, pnpm, or uv pin is
-     not a dependency. Do not change a pinned Rust nightly as part of an upgrade.
-4. Vulnerabilities come first. For each `audit-vuln` finding record the advisory, whether the
-   package is direct or transitive, and the fixed version. A transitive-only advisory needs an
+   - **Pinned toolchains and approved tool pins:** a pinned Rust nightly is never changed as part
+     of an upgrade. `uv`/`ruff`/`ty` are approved Python tool pins managed via
+     `python-tools.toml`/`pins refresh --only python`, not regular `audit-upgrades` package bumps.
+5. Vulnerabilities come first. For each in-scope `audit-vuln` finding record the advisory, whether
+   the package is direct or transitive, and the fixed version. A transitive-only advisory needs an
    owner decision (override, direct bump, or accept); do not add overrides on your own.
 
 ## Confirm before writing
@@ -97,6 +123,11 @@ remaining red checks with causes, and the PR URL.
 Re-run the survey and report per repository: merged, green awaiting merge, red-blocked with the
 cause, skipped checkouts, forks excluded, and findings that need an owner decision
 (vulnerabilities that cannot be fixed by a direct bump, `audit-banned` swaps, `audit-registry`
-sources, missing lockfiles). List what is still outdated and why. Leave the Actions catalog
-(`actions.toml`) and the Node, pnpm, and uv pins to `pins refresh` and the `gha-*` rules; they
-are a separate change.
+sources, missing lockfiles). List what is still outdated and why. If the run was scoped, state the
+scope and list out-of-scope work as not evaluated rather than done.
+
+Leave Actions/tooling pins to their dedicated flows as separate, confirmed changes: the Actions
+catalog (`actions.toml`) and `gha-*` rules, Node/pnpm pins in `typescript-tools.toml`
+(`pins refresh --only typescript`), and Python tool pins `uv`/`ruff`/`ty` in
+`python-tools.toml` (`pins refresh --only python`). These are not regular `audit-upgrades`
+package bumps.
