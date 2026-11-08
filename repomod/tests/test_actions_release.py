@@ -981,3 +981,10 @@ def test_private_npm_package_without_public_workspaces_is_not_published(
     )
 
     assert release._npm_findings(tmp_path, repository(("tool", "npm"))) == []
+
+
+def test_gha_syntax_skips_fork_workflows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = write_workflow(tmp_path, "invalid")
+    path.rename(path.with_name("test.yml"))
+    monkeypatch.setattr(actions, "_pinact_lint_findings", lambda *args: ["unexpected"])
+    assert actions._syntax_findings(tmp_path, repository(("tool", "fork"))) == []

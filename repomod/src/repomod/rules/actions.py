@@ -497,6 +497,8 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
 
 
 def _syntax_findings(root: Path, repository: Repository) -> list[Finding]:
+    if "fork" in repository.tags:
+        return []
     files, problems = _action_tool_files(root, repository)
     findings = [
         operational(repository, "gha-syntax", path, message) for path, message in problems

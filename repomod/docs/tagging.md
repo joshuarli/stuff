@@ -62,7 +62,7 @@ so it carries `linux`.
 
 The `fork` tag marks repositories whose upstream GitHub workflows are outside local policy.
 Fork workflow checks and status include only files named `lint`, `prerelease`, or `test` under
-`.github/workflows/`. `status` also reports how many commits each fork is behind its upstream
+`.github/workflows/`, except `gha-syntax`, which skips forks. `status` also reports how many commits each fork is behind its upstream
 parent, regardless of tagging, whenever GitHub reports a parent.
 
 ## Binary prereleases

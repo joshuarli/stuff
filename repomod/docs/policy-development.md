@@ -87,7 +87,7 @@ Intel labels have no latest alias, so they stay unchanged. `gha-ubuntu` requires
 `ubuntu-26.04` or `ubuntu-26.04-arm`; `ubuntu-latest` is banned so a job never silently moves
 between Ubuntu releases. Its fixer rewrites `ubuntu-latest` and ARM labels to
 `ubuntu-26.04-arm`, and older x86 labels to `ubuntu-26.04` for jobs that need x86.
-`gha-syntax` validates GitHub Actions files offline with Pinact's default profile and the
+`gha-syntax` skips forks and validates other GitHub Actions files offline with Pinact's default profile and the
 explicit `actions.toml` catalog. Its fixer returns a catalog-backed Pinact plan from a disposable
 worktree; repomod keeps validation and repository writes.
 `no-formatters` rejects formatter
