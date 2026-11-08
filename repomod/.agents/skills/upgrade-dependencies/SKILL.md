@@ -12,10 +12,11 @@ changing repomod code, because `fix` runs the working tree's rules against the l
 
 ## Scope
 
-When the user limits scope (for example, "only Python deps, not Rust nor TS"), apply the same
-survey/confirm/fix/report flow only to that ecosystem. Do not classify, propose, or run upgrades
-outside the requested scope. Still report out-of-scope findings only when they are directly
-relevant to the scoped decision (for example, a checkout is ineligible) and label them clearly.
+When the user limits scope (for example, "only Python deps, not Rust nor TS", or "only TypeScript
+deps"), apply the same survey/confirm/fix/report flow only to that ecosystem. Do not classify,
+propose, or run upgrades outside the requested scope. Still report out-of-scope findings only when
+they are directly relevant to the scoped decision (for example, a checkout is ineligible) and
+label them clearly.
 
 For a **Python-only** scope, distinguish:
 - **Regular Python packages** (`pypi`, in `pyproject.toml`/`uv.lock`): surveyed by
@@ -31,6 +32,16 @@ For a **Python-only** scope, distinguish:
   will fail to resolve. With explicit confirmation, publish missing versions first (see the
   `stuff-registries` skill; e.g. `stuff publish pypi ruff==X.Y.Z ty==A.B.C uv==D.E.F --dry-run`,
   then without `--dry-run`), verify the index carries them, then run `python-standard` alignment.
+
+For a **TypeScript/JavaScript-only** scope, distinguish:
+- **Regular npm packages** (`npm`, in `package.json`/`pnpm-lock.yaml`): surveyed by
+  `audit-upgrades`/`audit-*` and upgraded via the `audit-upgrades` fixer flow when fixable (the
+  fixer runs `pnpm update --latest` per project in a disposable worktree). npm "latest" respects
+  pnpm `minimumReleaseAge`/exclusions.
+- **Approved TS/Node tool pins** (Node, pnpm): versions are set in `typescript-tools.toml` and
+  bumped with `uv run repomod pins refresh --only typescript` (use `--check` to report drift
+  without writing). Treat tool-pin refresh and any resulting `typescript-stack`/repo alignment as
+  a separate, explicitly confirmed change; they are not regular `audit-upgrades` package bumps.
 
 ## What writes where
 
@@ -61,13 +72,16 @@ For a **Python-only** scope, distinguish:
    --rule audit-registry --rule audit-lock --json` and group findings per repository and
    rule. Repositories with `ignore` entries for an audit rule are out of scope for that rule;
    say so rather than overriding the catalog. If the request is scoped to an ecosystem, filter
-   findings to that ecosystem (for Python, `pypi`/Python-related findings and relevant lockfiles)
-   and keep out-of-scope findings out of the upgrade plan.
-3. For a Python-only scope, also check approved tool pins:
-   `uv run repomod pins refresh --check --only python`. `audit-upgrades` skips `uv`/`ruff`/`ty`,
-   so dashboard/outdated views may show them even when `audit-upgrades` has no Python findings;
-   report whether tool pins are current or drifted and treat refresh/alignment as a separate
-   confirmed change.
+   findings to that ecosystem (for Python, `pypi`/Python-related findings and relevant lockfiles;
+   for TypeScript/JavaScript, `npm` findings and relevant `pnpm-lock.yaml`/lockfiles) and keep
+   out-of-scope findings out of the upgrade plan.
+3. For a scoped run, also check approved tool pins as applicable:
+   - **Python:** `uv run repomod pins refresh --check --only python`. `audit-upgrades` skips
+     `uv`/`ruff`/`ty`, so dashboard/outdated views may show them even when `audit-upgrades` has
+     no Python findings.
+   - **TypeScript/JavaScript:** `uv run repomod pins refresh --check --only typescript`
+     (`typescript-tools.toml`: Node, pnpm). Treat refresh/alignment as a separate confirmed change.
+   Report whether tool pins are current or drifted.
 4. Classify every outdated dependency in scope:
    - **Minor or patch, lockfile only:** the fixer handles it.
    - **Major, or constrained by a manifest** (Rust requirements in `Cargo.toml`, npm ranges,
