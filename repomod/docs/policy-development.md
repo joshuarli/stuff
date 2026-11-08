@@ -372,3 +372,5 @@ default `[[tool.uv.index]]` plus `[tool.uv] environments` for darwin and linux, 
 a disposable copy so `uv.lock` records the stuff index. Windows-only packages leave the lock because
 `environments` excludes Windows, and stuff publishes macOS and Linux wheels only. A file that already
 sets a different cargo source, npm registry, or uv index fails the fixer and needs a manual edit.
+
+`audit-upgrades` skips private repositories and forks, including when explicitly selected for fixes.

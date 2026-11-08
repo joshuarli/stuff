@@ -385,6 +385,8 @@ def _outdated_findings(
 
 
 def _check(root: Path, repository: Repository) -> list[Finding]:
+    if repository.private or "fork" in repository.tags:
+        return []
     with audit_cache() as cache:
         return _outdated_findings(root, repository, cache, time.time(), None, _configured_sources(root))
 

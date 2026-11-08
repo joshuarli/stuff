@@ -78,6 +78,14 @@ def test_rule_is_registered_and_selectable() -> None:
     assert all(rule.id != "audit-upgrades" for rule in offline)
 
 
+def test_upgrade_rule_skips_forks_and_private_repositories(tmp_path: Path) -> None:
+    rule = audit_upgrade_rules()[0]
+    write_python(tmp_path)
+    assert rule.check(tmp_path, repository("tool", "python", "fork")) == []
+    private = Repository(RepoId("acme", "private"), ("tool", "python"), private=True)
+    assert rule.check(tmp_path, private) == []
+
+
 def test_check_reports_fixable_outdated() -> None:
     import tempfile
 
