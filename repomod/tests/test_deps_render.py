@@ -248,3 +248,184 @@ def test_fork_repositories_are_listed_apart_from_owned_ones(tmp_path: Path) -> N
     forks = index[index.index("<h2>Forks</h2>"):]
     assert "acme/upstream" in forks
     assert "acme/mine" not in forks
+
+
+def test_heaviest_dependencies_mark_dev_only_with_a_pill(tmp_path: Path) -> None:
+    syn = instance(Ecosystem.CARGO, "syn", "2.0.0")
+    proc_macro2 = instance(Ecosystem.CARGO, "proc-macro2", "1.0.0")
+    clap = instance(Ecosystem.CARGO, "clap", "4.0.0")
+    clap_derive = instance(Ecosystem.CARGO, "clap_derive", "4.0.0")
+    repo = repository(
+        "acme/app",
+        (syn, proc_macro2, clap, clap_derive),
+        projects=(project(".", Ecosystem.CARGO),),
+        edges=(
+            Edge(
+                ".:cargo",
+                syn.id,
+                Relation.DIRECT,
+                Scope.DEV,
+                False,
+                None,
+                "2.0.0",
+                None,
+                SourceKind.REGISTRY,
+                Resolution.RESOLVED,
+            ),
+            Edge(
+                syn.id,
+                proc_macro2.id,
+                Relation.TRANSITIVE,
+                Scope.DEV,
+                False,
+                None,
+                "1.0.0",
+                None,
+                SourceKind.REGISTRY,
+                Resolution.RESOLVED,
+            ),
+            Edge(
+                ".:cargo",
+                clap.id,
+                Relation.DIRECT,
+                Scope.RUNTIME,
+                False,
+                None,
+                "4.0.0",
+                None,
+                SourceKind.REGISTRY,
+                Resolution.RESOLVED,
+            ),
+            Edge(
+                clap.id,
+                clap_derive.id,
+                Relation.TRANSITIVE,
+                Scope.RUNTIME,
+                False,
+                None,
+                "4.0.0",
+                None,
+                SourceKind.REGISTRY,
+                Resolution.RESOLVED,
+            ),
+        ),
+    )
+    inventory = graph.load_inventory(write_inventory(tmp_path, [repo]))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    bloat = (result.output / "bloat.html").read_text(encoding="utf-8")
+    index = (result.output / "index.html").read_text(encoding="utf-8")
+    for page in (bloat, index):
+        assert "syn@2.0.0" in page
+        assert 'class="pill dev">dev</span>' in page
+        assert "clap@4.0.0" in page
+    syn_row = bloat.split("syn@2.0.0", 1)[1].split("</tr>", 1)[0]
+    clap_row = bloat.split("clap@4.0.0", 1)[1].split("</tr>", 1)[0]
+    assert 'class="pill dev">dev</span>' in syn_row
+    assert 'class="pill dev">dev</span>' not in clap_row
+    assert "Only via it" in bloat
+    assert "<th>Scope</th>" not in bloat.split("Only via it", 1)[0].split("<table")[-1]
+
+
+def test_choices_show_which_repositories_deviate_from_preferred(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lexopt = instance(Ecosystem.CARGO, "lexopt", "0.3.0")
+    clap = instance(Ecosystem.CARGO, "clap", "4.0.0")
+    clap_complete = instance(Ecosystem.CARGO, "clap_complete", "4.0.0")
+    repos = [
+        repository(
+            "acme/clean",
+            (lexopt,),
+            projects=(project(".", Ecosystem.CARGO),),
+            edges=(
+                Edge(
+                    ".:cargo",
+                    lexopt.id,
+                    Relation.DIRECT,
+                    Scope.RUNTIME,
+                    False,
+                    None,
+                    "0.3.0",
+                    None,
+                    SourceKind.REGISTRY,
+                    Resolution.RESOLVED,
+                ),
+            ),
+        ),
+        repository(
+            "acme/legacy",
+            (clap,),
+            projects=(project(".", Ecosystem.CARGO),),
+            edges=(
+                Edge(
+                    ".:cargo",
+                    clap.id,
+                    Relation.DIRECT,
+                    Scope.RUNTIME,
+                    False,
+                    None,
+                    "4.0.0",
+                    None,
+                    SourceKind.REGISTRY,
+                    Resolution.RESOLVED,
+                ),
+            ),
+        ),
+        repository(
+            "acme/mixed",
+            (lexopt, clap_complete),
+            projects=(project(".", Ecosystem.CARGO),),
+            edges=(
+                Edge(
+                    ".:cargo",
+                    lexopt.id,
+                    Relation.DIRECT,
+                    Scope.RUNTIME,
+                    False,
+                    None,
+                    "0.3.0",
+                    None,
+                    SourceKind.REGISTRY,
+                    Resolution.RESOLVED,
+                ),
+                Edge(
+                    ".:cargo",
+                    clap_complete.id,
+                    Relation.DIRECT,
+                    Scope.RUNTIME,
+                    False,
+                    None,
+                    "4.0.0",
+                    None,
+                    SourceKind.REGISTRY,
+                    Resolution.RESOLVED,
+                ),
+            ),
+        ),
+    ]
+    inventory = graph.load_inventory(write_inventory(tmp_path, repos))
+    built = graph.build_graph(inventory)
+    roles_path = tmp_path / "dependency-roles.toml"
+    roles_path.write_text(
+        '[cli-arguments]\n'
+        'ecosystem = "cargo"\n'
+        'preferred = "lexopt"\n'
+        '[cli-arguments.options]\n'
+        'lexopt = ["lexopt"]\n'
+        'clap = ["clap", "clap_complete"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "action-pins.toml").write_text("", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = render.render(inventory, built, tmp_path / "dashboard")
+    choices = (result.output / "choices.html").read_text(encoding="utf-8")
+    index = (result.output / "index.html").read_text(encoding="utf-8")
+    assert "Deviate from preferred" in index
+    assert "uses clap" in index
+    section = choices.split('id="role-cli-arguments"', 1)[1].split("<h2", 1)[0]
+    deviate = next(line for line in section.splitlines() if "deviate from preferred" in line)
+    assert "acme/legacy" in deviate
+    assert "acme/mixed" in deviate
+    assert "acme/clean" not in deviate
+    assert "uses clap" in deviate
+    assert "clap_complete" in deviate

@@ -116,6 +116,8 @@ h2 .more { float: right; font-size: .8rem; font-weight: 400; }
 .badge.breaking { color: var(--error); }
 .badge.minor { color: var(--gap); }
 .badge.patch { color: var(--muted); }
+.pill { font: 11px var(--mono); padding: 0 .3rem; border: 1px solid var(--rule); color: var(--muted); vertical-align: middle; }
+.pill.dev { color: var(--gap); border-color: var(--gap); }
 .on-target { color: var(--ok); }
 tr.quiet td { color: var(--muted); }
 ul.attention { padding-left: 1.1rem; }

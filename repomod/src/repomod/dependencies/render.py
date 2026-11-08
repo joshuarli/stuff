@@ -25,6 +25,7 @@ from repomod.dependencies.model import (
     Project,
     Relation,
     RepositoryData,
+    Scope,
 )
 from repomod.rules import actions as actions_rule
 
@@ -534,6 +535,12 @@ def _outdated_table(rows: Sequence[insights.Outdated]) -> str:
     return "".join(body)
 
 
+def _dev_pill(scopes: frozenset[Scope]) -> str:
+    if scopes == {Scope.DEV}:
+        return ' <span class="pill dev">dev</span>'
+    return ""
+
+
 def _weight_table(
     rows: Sequence[insights.Weight], scale: Sequence[insights.Weight]
 ) -> str:
@@ -542,14 +549,14 @@ def _weight_table(
     widest = max(row.pulls for row in scale)
     body = [
         '<div class="scroll"><table><thead><tr><th>Repository</th><th>Dependency</th>'
-        '<th>Scope</th><th class="num">Only via it</th><th class="num">Pulls in</th>'
+        '<th class="num">Only via it</th><th class="num">Pulls in</th>'
         "<th></th></tr></thead><tbody>"
     ]
     body.extend(
         "<tr>"
         f"<td>{_repo_link(row.repository, '')}</td>"
-        f"<td>{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}</td>"
-        f"<td>{_e(', '.join(sorted(scope.value for scope in row.scopes)))}</td>"
+        f"<td>{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}"
+        f"{_dev_pill(row.scopes)}</td>"
         f'<td class="num">{row.sole}</td><td class="num">{row.pulls}</td>'
         f'<td class="weight">{_bar(row.sole, widest)}{_bar(row.pulls - row.sole, widest, "shared")}</td></tr>'
         for row in rows
@@ -586,26 +593,50 @@ def _split_table(rows: Sequence[insights.Split]) -> str:
     return "".join(body)
 
 
+def _choice_options(use: insights.RoleUse, repository: str) -> tuple[str, ...]:
+    return tuple(option for option, repositories in use.options.items() if repository in repositories)
+
+
+def _choice_detail(use: insights.RoleUse, repository: str, prefix: str) -> str:
+    parts = []
+    for option in _choice_options(use, repository):
+        packages = use.packages.get((repository, option), ())
+        label = ", ".join(packages) if packages else option
+        parts.append(f"{option} ({label})" if packages and packages != (option,) else option)
+    detail = ", ".join(parts)
+    return f"{_repo_link(repository, prefix)} <span class=\"sub\">uses {_e(detail)}</span>"
+
+
+def _choice_repo_list(
+    use: insights.RoleUse, repositories: Sequence[str], prefix: str = "", limit: int = 6
+) -> str:
+    if not repositories:
+        return '<span class="sub">·</span>'
+    items = [_choice_detail(use, name, prefix) for name in repositories]
+    if len(items) <= limit:
+        return ", ".join(items)
+    return (
+        ", ".join(items[:limit])
+        + f"<details><summary>{len(items) - limit} more</summary>{', '.join(items[limit:])}</details>"
+    )
+
+
 def _choices_summary(site: _Site) -> str:
     contested = [use for use in site.roles if use.overlapping or use.off_preferred]
     if not contested:
         return '<p class="zero">every curated role has one choice in use</p>'
     body = [
-        '<div class="scroll"><table><thead><tr><th>Role</th><th>Options in use</th>'
-        '<th>Preferred</th><th class="num">Mixed repos</th><th class="num">Off preferred</th>'
+        '<div class="scroll"><table><thead><tr><th>Role</th><th>Preferred</th>'
+        "<th>Deviate from preferred</th><th>Mixed</th>"
         "</tr></thead><tbody>"
     ]
     for use in contested[:_OVERVIEW_ROWS]:
-        options = ", ".join(
-            f"{_e(option)} <span class=\"sub\">{len(use.options[option])}</span>" for option in use.in_use
-        )
         body.append(
             "<tr>"
             f'<td><a href="choices.html#role-{_e(use.role.name)}">{_e(use.role.name)}</a></td>'
-            f"<td>{options}</td>"
             f"<td>{_e(use.role.preferred or '—')}</td>"
-            f'<td class="num">{len(use.overlapping)}</td>'
-            f'<td class="num">{len(use.off_preferred)}</td></tr>'
+            f"<td>{_choice_repo_list(use, use.off_preferred, limit=6)}</td>"
+            f"<td>{_choice_repo_list(use, use.overlapping, limit=6)}</td></tr>"
         )
     body.append("</tbody></table></div>")
     return "".join(body)
@@ -735,7 +766,11 @@ def _choices(site: _Site) -> str:
         body.append("</tbody></table></div>")
         if use.overlapping:
             body.append(
-                f'<p class="sub risk">mixed: {_repo_list(use.overlapping, limit=12)}</p>'
+                f'<p class="sub risk">mixed: {_choice_repo_list(use, use.overlapping, limit=12)}</p>'
+            )
+        if use.off_preferred:
+            body.append(
+                f'<p class="sub risk">deviate from preferred: {_choice_repo_list(use, use.off_preferred, limit=12)}</p>'
             )
         if use.excepted:
             body.append(
