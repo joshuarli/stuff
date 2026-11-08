@@ -17,10 +17,10 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 
 ## Pages
 
-- **Overview** — counts and the top ten of each list below: vulnerable versions, direct
-  dependencies furthest behind, the heaviest direct dependencies, version splits, and
-  roles with competing choices; then every repository ranked worst first by vulnerable
-  versions, breaking upgrades, versions behind, split versions, and role conflicts.
+- **Overview** — a short "fix first" list of the egregious items only: critical
+  vulnerabilities, repositories that could not be read, missing locks, and breaking
+  upgrades, each linked to its detail page. Everything else (bloat, splits, choices,
+  per-repository scorecards) lives on its own page, not repeated here.
 - **Outdated** — vulnerable versions, then direct dependencies behind their registry's
   latest release, grouped into breaking, minor, and patch upgrades. A breaking upgrade
   changes the leftmost nonzero version component. Needs `repomod deps enrich`.

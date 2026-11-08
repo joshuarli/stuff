@@ -270,66 +270,96 @@ def _write_assets(output: Path, site: _Site) -> None:
 
 
 def _overview(site: _Site) -> str:
-    overlaps = sum(1 for use in site.roles if use.overlapping or use.off_preferred)
-    breaking = sum(1 for row in site.outdated if row.gap is insights.Gap.BREAKING)
-    direct_vulnerable = sum(1 for row in site.vulnerable if row.direct_in)
+    breaking = [
+        row for row in site.outdated if row.gap is insights.Gap.BREAKING
+    ]
+    unreadable = [
+        (name, data)
+        for name, data in site.graph.repositories.items()
+        if data.state.value in ("failed", "unavailable")
+    ]
+    missing_locks = [
+        (name, sum(1 for issue in data.issues if issue.kind is CoverageKind.MISSING_LOCK))
+        for name, data in sorted(
+            site.graph.repositories.items(), key=lambda item: item[0].casefold()
+        )
+    ]
+    missing_locks = [(name, count) for name, count in missing_locks if count]
+    checked = site.cache.fetched_at is not None
+    actions: list[tuple[str, str, str]] = []
+    title = "Fix first"
+    detail = ""
+    if site.vulnerable:
+        direct_vulnerable = sum(1 for row in site.vulnerable if row.direct_in)
+        detail = (
+            f'<a href="outdated.html#vulnerable">{len(site.vulnerable)} vulnerable versions'
+            + (f", {direct_vulnerable} declared directly" if direct_vulnerable else "")
+            + "</a> — upgrade to a fixed release"
+        )
+        actions.append(("Critical vulnerabilities", detail, _vulnerable_table(site, site.vulnerable[:5])))
+    if unreadable:
+        names = ", ".join(
+            f"{_repo_link(name, '')} <span class=\"sub\">{_e(data.state.value)}</span>"
+            for name, data in unreadable[:8]
+        )
+        more = f" and {len(unreadable) - 8} more" if len(unreadable) > 8 else ""
+        detail = (
+            f'<a href="coverage.html">{len(unreadable)} repositories could not be read</a> — '
+            f"restore the checkout, then re-snapshot"
+        )
+        actions.append(("Repositories that could not be read", detail, f'<p class="sub">{names}{more}</p>'))
+    if missing_locks:
+        names = ", ".join(_repo_link(name, "") for name, _count in missing_locks[:8])
+        more = f" and {len(missing_locks) - 8} more" if len(missing_locks) > 8 else ""
+        detail = (
+            f'<a href="coverage.html">{len(missing_locks)} repositories have no lockfile</a> — '
+            "generate and commit one"
+        )
+        actions.append(("No lockfile", detail, f'<p class="sub">{names}{more}</p>'))
+    if breaking:
+        detail = (
+            f'<a href="outdated.html">{len(breaking)} direct dependencies need a breaking upgrade</a>'
+            + (
+                f" (of {len(site.outdated)} behind)"
+                if len(site.outdated) > len(breaking)
+                else ""
+            )
+        )
+        actions.append(("Breaking upgrades", detail, _outdated_table(breaking[:5])))
+    if not checked and not actions:
+        actions = [
+            (
+                "Registry data missing",
+                "run <span class=\"mono\">repomod deps enrich</span>",
+                '<p class="sub">Vulnerabilities and upgrade targets cannot be ranked '
+                "until the registry cache exists.</p>",
+            )
+        ]
     body = [
         "<h1>Dependencies</h1>",
         f'<p class="sub">{len(site.graph.repositories)} repositories · '
         f"{_enrichment_stamp(site)} · {_changes_line(site)}</p>",
-        '<div class="tiles">',
-        _tile(
-            "outdated.html#vulnerable",
-            len(site.vulnerable),
-            "vulnerable versions",
-            f"{direct_vulnerable} declared directly",
-            "finding" if site.vulnerable else "",
-        ),
-        _tile(
-            "outdated.html",
-            len(site.outdated),
-            "direct dependencies behind",
-            f"{breaking} need a breaking upgrade",
-            "risk" if breaking else "",
-        ),
-        _tile(
-            "bloat.html",
-            sum(1 for row in site.weights if row.sole >= _HEAVY_SOLE),
-            "heavy direct dependencies",
-            f"each alone brings in {_HEAVY_SOLE}+ lockfile packages",
-        ),
-        _tile(
-            "alignment.html",
-            len(site.splits),
-            "packages on split versions",
-            f"{len({repo for row in site.splits for repo in row.off_target})} repositories off target",
-        ),
-        _tile(
-            "choices.html",
-            overlaps,
-            "roles with competing choices",
-            f"of {len(site.roles)} curated roles",
-        ),
-        "</div>",
-        _section("Vulnerable", "outdated.html#vulnerable", len(site.vulnerable)),
-        _vulnerable_table(site, site.vulnerable[:_OVERVIEW_ROWS]),
-        _section("Furthest behind", "outdated.html", len(site.outdated)),
-        _outdated_table(site.outdated[:_OVERVIEW_ROWS]),
-        _section("Heaviest direct dependencies", "bloat.html", len(site.weights)),
-        _weight_table(site.weights[:_OVERVIEW_ROWS], site.weights),
-        _section("Version splits", "alignment.html", len(site.splits)),
-        _split_table(site.splits[:_OVERVIEW_ROWS]),
-        _section("Competing choices", "choices.html", overlaps),
-        _choices_summary(site),
-        "<h2>Repositories</h2>",
-        '<p class="sub">Worst first: vulnerable versions, breaking upgrades, versions behind, '
-        "split versions, then role conflicts.</p>",
-        _scorecard_table(site),
-        "<h2>Forks</h2>",
-        '<p class="sub">Forks keep upstream\'s dependency choices, so they are left out of the '
-        "lists above. Only vulnerable versions are tracked here.</p>",
-        _fork_table(site),
     ]
+    if actions:
+        body.append(f"<h2>{title}</h2>")
+        body.append('<ol class="attention">')
+        for action_title, summary, detail_html in actions:
+            body.append(
+                f"<li><strong>{_e(action_title)}</strong> "
+                f'<span class="sub">— {summary}</span>{detail_html}</li>'
+            )
+        body.append("</ol>")
+    else:
+        body.append(
+            '<p class="zero">nothing egregious — no known vulnerabilities, no unreadable '
+            "repositories, no missing locks, no breaking upgrades</p>"
+        )
+    body.append("<h2>Forks</h2>")
+    body.append(
+        '<p class="sub">Forks keep upstream\'s dependency choices, so they are left out of the '
+        "lists above. Only vulnerable versions are tracked here.</p>"
+    )
+    body.append(_fork_table(site))
     return "\n".join(body)
 
 
@@ -797,24 +827,35 @@ def _role_card(use: insights.RoleUse) -> str:
     ]
     for option in options:
         count = len(use.options[option])
-        color = "#1d6b3a" if option == preferred else "#b04a6d" if option in use.role.bans else "#b45309"
+        color = (
+            "#1d6b3a"
+            if option == preferred
+            else "#b04a6d"
+            if option in use.role.bans
+            else "#b45309"
+        )
         pct = count / total * 100
         repos = use.options[option]
+        packages = sorted(
+            {
+                package
+                for repository in repos
+                for package in use.packages.get((repository, option), ())
+            }
+        )
+        extra = [package for package in packages if package != option]
+        if extra:
+            shown = ", ".join(extra[:3]) + (f" +{len(extra) - 3}" if len(extra) > 3 else "")
+            note = f' <span class="sub">{_e(shown)}</span>'
+        else:
+            note = ""
         parts.append(
             f'<div class="adopt-row"><span class="adopt-name mono">{_e(option)}</span>'
             f'<span class="adopt-bar"><span style="width:{pct:.1f}%;background:{color}"></span></span>'
             f'<span class="adopt-num">{count} repos</span>'
-            f'<details><summary>{len(repos)} repos</summary>{_repo_list(repos, limit=12)}</details></div>'
+            f'<details><summary>list</summary>{_repo_list(repos, limit=12)}</details>{note}</div>'
         )
     parts.append("</div>")
-    if use.off_preferred:
-        parts.append(
-            f'<p class="sub risk">deviate from preferred: {_choice_repo_list(use, use.off_preferred, limit=12)}</p>'
-        )
-    if use.overlapping:
-        parts.append(
-            f'<p class="sub risk">mixed: {_choice_repo_list(use, use.overlapping, limit=12)}</p>'
-        )
     if use.excepted:
         parts.append(
             "<details><summary>accepted exceptions</summary><ul>"
@@ -1198,18 +1239,14 @@ def _package_section(site: _Site, purl: str) -> str:
         + f" · {len(instances)} instance(s)</p>",
         "<h3>Versions</h3>",
         '<div class="scroll"><table><thead><tr><th>Version</th><th>Source</th>'
-        '<th>Repositories</th><th>Enrichment</th></tr></thead><tbody>',
+        '<th>Enrichment</th></tr></thead><tbody>',
     ]
-    for instance in instances:
-        repositories = sorted(
-            site.graph.instance_repositories.get(instance.id, frozenset())
-        )
-        body.append(
-            f"<tr><td class=\"mono\">{_e(instance.version or 'unknown')}</td>"
-            f"<td>{_source_label(instance)}</td>"
-            f"<td>{_e(', '.join(repositories) or '—')}</td>"
-            f"<td>{_enrichment_cell(site, instance)}</td></tr>"
-        )
+    body.extend(
+        f"<tr><td class=\"mono\">{_e(instance.version or 'unknown')}</td>"
+        f"<td>{_source_label(instance)}</td>"
+        f"<td>{_enrichment_cell(site, instance)}</td></tr>"
+        for instance in instances
+    )
     body.append("</tbody></table></div>")
     fanin_repos = {repository for repository, _edge in consumers}
     if len(fanin_repos) >= 4:

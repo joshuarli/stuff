@@ -207,7 +207,7 @@ def test_insight_pages_escape_package_and_role_names(tmp_path: Path) -> None:
         )
     inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
-    for page in ("index.html", "alignment.html"):
+    for page in ("alignment.html",):
         content = (result.output / page).read_text(encoding="utf-8")
         assert "<img src=x" not in content
         assert "evil&lt;img src=x onerror=alert(6)&gt;" in content
@@ -313,11 +313,9 @@ def test_heaviest_dependencies_mark_dev_only_with_a_pill(tmp_path: Path) -> None
     inventory = graph.load_inventory(write_inventory(tmp_path, [repo]))
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
     bloat = (result.output / "bloat.html").read_text(encoding="utf-8")
-    index = (result.output / "index.html").read_text(encoding="utf-8")
-    for page in (bloat, index):
-        assert "syn@2.0.0" in page
-        assert 'class="pill dev">dev</span>' in page
-        assert "clap@4.0.0" in page
+    assert "syn@2.0.0" in bloat
+    assert 'class="pill dev">dev</span>' in bloat
+    assert "clap@4.0.0" in bloat
     syn_row = bloat.split("syn@2.0.0", 1)[1].split("</tr>", 1)[0]
     clap_row = bloat.split("clap@4.0.0", 1)[1].split("</tr>", 1)[0]
     assert 'class="pill dev">dev</span>' in syn_row
@@ -419,13 +417,9 @@ def test_choices_show_which_repositories_deviate_from_preferred(
     monkeypatch.chdir(tmp_path)
     result = render.render(inventory, built, tmp_path / "dashboard")
     choices = (result.output / "choices.html").read_text(encoding="utf-8")
-    index = (result.output / "index.html").read_text(encoding="utf-8")
-    assert "Deviate from preferred" in index
-    assert "uses clap" in index
     section = choices.split('id="role-cli-arguments"', 1)[1].split("<h2", 1)[0]
-    deviate = next(line for line in section.splitlines() if "deviate from preferred" in line)
-    assert "acme/legacy" in deviate
-    assert "acme/mixed" in deviate
-    assert "acme/clean" not in deviate
-    assert "uses clap" in deviate
-    assert "clap_complete" in deviate
+    assert "deviate from preferred" not in section
+    assert section.count('class="mono">acme/legacy<') == 1
+    assert section.count('class="mono">acme/mixed<') == 2
+    assert section.count('class="mono">acme/clean<') == 1
+    assert "clap_complete" in section
