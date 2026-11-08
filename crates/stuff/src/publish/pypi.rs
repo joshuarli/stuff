@@ -80,23 +80,6 @@ fn local_platform() -> Result<String, PublishError> {
     })
 }
 
-fn local_targets(
-    settings: &mypypi::config::ProjectSettings,
-) -> Result<Vec<Target>, PublishError> {
-    let platform = local_platform()?;
-    let targets: Vec<Target> = settings
-        .targets()
-        .into_iter()
-        .filter(|target| target.platform == platform)
-        .collect();
-    if targets.is_empty() {
-        return Err(PublishError::Config(format!(
-            "pypi publish requires the host platform {platform} in the target configuration"
-        )));
-    }
-    Ok(targets)
-}
-
 pub fn package_catalog(
     specs: &[PypiSpec],
 ) -> Result<mypypi::catalog::Catalog, PublishError> {
@@ -446,7 +429,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn project_settings_configure_all_platforms_and_select_the_local_one() {
+    fn project_settings_configure_all_platforms() {
         let Some(platform) = mypypi::validate::local_platform() else {
             return;
         };
@@ -460,10 +443,7 @@ mod tests {
                 "macos-arm64"
             ]
         );
-        let targets = local_targets(&settings).unwrap();
-        assert_eq!(targets.len(), 1);
-        assert_eq!(targets[0].platform, platform);
-        assert_eq!(targets[0].python_version.to_string(), "3.15");
+        assert!(settings.platforms.iter().any(|name| name == &platform));
         assert_eq!(settings.python_version.to_string(), "3.15");
         assert_eq!(settings.public_base_url, "https://pypi.example.test");
         assert_eq!(settings.linux_repair_policy, LINUX_REPAIR_POLICY);
