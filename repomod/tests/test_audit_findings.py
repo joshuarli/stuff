@@ -193,3 +193,35 @@ def test_vuln_check_reports_osv_entries(
     findings = _vuln_check(root, repository("tool", "rust"))
     assert [finding.rule for finding in findings] == ["audit-vuln"]
     assert "RUSTSEC-2026-0000 example advisory" in findings[0].message
+
+
+def test_osv_informational_advisories_are_not_vulnerabilities(monkeypatch) -> None:
+    from repomod.audit import LockedDependency, resolve_vulns
+
+    advisory = {"id": "RUSTSEC-2026-0441", "modified": "2026-01-01"}
+    detail = {
+        "id": advisory["id"],
+        "affected": [{"database_specific": {"informational": "unmaintained"}}],
+    }
+    monkeypatch.setattr("repomod.audit._http_json", lambda url: detail)
+    candidates = [LockedDependency("crates", "pin-utils", "0.1.1")]
+    cache = {"osv": {"crates:pin-utils:0.1.1": {"vulns": [advisory], "fetched_at": 1000.0}}}
+    result = resolve_vulns(candidates, offline=False, refresh=False, cache=cache, now=1000.0)
+    assert result[("crates", "pin-utils", "0.1.1")] == []
+
+
+def test_osv_keeps_security_advisories_and_fails_when_classification_is_unavailable(monkeypatch) -> None:
+    import pytest
+
+    from repomod.audit import LockedDependency, resolve_vulns
+
+    advisory = {"id": "RUSTSEC-2026-1234"}
+    candidate = LockedDependency("crates", "example", "1.0.0")
+    cache = {"osv": {"crates:example:1.0.0": {"vulns": [advisory], "fetched_at": 1000.0}}}
+    monkeypatch.setattr("repomod.audit._http_json", lambda url: None)
+    with pytest.raises(RuntimeError, match="could not classify OSV advisory"):
+        resolve_vulns([candidate], offline=False, refresh=False, cache=cache, now=1000.0)
+    security = {"id": advisory["id"], "affected": [{"database_specific": {"informational": None}}]}
+    monkeypatch.setattr("repomod.audit._http_json", lambda url: security)
+    result = resolve_vulns([candidate], offline=False, refresh=False, cache=cache, now=1000.0)
+    assert result[("crates", "example", "1.0.0")] == [security]

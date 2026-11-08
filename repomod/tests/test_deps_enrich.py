@@ -246,3 +246,12 @@ def test_offline_enrich_does_not_open_sockets(
         graph, cache_path=cache_path, offline=True, now=time.time()
     )
     assert report.checked == 4
+
+
+def test_legacy_rustsec_cache_is_refreshed() -> None:
+    from repomod.dependencies.enrich import is_fresh
+
+    old = {"fetched_at": 1000.0, "vulns": [{"id": "RUSTSEC-2026-0441"}]}
+    classified = {"fetched_at": 1000.0, "vulns": [{"id": "RUSTSEC-2026-0001", "affected": []}]}
+    assert not is_fresh(old, 1000.0)
+    assert is_fresh(classified, 1000.0)

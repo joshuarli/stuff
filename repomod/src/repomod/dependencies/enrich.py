@@ -81,6 +81,15 @@ def load_cache(path: Path | None = None) -> Enrichment:
 
 
 def is_fresh(entry: Mapping[str, object], now: float) -> bool:
+    vulns = entry.get("vulns")
+    if isinstance(vulns, list) and any(
+        isinstance(item, dict)
+        and isinstance(item.get("id"), str)
+        and item["id"].startswith("RUSTSEC-")
+        and "affected" not in item
+        for item in vulns
+    ):
+        return False
     fetched_at = entry.get("fetched_at")
     if not isinstance(fetched_at, (int, float)) or isinstance(fetched_at, bool):
         return False

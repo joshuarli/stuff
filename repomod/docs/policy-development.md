@@ -375,3 +375,6 @@ sets a different cargo source, npm registry, or uv index fails the fixer and nee
 
 `audit-upgrades` skips private repositories and forks, including when explicitly selected for fixes.
 It resolves npm scopes and named Cargo registries using the repository configuration.
+
+`audit-vuln` and dependency enrichment exclude RustSec informational advisories after fetching their OSV details.
+A failed detail lookup fails the check. Run `deps enrich` to refresh older dashboard cache entries.

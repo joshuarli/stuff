@@ -1945,6 +1945,28 @@ def resolve_latest(
     return resolved
 
 
+def _informational_advisory(advisory: dict[str, Any]) -> bool:
+    affected = advisory.get("affected")
+    if not isinstance(affected, list) or not affected:
+        return False
+    return all(
+        isinstance(entry, dict)
+        and isinstance(entry.get("database_specific"), dict)
+        and bool(entry["database_specific"].get("informational"))
+        for entry in affected
+    )
+
+
+def _complete_rustsec_advisory(advisory: dict[str, Any]) -> dict[str, Any]:
+    advisory_id = advisory.get("id")
+    if not isinstance(advisory_id, str) or not advisory_id.startswith("RUSTSEC-") or "affected" in advisory:
+        return advisory
+    detail = _http_json(f"https://api.osv.dev/v1/vulns/{urllib.parse.quote(advisory_id, safe='')}")
+    if not isinstance(detail, dict) or detail.get("id") != advisory_id or not isinstance(detail.get("affected"), list):
+        raise RuntimeError(f"could not classify OSV advisory {advisory_id}")
+    return detail
+
+
 def resolve_vulns(
     candidates: list[LockedDependency],
     *,
@@ -1999,6 +2021,18 @@ def resolve_vulns(
             resolved[(item.ecosystem, item.name, item.locked)] = vulns
             key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
             osv_entries[key] = {"vulns": vulns, "fetched_at": now}
+    for item in candidates:
+        key = (item.ecosystem, item.name, item.locked)
+        if key not in resolved:
+            continue
+        advisories = resolved[key]
+        if not offline and osv_fetcher is None:
+            advisories = [_complete_rustsec_advisory(advisory) for advisory in advisories]
+            cache_key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
+            entry = osv_entries.get(cache_key)
+            if isinstance(entry, dict):
+                entry["vulns"] = advisories
+        resolved[key] = [advisory for advisory in advisories if not _informational_advisory(advisory)]
     return resolved
 
 
