@@ -570,7 +570,9 @@ def collect_status(
 
 def _status(args: argparse.Namespace) -> int:
     catalog = common.default_catalog()
-    repositories = common.select_repositories(catalog, args.repo, args.tag)
+    repositories = common.reporting_repositories(
+        catalog, args.repo, args.tag, include_private=args.include_private, offline=args.offline
+    )
     overrides = common._checkouts(getattr(args, "checkout", None), args.repo, repositories)
     report = collect_status(
         catalog, repositories, overrides, offline=args.offline, refresh=args.refresh

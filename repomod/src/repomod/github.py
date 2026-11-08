@@ -29,6 +29,8 @@ from repomod.workflow_policy import FORK_WORKFLOW_NAMES, is_fork_workflow
 
 API_TIMEOUT = 30
 CACHE_TTL_SECONDS = 300
+VISIBILITY_CACHE_TTL_SECONDS = 3600
+_REPOSITORY_INACCESSIBLE = "repository not found or not accessible"
 GRAPHQL_BATCH_SIZE = 20
 MAX_API_WORKERS = 8
 ACTION_TAG_PAGE_SIZE = 100
@@ -339,7 +341,7 @@ def _repository_query(repositories: tuple[Repository, ...]) -> tuple[str, dict[s
         target = "target { ... on Commit { oid } }"
         fields.append(
             f'{alias}: repository(owner: {owner}, name: {name}) '
-            f"{{ isArchived defaultBranchRef {{ name {target} }} "
+            f"{{ isArchived isPrivate defaultBranchRef {{ name {target} }} "
             f"parent {{ nameWithOwner defaultBranchRef {{ name {target} }} }} }}"
         )
     return "query { " + " ".join(fields) + " }", aliases
@@ -390,11 +392,12 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
         repository = data.get(alias) if isinstance(data, dict) else None
         if not isinstance(repository, dict):
             found[name] = RemoteRepository(
-                name, None, None, None, "repository not found or not accessible"
+                name, None, None, None, _REPOSITORY_INACCESSIBLE
             )
             continue
         parent, parent_branch, parent_sha = _parent_reference(repository.get("parent"))
         branch = repository.get("defaultBranchRef")
+        private = repository.get("isPrivate") if isinstance(repository.get("isPrivate"), bool) else None
         if not isinstance(branch, dict):
             found[name] = RemoteRepository(
                 name,
@@ -405,6 +408,7 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
                 parent,
                 parent_branch,
                 parent_sha,
+                private,
             )
             continue
         target = branch.get("target")
@@ -417,8 +421,69 @@ def _remote_metadata_batch(batch: tuple[Repository, ...]) -> dict[str, RemoteRep
             parent=parent,
             parent_branch=parent_branch,
             parent_sha=parent_sha,
+            private=private,
         )
     return found
+
+
+def repository_visibility(
+    repositories: tuple[Repository, ...],
+    *,
+    offline: bool = False,
+    cache_path: Path | None = None,
+    now: float | None = None,
+) -> dict[str, bool]:
+    current_time = time.time() if now is None else now
+    path = cache_path or cache_file("visibility.json")
+    cache, cache_error = _read_cache(path)
+    visibility: dict[str, bool] = {}
+    expired: list[Repository] = []
+    for repository in repositories:
+        name = str(repository.id)
+        cached = _cached_visibility(cache, name)
+        if cached is not None and (offline or current_time - cached[1] < VISIBILITY_CACHE_TTL_SECONDS):
+            visibility[name] = cached[0]
+        else:
+            expired.append(repository)
+    if not expired:
+        return visibility
+    if offline:
+        names = ", ".join(str(repository.id) for repository in expired)
+        reason = "" if cache_error is None else f" ({cache_error})"
+        raise GitHubError(f"visibility is not cached for {names}{reason}; run once without --offline")
+    remotes = remote_metadata(tuple(expired))
+    entries = dict(cache)
+    for repository in expired:
+        name = str(repository.id)
+        remote = remotes[name]
+        cached = _cached_visibility(cache, name)
+        if remote.private is not None:
+            visibility[name] = remote.private
+            entries[name] = {"private": remote.private, "fetched_at": current_time}
+        elif cached is not None:
+            visibility[name] = cached[0]
+        elif remote.error == _REPOSITORY_INACCESSIBLE:
+            visibility[name] = False
+        else:
+            raise GitHubError(f"cannot read the visibility of {name}: {remote.error or 'GitHub did not report it'}")
+    _write_cache(path, entries)
+    return visibility
+
+
+def _cached_visibility(entries: dict[str, dict[str, Any]], name: str) -> tuple[bool, float] | None:
+    entry = entries.get(name)
+    if entry is None:
+        return None
+    private = entry.get("private")
+    fetched = entry.get("fetched_at")
+    if (
+        not isinstance(private, bool)
+        or not isinstance(fetched, (int, float))
+        or isinstance(fetched, bool)
+        or not math.isfinite(fetched)
+    ):
+        return None
+    return private, float(fetched)
 
 
 def _parent_reference(value: Any) -> tuple[str | None, str | None, str | None]:

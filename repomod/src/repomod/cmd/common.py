@@ -4,8 +4,10 @@ import json
 import os
 import sys
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 
+from repomod import github
 from repomod.catalog import TAGS, CatalogError, find_repository, load_catalog
 from repomod.git import validated_checkout
 from repomod.policy import filter_repositories
@@ -37,6 +39,27 @@ def select_repositories(
         repositories = tuple(find_repository(catalog, value) for value in repo_values)
         return filter_repositories(repositories, tags=selected_tags)
     return filter_repositories(catalog.repositories, tags=selected_tags)
+
+
+def with_visibility(
+    repositories: tuple[Repository, ...], *, offline: bool = False
+) -> tuple[Repository, ...]:
+    private = github.repository_visibility(repositories, offline=offline)
+    return tuple(replace(repository, private=private[str(repository.id)]) for repository in repositories)
+
+
+def reporting_repositories(
+    catalog: Catalog,
+    repo_values: Sequence[str],
+    tags: Sequence[str],
+    *,
+    include_private: bool,
+    offline: bool = False,
+) -> tuple[Repository, ...]:
+    selected = with_visibility(select_repositories(catalog, repo_values, tags), offline=offline)
+    if include_private or repo_values:
+        return selected
+    return tuple(repository for repository in selected if not repository.private)
 
 
 def _checkouts(

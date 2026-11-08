@@ -17,6 +17,7 @@ from repomod.cmd.fix import _fix
 from repomod.cmd.lint import _lint
 from repomod.cmd.status import _state_color, _status, status_items, status_text
 from repomod.fix import FixOutcome
+from repomod.github import repository_visibility
 from repomod.policy import (
     filter_repositories,
     format_finding_short,
@@ -896,6 +897,7 @@ def test_status_offline_never_calls_remote_metadata(
         failed=False,
         json=True,
         details=False,
+        include_private=False,
     )
 
     assert _status(args) == 0
@@ -980,7 +982,7 @@ def test_warning_only_lint_is_nonfatal_unless_strict(
     monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     finding = Finding("acme/tool", "binary-release-tags", "release.yml", "review release", severity="warning")
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [finding])
-    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], include_private=False, json=False, strict=False)
 
     assert _lint(args) == 0
     assert "binary-release-tags review release" in capsys.readouterr().out
@@ -998,7 +1000,7 @@ def test_lint_prints_ignored_rules_with_their_reason(tmp_path: Path, monkeypatch
     catalog = Catalog(tmp_path / "catalog.toml", tmp_path, "acme", (repository,))
     monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [])
-    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], include_private=False, json=False, strict=False)
 
     assert _lint(args) == 0
     assert "ignored acme/tool: binary-release-tags, rust-toolchain - vendored fork" in capsys.readouterr().out
@@ -1415,7 +1417,7 @@ def test_lint_uses_short_format_with_legend(
                 "defaults.run.shell must be 'y'", line=6, column=5, code="G003"),
     ]
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: findings)
-    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], include_private=False, json=False, strict=False)
 
     assert _lint(args) == 1
     out = capsys.readouterr().out.splitlines()
@@ -1437,7 +1439,7 @@ def test_lint_groups_findings_by_repository(
         Finding("acme/beta", "gha-settings", "ci.yml", "second repo", code="G001"),
     ]
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: findings)
-    args = argparse.Namespace(repo=[], tag=[], rule=[], json=False, strict=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], include_private=False, json=False, strict=False)
 
     assert _lint(args) == 1
     out = capsys.readouterr().out.splitlines()
@@ -1545,7 +1547,7 @@ def test_operational_lint_failure_has_distinct_exit_code(    tmp_path: Path, mon
     monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: catalog)
     finding = Finding("acme/tool", "repo-integrity", None, "checkout unavailable", kind="operational")
     monkeypatch.setattr("repomod.policy.lint_repositories", lambda *args, **kwargs: [finding])
-    args = argparse.Namespace(repo=[], tag=[], rule=[], json=True, strict=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], include_private=False, json=True, strict=False)
 
     assert _lint(args) == 2
 
@@ -1591,7 +1593,7 @@ def test_status_failed_only_matches_ci_failures(
     )
     args = argparse.Namespace(
         repo=[], tag=[], offline=True, refresh=False,
-        failed=True, json=True, details=False,
+        failed=True, json=True, details=False, include_private=False,
     )
 
     assert _status(args) == 0
@@ -2213,7 +2215,7 @@ def test_status_details_reports_release_errors(tmp_path: Path, monkeypatch, caps
     )
     args = argparse.Namespace(
         repo=[], tag=[], offline=True, refresh=False,
-        failed=False, json=False, details=True,
+        failed=False, json=False, details=True, include_private=False,
     )
 
     assert _status(args) == 0
@@ -2222,3 +2224,142 @@ def test_status_details_reports_release_errors(tmp_path: Path, monkeypatch, caps
     assert "release detail: boom" in out.err
 
 
+
+
+def _visibility_remotes(monkeypatch: pytest.MonkeyPatch, **private: bool | None) -> list[str]:
+    fetched: list[str] = []
+
+    def remote_metadata(repositories: tuple[Repository, ...]) -> dict[str, RemoteRepository]:
+        fetched.extend(str(repository.id) for repository in repositories)
+        return {
+            str(repository.id): RemoteRepository(
+                str(repository.id),
+                "main",
+                "a" * 40,
+                False,
+                private=private[repository.id.name],
+            )
+            for repository in repositories
+        }
+
+    monkeypatch.setattr("repomod.github.remote_metadata", remote_metadata)
+    return fetched
+
+
+def test_visibility_comes_from_github_and_is_reused_while_fresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fetched = _visibility_remotes(monkeypatch, secret=True, open=False)
+    repositories = (repo("secret"), repo("open"))
+    cache = tmp_path / "visibility.json"
+
+    expected = {"acme/secret": True, "acme/open": False}
+    assert repository_visibility(repositories, cache_path=cache, now=1000.0) == expected
+    assert repository_visibility(repositories, cache_path=cache, now=2000.0) == expected
+    assert fetched == ["acme/secret", "acme/open"]
+
+    assert repository_visibility(repositories, cache_path=cache, now=5000.0) == expected
+    assert fetched == ["acme/secret", "acme/open"] * 2
+
+
+def test_offline_visibility_uses_any_cached_answer_and_fails_without_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _visibility_remotes(monkeypatch, secret=True)
+    cache = tmp_path / "visibility.json"
+    repository_visibility((repo("secret"),), cache_path=cache, now=1000.0)
+
+    assert repository_visibility((repo("secret"),), offline=True, cache_path=cache, now=9e9) == {
+        "acme/secret": True
+    }
+    with pytest.raises(github.GitHubError, match="acme/unseen"):
+        repository_visibility((repo("unseen"),), offline=True, cache_path=cache)
+
+
+def test_failed_visibility_lookup_is_an_error_without_a_cached_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {
+            str(item.id): RemoteRepository(str(item.id), None, None, None, "boom") for item in repositories
+        },
+    )
+    with pytest.raises(github.GitHubError, match="boom"):
+        repository_visibility((repo("demo"),), cache_path=tmp_path / "visibility.json")
+
+
+def test_failed_visibility_lookup_keeps_the_last_known_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cache = tmp_path / "visibility.json"
+    _visibility_remotes(monkeypatch, secret=True)
+    repository_visibility((repo("secret"),), cache_path=cache, now=1000.0)
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {
+            str(item.id): RemoteRepository(str(item.id), None, None, None, "boom") for item in repositories
+        },
+    )
+    assert repository_visibility((repo("secret"),), cache_path=cache, now=9e9) == {"acme/secret": True}
+
+
+def test_repository_github_cannot_show_stays_visible_so_its_error_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "repomod.github._graphql", lambda query: {"data": {"r0": None}}
+    )
+    assert repository_visibility((repo("gone"),), cache_path=tmp_path / "visibility.json") == {
+        "acme/gone": False
+    }
+
+
+def _private_catalog(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Catalog:
+    catalog = load_catalog_from(tmp_path)
+    monkeypatch.setattr(
+        "repomod.github.repository_visibility",
+        lambda repositories, **_: {
+            str(item.id): item.id.name == "secret" for item in repositories
+        },
+    )
+    return catalog
+
+
+def load_catalog_from(tmp_path: Path) -> Catalog:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 3\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\nsecret = ["tool"]\nopen = ["tool"]\n',
+        encoding="utf-8",
+    )
+    return load_catalog(path)
+
+
+def _names(repositories: tuple[Repository, ...]) -> list[str]:
+    return [repository.id.name for repository in repositories]
+
+
+def test_reporting_leaves_out_private_repositories_by_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalog = _private_catalog(tmp_path, monkeypatch)
+    assert _names(cmd_common.reporting_repositories(catalog, [], [], include_private=False)) == ["open"]
+
+
+def test_reporting_includes_private_repositories_on_request(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalog = _private_catalog(tmp_path, monkeypatch)
+    selected = cmd_common.reporting_repositories(catalog, [], [], include_private=True)
+    assert sorted(_names(selected)) == ["open", "secret"]
+    assert [item.private for item in selected if item.id.name == "secret"] == [True]
+
+
+def test_naming_a_private_repository_reports_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalog = _private_catalog(tmp_path, monkeypatch)
+    assert _names(
+        cmd_common.reporting_repositories(catalog, ["acme/secret"], [], include_private=False)
+    ) == ["secret"]

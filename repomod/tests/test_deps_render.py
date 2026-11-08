@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from deps_fixtures import instance, issue, project, repository, write_inventory
 
+from repomod.dependencies import diff as diff_module
 from repomod.dependencies import graph, render
 from repomod.dependencies.model import (
     Component,
@@ -573,3 +574,37 @@ def test_only_running_status_items_animate(tmp_path: Path) -> None:
     )
     assert "dot-running" in _page_text(result, "repos", "acme", "empty", "index.html")
     assert "dot-running" not in _page_text(result, "repos", "acme", "broken", "index.html")
+
+
+def test_hidden_repositories_are_counted_and_left_out_of_changes(tmp_path: Path) -> None:
+    inventory, built = _fixture(tmp_path)
+    change = diff_module.RepositoryDiff(
+        "acme/secret",
+        "changed",
+        "complete",
+        "complete",
+        "a" * 40,
+        "b" * 40,
+        (),
+        (),
+        (diff_module.VersionChange("pkg:cargo/hidden", "hidden-pkg", Ecosystem.CARGO, "2", "1", "downgrade"),),
+        (),
+        (),
+        (),
+    )
+    result = render.render(
+        inventory,
+        built,
+        tmp_path / "dashboard",
+        diff_value=diff_module.Diff(True, "a", "b", (change,)),
+        hidden=frozenset({"acme/secret"}),
+    )
+    assert "1 private hidden" in _page_text(result, "repositories.html")
+    assert "hidden-pkg" not in _page_text(result, "changes.html")
+
+
+def test_excluding_drops_a_repository_from_the_graph(tmp_path: Path) -> None:
+    inventory, _ = _fixture(tmp_path)
+    remaining = graph.build_graph(graph.excluding(inventory, frozenset({"acme/hostile"})))
+    assert "acme/hostile" not in remaining.repositories
+    assert HOSTILE_PURL not in remaining.components

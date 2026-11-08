@@ -5,6 +5,14 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def public_repositories(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "repomod.github.repository_visibility",
+        lambda repositories, **_: {str(repository.id): False for repository in repositories},
+    )
+
+
 @pytest.fixture
 def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     global_config = tmp_path / "gitconfig"

@@ -130,6 +130,14 @@ def load_inventory(inventory: Path) -> Inventory:
     return Inventory(inventory, repositories, entries)
 
 
+def excluding(inventory: Inventory, repositories: frozenset[str]) -> Inventory:
+    return Inventory(
+        inventory.path,
+        {name: data for name, data in inventory.repositories.items() if name not in repositories},
+        {name: entry for name, entry in inventory.entries.items() if name not in repositories},
+    )
+
+
 def parse_index(document: object) -> Mapping[str, IndexEntry]:
     if not isinstance(document, dict):
         raise ValueError("cannot read dependency inventory index")

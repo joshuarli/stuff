@@ -46,6 +46,7 @@ class Repository:
     autofix_reason: str | None = None
     ignored_rules: frozenset[str] = frozenset()
     ignore_reason: str | None = None
+    private: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,6 +185,7 @@ class RemoteRepository:
     parent: str | None = None
     parent_branch: str | None = None
     parent_sha: str | None = None
+    private: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)

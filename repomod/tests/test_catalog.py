@@ -47,9 +47,9 @@ srv = ["tool"]
 
 [repos."joshuarli"]
 tansu = ["app", "javascript", "rust", "shell", "typescript"]
-shadowdriver = ["javascript", "library", "private-tool", "rust", "typescript"]
+shadowdriver = ["javascript", "library", "rust", "tool", "typescript"]
 discover = ["app", "typescript"]
-toolbox = ["private-tool", "python"]
+toolbox = ["tool", "python"]
 pytest-parallel = ["library", "pypi", "python"]""",
     )
     catalog = load_catalog(path, {"HOME": str(tmp_path)})
@@ -65,12 +65,12 @@ pytest-parallel = ["library", "pypi", "python"]""",
     assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {
         "javascript",
         "library",
-        "private-tool",
         "rust",
+        "tool",
         "typescript",
     }
     assert set(find_repository(catalog, "joshuarli/discover").tags) == {"app", "typescript"}
-    assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"private-tool", "python"}
+    assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"tool", "python"}
     assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {
         "library",
         "pypi",
@@ -118,11 +118,11 @@ def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(t
     path = write_catalog(
         tmp_path / "catalog.toml",
         '[repos."joshuarli"]\ntansu = ["app", "rust", "typescript"]\n'
-        'shadowdriver = ["library", "private-tool", "rust", "typescript"]',
+        'shadowdriver = ["library", "tool", "rust", "typescript"]',
     )
     catalog = load_catalog(path, {"HOME": str(tmp_path)})
     assert set(find_repository(catalog, "tansu").tags) == {"app", "rust", "typescript"}
-    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "private-tool", "rust", "typescript"}
+    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
     path.write_text(catalog_text('[repos."joshuarli"]\ninvalid = ["rust", "typescript"]'), encoding="utf-8")
     with pytest.raises(CatalogError, match="primary tag"):
         load_catalog(path, {"HOME": str(tmp_path)})

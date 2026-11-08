@@ -144,7 +144,7 @@ def test_out_of_scope_ubuntu_dockerfile_is_not_flagged(
     assert check(monkeypatch, root) == []
 
 
-@pytest.mark.parametrize("tag", ["fork", "private-tool", "macos"])
+@pytest.mark.parametrize("tag", ["fork", "macos"])
 def test_skipped_repository_is_not_flagged(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tag: str
 ) -> None:
@@ -433,3 +433,12 @@ def test_git_build_adapter_requires_exact_packages(
     for relative, source in plan.items():
         (root / relative).write_text(source, encoding="utf-8")
     assert musl._linux_musl_toolchain_findings(root, name) == []
+
+
+def test_private_repository_is_not_flagged(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = approved_repo(tmp_path)
+    (root / "Dockerfile").write_text("FROM alpine:edge\n", encoding="utf-8")
+    install_lock(monkeypatch, approved_lock(False))
+
+    private = Repository(RepoId("acme", "demo"), ("tool",), private=True)
+    assert musl._linux_musl_toolchain_findings(root, private) == []

@@ -515,13 +515,13 @@ def test_why_cli_exit_codes(
     monkeypatch.setattr(common, "default_catalog", lambda: catalog)
 
     found = argparse.Namespace(
-        operation="why", package="tokio", repo=[], tag=[], max_paths=20, json=False
+        operation="why", package="tokio", repo=[], tag=[], max_paths=20, json=False, include_private=False
     )
     assert deps._deps(found) == 0
     assert "tokio@1.40.0" in capsys.readouterr().out
 
     missing = argparse.Namespace(
-        operation="why", package="missing", repo=[], tag=[], max_paths=20, json=False
+        operation="why", package="missing", repo=[], tag=[], max_paths=20, json=False, include_private=False
     )
     assert deps._deps(missing) == 1
     assert "no matching package" in capsys.readouterr().out
@@ -534,7 +534,7 @@ def test_report_cli_json_is_deterministic(
     catalog = _catalog(tmp_path, '[repos."acme"]\ntool = ["tool"]\n')
     monkeypatch.setattr(deps, "_inventory", lambda: inventory)
     monkeypatch.setattr(common, "default_catalog", lambda: catalog)
-    args = argparse.Namespace(operation="report", repo=[], tag=[], json=True)
+    args = argparse.Namespace(operation="report", include_private=False, repo=[], tag=[], json=True)
 
     assert deps._deps(args) == 0
     first = capsys.readouterr().out

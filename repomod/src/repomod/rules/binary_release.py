@@ -321,7 +321,7 @@ def has_binary_release_contract(root: Path, repository: Repository | None = None
 
 
 def _binary_release_findings(root: Path, repository: Repository) -> list[Finding]:
-    if "private-tool" in repository.tags:
+    if repository.private:
         return []
     workflows, problems = _read_workflows(root, repository)
     findings = [
@@ -525,7 +525,7 @@ def _standard_format_findings(
 
 
 def _binary_release_standard_findings(root: Path, repository: Repository) -> list[Finding]:
-    if "private-tool" in repository.tags or "fork" in repository.tags:
+    if repository.private or "fork" in repository.tags:
         return []
     workflows, findings = _prerelease_workflows(root, repository)
     scope = _standard_scope(set(repository.tags))
@@ -678,7 +678,7 @@ def _image_mode(root: Path) -> bool:
 
 
 def _binary_release_static_findings(root: Path, repository: Repository) -> list[Finding]:
-    if "private-tool" in repository.tags or "macos" in repository.tags:
+    if repository.private or "macos" in repository.tags:
         return []
     image_mode = _image_mode(root)
     sources, problems = read_workflow_sources(root)

@@ -1780,7 +1780,7 @@ def _dockerfile_in_scope(path: Path, references: set[Path]) -> bool:
 
 
 def _linux_musl_toolchain_findings(root: Path, repository: Repository) -> list[Finding]:
-    if set(repository.tags) & {"fork", "private-tool", "macos"}:
+    if repository.private or set(repository.tags) & {"fork", "macos"}:
         return []
     try:
         lock = load_musl_toolchain()
@@ -1873,7 +1873,7 @@ def _fixed_zig_workflow(source: str, checksum: str) -> str:
 
 
 def _linux_musl_toolchain_fix(root: Path, repository: Repository) -> dict[str, str]:
-    if set(repository.tags) & {"fork", "private-tool", "macos"}:
+    if repository.private or set(repository.tags) & {"fork", "macos"}:
         return {}
     try:
         lock = load_musl_toolchain()

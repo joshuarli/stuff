@@ -5,7 +5,7 @@ import shutil
 import time
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import quote
@@ -89,6 +89,7 @@ class _Site:
     forks: tuple[str, ...]
     actions: tuple[triage.Action, ...]
     status: Mapping[str, Sequence[StatusItem]] | None
+    hidden: frozenset[str]
 
 
 def render(
@@ -99,8 +100,9 @@ def render(
     root: Path | None = None,
     diff_value: diff_module.Diff | None = None,
     status: Mapping[str, Sequence[StatusItem]] | None = None,
+    hidden: frozenset[str] = frozenset(),
 ) -> Dashboard:
-    site = _site(inventory, graph, root, diff_value, status)
+    site = _site(inventory, graph, root, diff_value, status, hidden)
     if output.is_symlink():
         raise ValueError(f"refusing to write a dashboard through a symlink: {output}")
     if output.exists():
@@ -142,6 +144,7 @@ def _site(
     root: Path | None,
     diff_value: diff_module.Diff | None,
     status: Mapping[str, Sequence[StatusItem]] | None,
+    hidden: frozenset[str],
 ) -> _Site:
     cache = enrich.load_cache()
     report_value = analysis.report(graph)
@@ -162,6 +165,9 @@ def _site(
             )
         except ValueError:
             diff_value = None
+    if diff_value is not None:
+        visible = tuple(change for change in diff_value.repositories if change.repository not in hidden)
+        diff_value = replace(diff_value, repositories=visible)
     declared = insights.declarations(graph)
     mine = insights.owned(graph, declared)
     forks = insights.forks(graph)
@@ -199,6 +205,7 @@ def _site(
         forks,
         _triage(graph, vulnerable, outdated, forks),
         status,
+        hidden,
     )
 
 
@@ -1043,7 +1050,8 @@ def _repositories(site: _Site) -> str:
             ui.page_header(
                 "Repositories",
                 f"{_owned_count(site)} repositories · {len(tiers[_CLEAN_TIER])} clean · "
-                f"{len(site.forks)} forks · {_enrichment_stamp(site)}",
+                f"{len(site.forks)} forks · {_enrichment_stamp(site)}"
+                + (f" · {len(site.hidden)} private hidden" if site.hidden else ""),
             ),
             _status_section(site),
             ui.legend(_WORK_LEGEND),

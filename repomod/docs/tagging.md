@@ -7,10 +7,16 @@ publishes the exact catalog tag set.
 `IGNORE` excludes a repository from management and discovery. It is not a GitHub topic.
 Other tags may remain on an ignored repository for later use.
 
+No tag marks a repository as private. GitHub's visibility decides, and repomod caches it for an hour
+in `~/.cache/repomod/visibility.json`. Reporting commands (`status`, `lint`, `deps report`,
+`deps why`, and `deps render`) leave private repositories out unless given `--include-private` or
+the repository by `--repo`. `sync`, `fix`, `push`, `merge`, `topics`, `deps snapshot`, `deps check`,
+and `deps enrich` still cover them. A repository GitHub cannot show is treated as public, so its
+error still appears. Offline reporting needs a cached visibility and fails without one.
+
 Each repository needs at least one role tag:
 
 - `tool`: command-line program or directly installed executable.
-- `private-tool`: an executable maintained for private use; GitHub prerelease policy does not apply.
 - `library`: independently reusable API or SDK, whether public or internal.
 - `app`: substantial end-user application or game. Launching an executable or local server
   does not by itself make an app a tool.
@@ -74,7 +80,7 @@ targets are supported. The expected target sets live in the `[binary]` section o
 
 Repositories using that contract carry the `tool` role with only `fork`, platform, and
 language tags. A wheel prerelease is a package release, not a binary-tool release.
-`private-tool` repositories are exempt from the prerelease policy. `fork` repositories
+Private repositories are exempt from the prerelease policy. `fork` repositories
 defer matrix and format standardization while their upstream workflows stay outside
 local policy. The `binary-release-tags` rule checks the artifact and release contract
 and curated tags. It reports ambiguous workflows for review, except in repositories tagged
@@ -86,8 +92,8 @@ A workflow in those repositories that does establish the binary contract still r
 tools. The `linux-musl-toolchain` rule checks every musl builder against
 `musl-toolchain.toml`: the Alpine base digest, exact direct package versions, checksummed
 toolchain archives, the Rust release-builder contract, and the bespoke builder adapters. It
-applies to every repository and returns no findings when no musl builder exists. `fork`,
-`private-tool`, and `macos` repositories are skipped.
+applies to every repository and returns no findings when no musl builder exists. `fork` and
+`macos` repositories and private repositories are skipped.
 
 `binary-release-static` also checks fork workflows that publish tool prereleases. It checks
 downloaded Linux ELF binaries before packaging and publication with the shared verifier in
@@ -95,7 +101,7 @@ downloaded Linux ELF binaries before packaging and publication with the shared v
 dependencies and, when scanning a directory, requires one binary for each Linux architecture in
 `release-policy.toml`. Image-mode builders must also pass a linker trace that names the builder's
 `/usr/lib/libc.a` and CRT paths and rejects a rustup self-contained or glibc path. It skips tools
-tagged `macos` and `private-tool` repositories.
+tagged `macos` and private repositories.
 
 `registry-sources` skips repositories tagged `fork`, whose upstream manifests and lockfiles stay
 outside local policy.

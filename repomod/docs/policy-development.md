@@ -51,7 +51,7 @@ markers). Publishing checks require the matching catalog opt-in tag. Update thes
 policy files when changing approved release rules.
 
 `binary-release-static` checks public tool prereleases that publish Linux ELF files, including fork
-workflows. It skips `private-tool` repositories and tools tagged `macos`. Its release-job smoke runs
+workflows. It skips private repositories and tools tagged `macos`. Its release-job smoke runs
 after artifact download and before packaging. The ELF checks live once in
 `src/repomod/rules/static_elf.py`: ELF64 with the x86-64 or AArch64 machine, no `PT_INTERP`, and
 no `DT_NEEDED`. When the smoke scans an artifact directory it also requires at least one artifact
@@ -197,7 +197,7 @@ conventional builders, tansu, and `git-build` install directly; add a package on
 real builder uses it, with its live index version.
 
 `linux-musl-toolchain` enforces the lock at error severity. It applies to every repository,
-returns no findings when no musl builder exists, and skips `fork`, `private-tool`, and
+returns no findings when no musl builder exists, and skips private, `fork`, and
 `macos` repositories. It scans regular `Dockerfile`, `Dockerfile.*`, `*.Dockerfile`, and
 `docker/*.Dockerfile` files outside build, vendor, and fixture trees, plus builders named by
 release or CI workflows that build a Linux musl target. A Dockerfile is in scope when its raw

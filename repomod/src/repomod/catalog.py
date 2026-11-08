@@ -16,7 +16,6 @@ from repomod.types import Catalog, RepoId, Repository
 PRIMARY_TAGS = frozenset(
     {
         "tool",
-        "private-tool",
         "library",
         "app",
         "extension",

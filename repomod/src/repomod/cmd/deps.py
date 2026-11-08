@@ -92,24 +92,38 @@ def _deps(args: argparse.Namespace) -> int:
         return _strict(result.repositories, args.strict)
     loaded = graph.load_inventory(inventory)
     built = graph.build_graph(loaded, catalog)
-    selected = [str(repository.id) for repository in repositories]
     if args.operation == "enrich":
         from repomod.dependencies import enrich as enrich_module
 
         result = enrich_module.enrich(
-            built, selected, offline=args.offline, refresh=args.refresh
+            built,
+            [str(repository.id) for repository in repositories],
+            offline=args.offline,
+            refresh=args.refresh,
         )
         if args.json:
             common.print_json(_enrich_dict(result))
         else:
             print(enrich_module.summary_text(result))
         return 0
+    reported = common.reporting_repositories(
+        catalog,
+        getattr(args, "repo", []),
+        getattr(args, "tag", []),
+        include_private=args.include_private,
+    )
+    selected = [str(repository.id) for repository in reported]
     if args.operation == "render":
         from repomod.dependencies import render as render_module
 
+        hidden = frozenset(str(repository.id) for repository in repositories) - frozenset(selected)
+        visible_inventory = graph.excluding(loaded, hidden)
+        visible_graph = graph.build_graph(visible_inventory, catalog)
         output = _render_output(args.output)
-        status = _repository_status(catalog, repositories, built) if args.status else None
-        result = render_module.render(loaded, built, output, root=_root(), status=status)
+        status = _repository_status(catalog, reported, visible_graph) if args.status else None
+        result = render_module.render(
+            visible_inventory, visible_graph, output, root=_root(), status=status, hidden=hidden
+        )
         print(
             f"wrote {len(result.pages)} pages to {_display(result.output)} "
             f"({result.bytes} bytes)"

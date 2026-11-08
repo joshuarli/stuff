@@ -12,7 +12,9 @@ def _lint(args: argparse.Namespace) -> int:
     if workers < 1:
         raise ValueError("--workers must be at least one")
     catalog = common.default_catalog()
-    repositories = common.select_repositories(catalog, args.repo, args.tag)
+    repositories = common.reporting_repositories(
+        catalog, args.repo, args.tag, include_private=args.include_private
+    )
     findings = policy.lint_repositories(
         catalog,
         repositories,

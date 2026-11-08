@@ -555,7 +555,7 @@ def test_standard_rule_skips_forks_and_private_tools(tmp_path: Path) -> None:
         ),
     )
     fork = Repository(RepoId("acme", "demo"), ("tool", "fork"))
-    private = Repository(RepoId("acme", "demo"), ("private-tool",))
+    private = Repository(RepoId("acme", "demo"), ("tool",), private=True)
 
     assert _binary_release_standard_findings(tmp_path, fork) == []
     assert _binary_release_standard_findings(tmp_path, private) == []

@@ -32,6 +32,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     _filters(status_parser)
     _checkout_option(status_parser)
+    _private_option(status_parser)
     status_parser.add_argument("--offline", action="store_true")
     status_parser.add_argument("--dirty", action="store_true")
     status_parser.add_argument("--failed", action="store_true", help="only failures")
@@ -44,6 +45,7 @@ def _parser() -> argparse.ArgumentParser:
     lint = commands.add_parser("lint", help="check declarative repository policies")
     _filters(lint)
     _checkout_option(lint)
+    _private_option(lint)
     lint.add_argument("--rule", action="append", default=[])
     lint.add_argument("--workers", type=int, default=16)
     lint.add_argument("--json", action="store_true")
@@ -140,6 +142,7 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     _filters(why)
+    _private_option(why)
     why.add_argument("package", help="name, ecosystem:name, or either with @version")
     why.add_argument("--max-paths", type=int, default=20)
     why.add_argument("--json", action="store_true")
@@ -152,6 +155,7 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     _filters(report)
+    _private_option(report)
     report.add_argument("--json", action="store_true")
     diff = deps_commands.add_parser(
         "diff",
@@ -187,6 +191,7 @@ def _parser() -> argparse.ArgumentParser:
         "--output",
         help="output directory (default .work/dependencies/dashboard)",
     )
+    _private_option(render)
     render.add_argument(
         "--status",
         action="store_true",
@@ -205,6 +210,14 @@ def _parser() -> argparse.ArgumentParser:
 def _filters(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repo", action="append", default=[])
     parser.add_argument("--tag", action="append", default=[])
+
+
+def _private_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--include-private",
+        action="store_true",
+        help="include private repositories; a repository named with --repo is always included",
+    )
 
 
 def _checkout_option(parser: argparse.ArgumentParser) -> None:

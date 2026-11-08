@@ -2,7 +2,8 @@
 
 `repomod deps render` writes a static, offline dashboard. It reads the tracked inventory and
 the local enrichment cache only; it never opens a socket unless `--status` asks for live repository
-status. The default output is `.work/dependencies/dashboard/`, which is disposable and not tracked.
+status. It does read each repository's GitHub visibility, cached for an hour. The default output
+is `.work/dependencies/dashboard/`, which is disposable and not tracked.
 
 ```sh
 uv run repomod deps render
@@ -11,6 +12,10 @@ open file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html
 
 For a local server, `make deps` renders the dashboard with `--status` and serves it at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
+
+Private repositories are left out of every page, count, and change list by default. Repositories
+says how many are hidden. Use `make deps PRIVATE=1`, or `deps render --include-private`, to include
+them.
 
 The site has no fetch, CDN, web font, or chart library, and it works from `file://`. Python
 precomputes every page. The browser only filters, searches, routes, and expands.
