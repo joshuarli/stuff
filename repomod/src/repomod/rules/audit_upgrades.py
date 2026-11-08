@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from repomod.audit import (
+    LockedDependency,
     RegistrySources,
     UpgradeTask,
     _cargo_manifests,
@@ -134,6 +135,42 @@ def _configured_npm_registry(root: Path) -> str | None:
         if key.strip() == "registry" and value.strip():
             return value.strip()
     return None
+
+
+def _dependency_registries(root: Path) -> dict[tuple[str, str], str]:
+    registries: dict[tuple[str, str], str] = {}
+    path = root / ".npmrc"
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            key, separator, value = line.strip().partition("=")
+            if separator and key.startswith("@") and key.endswith(":registry") and value.strip():
+                registries[("npm", key.removesuffix(":registry").casefold())] = value.strip()
+    config = root / ".cargo" / "config.toml"
+    document, _ = read_toml(config) if config.is_file() else (None, None)
+    named = document.get("registries") if isinstance(document, dict) else None
+    direct, _ = _rust_direct_dependencies(root)
+    for dependency in direct:
+        if dependency.registry is None:
+            continue
+        entry = named.get(dependency.registry) if isinstance(named, dict) else None
+        index = entry.get("index") if isinstance(entry, dict) else None
+        if not isinstance(index, str):
+            raise ValueError(f"Cargo registry {dependency.registry!r} has no configured index")
+        registries[("crates", _normalize_rust_name(dependency.name))] = index
+    return registries
+
+
+def _sources_for_dependency(
+    item: LockedDependency, sources: RegistrySources | None, registries: dict[tuple[str, str], str]
+) -> RegistrySources | None:
+    key = item.name.split("/", 1)[0].casefold() if item.ecosystem == "npm" else _normalize_rust_name(item.name)
+    registry = registries.get((item.ecosystem, key))
+    if registry is None:
+        return sources
+    current = sources or RegistrySources(None, None, None)
+    if item.ecosystem == "npm":
+        return RegistrySources(current.cargo, registry, current.python)
+    return RegistrySources(registry, current.npm, current.python)
 
 
 def _configured_python_index(root: Path) -> str | None:
@@ -322,15 +359,16 @@ def _outdated_findings(
     direct = [item for item in locked if item.direct and key_for(item.ecosystem, item.name) not in skipped]
     if not direct:
         return []
-    latest = resolve_latest(
-        direct,
-        offline=False,
-        refresh=False,
-        cache=cache,
-        now=now,
-        fetcher=fetcher,
-        sources=sources,
-    )
+    registries = _dependency_registries(root)
+    groups: dict[RegistrySources | None, list[LockedDependency]] = {}
+    for item in direct:
+        groups.setdefault(_sources_for_dependency(item, sources, registries), []).append(item)
+    latest: dict[tuple[str, str], str | None] = {}
+    for group_sources, items in groups.items():
+        latest.update(resolve_latest(
+            items, offline=False, refresh=False, cache=cache, now=now,
+            fetcher=fetcher, sources=group_sources,
+        ))
     rust_reqs = _rust_version_reqs(root)
     python_specifiers = _python_specifiers(root)
     lowest_rust_version = _lowest_rust_version(root)
@@ -348,12 +386,13 @@ def _outdated_findings(
                 if req is not None and not _cargo_req_satisfies(req, newest):
                     fixable = False
                 else:
+                    item_sources = _sources_for_dependency(item, sources, registries)
                     release = _crate_release(
                         item.name,
                         newest,
                         cache=cache,
                         now=now,
-                        cargo_source=sources.cargo if sources is not None else None,
+                        cargo_source=item_sources.cargo if item_sources is not None else None,
                     )
                     reason = None
                     if release is not None:

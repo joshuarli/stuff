@@ -317,6 +317,7 @@ class RustDependency:
     path_value: str | None = None
     git_value: str | None = None
     version_req: str | None = None
+    registry: str | None = None
 
 
 def _parse_cargo_version(value: str) -> tuple[int, ...]:
@@ -541,6 +542,8 @@ def _rust_manifest_dependencies(
                                 path_value=path_value,
                                 git_value=git_value,
                                 version_req=version_req,
+                                registry=(workspace_spec.get("registry")
+                                          if isinstance(workspace_spec.get("registry"), str) else None),
                             )
                         )
                         continue
@@ -559,6 +562,7 @@ def _rust_manifest_dependencies(
                         path_value=raw_path if isinstance(raw_path, str) else None,
                         git_value=raw_git if isinstance(raw_git, str) else None,
                         version_req=raw_version if isinstance(raw_version, str) else None,
+                        registry=spec.get("registry") if isinstance(spec.get("registry"), str) else None,
                     )
                 )
             elif isinstance(spec, str):

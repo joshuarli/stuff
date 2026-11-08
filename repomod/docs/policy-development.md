@@ -374,3 +374,4 @@ a disposable copy so `uv.lock` records the stuff index. Windows-only packages le
 sets a different cargo source, npm registry, or uv index fails the fixer and needs a manual edit.
 
 `audit-upgrades` skips private repositories and forks, including when explicitly selected for fixes.
+It resolves npm scopes and named Cargo registries using the repository configuration.

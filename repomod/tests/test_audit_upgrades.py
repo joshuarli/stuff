@@ -1017,3 +1017,42 @@ def test_copy_siblings_preserves_relative_dependency_paths(tmp_path: Path) -> No
     assert (tmp_path / "sandbox" / "foo" / "Cargo.toml").is_file()
     assert (tmp_path / "sandbox" / "shadowdriver" / "py" / "pyproject.toml").is_file()
     assert (tmp_path / "sandbox" / "dep" / "package.json").is_file()
+
+
+def test_scoped_npm_registry_resolves_each_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    (root / ".npmrc").write_text("registry=https://default.example/\n@scope:registry=https://scope.example/\n")
+    (root / "package.json").write_text(json.dumps({"dependencies": {"@scope/pkg": "1.0.0", "plain": "1.0.0"}}))
+    seen: list[str] = []
+
+    def fetch(url: str, headers: dict[str, str] | None = None) -> dict:
+        seen.append(url)
+        return {"dist-tags": {"latest": "1.1.0"}}
+
+    monkeypatch.setattr("repomod.audit._http_json", fetch)
+    findings = _outdated_findings(root, repository("tool", "javascript"), {}, NOW, None, _configured_sources(root))
+    assert len(findings) == 2
+    assert any(url.startswith("https://scope.example/") for url in seen)
+    assert any(url.startswith("https://default.example/") for url in seen)
+
+
+def test_named_cargo_registry_resolves_dependency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    (root / ".cargo").mkdir()
+    (root / ".cargo/config.toml").write_text('[registries.native]\nindex = "sparse+https://native.example/"\n')
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\n'
+        '[dependencies]\nfoo = { version = "1", registry = "native" }\n'
+    )
+    (root / "Cargo.lock").write_text('version = 4\n[[package]]\nname = "foo"\nversion = "1.0.0"\n')
+    seen: list[str] = []
+
+    def fetch(url: str, headers: dict[str, str] | None = None) -> str:
+        seen.append(url)
+        return json.dumps({"name": "foo", "vers": "1.1.0", "deps": [], "yanked": False})
+
+    monkeypatch.setattr("repomod.audit._http_text", fetch)
+    findings = _outdated_findings(root, repository("tool", "rust"), {}, NOW, None, _configured_sources(root))
+    assert [finding.message for finding in findings] == ["crates:foo 1.0.0 is outdated; latest is 1.1.0"]
+    assert seen
+    assert all(url.startswith("https://native.example/") for url in seen)
