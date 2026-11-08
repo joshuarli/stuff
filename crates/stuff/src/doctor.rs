@@ -736,14 +736,14 @@ fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::Digest;
     let mut h = sha2::Sha256::new();
     h.update(bytes);
-    format!("{:x}", h.finalize())
+    crate::publish::lower_hex(h.finalize())
 }
 
 fn sha512_hex(bytes: &[u8]) -> String {
     use sha2::Digest;
     let mut h = sha2::Sha512::new();
     h.update(bytes);
-    format!("{:x}", h.finalize())
+    crate::publish::lower_hex(h.finalize())
 }
 
 fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
@@ -759,7 +759,7 @@ fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
         }
         h.update(&buf[..n]);
     }
-    Ok(format!("{:x}", h.finalize()))
+    Ok(crate::publish::lower_hex(h.finalize()))
 }
 
 fn file_sha512_hex(path: &std::path::Path) -> Result<String, String> {
@@ -775,7 +775,7 @@ fn file_sha512_hex(path: &std::path::Path) -> Result<String, String> {
         }
         h.update(&buf[..n]);
     }
-    Ok(format!("{:x}", h.finalize()))
+    Ok(crate::publish::lower_hex(h.finalize()))
 }
 
 fn json_field<'a>(value: &'a deser_value::Value, key: &str) -> Option<&'a deser_value::Value> {
@@ -1169,7 +1169,7 @@ mod tests {
         use sha2::Digest;
         let mut h = sha2::Sha256::new();
         h.update(blob_bytes);
-        let cksum = format!("{:x}", h.finalize());
+        let cksum = crate::publish::lower_hex(h.finalize());
         let site = dir.to_path_buf();
         let gen_dir = site.join("generations").join("gen1");
         let shard = cargo_shard("foo").unwrap();

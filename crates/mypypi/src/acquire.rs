@@ -528,7 +528,7 @@ fn safe_member_names(
     let mut names = Vec::new();
     for i in 0..archive.len() {
         let file = archive.by_index(i).map_err(|e| format!("invalid or incompatible wheel {filename}: {e}"))?;
-        names.push(file.name().to_string());
+        names.push(file.name().map_err(|e| format!("invalid or incompatible wheel {filename}: {e}"))?.into_owned());
     }
     let res = {
         let mut seen = BTreeSet::new();
@@ -709,7 +709,7 @@ pub fn sha256_file(path: &Path) -> Result<String> {
         }
         h.update(&buf[..n]);
     }
-    Ok(format!("{:x}", h.finalize()))
+    Ok(crate::lower_hex(h.finalize()))
 }
 
 pub fn download_artifact(artifact: &ReleaseFile, destination: &Path) -> Result<PathBuf> {
@@ -745,7 +745,7 @@ pub fn download_artifact(artifact: &ReleaseFile, destination: &Path) -> Result<P
     let _ = &fetched.final_url;
     let mut h = Sha256::new();
     h.update(&fetched.body);
-    let digest = format!("{:x}", h.finalize());
+    let digest = crate::lower_hex(h.finalize());
     if digest != artifact.sha256 {
         return Err(Error::integrity(format!("SHA-256 mismatch for {}", artifact.filename), Stage::Acquisition));
     }
@@ -847,7 +847,7 @@ fn sha256_file_raw(path: &Path) -> std::io::Result<String> {
         }
         h.update(&buf[..n]);
     }
-    Ok(format!("{:x}", h.finalize()))
+    Ok(crate::lower_hex(h.finalize()))
 }
 
 fn promote_wheel(staged: &Path, destination: &Path, artifact: &ReleaseFile, package: &PackageVersion, target: &Target) -> Result<PathBuf> {

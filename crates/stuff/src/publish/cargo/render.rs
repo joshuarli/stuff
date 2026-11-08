@@ -213,5 +213,5 @@ fn key(view: &str, relative: &str) -> FileKey {
 pub(crate) fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
-    format!("{:x}", hasher.finalize())
+    crate::publish::lower_hex(hasher.finalize())
 }

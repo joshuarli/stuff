@@ -673,10 +673,10 @@ fn hash_stream<R: Read>(mut reader: R, max_bytes: u64, label: &str) -> Result<(u
         sha512.update(&buf[..n]);
     }
     let mut out = BTreeMap::new();
-    out.insert("sha1".to_string(), format!("{:x}", sha1.finalize()));
-    out.insert("sha256".to_string(), format!("{:x}", sha256.finalize()));
-    out.insert("sha384".to_string(), format!("{:x}", sha384.finalize()));
-    out.insert("sha512".to_string(), format!("{:x}", sha512.finalize()));
+    out.insert("sha1".to_string(), crate::lower_hex(sha1.finalize()));
+    out.insert("sha256".to_string(), crate::lower_hex(sha256.finalize()));
+    out.insert("sha384".to_string(), crate::lower_hex(sha384.finalize()));
+    out.insert("sha512".to_string(), crate::lower_hex(sha512.finalize()));
     Ok((bytes, out))
 }
 
@@ -966,10 +966,10 @@ fn download_stage(
     sha384.update(&body);
     sha512.update(&body);
     let mut digests = BTreeMap::new();
-    digests.insert("sha1".to_string(), format!("{:x}", sha1.finalize()));
-    digests.insert("sha256".to_string(), format!("{:x}", sha256.finalize()));
-    digests.insert("sha384".to_string(), format!("{:x}", sha384.finalize()));
-    digests.insert("sha512".to_string(), format!("{:x}", sha512.finalize()));
+    digests.insert("sha1".to_string(), crate::lower_hex(sha1.finalize()));
+    digests.insert("sha256".to_string(), crate::lower_hex(sha256.finalize()));
+    digests.insert("sha384".to_string(), crate::lower_hex(sha384.finalize()));
+    digests.insert("sha512".to_string(), crate::lower_hex(sha512.finalize()));
     check_digests(expected_claims, &digests, &format!("{}@{}", task.name, task.version)).map_err(|e| {
         let _ = std::fs::remove_file(stage_path);
         Error::Conflict(format!("tarball integrity mismatch for {}@{}: {e}", task.name, task.version))
@@ -1688,7 +1688,7 @@ mod tests {
                 use sha2::Digest;
                 let mut h = Sha1::new();
                 h.update(&self.tarball);
-                format!("{:x}", h.finalize())
+                crate::lower_hex(h.finalize())
             };
             let body = format!(
                 "{{\"name\":\"flatdemo\",\"versions\":{{\"1.2.3\":{{\"name\":\"flatdemo\",\"version\":\"1.2.3\",\"dist\":{{\"tarball\":\"{}\",\"integrity\":\"{integrity}\",\"shasum\":\"{shasum}\"}}}}}}}}",
@@ -1768,7 +1768,7 @@ mod tests {
     }
 
     fn digest_of(bytes: &[u8]) -> String {
-        format!("{:x}", Sha512::digest(bytes))
+        crate::lower_hex(Sha512::digest(bytes))
     }
 
     fn download_config() -> Config {

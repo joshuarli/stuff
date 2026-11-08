@@ -153,7 +153,9 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
             let f = archive.by_index(i).map_err(|e| {
                 Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
             })?;
-            names.push(f.name().to_string());
+            names.push(f.name().map_err(|e| {
+                Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
+            })?.into_owned());
         }
         let res = {
             let mut seen = std::collections::BTreeSet::new();
@@ -290,7 +292,9 @@ pub fn produced_binary(wheel: &Path) -> Result<bool> {
         let f = archive.by_index(i).map_err(|e| {
             Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build)
         })?;
-        names.push(f.name().to_string());
+        names.push(f.name().map_err(|e| {
+            Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build)
+        })?.into_owned());
     }
     let res = {
         let mut seen = std::collections::BTreeSet::new();
@@ -1078,7 +1082,7 @@ mod tests {
         }
         let mut archive = zip::ZipArchive::new(std::fs::File::open(&wheel).unwrap()).unwrap();
         let members: Vec<String> = (0..archive.len())
-            .map(|index| archive.by_index(index).unwrap().name().to_string())
+            .map(|index| archive.by_index(index).unwrap().name().unwrap().into_owned())
             .collect();
         assert!(members.iter().any(|member| member.starts_with("native_probe.cpython-315")), "{members:?}");
         assert!(members.iter().any(|member| member.starts_with("native_probe_cpp.cpython-315")), "{members:?}");

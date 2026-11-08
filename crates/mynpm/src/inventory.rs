@@ -1347,7 +1347,7 @@ fn snapshot_digest(p: &ProjectRecord) -> Result<String> {
     let canonical = canonical_string(&snapshot_to_value(&p.snapshot)?)?;
     let mut digest = Sha256::new();
     digest.update(canonical.as_bytes());
-    Ok(format!("{:x}", digest.finalize()))
+    Ok(crate::lower_hex(digest.finalize()))
 }
 
 fn inventory_to_value(inv: &Inventory) -> Result<deser_value::Value> {

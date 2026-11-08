@@ -18,6 +18,16 @@ const PUBLIC_BASE: &str = "http://127.0.0.1:8080/";
 const STUB_PACKUMENT_URL: &str = "https://registry.npmjs.org/@scope%2fnative";
 const HOSTED_TARBALL_URL: &str = "https://registry.npmjs.org/flatdemo/-/flatdemo-1.2.3.tgz";
 
+fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 fn integrity_of(bytes: &[u8]) -> String {
     format!("sha512-{}", base64::engine::general_purpose::STANDARD.encode(Sha512::digest(bytes)))
 }
@@ -263,7 +273,7 @@ fn worker_errors_keep_their_corrupt_category() {
     seed(&state, &tarball, &stub_integrity);
     let objects = state.join("objects").join("sha512");
     std::fs::create_dir_all(&objects).unwrap();
-    std::fs::write(objects.join(format!("{:x}.tgz", Sha512::digest(&tarball))), b"corrupt").unwrap();
+    std::fs::write(objects.join(format!("{}.tgz", lower_hex(Sha512::digest(&tarball)))), b"corrupt").unwrap();
     let err = fetch_inventory(&state, &config(), &upstream).unwrap_err();
     assert!(matches!(err, Error::Corrupt(_)), "{err}");
 }

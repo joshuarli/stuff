@@ -376,7 +376,7 @@ fn generate_token() -> String {
         .map(|duration| duration.as_nanos())
         .unwrap_or(0);
     let seed = format!("{}.{nanos}.cargo-publish", std::process::id());
-    format!("{:x}", Sha256::digest(seed.as_bytes()))
+    crate::publish::lower_hex(Sha256::digest(seed.as_bytes()))
 }
 
 fn publish_to_rejection(error: PublishError) -> Rejection {

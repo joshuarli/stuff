@@ -20,7 +20,7 @@ use stuff::publish::r2::pull::md5_hex;
 use stuff::publish::{
     CargoPublish, Environment, NpmPublish, Options, PublishRequest, Request, Status,
 };
-use support::{ACCESS_KEY, FakeS3, SECRET_KEY};
+use support::{lower_hex, ACCESS_KEY, FakeS3, SECRET_KEY};
 
 const CARGO_BUCKET: &str = "stuff-mycrates";
 const NPM_BUCKET: &str = "stuff-mynpm";
@@ -299,7 +299,7 @@ fn three_conflict_retries_are_exhausted_with_exit_three() {
 }
 
 fn artifact(name: &str, version: &str, tarball: &[u8]) -> ArtifactRecord {
-    let digest = format!("{:x}", Sha512::digest(tarball));
+    let digest = lower_hex(Sha512::digest(tarball));
     let raw: Vec<u8> = (0..digest.len())
         .step_by(2)
         .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())
@@ -396,7 +396,7 @@ fn build_live(work: &Path, packages: &[(&str, &str, Vec<u8>)]) -> PathBuf {
     let objects = state.join("objects").join("sha512");
     fs::create_dir_all(&objects).unwrap();
     for (_, _, bytes) in packages {
-        let digest = format!("{:x}", Sha512::digest(bytes));
+        let digest = lower_hex(Sha512::digest(bytes));
         fs::write(objects.join(format!("{digest}.tgz")), bytes).unwrap();
     }
     publish_site(&PublishOptions {
@@ -455,7 +455,7 @@ fn seed_mirror(fake: &FakeS3, site: &Path, source_generation: &str, target: &str
 }
 
 fn npm_lockfile(work: &Path, tarball: &[u8]) -> PathBuf {
-    let digest = format!("{:x}", Sha512::digest(tarball));
+    let digest = lower_hex(Sha512::digest(tarball));
     let raw: Vec<u8> = (0..digest.len())
         .step_by(2)
         .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())

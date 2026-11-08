@@ -414,7 +414,7 @@ fn handle_connection(mut stream: std::net::TcpStream, mirror_dir: &Path, request
         record.response_sha512 = out_body.map(|b| {
             let mut h = Sha512::new();
             h.update(b);
-            format!("{:x}", h.finalize())
+            crate::lower_hex(h.finalize())
         });
         let body_len = body.map(|b| b.len()).unwrap_or(0);
         let mut response = format!(

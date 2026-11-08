@@ -4,6 +4,16 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HashAlg {
     Sha256,
@@ -23,7 +33,7 @@ pub fn stream_file_hash(path: &Path, alg: HashAlg) -> Result<String> {
                 }
                 h.update(&buf[..n]);
             }
-            Ok(format!("{:x}", h.finalize()))
+            Ok(lower_hex(h.finalize()))
         }
         HashAlg::Sha512 => {
             let mut h = Sha512::new();
@@ -34,7 +44,7 @@ pub fn stream_file_hash(path: &Path, alg: HashAlg) -> Result<String> {
                 }
                 h.update(&buf[..n]);
             }
-            Ok(format!("{:x}", h.finalize()))
+            Ok(lower_hex(h.finalize()))
         }
     }
 }

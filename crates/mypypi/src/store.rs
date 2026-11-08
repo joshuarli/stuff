@@ -272,7 +272,7 @@ pub fn generation_id(
     }
     let catalog = catalog_for(stuff_catalog::FINGERPRINT_GENERATION, items);
     h.update(stuff_catalog::catalog_fingerprint(&catalog, public_base_url).as_bytes());
-    format!("{:x}", h.finalize())
+    crate::lower_hex(h.finalize())
 }
 
 pub fn catalog_for(generation: &str, items: &[IndexArtifact]) -> stuff_catalog::Catalog {
@@ -470,7 +470,7 @@ fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
             .map_err(|_| pub_error(Kind::Integrity, format!("published metadata is missing or invalid: {}", row.filename), Some(&manifest_path), None))?;
         let mut mh = Sha256::new();
         mh.update(&sidecar_bytes);
-        if format!("{:x}", mh.finalize()) != row.metadata_sha256 {
+        if crate::lower_hex(mh.finalize()) != row.metadata_sha256 {
             return Err(pub_error(Kind::Integrity, format!("published metadata changed: {}", row.filename), Some(&manifest_path), None));
         }
         if row.targets.is_empty() {
@@ -762,7 +762,7 @@ mod tests {
         let bytes = std::fs::read(&path).unwrap();
         let mut h = Sha256::new();
         h.update(&bytes);
-        ValidatedArtifact::new(identity, path, format!("{:x}", h.finalize()), targets).unwrap()
+        ValidatedArtifact::new(identity, path, crate::lower_hex(h.finalize()), targets).unwrap()
     }
 
     fn target(platform: &str) -> Target {

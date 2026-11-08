@@ -40,7 +40,7 @@ pub fn parse_list_objects_v2(body: &[u8]) -> Result<ListPage, PublishError> {
     let mut reader = Reader::from_reader(body);
     reader.config_mut().trim_text(false);
     let mut buffer = Vec::new();
-    let mut path: Vec<Vec<u8>> = Vec::new();
+    let mut path: Vec<String> = Vec::new();
     let mut text = String::new();
     let mut page = ListPage {
         objects: Vec::new(),
@@ -52,17 +52,16 @@ pub fn parse_list_objects_v2(body: &[u8]) -> Result<ListPage, PublishError> {
     loop {
         match reader.read_event_into(&mut buffer) {
             Ok(Event::Start(start)) => {
-                let name = start.local_name().as_ref().to_vec();
+                let name = start.local_name().as_ref().to_string();
                 if path.is_empty() {
-                    if name.as_slice() != b"ListBucketResult" {
+                    if name != "ListBucketResult" {
                         return Err(PublishError::Integrity(format!(
-                            "list response has an unexpected root <{}>",
-                            String::from_utf8_lossy(&name)
+                            "list response has an unexpected root <{name}>"
                         )));
                     }
                     saw_root = true;
                 }
-                if matches(&path, &["ListBucketResult"]) && name.as_slice() == b"Contents" {
+                if matches(&path, &["ListBucketResult"]) && name == "Contents" {
                     current = Some(ListedObject {
                         key: String::new(),
                         size: 0,
@@ -73,13 +72,13 @@ pub fn parse_list_objects_v2(body: &[u8]) -> Result<ListPage, PublishError> {
                 text.clear();
             }
             Ok(Event::End(end)) => {
-                let name = end.local_name().as_ref().to_vec();
+                let name = end.local_name().as_ref().to_string();
                 let parent = path.get(..path.len().saturating_sub(1)).unwrap_or_default();
                 let value = text.trim();
-                if matches(parent, &["ListBucketResult"]) && name.as_slice() == b"IsTruncated" {
+                if matches(parent, &["ListBucketResult"]) && name == "IsTruncated" {
                     page.is_truncated = value.eq_ignore_ascii_case("true");
                 } else if matches(parent, &["ListBucketResult"])
-                    && name.as_slice() == b"NextContinuationToken"
+                    && name == "NextContinuationToken"
                     && !value.is_empty()
                 {
                     page.next_continuation_token = Some(value.to_string());
@@ -89,20 +88,19 @@ pub fn parse_list_objects_v2(body: &[u8]) -> Result<ListPage, PublishError> {
                             "list response ordered Contents out of place".into(),
                         )
                     })?;
-                    if name.as_slice() == b"Key" {
+                    if name == "Key" {
                         object.key = value.to_string();
-                    } else if name.as_slice() == b"Size" {
+                    } else if name == "Size" {
                         object.size = value.parse::<u64>().map_err(|_| {
                             PublishError::Integrity(format!(
                                 "list response has an invalid size {value:?}"
                             ))
                         })?;
-                    } else if name.as_slice() == b"ETag" {
+                    } else if name == "ETag" {
                         object.etag = value.trim_matches('"').to_string();
                     }
                 }
-                let closing_contents =
-                    matches(parent, &["ListBucketResult"]) && name.as_slice() == b"Contents";
+                let closing_contents = matches(parent, &["ListBucketResult"]) && name == "Contents";
                 path.pop();
                 text.clear();
                 if closing_contents {
@@ -119,8 +117,8 @@ pub fn parse_list_objects_v2(body: &[u8]) -> Result<ListPage, PublishError> {
                     page.objects.push(object);
                 }
             }
-            Ok(Event::Text(chunk)) => text.push_str(&decode_text(&chunk)?),
-            Ok(Event::CData(chunk)) => text.push_str(&decode_cdata(&chunk)?),
+            Ok(Event::Text(chunk)) => text.push_str(chunk.as_ref()),
+            Ok(Event::CData(chunk)) => text.push_str(chunk.as_ref()),
             Ok(Event::GeneralRef(reference)) => push_reference(&mut text, &reference)?,
             Ok(Event::Eof) => {
                 if !path.is_empty() {
@@ -156,19 +154,18 @@ pub fn parse_error(body: &[u8]) -> Result<S3Error, PublishError> {
     let mut reader = Reader::from_reader(body);
     reader.config_mut().trim_text(false);
     let mut buffer = Vec::new();
-    let mut path: Vec<Vec<u8>> = Vec::new();
+    let mut path: Vec<String> = Vec::new();
     let mut text = String::new();
     let mut error = S3Error { code: String::new(), message: String::new() };
     let mut saw_root = false;
     loop {
         match reader.read_event_into(&mut buffer) {
             Ok(Event::Start(start)) => {
-                let name = start.local_name().as_ref().to_vec();
+                let name = start.local_name().as_ref().to_string();
                 if path.is_empty() {
-                    if name.as_slice() != b"Error" {
+                    if name != "Error" {
                         return Err(PublishError::Integrity(format!(
-                            "S3 error body has an unexpected root <{}>",
-                            String::from_utf8_lossy(&name)
+                            "S3 error body has an unexpected root <{name}>"
                         )));
                     }
                     saw_root = true;
@@ -177,20 +174,20 @@ pub fn parse_error(body: &[u8]) -> Result<S3Error, PublishError> {
                 text.clear();
             }
             Ok(Event::End(end)) => {
-                let name = end.local_name().as_ref().to_vec();
+                let name = end.local_name().as_ref().to_string();
                 let parent = path.get(..path.len().saturating_sub(1)).unwrap_or_default();
                 if matches(parent, &["Error"]) {
-                    if name.as_slice() == b"Code" {
+                    if name == "Code" {
                         error.code = text.trim().to_string();
-                    } else if name.as_slice() == b"Message" {
+                    } else if name == "Message" {
                         error.message = text.trim().to_string();
                     }
                 }
                 path.pop();
                 text.clear();
             }
-            Ok(Event::Text(chunk)) => text.push_str(&decode_text(&chunk)?),
-            Ok(Event::CData(chunk)) => text.push_str(&decode_cdata(&chunk)?),
+            Ok(Event::Text(chunk)) => text.push_str(chunk.as_ref()),
+            Ok(Event::CData(chunk)) => text.push_str(chunk.as_ref()),
             Ok(Event::GeneralRef(reference)) => push_reference(&mut text, &reference)?,
             Ok(Event::Eof) => {
                 if !path.is_empty() {
@@ -217,26 +214,12 @@ pub fn parse_error(body: &[u8]) -> Result<S3Error, PublishError> {
     Ok(error)
 }
 
-fn matches(path: &[Vec<u8>], expected: &[&str]) -> bool {
+fn matches(path: &[String], expected: &[&str]) -> bool {
     path.len() == expected.len()
         && path
             .iter()
             .zip(expected)
-            .all(|(actual, wanted)| actual.as_slice() == wanted.as_bytes())
-}
-
-fn decode_text(chunk: &quick_xml::events::BytesText<'_>) -> Result<String, PublishError> {
-    chunk
-        .decode()
-        .map(|text| text.into_owned())
-        .map_err(|error| PublishError::Integrity(format!("XML text is not valid UTF-8: {error}")))
-}
-
-fn decode_cdata(chunk: &quick_xml::events::BytesCData<'_>) -> Result<String, PublishError> {
-    chunk
-        .decode()
-        .map(|text| text.into_owned())
-        .map_err(|error| PublishError::Integrity(format!("XML text is not valid UTF-8: {error}")))
+            .all(|(actual, wanted)| actual == wanted)
 }
 
 fn push_reference(text: &mut String, reference: &BytesRef<'_>) -> Result<(), PublishError> {
@@ -247,15 +230,14 @@ fn push_reference(text: &mut String, reference: &BytesRef<'_>) -> Result<(), Pub
         return Ok(());
     }
     match reference.as_ref() {
-        b"quot" => text.push('"'),
-        b"amp" => text.push('&'),
-        b"lt" => text.push('<'),
-        b"gt" => text.push('>'),
-        b"apos" => text.push('\''),
+        "quot" => text.push('"'),
+        "amp" => text.push('&'),
+        "lt" => text.push('<'),
+        "gt" => text.push('>'),
+        "apos" => text.push('\''),
         other => {
             return Err(PublishError::Integrity(format!(
-                "XML uses an unsupported entity &{};",
-                String::from_utf8_lossy(other)
+                "XML uses an unsupported entity &{other};"
             )));
         }
     }

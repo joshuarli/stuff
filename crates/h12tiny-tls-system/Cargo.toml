@@ -9,7 +9,7 @@ license = "MIT"
 repository = "https://github.com/laputa-systems/h12tiny"
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.23"
 rustls = { version = "0.23.46", default-features = false, features = ["std", "tls12"] }
 rustls-webpki = { version = "0.103.16", default-features = false }
 rustls-native-certs = "0.8.5"

@@ -23,7 +23,7 @@ use stuff::publish::npm;
 use stuff::publish::r2::{Credentials, R2Client};
 use stuff::publish::snapshot::Snapshot;
 use stuff::publish::{Environment, NpmPublish, Options, PublishRequest, Request, Registry, Status};
-use support::{write_executable, FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{write_executable, lower_hex, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BUCKET: &str = "stuff-mynpm";
 const STALE_BASE: &str = "http://127.0.0.1:9/mirror/";
@@ -61,7 +61,7 @@ fn credentials(fake: &FakeS3) -> Credentials {
 }
 
 fn artifact(name: &str, version: &str, tarball: &[u8]) -> ArtifactRecord {
-    let digest = format!("{:x}", Sha512::digest(tarball));
+    let digest = lower_hex(Sha512::digest(tarball));
     let raw: Vec<u8> = (0..digest.len())
         .step_by(2)
         .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())
@@ -163,7 +163,7 @@ fn build_live(work: &Path, packages: &[(&str, &str, Vec<u8>)]) -> (PathBuf, Stri
     let objects = state.join("objects").join("sha512");
     fs::create_dir_all(&objects).unwrap();
     for (_, _, bytes) in packages {
-        let digest = format!("{:x}", Sha512::digest(bytes));
+        let digest = lower_hex(Sha512::digest(bytes));
         fs::write(objects.join(format!("{digest}.tgz")), bytes).unwrap();
     }
     let summary = publish_site(&PublishOptions {
@@ -460,7 +460,7 @@ fn a_lockfile_package_absent_from_live_and_state_is_downloaded_and_published() {
         "the packument was never requested: {requests:?}"
     );
 
-    let digest = format!("{:x}", Sha512::digest(&tarball_bytes));
+    let digest = lower_hex(Sha512::digest(&tarball_bytes));
     assert!(
         work.path()
             .join("stuff-state/npm/objects/sha512")
@@ -665,7 +665,7 @@ fn a_first_party_scoped_package_is_hosted_beside_the_mirror() {
     assert!(version.get("peerDependencies").is_some());
     let dist = version.get("dist").and_then(|v| v.as_map()).unwrap();
     assert_eq!(dist.get("integrity").and_then(|v| v.as_str()), Some(integrity(&bytes).as_str()));
-    let digest = format!("{:x}", Sha512::digest(&bytes));
+    let digest = lower_hex(Sha512::digest(&bytes));
     assert_eq!(
         dist.get("tarball").and_then(|v| v.as_str()),
         Some(format!("https://npm.17166969.xyz/current/-/tarballs/{digest}.tgz").as_str())

@@ -120,7 +120,7 @@ pub fn decode_publish_payload<R: Read>(
         body,
         path: spill,
         crate_len,
-        crate_sha256: format!("{:x}", digest.finalize()),
+        crate_sha256: crate::publish::lower_hex(digest.finalize()),
     })
 }
 
@@ -212,7 +212,7 @@ mod tests {
         assert_eq!(staged.crate_len, archive.len() as u64);
         assert_eq!(
             staged.crate_sha256,
-            format!("{:x}", Sha256::digest(archive))
+            crate::publish::lower_hex(Sha256::digest(archive))
         );
         assert_eq!(fs::read(&staged.path).unwrap(), archive);
         staged.discard();

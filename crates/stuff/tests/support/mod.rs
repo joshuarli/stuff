@@ -14,6 +14,16 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 pub const ACCESS_KEY: &str = "test-access";
 pub const SECRET_KEY: &str = "test-secret";
 
+pub fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 pub fn write_executable(path: &std::path::Path, contents: &str) {
     let mut child = Command::new("/bin/sh")
         .arg("-c")

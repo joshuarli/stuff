@@ -86,7 +86,7 @@ pub fn wheel_metadata(artifact: &ValidatedArtifact) -> Result<(Option<String>, V
     let mut members: Vec<String> = Vec::new();
     for i in 0..wheel.len() {
         let f = wheel.by_index(i).map_err(|_| fail("could not read wheel metadata".to_string()))?;
-        members.push(f.name().to_string());
+        members.push(f.name().map_err(|e| fail(format!("could not read wheel metadata: {e}")))?.into_owned());
     }
     let res = {
         let mut seen = std::collections::BTreeSet::new();
@@ -234,14 +234,14 @@ pub fn prepare_index_artifacts(
             .map_err(|_| publication_error("could not read validated wheel", Some(artifact)))?;
         let mut h = Sha256::new();
         h.update(&bytes);
-        let actual = format!("{:x}", h.finalize());
+        let actual = crate::lower_hex(h.finalize());
         if actual != artifact.sha256 {
             return Err(publication_error("wheel bytes changed after validation", Some(artifact)));
         }
         let (requires_python, metadata) = wheel_metadata(artifact)?;
         let mut mh = Sha256::new();
         mh.update(&metadata);
-        let metadata_sha256 = format!("{:x}", mh.finalize());
+        let metadata_sha256 = crate::lower_hex(mh.finalize());
         prepared.push(IndexArtifact {
             wheel_filename: artifact.wheel.filename.clone(),
             package_name: artifact.wheel.package.name.clone(),
@@ -375,7 +375,7 @@ mod tests {
         let bytes = std::fs::read(&path).unwrap();
         let mut h = Sha256::new();
         h.update(&bytes);
-        let sha256 = format!("{:x}", h.finalize());
+        let sha256 = crate::lower_hex(h.finalize());
         ValidatedArtifact::new(
             identity,
             path,
@@ -412,7 +412,7 @@ mod tests {
         assert!(text.contains("data-yanked=\"maintainer &lt;team@example.test&gt; &amp; &quot;held&quot;\""));
         let mut h = Sha256::new();
         h.update(b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\nRequires-Python: >=3.15,<3.16\n\n");
-        let mh = format!("{:x}", h.finalize());
+        let mh = crate::lower_hex(h.finalize());
         assert!(text.contains(&format!("data-dist-info-metadata=\"sha256={mh}\"")));
         assert!(text.contains(&format!("data-core-metadata=\"sha256={mh}\"")));
     }
