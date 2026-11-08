@@ -3,7 +3,7 @@ from __future__ import annotations
 import urllib.parse
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import cast
 
@@ -428,6 +428,29 @@ def splits(
             ),
         )
     )
+
+
+def drift(split_rows: Iterable[Split], outdated_rows: Iterable[Outdated]) -> tuple[Split, ...]:
+    behind: dict[tuple[Ecosystem, str], set[str]] = defaultdict(set)
+    for row in outdated_rows:
+        for use in row.uses:
+            behind[(row.component.ecosystem, row.component.name)].update(use.repositories)
+    remaining = []
+    for row in split_rows:
+        if row.basis is not TargetBasis.LATEST:
+            remaining.append(row)
+            continue
+        moved = behind[(row.component.ecosystem, row.component.name)]
+        uses = tuple(
+            use
+            if use.version == row.target
+            else VersionUse(use.version, tuple(name for name in use.repositories if name not in moved))
+            for use in row.uses
+        )
+        left = replace(row, uses=tuple(use for use in uses if use.repositories))
+        if left.off_target:
+            remaining.append(left)
+    return tuple(remaining)
 
 
 def role_uses(roles: Iterable[Role], found: Iterable[Declaration]) -> tuple[RoleUse, ...]:

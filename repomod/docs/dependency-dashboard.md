@@ -41,8 +41,9 @@ one lookup surface, reached through search.
 - **Upgrades** (`outdated.html`) charts upgrades by ecosystem, then groups them as breaking,
   minor, and patch, with bars for repositories affected. A breaking upgrade changes the leftmost
   nonzero version component. Needs `repomod deps enrich`.
-- **Alignment** groups packages declared at different versions by ecosystem. Each card draws the
-  versions from oldest to newest, with the target in green, and names the repositories to move.
+- **Alignment** groups version drift by ecosystem, leaving out repositories that an upgrade to
+  the latest release already moves. Those appear on Upgrades. Each card draws the versions from
+  oldest to newest, with the target in green, and names the repositories to move.
   The target is the approved pin, else the latest release, else the newest version in use, else
   the most common ref for tags and commits. Docker images are compared by tag and digest combined
   (a bare name counts as `latest`). Alpine (apk) packages follow their base image and are left

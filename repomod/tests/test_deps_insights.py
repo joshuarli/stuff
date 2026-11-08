@@ -527,3 +527,47 @@ def test_one_package_from_two_registries_is_one_outdated_row() -> None:
     )
     assert len(rows) == 1
     assert rows[0].uses == (insights.VersionUse("0.23.45", ("acme/one", "acme/two")),)
+
+
+def _split(basis: insights.TargetBasis, target: str, uses: tuple[insights.VersionUse, ...]) -> insights.Split:
+    return insights.Split(Component("pkg:cargo/zstd", Ecosystem.CARGO, "zstd", "zstd"), target, basis, uses)
+
+
+def _behind(*uses: insights.VersionUse) -> insights.Outdated:
+    return insights.Outdated(
+        Component("pkg:cargo/zstd", Ecosystem.CARGO, "zstd", "zstd"), "1.2.0", Gap.MINOR, uses
+    )
+
+
+def test_drift_leaves_out_repositories_an_upgrade_to_latest_already_moves() -> None:
+    behind = insights.VersionUse("1.0.0", ("acme/behind",))
+    rows = insights.drift(
+        (
+            _split(
+                insights.TargetBasis.LATEST,
+                "1.2.0",
+                (
+                    behind,
+                    insights.VersionUse("1.2.0", ("acme/current",)),
+                    insights.VersionUse("1.3.0", ("acme/ahead",)),
+                ),
+            ),
+        ),
+        (_behind(behind),),
+    )
+    assert [row.off_target for row in rows] == [("acme/ahead",)]
+
+
+def test_drift_drops_a_package_fully_covered_by_upgrades() -> None:
+    behind = insights.VersionUse("1.0.0", ("acme/behind",))
+    rows = insights.drift(
+        (_split(insights.TargetBasis.LATEST, "1.2.0", (behind, insights.VersionUse("1.2.0", ("acme/current",)))),),
+        (_behind(behind),),
+    )
+    assert rows == ()
+
+
+def test_drift_keeps_repositories_off_an_approved_pin() -> None:
+    behind = insights.VersionUse("1.0.0", ("acme/behind",))
+    split = _split(insights.TargetBasis.APPROVED_PIN, "abc", (behind, insights.VersionUse("abc", ("acme/pinned",))))
+    assert insights.drift((split,), (_behind(behind),)) == (split,)

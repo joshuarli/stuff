@@ -75,7 +75,7 @@ class _Site:
     outdated: tuple[insights.Outdated, ...]
     vulnerable: tuple[insights.Vulnerable, ...]
     weights: tuple[insights.Weight, ...]
-    splits: tuple[insights.Split, ...]
+    drift: tuple[insights.Split, ...]
     roles: tuple[insights.RoleUse, ...]
     scorecards: tuple[insights.Scorecard, ...]
     forks: tuple[str, ...]
@@ -161,6 +161,7 @@ def _site(
     splits = insights.splits(
         mine, results, pins={name: pin.sha for name, pin in actions_rule.load_pins().items()}
     )
+    drift = insights.drift(splits, outdated)
     roles = insights.role_uses(dependency_roles.load_roles(), mine)
     return _Site(
         graph,
@@ -174,13 +175,13 @@ def _site(
         outdated,
         vulnerable,
         weights,
-        splits,
+        drift,
         roles,
         insights.scorecards(
             [name for name in graph.repositories if name not in forks],
             outdated,
             vulnerable,
-            splits,
+            drift,
             roles,
             weights,
         ),
@@ -232,7 +233,7 @@ def _navigation(site: _Site) -> tuple[NavGroup, ...]:
             (
                 NavLink("security", "Security", len(_of_kind(site, ActionKind.SECURITY))),
                 NavLink("outdated", "Upgrades", len(site.outdated)),
-                NavLink("alignment", "Alignment", len(site.splits)),
+                NavLink("alignment", "Alignment", len(site.drift)),
                 NavLink("choices", "Choices", len(_contested_roles(site))),
                 NavLink("bloat", "Bloat"),
             ),
@@ -309,7 +310,7 @@ def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
             "coverage.html",
             Tone.WARN if missing else None,
         ),
-        Tile(str(len(site.splits)), "Version drift", "packages on 2 or more versions", "alignment.html"),
+        Tile(str(len(site.drift)), "Version drift", "packages upgrades will not align", "alignment.html"),
         Tile(str(len(contested)), "Role conflicts", f"{off_preferred} repositories off preferred", "choices.html"),
     )
 
@@ -775,15 +776,15 @@ def _upgrade_bar(row: insights.Outdated) -> Bar:
 
 
 def _alignment(site: _Site) -> str:
-    header = ui.page_header("Alignment", "Packages your repositories declare at different versions.")
-    if not site.splits:
+    header = ui.page_header("Alignment", "Version drift that upgrading will not fix. Upgrades covers the rest.")
+    if not site.drift:
         return header + ui.panel(
             "Version drift",
-            '<p class="zero">every package declared in two or more repositories uses one version</p>',
+            '<p class="zero">no drift is left once pending upgrades are applied</p>',
             flush=True,
         )
     groups: dict[Ecosystem, list[insights.Split]] = defaultdict(list)
-    for row in site.splits:
+    for row in site.drift:
         groups[row.component.ecosystem].append(row)
     sections = [
         ui.group(
@@ -972,7 +973,7 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
             f"{_e(_short_ref(next(use.version for use in split.uses if name in use.repositories)))} → "
             f"{_e(_short_ref(split.target))}",
         )
-        for split in site.splits
+        for split in site.drift
         if name in split.off_target and split.component.purl not in behind
     ]
     roles = [
