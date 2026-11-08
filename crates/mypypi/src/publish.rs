@@ -341,29 +341,6 @@ pub(crate) fn collect_validated(
         }
     }
     let local = crate::validate::local_platform();
-    {
-        let mut need_platforms: BTreeSet<&str> = BTreeSet::new();
-        for targets_needed in targets_to_validate.values() {
-            for t in targets_needed {
-                need_platforms.insert(t.platform.as_str());
-            }
-        }
-        let mut sorted: Vec<&str> = need_platforms.into_iter().collect();
-        sorted.sort();
-        for platform in sorted {
-            let target = targets.iter().find(|t| t.platform == platform).unwrap();
-            if local.as_deref() != Some(platform) {
-                return Err(Error::incompatible(
-                    format!(
-                        "validation requires a native {platform} runner; current runner is {}",
-                        local.as_deref().unwrap_or("unsupported")
-                    ),
-                    Stage::Validation,
-                )
-                .with_target(&target.python_version.to_string(), &target.platform));
-            }
-        }
-    }
     let mut policies: BTreeMap<PackageVersion, ValidationPolicy> = BTreeMap::new();
     for (package, entry) in &entries {
         policies.insert((*package).clone(), validation_policy(entry)?);
@@ -411,6 +388,7 @@ pub(crate) fn collect_validated(
             target_paths.insert(filename.clone(), wheel_path.clone());
             copied_paths.entry(filename.clone()).or_insert(wheel_path);
         }
+        let native = local.as_deref() == Some(target.platform.as_str());
         let mut pending = Vec::new();
         for (filename, required) in &targets_to_validate {
             if !required.contains(target) {
@@ -419,14 +397,23 @@ pub(crate) fn collect_validated(
             let wheel_path = target_paths.get(filename).ok_or_else(|| {
                 Error::integrity(format!("candidate wheel is absent from target snapshot: {filename}"), Stage::Validation)
             })?;
-            crate::validate::inspect_wheel(wheel_path, target, &settings.linux_repair_policy)?;
-            pending.push(wheel_path.clone());
+            let meta = crate::validate::inspect_wheel(wheel_path, target, &settings.linux_repair_policy)?;
+            if native {
+                pending.push(wheel_path.clone());
+            } else {
+                validated_targets.entry(meta.identity.filename.clone()).or_default().push(target.clone());
+                if meta.imports.is_empty() {
+                    no_imports += 1;
+                }
+            }
         }
-        let metadata = crate::validate::validate_wheels(&pending, std::slice::from_ref(target), &wheel_set, &policies, &settings.linux_repair_policy)?;
-        for (item, t) in metadata {
-            validated_targets.entry(item.identity.filename.clone()).or_default().push(t);
-            if item.imports.is_empty() {
-                no_imports += 1;
+        if !pending.is_empty() {
+            let metadata = crate::validate::validate_wheels(&pending, std::slice::from_ref(target), &wheel_set, &policies, &settings.linux_repair_policy)?;
+            for (item, t) in metadata {
+                validated_targets.entry(item.identity.filename.clone()).or_default().push(t);
+                if item.imports.is_empty() {
+                    no_imports += 1;
+                }
             }
         }
         for (filename, wheel_path) in &target_paths {

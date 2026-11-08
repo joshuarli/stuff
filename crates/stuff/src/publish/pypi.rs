@@ -119,8 +119,9 @@ fn publish_internal(
     options: &Options,
 ) -> Result<Outcome, PublishError> {
     let catalog = resolved_catalog(&publish.specs, settings, cache_dir)?;
-    let platform = local_platform()?;
-    let targets = local_targets(settings)?;
+    let _platform = local_platform()?;
+    let targets = settings.targets();
+    let platforms: Vec<String> = targets.iter().map(|target| target.platform.clone()).collect();
     let staging = Staging::create(cache_dir, "pypi-site")?;
     let site = staging.path().join("site");
     let transaction_state = if options.dry_run {
@@ -160,7 +161,7 @@ fn publish_internal(
             output: &site,
             state_dir,
             catalog: &catalog,
-            platforms: std::slice::from_ref(&platform),
+            platforms: &platforms,
         })
         .map_err(map_mypypi)?;
         Ok(Staged::new(site.clone()))
