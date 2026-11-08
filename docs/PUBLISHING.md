@@ -217,13 +217,13 @@ Keep `auth_required` false for the public Worker and static servers, which do no
 
 ```sh
 cd crates/stuff-worker
-npm ci
-npm run build
+pnpm install --frozen-lockfile
+pnpm run build
 cf deploy --prebuilt --dry-run
 cf deploy --prebuilt
 ```
 
-`npm run build` writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`, and `cf deploy --prebuilt` uploads it without rebuilding (see [crates/stuff-worker/README.md](../crates/stuff-worker/README.md)). The three buckets already exist; use `--provision` only when you add one. Custom domains come from `domains` in `cloudflare.config.ts`.
+`pnpm run build` writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`, and `cf deploy --prebuilt` uploads it without rebuilding (see [crates/stuff-worker/README.md](../crates/stuff-worker/README.md)). The three buckets already exist; use `--provision` only when you add one. Custom domains come from `domains` in `cloudflare.config.ts`.
 
 The Worker uses Workers Caching. The default entrypoint is an uncached gateway. The `Registry` entrypoint caches responses under a key that includes the host, so the four domains cannot share cache entries. Immutable artifacts carry a one-year TTL. Mutable generation views carry 60 seconds, so a promotion becomes visible within that window without a cache purge. The gateway costs one extra worker-to-worker request per request; a cache hit skips `Registry` but still runs the gateway. Two requests to the same URL should show `cf-cache-status: HIT` on the second. Range requests are sliced from the cached full object, so a cold range fetch downloads the whole artifact.
 

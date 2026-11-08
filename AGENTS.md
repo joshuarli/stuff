@@ -81,7 +81,7 @@ for repair.
   and `make oci-bench`.
 - Worker: `make worker-test` (bundle under workerd), `make worker-check`.
 - Search: after editing `crates/stuff-catalog/web/`, run `make search-bundle`
-  (needs `npm ci` in `crates/stuff-worker`) and commit the bundle;
+  (needs `pnpm install --frozen-lockfile` in `crates/stuff-worker`) and commit the bundle;
   `make test-search` runs its tests.
 
 ## Invariants
