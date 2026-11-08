@@ -34,15 +34,16 @@ Python; the browser only searches, routes, and expands. It works from `file://`.
 - **Choices** — one card per contested role with an adoption bar (preferred in green,
   other options in amber, banned in red) and repository lists behind expanders; settled
   roles become pills. The how-it-works explanation sits behind a disclosure.
-- **Packages** — ecosystem sections with mix charts (edge mix, scopes, sources), a
-  "most used" horizontal bar chart per ecosystem, and a table with a usage bar per row.
-  A package view adds a consumer map (fan-in SVG, direct vs transitive) for packages in
-  four or more repositories, plus versions, sources, enrichment, and entry paths.
-  `packages.html#pkg=pkg:cargo/serde` deep-links to a package.
+- **Packages** — ecosystem sections with mix charts (edge mix, scopes, sources) and a
+  "most used" horizontal bar chart per ecosystem. There is no package dump; use search
+  (`/`) to jump to a package. A package view adds a consumer map (fan-in SVG, direct vs
+  transitive) for packages in four or more repositories, plus versions, sources,
+  enrichment, and entry paths. `packages.html#pkg=pkg:cargo/serde` deep-links to a package.
 - **Changes** — the working inventory against `HEAD~1` of `data/`, or `no baseline` when the
   previous revision has no inventory.
-- **Coverage** — repository states, issue kinds, ecosystem composition, source risk, and
-  detection-only formats.
+- **Coverage** — a "what to fix first" table that explains every issue kind in plain
+  language with the concrete action (sync, fix the file, commit a lockfile), the
+  repositories that need attention, and formats detected but not yet parsed.
 - **Repository pages** — one page per repository under `repos/OWNER/REPO/index.html`,
   starting with what needs attention there (vulnerable versions, upgrades, versions off
   target, role conflicts), then projects, scope counts, direct dependencies, expandable transitive lists, sources,

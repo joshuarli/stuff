@@ -129,11 +129,6 @@ td.weight .bar { height: .6rem; }
 td details { display: inline; }
 td details[open] { display: block; }
 td div + div { margin-top: .1rem; }
-.eco-nav { display: flex; flex-wrap: wrap; gap: .35rem; margin: .6rem 0 .9rem; }
-.eco-pill { font: 12px var(--mono); border: 1px solid var(--rule); border-left-width: 3px; padding: .18rem .45rem; color: var(--ink); }
-.eco-pill span { color: var(--muted); }
-.eco-dot { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: .3rem; vertical-align: baseline; }
-.eco { border-top: 1px solid var(--rule); padding-top: .4rem; margin-top: 1.2rem; }
 .chart { display: block; max-width: 100%; }
 .chart.stacked, .chart.hbar, .chart.fanin { margin: .3rem 0 .15rem; }
 .legend { display: flex; flex-wrap: wrap; gap: .15rem 1rem; font-size: .82rem; color: var(--muted); margin-bottom: .5rem; }
@@ -142,7 +137,6 @@ td div + div { margin-top: .1rem; }
 .svg-label { font: 12px var(--mono); fill: var(--ink); }
 .svg-value { font: 12px var(--mono); fill: var(--muted); }
 .chart.hbar a:hover .svg-label { fill: var(--direct); text-decoration: underline; }
-.package .chart.fanin { background: #fff; border: 1px solid var(--rule); padding: .4rem; }
 .role-card { border: 1px solid var(--rule); background: #fff; padding: .6rem .75rem; margin: .7rem 0; }
 .role-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .45rem; margin-bottom: .45rem; }
 .role-name { font-weight: 600; font-size: 1rem; }

@@ -18,6 +18,7 @@ from repomod.dependencies import analysis, enrich, insights
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
 from repomod.dependencies.model import (
+    CoverageKind,
     Ecosystem,
     Edge,
     IndexEntry,
@@ -891,20 +892,9 @@ def _risk_table(site: _Site) -> str:
         ) + "</p>")
     return "".join(out)
 
-_ECO_COLORS = {
-    Ecosystem.CARGO: "#1f5fa8",
-    Ecosystem.PYPI: "#2c6e49",
-    Ecosystem.NPM: "#8a5a00",
-    Ecosystem.GOLANG: "#00707c",
-    Ecosystem.SWIFT: "#5b4ab0",
-    Ecosystem.GITHUB: "#6b7280",
-    Ecosystem.DOCKER: "#b04a6d",
-    Ecosystem.APK: "#a11d1d",
-    Ecosystem.GENERIC: "#8a8f96",
-}
+_ECO_SHADES = ("#1f5fa8", "#5d8ac2", "#93aed4", "#bcccdc", "#d9dee3", "#aab2bb")
 _TOP_HUBS = 12
 _FAN_IN_REPOS = 8
-_HUB_BAR_MAX = 280
 _ECO_CHART_W = 640
 _ECO_CHART_LABEL_W = 190
 
@@ -920,7 +910,8 @@ def _stacked_svg(
     for _label, count, color in parts:
         w = width * count / total
         segments.append(
-            f'<rect x="{x:.1f}" y="0" width="{max(1.0, w):.1f}" height="{height}" fill="{_e(color)}" />'
+            f'<rect x="{x:.1f}" y="4" width="{max(1.0, w):.1f}" height="{height - 8}"'
+            f' fill="{_e(color)}" opacity="0.72" />'
         )
         x += w
     legend = "".join(
@@ -959,14 +950,16 @@ def _hbar_svg(
             inner = (
                 f'<text x="{label_w - 6}" y="{y + 15}" text-anchor="end" class="svg-label">'
                 f"{text}</text>"
-                f'<rect x="{label_w}" y="{y + 3}" width="{bw:.1f}" height="13" fill="{_e(color)}" />'
+                f'<rect x="{label_w}" y="{y + 6}" width="{bw:.1f}" height="8"'
+                f' fill="{_e(color)}" opacity="0.72" />'
                 f'<text x="{label_w + bw + 6:.1f}" y="{y + 15}" class="svg-value">{value_text}</text>'
             )
             parts.append(f'<a href="{_e(href)}">{inner}</a>')
         else:
             parts.append(
                 f'<text x="{label_w - 6}" y="{y + 15}" text-anchor="end" class="svg-label">{text}</text>'
-                f'<rect x="{label_w}" y="{y + 3}" width="{bw:.1f}" height="13" fill="{_e(color)}" />'
+                f'<rect x="{label_w}" y="{y + 6}" width="{bw:.1f}" height="8"'
+                f' fill="{_e(color)}" opacity="0.72" />'
                 f'<text x="{label_w + bw + 6:.1f}" y="{y + 15}" class="svg-value">{value_text}</text>'
             )
     return (
@@ -1008,12 +1001,9 @@ def _fan_in_svg(
     return (
         f'<svg class="chart fanin" viewBox="0 0 {width} {height}" width="100%" '
         f'height="{height}" role="img" aria-label="consumer map">{"".join(lines)}'
-        f'<rect x="{label_w - 110}" y="{middle_y - 13:.0f}" width="110" height="26" rx="4"'
-        f' fill="#1f5fa8" />'
-        f'<text x="{label_w - 55}" y="{middle_y + 4:.0f}" text-anchor="middle"'
-        f' style="fill:#fff;font:12px var(--mono)">{label}</text></svg>'
-        f'<p class="sub"><span class="swatch" style="background:#1f5fa8"></span> direct '
-        f'<span class="swatch" style="background:#8a8f96"></span> transitive'
+        f'<text x="{label_w}" y="{middle_y + 4:.0f}" text-anchor="end"'
+        f' class="svg-label">{label}</text></svg>'
+        f'<p class="sub"><span class="direct">direct</span> · transitive'
         f"{' · ' + str(len(unique)) + ' repositories' if len(unique) > len(repos) else ''}</p>"
     )
 
@@ -1044,9 +1034,10 @@ def _eco_edge_counts(site: _Site) -> dict[Ecosystem, Counter[str]]:
 
 
 def _eco_overview_svg(site: _Site, groups: dict[Ecosystem, list[str]]) -> str:
+    ranked = sorted(groups, key=lambda item: len(groups[item]), reverse=True)
     parts = [
-        (ecosystem.value, len(groups[ecosystem]), _ECO_COLORS.get(ecosystem, "#1f5fa8"))
-        for ecosystem in sorted(groups, key=lambda item: len(groups[item]), reverse=True)
+        (ecosystem.value, len(groups[ecosystem]), _ECO_SHADES[index % len(_ECO_SHADES)])
+        for index, ecosystem in enumerate(ranked)
     ]
     if not parts:
         return ""
@@ -1074,7 +1065,7 @@ def _eco_hubs(
             (
                 component.display_name,
                 len(all_repos),
-                _ECO_COLORS.get(component.ecosystem, "#1f5fa8"),
+                "#1f5fa8",
                 f"packages.html#pkg={_fragment(purl)}",
                 direct,
             )
@@ -1094,22 +1085,23 @@ def _packages(site: _Site) -> str:
     body.append('<div id="package-index">')
     if groups:
         nav = " ".join(
-            f'<a class="eco-pill" href="#eco-{_e(eco.value)}"'
-            f' style="border-color:{_e(_ECO_COLORS.get(eco, "#1f5fa8"))}">'
-            f"{_e(eco.value)} <span>{len(groups[eco])}</span></a>"
+            '<a class="tag" href="#eco-'
+            + _e(eco.value)
+            + '">'
+            + _e(eco.value)
+            + f" {len(groups[eco])}</a>"
             for eco in sorted(groups, key=lambda item: len(groups[item]), reverse=True)
         )
-        body.append(f'<nav class="eco-nav">{nav}</nav>')
+        body.append(f'<p>{nav}</p>')
         body.append(_eco_overview_svg(site, groups))
     for ecosystem in sorted(groups, key=lambda item: len(groups[item]), reverse=True):
         purls = groups[ecosystem]
         counts = edge_counts.get(ecosystem, Counter())
         direct = counts["direct"]
         transitive = counts["transitive"]
-        color = _ECO_COLORS.get(ecosystem, "#1f5fa8")
         body.append(
-            f'<section class="eco" id="eco-{_e(ecosystem.value)}">'
-            f'<h2><span class="eco-dot" style="background:{_e(color)}"></span>{_e(ecosystem.value)} '
+            f'<section id="eco-{_e(ecosystem.value)}">'
+            f"<h2>{_e(ecosystem.value)} "
             f'<span class="sub">{len(purls)} packages · {counts["edges"]} edges</span></h2>'
         )
         mix = []
@@ -1172,33 +1164,7 @@ def _packages(site: _Site) -> str:
         hubs = _eco_hubs(site, purls)
         if hubs:
             body.append("<h3>Most used</h3>" + _hbar_svg(hubs))
-        body.append(
-            '<div class="scroll"><table><thead><tr><th>Package</th><th>Versions</th>'
-            '<th class="num">Direct repositories</th><th></th></tr></thead><tbody>'
-        )
-        widest_direct = max(
-            (len(site.direct_repos.get(item, frozenset())) for item in purls), default=1
-        )
-        for purl in purls:
-            component = site.graph.components[purl]
-            versions = sorted(
-                {
-                    instance.version
-                    for instance in site.graph.instances.values()
-                    if instance.component == purl and instance.version is not None
-                },
-                key=lambda item: _version_sort_key(component.ecosystem, item),
-            )
-            direct_repos = len(site.direct_repos.get(purl, frozenset()))
-            bar = _bar(direct_repos, max(1, widest_direct))
-            body.append(
-                f'<tr data-row data-href="packages.html#pkg={_fragment(purl)}">'
-                f"<td>{_package_link(purl, '', component.display_name)}</td>"
-                f'<td class="versions">{_e(", ".join(versions))}</td>'
-                f'<td class="num">{direct_repos}</td>'
-                f'<td class="weight">{bar}</td></tr>'
-            )
-        body.append("</tbody></table></div></section>")
+        body.append("</section>")
     body.append("</div>")
     body.extend(
         _package_section(site, purl)
@@ -1329,43 +1295,148 @@ def _changes(site: _Site) -> str:
     return "".join(body)
 
 
+_COVERAGE_HELP = {
+    CoverageKind.CHECKOUT_MISSING: (
+        "No checkout",
+        "There is no local checkout at the catalogued path, so nothing could be read.",
+        "Run `repomod sync` for that repository, or fix its path in the catalog.",
+    ),
+    CoverageKind.ORIGIN_MISMATCH: (
+        "Wrong remote",
+        "The checkout's git remote does not point at the catalogued GitHub repository.",
+        "Fix the remote (or the catalog entry), re-sync, then re-snapshot.",
+    ),
+    CoverageKind.DEFAULT_REF_MISSING: (
+        "Default branch missing",
+        "The default branch cannot be read, so the inventory has no commit to record.",
+        "Fetch the default branch and set `origin/HEAD`, then re-snapshot.",
+    ),
+    CoverageKind.GIT_FAILURE: (
+        "Git read failed",
+        "Git could not read the checkout, so its dependencies are not recorded.",
+        "Run the git command in that checkout to see the raw error, then re-snapshot.",
+    ),
+    CoverageKind.PARSE_ERROR: (
+        "File does not parse",
+        "A dependency file exists but the parser rejected it (bad syntax or structure).",
+        "Open the linked file and fix the syntax, then re-snapshot. Details are on the repository page.",
+    ),
+    CoverageKind.LOCK_MISMATCH: (
+        "Manifest and lock disagree",
+        "The lockfile does not match the manifest (stale or hand-edited).",
+        "Regenerate the lockfile and commit it, then re-snapshot.",
+    ),
+    CoverageKind.MISSING_LOCK: (
+        "No lockfile",
+        "The project declares dependencies but commits no lockfile, so exact versions are unknown.",
+        "Generate the lockfile for the ecosystem in use and commit it.",
+    ),
+    CoverageKind.UNSUPPORTED_FORMAT: (
+        "Detected, not parsed",
+        "A dependency file was found but no parser covers its format yet (see the list below).",
+        "Nothing to fix in the application. Covering it means adding an adapter, not guessing.",
+    ),
+    CoverageKind.DYNAMIC_VALUE: (
+        "Version is computed",
+        "A version comes from a variable, function, or template instead of a literal version.",
+        "Pin a literal version where you can. Computed values stay `unknown` on purpose, never guessed.",
+    ),
+    CoverageKind.SYMLINK_SKIPPED: (
+        "Symlinked file skipped",
+        "A dependency file is a symlink, so its contents were not read.",
+        "Replace the symlink with the real file, or commit the target, then re-snapshot.",
+    ),
+    CoverageKind.SUBMODULE: (
+        "Submodule not inspected",
+        "A gitlink (submodule) is present; its contents were not read.",
+        "Init the submodule if you want it counted, otherwise ignore it. Recorded as a gap, not a failure.",
+    ),
+    CoverageKind.VENDORED_UNKNOWN: (
+        "Vendored tree, no manifest",
+        "A vendored tree has no recognised manifest, so it was not parsed.",
+        "Add a manifest to the vendored tree, or leave it: vendored code is reported, not chased.",
+    ),
+    CoverageKind.NON_UTF8: (
+        "Not UTF-8 text",
+        "A dependency file is not UTF-8 text, so it could not be decoded.",
+        "Convert the file to UTF-8 if it is meant to be read as text, then re-snapshot.",
+    ),
+}
+
+
 def _coverage(site: _Site) -> str:
-    counts: Counter[str] = Counter()
+    states: Counter[str] = Counter(data.state.value for data in site.graph.repositories.values())
+    kinds: Counter[CoverageKind] = Counter()
     for data in site.graph.repositories.values():
         for issue in data.issues:
-            counts[issue.kind.value] += 1
+            kinds[issue.kind] += 1
+    total_issues = sum(kinds.values())
     body = [
         "<h1>Coverage</h1>",
-        '<p class="sub">Every recognized input is either parsed or recorded as a typed '
-        "coverage issue. A repository is complete with no issues, partial with only gaps, "
-        "failed with an error issue, and unavailable when its checkout cannot be read.</p>",
-        "<h2>Repositories</h2>",
-        '<div class="scroll"><table><thead><tr><th>Repository</th><th>State</th>'
-        '<th class="num">Projects</th><th class="num">Instances</th>'
-        '<th class="num">Issues</th><th>Issue kinds</th></tr></thead><tbody>',
+        f'<p class="sub">{len(site.graph.repositories)} repositories · '
+        f'{states["complete"]} complete · {states["partial"]} partial · '
+        f'{states["failed"]} failed · {states["unavailable"]} unavailable · '
+        f"{total_issues} issues</p>",
+        '<p class="sub">Start with <strong>failed</strong> and <strong>unavailable</strong> '
+        "repositories (nothing was read), then missing locks. Anything else is a known "
+        "limit with a file and a reason attached, not a guess.</p>",
+        "<h2>What to fix first</h2>",
     ]
-    for name in sorted(site.graph.repositories, key=str.casefold):
-        data = site.graph.repositories[name]
-        kinds = Counter(issue.kind.value for issue in data.issues)
+    if not kinds:
+        body.append('<p class="zero">every repository is complete — nothing to fix</p>')
+    else:
         body.append(
-            f'<tr data-row data-href="repos/{_e(name)}/index.html">'
-            f"<td>{_repo_link(name, '')}</td>"
-            f'<td class="state-{data.state.value}">{_e(data.state.value)}</td>'
-            f'<td class="num">{len(data.projects)}</td>'
-            f'<td class="num">{len(data.instances)}</td>'
-            f'<td class="num">{len(data.issues)}</td>'
-            f'<td class="mono">{_e(", ".join(f"{kind} {count}" for kind, count in sorted(kinds.items())))}</td></tr>'
+            '<div class="scroll"><table><thead><tr><th>Issue</th><th class="num">Count</th>'
+            "<th>What it means</th><th>What to do</th></tr></thead><tbody>"
         )
-    body.append("</tbody></table></div>")
-    body.append("<h2>Issue kinds</h2>")
-    body.append(
-        '<table><thead><tr><th>Kind</th><th class="num">Issues</th></tr></thead><tbody>'
-        + "".join(
-            f'<tr><td>{_e(kind)}</td><td class="num">{count}</td></tr>'
-            for kind, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        for kind, count in sorted(kinds.items(), key=lambda item: (item[0].severity, -item[1])):
+            label, meaning, action = _COVERAGE_HELP[kind]
+            severity = (
+                '<span class="badge breaking">error</span>'
+                if kind.severity == "error"
+                else '<span class="badge patch">gap</span>'
+            )
+            body.append(
+                f"<tr><td>{severity} {_e(label)} "
+                f'<span class="sub mono">{_e(kind.value)}</span></td>'
+                f'<td class="num">{count}</td>'
+                f"<td>{_e(meaning)}</td><td>{_e(action)}</td></tr>"
+            )
+        body.append("</tbody></table></div>")
+    body.append("<h2>Repositories</h2>")
+    attention = [
+        (name, data)
+        for name, data in site.graph.repositories.items()
+        if data.state.value != "complete"
+    ]
+    if not attention:
+        body.append('<p class="zero">every repository is complete</p>')
+    else:
+        body.append(
+            '<div class="scroll"><table><thead><tr><th>Repository</th><th>State</th>'
+            '<th class="num">Issues</th><th>What is missing</th></tr></thead><tbody>'
         )
-        + "</tbody></table>"
-    )
+        for name, data in sorted(
+            attention,
+            key=lambda item: (
+                -{"unavailable": 2, "failed": 1}.get(item[1].state.value, 0),
+                -len(item[1].issues),
+                item[0].casefold(),
+            ),
+        ):
+            kinds_here = Counter(issue.kind for issue in data.issues)
+            missing = "; ".join(
+                f"{_COVERAGE_HELP[kind][0]} x {count}"
+                for kind, count in sorted(kinds_here.items(), key=lambda item: -item[1])
+            )
+            body.append(
+                f'<tr data-row data-href="repos/{_e(name)}/index.html">'
+                f"<td>{_repo_link(name, '')}</td>"
+                f'<td class="state-{data.state.value}">{_e(data.state.value)}</td>'
+                f'<td class="num">{len(data.issues)}</td>'
+                f"<td>{_e(missing)}</td></tr>"
+            )
+        body.append("</tbody></table></div>")
     body.append("<h2>Ecosystems</h2>")
     body.append(_ecosystem_table(_table(site.report["composition"])))
     body.append("<h2>Source risk</h2>")
@@ -1374,17 +1445,21 @@ def _coverage(site: _Site) -> str:
         (name, issue.path or "", issue.message)
         for name, data in site.graph.repositories.items()
         for issue in data.issues
-        if issue.kind.value == "unsupported_format"
+        if issue.kind is CoverageKind.UNSUPPORTED_FORMAT
     ]
-    body.append("<h2>Detection-only formats</h2>")
+    body.append("<h2>Detected, not parsed</h2>")
+    body.append(
+        '<p class="sub">Files we recognise but have no parser for yet. Their dependencies '
+        "are not counted, and will not be until an adapter covers the format.</p>"
+    )
     if unsupported:
         body.append(
             '<div class="scroll"><table><thead><tr><th>Repository</th><th>Path</th>'
-            '<th>Message</th></tr></thead><tbody>'
+            "</tr></thead><tbody>"
             + "".join(
                 f"<tr><td>{_repo_link(name, '')}</td>"
-                f'<td class="mono">{_e(path)}</td><td>{_e(message)}</td></tr>'
-                for name, path, message in unsupported
+                f'<td class="mono">{_e(path)}</td></tr>'
+                for name, path, _message in unsupported
             )
             + "</tbody></table></div>"
         )
