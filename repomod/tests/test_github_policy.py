@@ -1670,7 +1670,7 @@ def test_status_text_renders_release_line(capsys) -> None:
                 "tag": "v1.2.3",
                 "release_sha": "b" * 40,
                 "behind_by": None,
-                "commits_since": 7,
+                "commits_since": 10,
                 "state": "behind",
                 "cached": False,
                 "age_seconds": None,
@@ -1723,12 +1723,22 @@ def test_status_text_renders_release_line(capsys) -> None:
     }
     status_text(rows, ci)
     out = capsys.readouterr().out
-    assert "release v1.2.3 · 7 since" in out
+    assert "release v1.2.3 · 10 since" in out
     assert "release unavailable" in out
     assert "up to date" not in out
     assert "acme/current" not in out
     assert "acme/plain" not in out
     assert out.count("  release ") == 2
+
+
+def test_release_attention_requires_ten_commits() -> None:
+    from repomod.cmd.status import _release_surfaced
+
+    for count in (0, 1, 9):
+        assert not _release_surfaced({"release": {"state": "behind", "commits_since": count}})
+    assert _release_surfaced({"release": {"state": "behind", "commits_since": 10}})
+    assert _release_surfaced({"release": {"state": "diverged", "commits_since": 1}})
+    assert _release_surfaced({"release": {"state": "unknown"}})
 
 
 def test_status_items_report_what_status_text_surfaces() -> None:
@@ -1753,7 +1763,7 @@ def test_status_items_report_what_status_text_surfaces() -> None:
             "tag": "v1",
             "url": "https://github.com/acme/demo/releases/tag/v1",
             "state": "behind",
-            "commits_since": 3,
+            "commits_since": 10,
             "error": None,
         },
     }
@@ -1779,7 +1789,7 @@ def test_status_items_report_what_status_text_surfaces() -> None:
         ),
         StatusItem(
             StatusArea.RELEASE,
-            "v1 · 3 since",
+            "v1 · 10 since",
             StatusLevel.ATTENTION,
             "https://github.com/acme/demo/releases/tag/v1",
         ),

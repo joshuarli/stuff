@@ -71,7 +71,7 @@ uv run repomod gc
 ## Status and lint
 
 `repomod status` shows only what needs attention: repositories with local Git work, CI or workflow
-failures, conflicting pull requests, forks behind their upstream, or commits since the last
+failures, conflicting pull requests, forks behind their upstream, or 10 or more commits since the last
 successful release (latest published GitHub Release, or newest version tag when the
 repository has no releases). Passing repositories and passing workflow entries are omitted.
 `--json` still reports every selected repository. `status --offline` reads cached CI, upstream,

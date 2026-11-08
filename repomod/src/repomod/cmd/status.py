@@ -333,7 +333,15 @@ def _release_surfaced(row: dict[str, object]) -> bool:
         return False
     if release.get("error") is not None or release.get("state") == "unknown":
         return True
-    return release.get("state") in {"behind", "diverged"}
+    if release.get("state") == "diverged":
+        return True
+    commits = release.get("commits_since")
+    return (
+        release.get("state") == "behind"
+        and isinstance(commits, int)
+        and not isinstance(commits, bool)
+        and commits >= 10
+    )
 
 
 def _workflow_surfaced(workflow: WorkflowStatus) -> bool:

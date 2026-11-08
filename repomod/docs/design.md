@@ -51,7 +51,7 @@ in the result without failing the sync.
 Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
 upstream, so they are not current remote state. Text output lists only repositories that need
 attention: local Git failures, non-passing CI or workflow states on the default branch, conflicting
-pull requests, forks behind upstream, and commits since the latest published GitHub Release.
+pull requests, forks behind upstream, and releases at least 10 commits behind the default branch.
 Passing repositories and passing workflow entries are omitted; `--json` still carries every
 selected repository. Online status checks CI for GitHub's current default-branch commit. The CI
 cache is keyed by repository and commit SHA and expires after five minutes. Offline status reads
