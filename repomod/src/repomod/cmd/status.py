@@ -354,7 +354,14 @@ def status_items(row: dict[str, object], ci: CiResult) -> tuple[StatusItem, ...]
         workflow.state == "failed" for workflow in ci.workflows
     )
     if ci.state not in {"passed", "none"} and not (ci.state == "failed" and failed_workflows):
-        items.append(StatusItem(StatusArea.CI, _ci_label(ci), StatusLevel(_state_color(ci.state))))
+        items.append(
+            StatusItem(
+                StatusArea.CI,
+                _ci_label(ci),
+                StatusLevel(_state_color(ci.state)),
+                running=ci.state == "pending",
+            )
+        )
     if ci.workflows is None:
         items.append(StatusItem(StatusArea.WORKFLOWS, "unavailable", StatusLevel.ATTENTION))
     else:
@@ -364,6 +371,7 @@ def status_items(row: dict[str, object], ci: CiResult) -> tuple[StatusItem, ...]
                 f"{_workflow_label(workflow.state)} {workflow.name}",
                 StatusLevel(_state_color(workflow.state)),
                 workflow.url,
+                running=workflow.state == "pending",
             )
             for workflow in ci.workflows
             if _workflow_surfaced(workflow)

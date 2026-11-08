@@ -562,3 +562,14 @@ def test_uncollected_status_is_reported_rather_than_shown_as_clean(tmp_path: Pat
     result = _render(tmp_path)
     assert "not collected" in _page_text(result, "repositories.html")
     assert 'id="status"' not in _page_text(result, "repos", "acme", "empty", "index.html")
+
+
+def test_only_running_status_items_animate(tmp_path: Path) -> None:
+    inventory, built = _fixture(tmp_path)
+    running = StatusItem(StatusArea.WORKFLOWS, "RUN release", StatusLevel.ATTENTION, running=True)
+    failed = StatusItem(StatusArea.WORKFLOWS, "FAIL build", StatusLevel.FAILING)
+    result = render.render(
+        inventory, built, tmp_path / "dashboard", status={"acme/empty": (running,), "acme/broken": (failed,)}
+    )
+    assert "dot-running" in _page_text(result, "repos", "acme", "empty", "index.html")
+    assert "dot-running" not in _page_text(result, "repos", "acme", "broken", "index.html")

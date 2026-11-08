@@ -1784,6 +1784,18 @@ def test_status_items_report_what_status_text_surfaces() -> None:
     )
 
 
+def test_status_items_mark_only_pending_ci_and_workflows_as_running() -> None:
+    row: dict[str, object] = {"repository": "acme/demo", "local": "clean"}
+    workflows = (WorkflowStatus("release", "pending"), WorkflowStatus("lint", "cancelled"))
+    ci = CiResult("acme/demo", "main", "a" * 40, "pending", (), workflows=workflows)
+
+    assert [(item.label, item.running) for item in status_items(row, ci)] == [
+        ("pending", True),
+        ("RUN release", True),
+        ("CANCEL lint", False),
+    ]
+
+
 def test_status_items_are_empty_for_a_repository_status_text_hides() -> None:
     row: dict[str, object] = {"repository": "acme/demo", "local": "clean"}
     ci = CiResult("acme/demo", "main", "a" * 40, "passed", (), workflows=())

@@ -125,6 +125,13 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .package-heading { padding: var(--ui-space-md) var(--ui-inset) var(--ui-space-xs); color: var(--ui-muted); font-size: var(--ui-fs-label); letter-spacing: var(--ui-caps-tracking); text-transform: uppercase; }
 .package-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-sm); color: var(--ui-muted); font-size: var(--ui-fs-meta); overflow-wrap: anywhere; }
 
+.dot-running { animation: dot-running 1.4s ease-out infinite; }
+@keyframes dot-running {
+  from { box-shadow: 0 0 0 0 currentColor; }
+  to { box-shadow: 0 0 0 5px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .dot-running { animation: none; } }
+
 @media (max-width: 1000px) {
   .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }

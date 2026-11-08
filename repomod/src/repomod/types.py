@@ -229,6 +229,7 @@ class StatusItem:
     label: str
     level: StatusLevel
     url: str | None = None
+    running: bool = False
 
 
 @dataclass(frozen=True, slots=True)

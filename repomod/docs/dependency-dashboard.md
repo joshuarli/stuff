@@ -34,7 +34,8 @@ one lookup surface, reached through search.
   Maintenance, with bars on one scale. Clean repositories are a count. Forks appear only when
   they carry vulnerable versions. With `--status`, a Status group comes first: one card for each
   repository, forks included, with whatever `repomod status` flags (CI and workflows, releases,
-  upstreams, pull request conflicts, and local checkout state), most failures first.
+  upstreams, pull request conflicts, and local checkout state), most failures first. A pulsing dot
+  marks CI or a workflow that was running when the page was rendered.
 - **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
   including coverage issues with a link to the file, and the repository's status with `--status`.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest

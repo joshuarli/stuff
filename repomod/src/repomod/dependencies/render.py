@@ -1089,7 +1089,13 @@ def _status_rank(item: tuple[str, Sequence[StatusItem]]) -> tuple[int, int, str]
 
 def _status_lines(items: Sequence[StatusItem]) -> str:
     return ui.lines(
-        [Line(ui.badge(item.area.value, _STATUS_TONES[item.level], dot=True), _status_label(item)) for item in items]
+        [
+            Line(
+                ui.badge(item.area.value, _STATUS_TONES[item.level], dot=True, running=item.running),
+                _status_label(item),
+            )
+            for item in items
+        ]
     )
 
 

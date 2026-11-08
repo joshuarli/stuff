@@ -95,8 +95,9 @@ def escape(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def badge(label: str, tone: Tone = Tone.NEUTRAL, *, dot: bool = False) -> str:
-    mark = '<span class="ui-badge-dot" aria-hidden="true"></span>' if dot else ""
+def badge(label: str, tone: Tone = Tone.NEUTRAL, *, dot: bool = False, running: bool = False) -> str:
+    dot_class = "ui-badge-dot dot-running" if running else "ui-badge-dot"
+    mark = f'<span class="{dot_class}" aria-hidden="true"></span>' if dot else ""
     return f'<span class="ui-badge ui-badge-{tone.value}">{mark}{escape(label)}</span>'
 
 
