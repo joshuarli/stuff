@@ -26,6 +26,11 @@ For a **Python-only** scope, distinguish:
   Dependency dashboards/outdated views may still show `ruff`/`ty` as packages in repositories;
   that does not mean `audit-upgrades` will report or fix them. Treat tool-pin refresh and any
   resulting `python-standard`/lockfile alignment as a separate, explicitly confirmed change.
+  If refreshed pins are not available on the package index/mirror repos use (for example, the
+  stuff PyPI registry `https://pypi.17166969.xyz/current/simple/`), `python-standard` alignment
+  will fail to resolve. With explicit confirmation, publish missing versions first (see the
+  `stuff-registries` skill; e.g. `stuff publish pypi ruff==X.Y.Z ty==A.B.C uv==D.E.F --dry-run`,
+  then without `--dry-run`), verify the index carries them, then run `python-standard` alignment.
 
 ## What writes where
 
