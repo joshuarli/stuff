@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from repomod import dependency_roles
 from repomod.dependencies import insights
 from repomod.dependencies.insights import Gap
 from repomod.dependencies.model import (
+    Component,
     Ecosystem,
     Edge,
     Instance,
@@ -470,3 +472,41 @@ def test_approved_action_pins_set_the_alignment_target(tmp_path: Path) -> None:
     )
     assert (row.target, row.basis) == (approved, insights.TargetBasis.APPROVED_PIN)
     assert sorted(row.off_target) == ["acme/three", "acme/two"]
+
+
+def test_one_vulnerable_version_from_two_registries_is_one_row(tmp_path: Path) -> None:
+    crates = instance(Ecosystem.CARGO, "rustls", "0.23.45")
+    mirror = replace(
+        crates,
+        id=f"{crates.purl}?repository_url=mirror#",
+        purl=f"{crates.purl}?repository_url=mirror",
+        component=f"{crates.component}?repository_url=mirror",
+    )
+    built = build_graph(
+        tmp_path,
+        [
+            repository(
+                "acme/one",
+                (crates,),
+                projects=(project(".", Ecosystem.CARGO),),
+                edges=(_edge(".:cargo", crates),),
+            ),
+            replace(
+                repository(
+                    "acme/two",
+                    (mirror,),
+                    projects=(project(".", Ecosystem.CARGO),),
+                    edges=(_edge(".:cargo", mirror),),
+                ),
+                components=(Component(mirror.component, Ecosystem.CARGO, "rustls", "rustls"),),
+            ),
+        ],
+    )
+    advisories = {"vulns": [{"id": "RUSTSEC-1"}]}
+    rows = insights.vulnerable(
+        built,
+        insights.declarations(built),
+        {crates.purl: advisories, mirror.purl: advisories},
+    )
+    assert len(rows) == 1
+    assert rows[0].direct_in == ("acme/one", "acme/two")

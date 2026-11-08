@@ -297,21 +297,27 @@ def vulnerable(
     everywhere: dict[str, set[str]] = defaultdict(set)
     for instance_id, instance in graph.instances.items():
         everywhere[instance.purl].update(graph.instance_repositories.get(instance_id, ()))
-    rows: dict[str, Vulnerable] = {}
+    rows: dict[tuple[Ecosystem, str, str], Vulnerable] = {}
+    seen: set[str] = set()
     for instance in graph.instances.values():
-        if instance.version is None or instance.purl in rows:
+        if instance.version is None or instance.purl in seen:
             continue
+        seen.add(instance.purl)
         advisories = _advisories(enrichment.get(instance.purl))
         component = graph.components.get(instance.component)
         if not advisories or component is None:
             continue
-        rows[instance.purl] = Vulnerable(
-            component,
+        key = (component.ecosystem, component.name, instance.version)
+        current = rows.get(key)
+        declared = _sorted({*direct[instance.purl], *(current.direct_in if current else ())})
+        locked = {*everywhere[instance.purl], *(current.transitive_in if current else ())} - set(declared)
+        rows[key] = Vulnerable(
+            current.component if current else component,
             instance.version,
-            advisories,
-            _latest(enrichment, instance),
-            _sorted(direct[instance.purl]),
-            _sorted(everywhere[instance.purl] - direct[instance.purl]),
+            tuple(sorted({*advisories, *(current.advisories if current else ())})),
+            (current.latest if current else None) or _latest(enrichment, instance),
+            declared,
+            _sorted(locked),
         )
     return tuple(
         sorted(
