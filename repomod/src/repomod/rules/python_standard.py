@@ -20,7 +20,7 @@ from repomod.types import operational as _operational
 from repomod.types import violation as _violation
 
 _RULE_ID = "python-standard"
-_TOOL_NAMES = ("uv", "ruff", "ty")
+PYTHON_TOOL_NAMES = ("uv", "ruff", "ty")
 _PIN = re.compile(r"^(uv|ruff|ty)==([0-9]+(?:\.[0-9]+){1,3})$")
 _VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}\Z")
 _PYTHON_FLOOR = re.compile(r">=\s*3\.15(?:\.0+)?\Z")
@@ -291,10 +291,10 @@ def _parse_approved_versions(source: str) -> dict[str, str]:
     except tomllib.TOMLDecodeError as error:
         raise ValueError(f"approved Python tool versions are invalid TOML: {error}") from error
     tools = document.get("tools")
-    if set(document) != {"tools"} or not isinstance(tools, dict) or set(tools) != set(_TOOL_NAMES):
+    if set(document) != {"tools"} or not isinstance(tools, dict) or set(tools) != set(PYTHON_TOOL_NAMES):
         raise ValueError("python-tools.toml must contain only [tools] with uv, ruff, and ty")
     versions: dict[str, str] = {}
-    for name in _TOOL_NAMES:
+    for name in PYTHON_TOOL_NAMES:
         version = tools.get(name)
         if not isinstance(version, str) or _VERSION.fullmatch(version) is None:
             raise ValueError(f"python-tools.toml contains an invalid approved version for {name}")
@@ -320,11 +320,11 @@ def _version_key(version: str) -> tuple[int, int, int, int]:
 
 
 def _render_approved_versions(versions: dict[str, str]) -> str:
-    if set(versions) != set(_TOOL_NAMES):
+    if set(versions) != set(PYTHON_TOOL_NAMES):
         raise ValueError("approved Python tool versions must contain uv, ruff, and ty")
-    if any(_VERSION.fullmatch(versions[name]) is None for name in _TOOL_NAMES):
+    if any(_VERSION.fullmatch(versions[name]) is None for name in PYTHON_TOOL_NAMES):
         raise ValueError("approved Python tool versions must be stable numeric releases")
-    source = "[tools]\n" + "".join(f'{name} = "{versions[name]}"\n' for name in _TOOL_NAMES)
+    source = "[tools]\n" + "".join(f'{name} = "{versions[name]}"\n' for name in PYTHON_TOOL_NAMES)
     if _parse_approved_versions(source) != versions:
         raise ValueError("rendered Python tool versions do not match the requested approvals")
     return source
@@ -335,8 +335,8 @@ def _python_tool_refresh_plan(path: Path | None = None) -> tuple[Path, str | Non
     if target.is_symlink():
         raise ValueError(f"approved Python tool versions are a symlink: {target}")
     current = load_approved_python_tool_versions(target)
-    latest = {name: _latest_version(name) for name in _TOOL_NAMES}
-    for name in _TOOL_NAMES:
+    latest = {name: _latest_version(name) for name in PYTHON_TOOL_NAMES}
+    for name in PYTHON_TOOL_NAMES:
         if _version_key(latest[name]) < _version_key(current[name]):
             raise ValueError(
                 f"PyPI reported only an older version of {name}; refusing to replace "
@@ -367,7 +367,7 @@ def _dependency_pins(document: dict[str, Any]) -> dict[str, list[str]] | None:
     dev = groups.get("dev", [])
     if not isinstance(dev, list) or any(not isinstance(item, str) for item in dev):
         return None
-    pins: dict[str, list[str]] = {name: [] for name in _TOOL_NAMES}
+    pins: dict[str, list[str]] = {name: [] for name in PYTHON_TOOL_NAMES}
     for item in dev:
         match = _PACKAGE_NAME.fullmatch(item)
         if match is None:
@@ -451,7 +451,7 @@ def _updated_python_requirement(value: str | None) -> str:
 
 def _lock_versions(document: dict[str, Any]) -> dict[str, list[str]]:
     packages = document.get("package")
-    versions: dict[str, list[str]] = {name: [] for name in _TOOL_NAMES}
+    versions: dict[str, list[str]] = {name: [] for name in PYTHON_TOOL_NAMES}
     if not isinstance(packages, list):
         return versions
     for package in packages:
@@ -565,9 +565,9 @@ def _python_standard_findings(root: Path, repository: Repository) -> list[Findin
                 fixable=False,
             )
         )
-        pins = {name: [] for name in _TOOL_NAMES}
+        pins = {name: [] for name in PYTHON_TOOL_NAMES}
     pin_versions: dict[str, str] = {}
-    for name in _TOOL_NAMES:
+    for name in PYTHON_TOOL_NAMES:
         entries = pins[name]
         version = _exact_pin(entries[0]) if len(entries) == 1 else None
         if version is None:
@@ -620,7 +620,7 @@ def _python_standard_findings(root: Path, repository: Repository) -> list[Findin
             )
         )
     lock_versions = _lock_versions(lock)
-    for name in _TOOL_NAMES:
+    for name in PYTHON_TOOL_NAMES:
         expected = (
             approved_versions[name]
             if approved_versions is not None
@@ -673,7 +673,7 @@ def _replace_dev_group(source: str, document: dict[str, Any], versions: dict[str
         suffix = "" if not source or source.endswith("\n") else "\n"
         return (
             f"{source}{suffix}\n[dependency-groups]\ndev = [\n"
-            + "".join(f'    "{name}=={versions[name]}",\n' for name in _TOOL_NAMES)
+            + "".join(f'    "{name}=={versions[name]}",\n' for name in PYTHON_TOOL_NAMES)
             + "]\n"
         )
     if not isinstance(groups, dict):
@@ -699,7 +699,7 @@ def _replace_dev_group(source: str, document: dict[str, Any], versions: dict[str
     if assignment_index is None:
         lines[group_end:group_end] = [
             "dev = [\n",
-            *(f'    "{name}=={versions[name]}",\n' for name in _TOOL_NAMES),
+            *(f'    "{name}=={versions[name]}",\n' for name in PYTHON_TOOL_NAMES),
             "]\n",
         ]
         return "".join(lines)
@@ -743,7 +743,7 @@ def _replace_dev_group(source: str, document: dict[str, Any], versions: dict[str
             found.add(name)
             rewritten_values.append(f"{name}=={versions[name]}")
         rewritten_values.extend(
-            f"{name}=={versions[name]}" for name in _TOOL_NAMES if name not in found
+            f"{name}=={versions[name]}" for name in PYTHON_TOOL_NAMES if name not in found
         )
         rendered = ", ".join(json.dumps(value, ensure_ascii=False) for value in rewritten_values)
         lines[assignment_index] = f"{inline.group('prefix')}[{rendered}]{tail}"
@@ -778,7 +778,7 @@ def _replace_dev_group(source: str, document: dict[str, Any], versions: dict[str
             f"{match.group('quote')}{suffix}\n"
         )
     rewritten.extend(
-        f'    "{name}=={versions[name]}",\n' for name in _TOOL_NAMES if name not in found
+        f'    "{name}=={versions[name]}",\n' for name in PYTHON_TOOL_NAMES if name not in found
     )
     lines[assignment_index + 1 : closing_index] = rewritten
     return "".join(lines)
@@ -924,7 +924,7 @@ def _unpackaged_project_skeleton(repository: Repository, versions: dict[str, str
         "package = false\n\n"
         "[dependency-groups]\n"
         "dev = [\n"
-        + "".join(f'    "{tool}=={versions[tool]}",\n' for tool in _TOOL_NAMES)
+        + "".join(f'    "{tool}=={versions[tool]}",\n' for tool in PYTHON_TOOL_NAMES)
         + "]\n\n"
         "[tool.ruff]\n"
         'target-version = "py315"\n\n'

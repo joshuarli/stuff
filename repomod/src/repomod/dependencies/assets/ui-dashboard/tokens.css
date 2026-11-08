@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+  --ui-bg: #fafaf9;
+  --ui-surface: #ffffff;
+  --ui-text: #1c1c1a;
+  --ui-text-2: #5d5d58;
+  --ui-muted: #706f6a;
+  --ui-line: #ecebe7;
+  --ui-line-strong: #e0dfda;
+  --ui-hover: #f5f4f1;
+  --ui-accent: var(--ui-viz-blue);
+  --ui-good: #0ca30c;
+  --ui-serious: #ec835a;
+  --ui-critical: #d03b3b;
+  --ui-ok: var(--ui-good);
+  --ui-warn: var(--ui-serious);
+  --ui-bad: var(--ui-critical);
+  --ui-accent-soft: color-mix(in srgb, var(--ui-accent) 15%, transparent);
+  --ui-ok-soft: color-mix(in srgb, var(--ui-ok) 12%, var(--ui-surface));
+  --ui-warn-soft: color-mix(in srgb, var(--ui-warn) 12%, var(--ui-surface));
+  --ui-bad-soft: color-mix(in srgb, var(--ui-bad) 12%, var(--ui-surface));
+  --ui-scrim: rgb(20 20 18 / 28%);
+  --ui-scrim-filter: blur(2px);
+  --ui-viz-blue: #2a78d6;
+  --ui-viz-ghost: #9a9992;
+  --ui-s0: #2a78d6;
+  --ui-s1: #1baf7a;
+  --ui-s2: #6250d6;
+  --ui-s3: #e87ba4;
+  --ui-s4: #eb6834;
+
+  --ui-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ui-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ui-fs-label: 11px;
+  --ui-fs-meta: 12px;
+  --ui-fs-body: 13px;
+  --ui-fs-title: 14px;
+  --ui-fs-page: 22px;
+  --ui-weight-medium: 500;
+  --ui-weight-semibold: 600;
+  --ui-tracking-tight: -.01em;
+  --ui-tracking-tighter: -.02em;
+  --ui-caps-tracking: .06em;
+
+  --ui-space-2xs: 2px;
+  --ui-space-xs: 4px;
+  --ui-space-sm: 8px;
+  --ui-space-md: 12px;
+  --ui-space-lg: 16px;
+  --ui-space-xl: 20px;
+  --ui-space-3xl: 32px;
+  --ui-space-4xl: 64px;
+  --ui-inset: var(--ui-space-lg);
+
+  --ui-control-sm: 20px;
+  --ui-control: 24px;
+  --ui-head-height: calc(var(--ui-control) + 2 * var(--ui-space-sm));
+  --ui-icon-size: 16px;
+  --ui-icon-stroke: 1.4;
+  --ui-dot: 8px;
+  --ui-dot-sm: 6px;
+  --ui-row-height: 44px;
+
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 6px;
+  --ui-radius-lg: 8px;
+  --ui-radius-xl: 10px;
+  --ui-radius-2xl: 16px;
+  --ui-radius-pill: 99px;
+
+  --ui-outline: inset 0 0 0 1px var(--ui-line-strong);
+  --ui-shadow-card: 0 0 0 1px var(--ui-line), 0 1px 2px rgb(28 28 26 / 4%), 0 8px 20px -12px rgb(28 28 26 / 10%);
+  --ui-shadow-pop: 0 0 0 1px var(--ui-line-strong), 0 12px 32px rgb(0 0 0 / 12%);
+  --ui-shadow-modal: 0 0 0 1px var(--ui-line-strong), 0 30px 80px rgb(0 0 0 / 22%);
+
+  --ui-side-width: 236px;
+  --ui-side-gap: var(--ui-space-md);
+  --ui-side-link-height: 34px;
+
+  --ui-z-veil: 40;
+  --ui-z-modal: 50;
+}

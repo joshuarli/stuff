@@ -101,7 +101,7 @@ def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
 
 def test_assets_do_not_fetch(tmp_path: Path) -> None:
     result = _render(tmp_path)
-    for name in ("app.js", "search.js", "app.css"):
+    for name in ("app.js", "search.js", "app.css", "ui-dashboard/styles.css", "ui-dashboard/tokens.css"):
         content = (result.output / "assets" / name).read_text(encoding="utf-8")
         assert "fetch(" not in content
 
@@ -133,6 +133,17 @@ def test_zero_dependencies_render_differently_from_unknown(tmp_path: Path) -> No
     assert 'class="unknown"' in broken
     assert "not checked" in packages
     assert "no known vulnerabilities" not in packages
+
+
+def test_missing_registry_data_is_not_reported_as_zero_findings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, {}))
+    result = _render(tmp_path)
+    index = (result.output / "index.html").read_text(encoding="utf-8")
+    assert "not checked yet" in index
+    assert '<span class="tile-value">—</span>' in index
+    assert '<span class="tile-value">0</span><span class="tile-note">not checked' not in index
 
 
 def test_every_repository_page_links_back(tmp_path: Path) -> None:
@@ -242,10 +253,10 @@ def test_fork_repositories_are_listed_apart_from_owned_ones(tmp_path: Path) -> N
     inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
     choices = (result.output / "choices.html").read_text(encoding="utf-8")
-    index = (result.output / "index.html").read_text(encoding="utf-8")
+    security = (result.output / "security.html").read_text(encoding="utf-8")
     assert "acme/mine" in choices
     assert "acme/upstream" not in choices
-    forks = index[index.index("<h2>Forks</h2>"):]
+    forks = security[security.index("<h2>Forks</h2>"):]
     assert "acme/upstream" in forks
     assert "acme/mine" not in forks
 
@@ -314,12 +325,12 @@ def test_heaviest_dependencies_mark_dev_only_with_a_pill(tmp_path: Path) -> None
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
     bloat = (result.output / "bloat.html").read_text(encoding="utf-8")
     assert "syn@2.0.0" in bloat
-    assert 'class="pill dev">dev</span>' in bloat
+    assert 'ui-badge-neutral">dev</span>' in bloat
     assert "clap@4.0.0" in bloat
     syn_row = bloat.split("syn@2.0.0", 1)[1].split("</tr>", 1)[0]
     clap_row = bloat.split("clap@4.0.0", 1)[1].split("</tr>", 1)[0]
-    assert 'class="pill dev">dev</span>' in syn_row
-    assert 'class="pill dev">dev</span>' not in clap_row
+    assert 'ui-badge-neutral">dev</span>' in syn_row
+    assert 'ui-badge-neutral">dev</span>' not in clap_row
     assert "Only via it" in bloat
     assert "<th>Scope</th>" not in bloat.split("Only via it", 1)[0].split("<table")[-1]
 
