@@ -27,11 +27,12 @@ For a **Python-only** scope, distinguish:
   Dependency dashboards/outdated views may still show `ruff`/`ty` as packages in repositories;
   that does not mean `audit-upgrades` will report or fix them. Treat tool-pin refresh and any
   resulting `python-standard`/lockfile alignment as a separate, explicitly confirmed change.
-  If refreshed pins are not available on the package index/mirror repos use (for example, the
-  stuff PyPI registry `https://pypi.17166969.xyz/current/simple/`), `python-standard` alignment
-  will fail to resolve. With explicit confirmation, publish missing versions first (see the
-  `stuff-registries` skill; e.g. `stuff publish pypi ruff==X.Y.Z ty==A.B.C uv==D.E.F --dry-run`,
-  then without `--dry-run`), verify the index carries them, then run `python-standard` alignment.
+   If refreshed pins are not available on the package index/mirror repos use (for example, the
+   stuff PyPI registry `https://pypi.17166969.xyz/current/simple/`), `python-standard` alignment
+   will fail to resolve. Mirror/registry publishes or refreshes needed to unblock this are
+   pre-approved (see "What writes where"); follow the `stuff-registries` skill (e.g.
+   `stuff publish pypi ruff==X.Y.Z ty==A.B.C uv==D.E.F --dry-run`, then without `--dry-run`),
+   verify the index carries required wheels/platforms, then run `python-standard` alignment.
 
 For a **TypeScript/JavaScript-only** scope, distinguish:
 - **Regular npm packages** (`npm`, in `package.json`/`pnpm-lock.yaml`): surveyed by
@@ -62,6 +63,14 @@ For a **TypeScript/JavaScript-only** scope, distinguish:
 - `fix` leaves the canonical checkout on its `repomod/fix/*` branch after it runs. Those
   checkouts are not eligible for another `fix` until the PR is merged and the checkout is back
   on the default branch.
+- **Mirror/registry refreshes are pre-approved** when needed to make approved dependency upgrades
+  resolvable (for example, publishing missing package/tool-pin versions or refreshing a private
+  mirror generation so target versions exist on the registries repos use). Follow the
+  `stuff-registries` skill and the registry's normal procedures; do not ask for separate
+  confirmation for these unblock publishes/refreshes. Still report exactly what was published or
+  refreshed, the generation/result, and any verification. If a refresh requires credentials or an
+  operational path not available from the current environment, report the concrete blocker and the
+  exact command/path to run.
 
 ## Survey
 
