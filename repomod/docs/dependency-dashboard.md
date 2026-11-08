@@ -21,42 +21,44 @@ tokens.
 
 ## Pages
 
-The sidebar groups pages by the work they support. Working pages use grouped cards and charts.
-Tables hold only reference data: direct dependencies, projects, versions, consumers, and paths.
+The sidebar groups pages by the work they support. A page shows something only when it tells
+you what to change or decide. Everything else is a counter or is left out. Package pages are the
+one lookup surface, reached through search.
 
 - **To do** (`index.html`) starts with open work per repository, then groups each change once:
   **Fix now** for vulnerable packages with a clean upgrade, **Decide** for those without one,
   **Clear in one pass** for lockfiles, pinned Python tools, and all minor and patch upgrades, and
   **Plan** for breaking upgrades by repositories affected. Forks are left out. `triage.py` builds
   this list.
-- **Repositories** is a fleet map. Cards are grouped as Vulnerable, Breaking upgrades, or
-  Maintenance, and their bars share one scale. Clean repositories and forks are chips.
-- **Repository pages** (`repos/OWNER/REPO/index.html`) start with cards of what to do in that
-  repository. Direct dependencies, projects, duplicates, and coverage gaps sit in collapsed
-  panels.
-- **Packages** charts packages per ecosystem and shows the most used packages in each. Search
-  (`/`) finds any package. `packages.html#pkg=pkg:cargo/serde` deep-links to a package's versions
-  and consumers.
+- **Repositories** groups repositories with work to do as Vulnerable, Breaking upgrades, or
+  Maintenance, with bars on one scale. Clean repositories are a count. Forks appear only when
+  they carry vulnerable versions.
+- **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
+  including coverage issues with a link to the file.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest
   release counts as a clean upgrade only when it is newer than the vulnerable version and has no
-  advisories of its own. Forks are tracked in a collapsed panel.
+  advisories of its own. Forks with vulnerable versions sit in a collapsed panel.
 - **Upgrades** (`outdated.html`) charts upgrades by ecosystem, then groups them as breaking,
   minor, and patch, with bars for repositories affected. A breaking upgrade changes the leftmost
   nonzero version component. Needs `repomod deps enrich`.
 - **Alignment** groups packages declared at different versions by ecosystem. Each card draws the
-  versions in use from oldest to newest, with the target in green. The target is the approved
-  pin, else the latest release, else the newest version in use, else the most common ref for
-  tags and commits. Docker images are compared by tag and digest combined (a bare name counts as
-  `latest`). Alpine (apk) packages follow their base image and are left out.
-- **Choices** groups contested roles by ecosystem, with one adoption bar per option: preferred in
-  green, other options in amber, banned in red. Settled roles sit in a collapsed panel.
-- **Bloat** charts each direct dependency's lockfile packages, split into those only it brings
-  in and those shared with another direct dependency. Lockfiles list every platform's packages,
-  so counts are upper bounds.
-- **Coverage** has one card per issue kind with the action to take, then issues per repository.
-  Formats detected but not parsed and source risk sit in collapsed panels.
-- **Changes** compares the working inventory with `HEAD~1` of `data/`, or says `no baseline` when
-  the previous revision has no inventory.
+  versions from oldest to newest, with the target in green, and names the repositories to move.
+  The target is the approved pin, else the latest release, else the newest version in use, else
+  the most common ref for tags and commits. Docker images are compared by tag and digest combined
+  (a bare name counts as `latest`). Alpine (apk) packages follow their base image and are left
+  out.
+- **Choices** shows roles where a repository must change, with one adoption bar per option and
+  the repositories to move. Compliant repositories, accepted exceptions, and settled roles are
+  not listed.
+- **Bloat** charts direct dependencies whose removal would drop lockfile packages, split into
+  those only it brings in and those shared. Lockfiles list every platform's packages, so counts
+  are upper bounds.
+- **Coverage** has one card per fixable issue kind with the action and the repositories. Known
+  limits, such as formats with no parser, are counts. In forks, only checkout problems count.
+- **Changes** counts everything since `HEAD~1` of `data/` and lists only downgrades, source
+  changes, and new issues. It says `no baseline` when the previous revision has no inventory.
+- **Packages** counts packages per ecosystem. Search (`/`) finds any package.
+  `packages.html#pkg=pkg:cargo/serde` deep-links to its versions and consumers.
 
 Charts use status colors only where color means severity, and one hue or emphasis elsewhere. The
 library's categorical series colors fail the normal-vision separation check. Hovering a mark shows
@@ -121,7 +123,7 @@ not run Node.
 
 ## Budgets and verification
 
-The site must stay under 10 MB. The current fleet is 62 pages and about 9.7 MB. The overview
+The site must stay under 10 MB. The current fleet is 62 pages and about 6.7 MB. The overview
 renders in tens of milliseconds from `file://`.
 
 The browser checks use agent-browser at 1440×900 and 390×844. They verify no console errors, no

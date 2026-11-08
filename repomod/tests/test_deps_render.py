@@ -53,7 +53,7 @@ def _fixture(tmp_path: Path) -> tuple[graph.Inventory, graph.Graph]:
             projects=(project(".", Ecosystem.CARGO),),
             issues=(
                 issue(
-                    CoverageKind.DYNAMIC_VALUE,
+                    CoverageKind.PARSE_ERROR,
                     path="<script>alert(2)</script>",
                     locator="<img src=x onerror=alert(4)>",
                     message="<img src=x onerror=alert(5)>",
@@ -161,7 +161,7 @@ def test_package_index_and_routing_markup(tmp_path: Path) -> None:
     packages = (result.output / "packages.html").read_text(encoding="utf-8")
     assert 'data-page="packages"' in packages
     assert 'id="package-index"' in packages
-    assert "packages.html#pkg=" in packages
+    assert 'data-purl="pkg:cargo/' in packages
     assert "evil" in packages
 
 
@@ -224,7 +224,12 @@ def test_insight_pages_escape_package_and_role_names(tmp_path: Path) -> None:
         assert "evil&lt;img src=x onerror=alert(6)&gt;" in content
 
 
-def test_fork_repositories_are_listed_apart_from_owned_ones(tmp_path: Path) -> None:
+def test_fork_repositories_are_listed_apart_from_owned_ones(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    vulnerable = {"pkg:cargo/clap@4.0.0": {"vulns": [{"id": "RUSTSEC-1"}]}}
+    cache = render.enrich.Enrichment(tmp_path / "cache", 1.0, vulnerable)
+    monkeypatch.setattr(render.enrich, "load_cache", lambda: cache)
     repositories = []
     for name, tags in (("acme/mine", ("tool",)), ("acme/upstream", ("fork", "tool"))):
         clap = instance(Ecosystem.CARGO, "clap", "4.0.0")
@@ -430,8 +435,8 @@ def test_choices_show_which_repositories_deviate_from_preferred(
     section = choices.split('id="role-cli-arguments"', 1)[1].split("<h2", 1)[0]
     assert "deviate from preferred" not in section
     assert section.count('class="mono">acme/legacy<') == 1
-    assert section.count('class="mono">acme/mixed<') == 2
-    assert section.count('class="mono">acme/clean<') == 1
+    assert section.count('class="mono">acme/mixed<') == 1
+    assert "acme/clean" not in section
     assert "clap_complete" in section
 
 
@@ -467,3 +472,31 @@ def test_alignment_orders_versions_oldest_to_newest_and_marks_the_target(tmp_pat
     assert lane.index(">1.9.0<") < lane.index(">1.10.0<")
     assert lane.count("stop-target") == 1
     assert lane.index("stop-target") > lane.index(">1.9.0<")
+
+
+def test_coverage_shows_fixable_issues_and_only_counts_known_limits(tmp_path: Path) -> None:
+    repositories = [
+        repository(
+            "acme/mine",
+            (),
+            issues=(
+                issue(CoverageKind.MISSING_LOCK, path="Cargo.toml"),
+                issue(CoverageKind.UNSUPPORTED_FORMAT, path="weird.lock"),
+            ),
+        ),
+        repository(
+            "acme/upstream",
+            (),
+            tags=("fork",),
+            issues=(issue(CoverageKind.MISSING_LOCK, path="Cargo.toml"),),
+        ),
+    ]
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    coverage = (result.output / "coverage.html").read_text(encoding="utf-8")
+    main = coverage[coverage.index('id="main"'):]
+    assert "No lockfile" in main
+    assert "mine" in main
+    assert "upstream" not in main
+    assert "weird.lock" not in main
+    assert "1 files in formats with no parser" in main

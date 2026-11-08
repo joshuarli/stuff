@@ -62,7 +62,7 @@
         }, () => undefined);
     });
     function setupTable(scope) {
-        const rows = Array.from(scope.querySelectorAll("tbody tr, [data-item]"));
+        const rows = Array.from(scope.querySelectorAll("[data-item]"));
         const search = scope.querySelector("[data-table-search]");
         const more = scope.querySelector("[data-more]");
         const empty = scope.querySelector("[data-empty]");

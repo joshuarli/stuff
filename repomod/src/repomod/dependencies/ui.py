@@ -78,11 +78,6 @@ class Column:
 
 
 @dataclass(frozen=True, slots=True)
-class Row:
-    cells: Sequence[str]
-
-
-@dataclass(frozen=True, slots=True)
 class NavLink:
     page: str
     label: str
@@ -240,26 +235,6 @@ def scope(
     )
 
 
-def table(
-    label: str,
-    columns: Sequence[Column],
-    rows: Sequence[Row],
-    *,
-    search: str | None = None,
-    limit: int | None = None,
-) -> str:
-    head = "".join(f'<th scope="col"{_cell_class(column)}>{escape(column.label)}</th>' for column in columns)
-    body = "".join(_row(columns, row) for row in rows)
-    return scope(
-        f'<div class="ui-table-scroll" role="region" aria-label="{escape(label)} table">'
-        f'<table class="ui-data-table" aria-label="{escape(label)}">'
-        f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>",
-        search=search,
-        limit=limit,
-        total=len(rows),
-    )
-
-
 def static_table(columns: Sequence[Column], rows: Sequence[Sequence[str]]) -> str:
     head = "".join(f'<th scope="col"{_cell_class(column)}>{escape(column.label)}</th>' for column in columns)
     classes = [_cell_class(column) for column in columns]
@@ -376,14 +351,6 @@ def _cell_class(column: Column) -> str:
     flags = (("numeric", column.numeric), ("wrap", column.wrap), ("mono", column.mono))
     names = [name for name, active in flags if active]
     return f' class="{" ".join(names)}"' if names else ""
-
-
-def _row(columns: Sequence[Column], row: Row) -> str:
-    cells = "".join(
-        f"<td{_cell_class(column)}>{cell}</td>"
-        for column, cell in zip(columns, row.cells, strict=True)
-    )
-    return f"<tr>{cells}</tr>"
 
 
 def _toolbar(search: str | None) -> str:

@@ -63,7 +63,7 @@
   });
 
   function setupTable(scope: HTMLElement): void {
-    const rows = Array.from(scope.querySelectorAll<HTMLElement>("tbody tr, [data-item]"));
+    const rows = Array.from(scope.querySelectorAll<HTMLElement>("[data-item]"));
     const search = scope.querySelector<HTMLInputElement>("[data-table-search]");
     const more = scope.querySelector<HTMLButtonElement>("[data-more]");
     const empty = scope.querySelector<HTMLElement>("[data-empty]");

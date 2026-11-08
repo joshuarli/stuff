@@ -37,7 +37,6 @@ details > summary { cursor: pointer; color: var(--ui-text-2); }
 .list-more { width: 100%; min-height: var(--ui-row-height); padding: 0 var(--ui-inset); border: 0; border-top: 1px solid var(--ui-line); border-radius: 0 0 var(--ui-radius-xl) var(--ui-radius-xl); background: transparent; color: var(--ui-accent); font: var(--ui-weight-medium) var(--ui-fs-meta) var(--ui-font); text-align: left; cursor: pointer; }
 .list-more:hover { background: var(--ui-hover); }
 .badges { display: flex; flex-wrap: wrap; gap: var(--ui-space-xs); }
-.panel-text { margin: 0; color: var(--ui-text-2); }
 .plain-list { margin: 0; padding: 0; list-style: none; font-size: var(--ui-fs-meta); }
 .plain-list li { padding: var(--ui-space-2xs) 0; overflow-wrap: anywhere; }
 .change-group { margin: var(--ui-space-md) 0 var(--ui-space-xs); color: var(--ui-muted); font-size: var(--ui-fs-label); letter-spacing: var(--ui-caps-tracking); text-transform: uppercase; }
@@ -55,7 +54,6 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 
 .page-stack { display: flex; flex-direction: column; gap: var(--ui-space-lg); }
 .scope { display: flex; flex-direction: column; gap: var(--ui-space-lg); }
-.scope:has(> .ui-table-scroll) { gap: 0; }
 .group { display: flex; flex-direction: column; gap: var(--ui-space-md); margin-top: var(--ui-space-sm); }
 .group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ui-space-sm); }
 .group-head h2 { margin: 0; font-size: 15px; font-weight: var(--ui-weight-semibold); letter-spacing: var(--ui-tracking-tight); }
@@ -68,7 +66,9 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .card h3 { margin: 0; font-size: var(--ui-fs-title); font-weight: var(--ui-weight-semibold); letter-spacing: var(--ui-tracking-tight); overflow-wrap: break-word; }
 .card-meta { flex: none; }
 .card-change { color: var(--ui-text); }
-.card-option { font-weight: var(--ui-weight-medium); }
+.card-label { margin-top: var(--ui-space-xs); color: var(--ui-muted); font-size: var(--ui-fs-label); letter-spacing: var(--ui-caps-tracking); text-transform: uppercase; }
+.card-foot details { display: inline; }
+.card-foot details[open] { display: block; }
 .card-foot { color: var(--ui-text-2); font-size: var(--ui-fs-meta); }
 .card-foot.quiet { color: var(--ui-muted); }
 .card-foot a, .card-head a { text-decoration: none; }
