@@ -44,7 +44,7 @@ _OSV_URL = "https://api.osv.dev/v1/querybatch"
 _OSV_BATCH_SIZE = 100
 _NETWORK_TIMEOUT = 30
 
-_BLOATED_RUST = ("url",)
+_BLOATED_RUST = ("dotenv", "url")
 _IGNORED_DIRS = frozenset(
     {
         ".git",

@@ -52,8 +52,9 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   use `requirements*.txt`. JavaScript must not use yarn: `yarn.lock`,
   `.yarnrc`, `.yarnrc.yml`, `.yarnrc.yaml`, `.yarn/`, and
   `packageManager: yarn@*` are banned because pnpm is the only package
-  manager. Rust must not depend on `url`, including transitive `url-*` crates
-  via `Cargo.lock`. Every other Rust ban comes from the `ban` tables in
+  manager. Rust must not depend on `dotenv` or `url`, including transitive
+  `dotenv-*` and `url-*` crates via `Cargo.lock`. Neither has a replacement;
+  remove them. Every other Rust ban comes from the `ban` tables in
   `dependency-roles.toml`: an option marked `prefix` bans its crates and any
   `NAME-*` crate, `exact` bans only the listed names, and the finding names
   the role's preferred option as the replacement, or the matching `laputa-*`

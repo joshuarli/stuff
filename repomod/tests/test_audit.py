@@ -96,6 +96,8 @@ def test_banned_rust_matches_variants() -> None:
     assert _is_banned_rust("tokio")
     assert _is_banned_rust("tokio-util")
     assert _is_banned_rust("url")
+    assert _is_banned_rust("dotenv")
+    assert not _is_banned_rust("dotenvy")
     assert _is_banned_rust("criterion")
     assert _is_banned_rust("criterion-plot")
     assert _is_banned_rust("proptest")
@@ -119,6 +121,11 @@ def test_banned_rust_messages_name_the_replacement() -> None:
         == "remove proptest-derive; use quickcheck instead"
     )
     assert _banned_rust_message("url", transitive=False) == "remove bloated dependency url"
+    assert _banned_rust_message("dotenv", transitive=False) == "remove bloated dependency dotenv"
+    assert (
+        _banned_rust_message("dotenv", transitive=True, version="0.15.0")
+        == "remove bloated transitive dotenv 0.15.0"
+    )
 
 
 def test_upstream_smol_crates_point_to_their_smolith_forks() -> None:
