@@ -34,9 +34,9 @@ The sidebar groups pages by the work they support.
   panels.
 - **Packages** shows the most used packages per ecosystem. Search (`/`) finds any package.
   `packages.html#pkg=pkg:cargo/serde` deep-links to a package's versions and consumers.
-- **Security** lists vulnerable packages in owned repositories and separates those with a newer
-  release from those without one. A latest release at or below the vulnerable version does not
-  count as newer. Forks are tracked in a collapsed panel.
+- **Security** lists vulnerable packages in owned repositories and separates those with a clean
+  upgrade from those without one. A latest release counts only when it is newer than the
+  vulnerable version and has no advisories of its own. Forks are tracked in a collapsed panel.
 - **Upgrades** (`outdated.html`) lists direct dependencies behind their registry's latest
   release and opens on breaking upgrades. A breaking upgrade changes the leftmost nonzero
   version component. Needs `repomod deps enrich`.

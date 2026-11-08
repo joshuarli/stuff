@@ -103,6 +103,18 @@ def test_latest_older_than_the_vulnerable_version_is_not_offered_as_a_fix() -> N
     assert found[0].step == "Replace it or accept the risk"
 
 
+def test_latest_release_with_its_own_advisories_is_not_offered_as_a_fix() -> None:
+    found = _actions(
+        vulnerable=(
+            _vulnerable("zip", "2.6.1", "8.6.0", direct=("acme/mine",)),
+            _vulnerable("zip", "8.6.0", "8.6.0", direct=("acme/fork",)),
+        ),
+        forks=("acme/fork",),
+    )
+    assert found[0].change == "2.6.1, 8.6.0, latest 8.6.0 is also vulnerable"
+    assert found[0].blocked
+
+
 def test_vulnerable_only_through_the_lockfile_points_at_the_lockfile() -> None:
     found = _actions(vulnerable=(_vulnerable("zip", "1.0.0", "2.0.0", locked=("acme/one",)),))
     assert found[0].step == "Update the lockfile to 2.0.0"

@@ -350,7 +350,7 @@ def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
         Tile(
             str(len(security)) if checked else "—",
             "Security",
-            f"{affected} repositories · {blocked} with no newer release" if checked else "not checked",
+            f"{affected} repositories · {blocked} with no clean upgrade" if checked else "not checked",
             "security.html",
             Tone.BAD if security else None,
         ),
@@ -549,8 +549,8 @@ def _security(site: _Site) -> str:
             [_security_row(action) for action in actions],
             filters=(
                 Filter("", "All", len(actions), pressed=True),
-                Filter("fixable", "Newer release", len(actions) - blocked),
-                Filter("blocked", "No newer release", blocked),
+                Filter("fixable", "Upgrade available", len(actions) - blocked),
+                Filter("blocked", "No clean upgrade", blocked),
             ),
             search="Filter packages",
             limit=_LIST_ROWS,

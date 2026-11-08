@@ -106,27 +106,31 @@ def _security(
 ) -> Iterable[Action]:
     grouped: dict[tuple[Ecosystem, str], list[insights.Vulnerable]] = defaultdict(list)
     for row in rows:
-        if {*row.direct_in, *row.transitive_in} - set(forks):
-            grouped[(row.component.ecosystem, row.component.name)].append(row)
+        grouped[(row.component.ecosystem, row.component.name)].append(row)
     for versions in grouped.values():
-        yield _security_action(versions, forks)
+        if any({*row.direct_in, *row.transitive_in} - set(forks) for row in versions):
+            yield _security_action(versions, forks)
 
 
 def _security_action(rows: Sequence[insights.Vulnerable], forks: Collection[str]) -> Action:
     component = rows[0].component
-    versions = sorted({row.version for row in rows})
-    target = _upgrade_target(component, rows)
-    advisories = tuple(sorted({advisory for row in rows for advisory in row.advisories}))
-    direct = {repository for row in rows for repository in row.direct_in} - set(forks)
-    repositories = direct | {repository for row in rows for repository in row.transitive_in} - set(forks)
+    owned = [row for row in rows if {*row.direct_in, *row.transitive_in} - set(forks)]
+    versions = sorted({row.version for row in owned})
+    latest = next((row.latest for row in rows if row.latest is not None), None)
+    latest_vulnerable = latest in {row.version for row in rows}
+    target = None if latest_vulnerable else _upgrade_target(component, owned, latest)
+    advisories = tuple(sorted({advisory for row in owned for advisory in row.advisories}))
+    direct = {repository for row in owned for repository in row.direct_in} - set(forks)
+    repositories = direct | {repository for row in owned for repository in row.transitive_in} - set(forks)
     shown = ", ".join(advisories[:_ADVISORIES_SHOWN])
     extra = len(advisories) - _ADVISORIES_SHOWN
-    if target is None:
-        change = f"{', '.join(versions)}, no newer release"
-        step = "Replace it or accept the risk"
-    else:
+    if target is not None:
         change = f"{', '.join(versions)} → {target}"
         step = f"Upgrade the requirement to {target}" if direct else f"Update the lockfile to {target}"
+    else:
+        blocker = f"latest {latest} is also vulnerable" if latest_vulnerable else "no newer release"
+        change = f"{', '.join(versions)}, {blocker}"
+        step = "Replace it or accept the risk"
     return Action(
         ActionKind.SECURITY,
         component.display_name,
@@ -140,7 +144,9 @@ def _security_action(rows: Sequence[insights.Vulnerable], forks: Collection[str]
     )
 
 
-def _upgrade_target(component: Component, rows: Sequence[insights.Vulnerable]) -> str | None:
+def _upgrade_target(
+    component: Component, rows: Sequence[insights.Vulnerable], latest: str | None
+) -> str | None:
     newest = max(
         (
             parsed
@@ -149,7 +155,6 @@ def _upgrade_target(component: Component, rows: Sequence[insights.Vulnerable]) -
         ),
         default=None,
     )
-    latest = next((row.latest for row in rows if row.latest is not None), None)
     if latest is None or newest is None:
         return None
     parsed_latest = insights.release(component.ecosystem, latest)
