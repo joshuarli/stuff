@@ -40,13 +40,13 @@ sha = "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
 
 [actions."astral-sh/setup-uv"]
 channel = "v10"
-version = "v10.3.2"
-sha = "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+version = "v10.3.3"
+sha = "68559e99cc807c1eb7e9238fd43a15bba460eec2"
 
 [actions."cargo-bins/cargo-binstall"]
 channel = "v1"
-version = "v1.26.0"
-sha = "8a2045612414e945291083f820cd50b4d8fc2218"
+version = "v1.26.2"
+sha = "851112458b5f28a29e5bc14a690c3f283d9dcc6f"
 
 [actions."denoland/setup-deno"]
 channel = "v2"
@@ -70,8 +70,8 @@ sha = "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
 
 [actions."leanprover/lean-action"]
 channel = "v1"
-version = "v1.6.2"
-sha = "24581d74d674803a25a81b10b059c5c0cdd344c6"
+version = "v1.7.1"
+sha = "ba3fdfe5c4476c925da13bf11a005ddb47e47aee"
 
 [actions."obi1kenobi/cargo-semver-checks-action"]
 channel = "v2"
@@ -80,8 +80,8 @@ sha = "6b69fcf40e9b5fb17adeb57e4b6ecd020649a239"
 
 [actions."pnpm/setup"]
 channel = "v3"
-version = "v3.1.1"
-sha = "a0881977cd8ea73b1ed212236c99ca10dcc80cf4"
+version = "v3.1.2"
+sha = "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e"
 
 [actions."rustsec/audit-check"]
 channel = "v2"
@@ -95,8 +95,8 @@ sha = "4eed2c2f4cd0d374720c4b913f79faa8aafcfa6b"
 
 [actions."softprops/action-gh-release"]
 channel = "v3"
-version = "v3.0.3"
-sha = "efb35369e0ad2afab669f228072c1b0d510eae64"
+version = "v3.0.4"
+sha = "8a0cd651e5b2365bd640854a3fa5dfc70e4875f3"
 
 [actions."swatinem/rust-cache"]
 channel = "v2"
@@ -110,5 +110,5 @@ sha = "9ee83daaa7b96a6fab930949ecf1122bba04a389"
 
 [actions."taiki-e/install-action"]
 channel = "v2"
-version = "v2.87.30"
-sha = "a4d3f3f761dcd95cce1b72cb61cb6d1963438177"
+version = "v2.90.3"
+sha = "cfdb7ed4ccc7c7dce37759eae89dc5674b469b39"
