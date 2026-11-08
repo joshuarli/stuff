@@ -217,7 +217,7 @@ impl Store {
             )));
         }
         drop(handle);
-        let checksum = format!("{:x}", digest.finalize());
+        let checksum = crate::publish::lower_hex(digest.finalize());
         let final_path = self.blob_path(&checksum);
         if final_path.exists() {
             let _ = fs::remove_file(&tmp);

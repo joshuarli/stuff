@@ -48,7 +48,7 @@ profile uses `opt-level = 3`, fat LTO, one codegen unit, and
 `panic = "abort"`. `wasm-opt -O3` is the speed-oriented Binaryen pass;
 size-oriented `-Oz` is not used. Both `wasm-bindgen` and Binaryen's `wasm-opt`
 must be on `PATH`; keep the `wasm-bindgen` CLI at the version `Cargo.toml`
-pins (`=0.2.129`).
+pins (`=0.2.130`).
 
 ## Test
 

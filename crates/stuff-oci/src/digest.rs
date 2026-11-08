@@ -4,6 +4,16 @@ use crate::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
+fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Digest(String);
 
@@ -22,7 +32,7 @@ impl Digest {
         use sha2::Digest as _;
         let mut hasher = sha2::Sha256::new();
         hasher.update(bytes);
-        Self(format!("sha256:{:x}", hasher.finalize()))
+        Self(format!("sha256:{}", lower_hex(hasher.finalize())))
     }
 
     pub fn as_str(&self) -> &str {

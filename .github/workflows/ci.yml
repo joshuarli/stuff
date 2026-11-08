@@ -109,7 +109,7 @@ jobs:
         run: rustup show
       - run: rustup target add wasm32-unknown-unknown
       - name: install wasm-bindgen
-        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+        run: cargo install wasm-bindgen-cli --version 0.2.130 --locked
       - name: install binaryen
         run: |
           curl -fsSL -o "$RUNNER_TEMP/binaryen.tar.gz" https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz

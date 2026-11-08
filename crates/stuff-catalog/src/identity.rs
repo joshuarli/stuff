@@ -3,6 +3,16 @@
 use crate::{Catalog, render_catalog_json, render_html, render_llms_txt};
 use sha2::{Digest, Sha256};
 
+fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 pub const FINGERPRINT_GENERATION: &str = "fingerprint";
 
 fn fingerprint_of(catalog_json: &str, html: &str, llms_txt: &str) -> String {
@@ -12,7 +22,7 @@ fn fingerprint_of(catalog_json: &str, html: &str, llms_txt: &str) -> String {
     hasher.update(html.as_bytes());
     hasher.update(b"\0");
     hasher.update(llms_txt.as_bytes());
-    format!("{:x}", hasher.finalize())
+    lower_hex(hasher.finalize())
 }
 
 pub fn catalog_fingerprint(catalog: &Catalog, origin: &str) -> String {

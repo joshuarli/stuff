@@ -120,7 +120,7 @@ fn generation_id_for_renderer(
     let text = canonical_json(&payload)?;
     let mut hasher = Sha256::new();
     hasher.update(text.as_bytes());
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(crate::lower_hex(hasher.finalize()))
 }
 
 fn catalog_dependencies(version_metadata: &deser_value::Value) -> stuff_catalog::Dependencies {
@@ -774,7 +774,7 @@ fn copy_artifact(record: &ArtifactRecord, state_dir: &Path, tarballs_dir: &Path)
         writer.sync_all()
             .map_err(|_| Error::Operation(format!("could not synchronize artifact {}", tmp.display())))?;
         drop(writer);
-        if format!("{:x}", hasher.finalize()) != *digest {
+        if crate::lower_hex(hasher.finalize()) != *digest {
             return Err(Error::Corrupt(format!(
                 "state artifact digest mismatch for {}@{}",
                 record.name, record.version
@@ -1101,7 +1101,7 @@ mod tests {
         let tgz = b"fake-npm-tarball";
         let mut h = Sha512::new();
         h.update(tgz);
-        let digest = format!("{:x}", h.finalize());
+        let digest = crate::lower_hex(h.finalize());
         let raw: Vec<u8> = (0..digest.len())
             .step_by(2)
             .map(|i| u8::from_str_radix(&digest[i..i + 2], 16).unwrap())
@@ -1167,7 +1167,7 @@ mod tests {
         use base64::Engine;
         let mut h = Sha512::new();
         h.update(tgz);
-        let digest = format!("{:x}", h.finalize());
+        let digest = crate::lower_hex(h.finalize());
         let raw: Vec<u8> = (0..digest.len())
             .step_by(2)
             .map(|i| u8::from_str_radix(&digest[i..i + 2], 16).unwrap())

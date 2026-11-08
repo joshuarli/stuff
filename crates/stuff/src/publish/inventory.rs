@@ -554,7 +554,7 @@ mod tests {
     use sha2::{Digest, Sha512};
 
     fn artifact_json(name: &str, version: &str, tarball: &[u8]) -> String {
-        let digest = format!("{:x}", Sha512::digest(tarball));
+        let digest = crate::publish::lower_hex(Sha512::digest(tarball));
         let raw: Vec<u8> = (0..digest.len())
             .step_by(2)
             .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())
@@ -636,7 +636,7 @@ mod tests {
         assert!(parse_inventory(&text).unwrap().metadata_only.is_empty());
 
         let tarball = b"tarball";
-        let digest = format!("{:x}", Sha512::digest(tarball));
+        let digest = crate::publish::lower_hex(Sha512::digest(tarball));
         let raw: Vec<u8> = (0..digest.len())
             .step_by(2)
             .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())

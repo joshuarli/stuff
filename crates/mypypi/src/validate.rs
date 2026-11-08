@@ -219,7 +219,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     let mut names: Vec<String> = Vec::new();
     for i in 0..archive.len() {
         let f = archive.by_index(i).map_err(|e| fail(e.to_string()))?;
-        names.push(f.name().to_string());
+        names.push(f.name().map_err(|e| fail(e.to_string()))?.into_owned());
     }
     let res = {
         let mut seen = BTreeSet::new();

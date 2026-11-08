@@ -105,11 +105,11 @@ pub fn completion_error(body: &[u8]) -> String {
     if body.iter().all(u8::is_ascii_whitespace) {
         return String::new();
     }
-    let code = element_text(body, b"Code").unwrap_or_default();
+    let code = element_text(body, "Code").unwrap_or_default();
     if !code.is_empty() {
         return code;
     }
-    element_text(body, b"Message").unwrap_or_default()
+    element_text(body, "Message").unwrap_or_default()
 }
 
 pub fn initiate(client: &R2Client, bucket: &str, key: &str) -> Result<String, PublishError> {
@@ -128,7 +128,7 @@ pub fn initiate(client: &R2Client, bucket: &str, key: &str) -> Result<String, Pu
             response.status
         )));
     }
-    let upload_id = element_text(&response.body, b"UploadId").unwrap_or_default();
+    let upload_id = element_text(&response.body, "UploadId").unwrap_or_default();
     if upload_id.is_empty() {
         return Err(PublishError::Integrity(
             "initiate multipart upload returned no UploadId".to_string(),
@@ -321,34 +321,30 @@ fn stream_parts(
     })
 }
 
-fn element_text(body: &[u8], wanted: &[u8]) -> Option<String> {
+fn element_text(body: &[u8], wanted: &str) -> Option<String> {
     let mut reader = Reader::from_reader(body);
     reader.config_mut().trim_text(false);
     let mut buffer = Vec::new();
-    let mut stack: Vec<(Vec<u8>, String)> = Vec::new();
+    let mut stack: Vec<(String, String)> = Vec::new();
     let mut found = None;
     loop {
         match reader.read_event_into(&mut buffer) {
             Ok(Event::Start(start)) => {
-                stack.push((start.local_name().as_ref().to_vec(), String::new()))
+                stack.push((start.local_name().as_ref().to_string(), String::new()))
             }
             Ok(Event::Text(chunk)) => {
-                if let Some((_, text)) = stack.last_mut()
-                    && let Ok(decoded) = chunk.decode()
-                {
-                    text.push_str(&decoded);
+                if let Some((_, text)) = stack.last_mut() {
+                    text.push_str(chunk.as_ref());
                 }
             }
             Ok(Event::CData(chunk)) => {
-                if let Some((_, text)) = stack.last_mut()
-                    && let Ok(decoded) = chunk.decode()
-                {
-                    text.push_str(&decoded);
+                if let Some((_, text)) = stack.last_mut() {
+                    text.push_str(chunk.as_ref());
                 }
             }
             Ok(Event::End(_)) => {
                 if let Some((name, text)) = stack.pop() {
-                    if found.is_none() && name.as_slice() == wanted {
+                    if found.is_none() && name == wanted {
                         found = Some(text.trim().to_string());
                     }
                     if let Some((_, parent)) = stack.last_mut() {

@@ -7,6 +7,16 @@ use std::process::{Child, Command, Stdio};
 use tar::Builder;
 use tempfile::TempDir;
 
+fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
+    use std::fmt::Write as _;
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(out, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    out
+}
+
 fn make_test_crate(name: &str, ver: &str, code: &str) -> Vec<u8> {
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
     let mut tar = Builder::new(&mut encoder);
@@ -81,7 +91,7 @@ fn cargo_installs_from_stuff_server() {
     let server = TestServer::boot(&site_dir);
 
     let crate_bytes = make_test_crate("alpha", "0.1.0", "pub fn hello() -> &'static str { \"hello from alpha\" }");
-    let sha = format!("{:x}", Sha256::digest(&crate_bytes));
+    let sha = lower_hex(Sha256::digest(&crate_bytes));
     let blobs = site_dir.join("blobs");
     fs::create_dir_all(&blobs).unwrap();
     fs::write(blobs.join(format!("{sha}.crate")), &crate_bytes).unwrap();

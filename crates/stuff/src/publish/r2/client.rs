@@ -468,7 +468,7 @@ impl R2Client {
         file.flush().map_err(|error| {
             PublishError::Config(format!("could not flush {}: {error}", destination.display()))
         })?;
-        let digest_hex = format!("{:x}", hasher.finalize());
+        let digest_hex = crate::publish::lower_hex(hasher.finalize());
         Ok((digest_hex, total))
     }
 

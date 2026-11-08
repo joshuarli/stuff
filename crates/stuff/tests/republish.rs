@@ -26,7 +26,7 @@ use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_repository_json, Digest as OciDigest,
     RepositoryName,
 };
-use support::{seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
+use support::{lower_hex, seed_pypi_generation, FakeS3, ACCESS_KEY, SECRET_KEY};
 
 const BINARY: &str = env!("CARGO_BIN_EXE_stuff");
 const CARGO_BUCKET: &str = "stuff-mycrates";
@@ -247,7 +247,7 @@ fn tarball(name: &str, version: &str) -> Vec<u8> {
 }
 
 fn npm_artifact(name: &str, version: &str, bytes: &[u8]) -> ArtifactRecord {
-    let digest = format!("{:x}", Sha512::digest(bytes));
+    let digest = lower_hex(Sha512::digest(bytes));
     let raw: Vec<u8> = (0..digest.len())
         .step_by(2)
         .map(|index| u8::from_str_radix(&digest[index..index + 2], 16).unwrap())
@@ -318,7 +318,7 @@ fn build_npm_live(work: &Path) -> PathBuf {
         } else {
             tarball(name, version)
         };
-        fs::write(objects.join(format!("{:x}.tgz", Sha512::digest(&bytes))), bytes).unwrap();
+        fs::write(objects.join(format!("{}.tgz", lower_hex(Sha512::digest(&bytes)))), bytes).unwrap();
     }
     mynpm::publish::publish_site(&mynpm::publish::PublishOptions {
         state_directory: &state,

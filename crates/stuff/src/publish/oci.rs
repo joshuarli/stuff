@@ -248,7 +248,7 @@ fn is_file_valid(path: &Path, digest: &Digest) -> Result<bool, PublishError> {
             Err(_) => return Ok(false),
         }
     }
-    let actual = format!("{:x}", hasher.finalize());
+    let actual = crate::publish::lower_hex(hasher.finalize());
     Ok(actual == digest.hex())
 }
 
