@@ -343,11 +343,16 @@ fn a_live_wheel_for_another_platform_does_not_block_the_local_publish() {
         .find(|(filename, _)| filename == FIXTURE_WHEEL)
         .unwrap_or_else(|| panic!("the new wheel was not published: {artifacts:?}"))
         .1;
-    assert_eq!(
-        new_targets,
-        &vec![format!("3.15:{local}")],
-        "{artifacts:?}"
-    );
+    let mut configured: Vec<String> = project_settings(&Config::default().pypi.public_base_url)
+        .unwrap()
+        .targets()
+        .iter()
+        .map(|target| format!("{}:{}", target.python_version, target.platform))
+        .collect();
+    configured.sort();
+    let mut published = new_targets.clone();
+    published.sort();
+    assert_eq!(published, configured, "{artifacts:?}");
 
     work.client()
         .get_object(BUCKET, &format!("wheels/{RETAINED_WHEEL}"))
@@ -362,15 +367,13 @@ fn first_publish_matches_the_direct_mypypi_generation() {
     assert!(!id.is_empty());
 
     let settings = project_settings(&Config::default().pypi.public_base_url).unwrap();
-    let local = mypypi::validate::local_platform().unwrap();
-    let local_targets: Vec<_> = settings
-        .targets()
-        .into_iter()
-        .filter(|target| target.platform == local)
-        .collect();
     let oracle = work.root.path().join("oracle");
-    let (oracle_id, no_op) =
-        seed_pypi_generation(&fixture_wheel(), local_targets, &oracle, &settings.public_base_url);
+    let (oracle_id, no_op) = seed_pypi_generation(
+        &fixture_wheel(),
+        settings.targets(),
+        &oracle,
+        &settings.public_base_url,
+    );
     assert!(!no_op);
     assert_eq!(oracle_id, id);
 
