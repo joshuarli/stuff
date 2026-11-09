@@ -157,6 +157,14 @@ pub struct Package {
     pub dependencies: Dependencies,
 }
 
+pub struct PackagesByName<'a>(BTreeMap<&'a str, &'a Package>);
+
+impl<'a> PackagesByName<'a> {
+    pub fn resolve(&self, name: &str) -> Option<&'a Package> {
+        self.0.get(name).copied()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Catalog {
@@ -175,8 +183,12 @@ impl Catalog {
         self.packages.iter().map(|p| p.versions.len()).sum()
     }
 
-    pub fn resolve_dependency(&self, name: &str) -> Option<&Package> {
-        self.packages.iter().find(|p| p.name == name)
+    pub fn packages_by_name(&self) -> PackagesByName<'_> {
+        let mut first = BTreeMap::new();
+        for package in &self.packages {
+            first.entry(package.name.as_str()).or_insert(package);
+        }
+        PackagesByName(first)
     }
 
     pub fn find(&self, name: &str, source: Option<CargoSource>) -> Option<&Package> {

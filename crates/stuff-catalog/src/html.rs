@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use crate::model::{Catalog, DependencyKind, Package, Registry};
+use crate::model::{Catalog, DependencyKind, Package, PackagesByName, Registry};
 use std::collections::BTreeMap;
 
 fn escape_html(text: &str) -> String {
@@ -128,12 +128,12 @@ struct Dependent<'a> {
     kind: DependencyKind,
 }
 
-fn dependents_of<'a>(catalog: &'a Catalog) -> BTreeMap<String, Vec<Dependent<'a>>> {
+fn dependents_of<'a>(catalog: &'a Catalog, by_name: &PackagesByName<'a>) -> BTreeMap<String, Vec<Dependent<'a>>> {
     let mut dependents: BTreeMap<String, Vec<Dependent<'a>>> = BTreeMap::new();
     for package in &catalog.packages {
         let mut strongest: BTreeMap<String, DependencyKind> = BTreeMap::new();
         for (kind, name) in package.dependencies.iter() {
-            if let Some(target) = catalog.resolve_dependency(name) {
+            if let Some(target) = by_name.resolve(name) {
                 let slot = strongest.entry(anchor(catalog.registry, target)).or_insert(kind);
                 *slot = (*slot).min(kind);
             }
@@ -165,7 +165,8 @@ fn row_open(registry: Registry, package: &Package) -> String {
 fn detail_sections(catalogs: &[&Catalog]) -> String {
     let mut out = String::new();
     for catalog in catalogs {
-        let dependents = dependents_of(catalog);
+        let by_name = catalog.packages_by_name();
+        let dependents = dependents_of(catalog, &by_name);
         for package in &catalog.packages {
             let id = anchor(catalog.registry, package);
             out.push_str(&format!("<section class=\"detail\" id=\"{}\">\n", escape_html(&id)));
@@ -183,7 +184,7 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
             } else if catalog.schema_version < 2 {
                 out.push_str("<p class=\"mute\">This generation was published before dependencies were recorded.</p>\n");
             } else {
-                out.push_str(&dependency_sections(catalog, package, dependents.get(&id)));
+                out.push_str(&dependency_sections(catalog, &by_name, package, dependents.get(&id)));
             }
             out.push_str(&format!(
                 "<h2>Versions</h2>\n<p class=\"vers\">{}</p>\n</section>\n",
@@ -194,11 +195,11 @@ fn detail_sections(catalogs: &[&Catalog]) -> String {
     out
 }
 
-fn name_list(catalog: &Catalog, names: &[String]) -> String {
+fn name_list(catalog: &Catalog, by_name: &PackagesByName<'_>, names: &[String]) -> String {
     let mut hosted = String::new();
     let mut elsewhere = Vec::new();
     for name in names {
-        match catalog.resolve_dependency(name) {
+        match by_name.resolve(name) {
             Some(target) => hosted.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, target))),
             None => elsewhere.push(format!("<span class=\"pkg\">{}</span>", escape_html(name))),
         }
@@ -222,12 +223,17 @@ fn kind_title(kind: DependencyKind) -> &'static str {
     }
 }
 
-fn dependency_sections(catalog: &Catalog, package: &Package, users: Option<&Vec<Dependent<'_>>>) -> String {
+fn dependency_sections(
+    catalog: &Catalog,
+    by_name: &PackagesByName<'_>,
+    package: &Package,
+    users: Option<&Vec<Dependent<'_>>>,
+) -> String {
     let mut out = String::from("<h2>Depends on</h2>\n");
     if package.dependencies.runtime.is_empty() {
         out.push_str(&format!("<p class=\"mute\">No dependencies in {}.</p>\n", escape_html(&package.latest)));
     } else {
-        out.push_str(&name_list(catalog, &package.dependencies.runtime));
+        out.push_str(&name_list(catalog, by_name, &package.dependencies.runtime));
     }
     if catalog.schema_version < 3 {
         out.push_str("<p class=\"mute\">Peer, build and dev dependencies were not recorded for this generation.</p>\n");
@@ -239,7 +245,7 @@ fn dependency_sections(catalog: &Catalog, package: &Package, users: Option<&Vec<
                     "<details>\n<summary>{} ({})</summary>\n{}</details>\n",
                     kind_title(kind),
                     names.len(),
-                    name_list(catalog, names)
+                    name_list(catalog, by_name, names)
                 ));
             }
         }
