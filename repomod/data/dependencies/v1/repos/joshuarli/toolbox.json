@@ -484,7 +484,7 @@
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.17.2",
+   "constraint": "==0.17.4",
    "evidence": [
     {
      "locator": "dependency-groups.dev[5]",
@@ -499,14 +499,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.17.2",
+   "resolved_version": "0.17.4",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ruff@0.17.2#"
+   "to": "pkg:pypi/ruff@0.17.4#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.91",
+   "constraint": "==0.0.99",
    "evidence": [
     {
      "locator": "dependency-groups.dev[6]",
@@ -521,14 +521,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.91",
+   "resolved_version": "0.0.99",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.91#"
+   "to": "pkg:pypi/ty@0.0.99#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.13.5",
+   "constraint": "==0.13.7",
    "evidence": [
     {
      "locator": "dependency-groups.dev[7]",
@@ -543,10 +543,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.5",
+   "resolved_version": "0.13.7",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/uv@0.13.5#"
+   "to": "pkg:pypi/uv@0.13.7#"
   },
   {
    "condition": null,
@@ -805,15 +805,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "33eaf1c0fe32270b905ce9b1a2e0abafe1c204ce",
+   "blob": "57839b48cce71f2c819b45d1bdb7845a13f3046c",
    "path": "pyproject.toml"
   },
   {
-   "blob": "550ca5ec434b8a4e7e166cf400d22e0a3fa08baa",
+   "blob": "1aec33211d32cd90100677083c29367d442ac139",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "e3e95cd8f438e822b5b9dcfd428b64366fd53b29db6d18dacff1f593a0ff90e3",
+ "inputs_fingerprint": "06028af8fc73a38184b3922488f03f3af70289219b6c516d1e8352002110a492",
  "instances": [
   {
    "commit": null,
@@ -1093,39 +1093,39 @@
    "component": "pkg:pypi/ruff",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ruff@0.17.2#",
-   "purl": "pkg:pypi/ruff@0.17.2",
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.2"
+   "version": "0.17.4"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.91#",
-   "purl": "pkg:pypi/ty@0.0.91",
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.91"
+   "version": "0.0.99"
   },
   {
    "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/uv@0.13.5#",
-   "purl": "pkg:pypi/uv@0.13.5",
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.5"
+   "version": "0.13.7"
   },
   {
    "commit": null,
@@ -1177,7 +1177,7 @@
  "repository": "joshuarli/toolbox",
  "schema": 1,
  "tags": [
-  "private-tool",
-  "python"
+  "python",
+  "tool"
  ]
 }

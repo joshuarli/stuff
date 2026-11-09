@@ -2710,7 +2710,7 @@
   },
   {
    "condition": null,
-   "constraint": "v10.3.2",
+   "constraint": "v10.3.3",
    "evidence": [
     {
      "locator": "jobs.lint.steps[1].uses",
@@ -2721,10 +2721,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": null,
@@ -2746,7 +2746,7 @@
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.17.2",
+   "constraint": "==0.17.4",
    "evidence": [
     {
      "locator": "dependency-groups.dev[0]",
@@ -2761,14 +2761,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.17.2",
+   "resolved_version": "0.17.4",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ruff@0.17.2#"
+   "to": "pkg:pypi/ruff@0.17.4#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.91",
+   "constraint": "==0.0.99",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -2783,14 +2783,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.91",
+   "resolved_version": "0.0.99",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.91#"
+   "to": "pkg:pypi/ty@0.0.99#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.13.5",
+   "constraint": "==0.13.7",
    "evidence": [
     {
      "locator": "dependency-groups.dev[2]",
@@ -2805,10 +2805,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.5",
+   "resolved_version": "0.13.7",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/uv@0.13.5#"
+   "to": "pkg:pypi/uv@0.13.7#"
   },
   {
    "condition": null,
@@ -2900,7 +2900,7 @@
   },
   {
    "condition": null,
-   "constraint": "=0.27.2",
+   "constraint": "=0.30.1",
    "evidence": [
     {
      "locator": "build-dependencies.pyo3-build-config",
@@ -2915,14 +2915,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.27.2",
+   "resolved_version": "0.30.1",
    "scope": "build",
    "source_kind": "registry",
-   "to": "pkg:cargo/pyo3-build-config@0.27.2#"
+   "to": "pkg:cargo/pyo3-build-config@0.30.1#"
   },
   {
    "condition": null,
-   "constraint": "=0.27.2",
+   "constraint": "=0.30.1",
    "evidence": [
     {
      "locator": "dependencies.pyo3-ffi",
@@ -2937,10 +2937,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.27.2",
+   "resolved_version": "0.30.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/pyo3-ffi@0.27.2#"
+   "to": "pkg:cargo/pyo3-ffi@0.30.1#"
   },
   {
    "condition": null,
@@ -7514,6 +7514,24 @@
    "evidence": [
     {
      "locator": "package[name=hashbrown,version=0.17.1].dependencies[0]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/hashbrown@0.17.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/foldhash@0.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=hashbrown,version=0.17.1].dependencies[0]",
      "path": "rust-cpython/overlay/Modules/_csv_rs/std_source/Cargo.lock"
     }
    ],
@@ -10447,24 +10465,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=pyo3-build-config,version=0.27.2].dependencies[0]",
-     "path": "backend/hashing/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/pyo3-build-config@0.27.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.13.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/target-lexicon@0.13.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=pyo3-build-config,version=0.28.3].dependencies[0]",
      "path": "backend/vendor/rtls/rust/Cargo.lock"
     }
@@ -10483,36 +10483,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=pyo3-ffi,version=0.27.2].dependencies[0]",
+     "locator": "package[name=pyo3-build-config,version=0.30.1].dependencies[0]",
      "path": "backend/hashing/Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/pyo3-ffi@0.27.2#",
+   "from": "pkg:cargo/pyo3-build-config@0.30.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.2.191",
+   "resolved_version": "0.13.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.191#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=pyo3-ffi,version=0.27.2].dependencies[1]",
-     "path": "backend/hashing/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/pyo3-ffi@0.27.2#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.27.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/pyo3-build-config@0.27.2#"
+   "to": "pkg:cargo/target-lexicon@0.13.5#"
   },
   {
    "condition": null,
@@ -10549,6 +10531,42 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/pyo3-build-config@0.28.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pyo3-ffi,version=0.30.1].dependencies[0]",
+     "path": "backend/hashing/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/pyo3-ffi@0.30.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.191",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pyo3-ffi,version=0.30.1].dependencies[1]",
+     "path": "backend/hashing/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/pyo3-ffi@0.30.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.30.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/pyo3-build-config@0.30.1#"
   },
   {
    "condition": null,
@@ -17322,6 +17340,28 @@
   },
   {
    "condition": null,
+   "constraint": "=0.17.1",
+   "evidence": [
+    {
+     "locator": "dependencies.hashbrown",
+     "path": "rust-cpython/overlay/Modules/_fnmatch_rs/Cargo.toml"
+    },
+    {
+     "locator": "package[name=_fnmatch_rs,version=0.1.0].dependencies[2]",
+     "path": "rust-cpython/overlay/Cargo.lock"
+    }
+   ],
+   "from": "rust-cpython/overlay/Modules/_fnmatch_rs:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.17.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hashbrown@0.17.1#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
@@ -21217,15 +21257,15 @@
  ],
  "inputs": [
   {
-   "blob": "64b5b811f7e31461bab956a7f2234d1dbc309ecd",
+   "blob": "c838430cca639fdaddc709a25ebace871b9d9ff2",
    "path": ".github/workflows/build.yml"
   },
   {
-   "blob": "a6dc22aadf14f50cb4df7295775278f1bbab9728",
+   "blob": "e68f5da8406cfcd815eeec3d810c567e79a62f3e",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "9c06aea8313c90e95a5a8f2d2d4484fc5a97d916",
+   "blob": "d928e424bd0db05527dad4ce902567d9253f77b2",
    "path": "Dockerfile"
   },
   {
@@ -21233,15 +21273,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "fe2bfd9701665316d193ef721077bce6f69fe5b3",
+   "blob": "2859baeea567f895ccb4c58005fadabad08e448c",
    "path": "backend/Dockerfile.linux"
   },
   {
-   "blob": "6f009d93b710937151d89a927bc90a4df590b70b",
+   "blob": "c65dfc82049a840af47482c945c9cc23c8fee3f2",
    "path": "backend/hashing/Cargo.lock"
   },
   {
-   "blob": "872967b151132493d6ee0673e668f5846e58edda",
+   "blob": "4b82f1f5092fd1c3b2e0514cd927834b4d932944",
    "path": "backend/hashing/Cargo.toml"
   },
   {
@@ -21261,11 +21301,11 @@
    "path": "benchmarks/Dockerfile"
   },
   {
-   "blob": "e17de2e92c5e6e431b74601d1e31a4c852d23518",
+   "blob": "5fdef784e59c80b81550288eb0f6019e5c404b23",
    "path": "pyproject.toml"
   },
   {
-   "blob": "e16a3702725dfe353e5e7843f229b29b7ec9d853",
+   "blob": "5d78769e25dc32d190a8b941d334505efea9c7a6",
    "path": "rust-cpython/overlay/Cargo.lock"
   },
   {
@@ -21353,7 +21393,7 @@
    "path": "rust-cpython/overlay/Modules/_email_rs/Cargo.toml"
   },
   {
-   "blob": "75fb43175f6acd8a5985a939efd5c4110bc0282f",
+   "blob": "7d26db33e5cc22e75f66d9b29717309c7213d5b1",
    "path": "rust-cpython/overlay/Modules/_fnmatch_rs/Cargo.toml"
   },
   {
@@ -21585,11 +21625,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "9318ff03f7c698b0558e2baa3deeb4ff3aec1868",
+   "blob": "2d06c4477efdba536e12ae5faa1a8ce607414314",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "ebd29a36382d74173ce2491e3be3868fc49244cd30768be0573f28ceaca0409d",
+ "inputs_fingerprint": "89172864c9b2b02682c6947b7521818e405f7cdb9904af445261fed249eaf686",
  "instances": [
   {
    "commit": null,
@@ -23780,19 +23820,6 @@
    "component": "pkg:cargo/pyo3-build-config",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/pyo3-build-config@0.27.2#",
-   "purl": "pkg:cargo/pyo3-build-config@0.27.2",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.27.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/pyo3-build-config",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/pyo3-build-config@0.28.3#",
    "purl": "pkg:cargo/pyo3-build-config@0.28.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -23803,16 +23830,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/pyo3-ffi",
+   "component": "pkg:cargo/pyo3-build-config",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/pyo3-ffi@0.27.2#",
-   "purl": "pkg:cargo/pyo3-ffi@0.27.2",
+   "id": "pkg:cargo/pyo3-build-config@0.30.1#",
+   "purl": "pkg:cargo/pyo3-build-config@0.30.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.27.2"
+   "version": "0.30.1"
   },
   {
    "commit": null,
@@ -23826,6 +23853,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.28.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/pyo3-ffi",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/pyo3-ffi@0.30.1#",
+   "purl": "pkg:cargo/pyo3-ffi@0.30.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.30.1"
   },
   {
    "commit": null,
@@ -26883,17 +26923,17 @@
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
   },
   {
-   "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "component": "pkg:github/astral-sh/setup-uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#",
-   "purl": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
-   "version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
   },
   {
    "commit": "f87e5991a6d7451dcb8d9637bfbc97413f497069",
@@ -26913,39 +26953,39 @@
    "component": "pkg:pypi/ruff",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ruff@0.17.2#",
-   "purl": "pkg:pypi/ruff@0.17.2",
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.2"
+   "version": "0.17.4"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.91#",
-   "purl": "pkg:pypi/ty@0.0.91",
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.91"
+   "version": "0.0.99"
   },
   {
    "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/uv@0.13.5#",
-   "purl": "pkg:pypi/uv@0.13.5",
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.5"
+   "version": "0.13.7"
   },
   {
    "commit": null,
@@ -26976,7 +27016,7 @@
   },
   {
    "kind": "dynamic_value",
-   "locator": "L109",
+   "locator": "L127",
    "message": "FROM image 'alpine-${TARGETARCH}' is not literal",
    "path": "Dockerfile"
   },
@@ -27000,7 +27040,7 @@
   },
   {
    "kind": "dynamic_value",
-   "locator": "L72",
+   "locator": "L76",
    "message": "FROM image '${RUNTIME_BASE_IMAGE}' is not literal",
    "path": "backend/Dockerfile.linux"
   },

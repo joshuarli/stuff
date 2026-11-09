@@ -220,7 +220,7 @@
    "display_name": "alpine",
    "ecosystem": "docker",
    "name": "alpine",
-   "purl": "pkg:docker/alpine?digest=sha256%3A79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f"
+   "purl": "pkg:docker/alpine?digest=sha256%3Ad56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395"
   },
   {
    "display_name": "debian",
@@ -295,7 +295,7 @@
    "constraint": "5.3.9-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -313,7 +313,7 @@
    "constraint": "3.8.2-r3",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -331,7 +331,7 @@
    "constraint": "0.7.2-r6",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -346,10 +346,10 @@
   },
   {
    "condition": null,
-   "constraint": "20260909-r0",
+   "constraint": "20261020-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -357,17 +357,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "20260909-r0",
+   "resolved_version": "20261020-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/ca-certificates@20260909-r0#"
+   "to": "pkg:apk/ca-certificates@20261020-r0#"
   },
   {
    "condition": null,
    "constraint": "1.96.1-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -385,7 +385,7 @@
    "constraint": "4.13.6-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -403,7 +403,7 @@
    "constraint": "22.1.3-r2",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -418,10 +418,10 @@
   },
   {
    "condition": null,
-   "constraint": "8.22.0-r0",
+   "constraint": "8.23.0-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -429,17 +429,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "8.22.0-r0",
+   "resolved_version": "8.23.0-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/curl@8.22.0-r0#"
+   "to": "pkg:apk/curl@8.23.0-r0#"
   },
   {
    "condition": null,
-   "constraint": "2.8.5-r0",
+   "constraint": "2.10.0-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -447,17 +447,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.8.5-r0",
+   "resolved_version": "2.10.0-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/expat-dev@2.8.5-r0#"
+   "to": "pkg:apk/expat-dev@2.10.0-r0#"
   },
   {
    "condition": null,
-   "constraint": "8.1.2-r0",
+   "constraint": "8.1.3-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -465,17 +465,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "8.1.2-r0",
+   "resolved_version": "8.1.3-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/ffmpeg-dev@8.1.2-r0#"
+   "to": "pkg:apk/ffmpeg-dev@8.1.3-r0#"
   },
   {
    "condition": null,
    "constraint": "5.47-r2",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -493,7 +493,7 @@
    "constraint": "4.10.0-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -511,7 +511,7 @@
    "constraint": "2.6.4-r8",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -526,10 +526,10 @@
   },
   {
    "condition": null,
-   "constraint": "2026.06.01-r0",
+   "constraint": "2026.11.01-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -537,17 +537,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2026.06.01-r0",
+   "resolved_version": "2026.11.01-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/font-noto@2026.06.01-r0#"
+   "to": "pkg:apk/font-noto@2026.11.01-r0#"
   },
   {
    "condition": null,
-   "constraint": "0_git20260717-r0",
+   "constraint": "0_git20260924-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -555,17 +555,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0_git20260717-r0",
+   "resolved_version": "0_git20260924-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/gn@0_git20260717-r0#"
+   "to": "pkg:apk/gn@0_git20260924-r0#"
   },
   {
    "condition": null,
-   "constraint": "1.26.8-r0",
+   "constraint": "1.26.10-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -573,17 +573,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.26.8-r0",
+   "resolved_version": "1.26.10-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/go@1.26.8-r0#"
+   "to": "pkg:apk/go@1.26.10-r0#"
   },
   {
    "condition": null,
    "constraint": "3.3-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -601,7 +601,7 @@
    "constraint": "2.4.134-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -619,7 +619,7 @@
    "constraint": "7.0.0-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -637,7 +637,7 @@
    "constraint": "26.1.6-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -652,10 +652,10 @@
   },
   {
    "condition": null,
-   "constraint": "1.2.6-r2",
+   "constraint": "1.2.6-r3",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -663,17 +663,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.2.6-r2",
+   "resolved_version": "1.2.6-r3",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/musl-dev@1.2.6-r2#"
+   "to": "pkg:apk/musl-dev@1.2.6-r3#"
   },
   {
    "condition": null,
    "constraint": "1.13.2-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -688,10 +688,10 @@
   },
   {
    "condition": null,
-   "constraint": "24.18.1-r0",
+   "constraint": "24.22.1-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -699,17 +699,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "24.18.1-r0",
+   "resolved_version": "24.22.1-r1",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/nodejs@24.18.1-r0#"
+   "to": "pkg:apk/nodejs@24.22.1-r1#"
   },
   {
    "condition": null,
    "constraint": "4.38.2-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -727,7 +727,7 @@
    "constraint": "3.124-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -742,10 +742,10 @@
   },
   {
    "condition": null,
-   "constraint": "2.8-r0",
+   "constraint": "2.8.1-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -753,17 +753,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.8-r0",
+   "resolved_version": "2.8.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/patch@2.8-r0#"
+   "to": "pkg:apk/patch@2.8.1-r0#"
   },
   {
    "condition": null,
-   "constraint": "5.42.2-r0",
+   "constraint": "5.42.3-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -771,17 +771,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "5.42.2-r0",
+   "resolved_version": "5.42.3-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/perl@5.42.2-r0#"
+   "to": "pkg:apk/perl@5.42.3-r0#"
   },
   {
    "condition": null,
    "constraint": "2.5.1-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -796,10 +796,10 @@
   },
   {
    "condition": null,
-   "constraint": "3.14.7-r1",
+   "constraint": "3.14.10-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -807,17 +807,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.14.7-r1",
+   "resolved_version": "3.14.10-r1",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/python3@3.14.7-r1#"
+   "to": "pkg:apk/python3@3.14.10-r1#"
   },
   {
    "condition": null,
    "constraint": "0.72.1-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -835,7 +835,7 @@
    "constraint": "1.96.1-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -853,7 +853,7 @@
    "constraint": "1.96.1-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -871,7 +871,7 @@
    "constraint": "1.35-r5",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -889,7 +889,7 @@
    "constraint": "2.42.3-r1",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -907,7 +907,7 @@
    "constraint": "5.8.4-r0",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -925,7 +925,7 @@
    "constraint": "1.5.7-r2",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L33",
      "path": "Dockerfile"
     }
    ],
@@ -940,10 +940,10 @@
   },
   {
    "condition": null,
-   "constraint": "sha256:79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f",
+   "constraint": "sha256:d56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395",
    "evidence": [
     {
-     "locator": "L6",
+     "locator": "L10",
      "path": "Dockerfile"
     }
    ],
@@ -954,7 +954,7 @@
    "resolved_version": null,
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/alpine?digest=sha256%3A79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f#"
+   "to": "pkg:docker/alpine?digest=sha256%3Ad56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395#"
   },
   {
    "condition": null,
@@ -976,10 +976,28 @@
   },
   {
    "condition": null,
+   "constraint": "sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251",
+   "evidence": [
+    {
+     "locator": "L6",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/debian?digest=sha256%3A3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "L71",
+     "locator": "L79",
      "path": "Dockerfile"
     }
    ],
@@ -1084,7 +1102,7 @@
   },
   {
    "condition": null,
-   "constraint": "v10.3.2",
+   "constraint": "v10.3.3",
    "evidence": [
     {
      "locator": "jobs.lint.steps[1].uses",
@@ -1095,14 +1113,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.17.2",
+   "constraint": "==0.17.4",
    "evidence": [
     {
      "locator": "dependency-groups.dev[0]",
@@ -1117,14 +1135,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.17.2",
+   "resolved_version": "0.17.4",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ruff@0.17.2#"
+   "to": "pkg:pypi/ruff@0.17.4#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.91",
+   "constraint": "==0.0.99",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -1139,14 +1157,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.91",
+   "resolved_version": "0.0.99",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.91#"
+   "to": "pkg:pypi/ty@0.0.99#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.13.5",
+   "constraint": "==0.13.7",
    "evidence": [
     {
      "locator": "dependency-groups.dev[2]",
@@ -1161,15 +1179,15 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.5",
+   "resolved_version": "0.13.7",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/uv@0.13.5#"
+   "to": "pkg:pypi/uv@0.13.7#"
   }
  ],
  "inputs": [
   {
-   "blob": "dabb6b60aab35720fcd3e595a05b644c67625289",
+   "blob": "dd4a5816923959c983f777a971b614fa8dbcb161",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -1177,7 +1195,7 @@
    "path": ".github/workflows/macos-26-smoke.yml"
   },
   {
-   "blob": "ff9a0a790786bc05a52a3732de6338accaeef2fb",
+   "blob": "c943683af853fa0b06793e61dbbc19d446ad67aa",
    "path": "Dockerfile"
   },
   {
@@ -1185,15 +1203,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "5771eba2ebe8dc6a0edc9b573e22cc683ac6033f",
+   "blob": "40fb7214f9c5da781d26a45421fe1f0d1a2e85d5",
    "path": "pyproject.toml"
   },
   {
-   "blob": "1e0c81681029cd501f9ea27c7a8d791b8ce645bb",
+   "blob": "7491cf04037454ab7b7621f0cb59d674962c4c64",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "04584821a9694e93a4f78dc7d4b56f90a4d8b268d517c3796f5c2c567f01a7ae",
+ "inputs_fingerprint": "e3a797c84986559f4079cc0d6e0d9b67920e890200ef5e7d18f71a9bb830a499",
  "instances": [
   {
    "commit": null,
@@ -1239,13 +1257,13 @@
    "component": "pkg:apk/ca-certificates",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/ca-certificates@20260909-r0#",
-   "purl": "pkg:apk/ca-certificates@20260909-r0",
+   "id": "pkg:apk/ca-certificates@20261020-r0#",
+   "purl": "pkg:apk/ca-certificates@20261020-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "20260909-r0"
+   "version": "20261020-r0"
   },
   {
    "commit": null,
@@ -1291,39 +1309,39 @@
    "component": "pkg:apk/curl",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/curl@8.22.0-r0#",
-   "purl": "pkg:apk/curl@8.22.0-r0",
+   "id": "pkg:apk/curl@8.23.0-r0#",
+   "purl": "pkg:apk/curl@8.23.0-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.22.0-r0"
+   "version": "8.23.0-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/expat-dev",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/expat-dev@2.8.5-r0#",
-   "purl": "pkg:apk/expat-dev@2.8.5-r0",
+   "id": "pkg:apk/expat-dev@2.10.0-r0#",
+   "purl": "pkg:apk/expat-dev@2.10.0-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.8.5-r0"
+   "version": "2.10.0-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/ffmpeg-dev",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/ffmpeg-dev@8.1.2-r0#",
-   "purl": "pkg:apk/ffmpeg-dev@8.1.2-r0",
+   "id": "pkg:apk/ffmpeg-dev@8.1.3-r0#",
+   "purl": "pkg:apk/ffmpeg-dev@8.1.3-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.1.2-r0"
+   "version": "8.1.3-r0"
   },
   {
    "commit": null,
@@ -1369,39 +1387,39 @@
    "component": "pkg:apk/font-noto",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/font-noto@2026.06.01-r0#",
-   "purl": "pkg:apk/font-noto@2026.06.01-r0",
+   "id": "pkg:apk/font-noto@2026.11.01-r0#",
+   "purl": "pkg:apk/font-noto@2026.11.01-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2026.06.01-r0"
+   "version": "2026.11.01-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/gn",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/gn@0_git20260717-r0#",
-   "purl": "pkg:apk/gn@0_git20260717-r0",
+   "id": "pkg:apk/gn@0_git20260924-r0#",
+   "purl": "pkg:apk/gn@0_git20260924-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0_git20260717-r0"
+   "version": "0_git20260924-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/go",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/go@1.26.8-r0#",
-   "purl": "pkg:apk/go@1.26.8-r0",
+   "id": "pkg:apk/go@1.26.10-r0#",
+   "purl": "pkg:apk/go@1.26.10-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.26.8-r0"
+   "version": "1.26.10-r0"
   },
   {
    "commit": null,
@@ -1460,13 +1478,13 @@
    "component": "pkg:apk/musl-dev",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/musl-dev@1.2.6-r2#",
-   "purl": "pkg:apk/musl-dev@1.2.6-r2",
+   "id": "pkg:apk/musl-dev@1.2.6-r3#",
+   "purl": "pkg:apk/musl-dev@1.2.6-r3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.6-r2"
+   "version": "1.2.6-r3"
   },
   {
    "commit": null,
@@ -1486,13 +1504,13 @@
    "component": "pkg:apk/nodejs",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/nodejs@24.18.1-r0#",
-   "purl": "pkg:apk/nodejs@24.18.1-r0",
+   "id": "pkg:apk/nodejs@24.22.1-r1#",
+   "purl": "pkg:apk/nodejs@24.22.1-r1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "24.18.1-r0"
+   "version": "24.22.1-r1"
   },
   {
    "commit": null,
@@ -1525,26 +1543,26 @@
    "component": "pkg:apk/patch",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/patch@2.8-r0#",
-   "purl": "pkg:apk/patch@2.8-r0",
+   "id": "pkg:apk/patch@2.8.1-r0#",
+   "purl": "pkg:apk/patch@2.8.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.8-r0"
+   "version": "2.8.1-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/perl",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/perl@5.42.2-r0#",
-   "purl": "pkg:apk/perl@5.42.2-r0",
+   "id": "pkg:apk/perl@5.42.3-r0#",
+   "purl": "pkg:apk/perl@5.42.3-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.42.2-r0"
+   "version": "5.42.3-r0"
   },
   {
    "commit": null,
@@ -1564,13 +1582,13 @@
    "component": "pkg:apk/python3",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/python3@3.14.7-r1#",
-   "purl": "pkg:apk/python3@3.14.7-r1",
+   "id": "pkg:apk/python3@3.14.10-r1#",
+   "purl": "pkg:apk/python3@3.14.10-r1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.14.7-r1"
+   "version": "3.14.10-r1"
   },
   {
    "commit": null,
@@ -1665,11 +1683,11 @@
   },
   {
    "commit": null,
-   "component": "pkg:docker/alpine?digest=sha256%3A79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f",
+   "component": "pkg:docker/alpine?digest=sha256%3Ad56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/alpine?digest=sha256%3A79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f#",
-   "purl": "pkg:docker/alpine?digest=sha256%3A79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f",
+   "id": "pkg:docker/alpine?digest=sha256%3Ad56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395#",
+   "purl": "pkg:docker/alpine?digest=sha256%3Ad56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",
@@ -1768,56 +1786,56 @@
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
   },
   {
-   "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "component": "pkg:github/astral-sh/setup-uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#",
-   "purl": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
-   "version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ruff",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ruff@0.17.2#",
-   "purl": "pkg:pypi/ruff@0.17.2",
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.2"
+   "version": "0.17.4"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.91#",
-   "purl": "pkg:pypi/ty@0.0.91",
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.91"
+   "version": "0.0.99"
   },
   {
    "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/uv@0.13.5#",
-   "purl": "pkg:pypi/uv@0.13.5",
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.5"
+   "version": "0.13.7"
   }
  ],
  "issues": [

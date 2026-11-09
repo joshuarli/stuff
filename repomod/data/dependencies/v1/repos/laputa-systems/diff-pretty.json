@@ -248,7 +248,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.1",
+   "constraint": "0.4",
    "evidence": [
     {
      "locator": "dev-dependencies.rustybench",
@@ -263,10 +263,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.1.0",
+   "resolved_version": "0.4.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench@0.1.0#"
+   "to": "pkg:cargo/rustybench@0.4.0#"
   },
   {
    "condition": null,
@@ -418,7 +418,7 @@
   },
   {
    "condition": null,
-   "constraint": "2026e-r0",
+   "constraint": "2026f-r0",
    "evidence": [
     {
      "locator": "L12",
@@ -429,10 +429,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2026e-r0",
+   "resolved_version": "2026f-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/tzdata@2026e-r0#"
+   "to": "pkg:apk/tzdata@2026f-r0#"
   },
   {
    "condition": null,
@@ -609,10 +609,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.2.189",
+   "resolved_version": "0.2.191",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.189#"
+   "to": "pkg:cargo/libc@0.2.191#"
   },
   {
    "condition": null,
@@ -681,10 +681,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.3",
+   "resolved_version": "3.0.9",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.3#"
+   "to": "pkg:cargo/syn@3.0.9#"
   },
   {
    "condition": null,
@@ -753,10 +753,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.24",
+   "resolved_version": "1.0.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/unicode-ident@1.0.24#"
+   "to": "pkg:cargo/unicode-ident@1.0.27#"
   },
   {
    "condition": null,
@@ -781,29 +781,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[0]",
+     "locator": "package[name=rustix,version=1.1.6].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustix@1.1.4#",
+   "from": "pkg:cargo/rustix@1.1.6#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "2.13.1",
+   "resolved_version": "2.13.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/bitflags@2.13.1#"
+   "to": "pkg:cargo/bitflags@2.13.2#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[1]",
+     "locator": "package[name=rustix,version=1.1.6].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustix@1.1.4#",
+   "from": "pkg:cargo/rustix@1.1.6#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -817,29 +817,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[2]",
+     "locator": "package[name=rustix,version=1.1.6].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustix@1.1.4#",
+   "from": "pkg:cargo/rustix@1.1.6#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.2.189",
+   "resolved_version": "0.2.191",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.189#"
+   "to": "pkg:cargo/libc@0.2.191#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[3]",
+     "locator": "package[name=rustix,version=1.1.6].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustix@1.1.4#",
+   "from": "pkg:cargo/rustix@1.1.6#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -853,11 +853,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[4]",
+     "locator": "package[name=rustix,version=1.1.6].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustix@1.1.4#",
+   "from": "pkg:cargo/rustix@1.1.6#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -871,11 +871,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.1.0].dependencies[0]",
+     "locator": "package[name=rustybench,version=0.4.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.1.0#",
+   "from": "pkg:cargo/rustybench@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -889,11 +889,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.1.0].dependencies[1]",
+     "locator": "package[name=rustybench,version=0.4.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.1.0#",
+   "from": "pkg:cargo/rustybench@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -907,11 +907,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.1.0].dependencies[2]",
+     "locator": "package[name=rustybench,version=0.4.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.1.0#",
+   "from": "pkg:cargo/rustybench@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -925,29 +925,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.1.0].dependencies[3]",
+     "locator": "package[name=rustybench,version=0.4.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.1.0#",
+   "from": "pkg:cargo/rustybench@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.1.0",
+   "resolved_version": "0.4.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench-macros@0.1.0#"
+   "to": "pkg:cargo/rustybench-macros@0.4.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.3].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.3#",
+   "from": "pkg:cargo/syn@3.0.9#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -961,11 +961,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.3].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.3#",
+   "from": "pkg:cargo/syn@3.0.9#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -979,18 +979,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.3].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.3#",
+   "from": "pkg:cargo/syn@3.0.9#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.24",
+   "resolved_version": "1.0.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/unicode-ident@1.0.24#"
+   "to": "pkg:cargo/unicode-ident@1.0.27#"
   },
   {
    "condition": null,
@@ -1049,10 +1049,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.1.4",
+   "resolved_version": "1.1.6",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.4#"
+   "to": "pkg:cargo/rustix@1.1.6#"
   },
   {
    "condition": "feature:terminal",
@@ -1071,14 +1071,14 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "1.1.4",
+   "resolved_version": "1.1.6",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.4#"
+   "to": "pkg:cargo/rustix@1.1.6#"
   },
   {
    "condition": null,
-   "constraint": "0.1",
+   "constraint": "0.4",
    "evidence": [
     {
      "locator": "dev-dependencies.rustybench",
@@ -1093,10 +1093,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.1.0",
+   "resolved_version": "0.4.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench@0.1.0#"
+   "to": "pkg:cargo/rustybench@0.4.0#"
   },
   {
    "condition": null,
@@ -1115,10 +1115,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.2.2",
+   "resolved_version": "0.2.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/unicode-width@0.2.2#"
+   "to": "pkg:cargo/unicode-width@0.2.3#"
   }
  ],
  "inputs": [
@@ -1135,15 +1135,15 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "cd09273d290a5cea0533ea1387d66c89e0c118db",
+   "blob": "a801bc6b8409c1fd70966a97566bb533c7f24837",
    "path": "Cargo.lock"
   },
   {
-   "blob": "3bd277c353733987224f6811e3c15f8f44bc0406",
+   "blob": "c455478ce43d45cf75d274e9fd257cb488fefc15",
    "path": "Cargo.toml"
   },
   {
-   "blob": "2654e29b7f99c881f9f05a4d8081976f89a9f16b",
+   "blob": "ef76a7ca0b75e714d078872fb5672e59b14aaafe",
    "path": "Dockerfile"
   },
   {
@@ -1155,11 +1155,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "65ccb0d0e154853490aaaa7d3675f03aa6a5678a",
+   "blob": "b68a9a856a4d72a7dce43af4256d2d84325a1d6c",
    "path": "scrl/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "11faebbfbdc30161f6a72cdf95378bcad2c3f2e00777e39cd131f9668c838397",
+ "inputs_fingerprint": "b74d88ed274ac0f9e6307c1534c91c2ecd671a7a2e4a9052de6555d80d5a4702",
  "instances": [
   {
    "commit": null,
@@ -1257,26 +1257,26 @@
    "component": "pkg:apk/tzdata",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/tzdata@2026e-r0#",
-   "purl": "pkg:apk/tzdata@2026e-r0",
+   "id": "pkg:apk/tzdata@2026f-r0#",
+   "purl": "pkg:apk/tzdata@2026f-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2026e-r0"
+   "version": "2026f-r0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/bitflags",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/bitflags@2.13.1#",
-   "purl": "pkg:cargo/bitflags@2.13.1",
+   "id": "pkg:cargo/bitflags@2.13.2#",
+   "purl": "pkg:cargo/bitflags@2.13.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.13.1"
+   "version": "2.13.2"
   },
   {
    "commit": null,
@@ -1322,13 +1322,13 @@
    "component": "pkg:cargo/libc",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/libc@0.2.189#",
-   "purl": "pkg:cargo/libc@0.2.189",
+   "id": "pkg:cargo/libc@0.2.191#",
+   "purl": "pkg:cargo/libc@0.2.191",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.2.189"
+   "version": "0.2.191"
   },
   {
    "commit": null,
@@ -1413,78 +1413,78 @@
    "component": "pkg:cargo/rustix",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustix@1.1.4#",
-   "purl": "pkg:cargo/rustix@1.1.4",
+   "id": "pkg:cargo/rustix@1.1.6#",
+   "purl": "pkg:cargo/rustix@1.1.6",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.1.4"
+   "version": "1.1.6"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rustybench-macros",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustybench-macros@0.1.0#",
-   "purl": "pkg:cargo/rustybench-macros@0.1.0",
+   "id": "pkg:cargo/rustybench-macros@0.4.0#",
+   "purl": "pkg:cargo/rustybench-macros@0.4.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.0"
+   "version": "0.4.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rustybench",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustybench@0.1.0#",
-   "purl": "pkg:cargo/rustybench@0.1.0",
+   "id": "pkg:cargo/rustybench@0.4.0#",
+   "purl": "pkg:cargo/rustybench@0.4.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.0"
+   "version": "0.4.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.3#",
-   "purl": "pkg:cargo/syn@3.0.3",
+   "id": "pkg:cargo/syn@3.0.9#",
+   "purl": "pkg:cargo/syn@3.0.9",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.3"
+   "version": "3.0.9"
   },
   {
    "commit": null,
    "component": "pkg:cargo/unicode-ident",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/unicode-ident@1.0.24#",
-   "purl": "pkg:cargo/unicode-ident@1.0.24",
+   "id": "pkg:cargo/unicode-ident@1.0.27#",
+   "purl": "pkg:cargo/unicode-ident@1.0.27",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.24"
+   "version": "1.0.27"
   },
   {
    "commit": null,
    "component": "pkg:cargo/unicode-width",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/unicode-width@0.2.2#",
-   "purl": "pkg:cargo/unicode-width@0.2.2",
+   "id": "pkg:cargo/unicode-width@0.2.3#",
+   "purl": "pkg:cargo/unicode-width@0.2.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.2.2"
+   "version": "0.2.3"
   },
   {
    "commit": null,

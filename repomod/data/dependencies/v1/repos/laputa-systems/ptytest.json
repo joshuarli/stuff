@@ -193,6 +193,12 @@
    "purl": "pkg:cargo/regex-syntax"
   },
   {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
+  },
+  {
    "display_name": "rustix",
    "ecosystem": "cargo",
    "name": "rustix",
@@ -420,6 +426,28 @@
   },
   {
    "condition": null,
+   "constraint": "2",
+   "evidence": [
+    {
+     "locator": "dependencies.rustc-hash",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
    "constraint": "0.18",
    "evidence": [
     {
@@ -427,7 +455,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[2]",
+     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2161,11 +2189,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "ecec507e259700e470ceefca1a48701f532d0025",
+   "blob": "565c2f8ce5e435a1d40369e2967cf4fcc44a9747",
    "path": "Cargo.lock"
   },
   {
-   "blob": "6019ea0a17ffba1d6b43503d47a8c368c16a316a",
+   "blob": "c60da32a82000afe29110f5e09c736671d6204a0",
    "path": "Cargo.toml"
   },
   {
@@ -2177,7 +2205,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "7fa02e5d5832016a738de206ce43df4aed7caf82ae4d577854f15d3492f26891",
+ "inputs_fingerprint": "73065f0516f6aecf1b6ab43a70dcfad69fccc95cb713c9ef50cc88e19e4978f4",
  "instances": [
   {
    "commit": null,
@@ -2594,6 +2622,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.8.11"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
   },
   {
    "commit": null,

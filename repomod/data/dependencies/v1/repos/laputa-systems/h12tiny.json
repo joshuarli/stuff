@@ -883,6 +883,12 @@
    "purl": "pkg:cargo/rust_decimal"
   },
   {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
+  },
+  {
    "display_name": "rustc_version",
    "ecosystem": "cargo",
    "name": "rustc_version",
@@ -3604,6 +3610,28 @@
   },
   {
    "condition": null,
+   "constraint": "2",
+   "evidence": [
+    {
+     "locator": "dependencies.rustc-hash",
+     "path": "crates/h12tiny-tls-system/Cargo.toml"
+    },
+    {
+     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/h12tiny-tls-system:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
    "constraint": "0.8.5",
    "evidence": [
     {
@@ -3611,7 +3639,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3633,7 +3661,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3655,7 +3683,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3677,7 +3705,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -18587,15 +18615,15 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "bc78df7c6f4d6f4969c501ae50bf24b1ff3b9c25",
+   "blob": "481545cc150e9ad4363c690582ba6837f7a80575",
    "path": "Cargo.lock"
   },
   {
-   "blob": "088e9e3c6e0360383d296a0f77072f0158dfad1e",
+   "blob": "d0c8b509bb4564a1650e80b34c7d8d56e4ad883a",
    "path": "Cargo.toml"
   },
   {
-   "blob": "517ca997089f5e286cf291cc58bab47c3b00ae3c",
+   "blob": "1d5a4ec788d9d58f42430285993e30a376492b32",
    "path": "Makefile"
   },
   {
@@ -18639,7 +18667,7 @@
    "path": "crates/h12tiny-server/Cargo.toml"
   },
   {
-   "blob": "495fdb34d9bdc7ef3b03e7b7e00490b5e54fabf5",
+   "blob": "b1db3e365bbc1eb71e84efa4e299095bd7fc0241",
    "path": "crates/h12tiny-tls-system/Cargo.toml"
   },
   {
@@ -18735,7 +18763,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "0fdf926422141dbe744d41a77150ce0de9d87983439d0b4e9e66c96f58c83ba8",
+ "inputs_fingerprint": "62816051d00ed095e09aea0d62a5a29fc31a34b4657fca1fe4b9b3d052baaa15",
  "instances": [
   {
    "commit": null,
@@ -21310,6 +21338,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.43.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
   },
   {
    "commit": null,

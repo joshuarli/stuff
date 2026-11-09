@@ -127,12 +127,6 @@
    "purl": "pkg:golang/github.com/antlr4-go/antlr/v4"
   },
   {
-   "display_name": "github.com/aws/aws-sdk-go",
-   "ecosystem": "golang",
-   "name": "github.com/aws/aws-sdk-go",
-   "purl": "pkg:golang/github.com/aws/aws-sdk-go"
-  },
-  {
    "display_name": "github.com/beorn7/perks",
    "ecosystem": "golang",
    "name": "github.com/beorn7/perks",
@@ -287,12 +281,6 @@
    "ecosystem": "golang",
    "name": "github.com/jackpal/go-nat-pmp",
    "purl": "pkg:golang/github.com/jackpal/go-nat-pmp"
-  },
-  {
-   "display_name": "github.com/jmespath/go-jmespath",
-   "ecosystem": "golang",
-   "name": "github.com/jmespath/go-jmespath",
-   "purl": "pkg:golang/github.com/jmespath/go-jmespath"
   },
   {
    "display_name": "github.com/jmoiron/sqlx",
@@ -1207,7 +1195,7 @@
    "constraint": "v0.32.0",
    "evidence": [
     {
-     "locator": "L57",
+     "locator": "L56",
      "path": "go.mod"
     }
    ],
@@ -1225,7 +1213,7 @@
    "constraint": "v0.25.3",
    "evidence": [
     {
-     "locator": "L58",
+     "locator": "L57",
      "path": "go.mod"
     }
    ],
@@ -1261,7 +1249,7 @@
    "constraint": "v0.1.1",
    "evidence": [
     {
-     "locator": "L59",
+     "locator": "L58",
      "path": "go.mod"
     }
    ],
@@ -1297,7 +1285,7 @@
    "constraint": "v4.13.1",
    "evidence": [
     {
-     "locator": "L60",
+     "locator": "L59",
      "path": "go.mod"
     }
    ],
@@ -1312,28 +1300,10 @@
   },
   {
    "condition": null,
-   "constraint": "v1.55.8",
-   "evidence": [
-    {
-     "locator": "L10",
-     "path": "go.mod"
-    }
-   ],
-   "from": ".:golang",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "v1.55.8",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8#"
-  },
-  {
-   "condition": null,
    "constraint": "v1.0.1",
    "evidence": [
     {
-     "locator": "L61",
+     "locator": "L60",
      "path": "go.mod"
     }
    ],
@@ -1351,7 +1321,7 @@
    "constraint": "v0.2.3",
    "evidence": [
     {
-     "locator": "L18",
+     "locator": "L17",
      "path": "go.mod"
     }
    ],
@@ -1369,7 +1339,7 @@
    "constraint": "v1.0.0",
    "evidence": [
     {
-     "locator": "L11",
+     "locator": "L10",
      "path": "go.mod"
     }
    ],
@@ -1387,7 +1357,7 @@
    "constraint": "v1.2.0",
    "evidence": [
     {
-     "locator": "L12",
+     "locator": "L11",
      "path": "go.mod"
     }
    ],
@@ -1405,7 +1375,7 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "L115",
+     "locator": "L113",
      "path": "go.mod"
     }
    ],
@@ -1423,7 +1393,7 @@
    "constraint": "v0.1.6",
    "evidence": [
     {
-     "locator": "L13",
+     "locator": "L12",
      "path": "go.mod"
     }
    ],
@@ -1441,7 +1411,7 @@
    "constraint": "v4.3.0",
    "evidence": [
     {
-     "locator": "L62",
+     "locator": "L61",
      "path": "go.mod"
     }
    ],
@@ -1459,7 +1429,7 @@
    "constraint": "v0.0.0-20210507211836-431795d63e8d",
    "evidence": [
     {
-     "locator": "L63",
+     "locator": "L62",
      "path": "go.mod"
     }
    ],
@@ -1477,7 +1447,7 @@
    "constraint": "v2.3.0",
    "evidence": [
     {
-     "locator": "L64",
+     "locator": "L63",
      "path": "go.mod"
     }
    ],
@@ -1495,7 +1465,7 @@
    "constraint": "v0.3.1",
    "evidence": [
     {
-     "locator": "L14",
+     "locator": "L13",
      "path": "go.mod"
     }
    ],
@@ -1513,7 +1483,7 @@
    "constraint": "v2.0.7",
    "evidence": [
     {
-     "locator": "L65",
+     "locator": "L64",
      "path": "go.mod"
     }
    ],
@@ -1531,7 +1501,7 @@
    "constraint": "v1.2.1",
    "evidence": [
     {
-     "locator": "L15",
+     "locator": "L14",
      "path": "go.mod"
     }
    ],
@@ -1549,7 +1519,7 @@
    "constraint": "v1.0.1",
    "evidence": [
     {
-     "locator": "L66",
+     "locator": "L65",
      "path": "go.mod"
     }
    ],
@@ -1567,7 +1537,7 @@
    "constraint": "v0.11.1",
    "evidence": [
     {
-     "locator": "L67",
+     "locator": "L66",
      "path": "go.mod"
     }
    ],
@@ -1585,7 +1555,7 @@
    "constraint": "v1.7.0",
    "evidence": [
     {
-     "locator": "L68",
+     "locator": "L67",
      "path": "go.mod"
     }
    ],
@@ -1603,7 +1573,7 @@
    "constraint": "v0.2.0",
    "evidence": [
     {
-     "locator": "L16",
+     "locator": "L15",
      "path": "go.mod"
     }
    ],
@@ -1621,7 +1591,7 @@
    "constraint": "v1.5.8",
    "evidence": [
     {
-     "locator": "L69",
+     "locator": "L68",
      "path": "go.mod"
     }
    ],
@@ -1639,7 +1609,7 @@
    "constraint": "v3.4.15",
    "evidence": [
     {
-     "locator": "L17",
+     "locator": "L16",
      "path": "go.mod"
     }
    ],
@@ -1657,7 +1627,7 @@
    "constraint": "v1.3.0",
    "evidence": [
     {
-     "locator": "L70",
+     "locator": "L69",
      "path": "go.mod"
     }
    ],
@@ -1675,7 +1645,7 @@
    "constraint": "v0.13.1",
    "evidence": [
     {
-     "locator": "L19",
+     "locator": "L18",
      "path": "go.mod"
     }
    ],
@@ -1693,7 +1663,7 @@
    "constraint": "v0.0.4",
    "evidence": [
     {
-     "locator": "L71",
+     "locator": "L70",
      "path": "go.mod"
     }
    ],
@@ -1711,7 +1681,7 @@
    "constraint": "v1.6.0",
    "evidence": [
     {
-     "locator": "L72",
+     "locator": "L71",
      "path": "go.mod"
     }
    ],
@@ -1729,7 +1699,7 @@
    "constraint": "v1.1.0",
    "evidence": [
     {
-     "locator": "L73",
+     "locator": "L72",
      "path": "go.mod"
     }
    ],
@@ -1747,7 +1717,7 @@
    "constraint": "v1.1.1",
    "evidence": [
     {
-     "locator": "L74",
+     "locator": "L73",
      "path": "go.mod"
     }
    ],
@@ -1765,7 +1735,7 @@
    "constraint": "v2.0.7",
    "evidence": [
     {
-     "locator": "L20",
+     "locator": "L19",
      "path": "go.mod"
     }
    ],
@@ -1783,7 +1753,7 @@
    "constraint": "v1.2.0",
    "evidence": [
     {
-     "locator": "L21",
+     "locator": "L20",
      "path": "go.mod"
     }
    ],
@@ -1801,7 +1771,7 @@
    "constraint": "v1.1.0",
    "evidence": [
     {
-     "locator": "L22",
+     "locator": "L21",
      "path": "go.mod"
     }
    ],
@@ -1816,28 +1786,10 @@
   },
   {
    "condition": null,
-   "constraint": "v0.4.0",
-   "evidence": [
-    {
-     "locator": "L75",
-     "path": "go.mod"
-    }
-   ],
-   "from": ".:golang",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "v0.4.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0#"
-  },
-  {
-   "condition": null,
    "constraint": "v1.4.0",
    "evidence": [
     {
-     "locator": "L23",
+     "locator": "L22",
      "path": "go.mod"
     }
    ],
@@ -1855,7 +1807,7 @@
    "constraint": "v1.3.0",
    "evidence": [
     {
-     "locator": "L24",
+     "locator": "L23",
      "path": "go.mod"
     }
    ],
@@ -1873,7 +1825,7 @@
    "constraint": "v0.0.0-20180428030007-95032a82bc51",
    "evidence": [
     {
-     "locator": "L25",
+     "locator": "L24",
      "path": "go.mod"
     }
    ],
@@ -1891,7 +1843,7 @@
    "constraint": "v0.0.0-20240909124753-873cd0166683",
    "evidence": [
     {
-     "locator": "L76",
+     "locator": "L74",
      "path": "go.mod"
     }
    ],
@@ -1909,7 +1861,7 @@
    "constraint": "v2.5.0",
    "evidence": [
     {
-     "locator": "L26",
+     "locator": "L25",
      "path": "go.mod"
     }
    ],
@@ -1927,7 +1879,7 @@
    "constraint": "v0.0.24",
    "evidence": [
     {
-     "locator": "L77",
+     "locator": "L75",
      "path": "go.mod"
     }
    ],
@@ -1945,7 +1897,7 @@
    "constraint": "v1.14.52",
    "evidence": [
     {
-     "locator": "L27",
+     "locator": "L26",
      "path": "go.mod"
     }
    ],
@@ -1963,7 +1915,7 @@
    "constraint": "v6.12.0",
    "evidence": [
     {
-     "locator": "L78",
+     "locator": "L76",
      "path": "go.mod"
     }
    ],
@@ -1981,7 +1933,7 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "L116",
+     "locator": "L114",
      "path": "go.mod"
     }
    ],
@@ -1999,7 +1951,7 @@
    "constraint": "v6.1.0",
    "evidence": [
     {
-     "locator": "L28",
+     "locator": "L27",
      "path": "go.mod"
     }
    ],
@@ -2017,7 +1969,7 @@
    "constraint": "v0.0.0-20200214223636-26d376326b75",
    "evidence": [
     {
-     "locator": "L29",
+     "locator": "L28",
      "path": "go.mod"
     }
    ],
@@ -2035,7 +1987,7 @@
    "constraint": "v0.0.0-20191010083416-a7dc8b61c822",
    "evidence": [
     {
-     "locator": "L79",
+     "locator": "L77",
      "path": "go.mod"
     }
    ],
@@ -2053,7 +2005,7 @@
    "constraint": "v1.0.0",
    "evidence": [
     {
-     "locator": "L80",
+     "locator": "L78",
      "path": "go.mod"
     }
    ],
@@ -2071,7 +2023,7 @@
    "constraint": "v1.4.11",
    "evidence": [
     {
-     "locator": "L81",
+     "locator": "L79",
      "path": "go.mod"
     }
    ],
@@ -2089,7 +2041,7 @@
    "constraint": "v1.13.0",
    "evidence": [
     {
-     "locator": "L30",
+     "locator": "L29",
      "path": "go.mod"
     }
    ],
@@ -2107,7 +2059,7 @@
    "constraint": "v1.13.1",
    "evidence": [
     {
-     "locator": "L82",
+     "locator": "L80",
      "path": "go.mod"
     }
    ],
@@ -2125,7 +2077,7 @@
    "constraint": "v4.1.33",
    "evidence": [
     {
-     "locator": "L31",
+     "locator": "L30",
      "path": "go.mod"
     }
    ],
@@ -2143,7 +2095,7 @@
    "constraint": "v0.9.1",
    "evidence": [
     {
-     "locator": "L83",
+     "locator": "L81",
      "path": "go.mod"
     }
    ],
@@ -2161,7 +2113,7 @@
    "constraint": "v1.2.3",
    "evidence": [
     {
-     "locator": "L84",
+     "locator": "L82",
      "path": "go.mod"
     }
    ],
@@ -2179,7 +2131,7 @@
    "constraint": "v0.0.0-20260805114148-88456608a4f6",
    "evidence": [
     {
-     "locator": "L85",
+     "locator": "L83",
      "path": "go.mod"
     }
    ],
@@ -2197,7 +2149,7 @@
    "constraint": "v1.25.0",
    "evidence": [
     {
-     "locator": "L32",
+     "locator": "L31",
      "path": "go.mod"
     }
    ],
@@ -2215,7 +2167,7 @@
    "constraint": "v0.6.3",
    "evidence": [
     {
-     "locator": "L86",
+     "locator": "L84",
      "path": "go.mod"
     }
    ],
@@ -2233,7 +2185,7 @@
    "constraint": "v0.72.0",
    "evidence": [
     {
-     "locator": "L87",
+     "locator": "L85",
      "path": "go.mod"
     }
    ],
@@ -2251,7 +2203,7 @@
    "constraint": "v0.22.0",
    "evidence": [
     {
-     "locator": "L88",
+     "locator": "L86",
      "path": "go.mod"
     }
    ],
@@ -2269,7 +2221,7 @@
    "constraint": "v3.5.1",
    "evidence": [
     {
-     "locator": "L33",
+     "locator": "L32",
      "path": "go.mod"
     }
    ],
@@ -2287,7 +2239,7 @@
    "constraint": "v0.63.0",
    "evidence": [
     {
-     "locator": "L34",
+     "locator": "L33",
      "path": "go.mod"
     }
    ],
@@ -2305,7 +2257,7 @@
    "constraint": "v1.15.0",
    "evidence": [
     {
-     "locator": "L35",
+     "locator": "L34",
      "path": "go.mod"
     }
    ],
@@ -2323,7 +2275,7 @@
    "constraint": "v0.0.0-20250401214520-65e299d6c5c9",
    "evidence": [
     {
-     "locator": "L36",
+     "locator": "L35",
      "path": "go.mod"
     }
    ],
@@ -2341,7 +2293,7 @@
    "constraint": "v0.0.0-20230129092748-24d4a6f8daec",
    "evidence": [
     {
-     "locator": "L89",
+     "locator": "L87",
      "path": "go.mod"
     }
    ],
@@ -2359,7 +2311,7 @@
    "constraint": "v0.0.0-20200815045211-7d26008be1ab",
    "evidence": [
     {
-     "locator": "L90",
+     "locator": "L88",
      "path": "go.mod"
     }
    ],
@@ -2377,7 +2329,7 @@
    "constraint": "v2.1.0",
    "evidence": [
     {
-     "locator": "L91",
+     "locator": "L89",
      "path": "go.mod"
     }
    ],
@@ -2395,7 +2347,7 @@
    "constraint": "v4.26.9",
    "evidence": [
     {
-     "locator": "L37",
+     "locator": "L36",
      "path": "go.mod"
     }
    ],
@@ -2413,7 +2365,7 @@
    "constraint": "v0.0.0-20250528144937-c7027d4f7465",
    "evidence": [
     {
-     "locator": "L38",
+     "locator": "L37",
      "path": "go.mod"
     }
    ],
@@ -2431,7 +2383,7 @@
    "constraint": "v1.0.1-0.20220721030215-126854af5e6d",
    "evidence": [
     {
-     "locator": "L39",
+     "locator": "L38",
      "path": "go.mod"
     }
    ],
@@ -2449,7 +2401,7 @@
    "constraint": "v4.0.6",
    "evidence": [
     {
-     "locator": "L40",
+     "locator": "L39",
      "path": "go.mod"
     }
    ],
@@ -2467,7 +2419,7 @@
    "constraint": "v0.4.0",
    "evidence": [
     {
-     "locator": "L92",
+     "locator": "L90",
      "path": "go.mod"
     }
    ],
@@ -2485,7 +2437,7 @@
    "constraint": "v0.12.0",
    "evidence": [
     {
-     "locator": "L93",
+     "locator": "L91",
      "path": "go.mod"
     }
    ],
@@ -2503,7 +2455,7 @@
    "constraint": "v1.22.17",
    "evidence": [
     {
-     "locator": "L41",
+     "locator": "L40",
      "path": "go.mod"
     }
    ],
@@ -2521,7 +2473,7 @@
    "constraint": "v0.0.0-20160531060029-bf64b92db6b0",
    "evidence": [
     {
-     "locator": "L42",
+     "locator": "L41",
      "path": "go.mod"
     }
    ],
@@ -2539,7 +2491,7 @@
    "constraint": "v0.4.0",
    "evidence": [
     {
-     "locator": "L43",
+     "locator": "L42",
      "path": "go.mod"
     }
    ],
@@ -2557,7 +2509,7 @@
    "constraint": "v0.0.5",
    "evidence": [
     {
-     "locator": "L44",
+     "locator": "L43",
      "path": "go.mod"
     }
    ],
@@ -2575,7 +2527,7 @@
    "constraint": "v1.2.4",
    "evidence": [
     {
-     "locator": "L94",
+     "locator": "L92",
      "path": "go.mod"
     }
    ],
@@ -2593,7 +2545,7 @@
    "constraint": "v2.4.4",
    "evidence": [
     {
-     "locator": "L95",
+     "locator": "L93",
      "path": "go.mod"
     }
    ],
@@ -2611,7 +2563,7 @@
    "constraint": "v3.0.5",
    "evidence": [
     {
-     "locator": "L96",
+     "locator": "L94",
      "path": "go.mod"
     }
    ],
@@ -2626,10 +2578,10 @@
   },
   {
    "condition": null,
-   "constraint": "v0.57.0",
+   "constraint": "v0.58.0",
    "evidence": [
     {
-     "locator": "L45",
+     "locator": "L44",
      "path": "go.mod"
     }
    ],
@@ -2637,17 +2589,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "v0.57.0",
+   "resolved_version": "v0.58.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:golang/golang.org/x/crypto@v0.57.0#"
+   "to": "pkg:golang/golang.org/x/crypto@v0.58.0#"
   },
   {
    "condition": null,
    "constraint": "v0.0.0-20261007192929-f45ad48fbe92",
    "evidence": [
     {
-     "locator": "L46",
+     "locator": "L45",
      "path": "go.mod"
     }
    ],
@@ -2665,7 +2617,7 @@
    "constraint": "v0.41.0",
    "evidence": [
     {
-     "locator": "L97",
+     "locator": "L95",
      "path": "go.mod"
     }
    ],
@@ -2680,7 +2632,43 @@
   },
   {
    "condition": null,
-   "constraint": "v0.60.0",
+   "constraint": "v0.62.0",
+   "evidence": [
+    {
+     "locator": "L46",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "v0.62.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/net@v0.62.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.24.0",
+   "evidence": [
+    {
+     "locator": "L96",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "v0.24.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:golang/golang.org/x/sync@v0.24.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v0.49.0",
    "evidence": [
     {
      "locator": "L47",
@@ -2691,53 +2679,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "v0.60.0",
+   "resolved_version": "v0.49.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:golang/golang.org/x/net@v0.60.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "v0.23.0",
-   "evidence": [
-    {
-     "locator": "L98",
-     "path": "go.mod"
-    }
-   ],
-   "from": ".:golang",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "v0.23.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:golang/golang.org/x/sync@v0.23.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "v0.48.0",
-   "evidence": [
-    {
-     "locator": "L48",
-     "path": "go.mod"
-    }
-   ],
-   "from": ".:golang",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "v0.48.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:golang/golang.org/x/sys@v0.48.0#"
+   "to": "pkg:golang/golang.org/x/sys@v0.49.0#"
   },
   {
    "condition": null,
    "constraint": "v0.0.0-20260924152758-ed294f943157",
    "evidence": [
     {
-     "locator": "L99",
+     "locator": "L97",
      "path": "go.mod"
     }
    ],
@@ -2752,10 +2704,10 @@
   },
   {
    "condition": null,
-   "constraint": "v0.42.0",
+   "constraint": "v0.43.0",
    "evidence": [
     {
-     "locator": "L49",
+     "locator": "L48",
      "path": "go.mod"
     }
    ],
@@ -2763,17 +2715,17 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "v0.42.0",
+   "resolved_version": "v0.43.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:golang/golang.org/x/text@v0.42.0#"
+   "to": "pkg:golang/golang.org/x/text@v0.43.0#"
   },
   {
    "condition": null,
    "constraint": "v0.16.0",
    "evidence": [
     {
-     "locator": "L50",
+     "locator": "L49",
      "path": "go.mod"
     }
    ],
@@ -2791,7 +2743,7 @@
    "constraint": "v0.51.0",
    "evidence": [
     {
-     "locator": "L100",
+     "locator": "L98",
      "path": "go.mod"
     }
    ],
@@ -2809,7 +2761,7 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "L117",
+     "locator": "L115",
      "path": "go.mod"
     }
    ],
@@ -2827,7 +2779,7 @@
    "constraint": "v0.0.0-20260819154853-08b0e4226688",
    "evidence": [
     {
-     "locator": "L101",
+     "locator": "L99",
      "path": "go.mod"
     }
    ],
@@ -2845,7 +2797,7 @@
    "constraint": "v0.0.0-20260819154853-08b0e4226688",
    "evidence": [
     {
-     "locator": "L102",
+     "locator": "L100",
      "path": "go.mod"
     }
    ],
@@ -2863,7 +2815,7 @@
    "constraint": "v1.36.12",
    "evidence": [
     {
-     "locator": "L51",
+     "locator": "L50",
      "path": "go.mod"
     }
    ],
@@ -2881,7 +2833,7 @@
    "constraint": "v1.77.1",
    "evidence": [
     {
-     "locator": "L103",
+     "locator": "L101",
      "path": "go.mod"
     }
    ],
@@ -2899,7 +2851,7 @@
    "constraint": "v1.7.1",
    "evidence": [
     {
-     "locator": "L104",
+     "locator": "L102",
      "path": "go.mod"
     }
    ],
@@ -2917,7 +2869,7 @@
    "constraint": "v1.12.1",
    "evidence": [
     {
-     "locator": "L105",
+     "locator": "L103",
      "path": "go.mod"
     }
    ],
@@ -2935,7 +2887,7 @@
    "constraint": "v1.60.1",
    "evidence": [
     {
-     "locator": "L52",
+     "locator": "L51",
      "path": "go.mod"
     }
    ],
@@ -2953,7 +2905,7 @@
    "constraint": "v1.6.0",
    "evidence": [
     {
-     "locator": "L53",
+     "locator": "L52",
      "path": "go.mod"
     }
    ],
@@ -3025,11 +2977,11 @@
    "path": "android/syncthing/build.gradle.kts"
   },
   {
-   "blob": "3f5286161bb8702dac0806cfb64b63757ec26d1d",
+   "blob": "a8f03cb6edf5714e82ea47c824bf25dde64ecc78",
    "path": "go.mod"
   },
   {
-   "blob": "974dfbc2bf798c6b7ec9626ae95559317903f993",
+   "blob": "fc7e9d4d84af15da1ef68b5b04a7cebf9e20a430",
    "path": "go.sum"
   },
   {
@@ -3037,7 +2989,7 @@
    "path": "gui/default/vendor/HumanizeDuration.js/Makefile"
   }
  ],
- "inputs_fingerprint": "86885fe63500223d4b6f769ad747c131a9becdcb8412115718420d9a258587c0",
+ "inputs_fingerprint": "7380629e06598c5521c5b4de9796e0a8ae64505fde1a17e2f9102f5f8665b715",
  "instances": [
   {
    "commit": null,
@@ -3311,19 +3263,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "v4.13.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:golang/github.com/aws/aws-sdk-go",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8#",
-   "purl": "pkg:golang/github.com/aws/aws-sdk-go@v1.55.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "v1.55.8"
   },
   {
    "commit": null,
@@ -3662,19 +3601,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "v1.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:golang/github.com/jmespath/go-jmespath",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0#",
-   "purl": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "v0.4.0"
   },
   {
    "commit": null,
@@ -4240,13 +4166,13 @@
    "component": "pkg:golang/golang.org/x/crypto",
    "context": "",
    "first_party": false,
-   "id": "pkg:golang/golang.org/x/crypto@v0.57.0#",
-   "purl": "pkg:golang/golang.org/x/crypto@v0.57.0",
+   "id": "pkg:golang/golang.org/x/crypto@v0.58.0#",
+   "purl": "pkg:golang/golang.org/x/crypto@v0.58.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "v0.57.0"
+   "version": "v0.58.0"
   },
   {
    "commit": null,
@@ -4279,39 +4205,39 @@
    "component": "pkg:golang/golang.org/x/net",
    "context": "",
    "first_party": false,
-   "id": "pkg:golang/golang.org/x/net@v0.60.0#",
-   "purl": "pkg:golang/golang.org/x/net@v0.60.0",
+   "id": "pkg:golang/golang.org/x/net@v0.62.0#",
+   "purl": "pkg:golang/golang.org/x/net@v0.62.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "v0.60.0"
+   "version": "v0.62.0"
   },
   {
    "commit": null,
    "component": "pkg:golang/golang.org/x/sync",
    "context": "",
    "first_party": false,
-   "id": "pkg:golang/golang.org/x/sync@v0.23.0#",
-   "purl": "pkg:golang/golang.org/x/sync@v0.23.0",
+   "id": "pkg:golang/golang.org/x/sync@v0.24.0#",
+   "purl": "pkg:golang/golang.org/x/sync@v0.24.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "v0.23.0"
+   "version": "v0.24.0"
   },
   {
    "commit": null,
    "component": "pkg:golang/golang.org/x/sys",
    "context": "",
    "first_party": false,
-   "id": "pkg:golang/golang.org/x/sys@v0.48.0#",
-   "purl": "pkg:golang/golang.org/x/sys@v0.48.0",
+   "id": "pkg:golang/golang.org/x/sys@v0.49.0#",
+   "purl": "pkg:golang/golang.org/x/sys@v0.49.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "v0.48.0"
+   "version": "v0.49.0"
   },
   {
    "commit": null,
@@ -4331,13 +4257,13 @@
    "component": "pkg:golang/golang.org/x/text",
    "context": "",
    "first_party": false,
-   "id": "pkg:golang/golang.org/x/text@v0.42.0#",
-   "purl": "pkg:golang/golang.org/x/text@v0.42.0",
+   "id": "pkg:golang/golang.org/x/text@v0.43.0#",
+   "purl": "pkg:golang/golang.org/x/text@v0.43.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "v0.42.0"
+   "version": "v0.43.0"
   },
   {
    "commit": null,

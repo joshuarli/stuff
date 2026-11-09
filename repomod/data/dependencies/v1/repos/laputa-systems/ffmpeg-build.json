@@ -55,6 +55,12 @@
    "purl": "pkg:apk/libdrm-dev"
   },
   {
+   "display_name": "libva",
+   "ecosystem": "apk",
+   "name": "libva",
+   "purl": "pkg:apk/libva"
+  },
+  {
    "display_name": "libva-dev",
    "ecosystem": "apk",
    "name": "libva-dev",
@@ -121,6 +127,12 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A42d86a3173522de4786cfba0b5d631dbadb3d03a86d218dafb070dafd9809c7e"
   },
   {
+   "display_name": "ffmpeg-build",
+   "ecosystem": "generic",
+   "name": "ffmpeg-build",
+   "purl": "pkg:generic/ffmpeg-build"
+  },
+  {
    "display_name": "actions/cache",
    "ecosystem": "github",
    "name": "actions/cache",
@@ -143,6 +155,24 @@
    "ecosystem": "github",
    "name": "actions/upload-artifact",
    "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": "ruff",
+   "ecosystem": "pypi",
+   "name": "ruff",
+   "purl": "pkg:pypi/ruff"
+  },
+  {
+   "display_name": "ty",
+   "ecosystem": "pypi",
+   "name": "ty",
+   "purl": "pkg:pypi/ty"
+  },
+  {
+   "display_name": "uv",
+   "ecosystem": "pypi",
+   "name": "uv",
+   "purl": "pkg:pypi/uv"
   }
  ],
  "edges": [
@@ -525,6 +555,72 @@
    "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
   },
   {
+   "condition": "group == 'dev'",
+   "constraint": "==0.17.4",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=ffmpeg-build,version=0.1.0].dev-dependencies.dev[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.17.4",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ruff@0.17.4#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.0.99",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=ffmpeg-build,version=0.1.0].dev-dependencies.dev[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.0.99",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ty@0.0.99#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.13.7",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=ffmpeg-build,version=0.1.0].dev-dependencies.dev[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.13.7",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uv@0.13.7#"
+  },
+  {
    "condition": null,
    "constraint": null,
    "evidence": [
@@ -763,6 +859,24 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "L20",
+     "path": "docker/Dockerfile"
+    }
+   ],
+   "from": "docker:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/libva#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "L6",
      "path": "docker/Dockerfile"
     }
@@ -995,15 +1109,23 @@
  ],
  "inputs": [
   {
-   "blob": "9b9c04ec089be804daeec86994d6b9b7185545d5",
+   "blob": "15902b29cd3ecf741dd03d1ea19dc820ef5464a3",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "5bad0ab8ce880f91a51a182ec773b3fea85d577a",
+   "blob": "f470839545b9a2030ad7dbd7396c5479a369f6cd",
    "path": "docker/Dockerfile"
+  },
+  {
+   "blob": "7dbc57d14e060756de854b58465db3961fc29f12",
+   "path": "pyproject.toml"
+  },
+  {
+   "blob": "40fbefd98df9908d0441df4ae5048a1dbcb7332e",
+   "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "224b1eb6cf73d0a8fd21396c621a60009abba58c97707def15328474d43094aa",
+ "inputs_fingerprint": "924e76c50bad591a6cbfc6a081de5ad607fdd59d4d34e3ec1815157f4b7d7ad7",
  "instances": [
   {
    "commit": null,
@@ -1116,6 +1238,19 @@
    "first_party": false,
    "id": "pkg:apk/libdrm-dev#",
    "purl": "pkg:apk/libdrm-dev",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/libva",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/libva#",
+   "purl": "pkg:apk/libva",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
@@ -1266,6 +1401,19 @@
    "version": null
   },
   {
+   "commit": null,
+   "component": "pkg:generic/ffmpeg-build",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/ffmpeg-build@0.1.0#",
+   "purl": "pkg:generic/ffmpeg-build@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
    "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
    "component": "pkg:github/actions/cache",
    "context": "",
@@ -1316,6 +1464,45 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/actions/upload-artifact",
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ruff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.0.99"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.7"
   }
  ],
  "issues": [
@@ -1343,6 +1530,11 @@
    "directory": ".",
    "ecosystem": "generic",
    "id": ".:generic"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "pypi",
+   "id": ".:pypi"
   },
   {
    "directory": "docker",

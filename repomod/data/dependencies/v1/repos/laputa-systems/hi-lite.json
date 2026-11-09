@@ -205,6 +205,12 @@
    "purl": "pkg:cargo/regex-syntax"
   },
   {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
+  },
+  {
    "display_name": "rustybench",
    "ecosystem": "cargo",
    "name": "rustybench",
@@ -383,7 +389,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-hi-lite,version=0.3.0].dependencies[0]",
+     "locator": "package[name=laputa-hi-lite,version=0.4.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -398,6 +404,28 @@
   },
   {
    "condition": null,
+   "constraint": "2",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.rustc-hash",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hi-lite,version=0.4.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
    "constraint": "0.4",
    "evidence": [
     {
@@ -405,7 +433,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-hi-lite,version=0.3.0].dependencies[1]",
+     "locator": "package[name=laputa-hi-lite,version=0.4.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -427,7 +455,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-hi-lite,version=0.3.0].dependencies[2]",
+     "locator": "package[name=laputa-hi-lite,version=0.4.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2039,11 +2067,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "312209e166478d7d0b2b713705efcfe3e5c10b87",
+   "blob": "33af4bd112620c9256162a954dd1cab3a486cd9d",
    "path": "Cargo.lock"
   },
   {
-   "blob": "c7da20763cf196b08c0847bf1aac11d6ee0e91d1",
+   "blob": "7d5bedcc6e3455d64314f0971af2694b1448d71e",
    "path": "Cargo.toml"
   },
   {
@@ -2063,7 +2091,7 @@
    "path": "tools/hi-lite-syntect/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "57a686c1416cc59fb11afed88ff329a2c45a879fefa799790054c62deba4a85b",
+ "inputs_fingerprint": "6d934714ee389f75448c502f4cc91f60be87304caf434f8170ec1e18736ff1ce",
  "instances": [
   {
    "commit": null,
@@ -2509,6 +2537,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/rustybench-macros",
    "context": "",
    "first_party": false,
@@ -2850,13 +2891,13 @@
    "component": "pkg:generic/laputa-hi-lite",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/laputa-hi-lite@0.3.0#",
-   "purl": "pkg:generic/laputa-hi-lite@0.3.0",
+   "id": "pkg:generic/laputa-hi-lite@0.4.0#",
+   "purl": "pkg:generic/laputa-hi-lite@0.4.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "path",
    "vcs_url": null,
-   "version": "0.3.0"
+   "version": "0.4.0"
   },
   {
    "commit": null,

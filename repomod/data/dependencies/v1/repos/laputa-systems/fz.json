@@ -277,11 +277,11 @@
    "to": "pkg:cargo/laputa-ptytest@0.3.0#"
   },
   {
-   "condition": "cfg(target_os = \"linux\")",
+   "condition": "cfg(any(target_os = \"linux\", target_os = \"macos\"))",
    "constraint": "0.2",
    "evidence": [
     {
-     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.libc",
+     "locator": "target.'cfg(any(target_os = \"linux\", target_os = \"macos\"))'.dependencies.libc",
      "path": "Cargo.toml"
     },
     {
@@ -488,7 +488,7 @@
   },
   {
    "condition": null,
-   "constraint": "2026e-r0",
+   "constraint": "2026f-r0",
    "evidence": [
     {
      "locator": "L13",
@@ -499,10 +499,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2026e-r0",
+   "resolved_version": "2026f-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/tzdata@2026e-r0#"
+   "to": "pkg:apk/tzdata@2026f-r0#"
   },
   {
    "condition": null,
@@ -1225,11 +1225,11 @@
    "path": "Cargo.lock"
   },
   {
-   "blob": "39630cdb433a34affc03d8bd2a13a77b0f3b0568",
+   "blob": "2d3f05b8c5b4f9ca25f24b9d50d49f2f98cd2dde",
    "path": "Cargo.toml"
   },
   {
-   "blob": "6717d4448b103fe23d36af442134f7dfd09bf2b6",
+   "blob": "a97f087283ac951ad049174f940157b410f8efef",
    "path": "Dockerfile"
   },
   {
@@ -1241,7 +1241,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "af7e9061bed89e5d4e0fb231558cbeb5b793b87826d1468bb6f99d68ce2d94b1",
+ "inputs_fingerprint": "210479422c1dc1556c5e447ef539347b5ce561be3e6f244b453eb8d1eb8f2cc6",
  "instances": [
   {
    "commit": null,
@@ -1352,13 +1352,13 @@
    "component": "pkg:apk/tzdata",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/tzdata@2026e-r0#",
-   "purl": "pkg:apk/tzdata@2026e-r0",
+   "id": "pkg:apk/tzdata@2026f-r0#",
+   "purl": "pkg:apk/tzdata@2026f-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2026e-r0"
+   "version": "2026f-r0"
   },
   {
    "commit": null,

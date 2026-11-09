@@ -496,7 +496,7 @@
   },
   {
    "condition": null,
-   "constraint": "v10.3.2",
+   "constraint": "v10.3.3",
    "evidence": [
     {
      "locator": "jobs.lint.steps[1].uses",
@@ -507,14 +507,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.17.2",
+   "constraint": "==0.17.4",
    "evidence": [
     {
      "locator": "dependency-groups.dev[0]",
@@ -529,14 +529,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.17.2",
+   "resolved_version": "0.17.4",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ruff@0.17.2#"
+   "to": "pkg:pypi/ruff@0.17.4#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.91",
+   "constraint": "==0.0.99",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -551,14 +551,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.91",
+   "resolved_version": "0.0.99",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.91#"
+   "to": "pkg:pypi/ty@0.0.99#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.13.5",
+   "constraint": "==0.13.7",
    "evidence": [
     {
      "locator": "dependency-groups.dev[2]",
@@ -573,19 +573,19 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.5",
+   "resolved_version": "0.13.7",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/uv@0.13.5#"
+   "to": "pkg:pypi/uv@0.13.7#"
   }
  ],
  "inputs": [
   {
-   "blob": "f12920228c7d6548dbe97d3071d358e59e476f0f",
+   "blob": "264100780aac03294f810b248b1141571971db55",
    "path": ".github/workflows/build.yml"
   },
   {
-   "blob": "dabb6b60aab35720fcd3e595a05b644c67625289",
+   "blob": "dd4a5816923959c983f777a971b614fa8dbcb161",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -593,15 +593,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "a5d2ac23c39909514afc133cb31742a9f14c1025",
+   "blob": "38aa0bf2786999ba496777919494b0bd5ffa060d",
    "path": "pyproject.toml"
   },
   {
-   "blob": "7a948993b867dc3cc32ceefb5bded18875dfea04",
+   "blob": "686d55ea857a2e71a28f66c66b12650fcc776f28",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "036e2e022884e8cdb97f35019187e9546986b796c384243371032dc445e8e435",
+ "inputs_fingerprint": "6c571072a57c6fb133110944f38a3fc4206ed66ab4b8bbf9ecff099f1cbdebcc",
  "instances": [
   {
    "commit": null,
@@ -682,56 +682,56 @@
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
   },
   {
-   "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "component": "pkg:github/astral-sh/setup-uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#",
-   "purl": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
-   "version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ruff",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ruff@0.17.2#",
-   "purl": "pkg:pypi/ruff@0.17.2",
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.2"
+   "version": "0.17.4"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.91#",
-   "purl": "pkg:pypi/ty@0.0.91",
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.91"
+   "version": "0.0.99"
   },
   {
    "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/uv@0.13.5#",
-   "purl": "pkg:pypi/uv@0.13.5",
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.5"
+   "version": "0.13.7"
   }
  ],
  "issues": [

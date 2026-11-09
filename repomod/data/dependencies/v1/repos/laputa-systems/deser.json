@@ -625,24 +625,6 @@
    "constraint": "v3",
    "evidence": [
     {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/rustfmt.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
      "locator": "jobs.test-latest.steps[0].uses",
      "path": ".github/workflows/tests.yml"
     }
@@ -787,6 +769,24 @@
    "constraint": "v10.3.2",
    "evidence": [
     {
+     "locator": "jobs.build.steps[2].uses",
+     "path": ".github/workflows/clippy.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2",
+   "evidence": [
+    {
      "locator": "jobs.lint.steps[1].uses",
      "path": ".github/workflows/lint.yml"
     }
@@ -843,24 +843,6 @@
     {
      "locator": "jobs.publish.steps[1].uses",
      "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[1].uses",
-     "path": ".github/workflows/rustfmt.yml"
     }
    ],
    "from": ".:generic",
@@ -964,7 +946,7 @@
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.17.2",
+   "constraint": "==0.17.4",
    "evidence": [
     {
      "locator": "dependency-groups.dev[0]",
@@ -979,14 +961,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.17.2",
+   "resolved_version": "0.17.4",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ruff@0.17.2#"
+   "to": "pkg:pypi/ruff@0.17.4#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.91",
+   "constraint": "==0.0.99",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -1001,14 +983,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.91",
+   "resolved_version": "0.0.99",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.91#"
+   "to": "pkg:pypi/ty@0.0.99#"
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.13.5",
+   "constraint": "==0.13.7",
    "evidence": [
     {
      "locator": "dependency-groups.dev[2]",
@@ -1023,10 +1005,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.5",
+   "resolved_version": "0.13.7",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/uv@0.13.5#"
+   "to": "pkg:pypi/uv@0.13.7#"
   },
   {
    "condition": null,
@@ -8141,7 +8123,7 @@
  ],
  "inputs": [
   {
-   "blob": "701106701293c99ef755b1e24374b63e4ae6cc1d",
+   "blob": "1f46fcfae93ed1c789e775e1aeae7cb9ea5dac5b",
    "path": ".github/workflows/clippy.yml"
   },
   {
@@ -8157,10 +8139,6 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "15a0a132d60a81862176950879c8e4d4081dc8fd",
-   "path": ".github/workflows/rustfmt.yml"
-  },
-  {
    "blob": "62e5174ae3bd582ff329b4ac6683f490d0685c32",
    "path": ".github/workflows/tests.yml"
   },
@@ -8169,7 +8147,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "a82e6bbd6853796c66a7438e357debff4d30c490",
+   "blob": "f94909cc86f2231eefefeacd4b28607e750c1da3",
    "path": "Makefile"
   },
   {
@@ -8481,7 +8459,7 @@
    "path": "fuzz/Cargo.toml"
   },
   {
-   "blob": "448bab078e25d1dc3358a2ab9d5d8f704ca60c75",
+   "blob": "aa94467268e2c1731c7e676dadef5e8a376ddc97",
    "path": "pyproject.toml"
   },
   {
@@ -8489,11 +8467,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "5843c59bdfa23b92bc198b7e37b3344457be2201",
+   "blob": "2f7aa9a45cf11e8cc5dc2cc5bb7474aff6090305",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "41ad22728ab90d12131b53b486b7f0310137ddd13f972b7f45344ae88b97d0e8",
+ "inputs_fingerprint": "e6306c9132343a0900cf2c75382273730f47e1d15840988e58dbaae2ccf0450b",
  "instances": [
   {
    "commit": null,
@@ -9670,39 +9648,39 @@
    "component": "pkg:pypi/ruff",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ruff@0.17.2#",
-   "purl": "pkg:pypi/ruff@0.17.2",
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
    "registry_url": "https://pypi.org/simple",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.2"
+   "version": "0.17.4"
   },
   {
    "commit": null,
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.91#",
-   "purl": "pkg:pypi/ty@0.0.91",
+   "id": "pkg:pypi/ty@0.0.99#",
+   "purl": "pkg:pypi/ty@0.0.99",
    "registry_url": "https://pypi.org/simple",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.91"
+   "version": "0.0.99"
   },
   {
    "commit": null,
    "component": "pkg:pypi/uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/uv@0.13.5#",
-   "purl": "pkg:pypi/uv@0.13.5",
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
    "registry_url": "https://pypi.org/simple",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.5"
+   "version": "0.13.7"
   }
  ],
  "issues": [

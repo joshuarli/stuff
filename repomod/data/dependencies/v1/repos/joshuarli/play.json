@@ -571,6 +571,12 @@
    "purl": "pkg:cargo/ruopus"
   },
   {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
+  },
+  {
    "display_name": "rustfft",
    "ecosystem": "cargo",
    "name": "rustfft",
@@ -1109,7 +1115,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[0]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -1131,7 +1137,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[1]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -1153,7 +1159,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[2]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -1175,7 +1181,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[3]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -1197,7 +1203,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[4]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1219,7 +1225,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[5]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1241,7 +1247,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[6]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -1263,7 +1269,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[7]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1285,7 +1291,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[8]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -1307,7 +1313,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.42.2].dependencies[9]",
+     "locator": "package[name=player-app,version=0.43.1].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -1476,7 +1482,29 @@
   },
   {
    "condition": null,
-   "constraint": "=1.11.0",
+   "constraint": "2",
+   "evidence": [
+    {
+     "locator": "dependencies.rustc-hash",
+     "path": "crates/player-build/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-build,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-build:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
+   "constraint": "=1.11.1",
    "evidence": [
     {
      "locator": "build-dependencies.cc",
@@ -1491,10 +1519,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.11.0",
+   "resolved_version": "1.11.1",
    "scope": "build",
    "source_kind": "registry",
-   "to": "pkg:cargo/cc@1.11.0#"
+   "to": "pkg:cargo/cc@1.11.1#"
   },
   {
    "condition": "cfg(target_os = \"linux\")",
@@ -1711,10 +1739,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.42.2",
+   "resolved_version": "0.43.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-app@0.42.2#"
+   "to": "pkg:generic/player-app@0.43.1#"
   },
   {
    "condition": null,
@@ -1806,6 +1834,28 @@
   },
   {
    "condition": "cfg(target_os = \"linux\")",
+   "constraint": "2",
+   "evidence": [
+    {
+     "locator": "target.'cfg(target_os = \"linux\")'.dependencies.rustc-hash",
+     "path": "crates/player-overlay/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-overlay,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-overlay:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": "cfg(target_os = \"linux\")",
    "constraint": "0.3.18",
    "evidence": [
     {
@@ -1813,7 +1863,7 @@
      "path": "crates/player-overlay/Cargo.toml"
     },
     {
-     "locator": "package[name=player-overlay,version=0.1.0].dependencies[0]",
+     "locator": "package[name=player-overlay,version=0.1.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -1835,7 +1885,7 @@
      "path": "crates/player-overlay/Cargo.toml"
     },
     {
-     "locator": "package[name=player-overlay,version=0.1.0].dependencies[1]",
+     "locator": "package[name=player-overlay,version=0.1.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -1850,7 +1900,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.22",
+   "constraint": "0.23",
    "evidence": [
     {
      "locator": "dependencies.base64",
@@ -1865,10 +1915,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.22.1",
+   "resolved_version": "0.23.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/base64@0.22.1#"
+   "to": "pkg:cargo/base64@0.23.1#"
   },
   {
    "condition": null,
@@ -1916,7 +1966,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.3",
+   "constraint": "0.4",
    "evidence": [
     {
      "locator": "dependencies.signal-hook",
@@ -1931,10 +1981,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.3.18",
+   "resolved_version": "0.4.6",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/signal-hook@0.3.18#"
+   "to": "pkg:cargo/signal-hook@0.4.6#"
   },
   {
    "condition": null,
@@ -1978,7 +2028,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "5.3.9-r2",
    "evidence": [
     {
      "locator": "L3",
@@ -1988,15 +2038,15 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "5.3.9-r2",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/bash#"
+   "to": "pkg:apk/bash@5.3.9-r2#"
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "0.5-r4",
    "evidence": [
     {
      "locator": "L3",
@@ -2006,11 +2056,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.5-r4",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/build-base#"
+   "to": "pkg:apk/build-base@0.5-r4#"
   },
   {
    "condition": null,
@@ -2068,7 +2118,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "9.11-r2",
    "evidence": [
     {
      "locator": "L3",
@@ -2078,15 +2128,15 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "9.11-r2",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/coreutils#"
+   "to": "pkg:apk/coreutils@9.11-r2#"
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "8.23.0-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2096,11 +2146,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "8.23.0-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/curl#"
+   "to": "pkg:apk/curl@8.23.0-r0#"
   },
   {
    "condition": null,
@@ -2140,7 +2190,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "5.48-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2150,11 +2200,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "5.48-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/file#"
+   "to": "pkg:apk/file@5.48-r0#"
   },
   {
    "condition": null,
@@ -2374,7 +2424,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "2.56.0-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2384,11 +2434,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.56.0-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git#"
+   "to": "pkg:apk/git@2.56.0-r0#"
   },
   {
    "condition": null,
@@ -2464,7 +2514,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "7.2.1-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2474,11 +2524,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "7.2.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/linux-headers#"
+   "to": "pkg:apk/linux-headers@7.2.1-r0#"
   },
   {
    "condition": null,
@@ -2572,7 +2622,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "5.44.0-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2582,15 +2632,15 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "5.44.0-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/perl#"
+   "to": "pkg:apk/perl@5.44.0-r0#"
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "3.0.10-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2600,15 +2650,15 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "3.0.10-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/pkgconf#"
+   "to": "pkg:apk/pkgconf@3.0.10-r0#"
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "3.14.10-r1",
    "evidence": [
     {
      "locator": "L3",
@@ -2618,11 +2668,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "3.14.10-r1",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/python3#"
+   "to": "pkg:apk/python3@3.14.10-r1#"
   },
   {
    "condition": null,
@@ -2680,7 +2730,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "1.35-r5",
    "evidence": [
     {
      "locator": "L3",
@@ -2690,11 +2740,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.35-r5",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/tar#"
+   "to": "pkg:apk/tar@1.35-r5#"
   },
   {
    "condition": null,
@@ -2878,7 +2928,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
+   "constraint": "5.8.4-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2888,11 +2938,11 @@
    "from": "docker/linux:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "5.8.4-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/xz#"
+   "to": "pkg:apk/xz@5.8.4-r0#"
   },
   {
    "condition": null,
@@ -2917,11 +2967,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=cc,version=1.11.0].dependencies[0]",
+     "locator": "package[name=cc,version=1.11.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/cc@1.11.0#",
+   "from": "pkg:cargo/cc@1.11.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2935,11 +2985,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=cc,version=1.11.0].dependencies[1]",
+     "locator": "package[name=cc,version=1.11.1].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/cc@1.11.0#",
+   "from": "pkg:cargo/cc@1.11.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3871,6 +3921,42 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=signal-hook,version=0.4.6].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/signal-hook@0.4.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.191",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=signal-hook,version=0.4.6].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/signal-hook@0.4.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.4.8",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/signal-hook-registry@1.4.8#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=transpose,version=0.2.3].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -3915,10 +4001,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.11.0",
+   "resolved_version": "1.11.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/cc@1.11.0#"
+   "to": "pkg:cargo/cc@1.11.1#"
   },
   {
    "condition": null,
@@ -6015,7 +6101,7 @@
    "path": ".github/workflows/linux.yml"
   },
   {
-   "blob": "94d92b2b93d3729a041b10e8c04cd0e5354c79d5",
+   "blob": "d93a98c1baac0635f8f1dfb6859408450f74a0fd",
    "path": ".github/workflows/macos.yml"
   },
   {
@@ -6023,7 +6109,7 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "5bffe893c7c38859cb81de7a7dd7fcdccf751e88",
+   "blob": "484119a4259358803d64b9a69f6f2dcd3d13f73f",
    "path": "Cargo.lock"
   },
   {
@@ -6031,11 +6117,11 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "90262fbe1a3f2ea5422775bcc5032f0f35d361ae",
+   "blob": "3722332152cea8a3dfcd45a54b45a95b3b93333e",
    "path": "Makefile"
   },
   {
-   "blob": "3dac83d5d88976adad6390193194c8260654eae8",
+   "blob": "a9398c2ed219be6a3797432ffe39e8b19987a0b6",
    "path": "crates/player-app/Cargo.toml"
   },
   {
@@ -6047,7 +6133,7 @@
    "path": "crates/player-backend/Cargo.toml"
   },
   {
-   "blob": "a7fccc8e8f9024324e93c3ec0a317ee5b22c8b04",
+   "blob": "71d5b16e5b109df3d1fd029414e44451df24d50a",
    "path": "crates/player-build/Cargo.toml"
   },
   {
@@ -6055,7 +6141,7 @@
    "path": "crates/player-core/Cargo.toml"
   },
   {
-   "blob": "adf7284c4a0c60de6effc6b7094ae83ef27204a6",
+   "blob": "d6662f3ce5e9d7f99656c19689b5e318a56364b7",
    "path": "crates/player-display/Cargo.toml"
   },
   {
@@ -6075,15 +6161,15 @@
    "path": "crates/player-output/Cargo.toml"
   },
   {
-   "blob": "18a874b95a77abfcc5c99d6630b2ac11bbf4e9e5",
+   "blob": "847ba11393fb138d9aa65f2b39edc1894a83ed7e",
    "path": "crates/player-overlay/Cargo.toml"
   },
   {
-   "blob": "9eb51b06d7515188628d3bc1702290fb620673f0",
+   "blob": "08f0ade55e00f8d1638b434eee54ef2f4c2ab076",
    "path": "crates/player-tui/Cargo.toml"
   },
   {
-   "blob": "ba2840d073313ae0b684580e9073ff3db6609f8c",
+   "blob": "6f444253b84d6cf7358522358c64d591da4e470a",
    "path": "docker/linux/Dockerfile"
   },
   {
@@ -6191,7 +6277,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "cecb1ebfa04ea7f8236cdea6622e34c86d2363630b68497f072e610239981b06",
+ "inputs_fingerprint": "ee48bc00e64b736d85c5ffc3c36bd71ef9bd85e28ac35afa811fd9e2dd1d75c1",
  "instances": [
   {
    "commit": null,
@@ -6211,26 +6297,26 @@
    "component": "pkg:apk/bash",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/bash#",
-   "purl": "pkg:apk/bash",
+   "id": "pkg:apk/bash@5.3.9-r2#",
+   "purl": "pkg:apk/bash@5.3.9-r2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "5.3.9-r2"
   },
   {
    "commit": null,
    "component": "pkg:apk/build-base",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/build-base#",
-   "purl": "pkg:apk/build-base",
+   "id": "pkg:apk/build-base@0.5-r4#",
+   "purl": "pkg:apk/build-base@0.5-r4",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "0.5-r4"
   },
   {
    "commit": null,
@@ -6276,26 +6362,26 @@
    "component": "pkg:apk/coreutils",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/coreutils#",
-   "purl": "pkg:apk/coreutils",
+   "id": "pkg:apk/coreutils@9.11-r2#",
+   "purl": "pkg:apk/coreutils@9.11-r2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "9.11-r2"
   },
   {
    "commit": null,
    "component": "pkg:apk/curl",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/curl#",
-   "purl": "pkg:apk/curl",
+   "id": "pkg:apk/curl@8.23.0-r0#",
+   "purl": "pkg:apk/curl@8.23.0-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "8.23.0-r0"
   },
   {
    "commit": null,
@@ -6328,13 +6414,13 @@
    "component": "pkg:apk/file",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/file#",
-   "purl": "pkg:apk/file",
+   "id": "pkg:apk/file@5.48-r0#",
+   "purl": "pkg:apk/file@5.48-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "5.48-r0"
   },
   {
    "commit": null,
@@ -6497,13 +6583,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git#",
-   "purl": "pkg:apk/git",
+   "id": "pkg:apk/git@2.56.0-r0#",
+   "purl": "pkg:apk/git@2.56.0-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "2.56.0-r0"
   },
   {
    "commit": null,
@@ -6562,13 +6648,13 @@
    "component": "pkg:apk/linux-headers",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/linux-headers#",
-   "purl": "pkg:apk/linux-headers",
+   "id": "pkg:apk/linux-headers@7.2.1-r0#",
+   "purl": "pkg:apk/linux-headers@7.2.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "7.2.1-r0"
   },
   {
    "commit": null,
@@ -6640,39 +6726,39 @@
    "component": "pkg:apk/perl",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/perl#",
-   "purl": "pkg:apk/perl",
+   "id": "pkg:apk/perl@5.44.0-r0#",
+   "purl": "pkg:apk/perl@5.44.0-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "5.44.0-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/pkgconf",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/pkgconf#",
-   "purl": "pkg:apk/pkgconf",
+   "id": "pkg:apk/pkgconf@3.0.10-r0#",
+   "purl": "pkg:apk/pkgconf@3.0.10-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "3.0.10-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/python3",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/python3#",
-   "purl": "pkg:apk/python3",
+   "id": "pkg:apk/python3@3.14.10-r1#",
+   "purl": "pkg:apk/python3@3.14.10-r1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "3.14.10-r1"
   },
   {
    "commit": null,
@@ -6718,13 +6804,13 @@
    "component": "pkg:apk/tar",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/tar#",
-   "purl": "pkg:apk/tar",
+   "id": "pkg:apk/tar@1.35-r5#",
+   "purl": "pkg:apk/tar@1.35-r5",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "1.35-r5"
   },
   {
    "commit": null,
@@ -6861,13 +6947,13 @@
    "component": "pkg:apk/xz",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/xz#",
-   "purl": "pkg:apk/xz",
+   "id": "pkg:apk/xz@5.8.4-r0#",
+   "purl": "pkg:apk/xz@5.8.4-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "5.8.4-r0"
   },
   {
    "commit": null,
@@ -6887,13 +6973,13 @@
    "component": "pkg:cargo/base64",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/base64@0.22.1#",
-   "purl": "pkg:cargo/base64@0.22.1",
+   "id": "pkg:cargo/base64@0.23.1#",
+   "purl": "pkg:cargo/base64@0.23.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.22.1"
+   "version": "0.23.1"
   },
   {
    "commit": null,
@@ -6952,13 +7038,13 @@
    "component": "pkg:cargo/cc",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/cc@1.11.0#",
-   "purl": "pkg:cargo/cc@1.11.0",
+   "id": "pkg:cargo/cc@1.11.1#",
+   "purl": "pkg:cargo/cc@1.11.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.11.0"
+   "version": "1.11.1"
   },
   {
    "commit": null,
@@ -7521,6 +7607,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/rustfft",
    "context": "",
    "first_party": false,
@@ -7635,6 +7734,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.18"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/signal-hook",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/signal-hook@0.4.6#",
+   "purl": "pkg:cargo/signal-hook@0.4.6",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.4.6"
   },
   {
    "commit": null,
@@ -7901,13 +8013,13 @@
    "component": "pkg:generic/player-app",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/player-app@0.42.2#",
-   "purl": "pkg:generic/player-app@0.42.2",
+   "id": "pkg:generic/player-app@0.43.1#",
+   "purl": "pkg:generic/player-app@0.43.1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.42.2"
+   "version": "0.43.1"
   },
   {
    "commit": null,
