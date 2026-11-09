@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 64
+Next: 65
 
 ### STUF-45 · P2 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -10,6 +10,15 @@ Next: 64
 - **Blocked:** `--require-build-hashes` without a hash-pinned build-constraints file fails every build (`Hash-checking is required, but no trusted hash was provided for: setuptools`), so turning it on needs a maintained constraints file; macOS isolation needs an owner decision on a credential-free user or account. Unblock: supply the constraints file and the account decision.
 - **Fix with:** security
 - **Effort:** S
+
+### STUF-64 · P2 · First-party crates whose dependencies are other new first-party crates cannot publish to mycrates
+
+- **Area:** Publish
+- **Where:** `crates/stuff/src/publish/cargo/run.rs`, h12tiny's `Makefile` (`publish-mycrates`)
+- **Problem:** `stuff publish cargo --registry mycrates` runs `cargo publish`, whose verification resolves the crate's registry dependencies through the `stuff` source that replaces crates.io. A release that publishes several interdependent crates to crates.io and then to mycrates fails at the first crate that depends on another new one: on 2026-11-08, `h12tiny-client-sync` 0.9.0 failed because the mirror offered only `h12tiny-client-normalize` 0.7.0 and 0.4.0, although 0.9.0 was on crates.io and already in mycrates. There is no `stuff` command to import one new crates.io version into the mirror. Retrying the crates that did publish fails with 409 Conflict ("already exists with different checksum"), because repackaging from a later commit changes `.cargo_vcs_info.json`, so a partial publish cannot be resumed.
+- **Recommendation:** Let a cargo publish resolve dependencies first against the crates being published in the same run (or mycrates) before the mirror, or add a command that imports named crates.io versions into the mirror. Treat a byte-different republish of an existing version from the same release as already published instead of a conflict, or pin packaging to the release commit.
+- **Fix with:** architect
+- **Effort:** M
 
 ### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
 
