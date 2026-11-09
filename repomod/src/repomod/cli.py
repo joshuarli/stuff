@@ -15,6 +15,7 @@ from repomod.cmd.merge import _merge
 from repomod.cmd.musl import _musl
 from repomod.cmd.pins import _pins
 from repomod.cmd.push import _push
+from repomod.cmd.release import _release
 from repomod.cmd.status import _status
 from repomod.cmd.sync import _sync
 from repomod.cmd.topics import _topics
@@ -86,6 +87,12 @@ def _parser() -> argparse.ArgumentParser:
     _filters(merge)
     merge.add_argument("--dry-run", action="store_true")
     merge.add_argument("--workers", type=int, default=4)
+
+    release = commands.add_parser(
+        "release",
+        help="trigger release builds for the current default-branch HEAD and poll until green",
+    )
+    _filters(release)
 
     gc = commands.add_parser(
         "gc", help="remove checkouts the catalog no longer references"
@@ -241,6 +248,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "musl": _musl,
             "push": _push,
             "merge": _merge,
+            "release": _release,
             "gc": _gc,
             "discover": _discover,
             "deps": _deps,

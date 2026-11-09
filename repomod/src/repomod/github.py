@@ -2426,3 +2426,94 @@ def resolve_tags_many(tags: dict[str, str]) -> dict[str, str]:
             for future in as_completed(futures):
                 found.update(future.result())
     return found
+
+
+def _gh_cli(arguments: list[str]) -> subprocess.CompletedProcess[str]:
+    command = ["gh", *arguments]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=API_TIMEOUT,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise GitHubError(_safe_error(str(error))) from error
+    if result.returncode != 0:
+        last_error = result.stderr.strip() or result.stdout.strip() or f"gh exited {result.returncode}"
+        raise GitHubError(_safe_error(last_error))
+    return result
+
+
+def release_tag_exists(repository: RepoId, tag: str) -> bool:
+    endpoint = f"repos/{repository.owner}/{repository.name}/releases/tags/{quote(tag, safe='')}"
+    try:
+        _gh_json([endpoint])
+        return True
+    except GitHubError as error:
+        lowered = str(error).casefold()
+        if "not found" in lowered or "404" in lowered:
+            return False
+        raise
+
+
+def dispatch_workflow(repository: RepoId, workflow: str, ref: str) -> None:
+    _gh_cli(["workflow", "run", workflow, "--repo", f"{repository.owner}/{repository.name}", "--ref", ref])
+
+
+def workflow_runs(
+    repository: RepoId,
+    workflow: str,
+    *,
+    branch: str | None = None,
+    event: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    args = [
+        "run",
+        "list",
+        "--workflow",
+        workflow,
+        "--repo",
+        f"{repository.owner}/{repository.name}",
+        "--limit",
+        str(limit),
+        "--json",
+        "databaseId,headSha,status,conclusion,url,createdAt,event,workflowName,headBranch,displayTitle",
+    ]
+    if branch is not None:
+        args.extend(["--branch", branch])
+    if event is not None:
+        args.extend(["--event", event])
+    result = _gh_cli(args)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise GitHubError("GitHub returned malformed workflow run data") from error
+    if not isinstance(data, list):
+        raise GitHubError("GitHub returned invalid workflow run data")
+    return [item for item in data if isinstance(item, dict)]
+
+
+def workflow_run(repository: RepoId, run_id: int | str) -> dict[str, Any]:
+    result = _gh_cli(
+        [
+            "run",
+            "view",
+            str(run_id),
+            "--repo",
+            f"{repository.owner}/{repository.name}",
+            "--json",
+            "databaseId,headSha,status,conclusion,url,createdAt,event,workflowName,headBranch,displayTitle",
+        ]
+    )
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise GitHubError("GitHub returned malformed workflow run data") from error
+    if not isinstance(data, dict):
+        raise GitHubError("GitHub returned invalid workflow run data")
+    return data
