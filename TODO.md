@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 63
+Next: 64
 
 ### STUF-45 · P2 · mypypi sdist builds run third-party code with the publisher's filesystem
 
@@ -26,5 +26,14 @@ Next: 63
 - **Where:** `crates/stuff/src/publish/r2/sync.rs:161` (generation-scoped `generations/<id>/` prefix), `crates/stuff/src/publish/cargo/run.rs`
 - **Problem:** Every index file is rewritten under the new generation's prefix, so a publish uploads about 1220 objects (4.9 MB) for an 18.6 KiB crate; the upload grows with the registry rather than with the change. Concurrent uploads and live-snapshot fetches (32 workers) cut the upload from about 495 s to 15 s and the dry run from about 360 s to 45 s, so this is now a cost in R2 writes and bytes, not minutes. The HTTP client has no idle connection pool, so each request still pays a TCP and TLS handshake.
 - **Recommendation:** Decide whether unchanged index files can be shared across generations (content-addressed, like blobs) so a one-crate publish uploads only the changed index files. Optionally add an idle pool to `h12tiny-client-sync` if request count stays high.
+- **Fix with:** architect
+- **Effort:** M
+
+### STUF-63 · P3 · Evaluate migrating stuff-worker from wasm-bindgen to WIT/component model
+
+- **Area:** Architecture
+- **Where:** `crates/stuff-worker/src/wasm.rs`, `crates/stuff-worker/entry.ts`, `crates/stuff-worker/scripts/build-wasm.sh`, `crates/stuff-worker/scripts/build.mjs`, `crates/stuff-worker/Cargo.toml`, `crates/stuff-worker/cloudflare.config.ts`
+- **Problem:** `stuff-worker` uses `#[wasm_bindgen]` (~24 synchronous exports, mostly JSON strings/primitives) with `wasm-bindgen --target web` glue consumed by a custom JS/R2/fetch/cache host (`entry.ts`) and a custom build pipeline (no `workers-rs`). CLI/crate schema skew previously broke `make deploy` (fixed by auto-syncing `wasm-bindgen-cli` to `Cargo.lock` in `build-wasm.sh`), but the boundary contract remains implicit in attributes/glue. A WIT/component-model interface would make the Rust↔host contract explicit, at the cost of migration and an unproven end-to-end deploy/runtime path for this worker’s exact Cloudflare toolchain (Wrangler/`cf`, bundling, R2/cache bindings).
+- **Recommendation:** Time-box a spike, not a rewrite: define WIT for 2–3 representative exports, generate bindings, and prove the end-to-end Cloudflare deploy/runtime path in this repo’s toolchain. Decide contract style up front (JSON strings in WIT vs typed records/variants). Stop if deployment/bindings integration is not cleanly supported.
 - **Fix with:** architect
 - **Effort:** M
