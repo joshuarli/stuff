@@ -24,7 +24,7 @@ pub use model::{
     DependencyKind, Features, IndexDep, IndexEntry, PublishDependency, PublishRequest,
 };
 pub use publish::{PublishOutcome, Publisher};
-pub use render::Rendered;
+pub use render::{CargoUrls, Rendered};
 pub use semver::Version;
 pub use store::Store;
 

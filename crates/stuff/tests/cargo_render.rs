@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use deser_value::Value;
 use stuff::publish::cargo::{
-    AdoptSummary, Publisher, RejectionKind, Store, adopt_site,
+    AdoptSummary, CargoUrls, Publisher, RejectionKind, Store, adopt_site,
 };
 
 fn golden_root() -> PathBuf {
@@ -114,7 +114,7 @@ fn an_adopted_site_republishes_the_golden_generation_byte_for_byte() {
         (7, 3, 10)
     );
 
-    let outcome = Publisher::new(&Store::new(&state), &site, &public_base_url, auth_required)
+    let outcome = Publisher::new(&Store::new(&state), &site, CargoUrls::on_one_host(public_base_url.as_str()), auth_required)
         .publish()
         .expect("publish the adopted state");
     let expected_id = fs::read_to_string(golden.join("expected-generation-id"))

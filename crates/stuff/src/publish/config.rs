@@ -5,11 +5,28 @@ use std::path::Path;
 use deser_value::Value;
 
 use crate::publish::PublishError;
+use crate::publish::cargo::render::CargoUrls;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegistryConfig {
     pub bucket: String,
     pub public_base_url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CargoConfig {
+    pub bucket: String,
+    pub public_base_url: String,
+    pub download_base_url: String,
+}
+
+impl CargoConfig {
+    pub fn urls(&self) -> CargoUrls {
+        CargoUrls {
+            public_base_url: self.public_base_url.clone(),
+            download_base_url: self.download_base_url.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,7 +39,7 @@ pub struct OciConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
     pub cf_profile: String,
-    pub cargo: RegistryConfig,
+    pub cargo: CargoConfig,
     pub npm: RegistryConfig,
     pub pypi: RegistryConfig,
     pub oci: OciConfig,
@@ -32,9 +49,10 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             cf_profile: "stuff".to_string(),
-            cargo: RegistryConfig {
+            cargo: CargoConfig {
                 bucket: "stuff-mycrates".to_string(),
                 public_base_url: "https://crates.17166969.xyz".to_string(),
+                download_base_url: "https://crates-blobs.17166969.xyz".to_string(),
             },
             npm: RegistryConfig {
                 bucket: "stuff-mynpm".to_string(),
@@ -79,7 +97,7 @@ impl Config {
             config.cf_profile = profile;
         }
         if let Some(section) = section(&value, "cargo")? {
-            config.cargo = registry_config(section, "cargo", &config.cargo)?;
+            config.cargo = cargo_config(section, &config.cargo)?;
         }
         if let Some(section) = section(&value, "npm")? {
             config.npm = registry_config(section, "npm", &config.npm)?;
@@ -130,6 +148,21 @@ fn registry_config(
     Ok(RegistryConfig { bucket, public_base_url })
 }
 
+fn cargo_config(value: &Value, defaults: &CargoConfig) -> Result<CargoConfig, PublishError> {
+    let bucket = string_field(value, "bucket", "cargo")?.unwrap_or_else(|| defaults.bucket.clone());
+    let public_base_url = string_field(value, "public_base_url", "cargo")?;
+    let download_base_url = match (string_field(value, "download_base_url", "cargo")?, &public_base_url) {
+        (Some(download), _) => download,
+        (None, Some(public)) => public.clone(),
+        (None, None) => defaults.download_base_url.clone(),
+    };
+    Ok(CargoConfig {
+        bucket,
+        public_base_url: public_base_url.unwrap_or_else(|| defaults.public_base_url.clone()),
+        download_base_url,
+    })
+}
+
 fn oci_config(value: &Value, defaults: &OciConfig) -> Result<OciConfig, PublishError> {
     let bucket = string_field(value, "bucket", "oci")?.unwrap_or_else(|| defaults.bucket.clone());
     let blobs_bucket = string_field(value, "blobs_bucket", "oci")?
@@ -150,6 +183,7 @@ mod tests {
         assert_eq!(config.cf_profile, "stuff");
         assert_eq!(config.cargo.bucket, "stuff-mycrates");
         assert_eq!(config.cargo.public_base_url, "https://crates.17166969.xyz");
+        assert_eq!(config.cargo.download_base_url, "https://crates-blobs.17166969.xyz");
         assert_eq!(config.npm.bucket, "stuff-mynpm");
         assert_eq!(config.npm.public_base_url, "https://npm.17166969.xyz");
         assert_eq!(config.pypi.bucket, "stuff-mypypi");
@@ -190,6 +224,20 @@ mod tests {
         assert_eq!(config.oci.bucket, "custom-meta");
         assert_eq!(config.oci.blobs_bucket, "custom-blobs");
         assert_eq!(config.oci.public_base_url, "https://oci.17166969.xyz");
+    }
+
+    #[test]
+    fn cargo_downloads_follow_a_moved_public_host_unless_set() {
+        let moved = Config::parse(r#"{"cargo": {"public_base_url": "https://crates.example"}}"#).unwrap();
+        assert_eq!(moved.cargo.download_base_url, "https://crates.example");
+        let split = Config::parse(
+            r#"{"cargo": {"public_base_url": "https://crates.example", "download_base_url": "https://dl.example"}}"#,
+        )
+        .unwrap();
+        assert_eq!(split.cargo.public_base_url, "https://crates.example");
+        assert_eq!(split.cargo.download_base_url, "https://dl.example");
+        let bucket_only = Config::parse(r#"{"cargo": {"bucket": "b"}}"#).unwrap();
+        assert_eq!(bucket_only.cargo.download_base_url, "https://crates-blobs.17166969.xyz");
     }
 
     #[test]

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use super::publish::Publisher;
-use super::render;
+use super::render::{self, CargoUrls};
 use super::store::Store;
 use super::wire::{self, FRAMING_SLACK};
 use super::{Limits, NativeRecord, PUBLISH_RESPONSE, Rejection, accept, integrity};
@@ -22,7 +22,7 @@ pub struct ServerConfig {
     pub state_dir: PathBuf,
     pub published_state_dir: PathBuf,
     pub site_dir: PathBuf,
-    pub public_base_url: String,
+    pub urls: CargoUrls,
     pub auth_required: bool,
     pub token: String,
     pub limits: Limits,
@@ -52,7 +52,7 @@ impl PublishServer {
             state_dir: config.state_dir,
             published_state_dir: config.published_state_dir,
             site_dir: config.site_dir,
-            public_base_url: config.public_base_url,
+            urls: config.urls,
             auth_required: config.auth_required,
             token: config.token,
             base_url: base_url.clone(),
@@ -98,7 +98,7 @@ struct Context {
     state_dir: PathBuf,
     published_state_dir: PathBuf,
     site_dir: PathBuf,
-    public_base_url: String,
+    urls: CargoUrls,
     auth_required: bool,
     token: String,
     base_url: String,
@@ -206,7 +206,7 @@ impl Request {
 
 fn serve_read(stream: &mut TcpStream, context: &Context, path: &str, head: bool) -> io::Result<()> {
     if path == "/index/config.json" {
-        let body = render::native_config_json(&context.base_url, context.auth_required);
+        let body = render::native_config_json(&CargoUrls::on_one_host(context.base_url.as_str()), context.auth_required);
         return if head {
             write_head(stream, 200, "application/json", body.len() as u64)?;
             stream.flush()
@@ -273,10 +273,7 @@ fn serve_published_blob(
         }
         return stream.flush();
     }
-    let location = format!(
-        "{}/blobs/{checksum}.crate",
-        context.public_base_url.trim_end_matches('/')
-    );
+    let location = context.urls.blob_url(checksum);
     let response = format!(
         "HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     );
@@ -364,7 +361,7 @@ fn publish_upload(context: &Context, staged: &wire::StagedUpload) -> Result<(), 
         Publisher::new(
             &store,
             context.site_dir.clone(),
-            context.public_base_url.clone(),
+            context.urls.clone(),
             context.auth_required,
         )
         .publish()?;
@@ -476,7 +473,7 @@ mod tests {
             state_dir: root.path().join("work"),
             published_state_dir: published,
             site_dir: root.path().join("site"),
-            public_base_url: "https://crates.example.test/".to_string(),
+            urls: CargoUrls::on_one_host("https://crates.example.test/"),
             auth_required: false,
             token: "token".to_string(),
             limits: Limits::default(),

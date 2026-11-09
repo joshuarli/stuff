@@ -15,7 +15,7 @@ use mynpm::inventory::{
 };
 use mynpm::inventory_store::save_inventory;
 use sha2::{Digest, Sha512};
-use stuff::publish::cargo::{adopt_site, Publisher, Store};
+use stuff::publish::cargo::{adopt_site, CargoUrls, Publisher, Store};
 use stuff::publish::config::Config;
 use stuff::publish::npm::library_config;
 use stuff::publish::pypi::project_settings;
@@ -415,7 +415,7 @@ fn cargo_oracle(work: &Path, live_site: &Path, base: &str) -> (String, PathBuf) 
     let store = Store::new(work.join("cargo-oracle-state"));
     adopt_site(&store, &source).unwrap();
     let site = work.join("cargo-oracle-site");
-    let outcome = Publisher::new(&store, &site, base, false).publish().unwrap();
+    let outcome = Publisher::new(&store, &site, CargoUrls::on_one_host(base), false).publish().unwrap();
     (outcome.generation_id, site)
 }
 
@@ -474,7 +474,7 @@ fn republish_cargo_rerenders_the_live_publication_and_promotes_conditionally() {
     let store = Store::new(work.path().join("cargo-live-state"));
     adopt_site(&store, &source).unwrap();
     let live_site = work.path().join("cargo-live-site");
-    let live = Publisher::new(&store, &live_site, CARGO_LIVE, false).publish().unwrap();
+    let live = Publisher::new(&store, &live_site, CargoUrls::on_one_host(CARGO_LIVE), false).publish().unwrap();
     assert!(!live.generation_id.is_empty());
     let seeded = seed_site(&fake, CARGO_BUCKET, &live_site, &[]);
     assert_eq!(seeded, live.generation_id);

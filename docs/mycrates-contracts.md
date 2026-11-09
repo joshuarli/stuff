@@ -111,7 +111,7 @@ site/
   current -> generations/<id>        relative symlink, replaced atomically
 ```
 
-`<base>` is `public_base_url` without a trailing slash (`api` keeps it as configured).
+`<base>` is `public_base_url` without a trailing slash (`api` keeps it as configured). This is the Python oracle's layout. `stuff publish cargo` puts `dl` on `cargo.download_base_url` instead, which equals `public_base_url` unless it is configured separately (see [PUBLISHING.md](PUBLISHING.md#edge-protection)).
 
 ## Generation identity
 

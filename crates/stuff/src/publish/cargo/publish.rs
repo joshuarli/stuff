@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use stuff_store::{HashAlg, Site, sync_dir, sync_immutable_file, write_file_durable};
 
-use super::render::{Rendered, render, sha256_hex};
+use super::render::{CargoUrls, Rendered, render, sha256_hex};
 use super::store::Store;
 use super::{Rejection, RejectionKind};
 
@@ -16,7 +16,7 @@ pub struct PublishOutcome {
 pub struct Publisher<'a> {
     store: &'a Store,
     site_dir: PathBuf,
-    public_base_url: String,
+    urls: CargoUrls,
     auth_required: bool,
 }
 
@@ -24,13 +24,13 @@ impl<'a> Publisher<'a> {
     pub fn new(
         store: &'a Store,
         site_dir: impl Into<PathBuf>,
-        public_base_url: impl Into<String>,
+        urls: CargoUrls,
         auth_required: bool,
     ) -> Self {
         Self {
             store,
             site_dir: site_dir.into(),
-            public_base_url: public_base_url.into(),
+            urls,
             auth_required,
         }
     }
@@ -65,7 +65,7 @@ impl<'a> Publisher<'a> {
             .map_err(store_error)?;
         }
 
-        let rendered = render(&native, &upstream, &self.public_base_url, self.auth_required)?;
+        let rendered = render(&native, &upstream, &self.urls, self.auth_required)?;
         let activation = site
             .publish(
                 &rendered.generation_id,

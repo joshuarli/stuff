@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 use stuff_store::{HashAlg, Site, sync_dir, sync_immutable_file, write_file_durable};
 
 use super::adopt::{NativeRecord, UpstreamRecord};
-use super::render::{render, sha256_hex};
+use super::render::{CargoUrls, render, sha256_hex};
 use super::server::{PublishServer, ServerConfig};
 use super::snapshot::{self, LiveSnapshot, merge_native, merge_upstream, reset_directory};
 use super::store::Store;
@@ -113,7 +113,7 @@ pub fn publish(
                 upstream: &upstream,
                 stores: std::slice::from_ref(&published_store),
                 live: &live,
-                public_base_url: &config.cargo.public_base_url,
+                urls: &config.cargo.urls(),
                 auth_required: false,
             }
             .run()
@@ -126,7 +126,7 @@ pub fn publish(
         state_dir: work_state.clone(),
         published_state_dir: layout.state_dir.clone(),
         site_dir: server_site,
-        public_base_url: config.cargo.public_base_url.clone(),
+        urls: config.cargo.urls(),
         auth_required: false,
         token: generate_token(),
         limits: Limits::default(),
@@ -203,7 +203,7 @@ pub fn publish(
                     upstream: &upstream,
                     stores: &blob_stores,
                     live: &live,
-                    public_base_url: &config.cargo.public_base_url,
+                    urls: &config.cargo.urls(),
                     auth_required: false,
                 }
                 .run()
@@ -243,7 +243,7 @@ struct SiteBuild<'a> {
     upstream: &'a [UpstreamRecord],
     stores: &'a [Store],
     live: &'a LiveSnapshot,
-    public_base_url: &'a str,
+    urls: &'a CargoUrls,
     auth_required: bool,
 }
 
@@ -317,7 +317,7 @@ impl SiteBuild<'_> {
         let rendered = render(
             self.native,
             self.upstream,
-            self.public_base_url,
+            self.urls,
             self.auth_required,
         )
         .map_err(rejection_error)?;

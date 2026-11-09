@@ -19,7 +19,7 @@
 
 `stuff` mints R2 credentials through the `cf` profile named by `cf_profile` in its configuration (default `stuff`) and passes `--profile` on every `cf` call, so `make publish-*` works from any directory without a directory binding. Create the profile once with `cf auth create stuff`; check it with `cf --profile stuff auth whoami`. The kept maintenance scripts (`r2-pull.py`, `r2-gc.py`) mint through `stuff credentials`, so they use the same profile.
 
-`stuff` keeps configuration (`cf_profile` and the per-registry `bucket` and `public_base_url`) in `${XDG_CONFIG_HOME:-$HOME/.config}/stuff/config.json`, a disposable cache in `${XDG_CACHE_HOME:-$HOME/.cache}/stuff/<registry>`, and durable state in `${XDG_STATE_HOME:-$HOME/.local/state}/stuff/<registry>`; `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME` override each. The kept maintenance scripts use the same state root. Back up the state directories. The live generation, not local state, is the publication source of truth.
+`stuff` keeps configuration (`cf_profile`, the per-registry `bucket` and `public_base_url`, and `cargo.download_base_url`) in `${XDG_CONFIG_HOME:-$HOME/.config}/stuff/config.json`, a disposable cache in `${XDG_CACHE_HOME:-$HOME/.cache}/stuff/<registry>`, and durable state in `${XDG_STATE_HOME:-$HOME/.local/state}/stuff/<registry>`; `STUFF_CONFIG_HOME`, `STUFF_CACHE_HOME`, and `STUFF_STATE_HOME` override each. The kept maintenance scripts use the same state root. Back up the state directories. The live generation, not local state, is the publication source of truth.
 
 ## Publish a registry
 
@@ -239,7 +239,19 @@ interactive challenge. Keep these zone settings for `17166969.xyz`:
 - The `/ingest/` rate limit at 20 requests per 10 seconds per source IP and colo; do not
   rate-limit or challenge the read paths.
 - No Managed Challenge, JS Challenge, or Turnstile rule on `crates.`, `npm.`, `pypi.`,
-  `oci.`, or `stuff.`.
+  `oci.`, `stuff.`, `oci-blobs.`, or `crates-blobs.`.
+
+Cargo downloads `.crate` files from `crates-blobs.17166969.xyz`, an R2 custom domain
+on `stuff-mycrates`, so they never invoke the Worker. Each generation's
+`config.json` sets `dl` to `<download_base_url>/blobs/{sha256-checksum}.crate`, and
+`cargo.download_base_url` defaults to that host. A config that sets
+`cargo.public_base_url` without `download_base_url` keeps downloads on the public host.
+The host needs two zone rules. The `stuff cache rules` Cache Rule caches
+`/blobs/*` for a year. The custom firewall rule "crates-blobs serves only blob
+objects" blocks every other path and method, because the bucket also holds
+`current`, `generations/`, `manifests/`, and `_probe/`. Generations published before
+the change keep `dl` on `crates.17166969.xyz`, and the Worker still serves
+`/blobs/` for them.
 
 A challenge breaks `cargo` with `403` and a `Just a moment...` body from
 `https://crates.17166969.xyz/current/crates-io/config.json`. Verify a fetch returns `200`:

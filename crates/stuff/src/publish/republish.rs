@@ -112,7 +112,7 @@ fn build_cargo_site(
     let rendered = render_cargo(
         live.native(),
         live.upstream(),
-        &config.cargo.public_base_url,
+        &config.cargo.urls(),
         false,
     )
     .map_err(rejection_error)?;

@@ -27,34 +27,48 @@ pub struct Rendered {
     pub manifest: Manifest,
 }
 
-pub fn native_config_json(public_base_url: &str, auth_required: bool) -> String {
-    let dl = format!(
-        "{}/blobs/{{sha256-checksum}}.crate",
-        public_base_url.trim_end_matches('/')
-    );
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoUrls {
+    pub public_base_url: String,
+    pub download_base_url: String,
+}
+
+impl CargoUrls {
+    pub fn on_one_host(base_url: impl Into<String>) -> Self {
+        let base_url = base_url.into();
+        CargoUrls { download_base_url: base_url.clone(), public_base_url: base_url }
+    }
+
+    pub fn blob_url(&self, checksum: &str) -> String {
+        format!("{}/blobs/{checksum}.crate", self.download_base_url.trim_end_matches('/'))
+    }
+
+    fn dl_template(&self) -> String {
+        self.blob_url("{sha256-checksum}")
+    }
+}
+
+pub fn native_config_json(urls: &CargoUrls, auth_required: bool) -> String {
     format!(
         "{{\"dl\":{},\"api\":{},\"auth-required\":{}}}",
-        json_string(&dl),
-        json_string(public_base_url),
+        json_string(&urls.dl_template()),
+        json_string(&urls.public_base_url),
         if auth_required { "true" } else { "false" }
     )
 }
 
-pub fn mirror_config_json(public_base_url: &str) -> String {
-    let dl = format!(
-        "{}/blobs/{{sha256-checksum}}.crate",
-        public_base_url.trim_end_matches('/')
-    );
-    format!("{{\"dl\":{}}}", json_string(&dl))
+pub fn mirror_config_json(urls: &CargoUrls) -> String {
+    format!("{{\"dl\":{}}}", json_string(&urls.dl_template()))
 }
 
 pub fn render(
     native: &[NativeRecord],
     upstream: &[UpstreamRecord],
-    public_base_url: &str,
+    urls: &CargoUrls,
     auth_required: bool,
 ) -> Result<Rendered, Rejection> {
-    let mut files = render_index(native, upstream, public_base_url, auth_required)?;
+    let public_base_url = urls.public_base_url.as_str();
+    let mut files = render_index(native, upstream, urls, auth_required)?;
     let mut catalog = build_catalog(native, upstream)?;
     let fingerprint = catalog_fingerprint(&catalog, public_base_url);
 
@@ -91,17 +105,17 @@ pub fn render(
 fn render_index(
     native: &[NativeRecord],
     upstream: &[UpstreamRecord],
-    public_base_url: &str,
+    urls: &CargoUrls,
     auth_required: bool,
 ) -> Result<Files, Rejection> {
     let mut files = Files::new();
     files.insert(
         key("registry", "config.json"),
-        native_config_json(public_base_url, auth_required).into_bytes(),
+        native_config_json(urls, auth_required).into_bytes(),
     );
     files.insert(
         key("crates-io", "config.json"),
-        mirror_config_json(public_base_url).into_bytes(),
+        mirror_config_json(urls).into_bytes(),
     );
 
     let mut native_by_crate: BTreeMap<String, Vec<&NativeRecord>> = BTreeMap::new();
@@ -214,4 +228,26 @@ pub(crate) fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
     crate::publish::lower_hex(hasher.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_points_downloads_at_the_download_origin_and_the_api_at_the_public_host() {
+        let urls = CargoUrls {
+            public_base_url: "https://crates.example".to_string(),
+            download_base_url: "https://dl.example/".to_string(),
+        };
+        assert_eq!(
+            native_config_json(&urls, false),
+            r#"{"dl":"https://dl.example/blobs/{sha256-checksum}.crate","api":"https://crates.example","auth-required":false}"#
+        );
+        assert_eq!(
+            mirror_config_json(&urls),
+            r#"{"dl":"https://dl.example/blobs/{sha256-checksum}.crate"}"#
+        );
+        assert_eq!(urls.blob_url("ab"), "https://dl.example/blobs/ab.crate");
+    }
 }
