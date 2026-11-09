@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use sha2::{Digest, Sha256};
@@ -9,7 +9,7 @@ use stuff_store::{HashAlg, Site, sync_dir, sync_immutable_file, write_file_durab
 use super::adopt::{NativeRecord, UpstreamRecord};
 use super::render::{render, sha256_hex};
 use super::server::{PublishServer, ServerConfig};
-use super::snapshot::{self, LiveSnapshot, merge_native, merge_upstream};
+use super::snapshot::{self, LiveSnapshot, merge_native, merge_upstream, reset_directory};
 use super::store::Store;
 use super::{Limits, Rejection, RejectionKind};
 use crate::publish::config::Config;
@@ -91,7 +91,36 @@ pub fn publish(
         .first()
         .cloned()
         .ok_or_else(|| PublishError::Config("cargo has no shared blob store".to_string()))?;
-    live.seed_server_site(&server_site, &config.cargo.public_base_url, false)?;
+    reset_directory(&server_site)?;
+    let published_store = Store::new(&layout.state_dir);
+    published_store
+        .with_lock(|| {
+            let native = merge_native(
+                published_store.load_native_records()?,
+                live.native().to_vec(),
+            )
+            .map_err(publish_to_rejection)?;
+            let upstream = merge_upstream(
+                published_store.load_upstream_records()?,
+                live.upstream().to_vec(),
+            )
+            .map_err(publish_to_rejection)?;
+            SiteBuild {
+                snapshot: pending.snapshot(),
+                shared: &shared,
+                site_dir: &server_site,
+                native: &native,
+                upstream: &upstream,
+                stores: std::slice::from_ref(&published_store),
+                live: &live,
+                public_base_url: &config.cargo.public_base_url,
+                auth_required: false,
+            }
+            .run()
+            .map_err(publish_to_rejection)
+            .map(drop)
+        })
+        .map_err(rejection_error)?;
 
     let server = PublishServer::start(ServerConfig {
         state_dir: work_state.clone(),
@@ -102,17 +131,46 @@ pub fn publish(
         token: generate_token(),
         limits: Limits::default(),
     })?;
+    let command = CargoPublishCommand {
+        manifest_path: request.manifest_path.as_deref(),
+        registry,
+        base_url: server.base_url(),
+        token: server.token(),
+        cargo_home: &cargo_home,
+        environment,
+    };
+    let workspace = command.workspace()?;
+    let lockfile = workspace.root.join("Cargo.lock");
+    let lock_before = match fs::read(&lockfile) {
+        Ok(bytes) => Some(bytes),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => {
+            return Err(PublishError::Config(format!(
+                "could not read {}: {error}",
+                lockfile.display()
+            )));
+        }
+    };
+    let mut released_earlier: Vec<(String, String)> = Vec::new();
+    let mut published = Ok(());
     for package in &request.packages {
-        cargo_publish(
-            package,
-            request.manifest_path.as_deref(),
-            registry,
-            server.base_url(),
-            server.token(),
-            &cargo_home,
-            environment,
-        )?;
+        published = command.run(package, &released_earlier);
+        if published.is_err() {
+            break;
+        }
+        if let Some(name) = crate_name_of(package)
+            && let Some(version) = workspace.versions.get(name)
+        {
+            released_earlier.push((name.to_string(), version.clone()));
+        }
     }
+    if let Some(bytes) = lock_before {
+        let restored = fs::write(&lockfile, bytes).map_err(|error| {
+            PublishError::Config(format!("could not restore {}: {error}", lockfile.display()))
+        });
+        published = published.and(restored);
+    }
+    published?;
     drop(server);
 
     let store = Store::new(&layout.state_dir);
@@ -296,57 +354,135 @@ impl SiteBuild<'_> {
     }
 }
 
-fn cargo_publish(
-    package: &str,
-    manifest_path: Option<&str>,
-    registry: &str,
-    base_url: &str,
-    token: &str,
-    cargo_home: &Path,
-    environment: &Environment,
-) -> Result<(), PublishError> {
-    let suffix = registry.to_ascii_uppercase().replace('-', "_");
-    let mut command = Command::new("cargo");
-    command
-        .env_clear()
-        .envs(environment.variables())
-        .arg("publish")
-        .arg("--registry")
-        .arg(registry)
-        .arg("-p")
-        .arg(package);
-    if let Some(manifest_path) = manifest_path {
-        command.arg("--manifest-path").arg(manifest_path);
+struct Workspace {
+    root: PathBuf,
+    versions: BTreeMap<String, String>,
+}
+
+struct CargoPublishCommand<'a> {
+    manifest_path: Option<&'a str>,
+    registry: &'a str,
+    base_url: &'a str,
+    token: &'a str,
+    cargo_home: &'a Path,
+    environment: &'a Environment,
+}
+
+impl CargoPublishCommand<'_> {
+    fn registry_environment(&self, command: &mut Command) {
+        let suffix = self.registry.to_ascii_uppercase().replace('-', "_");
+        command
+            .env(
+                format!("CARGO_REGISTRIES_{suffix}_INDEX"),
+                format!("sparse+{}/index/", self.base_url),
+            )
+            .env(format!("CARGO_REGISTRIES_{suffix}_TOKEN"), self.token)
+            .env("CARGO_HOME", self.cargo_home)
+            .env("CARGO_TERM_COLOR", "never");
     }
-    command
-        .env(
-            format!("CARGO_REGISTRIES_{suffix}_INDEX"),
-            format!("sparse+{base_url}/index/"),
-        )
-        .env(format!("CARGO_REGISTRIES_{suffix}_TOKEN"), token)
-        .env("CARGO_HOME", cargo_home)
-        .env("CARGO_TERM_COLOR", "never")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = command.output().map_err(|error| {
-        PublishError::Usage(format!("could not run cargo publish: {error}"))
-    })?;
-    if output.status.success() {
-        return Ok(());
+
+    fn workspace(&self) -> Result<Workspace, PublishError> {
+        let mut command = Command::new("cargo");
+        command
+            .env_clear()
+            .envs(self.environment.variables())
+            .args(["metadata", "--no-deps", "--format-version", "1"]);
+        self.registry_environment(&mut command);
+        if let Some(manifest_path) = self.manifest_path {
+            command.arg("--manifest-path").arg(manifest_path);
+        }
+        let output = command
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|error| PublishError::Usage(format!("could not run cargo metadata: {error}")))?;
+        if !output.status.success() {
+            return Err(PublishError::Usage(format!(
+                "cargo metadata failed:\n{}",
+                String::from_utf8_lossy(&output.stderr).trim_end()
+            )));
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        let malformed = || PublishError::Integrity("cargo metadata output is malformed".to_string());
+        let value: deser_value::Value = deser_json::from_str(&text).map_err(|_| malformed())?;
+        let packages = value
+            .as_map()
+            .and_then(|map| map.get("packages"))
+            .and_then(|packages| packages.as_seq())
+            .ok_or_else(malformed)?;
+        let root = value
+            .as_map()
+            .and_then(|map| map.get("workspace_root"))
+            .and_then(|root| root.as_str())
+            .map(PathBuf::from)
+            .ok_or_else(malformed)?;
+        let mut versions = BTreeMap::new();
+        for package in packages {
+            let package = package.as_map().ok_or_else(malformed)?;
+            let field = |name: &str| {
+                package
+                    .get(name)
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string)
+                    .ok_or_else(malformed)
+            };
+            versions.insert(field("name")?, field("version")?);
+        }
+        Ok(Workspace { root, versions })
     }
-    let text = format!(
-        "{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    if already_published(&text, registry) {
-        return Ok(());
+
+    fn run(&self, package: &str, released_earlier: &[(String, String)]) -> Result<(), PublishError> {
+        let registry = self.registry;
+        let mut command = Command::new("cargo");
+        command
+            .env_clear()
+            .envs(self.environment.variables())
+            .arg("publish")
+            .arg("--registry")
+            .arg(registry)
+            .arg("-p")
+            .arg(package);
+        for (name, version) in released_earlier {
+            command
+                .arg("--config")
+                .arg(format!("patch.crates-io.{name}.registry=\"{registry}\""))
+                .arg("--config")
+                .arg(format!("patch.crates-io.{name}.version=\"={version}\""));
+        }
+        if let Some(manifest_path) = self.manifest_path {
+            command.arg("--manifest-path").arg(manifest_path);
+        }
+        self.registry_environment(&mut command);
+        command
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let output = command.output().map_err(|error| {
+            PublishError::Usage(format!("could not run cargo publish: {error}"))
+        })?;
+        if output.status.success() {
+            return Ok(());
+        }
+        let text = format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        if already_published(&text, registry) {
+            return Ok(());
+        }
+        Err(PublishError::Usage(format!(
+            "cargo publish {package} failed:\n{}",
+            text.trim_end()
+        )))
     }
-    Err(PublishError::Usage(format!(
-        "cargo publish {package} failed:\n{}",
-        text.trim_end()
-    )))
+}
+
+fn crate_name_of(package_spec: &str) -> Option<&str> {
+    let name = package_spec
+        .split_once('@')
+        .map_or(package_spec, |(name, _)| name);
+    super::names::validate_crate_name(name).ok()?;
+    Some(name)
 }
 
 fn already_published(text: &str, registry: &str) -> bool {

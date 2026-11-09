@@ -35,6 +35,8 @@ stuff publish npm --tarball joshuarli-ui-0.1.0.tgz
 stuff publish pypi six==1.16.0
 ```
 
+`stuff publish cargo` publishes the `-p` crates in the order given. Each crate's verification resolves a dependency on an earlier crate of the same run from the registry being published to, so list dependencies before their dependents; the mirror need not hold the new versions. A crate version already in that registry's index, including one a failed earlier run recorded locally but did not promote, is skipped, so rerunning the same command completes the remaining crates.
+
 `--dry-run` reports the planned change without uploading or promoting. `stuff` prepares the change against the live generation, so a machine with no local state publishes safely: it never rebuilds the published set from a local subset, and a non-additive or byte-conflicting request exits 3 instead of overwriting a competing publisher.
 
 A publish holds the registry's lock, a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. `stuff` and the kept maintenance scripts (`make gc`, `deploy/r2-gc-blobs.py`, and `mypypi-container.sh`) take the same lock. A failure stops the run before any R2 write.

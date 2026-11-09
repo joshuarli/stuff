@@ -515,3 +515,147 @@ fn a_native_crate_depending_on_a_published_native_crate_verifies_and_publishes()
     let outcome = stuff::publish::run(request, &environment).expect("publish the dependent");
     assert_eq!(outcome.status, Status::Published, "{outcome:?}");
 }
+
+fn write_interdependent_workspace(root: &Path) -> PathBuf {
+    for (name, dependency) in [
+        ("stuff-interdependent-base", ""),
+        (
+            "stuff-interdependent-top",
+            "stuff-interdependent-base = { version = \"0.1.0\", path = \"../stuff-interdependent-base\" }\n",
+        ),
+    ] {
+        let dir = root.join(name);
+        fs::create_dir_all(dir.join("src")).expect("create crate source");
+        fs::write(
+            dir.join("Cargo.toml"),
+            format!(
+                "[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\ndescription = \"First-party crate released together with its dependents\"\nlicense = \"Apache-2.0\"\n\n[dependencies]\n{dependency}"
+            ),
+        )
+        .expect("write crate manifest");
+        fs::write(dir.join("src/lib.rs"), "pub fn present() {}\n").expect("write crate source");
+    }
+    fs::write(
+        root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"stuff-interdependent-base\", \"stuff-interdependent-top\"]\nresolver = \"2\"\n",
+    )
+    .expect("write workspace manifest");
+    root.join("Cargo.toml")
+}
+
+fn replace_crates_io_with_an_empty_mirror(work: &Path) {
+    let cargo_home = work.join("cache/cargo/cargo-home");
+    let mirror = work.join("empty-mirror");
+    fs::create_dir_all(&mirror).expect("create empty mirror");
+    fs::create_dir_all(&cargo_home).expect("create cargo home");
+    fs::write(
+        cargo_home.join("config.toml"),
+        format!(
+            "[source.crates-io]\nreplace-with = \"empty-mirror\"\n\n[source.empty-mirror]\ndirectory = {}\n",
+            json_string(&mirror.display().to_string())
+        ),
+    )
+    .expect("write cargo config");
+}
+
+fn interdependent_request(manifest: &Path) -> Request {
+    Request::Publish {
+        request: PublishRequest::Cargo(CargoPublish {
+            packages: vec![
+                "stuff-interdependent-base".to_string(),
+                "stuff-interdependent-top".to_string(),
+            ],
+            manifest_path: Some(manifest.display().to_string()),
+            registry: Some(REGISTRY.to_string()),
+        }),
+        options: Options::default(),
+    }
+}
+
+#[test]
+fn crates_released_together_verify_against_each_other_instead_of_the_mirror() {
+    let work = scratch_root();
+    let fake = FakeS3::start_verified();
+    let environment = environment(work.path(), &fake);
+    write_config(work.path());
+    replace_crates_io_with_an_empty_mirror(work.path());
+    let workspace = work.path().join("workspace");
+    let manifest = write_interdependent_workspace(&workspace);
+    let base_manifest = workspace.join("stuff-interdependent-base/Cargo.toml");
+    let released = fs::read_to_string(&base_manifest).expect("read base manifest");
+    fs::write(&base_manifest, released.replace("0.1.0", "0.0.5")).expect("downgrade base");
+    let earlier = stuff::publish::run(
+        Request::Publish {
+            request: PublishRequest::Cargo(CargoPublish {
+                packages: vec!["stuff-interdependent-base".to_string()],
+                manifest_path: Some(manifest.display().to_string()),
+                registry: Some(REGISTRY.to_string()),
+            }),
+            options: Options::default(),
+        },
+        &environment,
+    )
+    .expect("publish an earlier version of the dependency");
+    assert_eq!(earlier.status, Status::Published, "{earlier:?}");
+    fs::write(&base_manifest, released).expect("restore base");
+
+    let generated = Command::new("cargo")
+        .args(["generate-lockfile", "--manifest-path"])
+        .arg(&manifest)
+        .output()
+        .expect("run cargo generate-lockfile");
+    assert!(generated.status.success(), "{generated:?}");
+    let lockfile = manifest.with_file_name("Cargo.lock");
+    let lock_before = fs::read(&lockfile).expect("read generated lockfile");
+
+    let outcome = stuff::publish::run(interdependent_request(&manifest), &environment)
+        .expect("publish interdependent crates");
+    assert_eq!(
+        fs::read(&lockfile).expect("read lockfile after publish"),
+        lock_before,
+        "publishing must leave the workspace lockfile as it was"
+    );
+    assert_eq!(outcome.status, Status::Published, "{outcome:?}");
+    assert_eq!(
+        outcome.packages,
+        vec![
+            "stuff-interdependent-base@0.0.5".to_string(),
+            "stuff-interdependent-base@0.1.0".to_string(),
+            "stuff-interdependent-top@0.1.0".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn a_rerun_completes_the_crates_a_failed_run_left_unpromoted() {
+    let work = scratch_root();
+    let fake = FakeS3::start_verified();
+    let environment = environment(work.path(), &fake);
+    write_config(work.path());
+    replace_crates_io_with_an_empty_mirror(work.path());
+    let workspace = work.path().join("workspace");
+    let manifest = write_interdependent_workspace(&workspace);
+    let top_source = workspace.join("stuff-interdependent-top/src/lib.rs");
+    fs::write(&top_source, "pub fn present() { missing(); }\n").expect("break the dependent");
+
+    let failed = stuff::publish::run(interdependent_request(&manifest), &environment);
+    assert!(failed.is_err(), "the broken dependent must fail verification");
+
+    fs::write(&top_source, "pub fn present() {}\n").expect("repair the dependent");
+    fs::write(
+        workspace.join("stuff-interdependent-base/src/lib.rs"),
+        "pub fn present() {}\npub fn changed_since_the_failed_run() {}\n",
+    )
+    .expect("change the dependency");
+
+    let outcome = stuff::publish::run(interdependent_request(&manifest), &environment)
+        .expect("rerun after the partial publish");
+    assert_eq!(outcome.status, Status::Published, "{outcome:?}");
+    assert_eq!(
+        outcome.packages,
+        vec![
+            "stuff-interdependent-base@0.1.0".to_string(),
+            "stuff-interdependent-top@0.1.0".to_string(),
+        ]
+    );
+}

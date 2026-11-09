@@ -5,21 +5,13 @@ use std::fs;
 use std::path::Path;
 
 use super::adopt::{NativeRecord, Record, UpstreamRecord, View, reconstruct_index};
-use super::render::{mirror_config_json, native_config_json};
 use crate::publish::config::Config;
-use crate::publish::r2::pull::{PART_SIZE, is_generation_id, object_etag, safe_relative};
+use crate::publish::r2::pull::{PART_SIZE, is_generation_id, object_etag};
 use crate::publish::r2::parallel::{REQUEST_CONCURRENCY, map_bounded};
 use crate::publish::snapshot::Snapshot;
 use crate::publish::PublishError;
 
 const LIVE_INDEX_VIEWS: [View; 2] = [View::Native, View::Upstream];
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct IndexFile {
-    view: View,
-    relative: String,
-    bytes: Vec<u8>,
-}
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LiveSnapshot {
@@ -27,7 +19,6 @@ pub struct LiveSnapshot {
     native: Vec<NativeRecord>,
     upstream: Vec<UpstreamRecord>,
     blobs: BTreeSet<String>,
-    index: Vec<IndexFile>,
 }
 
 impl LiveSnapshot {
@@ -41,37 +32,6 @@ impl LiveSnapshot {
 
     pub fn has_blob(&self, checksum: &str) -> bool {
         self.blobs.contains(checksum)
-    }
-
-    pub fn seed_server_site(
-        &self,
-        site_dir: &Path,
-        public_base_url: &str,
-        auth_required: bool,
-    ) -> Result<(), PublishError> {
-        reset_directory(site_dir)?;
-        let Some(generation) = &self.generation else {
-            return Ok(());
-        };
-        let generation_dir = site_dir.join("generations").join(generation);
-        write_file(
-            &generation_dir.join("registry").join("config.json"),
-            native_config_json(public_base_url, auth_required).as_bytes(),
-        )?;
-        write_file(
-            &generation_dir.join("crates-io").join("config.json"),
-            mirror_config_json(public_base_url).as_bytes(),
-        )?;
-        for file in &self.index {
-            let relative = safe_relative(&file.relative)?;
-            write_file(&generation_dir.join(view_dir(file.view)).join(relative), &file.bytes)?;
-        }
-        let current = site_dir.join("current");
-        std::os::unix::fs::symlink(format!("generations/{generation}"), &current).map_err(
-            |error| {
-                PublishError::Config(format!("could not link {}: {error}", current.display()))
-            },
-        )
     }
 }
 
@@ -119,11 +79,6 @@ pub fn load(snapshot: &Snapshot, config: &Config) -> Result<LiveSnapshot, Publis
                     Record::Upstream(record) => live.upstream.push(record),
                 }
             }
-            live.index.push(IndexFile {
-                view,
-                relative,
-                bytes,
-            });
         }
     }
     live.native.sort_by(|left, right| {
@@ -322,7 +277,7 @@ fn check_unique_upstream(records: &[UpstreamRecord]) -> Result<(), PublishError>
     Ok(())
 }
 
-fn reset_directory(directory: &Path) -> Result<(), PublishError> {
+pub fn reset_directory(directory: &Path) -> Result<(), PublishError> {
     match fs::symlink_metadata(directory) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
             fs::remove_file(directory).map_err(|error| {
@@ -361,17 +316,6 @@ fn reset_directory(directory: &Path) -> Result<(), PublishError> {
             "could not create {}: {error}",
             directory.display()
         ))
-    })
-}
-
-fn write_file(path: &Path, bytes: &[u8]) -> Result<(), PublishError> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            PublishError::Config(format!("could not create {}: {error}", parent.display()))
-        })?;
-    }
-    fs::write(path, bytes).map_err(|error| {
-        PublishError::Config(format!("could not write {}: {error}", path.display()))
     })
 }
 
