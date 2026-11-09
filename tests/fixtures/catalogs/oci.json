@@ -1,0 +1,25 @@
+{
+  "schema_version": 4,
+  "registry": "oci",
+  "generation": "8d9bf554a98b05e4139ac28e",
+  "packages": [
+    {
+      "name": "example/app",
+      "source": null,
+      "latest": "stable",
+      "versions": [
+        {"version": "stable", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "example/bench",
+      "source": null,
+      "latest": "stable",
+      "versions": [
+        {"version": "stable", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    }
+  ]
+}

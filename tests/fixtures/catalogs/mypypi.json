@@ -1,0 +1,374 @@
+{
+  "schema_version": 4,
+  "registry": "pypi",
+  "generation": "da7363497aca4c2cbb98a0421829362982b4ced635f948eed651281db545a5c4",
+  "packages": [
+    {
+      "name": "anyio",
+      "source": null,
+      "latest": "4.15.1",
+      "versions": [
+        {"version": "4.15.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["exceptiongroup", "idna", "typing-extensions"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "blessed",
+      "source": null,
+      "latest": "1.50.0",
+      "versions": [
+        {"version": "1.50.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["jinxed", "wcwidth"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "colorama",
+      "source": null,
+      "latest": "0.4.6",
+      "versions": [
+        {"version": "0.4.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "coverage",
+      "source": null,
+      "latest": "7.16.1",
+      "versions": [
+        {"version": "7.16.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "editables",
+      "source": null,
+      "latest": "0.6",
+      "versions": [
+        {"version": "0.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "h11",
+      "source": null,
+      "latest": "0.16.0",
+      "versions": [
+        {"version": "0.16.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "h2",
+      "source": null,
+      "latest": "4.4.1",
+      "versions": [
+        {"version": "4.4.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["hpack", "hyperframe"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "hatchling",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["packaging", "pathspec", "pluggy", "tomli", "tomlkit", "trove-classifiers"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "hpack",
+      "source": null,
+      "latest": "4.2.0",
+      "versions": [
+        {"version": "4.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "httpcore2",
+      "source": null,
+      "latest": "2.16.0",
+      "versions": [
+        {"version": "2.16.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["h11", "truststore"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "httpx2",
+      "source": null,
+      "latest": "2.16.0",
+      "versions": [
+        {"version": "2.16.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["anyio", "httpcore2", "httpx2-jsfetch", "idna", "truststore", "typing-extensions"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "httpx2-jsfetch",
+      "source": null,
+      "latest": "1.0",
+      "versions": [
+        {"version": "1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "hyperframe",
+      "source": null,
+      "latest": "6.1.0",
+      "versions": [
+        {"version": "6.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "idna",
+      "source": null,
+      "latest": "3.20",
+      "versions": [
+        {"version": "3.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "iniconfig",
+      "source": null,
+      "latest": "2.3.1",
+      "versions": [
+        {"version": "2.3.0", "yanked": false},
+        {"version": "2.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "jinxed",
+      "source": null,
+      "latest": "2.1.0",
+      "versions": [
+        {"version": "2.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["ansicon"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "joshuarli-pytest-parallel",
+      "source": null,
+      "latest": "0.4.0",
+      "versions": [
+        {"version": "0.2.0", "yanked": false},
+        {"version": "0.4.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["pytest"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "maturin",
+      "source": null,
+      "latest": "1.15.0",
+      "versions": [
+        {"version": "1.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["tomli"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "mutagen",
+      "source": null,
+      "latest": "1.48.1",
+      "versions": [
+        {"version": "1.48.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "packaging",
+      "source": null,
+      "latest": "26.3",
+      "versions": [
+        {"version": "26.2", "yanked": false},
+        {"version": "26.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pathspec",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pillow",
+      "source": null,
+      "latest": "13.0.0",
+      "versions": [
+        {"version": "13.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pluggy",
+      "source": null,
+      "latest": "1.7.0",
+      "versions": [
+        {"version": "1.6.0", "yanked": false},
+        {"version": "1.7.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pygments",
+      "source": null,
+      "latest": "2.21.0",
+      "versions": [
+        {"version": "2.20.0", "yanked": false},
+        {"version": "2.21.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pyobjc-core",
+      "source": null,
+      "latest": "12.2.2",
+      "versions": [
+        {"version": "12.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pyobjc-framework-cocoa",
+      "source": null,
+      "latest": "12.2.2",
+      "versions": [
+        {"version": "12.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["pyobjc-core"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pytest",
+      "source": null,
+      "latest": "9.2.0",
+      "versions": [
+        {"version": "9.1.1", "yanked": false},
+        {"version": "9.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["colorama", "exceptiongroup", "iniconfig", "packaging", "pluggy", "pygments", "tomli"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pytest-asyncio",
+      "source": null,
+      "latest": "1.4.1",
+      "versions": [
+        {"version": "1.4.0", "yanked": false},
+        {"version": "1.4.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["backports-asyncio-runner", "pytest", "typing-extensions"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pytest-cov",
+      "source": null,
+      "latest": "7.1.0",
+      "versions": [
+        {"version": "7.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["coverage", "pluggy", "pytest"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "ruff",
+      "source": null,
+      "latest": "0.17.4",
+      "versions": [
+        {"version": "0.16.0", "yanked": false},
+        {"version": "0.17.2", "yanked": false},
+        {"version": "0.17.3", "yanked": false},
+        {"version": "0.17.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "tomlkit",
+      "source": null,
+      "latest": "0.15.2",
+      "versions": [
+        {"version": "0.15.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "trove-classifiers",
+      "source": null,
+      "latest": "2026.9.21.13",
+      "versions": [
+        {"version": "2026.9.21.13", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "truststore",
+      "source": null,
+      "latest": "0.10.5",
+      "versions": [
+        {"version": "0.10.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "ty",
+      "source": null,
+      "latest": "0.0.99",
+      "versions": [
+        {"version": "0.0.55", "yanked": false},
+        {"version": "0.0.91", "yanked": false},
+        {"version": "0.0.93", "yanked": false},
+        {"version": "0.0.95", "yanked": false},
+        {"version": "0.0.99", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "urllib3",
+      "source": null,
+      "latest": "2.8.0",
+      "versions": [
+        {"version": "2.8.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "uv",
+      "source": null,
+      "latest": "0.13.7",
+      "versions": [
+        {"version": "0.13.5", "yanked": false},
+        {"version": "0.13.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "uvloop",
+      "source": null,
+      "latest": "0.23.0",
+      "versions": [
+        {"version": "0.23.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "wcwidth",
+      "source": null,
+      "latest": "0.8.4",
+      "versions": [
+        {"version": "0.8.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "websockets",
+      "source": null,
+      "latest": "17.3",
+      "versions": [
+        {"version": "17.1", "yanked": false},
+        {"version": "17.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    }
+  ]
+}

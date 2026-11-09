@@ -19,3 +19,11 @@ stuff-store = { version = "0.1.0", path = "../stuff-store" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "=0.2.130"
+
+[dev-dependencies]
+rustybench = "0.5"
+stuff-cargo-shard = { version = "0.1.0", path = "../stuff-cargo-shard" }
+
+[[bench]]
+name = "request_paths"
+harness = false

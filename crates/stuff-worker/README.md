@@ -60,6 +60,21 @@ artifact aliases, OCI reads, and OCI writes.
 `pnpm run check` builds the Worker, runs Oxlint and the TypeScript checker, and
 runs the Worker tests. It requires Node.js 26.13.0 or newer.
 
+## Bench
+
+`cargo bench -p stuff-worker --bench request_paths` times the Rust half of
+the request paths that production metrics show as hot, with allocation
+counts:
+
+- the unified page at small (one package per registry), production
+  (`tests/fixtures/catalogs`), and heavy (production ×10) scale;
+- the unified `llms.txt` on the production catalogs;
+- a cargo index revalidation burst: route mapping, pointer resolution,
+  and a 304 plan for every crate in the production catalog.
+
+The JavaScript glue, the wasm boundary, and R2 latency are not in these
+numbers. Read those from production with the `stats-improve` workflow.
+
 CI runs `pnpm run build` and then `pnpm run test:runtime` in the same build
 directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that
 only `scripts/build.mjs` generates, so the wasm step must run before `tsrs`.

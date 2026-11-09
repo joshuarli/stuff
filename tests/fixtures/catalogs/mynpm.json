@@ -1,0 +1,3098 @@
+{
+  "schema_version": 4,
+  "registry": "npm",
+  "generation": "5845dfa12e5831badbb5952fbb41d0d21461ea0dc6652a897c06df79d7a00951",
+  "packages": [
+    {
+      "name": "@ampproject/remapping",
+      "source": null,
+      "latest": "2.3.0",
+      "versions": [
+        {"version": "2.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/gen-mapping", "@jridgewell/trace-mapping"], "peer": [], "build": [], "dev": ["@rollup/plugin-typescript", "@types/jest", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "jest", "jest-config", "npm-run-all", "prettier", "rollup", "ts-jest", "tslib", "typescript"]}
+    },
+    {
+      "name": "@babel/code-frame",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/helper-validator-identifier", "js-tokens", "picocolors"], "peer": [], "build": [], "dev": ["charcodes", "import-meta-resolve", "strip-ansi"]}
+    },
+    {
+      "name": "@babel/compat-data",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@mdn/browser-compat-data", "core-js-compat", "electron-to-chromium"]}
+    },
+    {
+      "name": "@babel/core",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/code-frame", "@babel/generator", "@babel/helper-compilation-targets", "@babel/helper-module-transforms", "@babel/helpers", "@babel/parser", "@babel/template", "@babel/traverse", "@babel/types", "@jridgewell/remapping", "convert-source-map", "debug", "gensync", "json5", "semver"], "peer": [], "build": [], "dev": ["@babel/helper-transform-fixture-test-runner", "@babel/plugin-syntax-flow", "@babel/plugin-transform-flow-strip-types", "@babel/plugin-transform-modules-commonjs", "@babel/preset-env", "@babel/preset-typescript", "@jridgewell/trace-mapping", "@types/convert-source-map", "@types/debug", "@types/resolve", "@types/semver", "rimraf", "ts-node", "tsx"]}
+    },
+    {
+      "name": "@babel/generator",
+      "source": null,
+      "latest": "7.29.12",
+      "versions": [
+        {"version": "7.29.8", "yanked": false},
+        {"version": "7.29.12", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/parser", "@babel/types", "@jridgewell/gen-mapping", "@jridgewell/trace-mapping", "jsesc"], "peer": [], "build": [], "dev": ["@babel/core", "@babel/helper-fixtures", "@babel/plugin-transform-typescript", "@jridgewell/sourcemap-codec", "charcodes"]}
+    },
+    {
+      "name": "@babel/helper-compilation-targets",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/compat-data", "@babel/helper-validator-option", "browserslist", "lru-cache", "semver"], "peer": [], "build": [], "dev": ["@babel/helper-plugin-test-runner", "@types/lru-cache", "@types/semver"]}
+    },
+    {
+      "name": "@babel/helper-globals",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["globals"]}
+    },
+    {
+      "name": "@babel/helper-module-imports",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.18.6", "yanked": false},
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/traverse", "@babel/types"], "peer": [], "build": [], "dev": ["@babel/core"]}
+    },
+    {
+      "name": "@babel/helper-module-transforms",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/helper-module-imports", "@babel/helper-validator-identifier", "@babel/traverse"], "peer": ["@babel/core"], "build": [], "dev": ["@babel/core"]}
+    },
+    {
+      "name": "@babel/helper-plugin-utils",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/core"]}
+    },
+    {
+      "name": "@babel/helper-string-parser",
+      "source": null,
+      "latest": "7.29.11",
+      "versions": [
+        {"version": "7.29.11", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["charcodes"]}
+    },
+    {
+      "name": "@babel/helper-validator-identifier",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@unicode/unicode-17.0.0", "charcodes"]}
+    },
+    {
+      "name": "@babel/helper-validator-option",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@babel/helpers",
+      "source": null,
+      "latest": "7.29.10",
+      "versions": [
+        {"version": "7.29.10", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/template", "@babel/types"], "peer": [], "build": [], "dev": ["@babel/generator", "@babel/helper-plugin-test-runner", "@babel/parser", "regenerator-runtime"]}
+    },
+    {
+      "name": "@babel/parser",
+      "source": null,
+      "latest": "7.29.12",
+      "versions": [
+        {"version": "7.29.11", "yanked": false},
+        {"version": "7.29.12", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/types"], "peer": [], "build": [], "dev": ["@babel/code-frame", "@babel/helper-check-duplicate-nodes", "@babel/helper-fixtures", "@babel/helper-string-parser", "@babel/helper-validator-identifier", "charcodes"]}
+    },
+    {
+      "name": "@babel/plugin-syntax-jsx",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/helper-plugin-utils"], "peer": ["@babel/core"], "build": [], "dev": ["@babel/core"]}
+    },
+    {
+      "name": "@babel/template",
+      "source": null,
+      "latest": "7.29.7",
+      "versions": [
+        {"version": "7.29.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/code-frame", "@babel/parser", "@babel/types"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@babel/traverse",
+      "source": null,
+      "latest": "7.29.12",
+      "versions": [
+        {"version": "7.29.10", "yanked": false},
+        {"version": "7.29.12", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/code-frame", "@babel/generator", "@babel/helper-globals", "@babel/parser", "@babel/template", "@babel/types", "debug"], "peer": [], "build": [], "dev": ["@babel/core", "@babel/helper-plugin-test-runner"]}
+    },
+    {
+      "name": "@babel/types",
+      "source": null,
+      "latest": "7.29.11",
+      "versions": [
+        {"version": "7.29.11", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/helper-string-parser", "@babel/helper-validator-identifier"], "peer": [], "build": [], "dev": ["@babel/generator", "@babel/helper-fixtures", "@babel/parser"]}
+    },
+    {
+      "name": "@blazediff/core",
+      "source": null,
+      "latest": "1.10.0",
+      "versions": [
+        {"version": "1.10.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "@types/pngjs", "@vitest/coverage-v8", "pngjs", "tsup", "typescript", "vitest"]}
+    },
+    {
+      "name": "@bruits/satteri-darwin-arm64",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@bruits/satteri-darwin-x64",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@bruits/satteri-linux-arm64-gnu",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@bruits/satteri-linux-arm64-musl",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@bruits/satteri-linux-x64-gnu",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@bruits/satteri-linux-x64-musl",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@codemirror/autocomplete",
+      "source": null,
+      "latest": "6.20.4",
+      "versions": [
+        {"version": "6.20.3", "yanked": false},
+        {"version": "6.20.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/language", "@codemirror/state", "@codemirror/view", "@lezer/common"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/commands",
+      "source": null,
+      "latest": "6.11.1",
+      "versions": [
+        {"version": "6.11.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/language", "@codemirror/state", "@codemirror/view", "@lezer/common"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper", "@codemirror/lang-javascript"]}
+    },
+    {
+      "name": "@codemirror/lang-css",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/css"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/lang-html",
+      "source": null,
+      "latest": "6.4.12",
+      "versions": [
+        {"version": "6.4.12", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/autocomplete", "@codemirror/lang-css", "@codemirror/lang-javascript", "@codemirror/language", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/css", "@lezer/html"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/lang-javascript",
+      "source": null,
+      "latest": "6.2.5",
+      "versions": [
+        {"version": "6.2.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/lint", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/javascript"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper", "@lezer/lr"]}
+    },
+    {
+      "name": "@codemirror/lang-markdown",
+      "source": null,
+      "latest": "6.5.2",
+      "versions": [
+        {"version": "6.5.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/autocomplete", "@codemirror/lang-html", "@codemirror/language", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/markdown"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/language",
+      "source": null,
+      "latest": "6.13.1",
+      "versions": [
+        {"version": "6.13.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/state", "@codemirror/streamparser", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "style-mod"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper", "@lezer/javascript"]}
+    },
+    {
+      "name": "@codemirror/lint",
+      "source": null,
+      "latest": "6.9.7",
+      "versions": [
+        {"version": "6.9.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/state", "@codemirror/view", "crelt"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/state",
+      "source": null,
+      "latest": "6.7.6",
+      "versions": [
+        {"version": "6.7.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@marijn/find-cluster-break"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/streamparser",
+      "source": null,
+      "latest": "6.0.0",
+      "versions": [
+        {"version": "6.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@codemirror/view",
+      "source": null,
+      "latest": "6.43.15",
+      "versions": [
+        {"version": "6.43.13", "yanked": false},
+        {"version": "6.43.14", "yanked": false},
+        {"version": "6.43.15", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@codemirror/state", "crelt", "style-mod", "w3c-keyname"], "peer": [], "build": [], "dev": ["@codemirror/buildhelper"]}
+    },
+    {
+      "name": "@effect/platform-node",
+      "source": null,
+      "latest": "4.1.0",
+      "versions": [
+        {"version": "4.0.6", "yanked": false},
+        {"version": "4.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@effect/platform-node-shared", "undici"], "peer": ["effect", "redis"], "build": [], "dev": ["@testcontainers/mssqlserver", "@testcontainers/mysql", "@testcontainers/postgresql", "@testcontainers/redis", "@types/node", "effect", "redis", "testcontainers"]}
+    },
+    {
+      "name": "@effect/platform-node-shared",
+      "source": null,
+      "latest": "4.1.0",
+      "versions": [
+        {"version": "4.0.6", "yanked": false},
+        {"version": "4.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/ws", "ws"], "peer": ["effect"], "build": [], "dev": ["@types/node", "effect", "tar", "testcontainers", "tinybench"]}
+    },
+    {
+      "name": "@emnapi/core",
+      "source": null,
+      "latest": "1.11.3",
+      "versions": [
+        {"version": "1.9.2", "yanked": false},
+        {"version": "1.11.1", "yanked": false},
+        {"version": "1.11.2", "yanked": false},
+        {"version": "1.11.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@emnapi/wasi-threads", "tslib"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@emnapi/runtime",
+      "source": null,
+      "latest": "1.11.3",
+      "versions": [
+        {"version": "1.9.2", "yanked": false},
+        {"version": "1.11.1", "yanked": false},
+        {"version": "1.11.2", "yanked": false},
+        {"version": "1.11.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["tslib"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@emnapi/wasi-threads",
+      "source": null,
+      "latest": "1.2.3",
+      "versions": [
+        {"version": "1.2.1", "yanked": false},
+        {"version": "1.2.2", "yanked": false},
+        {"version": "1.2.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["tslib"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "source": null,
+      "latest": "0.28.2",
+      "versions": [
+        {"version": "0.28.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "source": null,
+      "latest": "0.28.2",
+      "versions": [
+        {"version": "0.28.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "source": null,
+      "latest": "0.28.2",
+      "versions": [
+        {"version": "0.28.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "source": null,
+      "latest": "0.28.2",
+      "versions": [
+        {"version": "0.28.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@happy-dom/global-registrator",
+      "source": null,
+      "latest": "21.0.4",
+      "versions": [
+        {"version": "21.0.1", "yanked": false},
+        {"version": "21.0.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/node", "happy-dom"], "peer": [], "build": [], "dev": ["@angular/common", "@angular/compiler", "@angular/core", "@angular/platform-browser", "lit", "react", "react-dom", "typescript"]}
+    },
+    {
+      "name": "@inquirer/ansi",
+      "source": null,
+      "latest": "2.0.10",
+      "versions": [
+        {"version": "2.0.9", "yanked": false},
+        {"version": "2.0.10", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/checkbox",
+      "source": null,
+      "latest": "5.2.8",
+      "versions": [
+        {"version": "5.2.6", "yanked": false},
+        {"version": "5.2.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/ansi", "@inquirer/core", "@inquirer/figures", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/confirm",
+      "source": null,
+      "latest": "6.3.5",
+      "versions": [
+        {"version": "6.3.3", "yanked": false},
+        {"version": "6.3.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/core",
+      "source": null,
+      "latest": "12.0.6",
+      "versions": [
+        {"version": "12.0.4", "yanked": false},
+        {"version": "12.0.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/ansi", "@inquirer/figures", "@inquirer/type", "cli-width", "fast-wrap-ansi", "mute-stream", "signal-exit"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "@types/mute-stream", "@types/node", "typescript"]}
+    },
+    {
+      "name": "@inquirer/editor",
+      "source": null,
+      "latest": "5.3.6",
+      "versions": [
+        {"version": "5.3.4", "yanked": false},
+        {"version": "5.3.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/external-editor", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/expand",
+      "source": null,
+      "latest": "5.1.8",
+      "versions": [
+        {"version": "5.1.6", "yanked": false},
+        {"version": "5.1.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/external-editor",
+      "source": null,
+      "latest": "3.0.7",
+      "versions": [
+        {"version": "3.0.6", "yanked": false},
+        {"version": "3.0.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["chardet", "iconv-lite"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "@types/chardet", "@types/node", "typescript"]}
+    },
+    {
+      "name": "@inquirer/figures",
+      "source": null,
+      "latest": "2.0.10",
+      "versions": [
+        {"version": "2.0.9", "yanked": false},
+        {"version": "2.0.10", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@repo/tsconfig", "@types/node", "typescript"]}
+    },
+    {
+      "name": "@inquirer/input",
+      "source": null,
+      "latest": "5.1.9",
+      "versions": [
+        {"version": "5.1.7", "yanked": false},
+        {"version": "5.1.9", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/number",
+      "source": null,
+      "latest": "4.2.6",
+      "versions": [
+        {"version": "4.2.4", "yanked": false},
+        {"version": "4.2.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/password",
+      "source": null,
+      "latest": "5.2.5",
+      "versions": [
+        {"version": "5.2.3", "yanked": false},
+        {"version": "5.2.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/ansi", "@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/prompts",
+      "source": null,
+      "latest": "8.7.5",
+      "versions": [
+        {"version": "8.7.3", "yanked": false},
+        {"version": "8.7.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/checkbox", "@inquirer/confirm", "@inquirer/editor", "@inquirer/expand", "@inquirer/input", "@inquirer/number", "@inquirer/password", "@inquirer/rawlist", "@inquirer/search", "@inquirer/select"], "peer": ["@types/node"], "build": [], "dev": ["@inquirer/type", "@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/rawlist",
+      "source": null,
+      "latest": "5.3.8",
+      "versions": [
+        {"version": "5.3.6", "yanked": false},
+        {"version": "5.3.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/search",
+      "source": null,
+      "latest": "4.3.6",
+      "versions": [
+        {"version": "4.3.4", "yanked": false},
+        {"version": "4.3.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/core", "@inquirer/figures", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/select",
+      "source": null,
+      "latest": "5.2.8",
+      "versions": [
+        {"version": "5.2.6", "yanked": false},
+        {"version": "5.2.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/ansi", "@inquirer/core", "@inquirer/figures", "@inquirer/type"], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@inquirer/type",
+      "source": null,
+      "latest": "4.2.1",
+      "versions": [
+        {"version": "4.2.0", "yanked": false},
+        {"version": "4.2.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@types/node"], "build": [], "dev": ["@repo/tsconfig", "typescript"]}
+    },
+    {
+      "name": "@joshuarli/ui",
+      "source": null,
+      "latest": "0.3.0",
+      "versions": [
+        {"version": "0.1.0", "yanked": false},
+        {"version": "0.2.0", "yanked": false},
+        {"version": "0.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@solidjs/web", "solid-js"], "build": [], "dev": []}
+    },
+    {
+      "name": "@jridgewell/gen-mapping",
+      "source": null,
+      "latest": "0.3.13",
+      "versions": [
+        {"version": "0.3.13", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/sourcemap-codec", "@jridgewell/trace-mapping"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@jridgewell/remapping",
+      "source": null,
+      "latest": "2.3.5",
+      "versions": [
+        {"version": "2.3.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/gen-mapping", "@jridgewell/trace-mapping"], "peer": [], "build": [], "dev": ["source-map"]}
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "source": null,
+      "latest": "3.1.2",
+      "versions": [
+        {"version": "3.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@jridgewell/resolve-uri-latest", "@rollup/plugin-typescript", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "c8", "eslint", "eslint-config-prettier", "mocha", "npm-run-all", "prettier", "rollup", "typescript"]}
+    },
+    {
+      "name": "@jridgewell/source-map",
+      "source": null,
+      "latest": "0.3.11",
+      "versions": [
+        {"version": "0.3.11", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/gen-mapping", "@jridgewell/trace-mapping"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "source": null,
+      "latest": "1.6.0",
+      "versions": [
+        {"version": "1.6.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "source": null,
+      "latest": "0.3.31",
+      "versions": [
+        {"version": "0.3.31", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/resolve-uri", "@jridgewell/sourcemap-codec"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@laputa-systems/ui-dashboard",
+      "source": null,
+      "latest": "0.5.0",
+      "versions": [
+        {"version": "0.4.0", "yanked": false},
+        {"version": "0.5.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@solidjs/web", "solid-js"], "build": [], "dev": []}
+    },
+    {
+      "name": "@lezer/common",
+      "source": null,
+      "latest": "1.5.4",
+      "versions": [
+        {"version": "1.5.3", "yanked": false},
+        {"version": "1.5.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@marijn/buildtool", "@types/mocha", "ist", "mocha", "ts-node"]}
+    },
+    {
+      "name": "@lezer/css",
+      "source": null,
+      "latest": "1.3.9",
+      "versions": [
+        {"version": "1.3.9", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common", "@lezer/highlight", "@lezer/lr"], "peer": [], "build": [], "dev": ["@lezer/generator", "@rollup/plugin-node-resolve", "mocha", "rollup"]}
+    },
+    {
+      "name": "@lezer/highlight",
+      "source": null,
+      "latest": "1.2.5",
+      "versions": [
+        {"version": "1.2.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common"], "peer": [], "build": [], "dev": ["@marijn/buildtool", "typescript"]}
+    },
+    {
+      "name": "@lezer/html",
+      "source": null,
+      "latest": "1.3.13",
+      "versions": [
+        {"version": "1.3.13", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common", "@lezer/highlight", "@lezer/lr"], "peer": [], "build": [], "dev": ["@lezer/generator", "@lezer/javascript", "@rollup/plugin-node-resolve", "mocha", "rollup"]}
+    },
+    {
+      "name": "@lezer/javascript",
+      "source": null,
+      "latest": "1.5.6",
+      "versions": [
+        {"version": "1.5.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common", "@lezer/highlight", "@lezer/lr"], "peer": [], "build": [], "dev": ["@lezer/generator", "@rollup/plugin-node-resolve", "mocha", "rollup"]}
+    },
+    {
+      "name": "@lezer/lr",
+      "source": null,
+      "latest": "1.4.11",
+      "versions": [
+        {"version": "1.4.11", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common"], "peer": [], "build": [], "dev": ["@marijn/buildtool", "@types/node"]}
+    },
+    {
+      "name": "@lezer/markdown",
+      "source": null,
+      "latest": "1.8.1",
+      "versions": [
+        {"version": "1.8.0", "yanked": false},
+        {"version": "1.8.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@lezer/common", "@lezer/highlight"], "peer": [], "build": [], "dev": ["@lezer/html", "@marijn/buildtool", "builddocs", "getdocs-ts", "ist", "mocha"]}
+    },
+    {
+      "name": "@marijn/find-cluster-break",
+      "source": null,
+      "latest": "1.0.4",
+      "versions": [
+        {"version": "1.0.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["mocha", "rollup"]}
+    },
+    {
+      "name": "@modelcontextprotocol/core",
+      "source": null,
+      "latest": "2.4.0",
+      "versions": [
+        {"version": "2.4.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["zod"], "peer": [], "build": [], "dev": ["@eslint/js", "@modelcontextprotocol/eslint-config", "@modelcontextprotocol/tsconfig", "@modelcontextprotocol/vitest-config", "@typescript/native-preview", "eslint", "eslint-config-prettier", "eslint-plugin-n", "prettier", "tsdown", "typescript", "typescript-eslint", "vitest"]}
+    },
+    {
+      "name": "@modelcontextprotocol/server",
+      "source": null,
+      "latest": "2.4.0",
+      "versions": [
+        {"version": "2.4.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@modelcontextprotocol/core", "zod"], "peer": [], "build": [], "dev": ["@cfworker/json-schema", "@eslint/js", "@modelcontextprotocol/core-internal", "@modelcontextprotocol/eslint-config", "@modelcontextprotocol/test-helpers", "@modelcontextprotocol/tsconfig", "@modelcontextprotocol/vitest-config", "@types/eventsource", "@typescript/native-preview", "ajv", "ajv-formats", "eslint", "eslint-config-prettier", "eslint-plugin-n", "prettier", "supertest", "tsdown", "typescript", "typescript-eslint", "vitest"]}
+    },
+    {
+      "name": "@napi-rs/cli",
+      "source": null,
+      "latest": "3.10.9",
+      "versions": [
+        {"version": "3.10.8", "yanked": false},
+        {"version": "3.10.9", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@inquirer/prompts", "@napi-rs/cross-toolchain", "@napi-rs/wasm-tools", "@octokit/rest", "clipanion", "colorette", "es-toolkit", "js-yaml", "obug", "semver", "typanion", "typescript"], "peer": ["@emnapi/core", "@emnapi/runtime", "emnapi"], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@oxc-node/core", "@std/toml", "@types/inquirer", "@types/js-yaml", "@types/node", "@types/semver", "ava", "emnapi", "empathic", "env-paths", "oxc-parser", "tsdown", "tslib"]}
+    },
+    {
+      "name": "@napi-rs/cross-toolchain",
+      "source": null,
+      "latest": "1.0.3",
+      "versions": [
+        {"version": "1.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@napi-rs/lzma", "@napi-rs/tar", "debug"], "peer": ["@napi-rs/cross-toolchain-arm64-target-aarch64", "@napi-rs/cross-toolchain-arm64-target-armv7", "@napi-rs/cross-toolchain-arm64-target-ppc64le", "@napi-rs/cross-toolchain-arm64-target-s390x", "@napi-rs/cross-toolchain-arm64-target-x86_64", "@napi-rs/cross-toolchain-x64-target-aarch64", "@napi-rs/cross-toolchain-x64-target-armv7", "@napi-rs/cross-toolchain-x64-target-ppc64le", "@napi-rs/cross-toolchain-x64-target-s390x", "@napi-rs/cross-toolchain-x64-target-x86_64"], "build": [], "dev": ["lerna", "lodash-es"]}
+    },
+    {
+      "name": "@napi-rs/lzma",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/cli", "@napi-rs/wasm-runtime", "@oxc-node/core", "@taplo/cli", "@types/lzma-native", "@types/node", "ava", "conventional-changelog-cli", "lzma", "lzma-native", "npm-run-all2", "oxlint", "prettier", "typescript"]}
+    },
+    {
+      "name": "@napi-rs/lzma-darwin-arm64",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/lzma-darwin-x64",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/lzma-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/lzma-linux-arm64-musl",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/lzma-linux-x64-gnu",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/lzma-linux-x64-musl",
+      "source": null,
+      "latest": "1.5.1",
+      "versions": [
+        {"version": "1.5.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/cli", "@napi-rs/lzma", "@napi-rs/wasm-runtime", "@oxc-node/core", "@taplo/cli", "@types/node", "@types/tar", "ava", "chalk", "husky", "lint-staged", "npm-run-all2", "oxlint", "prettier", "tar", "tinybench", "typescript"]}
+    },
+    {
+      "name": "@napi-rs/tar-darwin-arm64",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar-darwin-x64",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar-linux-arm64-musl",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar-linux-x64-gnu",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/tar-linux-x64-musl",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-runtime",
+      "source": null,
+      "latest": "1.2.6",
+      "versions": [
+        {"version": "1.2.5", "yanked": false},
+        {"version": "1.2.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@tybys/wasm-util"], "peer": ["@emnapi/core", "@emnapi/runtime"], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "buffer", "events", "memfs", "node-inspect-extracted", "path-browserify", "process", "readable-stream", "rolldown", "tslib", "wabt"]}
+    },
+    {
+      "name": "@napi-rs/wasm-tools",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/cli", "@napi-rs/wasm-runtime", "@oxc-node/core", "@taplo/cli", "@tybys/wasm-util", "@types/node", "ava", "chalk", "emnapi", "husky", "lint-staged", "npm-run-all2", "oxlint", "prettier", "typescript"]}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-darwin-arm64",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-darwin-x64",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-linux-arm64-musl",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-linux-x64-gnu",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@napi-rs/wasm-tools-linux-x64-musl",
+      "source": null,
+      "latest": "1.1.0",
+      "versions": [
+        {"version": "1.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@noble/hashes",
+      "source": null,
+      "latest": "2.4.0",
+      "versions": [
+        {"version": "2.4.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@paulmillr/jsbt", "@types/node", "bismar", "fast-check", "prettier", "typescript"]}
+    },
+    {
+      "name": "@octokit/auth-token",
+      "source": null,
+      "latest": "6.0.0",
+      "versions": [
+        {"version": "6.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@octokit/request", "@octokit/tsconfig", "@octokit/types", "@vitest/coverage-v8", "esbuild", "fetch-mock", "glob", "prettier", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/core",
+      "source": null,
+      "latest": "7.0.8",
+      "versions": [
+        {"version": "7.0.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/auth-token", "@octokit/graphql", "@octokit/request", "@octokit/request-error", "@octokit/types", "before-after-hook", "universal-user-agent"], "peer": [], "build": [], "dev": ["@octokit/auth-action", "@octokit/auth-app", "@octokit/auth-oauth-app", "@octokit/tsconfig", "@sinonjs/fake-timers", "@types/node", "@types/sinonjs__fake-timers", "@vitest/coverage-v8", "esbuild", "fetch-mock", "prettier", "proxy", "semantic-release-plugin-update-version-in-files", "typescript", "undici", "vitest"]}
+    },
+    {
+      "name": "@octokit/endpoint",
+      "source": null,
+      "latest": "11.0.5",
+      "versions": [
+        {"version": "11.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/types", "universal-user-agent"], "peer": [], "build": [], "dev": ["@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "prettier", "semantic-release-plugin-update-version-in-files", "tinyglobby", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/graphql",
+      "source": null,
+      "latest": "9.0.5",
+      "versions": [
+        {"version": "9.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/request", "@octokit/types", "universal-user-agent"], "peer": [], "build": [], "dev": ["@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "fetch-mock", "prettier", "semantic-release-plugin-update-version-in-files", "tinyglobby", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/openapi-types",
+      "source": null,
+      "latest": "29.0.1",
+      "versions": [
+        {"version": "27.0.0", "yanked": false},
+        {"version": "29.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@octokit/plugin-paginate-rest",
+      "source": null,
+      "latest": "14.0.0",
+      "versions": [
+        {"version": "14.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/types"], "peer": ["@octokit/core"], "build": [], "dev": ["@octokit/core", "@octokit/plugin-rest-endpoint-methods", "@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "fetch-mock", "github-openapi-graphql-query", "glob", "npm-run-all2", "prettier", "semantic-release-plugin-update-version-in-files", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/plugin-request-log",
+      "source": null,
+      "latest": "6.0.0",
+      "versions": [
+        {"version": "6.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@octokit/core"], "build": [], "dev": ["@octokit/core", "@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "fetch-mock", "prettier", "semantic-release-plugin-update-version-in-files", "tinyglobby", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/plugin-rest-endpoint-methods",
+      "source": null,
+      "latest": "17.0.0",
+      "versions": [
+        {"version": "17.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/types"], "peer": ["@octokit/core"], "build": [], "dev": ["@octokit/core", "@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "camelcase", "esbuild", "fetch-mock", "github-openapi-graphql-query", "glob", "prettier", "semantic-release-plugin-update-version-in-files", "sinon", "sort-keys", "string-to-jsdoc-comment", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/request",
+      "source": null,
+      "latest": "10.0.16",
+      "versions": [
+        {"version": "10.0.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/endpoint", "@octokit/request-error", "@octokit/types", "content-type", "json-with-bigint", "universal-user-agent"], "peer": [], "build": [], "dev": ["@octokit/auth-app", "@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "fetch-mock", "prettier", "semantic-release-plugin-update-version-in-files", "tinyglobby", "typescript", "undici", "vitest"]}
+    },
+    {
+      "name": "@octokit/request-error",
+      "source": null,
+      "latest": "7.1.2",
+      "versions": [
+        {"version": "7.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/types"], "peer": [], "build": [], "dev": ["@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "prettier", "tinybench", "tinyglobby", "typescript", "vitest"]}
+    },
+    {
+      "name": "@octokit/rest",
+      "source": null,
+      "latest": "22.0.1",
+      "versions": [
+        {"version": "22.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/core", "@octokit/plugin-paginate-rest", "@octokit/plugin-request-log", "@octokit/plugin-rest-endpoint-methods"], "peer": [], "build": [], "dev": ["@octokit/auth-action", "@octokit/auth-app", "@octokit/fixtures-server", "@octokit/request", "@octokit/tsconfig", "@types/node", "@vitest/coverage-v8", "esbuild", "fetch-mock", "glob", "nock", "prettier", "semantic-release-plugin-update-version-in-files", "typescript", "undici", "vitest"]}
+    },
+    {
+      "name": "@octokit/types",
+      "source": null,
+      "latest": "18.0.0",
+      "versions": [
+        {"version": "16.0.0", "yanked": false},
+        {"version": "18.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@octokit/openapi-types"], "peer": [], "build": [], "dev": ["@octokit/tsconfig", "github-openapi-graphql-query", "handlebars", "npm-run-all2", "prettier", "semantic-release-plugin-update-version-in-files", "sort-keys", "typedoc", "typescript"]}
+    },
+    {
+      "name": "@oxc-project/types",
+      "source": null,
+      "latest": "0.156.0",
+      "versions": [
+        {"version": "0.153.0", "yanked": false},
+        {"version": "0.155.0", "yanked": false},
+        {"version": "0.156.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint-tsgolint/darwin-arm64",
+      "source": null,
+      "latest": "7.0.2005",
+      "versions": [
+        {"version": "7.0.2005", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint-tsgolint/darwin-x64",
+      "source": null,
+      "latest": "7.0.2005",
+      "versions": [
+        {"version": "7.0.2005", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint-tsgolint/linux-arm64",
+      "source": null,
+      "latest": "7.0.2005",
+      "versions": [
+        {"version": "7.0.2005", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint-tsgolint/linux-x64",
+      "source": null,
+      "latest": "7.0.2005",
+      "versions": [
+        {"version": "7.0.2005", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-darwin-arm64",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-darwin-x64",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-linux-arm64-musl",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-linux-x64-gnu",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@oxlint/binding-linux-x64-musl",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.darwin-arm64",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.darwin-x64",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.linux-arm64",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.linux-arm64-musl",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.linux-x64",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@pnpm/exe.linux-x64-musl",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@polka/url",
+      "source": null,
+      "latest": "1.0.0-next.29",
+      "versions": [
+        {"version": "1.0.0-next.29", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@redis/bloom",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@redis/client"], "build": [], "dev": ["@redis/test-utils"]}
+    },
+    {
+      "name": "@redis/client",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@node-rs/xxhash", "@opentelemetry/api"], "build": [], "dev": ["@node-rs/xxhash", "@opentelemetry/api", "@opentelemetry/sdk-metrics", "@redis/test-utils", "@types/sinon", "sinon"]}
+    },
+    {
+      "name": "@redis/json",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@redis/client"], "build": [], "dev": ["@redis/test-utils"]}
+    },
+    {
+      "name": "@redis/search",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@redis/client"], "build": [], "dev": ["@redis/test-utils"]}
+    },
+    {
+      "name": "@redis/time-series",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["@redis/client"], "build": [], "dev": ["@redis/test-utils"]}
+    },
+    {
+      "name": "@rolldown/binding-darwin-arm64",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/binding-darwin-x64",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/binding-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/binding-linux-arm64-musl",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-musl",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "source": null,
+      "latest": "1.0.1",
+      "versions": [
+        {"version": "1.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/picomatch", "picomatch", "typescript"]}
+    },
+    {
+      "name": "@solidjs/babel-plugin",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/helper-module-imports", "@babel/plugin-syntax-jsx", "@babel/types", "html-entities", "parse5"], "peer": ["@babel/core", "@tsrx/core"], "build": [], "dev": ["@babel/core", "@rollup/plugin-babel", "@solidjs/web", "@tsrx/core", "@types/babel__core", "@types/babel__traverse"]}
+    },
+    {
+      "name": "@solidjs/compiler",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/cli", "@napi-rs/wasm-runtime", "emnapi"]}
+    },
+    {
+      "name": "@solidjs/compiler-darwin-arm64",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@solidjs/compiler-darwin-x64",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@solidjs/compiler-linux-arm64-gnu",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@solidjs/compiler-linux-x64-gnu",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@solidjs/compiler-wasm32-wasi",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/wasm-runtime"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@solidjs/signals",
+      "source": null,
+      "latest": "2.0.0-rc.20",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false},
+        {"version": "2.0.0-rc.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@codspeed/vitest-plugin", "@ianvs/prettier-plugin-sort-imports", "@rollup/plugin-replace", "@rollup/plugin-typescript", "@types/node", "rimraf", "rollup", "rollup-plugin-prettier", "terser", "tslib", "typescript", "vite", "vitest"]}
+    },
+    {
+      "name": "@solidjs/vite-plugin",
+      "source": null,
+      "latest": "3.0.0-next.52",
+      "versions": [
+        {"version": "3.0.0-next.51", "yanked": false},
+        {"version": "3.0.0-next.52", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@ampproject/remapping", "@babel/core", "@solidjs/babel-plugin", "@solidjs/compiler", "@types/babel__core", "merge-anything", "vitefu"], "peer": ["@solidjs/start-devtools", "@solidjs/web", "@testing-library/jest-dom", "solid-js", "vite"], "build": [], "dev": ["@babel/preset-env", "@babel/preset-typescript", "@changesets/cli", "@rollup/plugin-babel", "@rollup/plugin-commonjs", "@rollup/plugin-node-resolve", "@skypack/package-check", "@solidjs/diagnostics", "@solidjs/start-devtools", "@solidjs/web", "@types/node", "cypress", "cypress-visual-regression", "cypress-vite", "cypress-wait-until", "prettier", "rollup", "rollup-plugin-cleaner", "solid-js", "typescript", "vite", "vitest"]}
+    },
+    {
+      "name": "@solidjs/web",
+      "source": null,
+      "latest": "2.0.0-rc.18",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["seroval", "seroval-plugins"], "peer": ["solid-js"], "build": [], "dev": ["@codspeed/vitest-plugin", "@solidjs/signals", "fast-check", "solid-js"]}
+    },
+    {
+      "name": "@stats/producer",
+      "source": null,
+      "latest": "0.2.0",
+      "versions": [
+        {"version": "0.1.0", "yanked": false},
+        {"version": "0.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@tybys/wasm-util",
+      "source": null,
+      "latest": "0.10.4",
+      "versions": [
+        {"version": "0.10.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["tslib"], "peer": [], "build": [], "dev": ["@tybys/ts-transform-module-specifier", "@tybys/ts-transform-pure-class", "@tybys/tsgo", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-standard-with-typescript", "eslint-plugin-import", "eslint-plugin-n", "eslint-plugin-promise", "memfs-browser", "mocha", "ts-node", "typescript"]}
+    },
+    {
+      "name": "@types/babel__core",
+      "source": null,
+      "latest": "7.20.5",
+      "versions": [
+        {"version": "7.20.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/parser", "@babel/types", "@types/babel__generator", "@types/babel__template", "@types/babel__traverse"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/babel__generator",
+      "source": null,
+      "latest": "7.27.0",
+      "versions": [
+        {"version": "7.27.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/types"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/babel__template",
+      "source": null,
+      "latest": "7.4.4",
+      "versions": [
+        {"version": "7.4.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/parser", "@babel/types"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/babel__traverse",
+      "source": null,
+      "latest": "7.28.0",
+      "versions": [
+        {"version": "7.28.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@babel/types"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/chai",
+      "source": null,
+      "latest": "5.2.3",
+      "versions": [
+        {"version": "5.2.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/deep-eql", "assertion-error"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/chrome",
+      "source": null,
+      "latest": "0.3.7",
+      "versions": [
+        {"version": "0.2.2", "yanked": false},
+        {"version": "0.3.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/har-format"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/codemirror",
+      "source": null,
+      "latest": "5.60.8",
+      "versions": [
+        {"version": "5.60.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/tern"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/deep-eql",
+      "source": null,
+      "latest": "4.0.2",
+      "versions": [
+        {"version": "4.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/estree",
+      "source": null,
+      "latest": "1.0.10",
+      "versions": [
+        {"version": "1.0.9", "yanked": false},
+        {"version": "1.0.10", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/estree-jsx",
+      "source": null,
+      "latest": "1.0.5",
+      "versions": [
+        {"version": "1.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/estree"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/filesystem",
+      "source": null,
+      "latest": "0.0.36",
+      "versions": [
+        {"version": "0.0.36", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/filewriter"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/filewriter",
+      "source": null,
+      "latest": "0.0.33",
+      "versions": [
+        {"version": "0.0.33", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/har-format",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/hast",
+      "source": null,
+      "latest": "3.0.5",
+      "versions": [
+        {"version": "3.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/unist"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/mdast",
+      "source": null,
+      "latest": "4.0.4",
+      "versions": [
+        {"version": "4.0.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/unist"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/node",
+      "source": null,
+      "latest": "26.6.6",
+      "versions": [
+        {"version": "26.6.5", "yanked": false},
+        {"version": "26.6.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["undici-types"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/proper-lockfile",
+      "source": null,
+      "latest": "4.1.4",
+      "versions": [
+        {"version": "4.1.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/retry"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/retry",
+      "source": null,
+      "latest": "0.12.5",
+      "versions": [
+        {"version": "0.12.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/tern",
+      "source": null,
+      "latest": "0.23.9",
+      "versions": [
+        {"version": "0.23.9", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/estree"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/unist",
+      "source": null,
+      "latest": "3.0.3",
+      "versions": [
+        {"version": "3.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/whatwg-mimetype",
+      "source": null,
+      "latest": "3.0.2",
+      "versions": [
+        {"version": "3.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@types/ws",
+      "source": null,
+      "latest": "8.18.2",
+      "versions": [
+        {"version": "8.18.1", "yanked": false},
+        {"version": "8.18.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/node"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@typescript/typescript-darwin-arm64",
+      "source": null,
+      "latest": "7.0.2",
+      "versions": [
+        {"version": "7.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@typescript/typescript-darwin-x64",
+      "source": null,
+      "latest": "7.0.2",
+      "versions": [
+        {"version": "7.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@typescript/typescript-linux-arm64",
+      "source": null,
+      "latest": "7.0.2",
+      "versions": [
+        {"version": "7.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@typescript/typescript-linux-x64",
+      "source": null,
+      "latest": "7.0.2",
+      "versions": [
+        {"version": "7.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@vitest/browser",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@blazediff/core", "@vitest/mocker", "@vitest/ui", "@vitest/utils", "magic-string", "pngjs", "sirv", "tinyrainbow", "ws"], "peer": ["vitest"], "build": [], "dev": ["@opentelemetry/api", "@testing-library/user-event", "@types/node", "@types/pngjs", "@types/ws", "@vitest/snapshot", "birpc", "flatted", "ivya", "mime", "pathe", "rrweb-snapshot", "vite", "vitest"]}
+    },
+    {
+      "name": "@vitest/browser-playwright",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@vitest/browser", "@vitest/mocker", "tinyrainbow"], "peer": ["playwright", "vitest"], "build": [], "dev": ["pathe", "playwright", "vite", "vitest"]}
+    },
+    {
+      "name": "@vitest/mocker",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.4", "yanked": false},
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/trace-mapping", "@vitest/spy", "estree-walker", "magic-string"], "peer": ["msw", "vite"], "build": [], "dev": ["@types/estree", "@vitest/utils", "acorn-walk", "cjs-module-lexer", "es-module-lexer", "msw", "pathe", "vite"]}
+    },
+    {
+      "name": "@vitest/pretty-format",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["tinyrainbow"], "peer": [], "build": [], "dev": ["@types/react-is", "react-is", "react-is-18"]}
+    },
+    {
+      "name": "@vitest/spy",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.4", "yanked": false},
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "@vitest/ui",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@vitest/utils", "fflate", "flatted", "pathe", "sirv", "tinyrainbow"], "peer": ["vitest"], "build": [], "dev": ["@faker-js/faker", "@iconify-json/carbon", "@iconify-json/logos", "@types/codemirror", "@types/d3-selection", "@unocss/reset", "@vitejs/plugin-vue", "@vitest/browser-playwright", "@vitest/browser-preview", "@vueuse/core", "ansi-to-html", "birpc", "codemirror", "codemirror-theme-vars", "cookie", "d3-graph-controller", "floating-vue", "mime", "rollup", "rrweb-snapshot", "splitpanes", "typescript", "unocss", "vite", "vitest-browser-vue", "vue", "vue-router", "vue-tsc", "vue-virtual-scroller"]}
+    },
+    {
+      "name": "@vitest/utils",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@vitest/pretty-format", "convert-source-map", "tinyrainbow"], "peer": [], "build": [], "dev": ["@jridgewell/trace-mapping", "@types/convert-source-map", "diff-sequences", "pathe"]}
+    },
+    {
+      "name": "acorn",
+      "source": null,
+      "latest": "8.19.0",
+      "versions": [
+        {"version": "8.19.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "argparse",
+      "source": null,
+      "latest": "3.0.4",
+      "versions": [
+        {"version": "2.0.1", "yanked": false},
+        {"version": "3.0.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["c8", "neostandard"]}
+    },
+    {
+      "name": "assertion-error",
+      "source": null,
+      "latest": "2.0.1",
+      "versions": [
+        {"version": "2.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "source": null,
+      "latest": "2.11.34",
+      "versions": [
+        {"version": "2.11.32", "yanked": false},
+        {"version": "2.11.34", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@mdn/browser-compat-data", "@rollup/plugin-terser", "@rollup/plugin-typescript", "@types/node", "eslint-plugin-new-with-error", "jasmine", "jasmine-browser-runner", "jasmine-spec-reporter", "prettier", "rollup", "tslib", "typescript", "typescript-eslint", "web-features"]}
+    },
+    {
+      "name": "before-after-hook",
+      "source": null,
+      "latest": "4.0.0",
+      "versions": [
+        {"version": "4.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "c8", "prettier", "tsd", "typescript"]}
+    },
+    {
+      "name": "boolbase",
+      "source": null,
+      "latest": "1.0.0",
+      "versions": [
+        {"version": "1.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "browserslist",
+      "source": null,
+      "latest": "4.29.5",
+      "versions": [
+        {"version": "4.29.4", "yanked": false},
+        {"version": "4.29.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["baseline-browser-mapping", "caniuse-lite", "electron-to-chromium", "node-releases", "update-browserslist-db"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "buffer-from",
+      "source": null,
+      "latest": "1.1.2",
+      "versions": [
+        {"version": "1.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["standard"]}
+    },
+    {
+      "name": "buffer-image-size",
+      "source": null,
+      "latest": "0.6.4",
+      "versions": [
+        {"version": "0.6.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/node"], "peer": [], "build": [], "dev": ["coveralls", "eslint", "expect.js", "glob", "mocha", "nyc", "sinon"]}
+    },
+    {
+      "name": "caniuse-lite",
+      "source": null,
+      "latest": "1.0.30001820",
+      "versions": [
+        {"version": "1.0.30001819", "yanked": false},
+        {"version": "1.0.30001820", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "chai",
+      "source": null,
+      "latest": "6.3.0",
+      "versions": [
+        {"version": "6.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@eslint/js", "@rollup/plugin-commonjs", "@web/dev-server-rollup", "@web/test-runner", "@web/test-runner-playwright", "assertion-error", "c8", "check-error", "deep-eql", "esbuild", "eslint", "eslint-plugin-jsdoc", "globals", "loupe", "mocha", "pathval", "prettier", "typescript"]}
+    },
+    {
+      "name": "chardet",
+      "source": null,
+      "latest": "2.2.0",
+      "versions": [
+        {"version": "2.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "@vitest/coverage-v8", "prettier", "semantic-release", "tsx", "typescript", "vitest"]}
+    },
+    {
+      "name": "cheerio",
+      "source": null,
+      "latest": "1.2.0",
+      "versions": [
+        {"version": "1.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["cheerio-select", "dom-serializer", "domhandler", "domutils", "encoding-sniffer", "htmlparser2", "parse5", "parse5-htmlparser2-tree-adapter", "parse5-parser-stream", "undici", "whatwg-mimetype"], "peer": [], "build": [], "dev": ["@eslint/compat", "@eslint/js", "@imgix/js-core", "@octokit/graphql", "@types/jsdom", "@types/node", "@types/whatwg-mimetype", "@vitest/coverage-v8", "@vitest/eslint-plugin", "eslint", "eslint-config-prettier", "eslint-plugin-jsdoc", "eslint-plugin-n", "eslint-plugin-unicorn", "globals", "husky", "jquery", "jsdom", "lint-staged", "prettier", "prettier-plugin-jsdoc", "tinybench", "tshy", "tsx", "typescript", "typescript-eslint", "vitest"]}
+    },
+    {
+      "name": "cheerio-select",
+      "source": null,
+      "latest": "2.1.0",
+      "versions": [
+        {"version": "2.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["boolbase", "css-select", "css-what", "domelementtype", "domhandler", "domutils"], "peer": [], "build": [], "dev": ["@types/boolbase", "@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "htmlparser2", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "cli-width",
+      "source": null,
+      "latest": "4.1.0",
+      "versions": [
+        {"version": "4.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["coveralls", "nyc", "standard-version", "tap-spec", "tape"]}
+    },
+    {
+      "name": "clipanion",
+      "source": null,
+      "latest": "4.0.0-rc.4",
+      "versions": [
+        {"version": "4.0.0-rc.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["typanion"], "peer": ["typanion"], "build": [], "dev": ["@rollup/plugin-node-resolve", "@rollup/plugin-typescript", "@types/jest", "@types/lodash", "@types/node", "@types/rollup", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "@yarnpkg/core", "@yarnpkg/eslint-config", "@yarnpkg/fslib", "eslint", "eslint-plugin-arca", "eslint-plugin-react", "get-stream", "jest", "lodash", "rollup", "rollup-plugin-multi-input", "ts-jest", "ts-node", "typescript"]}
+    },
+    {
+      "name": "colorette",
+      "source": null,
+      "latest": "2.0.20",
+      "versions": [
+        {"version": "2.0.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["c8", "twist"]}
+    },
+    {
+      "name": "commander",
+      "source": null,
+      "latest": "2.20.3",
+      "versions": [
+        {"version": "2.20.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "eslint", "should", "sinon", "standard", "ts-node", "typescript"]}
+    },
+    {
+      "name": "content-type",
+      "source": null,
+      "latest": "3.1.1",
+      "versions": [
+        {"version": "3.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@borderless/ts-scripts", "@size-limit/preset-small-lib", "@vitest/coverage-v8", "size-limit", "typescript", "vitest"]}
+    },
+    {
+      "name": "convert-source-map",
+      "source": null,
+      "latest": "2.0.0",
+      "versions": [
+        {"version": "2.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["inline-source-map", "tap"]}
+    },
+    {
+      "name": "crelt",
+      "source": null,
+      "latest": "1.0.7",
+      "versions": [
+        {"version": "1.0.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["rollup", "rollup-plugin-copy"]}
+    },
+    {
+      "name": "css-select",
+      "source": null,
+      "latest": "5.2.2",
+      "versions": [
+        {"version": "5.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["boolbase", "css-what", "domhandler", "domutils", "nth-check"], "peer": [], "build": [], "dev": ["@types/boolbase", "@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "cheerio-soupselect", "eslint", "eslint-config-prettier", "htmlparser2", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "css-what",
+      "source": null,
+      "latest": "6.2.2",
+      "versions": [
+        {"version": "6.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "eslint-plugin-node", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "csstype",
+      "source": null,
+      "latest": "3.2.3",
+      "versions": [
+        {"version": "3.2.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/core", "@babel/preset-env", "@babel/preset-typescript", "@eslint/js", "@mdn/browser-compat-data", "@tsconfig/node24", "@types/chokidar", "@types/css-tree", "@types/jest", "@types/jsdom", "@types/node", "@types/prettier", "@types/turndown", "babel-jest", "chalk", "chokidar", "css-tree", "eslint-config-prettier", "eslint-plugin-prettier", "flow-bin", "jest", "jsdom", "mdn-data", "prettier", "release-it", "tsx", "turndown", "typescript", "typescript-eslint"]}
+    },
+    {
+      "name": "debug",
+      "source": null,
+      "latest": "4.4.3",
+      "versions": [
+        {"version": "4.4.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["ms"], "peer": [], "build": [], "dev": ["brfs", "browserify", "coveralls", "karma", "karma-browserify", "karma-chrome-launcher", "karma-mocha", "mocha", "mocha-lcov-reporter", "sinon", "xo"]}
+    },
+    {
+      "name": "detect-libc",
+      "source": null,
+      "latest": "2.1.2",
+      "versions": [
+        {"version": "2.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["ava", "benchmark", "conventional-changelog-cli", "eslint-config-standard", "nyc", "proxyquire", "semistandard"]}
+    },
+    {
+      "name": "dom-serializer",
+      "source": null,
+      "latest": "2.0.0",
+      "versions": [
+        {"version": "2.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["domelementtype", "domhandler", "entities"], "peer": [], "build": [], "dev": ["@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "cheerio", "eslint", "eslint-config-prettier", "htmlparser2", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "domelementtype",
+      "source": null,
+      "latest": "2.3.0",
+      "versions": [
+        {"version": "2.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "prettier", "typescript"]}
+    },
+    {
+      "name": "domhandler",
+      "source": null,
+      "latest": "5.0.3",
+      "versions": [
+        {"version": "5.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["domelementtype"], "peer": [], "build": [], "dev": ["@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "htmlparser2", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "domutils",
+      "source": null,
+      "latest": "3.2.2",
+      "versions": [
+        {"version": "3.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["dom-serializer", "domelementtype", "domhandler"], "peer": [], "build": [], "dev": ["@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "eslint-plugin-jsdoc", "htmlparser2", "jest", "prettier", "ts-jest", "typedoc", "typescript"]}
+    },
+    {
+      "name": "effect",
+      "source": null,
+      "latest": "4.1.0",
+      "versions": [
+        {"version": "4.0.0", "yanked": false},
+        {"version": "4.0.6", "yanked": false},
+        {"version": "4.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "ajv", "ajv-draft-04", "ast-types", "esbuild", "fake-indexeddb", "immer", "miniflare", "protobufjs", "tinybench", "valibot"]}
+    },
+    {
+      "name": "electron-to-chromium",
+      "source": null,
+      "latest": "1.5.467",
+      "versions": [
+        {"version": "1.5.464", "yanked": false},
+        {"version": "1.5.467", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["ava", "compare-versions", "node-fetch", "nyc", "shelljs"]}
+    },
+    {
+      "name": "encoding-sniffer",
+      "source": null,
+      "latest": "0.2.1",
+      "versions": [
+        {"version": "0.2.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["iconv-lite", "whatwg-encoding"], "peer": [], "build": [], "dev": ["@types/node", "@types/whatwg-encoding", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "@vitest/coverage-v8", "eslint", "eslint-config-prettier", "eslint-plugin-n", "eslint-plugin-unicorn", "prettier", "tshy", "typedoc", "typescript", "vitest"]}
+    },
+    {
+      "name": "entities",
+      "source": null,
+      "latest": "7.0.1",
+      "versions": [
+        {"version": "4.5.0", "yanked": false},
+        {"version": "6.0.1", "yanked": false},
+        {"version": "7.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@biomejs/biome", "@types/he", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "@vitest/coverage-v8", "eslint", "eslint-config-biome", "eslint-plugin-n", "eslint-plugin-unicorn", "he", "html-entities", "parse-entities", "tinybench", "tshy", "tsx", "typedoc", "typescript", "vitest"]}
+    },
+    {
+      "name": "es-module-lexer",
+      "source": null,
+      "latest": "2.3.2",
+      "versions": [
+        {"version": "2.3.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/cli", "@babel/core", "@babel/plugin-transform-modules-commonjs", "@swc/cli", "@swc/core", "@types/node", "kleur", "mocha", "terser", "typescript"]}
+    },
+    {
+      "name": "es-toolkit",
+      "source": null,
+      "latest": "1.53.0",
+      "versions": [
+        {"version": "1.52.0", "yanked": false},
+        {"version": "1.53.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@arethetypeswrong/cli", "@changesets/changelog-github", "@changesets/cli", "@eslint/js", "@trivago/prettier-plugin-sort-imports", "@types/broken-link-checker", "@types/jscodeshift", "@types/node", "@types/tar", "@typescript-eslint/parser", "@vitest/coverage-istanbul", "@vitest/eslint-plugin", "@vue/compiler-sfc", "broken-link-checker", "eslint", "eslint-config-prettier", "eslint-plugin-compat", "eslint-plugin-es-x", "eslint-plugin-no-for-of-array", "eslint-plugin-prettier", "eslint-plugin-vue", "execa", "fast-check", "globals", "happy-dom", "jscodeshift", "packlint", "prettier", "prettier-plugin-sort-re-exports", "rolldown", "tar", "tsdown", "tslib", "tsx", "typescript", "typescript-eslint", "vercel", "vitest"]}
+    },
+    {
+      "name": "esbuild",
+      "source": null,
+      "latest": "0.28.2",
+      "versions": [
+        {"version": "0.28.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "escalade",
+      "source": null,
+      "latest": "3.2.0",
+      "versions": [
+        {"version": "3.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["bundt", "esm", "uvu"]}
+    },
+    {
+      "name": "estree-walker",
+      "source": null,
+      "latest": "3.0.3",
+      "versions": [
+        {"version": "3.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/estree"], "peer": [], "build": [], "dev": ["typescript", "uvu"]}
+    },
+    {
+      "name": "expect-type",
+      "source": null,
+      "latest": "1.4.0",
+      "versions": [
+        {"version": "1.4.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@arethetypeswrong/cli", "@types/node", "@typescript/native-preview", "@vitest/ui", "eslint", "eslint-plugin-mmkal", "np", "pkg-pr-new", "strip-ansi", "ts-morph", "typescript", "vitest"]}
+    },
+    {
+      "name": "fake-indexeddb",
+      "source": null,
+      "latest": "6.2.7",
+      "versions": [
+        {"version": "6.2.5", "yanked": false},
+        {"version": "6.2.6", "yanked": false},
+        {"version": "6.2.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/cli", "@babel/core", "@babel/plugin-transform-modules-commonjs", "@babel/preset-env", "@babel/preset-typescript", "@types/mocha", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "babel-plugin-add-module-exports", "babelify", "browserify", "core-js", "dexie", "eslint", "eslint-config-prettier", "eslint-plugin-import", "glob", "husky", "jest", "lint-staged", "mocha", "node-qunit-phantomjs", "prettier", "qunitjs", "smol-toml", "typescript"]}
+    },
+    {
+      "name": "fast-string-truncated-width",
+      "source": null,
+      "latest": "3.0.3",
+      "versions": [
+        {"version": "3.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["benchloop", "fava", "tsex", "typescript"]}
+    },
+    {
+      "name": "fast-string-width",
+      "source": null,
+      "latest": "3.0.2",
+      "versions": [
+        {"version": "3.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["fast-string-truncated-width"], "peer": [], "build": [], "dev": ["fava", "tsex", "typescript"]}
+    },
+    {
+      "name": "fast-wrap-ansi",
+      "source": null,
+      "latest": "0.2.2",
+      "versions": [
+        {"version": "0.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["fast-string-width"], "peer": [], "build": [], "dev": ["@eslint/js", "@types/node", "eslint", "fast-wrap-ansi-prod", "picocolors", "prettier", "tinybench", "typescript", "typescript-eslint", "vitest", "wrap-ansi"]}
+    },
+    {
+      "name": "fdir",
+      "source": null,
+      "latest": "6.5.0",
+      "versions": [
+        {"version": "6.5.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["picomatch"], "build": [], "dev": ["@types/glob", "@types/mock-fs", "@types/node", "@types/picomatch", "@types/tap", "@vitest/coverage-v8", "all-files-in-tree", "benny", "csv-to-markdown-table", "expect", "fast-glob", "fdir1", "fdir2", "fdir3", "fdir4", "fdir5", "fs-readdir-recursive", "get-all-files", "glob", "klaw-sync", "mock-fs", "picomatch", "prettier", "recur-readdir", "recursive-files", "recursive-fs", "recursive-readdir", "rrdir", "systeminformation", "tiny-glob", "ts-node", "tsdown", "typescript", "vitest", "walk-sync"]}
+    },
+    {
+      "name": "fflate",
+      "source": null,
+      "latest": "0.8.3",
+      "versions": [
+        {"version": "0.8.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@parcel/service-worker", "@types/node", "@types/pako", "@types/react", "@types/react-dom", "jszip", "pako", "parcel", "preact", "react", "react-dom", "simple-git", "terser", "tiny-inflate", "ts-node", "typedoc", "typedoc-plugin-markdown", "typescript", "uvu", "uzip"]}
+    },
+    {
+      "name": "flatted",
+      "source": null,
+      "latest": "3.4.4",
+      "versions": [
+        {"version": "3.4.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/core", "@babel/preset-env", "@rollup/plugin-babel", "@rollup/plugin-terser", "@ungap/structured-clone", "ascjs", "c8", "circular-json", "circular-json-es6", "flatted-view", "jsan", "rollup", "terser", "typescript"]}
+    },
+    {
+      "name": "fsevents",
+      "source": null,
+      "latest": "2.3.3",
+      "versions": [
+        {"version": "2.3.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["node-gyp"]}
+    },
+    {
+      "name": "gensync",
+      "source": null,
+      "latest": "1.0.0-beta.2",
+      "versions": [
+        {"version": "1.0.0-beta.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["babel-core", "babel-preset-env", "eslint", "eslint-config-prettier", "eslint-plugin-node", "eslint-plugin-prettier", "flow-bin", "jest", "prettier"]}
+    },
+    {
+      "name": "graceful-fs",
+      "source": null,
+      "latest": "4.2.11",
+      "versions": [
+        {"version": "4.2.11", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["import-fresh", "mkdirp", "rimraf", "tap"]}
+    },
+    {
+      "name": "happy-dom",
+      "source": null,
+      "latest": "21.0.4",
+      "versions": [
+        {"version": "21.0.1", "yanked": false},
+        {"version": "21.0.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/node", "@types/whatwg-mimetype", "@types/ws", "buffer-image-size", "entities", "whatwg-mimetype", "ws"], "peer": [], "build": [], "dev": ["@vitest/ui", "@webref/css", "chalk", "madge", "prettier", "typescript", "vitest"]}
+    },
+    {
+      "name": "html-entities",
+      "source": null,
+      "latest": "2.3.3",
+      "versions": [
+        {"version": "2.3.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/benchmark", "@types/chai", "@types/he", "@types/mocha", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "benchmark", "chai", "entities", "eslint", "eslint-config-prettier", "eslint-plugin-import", "eslint-plugin-prettier", "flowgen", "he", "husky", "mocha", "prettier", "terser", "ts-node", "ttypescript", "typescript", "typescript-transform-macros"]}
+    },
+    {
+      "name": "htmlparser2",
+      "source": null,
+      "latest": "10.1.0",
+      "versions": [
+        {"version": "10.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["domelementtype", "domhandler", "domutils", "entities"], "peer": [], "build": [], "dev": ["@eslint/js", "@types/node", "@vitest/coverage-v8", "eslint", "eslint-config-prettier", "eslint-plugin-n", "eslint-plugin-unicorn", "globals", "prettier", "tshy", "typescript", "typescript-eslint", "vitest"]}
+    },
+    {
+      "name": "iconv-lite",
+      "source": null,
+      "latest": "0.7.3",
+      "versions": [
+        {"version": "0.6.3", "yanked": false},
+        {"version": "0.7.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["safer-buffer"], "peer": [], "build": [], "dev": ["@arethetypeswrong/cli", "@stylistic/eslint-plugin", "@stylistic/eslint-plugin-js", "@types/node", "async", "bench-node", "errto", "eslint", "expect-type", "iconv", "mocha", "neostandard", "nyc", "request", "semver", "typescript", "unorm"]}
+    },
+    {
+      "name": "is-what",
+      "source": null,
+      "latest": "4.1.16",
+      "versions": [
+        {"version": "4.1.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "del-cli", "eslint", "eslint-config-prettier", "eslint-plugin-tree-shaking", "np", "prettier", "prettier-plugin-jsdoc", "rollup", "rollup-plugin-dts", "rollup-plugin-esbuild", "typedoc", "typescript", "vitest"]}
+    },
+    {
+      "name": "jiti",
+      "source": null,
+      "latest": "2.7.0",
+      "versions": [
+        {"version": "2.7.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/core", "@babel/helper-module-imports", "@babel/helper-module-transforms", "@babel/helper-plugin-utils", "@babel/helper-simple-access", "@babel/plugin-proposal-decorators", "@babel/plugin-syntax-class-properties", "@babel/plugin-syntax-import-assertions", "@babel/plugin-syntax-jsx", "@babel/plugin-transform-explicit-resource-management", "@babel/plugin-transform-export-namespace-from", "@babel/plugin-transform-react-jsx", "@babel/plugin-transform-typescript", "@babel/preset-typescript", "@babel/template", "@babel/traverse", "@babel/types", "@rspack/cli", "@rspack/core", "@types/babel__core", "@types/babel__helper-module-imports", "@types/babel__helper-plugin-utils", "@types/babel__template", "@types/babel__traverse", "@types/node", "@typescript/native-preview", "@vitest/coverage-v8", "acorn", "babel-plugin-parameter-decorator", "changelogen", "config", "consola", "defu", "destr", "escape-string-regexp", "eslint", "eslint-config-unjs", "estree-walker", "etag", "fast-glob", "get-tsconfig", "is-installed-globally", "mime", "mitata", "mlly", "moment-timezone", "nano-jsx", "pathe", "pkg-types", "preact", "preact-render-to-string", "prettier", "react", "react-dom", "reflect-metadata", "rolldown", "solid-js", "std-env", "terser-webpack-plugin", "tinyexec", "ts-loader", "typescript", "vitest", "vue", "yoctocolors", "zod"]}
+    },
+    {
+      "name": "js-tokens",
+      "source": null,
+      "latest": "4.0.0",
+      "versions": [
+        {"version": "4.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["coffeescript", "esprima", "everything.js", "mocha"]}
+    },
+    {
+      "name": "js-yaml",
+      "source": null,
+      "latest": "5.5.0",
+      "versions": [
+        {"version": "5.4.3", "yanked": false},
+        {"version": "5.5.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["argparse"], "peer": [], "build": [], "dev": ["@streamparser/json", "@types/node", "c8", "codemirror", "eslint", "fast-check", "gh-pages", "mitata", "neostandard", "rollup", "rollup-plugin-dts", "typedoc", "typescript", "vite", "vite-plugin-node-polyfills", "vite-plugin-singlefile", "workerpool"]}
+    },
+    {
+      "name": "jsesc",
+      "source": null,
+      "latest": "3.1.0",
+      "versions": [
+        {"version": "3.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["coveralls", "grunt", "grunt-cli", "grunt-template", "istanbul", "mocha", "regenerate", "requirejs", "unicode-13.0.0"]}
+    },
+    {
+      "name": "json-with-bigint",
+      "source": null,
+      "latest": "3.5.12",
+      "versions": [
+        {"version": "3.5.12", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "json5",
+      "source": null,
+      "latest": "2.2.3",
+      "versions": [
+        {"version": "2.2.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["core-js", "eslint", "eslint-config-standard", "eslint-plugin-import", "eslint-plugin-node", "eslint-plugin-promise", "eslint-plugin-standard", "npm-run-all", "regenerate", "rollup", "rollup-plugin-buble", "rollup-plugin-commonjs", "rollup-plugin-node-resolve", "rollup-plugin-terser", "sinon", "tap", "unicode-10.0.0"]}
+    },
+    {
+      "name": "lightningcss",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["detect-libc"], "peer": [], "build": [], "dev": ["@babel/parser", "@babel/traverse", "@codemirror/lang-css", "@codemirror/lang-javascript", "@codemirror/lint", "@codemirror/theme-one-dark", "@mdn/browser-compat-data", "@napi-rs/cli", "autoprefixer", "caniuse-lite", "codemirror", "cssnano", "esbuild", "flowgen", "jest-diff", "json-schema-to-typescript", "markdown-it-anchor", "markdown-it-prism", "markdown-it-table-of-contents", "napi-wasm", "node-fetch", "parcel", "patch-package", "path-browserify", "postcss", "posthtml-include", "posthtml-markdownit", "posthtml-prism", "process", "puppeteer", "recast", "sharp", "typescript", "util", "uvu"]}
+    },
+    {
+      "name": "lightningcss-darwin-arm64",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lightningcss-darwin-x64",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lightningcss-linux-arm64-gnu",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lightningcss-linux-arm64-musl",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lightningcss-linux-x64-gnu",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lightningcss-linux-x64-musl",
+      "source": null,
+      "latest": "1.33.0",
+      "versions": [
+        {"version": "1.33.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "lru-cache",
+      "source": null,
+      "latest": "5.1.1",
+      "versions": [
+        {"version": "5.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["yallist"], "peer": [], "build": [], "dev": ["benchmark", "tap"]}
+    },
+    {
+      "name": "magic-string",
+      "source": null,
+      "latest": "1.4.5",
+      "versions": [
+        {"version": "1.4.3", "yanked": false},
+        {"version": "1.4.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/sourcemap-codec"], "peer": [], "build": [], "dev": ["@antfu/eslint-config", "@types/node", "@vitest/coverage-v8", "bumpp", "conventional-changelog", "conventional-changelog-angular", "eslint", "publint", "source-map-js", "source-map-support", "tsdown", "typescript", "vitest"]}
+    },
+    {
+      "name": "merge-anything",
+      "source": null,
+      "latest": "5.1.7",
+      "versions": [
+        {"version": "5.1.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["is-what"], "peer": [], "build": [], "dev": ["@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "del-cli", "eslint", "eslint-config-prettier", "eslint-plugin-tree-shaking", "np", "prettier", "rollup", "rollup-plugin-dts", "rollup-plugin-esbuild", "typescript", "vitest"]}
+    },
+    {
+      "name": "moment",
+      "source": null,
+      "latest": "2.31.0",
+      "versions": [
+        {"version": "2.31.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@eslint/js", "benchmark", "eslint", "globals", "markdownlint-cli2", "npm-run-all2", "nyc", "prettier", "qunit", "rollup", "typescript", "typescript1", "typescript2", "typescript3", "typescript3_0", "typescript3_1", "typescript4", "typescript5", "typescript6", "uglify-js"]}
+    },
+    {
+      "name": "mrmime",
+      "source": null,
+      "latest": "2.0.1",
+      "versions": [
+        {"version": "2.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["tsm", "uvu"]}
+    },
+    {
+      "name": "ms",
+      "source": null,
+      "latest": "2.1.3",
+      "versions": [
+        {"version": "2.1.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["eslint", "expect.js", "husky", "lint-staged", "mocha", "prettier"]}
+    },
+    {
+      "name": "mute-stream",
+      "source": null,
+      "latest": "3.0.0",
+      "versions": [
+        {"version": "3.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@npmcli/eslint-config", "@npmcli/template-oss", "tap"]}
+    },
+    {
+      "name": "nanoid",
+      "source": null,
+      "latest": "3.3.20",
+      "versions": [
+        {"version": "3.3.20", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "node-releases",
+      "source": null,
+      "latest": "2.0.61",
+      "versions": [
+        {"version": "2.0.60", "yanked": false},
+        {"version": "2.0.61", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["semver"]}
+    },
+    {
+      "name": "nth-check",
+      "source": null,
+      "latest": "2.1.1",
+      "versions": [
+        {"version": "2.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["boolbase"], "peer": [], "build": [], "dev": ["@types/boolbase", "@types/jest", "@types/node", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser", "eslint", "eslint-config-prettier", "jest", "prettier", "ts-jest", "typescript"]}
+    },
+    {
+      "name": "obsidian",
+      "source": null,
+      "latest": "1.14.4",
+      "versions": [
+        {"version": "1.14.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/codemirror", "moment"], "peer": ["@codemirror/state", "@codemirror/view"], "build": [], "dev": []}
+    },
+    {
+      "name": "obug",
+      "source": null,
+      "latest": "3.0.0",
+      "versions": [
+        {"version": "3.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@sxzz/eslint-config", "@sxzz/prettier-config", "@types/debug", "@types/node", "@typescript/native-preview", "@vitest/browser-playwright", "@vitest/coverage-v8", "bumpp", "debug", "eslint", "playwright", "prettier", "tsdown", "typescript", "vite", "vitest"]}
+    },
+    {
+      "name": "oxlint",
+      "source": null,
+      "latest": "1.90.0",
+      "versions": [
+        {"version": "1.87.0", "yanked": false},
+        {"version": "1.89.0", "yanked": false},
+        {"version": "1.90.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["oxlint-tsgolint", "vite-plus"], "build": [], "dev": []}
+    },
+    {
+      "name": "oxlint-tsgolint",
+      "source": null,
+      "latest": "7.0.2005",
+      "versions": [
+        {"version": "7.0.2005", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "parse5",
+      "source": null,
+      "latest": "7.3.0",
+      "versions": [
+        {"version": "7.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["entities"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "parse5-htmlparser2-tree-adapter",
+      "source": null,
+      "latest": "7.1.0",
+      "versions": [
+        {"version": "7.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["domhandler", "parse5"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "parse5-parser-stream",
+      "source": null,
+      "latest": "7.1.2",
+      "versions": [
+        {"version": "7.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["parse5"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pathe",
+      "source": null,
+      "latest": "2.0.3",
+      "versions": [
+        {"version": "2.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "@vitest/coverage-v8", "changelogen", "esbuild", "eslint", "eslint-config-unjs", "jiti", "prettier", "typescript", "unbuild", "vitest", "zeptomatch"]}
+    },
+    {
+      "name": "picocolors",
+      "source": null,
+      "latest": "1.1.1",
+      "versions": [
+        {"version": "1.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "picomatch",
+      "source": null,
+      "latest": "4.0.7",
+      "versions": [
+        {"version": "4.0.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["eslint", "fill-range", "gulp-format-md", "mocha", "nyc"]}
+    },
+    {
+      "name": "playwright",
+      "source": null,
+      "latest": "1.64.1",
+      "versions": [
+        {"version": "1.64.0", "yanked": false},
+        {"version": "1.64.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["playwright-core"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "playwright-core",
+      "source": null,
+      "latest": "1.64.1",
+      "versions": [
+        {"version": "1.64.0", "yanked": false},
+        {"version": "1.64.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "pngjs",
+      "source": null,
+      "latest": "7.0.0",
+      "versions": [
+        {"version": "7.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["browserify", "buffer-equal", "connect", "eslint", "eslint-config-prettier", "nyc", "prettier", "puppeteer", "serve-static", "tap-dot", "tape"]}
+    },
+    {
+      "name": "pnpm",
+      "source": null,
+      "latest": "12.15.0",
+      "versions": [
+        {"version": "12.15.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "postcss",
+      "source": null,
+      "latest": "8.5.32",
+      "versions": [
+        {"version": "8.5.30", "yanked": false},
+        {"version": "8.5.31", "yanked": false},
+        {"version": "8.5.32", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["nanoid", "picocolors", "source-map-js"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "proper-lockfile",
+      "source": null,
+      "latest": "4.1.2",
+      "versions": [
+        {"version": "4.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["graceful-fs", "retry", "signal-exit"], "peer": [], "build": [], "dev": ["@commitlint/cli", "@commitlint/config-conventional", "@segment/clear-timeouts", "delay", "eslint", "eslint-config-moxy", "execa", "husky", "jest", "lint-staged", "mkdirp", "p-defer", "rimraf", "stable", "standard-version", "thread-sleep"]}
+    },
+    {
+      "name": "redis",
+      "source": null,
+      "latest": "6.3.1",
+      "versions": [
+        {"version": "6.3.0", "yanked": false},
+        {"version": "6.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@redis/bloom", "@redis/client", "@redis/json", "@redis/search", "@redis/time-series"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "retry",
+      "source": null,
+      "latest": "0.12.0",
+      "versions": [
+        {"version": "0.12.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["fake", "istanbul", "tape"]}
+    },
+    {
+      "name": "rolldown",
+      "source": null,
+      "latest": "1.2.16",
+      "versions": [
+        {"version": "1.2.13", "yanked": false},
+        {"version": "1.2.15", "yanked": false},
+        {"version": "1.2.16", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@oxc-project/types", "@rolldown/pluginutils"], "peer": [], "build": [], "dev": ["@emnapi/core", "@emnapi/runtime", "@napi-rs/cli", "@napi-rs/wasm-runtime", "@oxc-node/cli", "cac", "consola", "emnapi", "execa", "fresh-import", "glob", "oxc-parser", "pathe", "remeda", "rolldown", "rolldown-plugin-dts", "rollup", "signal-exit", "source-map", "typescript", "valibot"]}
+    },
+    {
+      "name": "safer-buffer",
+      "source": null,
+      "latest": "2.1.2",
+      "versions": [
+        {"version": "2.1.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["standard", "tape"]}
+    },
+    {
+      "name": "satteri",
+      "source": null,
+      "latest": "0.11.6",
+      "versions": [
+        {"version": "0.10.5", "yanked": false},
+        {"version": "0.11.6", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/estree-jsx", "@types/hast", "@types/mdast", "@types/unist"], "peer": [], "build": [], "dev": ["@codspeed/vitest-plugin", "@emnapi/core", "@emnapi/runtime", "@mdx-js/mdx", "@napi-rs/wasm-runtime", "@types/markdown-it", "@types/node", "@types/react", "@types/react-dom", "fast-check", "hastscript", "markdown-it", "markdown-it-attrs", "mdast-util-mdx", "mdast-util-to-hast", "react", "react-dom", "rehype-raw", "rehype-stringify", "remark", "remark-definition-list", "remark-directive", "remark-frontmatter", "remark-gfm", "remark-math", "remark-mdx", "remark-parse", "remark-rehype", "shiki", "unified", "vitest"]}
+    },
+    {
+      "name": "semver",
+      "source": null,
+      "latest": "7.8.5",
+      "versions": [
+        {"version": "6.3.1", "yanked": false},
+        {"version": "7.8.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@npmcli/eslint-config", "@npmcli/template-oss", "benchmark", "tap"]}
+    },
+    {
+      "name": "seroval",
+      "source": null,
+      "latest": "1.7.0",
+      "versions": [
+        {"version": "1.7.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "@vitest/ui", "esbuild", "temporal-polyfill", "ts-prune", "tsdown", "tslib", "typescript", "vitest"]}
+    },
+    {
+      "name": "seroval-plugins",
+      "source": null,
+      "latest": "1.7.0",
+      "versions": [
+        {"version": "1.7.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["seroval"], "build": [], "dev": ["@types/node", "@vitest/ui", "esbuild", "seroval", "tsdown", "tslib", "typescript", "vitest"]}
+    },
+    {
+      "name": "signal-exit",
+      "source": null,
+      "latest": "4.1.0",
+      "versions": [
+        {"version": "3.0.7", "yanked": false},
+        {"version": "4.1.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/cross-spawn", "@types/node", "@types/signal-exit", "@types/tap", "c8", "prettier", "tap", "ts-node", "typedoc", "typescript"]}
+    },
+    {
+      "name": "sirv",
+      "source": null,
+      "latest": "3.0.2",
+      "versions": [
+        {"version": "3.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@polka/url", "mrmime", "totalist"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "solid-js",
+      "source": null,
+      "latest": "2.0.0-rc.18",
+      "versions": [
+        {"version": "2.0.0-rc.18", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@solidjs/signals", "csstype", "seroval", "seroval-plugins"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "source-map",
+      "source": null,
+      "latest": "0.6.1",
+      "versions": [
+        {"version": "0.6.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["doctoc", "webpack"]}
+    },
+    {
+      "name": "source-map-js",
+      "source": null,
+      "latest": "1.2.2",
+      "versions": [
+        {"version": "1.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["clean-publish", "doctoc", "webpack"]}
+    },
+    {
+      "name": "source-map-support",
+      "source": null,
+      "latest": "0.5.21",
+      "versions": [
+        {"version": "0.5.21", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["buffer-from", "source-map"], "peer": [], "build": [], "dev": ["browserify", "coffeescript", "http-server", "mocha", "webpack"]}
+    },
+    {
+      "name": "std-env",
+      "source": null,
+      "latest": "4.3.0",
+      "versions": [
+        {"version": "4.3.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@types/node", "@typescript/native-preview", "@vitest/coverage-v8", "changelogen", "mitata", "obuild", "oxfmt", "oxlint", "rollup", "terser", "typescript", "vitest"]}
+    },
+    {
+      "name": "style-mod",
+      "source": null,
+      "latest": "4.1.4",
+      "versions": [
+        {"version": "4.1.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["buble", "builddocs", "ist", "mocha"]}
+    },
+    {
+      "name": "terser",
+      "source": null,
+      "latest": "5.51.2",
+      "versions": [
+        {"version": "5.51.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@jridgewell/source-map", "acorn", "commander", "source-map-support"], "peer": [], "build": [], "dev": ["@ls-lint/ls-lint", "astring", "eslint", "eslump", "esm", "mocha", "pre-commit", "rollup", "semver", "source-map"]}
+    },
+    {
+      "name": "tinybench",
+      "source": null,
+      "latest": "6.2.2",
+      "versions": [
+        {"version": "6.2.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "tinyexec",
+      "source": null,
+      "latest": "1.3.1",
+      "versions": [
+        {"version": "1.3.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@eslint/js", "@types/node", "@vitest/coverage-v8", "eslint", "prettier", "publint", "tsdown", "typescript", "typescript-eslint", "vitest"]}
+    },
+    {
+      "name": "tinyglobby",
+      "source": null,
+      "latest": "0.2.17",
+      "versions": [
+        {"version": "0.2.17", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["fdir", "picomatch"], "peer": [], "build": [], "dev": ["@biomejs/biome", "@types/node", "@types/picomatch", "fast-glob", "fs-fixture", "glob", "tinybench", "tsdown", "typescript"]}
+    },
+    {
+      "name": "tinyrainbow",
+      "source": null,
+      "latest": "3.2.0",
+      "versions": [
+        {"version": "3.2.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "totalist",
+      "source": null,
+      "latest": "3.0.1",
+      "versions": [
+        {"version": "3.0.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["bundt", "esm", "uvu"]}
+    },
+    {
+      "name": "tslib",
+      "source": null,
+      "latest": "2.8.1",
+      "versions": [
+        {"version": "2.8.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "typanion",
+      "source": null,
+      "latest": "3.14.0",
+      "versions": [
+        {"version": "3.14.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@rollup/plugin-typescript", "@types/chai", "@types/mocha", "@types/node", "chai", "mocha", "rollup", "ts-node", "tslib", "typescript"]}
+    },
+    {
+      "name": "typescript",
+      "source": null,
+      "latest": "7.0.2",
+      "versions": [
+        {"version": "6.0.3", "yanked": false},
+        {"version": "7.0.2", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@typescript/typescript-aix-ppc64", "@typescript/typescript-darwin-arm64", "@typescript/typescript-darwin-x64", "@typescript/typescript-freebsd-arm64", "@typescript/typescript-freebsd-x64", "@typescript/typescript-linux-arm", "@typescript/typescript-linux-arm64", "@typescript/typescript-linux-loong64", "@typescript/typescript-linux-mips64el", "@typescript/typescript-linux-ppc64", "@typescript/typescript-linux-riscv64", "@typescript/typescript-linux-s390x", "@typescript/typescript-linux-x64", "@typescript/typescript-netbsd-arm64", "@typescript/typescript-netbsd-x64", "@typescript/typescript-openbsd-arm64", "@typescript/typescript-openbsd-x64", "@typescript/typescript-sunos-x64", "@typescript/typescript-win32-arm64", "@typescript/typescript-win32-x64"], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "undici",
+      "source": null,
+      "latest": "8.12.3",
+      "versions": [
+        {"version": "7.30.1", "yanked": false},
+        {"version": "8.12.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@fastify/busboy", "@matteo.collina/tspl", "@metcoder95/https-pem", "@sinonjs/fake-timers", "@types/node", "abort-controller", "borp", "c8", "cross-env", "dns-packet", "esbuild", "eslint", "fast-check", "husky", "jest", "jsondiffpatch", "neostandard", "node-forge", "proxy", "tsd", "typescript", "ws"]}
+    },
+    {
+      "name": "undici-types",
+      "source": null,
+      "latest": "8.9.0",
+      "versions": [
+        {"version": "8.9.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "universal-user-agent",
+      "source": null,
+      "latest": "7.0.3",
+      "versions": [
+        {"version": "7.0.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["prettier", "tsd"]}
+    },
+    {
+      "name": "update-browserslist-db",
+      "source": null,
+      "latest": "1.3.4",
+      "versions": [
+        {"version": "1.3.4", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["escalade", "picocolors"], "peer": ["browserslist"], "build": [], "dev": []}
+    },
+    {
+      "name": "vite",
+      "source": null,
+      "latest": "8.3.5",
+      "versions": [
+        {"version": "8.3.2", "yanked": false},
+        {"version": "8.3.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["lightningcss", "picomatch", "postcss", "rolldown", "tinyglobby"], "peer": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "build": [], "dev": ["@babel/parser", "@jridgewell/remapping", "@jridgewell/trace-mapping", "@polka/compression", "@rollup/plugin-alias", "@rollup/plugin-dynamic-import-vars", "@rollup/pluginutils", "@types/escape-html", "@types/pnpapi", "@vitejs/devtools", "@vitest/utils", "@voidzero-dev/vite-task-client", "artichokie", "baseline-browser-mapping", "cac", "chokidar", "connect", "convert-source-map", "cors", "dotenv-expand", "es-module-lexer", "esbuild", "escape-html", "estree-walker", "etag", "fresh-import", "host-validation-middleware", "http-proxy-3", "launch-editor-middleware", "magic-string", "mlly", "mrmime", "nanoid", "obug", "open", "parse5", "pathe", "periscopic", "picocolors", "postcss-import", "postcss-load-config", "postcss-modules", "premove", "resolve.exports", "rolldown-plugin-dts", "rollup", "rollup-plugin-license", "sass", "sass-embedded", "sirv", "std-env", "strip-literal", "terser", "tinyexec", "ufo", "ws"]}
+    },
+    {
+      "name": "vitefu",
+      "source": null,
+      "latest": "1.1.3",
+      "versions": [
+        {"version": "1.1.3", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["vite"], "build": [], "dev": ["@types/node", "@types/pnpapi", "uvu", "vite"]}
+    },
+    {
+      "name": "vitest",
+      "source": null,
+      "latest": "5.0.5",
+      "versions": [
+        {"version": "5.0.4", "yanked": false},
+        {"version": "5.0.5", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["@types/chai", "@vitest/mocker", "chai", "es-module-lexer", "expect-type", "magic-string", "obug", "picomatch", "std-env", "tinybench", "tinyexec", "tinyglobby", "why-is-node-running"], "peer": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom", "vite"], "build": [], "dev": ["@antfu/install-pkg", "@bomb.sh/tab", "@edge-runtime/vm", "@jridgewell/trace-mapping", "@opentelemetry/api", "@sinonjs/fake-timers", "@types/jsdom", "@types/node", "@types/picomatch", "@types/prompts", "@types/ws", "@vitest/expect", "@vitest/istanbul-lib-coverage", "@vitest/istanbul-lib-report", "@vitest/pretty-format", "@vitest/snapshot", "@vitest/spy", "@vitest/utils", "acorn", "acorn-walk", "birpc", "cac", "flatted", "happy-dom", "jsdom", "local-pkg", "mime", "pathe", "prompts", "strip-literal", "tinyhighlight", "tinyrainbow", "vite", "ws"]}
+    },
+    {
+      "name": "w3c-keyname",
+      "source": null,
+      "latest": "2.2.8",
+      "versions": [
+        {"version": "2.2.8", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["rollup"]}
+    },
+    {
+      "name": "wasm-vips",
+      "source": null,
+      "latest": "0.0.19",
+      "versions": [
+        {"version": "0.0.19", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@biomejs/biome", "serve"]}
+    },
+    {
+      "name": "whatwg-encoding",
+      "source": null,
+      "latest": "3.1.1",
+      "versions": [
+        {"version": "3.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": ["iconv-lite"], "peer": [], "build": [], "dev": ["@domenic/eslint-config", "eslint"]}
+    },
+    {
+      "name": "whatwg-mimetype",
+      "source": null,
+      "latest": "4.0.0",
+      "versions": [
+        {"version": "3.0.0", "yanked": false},
+        {"version": "4.0.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@domenic/eslint-config", "c8", "eslint", "printable-string", "whatwg-encoding"]}
+    },
+    {
+      "name": "why-is-node-running",
+      "source": null,
+      "latest": "3.2.1",
+      "versions": [
+        {"version": "3.2.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    },
+    {
+      "name": "ws",
+      "source": null,
+      "latest": "8.22.0",
+      "versions": [
+        {"version": "8.22.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": ["bufferutil", "utf-8-validate"], "build": [], "dev": ["@eslint/js", "benchmark", "bufferutil", "eslint", "eslint-config-prettier", "eslint-plugin-prettier", "globals", "mocha", "nyc", "prettier", "utf-8-validate"]}
+    },
+    {
+      "name": "yallist",
+      "source": null,
+      "latest": "3.1.1",
+      "versions": [
+        {"version": "3.1.1", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["tap"]}
+    },
+    {
+      "name": "yaml",
+      "source": null,
+      "latest": "2.9.0",
+      "versions": [
+        {"version": "2.9.0", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": ["@babel/core", "@babel/plugin-transform-typescript", "@babel/preset-env", "@eslint/js", "@rollup/plugin-babel", "@rollup/plugin-replace", "@rollup/plugin-typescript", "@types/jest", "@types/node", "babel-jest", "eslint", "eslint-config-prettier", "fast-check", "jest", "jest-resolve", "jest-ts-webcompat-resolver", "prettier", "rollup", "tslib", "typescript", "typescript-eslint"]}
+    },
+    {
+      "name": "zod",
+      "source": null,
+      "latest": "4.6.7",
+      "versions": [
+        {"version": "4.6.7", "yanked": false}
+      ],
+      "dependencies": {"runtime": [], "peer": [], "build": [], "dev": []}
+    }
+  ]
+}
