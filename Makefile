@@ -1,4 +1,4 @@
-.PHONY: help deploy republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help deploy stuff-release republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -68,26 +68,25 @@ DEPLOY_JOBS ?= 3
 OCI_DEPLOY ?=
 STUFF ?= target/release/stuff
 
+stuff-release: ## Build the release stuff CLI once
+	cargo build -q --release -p stuff
+
 deploy: ## Test and deploy the worker, republish registries, then check the live site
 	@cf auth whoami >/dev/null
 	$(MAKE) worker-test worker-deploy
 	CF_AUTH_CHECKED=1 $(MAKE) -j$(DEPLOY_JOBS) republish-mycrates republish-mynpm republish-mypypi $(if $(OCI_DEPLOY),republish-oci)
 	$(MAKE) smoke-deployed
 
-republish-mycrates: ## Republish the mycrates site from state
-	cargo build -q --release -p stuff
+republish-mycrates: stuff-release ## Republish the mycrates site from state
 	$(STUFF) republish cargo
 
-republish-mynpm: ## Republish the mynpm site from state
-	cargo build -q --release -p stuff
+republish-mynpm: stuff-release ## Republish the mynpm site from state
 	$(STUFF) republish npm
 
-republish-mypypi: ## Republish the mypypi site from state
-	cargo build -q --release -p stuff
+republish-mypypi: stuff-release ## Republish the mypypi site from state
 	$(STUFF) republish pypi
 
-republish-oci: ## Republish the OCI site from state
-	cargo build -q --release -p stuff
+republish-oci: stuff-release ## Republish the OCI site from state
 	$(STUFF) republish oci
 
 SITE_DIR ?= .work/site
