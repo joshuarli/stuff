@@ -52,6 +52,10 @@ interface R2BucketLike {
   list(options?: { prefix?: string }): Promise<{ objects: { key: string }[] }>;
 }
 
+interface WorkerVersion {
+  readonly id: string;
+}
+
 interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
@@ -60,7 +64,8 @@ interface WorkerEnv {
   readonly STUFF_OCI_PUSH_TOKEN?: string;
   readonly STUFF_OCI_PUSH_SECRET?: string;
   readonly STUFF_OCI_WRITER_ORIGIN?: string;
-  readonly [binding: string]: R2BucketLike | string | undefined;
+  readonly VERSION: WorkerVersion;
+  readonly [binding: string]: R2BucketLike | WorkerVersion | string | undefined;
 }
 
 interface WorkerContext {
@@ -172,13 +177,14 @@ interface OciGeneration {
 
 function bucket(env: WorkerEnv, binding: string): R2BucketLike {
   const found = env[binding];
-  if (!found || typeof found === "string" || typeof found.get !== "function") {
+  if (!found || typeof found === "string" || !("get" in found) || typeof found.get !== "function") {
     throw new Error(`missing R2 binding: ${binding}`);
   }
   return found;
 }
 
 const NOT_FOUND_CACHE_CONTROL = "public, max-age=60";
+const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 function notFound(): Response {
   return new Response("not found", {
@@ -187,65 +193,83 @@ function notFound(): Response {
   });
 }
 
-async function catalogText(env: WorkerEnv, binding: string): Promise<string | null> {
-  const store = bucket(env, binding);
-  const pointer = await store.get("current");
+const UNIFIED_BINDINGS = ["MYCRATES", "MYNPM", "PYPI", "OCI"] as const;
+
+async function currentGeneration(env: WorkerEnv, binding: string): Promise<string | null> {
+  const pointer = await bucket(env, binding).get("current");
   if (pointer === null) {
     return null;
   }
   const id = (await pointer.text()).trim();
-  if (!generation_id_valid(id)) {
-    return null;
-  }
-  const object = await store.get(`generations/${id}/catalog.json`);
-  if (object === null) {
-    return null;
-  }
-  return object.text();
+  return generation_id_valid(id) ? id : null;
 }
 
-async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
-  const cache = caches.default;
-  const url = new URL(req.url);
-  const cacheKey = new Request(`${url.origin}${url.pathname}`, { method: "GET" });
-  const cached = await cache.match(cacheKey);
-  if (cached) {
-    return req.method === "HEAD"
-      ? new Response(null, { status: cached.status, headers: cached.headers })
-      : cached;
-  }
-  const texts = await Promise.all(
-    ["MYCRATES", "MYNPM", "PYPI", "OCI"].map((binding) => catalogText(env, binding)),
-  );
-  if (texts.some((text) => text === null)) {
-    return new Response("unified catalog not ready", {
-      status: 404,
-      headers: { "cache-control": NOT_FOUND_CACHE_CONTROL },
-    });
-  }
-  const parts = texts as string[];
+async function generationCatalog(
+  env: WorkerEnv,
+  binding: string,
+  generation: string,
+): Promise<string | null> {
+  const object = await bucket(env, binding).get(`generations/${generation}/catalog.json`);
+  return object === null ? null : object.text();
+}
+
+function unifiedNotReady(): Response {
+  return new Response("unified catalog not ready", {
+    status: 404,
+    headers: { "cache-control": NOT_FOUND_CACHE_CONTROL },
+  });
+}
+
+function renderUnified(env: WorkerEnv, url: URL, catalogs: string[]): string {
   const wantMarkdown = url.pathname === "/llms.txt";
   const rendered = JSON.parse(
     wantMarkdown
-      ? render_unified_llms_txt_json(JSON.stringify(parts), env.STUFF_ROUTES, url.origin)
-      : render_unified_index_json(JSON.stringify(parts)),
+      ? render_unified_llms_txt_json(JSON.stringify(catalogs), env.STUFF_ROUTES, url.origin)
+      : render_unified_index_json(JSON.stringify(catalogs)),
   ) as UnifiedRendered;
-  const wantKind = wantMarkdown ? "markdown" : "html";
-  if (rendered.kind !== wantKind || !rendered.body) {
+  if (rendered.kind !== (wantMarkdown ? "markdown" : "html") || !rendered.body) {
     throw new Error(rendered.message ?? "unified render");
   }
+  return rendered.body;
+}
+
+async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
+  const url = new URL(req.url);
+  const generations = await Promise.all(
+    UNIFIED_BINDINGS.map((binding) => currentGeneration(env, binding)),
+  );
+  if (generations.some((generation) => generation === null)) {
+    return unifiedNotReady();
+  }
+  const ids = generations as string[];
   const headers = new Headers({
-    "content-type": wantMarkdown ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8",
+    "content-type":
+      url.pathname === "/llms.txt" ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8",
     "cache-control": "public, max-age=60",
   });
-  const response = new Response(rendered.body, { status: 200, headers });
-  // Cache only the successful aggregate; per-generation catalogs stay
-  // immutable, so a short edge cache keeps the landing page fresh. HEAD uses
-  // the same GET cache key because the Cache API rejects non-GET puts.
-  await cache.put(cacheKey, response.clone());
-  return req.method === "HEAD"
-    ? new Response(null, { status: 200, headers })
-    : response;
+  const cache = caches.default;
+  const renderKey = new Request(
+    `${url.origin}/.unified/${env.VERSION.id}/${ids.join("/")}${url.pathname}`,
+    { method: "GET" },
+  );
+  const cached = await cache.match(renderKey);
+  if (cached) {
+    return new Response(req.method === "HEAD" ? null : cached.body, { status: 200, headers });
+  }
+  const catalogs = await Promise.all(
+    UNIFIED_BINDINGS.map((binding, index) => generationCatalog(env, binding, ids[index] ?? "")),
+  );
+  if (catalogs.some((text) => text === null)) {
+    return unifiedNotReady();
+  }
+  const body = renderUnified(env, url, catalogs as string[]);
+  await cache.put(
+    renderKey,
+    new Response(body, {
+      headers: { "content-type": headers.get("content-type") ?? "", "cache-control": IMMUTABLE_CACHE_CONTROL },
+    }),
+  );
+  return new Response(req.method === "HEAD" ? null : body, { status: 200, headers });
 }
 
 function ociPlanResponse(plan: OciPlan): Response {
@@ -642,6 +666,30 @@ async function ociFetch(req: Request, env: WorkerEnv, url: URL): Promise<Respons
   throw new Error(`unknown oci request: ${parsed.kind}`);
 }
 
+interface PrimaryRead {
+  readonly generation: R2ObjectLike | null;
+  readonly object: R2ObjectLike | null;
+}
+
+const lastPointerText = new Map<string, string>();
+
+async function primaryRead(
+  store: R2BucketLike,
+  fetchObject: (key: string) => Promise<R2ObjectLike | null>,
+  key: string,
+  aliasKey: string | undefined,
+  generationCatalogKey: string | undefined,
+): Promise<PrimaryRead> {
+  if (aliasKey === undefined) {
+    return { generation: null, object: await fetchObject(key) };
+  }
+  const [generation, object] = await Promise.all([
+    generationCatalogKey === undefined ? Promise.resolve(null) : store.head(generationCatalogKey),
+    fetchObject(aliasKey),
+  ]);
+  return { generation, object };
+}
+
 export class Registry extends WorkerEntrypoint<WorkerEnv> {
   async fetch(req: Request): Promise<Response> {
     const env = this.env;
@@ -678,6 +726,10 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
     if (mapped.kind === "not_found" || !mapped.bucket_binding) {
       return notFound();
     }
+    const store = bucket(env, mapped.bucket_binding);
+    const wantsRange = req.headers.get("range") !== null;
+    const fetchObject = (key: string): Promise<R2ObjectLike | null> =>
+      wantsRange ? store.head(key) : store.get(key);
     let key: string;
     let route: "immutable" | "pointer";
     let aliasKey: string | undefined;
@@ -685,6 +737,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
     let npmPackumentKey: string | undefined;
     let npmVersion: string | undefined;
     let pointerText: string | undefined;
+    let speculativeRead: Promise<PrimaryRead> | undefined;
     if (mapped.kind === "direct") {
       if (!mapped.key) {
         throw new Error("mapping");
@@ -699,17 +752,39 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
         generationCatalogKey = direct.generation_catalog_key;
       }
     } else {
-      if (!mapped.pointer_key || mapped.rel_path === undefined) {
+      const pointerKey = mapped.pointer_key;
+      const relPath = mapped.rel_path;
+      if (!pointerKey || relPath === undefined) {
         throw new Error("mapping");
       }
-      const pointer = await bucket(env, mapped.bucket_binding).get(mapped.pointer_key);
+      const resolve = (text: string): PointerResolution =>
+        JSON.parse(resolve_pointer_json(pointerKey, text, relPath)) as PointerResolution;
+      const rememberedKey = `${mapped.bucket_binding}/${pointerKey}`;
+      const remembered = lastPointerText.get(rememberedKey);
+      if (remembered !== undefined) {
+        const guess = resolve(remembered);
+        if (guess.kind === "key" && guess.key) {
+          speculativeRead = primaryRead(
+            store,
+            fetchObject,
+            guess.key,
+            guess.alias_key,
+            guess.generation_catalog_key,
+          );
+          speculativeRead.catch(() => undefined);
+        }
+      }
+      const pointer = await store.get(pointerKey);
       if (pointer === null) {
+        lastPointerText.delete(rememberedKey);
         return notFound();
       }
       pointerText = await pointer.text();
-      const resolved = JSON.parse(
-        resolve_pointer_json(mapped.pointer_key, pointerText, mapped.rel_path),
-      ) as PointerResolution;
+      lastPointerText.set(rememberedKey, pointerText);
+      if (remembered !== pointerText) {
+        speculativeRead = undefined;
+      }
+      const resolved = resolve(pointerText);
       if (resolved.kind !== "key" || !resolved.key) {
         return notFound();
       }
@@ -720,30 +795,22 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       npmPackumentKey = resolved.npm_packument_key;
       npmVersion = resolved.npm_version;
     }
-    const store = bucket(env, mapped.bucket_binding);
-    const wantsRange = req.headers.get("range") !== null;
-    const fetchObject = (key: string): Promise<R2ObjectLike | null> =>
-      wantsRange ? store.head(key) : store.get(key);
     let object: R2ObjectLike | null = null;
     // Generation-scoped immutable aliases (mypypi wheels/, mynpm tarballs/
     // and -/tarballs/) are not uploaded as separate R2 objects; the shared
     // store copy is byte-identical by the immutability invariant. Validate
     // the generation exists before serving its shared artifact.
+    const first = await (speculativeRead ??
+      primaryRead(store, fetchObject, key, aliasKey, generationCatalogKey));
     if (aliasKey === undefined) {
-      object = await fetchObject(key);
+      object = first.object;
     } else {
-      const [generation, aliased] = await Promise.all([
-        generationCatalogKey === undefined
-          ? Promise.resolve(null)
-          : store.head(generationCatalogKey),
-        fetchObject(aliasKey),
-      ]);
-      if (generationCatalogKey !== undefined && generation === null) {
+      if (generationCatalogKey !== undefined && first.generation === null) {
         return notFound();
       }
-      if (aliased !== null) {
+      if (first.object !== null) {
         key = aliasKey;
-        object = aliased;
+        object = first.object;
         route = "immutable";
       }
     }

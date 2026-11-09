@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => ({
 			OCI_BLOBS: bindings.r2({
 				name: "stuff-oci-blobs",
 			}),
+			VERSION: bindings.versionMetadata(),
 		},
 		// The Vite plugin treats an exports.default entrypoint as a named export
 		// and emits `export const default`, so omit it while developing.

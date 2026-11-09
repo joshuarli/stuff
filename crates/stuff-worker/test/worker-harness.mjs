@@ -34,6 +34,7 @@ export function workerHarness(vars = {}) {
           binding,
           bucket_name: binding.toLowerCase().replaceAll("_", "-"),
         })),
+        version_metadata: { binding: "VERSION" },
         vars: {
           STUFF_ROUTES: routes,
           STUFF_UNIFIED_HOST: "stuff.test",

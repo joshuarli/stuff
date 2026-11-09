@@ -109,6 +109,57 @@ test("a registry on a newer catalog schema is reported, not fatal", async (t) =>
   assert.match(await llms.text(), /> Note: PyPI is not listed because its catalog could not be read/);
 });
 
+async function promote(server, binding, generation, files) {
+  const bucket = (await server.getWorker().getEnv())[binding];
+  for (const [path, text] of Object.entries(files)) {
+    await bucket.put(`generations/${generation}/${path}`, text);
+  }
+  await bucket.put("current", generation);
+}
+
+test("the unified page follows a moved pointer", async (t) => {
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const before = await server.getWorker().fetch("https://stuff.test/");
+  assert.equal(before.status, 200);
+  assert.ok(!(await before.text()).includes("promoted-crate"));
+  await promote(server, "MYCRATES", "g2", { "catalog.json": catalog("cargo", "promoted-crate") });
+  const after = await server.getWorker().fetch("https://stuff.test/");
+  assert.equal(after.status, 200);
+  assert.ok((await after.text()).includes("promoted-crate"));
+  const head = await server.getWorker().fetch("https://stuff.test/", { method: "HEAD" });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), "");
+});
+
+test("pointer routes follow a moved pointer on consecutive reads", async (t) => {
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  for (let index = 0; index < 3; index += 1) {
+    const first = await server.getWorker().fetch("https://crates.test/llms.txt");
+    assert.equal(await first.text(), "# generation");
+  }
+  await promote(server, "MYCRATES", "g2", { "llms.txt": "# promoted" });
+  const moved = await server.getWorker().fetch("https://crates.test/llms.txt");
+  assert.equal(moved.status, 200);
+  assert.equal(await moved.text(), "# promoted");
+  const etag = moved.headers.get("etag");
+  const revalidated = await server.getWorker().fetch("https://crates.test/llms.txt", {
+    headers: { "if-none-match": etag },
+  });
+  assert.equal(revalidated.status, 304);
+  await promote(server, "MYCRATES", "g3", { "llms.txt": "# third" });
+  const stale = await server.getWorker().fetch("https://crates.test/llms.txt", {
+    headers: { "if-none-match": etag },
+  });
+  assert.equal(stale.status, 200);
+  assert.equal(await stale.text(), "# third");
+});
+
 test("unified llms.txt advertises the configured hosts", async (t) => {
   const server = workerHarness();
   t.after(() => server.close());
