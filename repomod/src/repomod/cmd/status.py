@@ -481,8 +481,11 @@ def collect_status(
             for repository in repositories
         }
         checkouts = {name: future.result() for name, future in checkout_futures.items()}
-    remotes = {} if offline else github.remote_metadata(repositories)
-    with ThreadPoolExecutor(max_workers=4, thread_name_prefix="repomod-status") as pool:
+        remotes_future = None if offline else pool.submit(github.remote_metadata, repositories)
+        pull_requests_future = (
+            None if offline else pool.submit(github.open_pull_requests, repositories)
+        )
+        remotes = remotes_future.result() if remotes_future is not None else {}
         ci_future = pool.submit(
             github.ci_status, repositories, remotes, offline=offline, refresh=refresh
         )
@@ -491,9 +494,6 @@ def collect_status(
         )
         upstreams_future = pool.submit(
             github.upstream_status, repositories, remotes, offline=offline, refresh=refresh
-        )
-        pull_requests_future = (
-            pool.submit(github.open_pull_requests, repositories) if not offline else None
         )
         ci = ci_future.result()
         releases = releases_future.result()
