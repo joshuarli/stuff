@@ -169,7 +169,7 @@ def breadcrumbs(ancestors: Sequence[tuple[str, str]], current: str) -> str:
 
 def card_grid(cards: Iterable[str], *, wide: bool = False) -> str:
     variant = " card-grid-wide" if wide else ""
-    return f'<div class="card-grid{variant}">{"".join(cards)}</div>'
+    return f'<div class="ui-dashboard-grid ui-dashboard-grid-fill card-grid{variant}">{"".join(cards)}</div>'
 
 
 def card(

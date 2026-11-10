@@ -57,8 +57,8 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .group-head h2 { margin: 0; font-size: 15px; font-weight: var(--ui-weight-semibold); letter-spacing: var(--ui-tracking-tight); }
 .group-count { color: var(--ui-muted); font-size: var(--ui-fs-body); }
 .group-note { color: var(--ui-muted); font-size: var(--ui-fs-meta); }
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--ui-space-md); }
-.card-grid-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); }
+.card-grid { --ui-dashboard-min: 260px; --ui-dashboard-gap: var(--ui-space-md); }
+.card-grid-wide { --ui-dashboard-min: 400px; }
 .card { position: relative; }
 .card .ui-panel-title h3 { margin: 0; font-size: var(--ui-fs-title); font-weight: var(--ui-weight-semibold); letter-spacing: var(--ui-tracking-tight); overflow-wrap: break-word; }
 .card-change { color: var(--ui-text); }
