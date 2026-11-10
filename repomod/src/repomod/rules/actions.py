@@ -458,6 +458,7 @@ def _general_actions_fix(root: Path, repository: Repository) -> dict[str, str]:
                 "fix",
                 "--catalog",
                 str(actions_file()),
+                "--upgrade",
                 "--",
                 *relative_files,
             ],
