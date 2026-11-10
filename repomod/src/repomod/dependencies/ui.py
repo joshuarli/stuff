@@ -155,6 +155,18 @@ def group(
     )
 
 
+def breadcrumbs(ancestors: Sequence[tuple[str, str]], current: str) -> str:
+    items = "".join(
+        f'<li><a href="{escape(href)}">{escape(label)}</a>'
+        '<span class="ui-breadcrumb-separator" aria-hidden="true">/</span></li>'
+        for label, href in ancestors
+    )
+    return (
+        '<nav class="ui-breadcrumbs" aria-label="Breadcrumb"><ol>'
+        f'{items}<li><span aria-current="page">{escape(current)}</span></li></ol></nav>'
+    )
+
+
 def card_grid(cards: Iterable[str], *, wide: bool = False) -> str:
     variant = " card-grid-wide" if wide else ""
     return f'<div class="card-grid{variant}">{"".join(cards)}</div>'
@@ -165,19 +177,22 @@ def card(
 ) -> str:
     identity = f' id="{escape(card_id)}"' if card_id is not None else ""
     target = f' data-row data-href="{escape(href)}"' if href is not None else ""
+    below = f'<div class="ui-panel-meta">{meta}</div>' if meta else ""
     return (
-        f'<section class="ui-panel card" data-item{identity}{target}><div class="card-head">'
-        f'<h3>{title}</h3><div class="card-meta">{meta}</div></div>{body}</section>'
+        f'<section class="ui-panel card" data-item{identity}{target}>'
+        '<div class="ui-panel-head"><div class="ui-panel-title">'
+        f"<h3>{title}</h3></div>{below}</div>"
+        f'<div class="ui-panel-body">{body}</div></section>'
     )
 
 
 def legend(items: Sequence[tuple[str, Mark]], caption: str = "") -> str:
     keys = "".join(
-        f'<span class="legend-key"><span class="swatch mark-{mark.value}"></span>{escape(label)}</span>'
+        f'<li><span class="ui-breakdown-key mark-{mark.value}"></span>{escape(label)}</li>'
         for label, mark in items
     )
     note_text = f'<span class="legend-note">{escape(caption)}</span>' if caption else ""
-    return f'<div class="legend">{keys}{note_text}</div>'
+    return f'<div class="legend"><ul class="ui-breakdown-legend">{keys}</ul>{note_text}</div>'
 
 
 def segments(parts: Sequence[Segment], scale: int) -> str:
@@ -210,13 +225,13 @@ def lines(items: Sequence[Line]) -> str:
 
 
 def chip_links(chips: Iterable[str]) -> str:
-    return f'<div class="chip-links">{"".join(chips)}</div>'
+    return f'<div class="ui-filter-chips">{"".join(chips)}</div>'
 
 
 def chip_link(label: str, href: str, count: int, *, tip: str = "") -> str:
     number = f'<span class="chip-count">{count}</span>' if count else ""
     hint = f' data-tip="{escape(tip)}"' if tip else ""
-    return f'<a class="chip chip-link" data-item href="{escape(href)}"{hint}>{escape(label)}{number}</a>'
+    return f'<a class="ui-filter-chip chip" data-item href="{escape(href)}"{hint}>{escape(label)}{number}</a>'
 
 
 def scope(
@@ -236,7 +251,7 @@ def scope(
     )
 
 
-def static_table(columns: Sequence[Column], rows: Sequence[Sequence[str]]) -> str:
+def static_table(columns: Sequence[Column], rows: Sequence[Sequence[str]], *, label: str) -> str:
     head = "".join(f'<th scope="col"{_cell_class(column)}>{escape(column.label)}</th>' for column in columns)
     classes = [_cell_class(column) for column in columns]
     body = "".join(
@@ -244,7 +259,8 @@ def static_table(columns: Sequence[Column], rows: Sequence[Sequence[str]]) -> st
         for row in rows
     )
     return (
-        '<div class="ui-table-scroll"><table class="ui-data-table">'
+        f'<div class="ui-data-table-scroll" role="region" aria-label="{escape(label)}" tabindex="0">'
+        '<table class="ui-data-table">'
         f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"
     )
 
@@ -286,13 +302,15 @@ def shell(
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{escape(title)} · dependencies</title>\n"
         f'<link rel="stylesheet" href="{prefix}assets/ui-dashboard/styles.css">\n'
+        f'<link rel="stylesheet" href="{prefix}assets/ui-dashboard/layout.css">\n'
+        f'<link rel="stylesheet" href="{prefix}assets/ui-dashboard/data.css">\n'
         f'<link rel="stylesheet" href="{prefix}assets/app.css">\n'
         "</head>\n"
         f'<body data-page="{escape(page_id)}" data-prefix="{prefix}">\n'
         '<div class="ui-shell">\n<aside class="ui-side">'
         f'<div class="ui-side-top"><a class="ui-side-brand" href="{prefix}index.html">Dependencies</a></div>'
         f'<div class="ui-side-body">{groups}</div></aside>\n'
-        '<main class="ui-main" id="main" tabindex="-1"><div class="page">'
+        '<main class="ui-main" id="main" tabindex="-1"><div class="page ui-page-section">'
         '<div class="page-search"><label class="ui-search">'
         '<span class="ui-sr-only">Search packages</span>'
         f"{_SEARCH_ICON}"

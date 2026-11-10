@@ -36,6 +36,8 @@ from repomod.types import StatusItem, StatusLevel
 
 MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
+UI_DASHBOARD = Path(__file__).resolve().parents[3] / "node_modules" / "@laputa-systems" / "ui-dashboard" / "dist"
+UI_SHEETS = ("styles.css", "tokens.css", "styles/layout.css", "styles/data.css")
 _LIST_ROWS = 25
 _PREVIEW_ROWS = 8
 _SHOWN_REPOSITORIES = 4
@@ -103,6 +105,12 @@ def render(
     status: Mapping[str, Sequence[StatusItem]] | None = None,
     hidden: frozenset[str] = frozenset(),
 ) -> Dashboard:
+    missing = [sheet for sheet in UI_SHEETS if not (UI_DASHBOARD / sheet).is_file()]
+    if missing:
+        raise FileNotFoundError(
+            f"@laputa-systems/ui-dashboard is not installed at {UI_DASHBOARD}; "
+            "run `pnpm install --frozen-lockfile` in the repomod checkout"
+        )
     site = _site(inventory, graph, root, diff_value, status, hidden)
     if output.is_symlink():
         raise ValueError(f"refusing to write a dashboard through a symlink: {output}")
@@ -273,8 +281,10 @@ def _write_page(path: Path, content: str) -> Path:
 
 def _write_assets(output: Path, site: _Site) -> None:
     (output / "assets" / "ui-dashboard").mkdir(parents=True)
-    for name in ("app.css", "app.js", "ui-dashboard/styles.css", "ui-dashboard/tokens.css"):
+    for name in ("app.css", "app.js"):
         shutil.copyfile(ASSETS / name, output / "assets" / name)
+    for sheet in UI_SHEETS:
+        shutil.copyfile(UI_DASHBOARD / sheet, output / "assets" / "ui-dashboard" / Path(sheet).name)
     template = (ASSETS / "search.js").read_text(encoding="utf-8")
     (output / "assets" / "search.js").write_text(
         template.replace("__DEPS_INDEX__", _json(list(site.index))), encoding="utf-8"
@@ -383,6 +393,7 @@ def _package_section(site: _Site, purl: str) -> str:
             (_e(instance.version or "unknown"), _source_label(instance), _enrichment_cell(site, instance))
             for instance in instances
         ],
+        label="Versions",
     )
     used_by = (
         ui.static_table(
@@ -396,6 +407,7 @@ def _package_section(site: _Site, purl: str) -> str:
                 )
                 for repository, edge in consumers[:_CONSUMER_ROWS]
             ],
+            label="Used by",
         )
         if consumers
         else '<p class="zero">no consumers</p>'
@@ -631,9 +643,9 @@ def _plan_group(site: _Site) -> str:
     ]
     return ui.group(
         "Plan",
-        '<div class="ui-panel card">'
+        '<div class="ui-panel"><div class="ui-panel-body">'
         + ui.scope(ui.bar_list(bars, scale, "Breaking upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
-        + "</div>",
+        + "</div></div>",
         count=len(actions),
         note="Breaking upgrades by repositories affected. These usually need a manifest edit.",
     )
@@ -750,7 +762,7 @@ def _outdated(site: _Site) -> str:
         body.append(
             ui.group(
                 title,
-                f'<div class="ui-panel card">{listing}</div>',
+                f'<div class="ui-panel"><div class="ui-panel-body">{listing}</div></div>',
                 count=len(rows),
                 note=note,
                 group_id=gap.value,
@@ -910,7 +922,8 @@ def _duplicate_bar(site: _Site, name: str, found: Sequence[tuple[str, list[str]]
     return Bar(
         f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
         (Segment("Packages", len(found), Mark.ACCENT),),
-        tail=f'<details><summary>Packages</summary><ul class="plain-list">{items}</ul></details>',
+        tail=f'<details class="ui-disclosure"><summary class="ui-disclosure-summary">Packages</summary>'
+        f'<div class="ui-disclosure-body"><ul class="plain-list">{items}</ul></div></details>',
     )
 
 
@@ -1494,7 +1507,7 @@ def _packages(site: _Site) -> str:
     sections = "".join(
         _package_section(site, purl) for purl in sorted(site.graph.components, key=str.casefold)
     )
-    return f'<div id="package-index" class="page-stack">{header}{mix}</div>{sections}'
+    return f'<div id="package-index" class="ui-page-section">{header}{mix}</div>{sections}'
 
 
 def _changes(site: _Site) -> str:
@@ -1597,13 +1610,13 @@ def _coverage_card(kind: CoverageKind, repositories: Sequence[str]) -> str:
 def _repository(site: _Site, name: str) -> str:
     data = site.graph.repositories[name]
     card = next((item for item in site.scorecards if item.repository == name), None)
-    fork = " · fork, tracked only" if name in site.forks else ""
+    fork = "fork, tracked only" if name in site.forks else ""
     body = [
-        ui.page_header(
+        ui.breadcrumbs(
+            (("Repositories", "../../../repositories.html"), ("To do", "../../../index.html")),
             name,
-            f'<a href="../../../repositories.html">Repositories</a> · '
-            f'<a href="../../../index.html">To do</a>{fork}',
         ),
+        ui.page_header(name, fork),
     ]
     if data.state.value in ("failed", "unavailable"):
         body.append(f'<div class="badges">{_state_badge(data)}</div>')

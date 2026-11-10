@@ -26,6 +26,33 @@ from repomod.types import StatusArea, StatusItem, StatusLevel
 HOSTILE_PURL = "pkg:cargo/evil</script><script>alert(1)</script>"
 
 
+@pytest.fixture(autouse=True)
+def ui_dashboard(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> Path:
+    dist = tmp_path_factory.mktemp("ui-dashboard")
+    for sheet in render.UI_SHEETS:
+        (dist / sheet).parent.mkdir(parents=True, exist_ok=True)
+        (dist / sheet).write_text(f".ui-{Path(sheet).stem} {{}}\n", encoding="utf-8")
+    monkeypatch.setattr(render, "UI_DASHBOARD", dist)
+    return dist
+
+
+def test_render_copies_the_installed_library_sheets(tmp_path: Path, ui_dashboard: Path) -> None:
+    result = _render(tmp_path)
+    for sheet in render.UI_SHEETS:
+        copied = result.output / "assets" / "ui-dashboard" / Path(sheet).name
+        assert copied.read_text(encoding="utf-8") == (ui_dashboard / sheet).read_text(encoding="utf-8")
+
+
+def test_render_without_the_installed_library_fails_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(render, "UI_DASHBOARD", tmp_path / "missing")
+    inventory, built = _fixture(tmp_path)
+    with pytest.raises(FileNotFoundError, match="pnpm install --frozen-lockfile"):
+        render.render(inventory, built, tmp_path / "dashboard")
+    assert not (tmp_path / "dashboard").exists()
+
+
 def _fixture(tmp_path: Path) -> tuple[graph.Inventory, graph.Graph]:
     hostile = Instance(
         f"{HOSTILE_PURL}#",
@@ -103,9 +130,29 @@ def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
 
 def test_assets_do_not_fetch(tmp_path: Path) -> None:
     result = _render(tmp_path)
-    for name in ("app.js", "search.js", "app.css", "ui-dashboard/styles.css", "ui-dashboard/tokens.css"):
+    for name in (
+        "app.js",
+        "search.js",
+        "app.css",
+        "ui-dashboard/styles.css",
+        "ui-dashboard/tokens.css",
+        "ui-dashboard/layout.css",
+        "ui-dashboard/data.css",
+    ):
         content = (result.output / "assets" / name).read_text(encoding="utf-8")
         assert "fetch(" not in content
+
+
+def test_stylesheets_load_the_base_before_the_family_sheets(tmp_path: Path) -> None:
+    result = _render(tmp_path)
+    index = (result.output / "index.html").read_text(encoding="utf-8")
+    order = [
+        index.index("ui-dashboard/styles.css"),
+        index.index("ui-dashboard/layout.css"),
+        index.index("ui-dashboard/data.css"),
+        index.index("assets/app.css"),
+    ]
+    assert order == sorted(order)
 
 
 def test_render_does_not_open_sockets(

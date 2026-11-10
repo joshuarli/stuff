@@ -128,9 +128,10 @@ mistyped `--output` cannot delete unrelated files.
 The browser scripts are TypeScript under `src/repomod/dependencies/dashboard_ts/` and compile to
 `assets/app.js` and `assets/search.js` with `tsrs` (TypeScript 7.1). `make dashboard-ts` verifies a
 frozen pnpm install, type-checks, lints with Oxlint, rebuilds, and fails if the committed
-JavaScript is stale. It also copies the pinned library's `styles.css` and `tokens.css` into
-`assets/ui-dashboard/` and fails if they are stale. `make deps` only renders and serves; it does
-not run Node.
+JavaScript is stale. The renderer copies the pinned library's base `styles.css` and `tokens.css`
+and the `layout.css` and `data.css` family sheets from the installed package in `node_modules`, so
+rendering needs `pnpm install --frozen-lockfile` once and fails with that instruction otherwise.
+`make deps` only renders and serves; it does not run Node.
 
 ## Budgets and verification
 

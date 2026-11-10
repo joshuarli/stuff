@@ -26,5 +26,4 @@ dashboard-ts:
 	@$(PNPM) run check
 	@$(PNPM) run lint
 	@$(PNPM) run build
-	@cp node_modules/@laputa-systems/ui-dashboard/dist/styles.css node_modules/@laputa-systems/ui-dashboard/dist/tokens.css src/repomod/dependencies/assets/ui-dashboard/
-	@git diff --exit-code -- src/repomod/dependencies/assets/app.js src/repomod/dependencies/assets/search.js src/repomod/dependencies/assets/ui-dashboard
+	@git diff --exit-code -- src/repomod/dependencies/assets/app.js src/repomod/dependencies/assets/search.js
