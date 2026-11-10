@@ -192,8 +192,8 @@ importers:
   .:
     devDependencies:
       '@laputa-systems/ui-dashboard':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.9.0
+        version: 0.9.0
       oxlint:
         specifier: 1.92.0
         version: 1.92.0
@@ -203,8 +203,8 @@ importers:
 
 packages:
 
-  '@laputa-systems/ui-dashboard@0.8.0':
-    resolution: {integrity: sha512-wvn6CyafmMqTOfuRBvjzHqlEZjOk6HJcuymngScVeCXQeXWVnV6aOKYj438Mvpiw9U3VXwer9jYNYbBzHmO3Vg==, tarball: https://npm.17166969.xyz/current/-/tarballs/c2f9fa0b269f98ca9339fb9106f8f31ea9446633a4e8725cbb29a78127157825d07975959d5e9a38a623e37f0cbe98b0f54dd55f07abf6360d61b0731e63b756.tgz}
+  '@laputa-systems/ui-dashboard@0.9.0':
+    resolution: {integrity: sha512-QGW0ORTCkrLAAxjLZaWmCj1yXEzLzpCJSWqJF2nKQ2Rl7bAl1bfnQ+BaWt6L1DRDw12PnKOjFriJkE/wto209Q==, tarball: https://npm.17166969.xyz/current/-/tarballs/4065b43914c292b2c00318cb65a5a60a3d725c4ccbce9089496a891769ca436465edb025d5b7e743e05a5ade8bd43443c35d8f9ca3a316b889904ff0b68db4f5.tgz}
     engines: {node: '>=26.13.0'}
     peerDependencies:
       '@solidjs/web': '>=2.0.0-rc.18'
@@ -403,7 +403,7 @@ packages:
 
 snapshots:
 
-  '@laputa-systems/ui-dashboard@0.8.0': {}
+  '@laputa-systems/ui-dashboard@0.9.0': {}
 
   '@oxlint/binding-android-arm-eabi@1.92.0':
     optional: true

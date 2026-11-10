@@ -11,7 +11,7 @@
     "lint": "oxlint src/repomod/dependencies/dashboard_ts"
   },
   "devDependencies": {
-    "@laputa-systems/ui-dashboard": "0.8.0",
+    "@laputa-systems/ui-dashboard": "0.9.0",
     "oxlint": "1.92.0",
     "tsrs": "0.22.0-ts7.1.0-beta"
   }
