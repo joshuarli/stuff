@@ -62,8 +62,10 @@ one lookup surface, reached through search.
 - **Bloat** charts direct dependencies whose removal would drop lockfile packages, split into
   those only it brings in and those shared. Lockfiles list every platform's packages, so counts
   are upper bounds.
-- **Coverage** has one card per fixable issue kind with the action and the repositories. Known
-  limits, such as formats with no parser, are counts. In forks, only checkout problems count.
+- **Coverage** has one card per fixable issue kind with the action and the repositories. Its
+  **Source risk** group lists every git source, unpinned action, floating image, missing lock,
+  unpinned artifact, and vendored tree, with the repositories that use it. Known limits, such as
+  formats with no parser, are counts. In forks, only checkout problems count.
 - **Changes** counts everything since `HEAD~1` of `data/` and lists only downgrades, source
   changes, and new issues. It says `no baseline` when the previous revision has no inventory.
 - **Packages** counts packages per ecosystem. Search (`/`) finds any package.

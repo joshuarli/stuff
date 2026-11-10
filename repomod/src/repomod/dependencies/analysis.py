@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Any, cast
 
 from repomod import dependency_roles
@@ -24,6 +25,13 @@ from repomod.dependencies.model import (
 )
 
 type Metric = dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class MissingLock:
+    repository: str
+    path: str | None
+    message: str
 
 
 def report(
@@ -53,16 +61,22 @@ def report(
         instance_id: graph.components.get(instance.component)
         for instance_id, instance in instances.items()
     }
-    issues = tuple(
-        issue for name in names for issue in graph.repositories[name].issues
-    )
+    issues: list[Issue] = []
+    missing_locks: list[MissingLock] = []
+    for name in names:
+        for issue in graph.repositories[name].issues:
+            issues.append(issue)
+            if issue.kind is CoverageKind.MISSING_LOCK:
+                missing_locks.append(MissingLock(name, issue.path, issue.message))
     data = tuple(graph.repositories[name] for name in names)
     return {
         "repositories": list(names),
         "composition": _composition(names, data, instances, edges, component_of),
         "concentration": _concentration(graph, names, instances, located, component_of, top),
         "divergence": _divergence(graph, instances, located, component_of),
-        "source_risk": _source_risk(instances, edges, component_of, issues),
+        "source_risk": _source_risk(
+            instances, edges, component_of, tuple(issues), tuple(missing_locks)
+        ),
         "scopes": _scopes(edges),
         "first_party": _first_party(graph, instances, located, component_of),
         "roles": _roles(graph, names),
@@ -347,63 +361,80 @@ def _source_risk(
     edges: tuple[Edge, ...],
     component_of: Mapping[str, Component | None],
     issues: tuple[Issue, ...],
+    missing_locks: tuple[MissingLock, ...],
 ) -> dict[str, object]:
     incoming: dict[str, list[Edge]] = defaultdict(list)
     for edge in edges:
         incoming[edge.to_id].append(edge)
-    git = 0
-    vendored = 0
-    actions: list[Instance] = []
-    images: list[Instance] = []
-    artifacts: list[Instance] = []
-    for instance in instances.values():
+    git: list[str] = []
+    vendored: list[str] = []
+    actions: list[str] = []
+    images: list[str] = []
+    artifacts: list[str] = []
+    for instance_id, instance in instances.items():
         if instance.source_kind is SourceKind.GIT:
-            git += 1
+            git.append(instance_id)
         if instance.source_kind is SourceKind.VENDORED:
-            vendored += 1
-        component = _component(component_of, instance.id)
+            vendored.append(instance_id)
+        component = _component(component_of, instance_id)
         if component is None:
             continue
         if component.ecosystem is Ecosystem.GITHUB:
-            actions.append(instance)
+            actions.append(instance_id)
         elif component.ecosystem is Ecosystem.DOCKER:
-            images.append(instance)
+            images.append(instance_id)
         elif (
             instance.source_kind is SourceKind.URL
             and component.ecosystem is Ecosystem.GENERIC
         ):
-            artifacts.append(instance)
-    unpinned_actions = sum(
-        1
-        for instance in actions
-        if not any(
-            edge.resolution is Resolution.RESOLVED for edge in incoming.get(instance.id, ())
-        )
-    )
-    floating_images = sum(1 for instance in images if "digest=" not in instance.purl)
-    unpinned_artifacts = sum(
-        1
-        for instance in artifacts
-        if not any(
-            edge.resolution is Resolution.RESOLVED for edge in incoming.get(instance.id, ())
-        )
-    )
+            artifacts.append(instance_id)
+    unpinned_actions = [
+        instance_id
+        for instance_id in actions
+        if not _has_resolved_edge(incoming.get(instance_id, ()))
+    ]
+    floating_images = [
+        instance_id for instance_id in images if "digest=" not in instances[instance_id].purl
+    ]
+    unpinned_artifacts = [
+        instance_id
+        for instance_id in artifacts
+        if not _has_resolved_edge(incoming.get(instance_id, ()))
+    ]
     gaps = Counter(issue.kind.value for issue in issues if issue.kind.severity == "gap")
     errors = Counter(issue.kind.value for issue in issues if issue.kind.severity == "error")
-    missing = sum(1 for issue in issues if issue.kind is CoverageKind.MISSING_LOCK)
     return {
-        "git_sources": _metric(git, "instances", "all instances"),
-        "unpinned_actions": _metric(unpinned_actions, "instances", "GitHub Actions instances"),
-        "floating_images": _metric(floating_images, "instances", "container image instances"),
-        "missing_locks": _metric(missing, "issues", "all coverage issues"),
+        "git_sources": _metric(len(git), "instances", "all instances"),
+        "unpinned_actions": _metric(len(unpinned_actions), "instances", "GitHub Actions instances"),
+        "floating_images": _metric(len(floating_images), "instances", "container image instances"),
+        "missing_locks": _metric(len(missing_locks), "issues", "all coverage issues"),
         "unpinned_artifacts": _metric(
-            unpinned_artifacts, "instances", "download artifact instances"
+            len(unpinned_artifacts), "instances", "download artifact instances"
         ),
-        "vendored": _metric(vendored, "instances", "all instances"),
+        "vendored": _metric(len(vendored), "instances", "all instances"),
         "coverage_gaps": dict(sorted(gaps.items())),
         "coverage_errors": dict(sorted(errors.items())),
         "issues": _metric(len(issues), "issues", "selected repositories"),
+        "details": {
+            "git_sources": tuple(git),
+            "unpinned_actions": tuple(unpinned_actions),
+            "floating_images": tuple(floating_images),
+            "missing_locks": tuple(
+                {
+                    "repository": lock.repository,
+                    "path": lock.path,
+                    "message": lock.message,
+                }
+                for lock in missing_locks
+            ),
+            "unpinned_artifacts": tuple(unpinned_artifacts),
+            "vendored": tuple(vendored),
+        },
     }
+
+
+def _has_resolved_edge(edges: Iterable[Edge]) -> bool:
+    return any(edge.resolution is Resolution.RESOLVED for edge in edges)
 
 
 def _scopes(edges: tuple[Edge, ...]) -> dict[str, object]:

@@ -504,6 +504,48 @@ def test_coverage_shows_fixable_issues_and_only_counts_known_limits(tmp_path: Pa
     assert "1 files in formats with no parser" in main
 
 
+def test_coverage_lists_source_risk_items_and_leaves_out_forks(tmp_path: Path) -> None:
+    artifact = Instance(
+        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz#",
+        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
+        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
+        None,
+        SourceKind.URL,
+    )
+    checkout = instance(
+        Ecosystem.GITHUB,
+        "actions/checkout",
+        "v4",
+        source_kind=SourceKind.GIT,
+        vcs_url="https://github.com/actions/checkout",
+    )
+    image = instance(Ecosystem.DOCKER, "python", "3.13-slim", source_kind=SourceKind.IMAGE)
+    vendored = instance(Ecosystem.CARGO, "bitflags", None, source_kind=SourceKind.VENDORED)
+    repositories = [
+        repository(
+            "acme/mine",
+            (checkout, image, vendored, artifact),
+            issues=(issue(CoverageKind.MISSING_LOCK, path="Cargo.toml"),),
+        ),
+        repository(
+            "acme/upstream",
+            (checkout,),
+            tags=("fork",),
+            issues=(issue(CoverageKind.MISSING_LOCK, path="Cargo.toml"),),
+        ),
+    ]
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    coverage = (result.output / "coverage.html").read_text(encoding="utf-8")
+    main = coverage[coverage.index('id="main"'):]
+    assert "actions/checkout" in main
+    assert "3.13-slim" in main
+    assert "bitflags" in main
+    assert "Cargo.toml" in main
+    assert "https://example.com/tool.tar.gz" in main
+    assert "upstream" not in main
+
+
 def _page_text(result: render.Dashboard, *parts: str) -> str:
     return result.output.joinpath(*parts).read_text(encoding="utf-8")
 

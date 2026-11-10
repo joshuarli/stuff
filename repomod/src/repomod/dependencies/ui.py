@@ -202,7 +202,7 @@ def lane(stops: Sequence[Stop]) -> str:
 
 def lines(items: Sequence[Line]) -> str:
     rendered = "".join(
-        f"<li{f' data-tip="{escape(item.tip)}"' if item.tip else ''}><span>{item.primary}</span>{item.badge}"
+        f"<li data-item{f' data-tip="{escape(item.tip)}"' if item.tip else ''}><span>{item.primary}</span>{item.badge}"
         f'<span class="line-detail">{item.detail}</span></li>'
         for item in items
     )

@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlsplit
 
 from packaging.version import InvalidVersion, Version
 
@@ -25,6 +25,7 @@ from repomod.dependencies.model import (
     Issue,
     RepositoryData,
     Scope,
+    SourceKind,
 )
 from repomod.dependencies.triage import ActionKind
 from repomod.dependencies.ui import Bar, Column, Line, Mark, NavGroup, NavLink, Segment, Stop, Tile, Tone
@@ -913,22 +914,203 @@ def _duplicate_bar(site: _Site, name: str, found: Sequence[tuple[str, list[str]]
     )
 
 
-def _risk_bars(site: _Site) -> str:
-    risk = _table(site.report["source_risk"])
-    signals = (
-        ("Git sources", "git_sources"),
-        ("Unpinned Actions", "unpinned_actions"),
-        ("Floating image tags", "floating_images"),
-        ("Missing locks", "missing_locks"),
-        ("Unpinned artifacts", "unpinned_artifacts"),
-        ("Vendored code", "vendored"),
-    )
-    counted = [(label, _value(risk.get(key))) for label, key in signals]
+def _risk_bars(counts: Sequence[tuple[str, int]]) -> str:
     bars = [
         Bar(_e(label), (Segment("Count", value, Mark.GHOST),))
-        for label, value in sorted(counted, key=lambda item: -item[1])
+        for label, value in sorted(counts, key=lambda item: -item[1])
     ]
-    return ui.bar_list(bars, max(value for _label, value in counted), "Source risk")
+    return ui.bar_list(bars, max((value for _label, value in counts), default=0), "Source risk")
+
+
+_RISK_CATEGORIES = (
+    (
+        "git_sources",
+        "Git sources",
+        "A git ref can move or disappear; a registry is stable.",
+        "git",
+        Tone.NEUTRAL,
+    ),
+    (
+        "unpinned_actions",
+        "Unpinned Actions",
+        "A moving tag can change what CI runs.",
+        "unpinned",
+        Tone.WARN,
+    ),
+    (
+        "floating_images",
+        "Floating image tags",
+        "A tag can point at a new image.",
+        "floating",
+        Tone.WARN,
+    ),
+    (
+        "missing_locks",
+        "Missing locks",
+        "Dependencies can resolve differently over time.",
+        "no lockfile",
+        Tone.WARN,
+    ),
+    (
+        "unpinned_artifacts",
+        "Unpinned artifacts",
+        "A download can change without a version or checksum.",
+        "unpinned",
+        Tone.WARN,
+    ),
+    (
+        "vendored",
+        "Vendored code",
+        "A vendored tree has no manifest to track its versions.",
+        "vendored",
+        Tone.NEUTRAL,
+    ),
+)
+
+
+def _risk_section(site: _Site) -> str:
+    details = _table(_table(site.report["source_risk"]).get("details"))
+    cards: list[str] = []
+    counts: list[tuple[str, int]] = []
+    for key, title, note, badge, tone in _RISK_CATEGORIES:
+        items = details.get(key)
+        if not isinstance(items, (tuple, list)) or not items:
+            continue
+        kept = _without_forks(site, key, items)
+        if not kept:
+            continue
+        lines = _risk_lines(site, key, kept, badge, tone)
+        if not lines:
+            continue
+        counts.append((title, len(lines)))
+        cards.append(_risk_card(title, note, lines))
+    if not cards:
+        return ui.panel("Source risk", ui.empty_state("No source risk"), flush=True)
+    return ui.group(
+        "Source risk",
+        _risk_bars(counts) + ui.card_grid(cards, wide=True),
+        count=sum(value for _label, value in counts),
+        note="Every source that can change without a new commit.",
+    )
+
+
+def _without_forks(site: _Site, key: str, items: Sequence[object]) -> list[object]:
+    if not site.forks:
+        return list(items)
+    if key == "missing_locks":
+        return [
+            item
+            for item in items
+            if not (isinstance(item, Mapping) and item.get("repository") in site.forks)
+        ]
+    return [
+        item
+        for item in items
+        if isinstance(item, str)
+        and any(
+            repository not in site.forks
+            for repository in site.graph.instance_repositories.get(item, ())
+        )
+    ]
+
+
+def _risk_card(title: str, note: str, lines: Sequence[Line]) -> str:
+    body = ui.lines(lines)
+    if len(lines) > _LIST_ROWS:
+        body = ui.scope(body, limit=_LIST_ROWS, total=len(lines))
+    return ui.card(
+        f"<span>{_e(title)}</span>",
+        f'<div class="card-change">{_e(note)}</div>{body}',
+        meta=ui.badge(_plural(len(lines), "item"), Tone.WARN),
+    )
+
+
+def _risk_lines(site: _Site, key: str, items: Sequence[object], badge: str, tone: Tone) -> list[Line]:
+    if key == "missing_locks":
+        return _missing_lock_lines(items, badge, tone)
+    return _instance_risk_lines(site, items, badge, tone)
+
+
+def _instance_risk_lines(
+    site: _Site, items: Sequence[object], badge: str, tone: Tone
+) -> list[Line]:
+    instances = [
+        instance
+        for item in items
+        if isinstance(item, str) and (instance := site.graph.instances.get(item)) is not None
+    ]
+    instances.sort(key=lambda instance: (instance.purl.casefold(), instance.version or ""))
+    return [_instance_risk_line(site, instance, badge, tone) for instance in instances]
+
+
+def _instance_risk_line(site: _Site, instance: Instance, badge: str, tone: Tone) -> Line:
+    component = site.graph.components.get(instance.component)
+    name = component.display_name if component is not None else instance.component
+    version = f"@{instance.version}" if instance.version is not None else ""
+    repositories = sorted(
+        (
+            name
+            for name in site.graph.instance_repositories.get(instance.id, ())
+            if name not in site.forks
+        ),
+        key=str.casefold,
+    )
+    source = _risk_source(instance)
+    detail = source + (" · " + _repository_names(repositories) if repositories else "")
+    return Line(
+        _package_link(instance.purl, "", f"{name}{version}"),
+        detail,
+        ui.badge(badge, tone, dot=True),
+        source,
+    )
+
+
+def _missing_lock_lines(items: Sequence[object], badge: str, tone: Tone) -> list[Line]:
+    locks: list[tuple[str, Mapping[str, object]]] = []
+    for item in items:
+        if isinstance(item, Mapping):
+            name = item.get("repository")
+            if isinstance(name, str):
+                locks.append((name, cast(Mapping[str, object], item)))
+    locks.sort(key=lambda entry: (entry[0].casefold(), str(entry[1].get("path") or "")))
+    lines: list[Line] = []
+    for name, item in locks:
+        path = item.get("path")
+        message = item.get("message")
+        detail = _e(path) if isinstance(path, str) and path else _e(str(message or ""))
+        lines.append(
+            Line(
+                f'<a href="repos/{_e(name)}/index.html">{_e(_short_repository(name))}</a>',
+                detail,
+                ui.badge(badge, tone, dot=True),
+                name,
+            )
+        )
+    return lines
+
+
+def _risk_source(instance: Instance) -> str:
+    if instance.source_kind is SourceKind.GIT:
+        if instance.commit is not None:
+            return f"commit {_lane_label(instance.commit)}"
+        if instance.vcs_url is not None:
+            return instance.vcs_url
+        return "git source"
+    if instance.source_kind is SourceKind.VENDORED:
+        return "vendored tree"
+    if instance.source_kind is SourceKind.URL:
+        url = _download_url(instance.purl)
+        return url if url is not None else "download"
+    if instance.source_kind is SourceKind.IMAGE:
+        return f"tag {instance.version or 'latest'}"
+    if instance.version is not None:
+        return f"ref {instance.version}"
+    return instance.source_kind.value
+
+
+def _download_url(purl: str) -> str | None:
+    values = parse_qs(urlsplit(purl).query).get("download_url")
+    return values[0] if values is not None else None
 
 
 def _todo_panel(site: _Site, name: str) -> str:
@@ -1397,7 +1579,7 @@ def _coverage(site: _Site) -> str:
         )
     else:
         body.append(ui.panel("What to fix", ui.empty_state("Nothing to fix"), flush=True))
-    body.append(ui.collapsed_panel("Source risk", _risk_bars(site)))
+    body.append(_risk_section(site))
     return "\n".join(body)
 
 
