@@ -140,3 +140,21 @@ horizontal page overflow, search for `serde`, the `#pkg=pkg:cargo/serde` route, 
 on every repository page. Screenshots are written under `.work/dependencies/shots/`. Tables
 wider than a narrow viewport scroll inside their own container; the page itself must not
 overflow.
+
+## Measuring the render
+
+`make deps` is `uv run repomod deps render --status` followed by `srv`. The render is the part
+that varies: it reads the tracked inventory, collects live repository status, and writes the
+dashboard. `bench/deps_perf.py` measures it without touching user caches.
+
+```sh
+make bench              # phase breakdown, cold and warm, 3 runs each
+make bench-cli          # the real `uv run repomod deps render --status` command
+make bench RUNS=1
+```
+
+`warm` uses the real cache directory, as `make deps` does. `cold` points `XDG_CACHE_HOME` at a
+scratch directory under `.work/tmp/` and clears it before each run, so it measures the first run
+after the caches expire. The `work_*` columns sum operations that run concurrently, so they can
+exceed the wall-clock `status` time; `load`, `visibility`, `status`, and `render` partition the
+wall-clock `total`.
