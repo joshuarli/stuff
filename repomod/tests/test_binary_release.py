@@ -700,16 +700,15 @@ def build_elf(
     comments: tuple[str, ...] = ("clang version 23.1.0",),
     extra_strings: tuple[str, ...] = (),
 ) -> bytes:
-    strings = b"\0" + b"".join(
-        value.encode() + b"\0" for value in (*needed, *((soname,) if soname else ()), *extra_strings)
-    )
+    values = (*needed, *((soname,) if soname is not None and soname != "" else ()), *extra_strings)
+    strings = b"\0" + b"".join(value.encode() + b"\0" for value in values)
     offsets: dict[str, int] = {}
     cursor = 1
-    for value in (*needed, *((soname,) if soname else ()), *extra_strings):
+    for value in values:
         offsets[value] = cursor
         cursor += len(value) + 1
     dynamic_entries = [(1, offsets[name]) for name in needed]
-    if soname:
+    if soname is not None and soname != "":
         dynamic_entries.append((14, offsets[soname]))
     dynamic = b""
     base = 64 + 56 * 2
@@ -743,9 +742,23 @@ def build_elf(
     return bytes(header) + load + dynamic_header + strings + dynamic + comment + shstrtab + sections
 
 
-def write_elf(tmp_path: Path, **options: object) -> Path:
+def write_elf(
+    tmp_path: Path,
+    *,
+    needed: tuple[str, ...] = (),
+    soname: str | None = None,
+    comments: tuple[str, ...] = ("clang version 23.1.0",),
+    extra_strings: tuple[str, ...] = (),
+) -> Path:
     path = tmp_path / "artifact.elf"
-    path.write_bytes(build_elf(**options))
+    path.write_bytes(
+        build_elf(
+            needed=needed,
+            soname=soname,
+            comments=comments,
+            extra_strings=extra_strings,
+        )
+    )
     return path
 
 

@@ -84,8 +84,8 @@ def is_fresh(entry: Mapping[str, object], now: float) -> bool:
     vulns = entry.get("vulns")
     if isinstance(vulns, list) and any(
         isinstance(item, dict)
-        and isinstance(item.get("id"), str)
-        and item["id"].startswith("RUSTSEC-")
+        and isinstance((item_id := item.get("id")), str)
+        and item_id.startswith("RUSTSEC-")
         and "affected" not in item
         for item in vulns
     ):

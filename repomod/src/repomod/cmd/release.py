@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from repomod import github
 from repomod.catalog import repository_path
@@ -86,7 +87,7 @@ def _label(target: ReleaseTarget) -> str:
     base = f"{target.state:<10} {target.name}"
     if target.detail:
         base += f"  {target.detail}"
-    if target.run_url:
+    if target.run_url is not None and target.run_url != "":
         base += f"  {target.run_url}"
     return base
 
@@ -115,7 +116,8 @@ def _attach_run(target: ReleaseTarget) -> bool:
     conclusion = run.get("conclusion")
     run_id = run.get("databaseId")
     target.run_id = int(run_id) if isinstance(run_id, int) and not isinstance(run_id, bool) else None
-    target.run_url = run.get("url") if isinstance(run.get("url"), str) else None
+    run_url = run.get("url")
+    target.run_url = run_url if isinstance(run_url, str) else None
     if status != "completed":
         target.state = _STATE_RUNNING
         target.detail = f"{target.tag} {status}"
@@ -135,9 +137,20 @@ def _dispatch_target(catalog, target: ReleaseTarget) -> None:
         target.detail = "no dispatchable release workflow"
         return
     remote = target.remote
-    if remote is None or remote.error or not remote.default_branch or not remote.sha:
+    if (
+        remote is None
+        or (remote.error is not None and remote.error != "")
+        or remote.default_branch is None
+        or remote.default_branch == ""
+        or remote.sha is None
+        or remote.sha == ""
+    ):
         target.state = _STATE_ERROR
-        target.detail = remote.error if remote and remote.error else "default branch HEAD unavailable"
+        target.detail = (
+            remote.error
+            if remote is not None and remote.error is not None and remote.error != ""
+            else "default branch HEAD unavailable"
+        )
         return
     target.tag = f"release-{remote.sha}"
     try:
@@ -161,7 +174,7 @@ def _dispatch_target(catalog, target: ReleaseTarget) -> None:
     target.detail = f"{target.tag} on {remote.default_branch}"
 
 
-def _find_run(target: ReleaseTarget) -> dict[str, object] | None:
+def _find_run(target: ReleaseTarget) -> dict[str, Any] | None:
     if target.workflow is None or target.remote is None or target.remote.sha is None:
         return None
     runs = github.workflow_runs(
@@ -187,7 +200,8 @@ def _check_for_run(target: ReleaseTarget, deadline: float) -> bool:
     if run is not None:
         run_id = run.get("databaseId")
         target.run_id = int(run_id) if isinstance(run_id, int) and not isinstance(run_id, bool) else None
-        target.run_url = run.get("url") if isinstance(run.get("url"), str) else None
+        run_url = run.get("url")
+        target.run_url = run_url if isinstance(run_url, str) else None
         target.state = _STATE_RUNNING
         target.detail = f"{target.tag} run {target.run_id or '?'}"
         return True
@@ -211,7 +225,8 @@ def _poll_run(target: ReleaseTarget) -> bool:
         return True
     status = run.get("status")
     conclusion = run.get("conclusion")
-    target.run_url = run.get("url") if isinstance(run.get("url"), str) else target.run_url
+    run_url = run.get("url")
+    target.run_url = run_url if isinstance(run_url, str) else target.run_url
     if status != "completed":
         detail = f"{target.tag} {status}"
         changed = detail != target.detail or target.state != _STATE_RUNNING

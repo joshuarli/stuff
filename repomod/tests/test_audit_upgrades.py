@@ -1025,7 +1025,7 @@ def test_scoped_npm_registry_resolves_each_package(tmp_path: Path, monkeypatch: 
     (root / "package.json").write_text(json.dumps({"dependencies": {"@scope/pkg": "1.0.0", "plain": "1.0.0"}}))
     seen: list[str] = []
 
-    def fetch(url: str, headers: dict[str, str] | None = None) -> dict:
+    def fetch(url: str, headers: dict[str, str] | None = None) -> dict[str, object]:
         seen.append(url)
         return {"dist-tags": {"latest": "1.1.0"}}
 
