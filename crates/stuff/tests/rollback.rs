@@ -45,14 +45,24 @@ fn run(work: &Path, fake: &FakeS3, args: &[&str]) -> Run {
 }
 
 fn seed_generation(fake: &FakeS3, bucket: &str, generation: &str) {
-    let key = format!("generations/{generation}/catalog.json");
-    let body = format!("{{\"generation\":\"{generation}\"}}").into_bytes();
-    fake.seed(bucket, &key, &body, "application/json");
-    let manifest = format!(
-        "{{\"schemaVersion\":1,\"objects\":[{{\"key\":\"{key}\",\"size\":{},\"etag\":\"{}\"}}]}}",
-        body.len(),
-        md5_hex(&body)
-    );
+    let catalog = format!("{{\"generation\":\"{generation}\"}}");
+    let mut files = vec![(format!("generations/{generation}/catalog.json"), catalog)];
+    if bucket == "stuff-oci" {
+        files.push((
+            format!("generations/{generation}/blobs.json"),
+            format!("{{\"schemaVersion\":1,\"blobs\":[\"sha256:{LAYER}\"]}}"),
+        ));
+    }
+    let mut entries = Vec::new();
+    for (key, body) in &files {
+        fake.seed(bucket, key, body.as_bytes(), "application/json");
+        entries.push(format!(
+            "{{\"key\":\"{key}\",\"size\":{},\"etag\":\"{}\"}}",
+            body.len(),
+            md5_hex(body.as_bytes())
+        ));
+    }
+    let manifest = format!("{{\"schemaVersion\":1,\"objects\":[{}]}}", entries.join(","));
     fake.seed(
         bucket,
         &format!("manifests/{generation}.json"),
@@ -60,6 +70,8 @@ fn seed_generation(fake: &FakeS3, bucket: &str, generation: &str) {
         "application/json",
     );
 }
+
+const LAYER: &str = "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
 
 fn current_body(fake: &FakeS3, bucket: &str) -> Option<Vec<u8>> {
     fake.state()
@@ -95,7 +107,7 @@ fn rollback_promotes_the_target_generation_for_every_registry() {
         seed_generation(&fake, bucket, "g2");
         fake.seed(bucket, "current", b"g2", "text/plain");
         if let Some(blobs) = blobs {
-            fake.seed(blobs, "sha256/abc", b"blob", "application/octet-stream");
+            fake.seed(blobs, &format!("sha256/{LAYER}"), b"blob", "application/octet-stream");
         }
 
         let result = run(work.path(), &fake, &["rollback", registry, "g1"]);
@@ -114,11 +126,39 @@ fn rollback_promotes_the_target_generation_for_every_registry() {
         if let Some(blobs) = blobs {
             let prefix = format!("/{blobs}");
             assert!(
-                fake.requests().iter().all(|request| !request.path.starts_with(&prefix)),
-                "{registry} touched the blobs bucket"
+                fake.requests()
+                    .iter()
+                    .filter(|request| request.path.starts_with(&prefix))
+                    .all(|request| request.method == "HEAD"),
+                "{registry} wrote to the blobs bucket"
             );
         }
     }
+}
+
+#[test]
+fn oci_rollback_refuses_a_generation_whose_blobs_are_missing() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    seed_generation(&fake, "stuff-oci", "g1");
+    seed_generation(&fake, "stuff-oci", "g2");
+    fake.seed("stuff-oci", "current", b"g2", "text/plain");
+
+    for args in [&["rollback", "oci", "g1", "--dry-run"][..], &["rollback", "oci", "g1"][..]] {
+        let result = run(work.path(), &fake, args);
+        assert_eq!(result.code, 4, "{args:?}: {}", result.stderr);
+        assert!(
+            result.stderr.contains(&format!("missing from stuff-oci-blobs: sha256:{LAYER}")),
+            "{args:?}: {}",
+            result.stderr
+        );
+        assert_eq!(current_body(&fake, "stuff-oci").as_deref(), Some(b"g2".as_slice()));
+    }
+
+    fake.seed("stuff-oci-blobs", &format!("sha256/{LAYER}"), b"blob", "application/octet-stream");
+    let restored = run(work.path(), &fake, &["rollback", "oci", "g1"]);
+    assert_eq!(restored.code, 0, "{}", restored.stderr);
+    assert_eq!(current_body(&fake, "stuff-oci").as_deref(), Some(b"g1".as_slice()));
 }
 
 #[test]

@@ -13,15 +13,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-69 · P2 · OCI rollback can select metadata whose image blobs no longer exist
-
-- **Area:** Data
-- **Where:** `crates/stuff/src/publish/rollback.rs:18-27`, `crates/stuff/src/publish/transaction.rs:438-449`, `crates/stuff/src/publish/r2/promote.rs:101-158`, `deploy/r2-gc-blobs.py:203-225`
-- **Problem:** Rollback verifies only the metadata bucket's generation manifest. OCI image blobs live in another configured bucket and are excluded from that manifest. Running the actual blob GC with `--keep-previous 0` against FakeR2 removed a prior generation's layer while leaving all its metadata and `manifests/g1.json` byte-identical. The rollback source receives only the metadata bucket, so it cannot reject that incomplete image. The native rollback command was not executed; its failure to inspect the blob bucket is source-proven. This is a sequential recovery gap, independent of concurrent publishing.
-- **Recommendation:** Before OCI activation or rollback, verify the target generation's `blobs.json` references against the configured blob bucket, with appropriately scoped read credentials. Apply the check in dry-run too and leave `current` unchanged on a missing blob. Extend the existing rollback fixture with intact metadata and a missing referenced layer, then restore the layer and verify recovery succeeds.
-- **Fix with:** durable-state
-- **Effort:** M
-
 ### STUF-70 · P2 · Cached wheels block the next unrelated Python publication
 
 - **Area:** Data

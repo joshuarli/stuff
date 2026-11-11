@@ -152,8 +152,9 @@ from retained metadata generations and deletes unreferenced `sha256/*` from
 the blob bucket, with the existing `--dry-run` preview. Blobs, manifests, and
 in-flight generations younger than `--grace-minutes` (default one hour, the
 upload session lifetime) survive, and a metadata change between delete
-batches aborts the run. Generation GC and
-rollback keep older generations readable.
+batches aborts the run. Generation GC and rollback keep older generations
+readable; `stuff rollback oci` refuses a generation whose `blobs.json`
+references a blob absent from the blob bucket.
 
 ## Limits
 

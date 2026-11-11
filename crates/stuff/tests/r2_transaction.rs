@@ -11,7 +11,7 @@ use stuff::publish::r2::promote;
 use stuff::publish::r2::pull::md5_hex;
 use stuff::publish::r2::sync;
 use stuff::publish::r2::{Credentials, R2Client, UploadOptions};
-use stuff::publish::transaction::{self, Transaction, TransactionOptions};
+use stuff::publish::transaction::{self, RollbackTarget, Transaction, TransactionOptions};
 use stuff::publish::{PublishError, Registry, Status};
 use stuff_store::FileLock;
 use support::{FakeS3, ACCESS_KEY, SECRET_KEY};
@@ -322,10 +322,13 @@ fn a_second_generation_promotes_with_if_match_and_rolls_back() {
 
     let rollback = transaction::rollback(
         credentials(&fake),
-        Registry::Cargo,
-        BUCKET,
+        RollbackTarget {
+            registry: Registry::Cargo,
+            bucket: BUCKET,
+            generation: "g1",
+            verify: &|_| Ok(()),
+        },
         state.clone(),
-        "g1",
         false,
         Duration::from_secs(5),
     )
@@ -422,10 +425,13 @@ fn rollback_refuses_a_generation_without_a_remote_manifest() {
     let writes = mutation_count(&fake);
     let error = transaction::rollback(
         credentials(&fake),
-        Registry::Cargo,
-        BUCKET,
+        RollbackTarget {
+            registry: Registry::Cargo,
+            bucket: BUCKET,
+            generation: "g3",
+            verify: &|_| Ok(()),
+        },
         state,
-        "g3",
         false,
         Duration::from_secs(5),
     )

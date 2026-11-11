@@ -9,6 +9,7 @@ use crate::publish::paths::Paths;
 use crate::publish::r2::credentials;
 use crate::publish::r2::pull::{self, PullOptions};
 use crate::publish::r2::promote;
+use crate::publish::r2::client::RawRequest;
 use crate::publish::r2::{Credentials, R2Client};
 use crate::publish::staging::Staging;
 use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
@@ -159,6 +160,62 @@ fn sync_live_state(
     let state = myoci::state::State::new(paths.state_dir.clone());
     myoci::publish::adopt(&state, &paths.site_dir).map_err(map_myoci_error)?;
     Ok(())
+}
+
+/// Fails unless every digest in the generation's `blobs.json` exists in the
+/// blob bucket, so activating the generation cannot serve a missing layer.
+pub fn verify_generation_blobs(
+    metadata: &R2Client,
+    metadata_bucket: &str,
+    blobs: &R2Client,
+    blobs_bucket: &str,
+    generation: &str,
+) -> Result<(), PublishError> {
+    let key = format!("generations/{generation}/blobs.json");
+    let response = metadata.request(object_request("GET", metadata_bucket, &key))?;
+    if response.status != 200 {
+        return Err(PublishError::Integrity(format!(
+            "GET {metadata_bucket}/{key}: HTTP {}",
+            response.status
+        )));
+    }
+    let text = String::from_utf8_lossy(&response.body);
+    let digests = parse_blobs_json(&text)
+        .map_err(|error| PublishError::Integrity(format!("{metadata_bucket}/{key}: {error}")))?;
+    let mut missing = Vec::new();
+    for digest in &digests {
+        let blob = format!("sha256/{}", digest.hex());
+        let response = blobs.request(object_request("HEAD", blobs_bucket, &blob))?;
+        match response.status {
+            200 => {}
+            404 => missing.push(digest.to_string()),
+            status => {
+                return Err(PublishError::Integrity(format!(
+                    "HEAD {blobs_bucket}/{blob}: HTTP {status}"
+                )));
+            }
+        }
+    }
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(PublishError::Integrity(format!(
+        "generation {generation} references {} blob(s) missing from {blobs_bucket}: {}",
+        missing.len(),
+        missing.join(", ")
+    )))
+}
+
+fn object_request<'a>(method: &'a str, bucket: &'a str, key: &'a str) -> RawRequest<'a> {
+    RawRequest {
+        method,
+        bucket,
+        key,
+        query: Vec::new(),
+        body: &[],
+        content_type: None,
+        extra_headers: Vec::new(),
+    }
 }
 
 fn pull_generation_blobs(

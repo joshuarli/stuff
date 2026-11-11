@@ -112,8 +112,9 @@ recent generation without `blobs.json` blocks blob deletion entirely. Before
 each delete batch it re-reads the metadata bucket and aborts if `current`, a
 manifest, or the generation set changed. `--grace-minutes 0` is only safe
 when no network push or publication can be in flight. Retain the blobs for
-every generation you need to restore; metadata retention alone does not make
-OCI rollback usable (tracked in [TODO.md](../TODO.md)).
+every generation you need to restore: `stuff rollback oci`, including
+`--dry-run`, reads the target's `blobs.json` and refuses, with `current`
+unchanged, when any referenced blob is missing from the blob bucket.
 
 The registry is sha256-only. Limits: repository name 255 characters, tag 128
 characters, manifest 4 MiB, upload session one hour, one upload 20 GiB.

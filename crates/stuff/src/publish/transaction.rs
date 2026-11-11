@@ -418,15 +418,23 @@ impl Transaction {
     }
 }
 
+pub struct RollbackTarget<'a> {
+    pub registry: Registry,
+    pub bucket: &'a str,
+    pub generation: &'a str,
+    /// Checks beyond the metadata manifest that must pass before `current`
+    /// moves, given a client for the metadata bucket.
+    pub verify: &'a dyn Fn(&R2Client) -> Result<(), PublishError>,
+}
+
 pub fn rollback(
     credentials: Credentials,
-    registry: Registry,
-    bucket: &str,
+    target: RollbackTarget<'_>,
     state_dir: PathBuf,
-    generation: &str,
     dry_run: bool,
     lock_wait: Duration,
 ) -> Result<TransactionReport, PublishError> {
+    let RollbackTarget { registry, bucket, generation, verify: verify_target } = target;
     promote::validate_generation(generation)?;
     std::fs::create_dir_all(&state_dir).map_err(|error| {
         PublishError::Config(format!(
@@ -443,8 +451,10 @@ pub fn rollback(
         != Some(generation);
     let promoted = if dry_run {
         promote::verify_generation(&client, bucket, generation)?;
+        verify_target(&client)?;
         false
     } else {
+        verify_target(&client)?;
         let promotion = promote::promote(&client, bucket, generation, None)?;
         write_record(&state_dir, generation)?;
         promotion.promoted
