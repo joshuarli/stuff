@@ -104,6 +104,7 @@ def render(
     diff_value: diff_module.Diff | None = None,
     status: Mapping[str, Sequence[StatusItem]] | None = None,
     hidden: frozenset[str] = frozenset(),
+    unmanaged: frozenset[str] = frozenset(),
 ) -> Dashboard:
     missing = [sheet for sheet in UI_SHEETS if not (UI_DASHBOARD / sheet).is_file()]
     if missing:
@@ -111,7 +112,7 @@ def render(
             f"@laputa-systems/ui-dashboard is not installed at {UI_DASHBOARD}; "
             "run `pnpm install --frozen-lockfile` in the repomod checkout"
         )
-    site = _site(inventory, graph, root, diff_value, status, hidden)
+    site = _site(inventory, graph, root, diff_value, status, hidden, unmanaged)
     if output.is_symlink():
         raise ValueError(f"refusing to write a dashboard through a symlink: {output}")
     if output.exists():
@@ -154,6 +155,7 @@ def _site(
     diff_value: diff_module.Diff | None,
     status: Mapping[str, Sequence[StatusItem]] | None,
     hidden: frozenset[str],
+    unmanaged: frozenset[str],
 ) -> _Site:
     cache = enrich.load_cache()
     report_value = analysis.report(graph)
@@ -175,7 +177,10 @@ def _site(
         except ValueError:
             diff_value = None
     if diff_value is not None:
-        visible = tuple(change for change in diff_value.repositories if change.repository not in hidden)
+        invisible = hidden | unmanaged
+        visible = tuple(
+            change for change in diff_value.repositories if change.repository not in invisible
+        )
         diff_value = replace(diff_value, repositories=visible)
     declared = insights.declarations(graph)
     mine = insights.owned(graph, declared)

@@ -116,13 +116,21 @@ def _deps(args: argparse.Namespace) -> int:
     if args.operation == "render":
         from repomod.dependencies import render as render_module
 
+        managed = frozenset(str(repository.id) for repository in catalog.repositories)
         hidden = frozenset(str(repository.id) for repository in repositories) - frozenset(selected)
-        visible_inventory = graph.excluding(loaded, hidden)
+        unmanaged = frozenset(loaded.repositories) - managed
+        visible_inventory = graph.excluding(loaded, hidden | unmanaged)
         visible_graph = graph.build_graph(visible_inventory, catalog)
         output = _render_output(args.output)
         status = _repository_status(catalog, reported, visible_graph) if args.status else None
         result = render_module.render(
-            visible_inventory, visible_graph, output, root=_root(), status=status, hidden=hidden
+            visible_inventory,
+            visible_graph,
+            output,
+            root=_root(),
+            status=status,
+            hidden=hidden,
+            unmanaged=unmanaged,
         )
         print(
             f"wrote {len(result.pages)} pages to {_display(result.output)} "

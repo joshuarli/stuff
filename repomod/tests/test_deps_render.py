@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import socket
 from dataclasses import replace
 from pathlib import Path
@@ -7,6 +8,8 @@ from pathlib import Path
 import pytest
 from deps_fixtures import instance, issue, project, repository, write_inventory
 
+from repomod.catalog import load_catalog
+from repomod.cmd import common, deps
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies import graph, render
 from repomod.dependencies.model import (
@@ -21,7 +24,7 @@ from repomod.dependencies.model import (
     Scope,
     SourceKind,
 )
-from repomod.types import StatusArea, StatusItem, StatusLevel
+from repomod.types import Repository, StatusArea, StatusItem, StatusLevel
 
 HOSTILE_PURL = "pkg:cargo/evil</script><script>alert(1)</script>"
 
@@ -690,6 +693,96 @@ def test_hidden_repositories_are_counted_and_left_out_of_changes(tmp_path: Path)
     )
     assert "1 private hidden" in _page_text(result, "repositories.html")
     assert "hidden-pkg" not in _page_text(result, "changes.html")
+
+
+def test_render_omits_repositories_the_catalog_no_longer_manages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kept = instance(Ecosystem.CARGO, "kept-pkg", "1.0.0")
+    secret = instance(Ecosystem.CARGO, "secret-pkg", "1.0.0")
+    old = instance(Ecosystem.CARGO, "old-pkg", "1.0.0")
+    inventory = write_inventory(
+        tmp_path,
+        [
+            repository("acme/kept", (kept,), projects=(project(".", Ecosystem.CARGO),)),
+            repository("acme/secret", (secret,), projects=(project(".", Ecosystem.CARGO),)),
+            repository("acme/old", (old,), projects=(project(".", Ecosystem.CARGO),)),
+        ],
+    )
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n\n'
+        '[repos."acme"]\nkept = ["tool"]\nsecret = ["tool"]\nold = ["IGNORE", "tool"]\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(
+        catalog_path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
+    )
+    monkeypatch.setattr(deps, "_inventory", lambda: inventory)
+    monkeypatch.setattr(common, "default_catalog", lambda: catalog)
+
+    def visibility(repositories: tuple[Repository, ...], **_kwargs: object) -> dict[str, bool]:
+        return {str(repository.id): repository.id.name == "secret" for repository in repositories}
+
+    monkeypatch.setattr("repomod.github.repository_visibility", visibility)
+    monkeypatch.setattr(
+        render.diff_module,
+        "diff_inventory",
+        lambda *_args, **_kwargs: diff_module.Diff(
+            True,
+            "HEAD~1",
+            "working tree",
+            (
+                _downgrade("acme/kept", "kept-pkg"),
+                _downgrade("acme/secret", "secret-pkg"),
+                _downgrade("acme/old", "old-pkg"),
+            ),
+        ),
+    )
+
+    output = tmp_path / "dashboard"
+    assert (
+        deps._deps(
+            argparse.Namespace(
+                operation="render",
+                output=str(output),
+                include_private=False,
+                status=False,
+                repo=[],
+                tag=[],
+            )
+        )
+        == 0
+    )
+    assert (output / "repos" / "acme" / "kept" / "index.html").is_file()
+    assert not (output / "repos" / "acme" / "old").exists()
+    assert not (output / "repos" / "acme" / "secret").exists()
+    repositories = (output / "repositories.html").read_text(encoding="utf-8")
+    changes = (output / "changes.html").read_text(encoding="utf-8")
+    packages = (output / "packages.html").read_text(encoding="utf-8")
+    assert "1 private hidden" in repositories
+    assert "kept-pkg" in changes
+    assert "old-pkg" not in changes
+    assert "secret-pkg" not in changes
+    assert "old-pkg" not in packages
+    assert "acme/old" not in repositories
+
+
+def _downgrade(repository_name: str, package: str) -> diff_module.RepositoryDiff:
+    return diff_module.RepositoryDiff(
+        repository_name,
+        "changed",
+        "complete",
+        "complete",
+        "a" * 40,
+        "b" * 40,
+        (),
+        (),
+        (diff_module.VersionChange(f"pkg:cargo/{package}", package, Ecosystem.CARGO, "2", "1", "downgrade"),),
+        (),
+        (),
+        (),
+    )
 
 
 def test_excluding_drops_a_repository_from_the_graph(tmp_path: Path) -> None:

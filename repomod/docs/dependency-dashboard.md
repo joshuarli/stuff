@@ -15,6 +15,8 @@ For a local server, `make deps` renders the dashboard with `--status` and serves
 
 Private repositories are left out of every page, count, and change list by default. Repositories
 says how many are hidden. Use `make deps PRIVATE=1`, or `deps render --include-private`, to include
+them. Repositories the catalog no longer manages, including those marked `IGNORE`, are left out of
+every page as well. Their inventory files remain until the next unfiltered `deps snapshot` deletes
 them.
 
 The site has no fetch, CDN, web font, or chart library, and it works from `file://`. Python
