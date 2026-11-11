@@ -1,7 +1,4 @@
 #!/bin/sh
-# Serialize writers of one registry's bucket on this machine: stuff, the
-# mypypi container, and gc (deploy/r2_common.py publish_lock takes the same
-# flock). The caller traps release_publish_lock.
 set -eu
 
 bucket_lock_path() {

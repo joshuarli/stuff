@@ -1,30 +1,33 @@
 # stuff
 
-One repository, four registries, one serving platform.
+Four package registries with one publisher: Cargo, npm, Python wheels, and OCI images.
+`stuff` publishes immutable generations, serves a searchable catalog, and supports rollback to retained generations. Package resolution and installation use the ecosystem tools: Cargo, npm/pnpm, uv/CPython, and oras.
 
-`stuff` consolidates the `mycrates` (Cargo), `mynpm` (npm), `mypypi`
-(Python wheel), and `myoci` (OCI Distribution) registries onto shared Rust
-infrastructure for HTTP serving, storage, and generation management.
-`mycrates` itself is a Python standard-library tool; the other registries are
-Rust. External ecosystems are orchestrated, not
-reimplemented (npm/pnpm resolve and install, uv/CPython build and install
-wheels, oras imports OCI images). Package semantics stay per-ecosystem; only
-the serving layer is shared.
+## Install
+
+Run the `release` workflow from the default branch to build the `stuff` CLI for Apple Silicon and Linux musl. Each `release-<sha>` prerelease contains standalone `stuff-<target>` executables and `SHA256SUMS`. Install with `sh dl stuff` from `~/usr`.
+
+Publication prerequisites, configuration, credentials, and operations are in [docs/PUBLISHING.md](docs/PUBLISHING.md). `stuff publish --help` describes the supported options.
 
 ## Registries
 
-Each registry publishes immutable generations activated through a `current`
-pointer (`current -> generations/<id>`). One registry's publication never
-rebuilds or republishes another's output.
+| Ecosystem | Client root |
+| --- | --- |
+| Cargo sparse index | `https://crates.17166969.xyz/current/registry/` |
+| npm | `https://npm.17166969.xyz/current/` |
+| pip | `https://pypi.17166969.xyz/current/simple/` |
+| OCI | `https://oci.17166969.xyz` |
 
-Client roots include the generation pointer:
+The aggregate catalog is at [stuff.17166969.xyz](https://stuff.17166969.xyz).
+Cargo downloads use `crates-blobs.17166969.xyz`; OCI blobs use `oci-blobs.17166969.xyz`.
+Each registry activates its own generation through `current`; publishing one does not republish another.
 
-- Cargo sparse: `https://crates.17166969.xyz/current/registry/`
-- npm: `https://npm.17166969.xyz/current/`
-- pip: `https://pypi.17166969.xyz/current/simple/`
-- OCI: `https://oci.17166969.xyz` (blobs at `https://oci-blobs.17166969.xyz/sha256/`)
-
-`https://stuff.17166969.xyz` serves the aggregate catalog of all four.
+```sh
+stuff publish cargo -p my-crate
+stuff publish npm --lockfile pnpm-lock.yaml --project my-project
+stuff publish pypi six==1.16.0
+stuff publish oci --image example/app=ghcr.io/example/app:v1
+```
 
 OCI reads are anonymous and follow the Distribution 1.1 API:
 
@@ -33,113 +36,46 @@ docker pull oci.17166969.xyz/example/app:stable
 oras manifest fetch oci.17166969.xyz/example/app:stable
 ```
 
-Pushes need the registry token and are documented in
-[docs/PUBLISHING.md](docs/PUBLISHING.md); the protocol and storage design is
-in [docs/oci-design.md](docs/oci-design.md).
+The checked-in deployment disables network pushes. Deployments that enable them need a registry token and a separate blob writer, as described in [publishing operations](docs/PUBLISHING.md#push-writer).
 
-Per-registry usage: [mycrates](crates/mycrates/README.md),
-[mynpm](crates/mynpm/README.md), [mypypi](crates/mypypi/README.md),
-[myoci](crates/myoci/README.md).
-Publishing and operations: [docs/PUBLISHING.md](docs/PUBLISHING.md).
+## Browse and inspect
 
-## Exit codes
+Every published generation includes `catalog.json`, an HTML landing page, and an LLM-readable `llms.txt` derived from the published registry state.
 
-All four publish CLIs share one exit-code contract: `0` ok or no-op, `2`
-usage/configuration/validation, `3` conflict or stale generation, `4`
-integrity/invariant failure, `5` transport/network failure (`stuff doctor`
-exits `1` on a failed check and `2` on its own error).
+```sh
+stuff ls
+stuff ls --registry npm --versions
+stuff search h12tiny
+stuff diff before/catalog.json after/catalog.json
+stuff doctor --sample-artifacts
+stuff render --output index.html
+stuff render --output llms.txt
+```
 
-## Release
+Commands read the live registries by default without credentials. Use `--cargo-dir`, `--npm-dir`, `--pypi-dir`, or `--oci-dir` to inspect a local site, generation, or catalog. `--json` emits inventory as JSON; `--versions` includes every published version.
 
-Run the `release` workflow from the default branch to publish the `stuff`
-CLI. It builds Apple Silicon and Linux musl binaries, verifies them, and
-attaches standalone executable binaries `stuff-<target>` plus `SHA256SUMS` to a
-`release-<sha>` prerelease. Install a release with `sh dl stuff` from `~/usr`.
+With any local directory supplied, `doctor` skips omitted registries. It refuses `--expected-generation` unless every selected registry is checked. An explicitly selected registry needs its local directory or an explicit base URL when another registry is local. Artifact sampling checks hashes as well as availability.
 
-## Serve
+Catalog pages link packages to their dependencies and dependents, grouped by dependency kind. Search matches package name, registry, and source, and remains hidden when scripts are disabled. The [catalog format](docs/mycrates-contracts.md#catalogjson-schema-4) describes schema compatibility and ecosystem-specific dependency data.
 
-Serve a published site directory (or a mounted registry prefix) locally:
+The aggregate page and `/llms.txt` combine all four catalogs and cache responses for 60 seconds. A missing or invalid generation pointer returns 404; on a render-cache miss, a missing catalog object also returns 404. If catalog bytes exist but some cannot be parsed, the renderer lists compatible catalogs with notices. It fails when none can be parsed. `stuff render` requires all selected catalogs to load.
+
+## Serve a local site
 
 ```sh
 cargo run -p stuff-server -- --route /=path/to/site
 cargo run -p stuff-server -- --route /mirror=path/to/mirror --max-connections 64
 ```
 
-The server resolves `current/` through the generation symlink, serves
-`generations/` paths as immutable, supports conditional and range requests,
-and serves `index.html` inside directories (PEP 503 simple pages).
-`/` serves the generation's catalog landing page (`current/index.html`).
-`/index.html`, `/catalog.json`, `/llms.txt`, and `/simple/...` also alias
-through `current` at the registry root. `/llms.txt` is the generation's
-LLM-readable inventory.
+The server follows `current` to a generation, serves immutable `generations/` paths, and supports conditional and range requests. Directory requests serve `index.html`. `/`, `/index.html`, `/catalog.json`, `/llms.txt`, and `/simple/...` alias through the current generation.
 
-The native server and the Cloudflare Worker share `stuff-http`'s route
-plan, so slash-less directory requests, shared wheel and tarball aliases, and
-cache kinds agree. Content-addressed tarballs and wheels, including
-`-/tarballs/` and `tarballs/`, are immutable; other `current/` paths keep
-the 60-second generation pointer. Both also serve the standard npm tarball
-path `current/<name>/-/<basename>-<version>.tgz`, which pnpm requests from
-integrity-only lockfiles: the version's `dist.tarball` in the current
-packument names the object, and unknown versions are 404. pnpm 12 also checks
-the publish time of every lockfile entry, including platform packages mynpm
-does not host; those are published as metadata-only versions (see
-[crates/mynpm/README.md](crates/mynpm/README.md)), so default pnpm settings
-install from such lockfiles.
+The native server and Worker support shared wheel/tarball aliases and npm's standard `current/<name>/-/<basename>-<version>.tgz` lookup. Metadata-only npm versions support lockfile checks for excluded platforms without hosting their artifacts; see [mynpm](crates/mynpm/README.md).
 
-## Catalog
+## Exit codes and further usage
 
-Every publish renders a normalized package catalog from the registry's
-authoritative published state (never from input lockfiles), plus a
-human-readable landing page and an LLM-readable `llms.txt`, into each
-generation:
+The canonical `stuff publish`, `republish`, and `rollback` commands use `0` for success/no-op, `2` for usage/configuration/validation, `3` for conflict, `4` for integrity failure, and `5` for transport failure. `stuff doctor` uses `1` for a failed check and `2` for its own error. Standalone registry tools retain their own exit-code contracts.
 
-```sh
-cargo run -p stuff -- ls
-cargo run -p stuff -- ls --registry npm --versions
-cargo run -p stuff -- search h12tiny
-cargo run -p stuff -- diff before/catalog.json after/catalog.json
-cargo run -p stuff -- doctor --sample-artifacts
-```
-
-`ls` works against the live registries by default (no credentials), and
-against local output with `--cargo-dir/--npm-dir/--pypi-dir` (site,
-generation, or `catalog.json`). Supplying any local dir limits `doctor` to
-the supplied registries: it prints a skip check for each omitted registry
-and refuses `--expected-generation` unless every selected registry is
-checked. Naming a registry with `--registry` while another has a local dir
-refuses to fall back to the live registry: pass that registry's `--*-dir` or
-`--*-base` (or `STUFF_*_BASE`). `--json` emits machine-readable inventory, `--versions` lists every
-published version, and `render --output index.html` aggregates the three
-catalogs into one page (`render --output llms.txt` renders the aggregate
-`llms.txt` instead). Health checks cover the active generations, pinned
-catalog objects, essential endpoints (including `current/llms.txt`), and one
-fully hash-verified sample artifact per registry.
-
-Catalog schema 4 records each package's dependencies as `runtime`, `peer`,
-`build`, and `dev` name lists (schema 3 introduced them; schema 4 added the
-`oci` registry): the sorted, unique packages in the same
-registry that its latest version depends on. Cargo supplies normal, build, and
-dev kinds by real crate name. npm supplies `dependencies`, `peerDependencies`,
-and `devDependencies`. PyPI supplies `Requires-Dist` without extras,
-canonicalized, as runtime only, because wheel metadata has no dev, build, or
-peer kinds. Both HTML pages link each package to its dependencies and
-dependents through in-page `#registry/name` views, with dev, build, and peer
-lists collapsed. Dependencies never cross registries. Schema 1, 2, and 3
-catalogs still load; schema 2 has runtime names only and schema 1 has none, and
-the pages say so instead of showing empty lists. Readers that predate schema 4
-reject schema 4 catalogs, so deploy the Worker and `stuff` CLI before
-publishing.
-
-Both pages carry a package search box that indexes the table rows already on
-the page (name, registry, source), so the pages carry no extra data. It stays
-hidden without scripts.
-
-The aggregate host renders its page and `/llms.txt` in the Worker from the
-three current catalogs with the same Rust catalog code (cached 60 s at the
-edge). If one registry's catalog cannot be read, for example because it uses a
-newer schema than the deployed Worker understands, the aggregate page and
-`/llms.txt` list the other registries and say which one is missing. They only
-fail when no catalog is readable. `stuff render` stays strict and fails.
+Per-registry usage: [mycrates archive and oracle](crates/mycrates/README.md), [mynpm](crates/mynpm/README.md), [mypypi](crates/mypypi/README.md), and [myoci](crates/myoci/README.md). Known issues are in [TODO.md](TODO.md).
 
 ## License
 

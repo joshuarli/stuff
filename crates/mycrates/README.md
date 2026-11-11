@@ -1,8 +1,10 @@
 # mycrates
 
-Lean, self-hosted Cargo sparse registry and dependency archive, written in standard-library-only Python 3.11.
-
-Eliminates reliance on crates.io for publishing private packages and preserves exact upstream dependencies for reproducible, offline builds.
+Cargo sparse registry archive and legacy publication oracle, written in
+standard-library-only Python 3.11. Use `stuff publish cargo` for publication;
+see [publishing operations](../../docs/PUBLISHING.md). The Python publish,
+`serve-publish`, and yank walkthroughs below document the retained oracle and
+maintenance interface, including executable test examples.
 
 ## Architecture
 

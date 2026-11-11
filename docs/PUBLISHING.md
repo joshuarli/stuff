@@ -6,7 +6,7 @@
 
 | Requirement | Use | Check |
 | --- | --- | --- |
-| `cf` signed in | List and upload R2 objects, promote `current` | `cf auth whoami` |
+| `cf` signed in, unless `R2_S3_*` is supplied | Mint temporary R2 credentials | `cf --profile stuff auth whoami` |
 | Publication state | Extend the live registry instead of replacing it | A publish reads the live generation; local state is optional |
 | Python 3.11+ | Run the kept R2 maintenance scripts and the `mycrates` oracle | `python3 --version` |
 | Rust nightly | `cargo publish` for crates | `cargo --version` |
@@ -15,7 +15,7 @@
 | `auditwheel` or `delocate` | `mypypi` repairs native wheels | `deploy/provision-mypypi-repair.sh` installs the pin |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
-| OCI writer host (optional) | Large anonymous `docker push`; reads/writes `stuff-oci-blobs` | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
+| OCI writer host (optional) | Stream authenticated pushes through signed upload URLs | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
 
 `stuff` mints R2 credentials through the `cf` profile named by `cf_profile` in its configuration (default `stuff`) and passes `--profile` on every `cf` call, so `make publish-*` works from any directory without a directory binding. Create the profile once with `cf auth create stuff`; check it with `cf --profile stuff auth whoami`. The kept maintenance scripts (`r2-pull.py`, `r2-gc.py`) mint through `stuff credentials`, so they use the same profile.
 
@@ -37,11 +37,11 @@ stuff publish pypi six==1.16.0
 
 `stuff publish cargo` publishes the `-p` crates in the order given. Each crate's verification resolves a dependency on an earlier crate of the same run from the registry being published to, so list dependencies before their dependents; the mirror need not hold the new versions. A crate version already in that registry's index, including one a failed earlier run recorded locally but did not promote, is skipped, so rerunning the same command completes the remaining crates.
 
-`--dry-run` reports the planned change without uploading or promoting. `stuff` prepares the change against the live generation, so a machine with no local state publishes safely: it never rebuilds the published set from a local subset, and a non-additive or byte-conflicting request exits 3 instead of overwriting a competing publisher.
+`--dry-run` stages the requested change without uploading or promoting. `stuff` prepares against the live generation rather than replacing it with a local subset. Validation and drop checks precede uploads; an upload failure can leave unactivated objects. Keep one publishing machine per registry, as described under conditional promotion below. PyPI acquisition can currently populate persistent wheel state during a dry run; the candidate/cache separation issue is tracked in [TODO.md](../TODO.md).
 
-A publish holds the registry's lock, a `flock` on `$STUFF_STATE_HOME/<registry>/publish.lock`. `stuff` and the kept maintenance scripts (`make gc`, `deploy/r2-gc-blobs.py`, and `mypypi-container.sh`) take the same lock. A failure stops the run before any R2 write.
+A Rust publish holds `$STUFF_STATE_HOME/<registry>/publish.lock`, with registry names `cargo`, `npm`, `pypi`, or `oci`. Maintenance helpers currently derive names from bucket suffixes, yielding `mycrates`, `mynpm`, and `mypypi` for the default package buckets. Those locks do not exclude the Rust publishers. Run maintenance and publication separately until the lock-identity finding in [TODO.md](../TODO.md) is fixed; custom bucket names also need explicit lock mapping.
 
-For `mypypi`, Linux wheels use `deploy/mypypi-container.sh` for build and validation (see [crates/mypypi/README.md](../crates/mypypi/README.md)).
+PyPI publication inspects foreign-target wheels statically and executes native-target installation/import checks. Use matching runners or `deploy/mypypi-container.sh` for foreign-platform execution checks; see [crates/mypypi/README.md](../crates/mypypi/README.md).
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; publish through `stuff publish`.
 
@@ -105,6 +105,11 @@ Blob garbage collection is separate from generation GC:
 `blobs.json` and deletes unreferenced `sha256/*` objects. `myoci verify`
 exits 3 on any digest, size, tag, or referrer mismatch.
 
+Blob GC currently ignores `--grace-minutes` and does not protect a network
+upload awaiting its manifest. Keep it separate from network pushes. Retain
+the blobs for every generation you need to restore; metadata retention alone
+does not make OCI rollback usable. Both gaps are tracked in [TODO.md](../TODO.md).
+
 The registry is sha256-only. Limits: repository name 255 characters, tag 128
 characters, manifest 4 MiB, upload session one hour, one upload 20 GiB.
 Reads are anonymous. Writes require `Authorization: Basic` with the registry
@@ -112,7 +117,7 @@ push token; delete endpoints are not implemented.
 
 ### Push writer
 
-Production does not run a writer. The Worker has no `STUFF_OCI_PUSH_TOKEN`, `STUFF_OCI_PUSH_SECRET`, or `STUFF_OCI_WRITER_ORIGIN`, so every write returns the OCI `405 UNSUPPORTED` error, and images are published with `stuff publish oci`. Enabling network push means starting the writer below on a TLS host and setting those three on the Worker.
+The checked-in Worker configuration supplies no `STUFF_OCI_PUSH_TOKEN`, `STUFF_OCI_PUSH_SECRET`, or `STUFF_OCI_WRITER_ORIGIN`, so writes return the OCI `405 UNSUPPORTED` error. Use `stuff publish oci`. The optional network-push path has open activation and snapshot-preservation defects in [TODO.md](../TODO.md); resolve those before enabling it. Its setup uses the writer below on a TLS host and those three Worker settings.
 
 The front (`myoci serve --push`) owns authentication, manifest validation,
 generation creation, and the `current` flip. A separate `myoci writer` owns
@@ -193,7 +198,7 @@ A publish reads `current` immediately before promoting and writes it with `If-Ma
 
 ## Publish from a new machine
 
-A machine with no local state is safe to publish from: `stuff` reads the live generation and manifest, verifies each object it uses against its listing size and ETag, and prepares the change against that snapshot. A failure stops before any R2 write, and the published set is never rebuilt from a local subset.
+A machine with no local state reads the live generation and manifest, verifies the objects it uses against listing size and ETag, and prepares against that snapshot. Use the single-writer restriction above; a fresh local cache does not establish ownership against another publishing machine.
 
 `deploy/r2-pull.py BUCKET DEST` only reads the bucket. It fetches the current generation and the shared stores and checks each object against its listing ETag, using the multipart ETag algorithm for objects uploaded in parts. After the download it checks every entry of the generation's manifest (key, size, ETag) against the pulled tree; a generation published before manifests existed is pulled without that check. With `R2_S3_*`, or with credentials minted through `cf`, it lists through the S3 API and downloads `R2_PULL_JOBS` objects in parallel. `R2_PULL_CF_ONLY=1` forces the paced `cf` transport.
 
@@ -207,7 +212,7 @@ The Rust `mycrates` stored native records and pins as TOML; the Python tool stor
 crates/mycrates/bin/mycrates migrate-state --state-dir "$H/mycrates/state"
 ```
 
-`stuff publish cargo` does not run this migration; it reads its own state directory. The migrated state republishes the generation the live site already serves: check it by publishing into a scratch site (`crates/mycrates/bin/mycrates publish --state-dir "$H/mycrates/state" --site-dir "$H/mycrates/check"`) and comparing the `current` link there with the live `current` marker.
+`stuff publish cargo` has its own automatic migration: it backs up the selected legacy state, copies records and pins into its `cargo` state directory, and converts legacy TOML records. Source selection, conflicts, and backup paths are documented in [mycrates state migration](mycrates-migration.md). The standalone command above converts a Python oracle state directory in place.
 
 ## mycrates auth
 
@@ -225,7 +230,7 @@ cf deploy --prebuilt --dry-run
 cf deploy --prebuilt
 ```
 
-`pnpm run build` writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`, and `cf deploy --prebuilt` uploads it without rebuilding (see [crates/stuff-worker/README.md](../crates/stuff-worker/README.md)). The three buckets already exist; use `--provision` only when you add one. Custom domains come from `domains` in `cloudflare.config.ts`.
+`pnpm run build` writes the Cloudflare Build Output Specification under `.cloudflare/output/v0`, and `cf deploy --prebuilt` uploads it without rebuilding (see [crates/stuff-worker/README.md](../crates/stuff-worker/README.md)). Use `--provision` only when adding a bucket. Custom domains come from `domains` in `cloudflare.config.ts`.
 
 The Worker uses Workers Caching. The default entrypoint is an uncached gateway. The `Registry` entrypoint caches responses under a key that includes the host, so the four domains cannot share cache entries. Immutable artifacts carry a one-year TTL. Mutable generation views carry 60 seconds, so a promotion becomes visible within that window without a cache purge. The gateway costs one extra worker-to-worker request per request; a cache hit skips `Registry` but still runs the gateway. Two requests to the same URL should show `cf-cache-status: HIT` on the second. Range requests are sliced from the cached full object, so a cold range fetch downloads the whole artifact. On a cache miss, `Registry` still reads each `current` pointer, so the 60-second window holds. It starts the object read for the pointer value its isolate last saw in parallel with the pointer read, and discards that read when the pointer has moved. The unified page and `llms.txt` keep their rendered body in the colo cache under the Worker version and the four generation ids, so they render again only after a deploy or a promotion.
 
@@ -277,13 +282,18 @@ stuff rollback cargo <generation-id>
 
 `stuff rollback` verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. `--dry-run` performs the verification without promoting. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
 
+For OCI, that verifier currently checks only the metadata bucket. It does not
+verify the referenced image bytes in `oci.blobs_bucket`; missing layers can
+therefore escape the rollback check. The cross-bucket verification fix is in
+[TODO.md](../TODO.md).
+
 ## Reclaim storage
 
 `make gc` deletes R2 generations outside its retention window and shared-store objects no retained manifest references, then prints per-bucket and total storage before and after. It keeps `current` plus `GC_KEEP_PREVIOUS` older generations (default 1) and `GC_KEEP_NEWER` newer generations (default `all`). Preview with `GC_DRY_RUN=1`, and restrict buckets with `GC_BUCKETS`.
 
 The command mints bucket-scoped credentials per bucket, so the usual `cf` login is enough. Because manifests are deleted with their generations, rollback and roll-forward only reach retained generations.
 
-gc holds each bucket's publish lock while it plans and deletes, so it waits for a publish on the same machine and a publish waits for it. It deletes manifests first, then generation trees, then shared objects, and before every batch it re-reads `current` and the manifest set and stops if either changed. It also defers shared-store deletion while a recent generation directory has no manifest.
+Generation GC holds its helper lock while planning and deleting; the package-registry lock mismatch above still requires separate scheduling from Rust publishers. It deletes manifests first, then generation trees, then shared objects. Before every batch it re-reads `current` and the manifest set and stops if either changed. It also defers shared-store deletion while a recent generation directory has no manifest. These checks belong to `r2-gc.py`; the separate OCI blob collector lacks that incomplete-generation protection.
 
 ## Fix common failures
 
@@ -297,4 +307,4 @@ gc holds each bucket's publish lock while it plans and deletes, so it waits for 
 | `differs from its manifest ETag` | A pulled object does not match the generation's manifest | Rerun the pull; if it repeats, the bucket is inconsistent |
 | `publish: waiting for active writer` | Another publish, rollback, or gc holds the lock | Wait for it to finish |
 | `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Publish again; `stuff` prepares the change against the new live generation |
-| `generation ... drops N versions served by live generation ...` | The new catalog lacks versions the live catalog serves, usually because this machine's state predates another publisher's | Re-adopt the live publication, or pass `--allow-drops` to remove them on purpose |
+| `generation ... drops N versions served by live generation ...` | The proposed catalog lacks served versions | Re-plan against the current publication; use explicit rollback for a deliberate generation switch |

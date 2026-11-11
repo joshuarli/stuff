@@ -95,12 +95,14 @@ content-derived generation (`sha256` over the canonical repository view, first
 atomically with `current`; rollback is
 `stuff rollback oci <id>`.
 
-Manifest activation accepts a manifest only when every referenced blob exists
-in the blob bucket (except a non-distributable layer with `urls`) and every
-child manifest of an index exists. The front builds the new generation from
-the current view, writes it, and flips `current` conditional on the ETag read
-at the start. On 412 it rebuilds and retries up to five times; a failed
-validation leaves the old generation current.
+The push front checks referenced blobs and child manifests before constructing
+a generation. Its intended activation contract is a complete replacement view
+and a conditional `current` write against the source ETag. The Worker host
+currently loses unrelated referrer indexes, reads only one listing page, and
+fails to handle R2's nullable conditional-write result. Its exception retry
+loop does not establish that contract; the fixes are in [TODO.md](../TODO.md).
+Keep the checked-in network-push configuration disabled until those defects
+are resolved. Native `stuff publish oci` uses its separate S3 transaction path.
 
 ## Catalog
 
@@ -125,7 +127,7 @@ mismatched digest/size, a foreign layer, and schema 1. The tag comes from
 
 ## Push authentication and writer
 
-The deployed registry leaves push off: the Worker has no push token, secret, or writer origin, and writes return `405`. This section describes the capability for a deployment that runs a writer host.
+The checked-in configuration leaves push off: the Worker has no push token, secret, or writer origin, and writes return `405`. This section describes the optional capability for a deployment that runs a writer host.
 
 The Worker secret `STUFF_OCI_PUSH_TOKEN` (or `--push-token-file` locally) is
 the registry token. Writes use `Authorization: Basic base64("stuff:" + token)`.

@@ -1,6 +1,6 @@
 # stuff-worker
 
-Cloudflare Worker that serves the three registry layouts from R2. URL routing
+Cloudflare Worker that serves four registry layouts from R2. URL routing
 and response planning are Rust (`src/map.rs`, `src/api.rs`, shared `stuff-http`
 semantics, `deser` for config parsing), with no `worker` SDK and no async
 runtime in the dependency tree. Routes match on the request hostname, so each
@@ -46,9 +46,10 @@ mv build/wasm/stuff_worker_bg.opt.wasm build/wasm/stuff_worker_bg.wasm
 namespace import does not resolve to the wasm exports. The `wasm-release`
 profile uses `opt-level = 3`, fat LTO, one codegen unit, and
 `panic = "abort"`. `wasm-opt -O3` is the speed-oriented Binaryen pass;
-size-oriented `-Oz` is not used. Both `wasm-bindgen` and Binaryen's `wasm-opt`
-must be on `PATH`; keep the `wasm-bindgen` CLI at the version `Cargo.toml`
-pins (`=0.2.130`).
+size-oriented `-Oz` is not used. Binaryen's `wasm-opt` must be on `PATH`.
+`scripts/build-wasm.sh` reads the bindgen version from `Cargo.lock` and
+installs/replaces `wasm-bindgen-cli` with `cargo install --locked` when it
+is missing or mismatched.
 
 ## Test
 

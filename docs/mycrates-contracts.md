@@ -148,6 +148,15 @@ Schema 4 is what `crates/stuff-catalog` writes and reads; schema 3 added the per
 
 Packages are sorted by (name, source), versions by SemVer precedence, dependency names sorted and unique. `latest` is the highest stable non-yanked version, falling back to the highest non-yanked, then the highest yanked. Dependencies are those of the latest version, by real crate name (`package` when renamed); `normal` is `runtime`. Formatting is fixed: two-space indent, one version per line, a trailing newline.
 
+The shared catalog also represents npm, PyPI, and OCI. Dependency names refer
+only to the same registry: npm contributes runtime, peer, and dev kinds;
+PyPI contributes canonicalized `Requires-Dist` names without extras as runtime
+dependencies. OCI uses tags as versions and has no dependency lists.
+Readers accept schemas 1 through 4: schema 1 has no dependency data and schema
+2 has runtime names only. Pages distinguish missing dependency data from an
+empty set. Readers predating schema 4 reject it, so deploy readers before
+publishing the newer format. See `crates/stuff-catalog/src/model.rs`.
+
 The promotion guard in `crates/stuff/src/publish/r2/guard.rs` reads `packages[].versions[].version` and `source` from this file to refuse promotions that drop a served version.
 
 ## index.html and llms.txt

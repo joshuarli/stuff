@@ -27,9 +27,10 @@ rendering, and HTTP.
 | --- | --- |
 | `digest`, `reference`, `media` | Digest, reference, and media-type grammar |
 | `manifest`, `referrers` | Manifest/index parsing, validation, descriptors |
-| `repository` | Repository views, tags, blobs, referrers |
+| `view`, `referrers` | Repository views, tags, blobs, referrer indexes |
 | `request`, `response` | OCI read/write request parsing and response plans |
-| `upload`, `write` | Upload sessions, write requests, Basic auth |
+| `session` | Upload-session tokens and Basic authentication parsing |
+| `generation` | Content-derived generation identity |
 | `error` | OCI error codes and JSON |
 
 ## Tests

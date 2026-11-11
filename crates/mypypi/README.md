@@ -1,7 +1,8 @@
 # mypypi
 
-Python wheel index: resolves and builds wheels, validates them on the host,
-and publishes immutable generations under a `current` pointer.
+Python wheel index: resolves and builds wheels, validates native wheels by
+installation/import and foreign wheels by static inspection, and publishes
+immutable generations under a `current` pointer.
 
 ## Ingest pins from lockfiles
 
@@ -21,22 +22,17 @@ one invocation rejects two versions of the same package, and lockfiles in a
 fleet usually disagree. The lockfile hashes are not carried into the catalog;
 compare them with the published wheel hashes after publishing.
 
-## Publish per platform
+## Publish and validate platforms
 
-Wheels are validated on a native runner, so one host publishes only its own
-platform. Packages that exist only for other operating systems (for example
-`pyobjc-*` on Linux) need `platforms = [...]` in their catalog entry, and
-wheels that fail validation by design need `exclude_platforms` or
-`validate_skip_imports` entries with a reason.
+`stuff publish pypi` selects Linux x86_64/aarch64 and macOS x86_64/arm64.
+Publication installs and imports new wheels for the local target. For foreign
+targets it inspects metadata, RECORD hashes, tags, and native binary headers
+without running the package. A foreign target marked validated therefore does
+not imply an import check on that operating system.
 
-One generation serves every platform: run build, validate, and publish once
-per platform against the same catalog, state directory, and site. Each
-`publish` adds that platform's wheels to the current generation and keeps the
-rest. Each container run holds the host's mypypi publish lock, so platforms
-publish one at a time. Linux platforms run in a container of the matching
-architecture, which is a native runner for mypypi's check (the binary is
-compiled inside the container, so `current_platform()` reports the
-container's architecture):
+Standalone `mypypi validate` uses the same distinction. Select the local target
+with `--platform` and use a matching runner or the Linux container for
+installation and import checks:
 
 ```sh
 deploy/mypypi-container.sh arm64 linux-aarch64 build
@@ -45,13 +41,16 @@ deploy/mypypi-container.sh arm64 linux-aarch64 publish
 deploy/mypypi-container.sh amd64 linux-x86_64 validate   # Rosetta/QEMU on an arm64 host
 ```
 
-`linux-x86_64` on an arm64 host runs under emulation; the check accepts it
-because the userspace and binary are x86_64, not because the code runs on x86
-silicon. Publish the Linux wheels from a real x86_64 runner when that matters.
-`add` takes no `--platform` and rewrites the shared catalog; run it before the
-per-platform commands. The container mounts the same
-`$STUFF_STATE_HOME/mypypi/{packages.toml,pyproject.toml,state,site}` paths as
-`stuff publish pypi`, so every platform must use that one state home.
+An emulated x86_64 userspace satisfies the native-target check on an arm64
+host. Use a real x86_64 runner when execution on that hardware matters.
+`add` rewrites the catalog and takes no `--platform`; run it before these
+commands. Catalog entries can restrict `platforms` or declare
+`exclude_platforms`/`validate_skip_imports` with a reason.
+
+The container helper uses legacy `$STUFF_STATE_HOME/mypypi/` paths. The Rust
+publisher uses `$STUFF_STATE_HOME/pypi/`; their lock identities currently
+differ. Run them separately until the maintenance-lock finding in
+[TODO.md](../../TODO.md) is resolved.
 
 ## Build environment
 
@@ -83,8 +82,10 @@ Build subprocesses get an allowlisted environment and run with a scratch
 `HOME`, `CARGO_HOME`, and `RUSTUP_HOME`. The scratch homes link to the
 installed Cargo bin and rustup toolchains, so Rust-backed sdists find the host
 toolchain without inheriting the publisher's Cargo cache or credential
-variables. There is no filesystem or network sandbox: an sdist build backend
-runs as the publisher's user and can read any file that user can.
+variables. Sdist backends and native wheel imports both run as the publisher
+without filesystem or network isolation. Requiring prebuilt wheels avoids
+build backends but still executes package code during native validation.
+The execution-boundary decision is [STUF-45](../../docs/rfc/STUF-45-python-execution.md).
 
 ## Configuration
 
