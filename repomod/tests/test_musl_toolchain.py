@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import re
 import tarfile
 from pathlib import Path
 
@@ -11,9 +12,6 @@ from repomod.rules import musl_toolchain as musl
 STABLE_INDEX = "sha256:" + "1" * 64
 STABLE_AMD64 = "sha256:" + "2" * 64
 STABLE_ARM64 = "sha256:" + "3" * 64
-EDGE_INDEX = "sha256:" + "4" * 64
-EDGE_AMD64 = "sha256:" + "5" * 64
-EDGE_ARM64 = "sha256:" + "6" * 64
 UPSTREAM_HTML = (
     '<p><dt><a href="releases/musl-1.2.6.tar.gz">musl-1.2.6.tar.gz</a>\n'
     '(<a href="releases/musl-1.2.6.tar.gz.asc">sig</a>)\n'
@@ -23,7 +21,6 @@ UPSTREAM_HTML = (
 
 def lock_source(
     stable_musl: str = "1.2.6-r3",
-    edge_musl: str = "1.2.6-r6",
     stable_index: str = STABLE_INDEX,
     stable_amd64: str = STABLE_AMD64,
     stable_arm64: str = STABLE_ARM64,
@@ -53,26 +50,6 @@ musl-dev = "{stable_musl}"
 bash = "5.3.9-r1"
 musl = "{stable_musl}"
 musl-dev = "{stable_musl}"
-
-[channels.edge]
-branch = "edge"
-image = "alpine:edge"
-index_digest = "{EDGE_INDEX}"
-release = "3.25.0_alpha20260805"
-
-[channels.edge.manifests]
-amd64 = "{EDGE_AMD64}"
-arm64 = "{EDGE_ARM64}"
-
-[channels.edge.packages.x86_64]
-bash = "5.3.9-r2"
-musl = "{edge_musl}"
-musl-dev = "{edge_musl}"
-
-[channels.edge.packages.aarch64]
-bash = "5.3.9-r2"
-musl = "{edge_musl}"
-musl-dev = "{edge_musl}"
 
 [toolchain]
 llvm_version = "23.1.0-rc2"
@@ -144,7 +121,6 @@ class Sources:
         self,
         *,
         stable_musl: str = "1.2.6-r3",
-        edge_musl: str = "1.2.6-r6",
         stable_index: str = STABLE_INDEX,
         stable_amd64: str = STABLE_AMD64,
         stable_arm64: str = STABLE_ARM64,
@@ -152,7 +128,6 @@ class Sources:
         broken_index: str | None = None,
     ) -> None:
         self.stable_musl = stable_musl
-        self.edge_musl = edge_musl
         self.stable_index = stable_index
         self.stable_amd64 = stable_amd64
         self.stable_arm64 = stable_arm64
@@ -168,14 +143,12 @@ class Sources:
                 "P:mold\nV:2.39.1-r0\nS:1\n\nP:dotnet\nV:8.0.1-r0\nS:1\n\n"
                 "P:dotnet\nV:10.0.1-r0\nS:1\n\n"
             )
-        musl_version = self.stable_musl if repository == "v3.24" else self.edge_musl
-        bash = "5.3.9-r1" if repository == "v3.24" else "5.3.9-r2"
-        return apkindex_tar(index_source(musl_version, bash))
+        return apkindex_tar(index_source(self.stable_musl, "5.3.9-r1"))
 
     def download(self, url: str) -> bytes:
         if url == musl._MUSL_RELEASES_URL:
             return UPSTREAM_HTML.encode() if self.releases is None else self.releases
-        for repository in ("v3.24", "edge"):
+        for repository in ("v3.24",):
             for component in ("main", "community"):
                 for arch in ("x86_64", "aarch64"):
                     expected = f"{musl._ALPINE_CDN}/{repository}/{component}/{arch}/APKINDEX.tar.gz"
@@ -189,14 +162,11 @@ class Sources:
                 self.stable_index,
                 {"amd64": self.stable_amd64, "arm64": self.stable_arm64},
             )
-        if image == "alpine:edge":
-            return musl.ImageDigests(EDGE_INDEX, {"amd64": EDGE_AMD64, "arm64": EDGE_ARM64})
         raise AssertionError(f"unexpected image {image}")
 
     def observe(self, image: str) -> str:
         releases = {
             "alpine:3.24.2": "3.24.2",
-            "alpine:edge": "3.25.0_alpha20260805",
             "alpine:3.24": "3.24.3",
         }
         return releases[image]
@@ -212,9 +182,8 @@ def test_seed_lock_loads_and_round_trips() -> None:
     lock = musl.load_musl_toolchain()
 
     assert lock.upstream_version == "1.2.6"
-    assert set(lock.channels) == {"stable", "edge"}
+    assert set(lock.channels) == {"stable"}
     assert lock.channels["stable"].packages["x86_64"]["musl"] == "1.2.6-r3"
-    assert lock.channels["edge"].packages["aarch64"]["musl-dev"] == "1.2.6-r6"
     assert lock.adapters["laputa-systems/zzz"].zig_version == "0.16.0"
     assert lock.image is not None
     assert lock.image.reference == "ghcr.io/joshuarli/musl-toolchain"
@@ -260,14 +229,13 @@ def test_refresh_rewrites_a_stale_package_version(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     path = write_lock(tmp_path)
-    install_sources(monkeypatch, Sources(stable_musl="1.2.6-r4", edge_musl="1.2.6-r7"))
+    install_sources(monkeypatch, Sources(stable_musl="1.2.6-r4"))
 
     assert musl.refresh_musl_toolchain(path)
 
     refreshed = musl.load_musl_toolchain(path)
     assert refreshed.channels["stable"].packages["x86_64"]["musl"] == "1.2.6-r4"
     assert refreshed.channels["stable"].packages["aarch64"]["musl-dev"] == "1.2.6-r4"
-    assert refreshed.channels["edge"].packages["x86_64"]["musl"] == "1.2.6-r7"
 
 
 def test_refresh_rewrites_a_stale_image_digest(
@@ -388,12 +356,22 @@ def test_lock_rejects_upstream_mismatch(tmp_path: Path) -> None:
         musl.load_musl_toolchain(path)
 
 
-def test_lock_rejects_an_unknown_channel(tmp_path: Path) -> None:
-    source = lock_source().replace("[channels.edge]", "[channels.beta]") + "\n"
-    source = source.replace("edge =", "beta =")
+def test_lock_rejects_an_edge_channel(tmp_path: Path) -> None:
+    stable = re.search(r"\[channels\.stable\]\n.*?(?=\[toolchain\]\n)", lock_source(), re.DOTALL)
+    assert stable is not None
+    edge = stable.group(0).replace("channels.stable", "channels.edge").replace('branch = "3.24"', 'branch = "edge"')
+    path = write_lock(tmp_path, lock_source().replace("[toolchain]\n", edge + "[toolchain]\n", 1))
+
+    with pytest.raises(ValueError, match=r"channels has unknown keys: edge"):
+        musl.load_musl_toolchain(path)
+
+
+def test_lock_rejects_an_adapter_channel(tmp_path: Path) -> None:
+    adapter = '[adapters."acme/node-build"]\nkind = "node-build"\nworkflow = "build.yml"\nchannel = "stable"\n'
+    source = lock_source() + "\n" + adapter
     path = write_lock(tmp_path, source)
 
-    with pytest.raises(ValueError, match=r"channels is missing required keys: edge|channels has unknown keys: beta"):
+    with pytest.raises(ValueError, match=r"has unknown keys: channel"):
         musl.load_musl_toolchain(path)
 
 

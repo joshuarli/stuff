@@ -31,10 +31,10 @@ _UPSTREAM_RELEASE = re.compile(
 )
 _ARCHES = ("x86_64", "aarch64")
 _MANIFEST_ARCHES = ("amd64", "arm64")
-_CHANNEL_NAMES = ("stable", "edge")
+_CHANNEL_NAMES = ("stable",)
 _TOOLS = ("llvm", "mold", "rustup")
 _GCC_PACKAGES = frozenset({"gcc", "g++", "build-base"})
-_ADAPTER_FIELDS = ("kind", "channel", "lock", "workflow", "dockerfile", "zig_version", "zig_archive_sha256")
+_ADAPTER_FIELDS = ("kind", "lock", "workflow", "dockerfile", "zig_version", "zig_archive_sha256")
 _ADAPTER_KINDS = {
     "python-build": ("lock",),
     "chromium-build": ("lock",),
@@ -76,7 +76,6 @@ class Toolchain:
 @dataclass(frozen=True, slots=True)
 class Adapter:
     kind: str
-    channel: str | None = None
     lock: str | None = None
     workflow: str | None = None
     dockerfile: str | None = None
@@ -179,11 +178,8 @@ def _channel(
 ) -> Channel:
     _exact_keys(value, {"branch", "image", "index_digest", "release", "manifests", "packages"}, f"channels.{name}")
     branch = _string(value["branch"], f"channels.{name}.branch")
-    if name == "stable":
-        if _STABLE_BRANCH.fullmatch(branch) is None:
-            raise ValueError(f"channels.stable.branch must be a major.minor Alpine branch, got {branch!r}")
-    elif branch != "edge":
-        raise ValueError(f"channels.edge.branch must be edge, got {branch!r}")
+    if _STABLE_BRANCH.fullmatch(branch) is None:
+        raise ValueError(f"channels.{name}.branch must be a major.minor Alpine branch, got {branch!r}")
     manifests = _object(value["manifests"], f"channels.{name}.manifests")
     _exact_keys(manifests, set(_MANIFEST_ARCHES), f"channels.{name}.manifests")
     parsed_manifests = {
@@ -256,7 +252,7 @@ def _toolchain(value: dict[str, Any]) -> Toolchain:
     )
 
 
-def _adapters(value: dict[str, Any], channels: dict[str, Channel]) -> dict[str, Adapter]:
+def _adapters(value: dict[str, Any]) -> dict[str, Adapter]:
     parsed: dict[str, Adapter] = {}
     for name, raw in value.items():
         if not isinstance(name, str) or name.count("/") != 1 or any(not part for part in name.split("/")):
@@ -273,13 +269,6 @@ def _adapters(value: dict[str, Any], channels: dict[str, Channel]) -> dict[str, 
         for field in required:
             if field not in entry:
                 raise ValueError(f"adapters.{name} is missing {field}")
-        if kind != "zzz":
-            channel = _string(entry.get("channel"), f"adapters.{name}.channel")
-            if channel not in channels:
-                raise ValueError(f"adapters.{name}.channel is not a configured channel: {channel}")
-            fields["channel"] = channel
-        elif "channel" in entry:
-            raise ValueError(f"adapters.{name} must not declare a channel")
         if "lock" in entry:
             fields["lock"] = _relative_path(entry["lock"], f"adapters.{name}.lock")
         if "workflow" in entry:
@@ -293,8 +282,7 @@ def _adapters(value: dict[str, Any], channels: dict[str, Channel]) -> dict[str, 
                 entry["zig_archive_sha256"], f"adapters.{name}.zig_archive_sha256"
             )
         for field, field_value in fields.items():
-            allowed = field in required or (field == "channel" and kind != "zzz")
-            if not allowed and field_value is not None:
+            if field not in required and field_value is not None:
                 raise ValueError(f"adapters.{name} must not declare {field} for kind {kind}")
         parsed[name] = Adapter(kind=kind, **fields)
     return parsed
@@ -334,7 +322,7 @@ def _parse_musl_toolchain(source: str) -> MuslToolchain:
         for name in _CHANNEL_NAMES
     }
     toolchain = _toolchain(_object(document["toolchain"], "toolchain"))
-    adapters = _adapters(_object(document["adapters"], "adapters"), channels)
+    adapters = _adapters(_object(document["adapters"], "adapters"))
     image_value = document.get("image")
     image = None if image_value is None else _image(_object(image_value, "image"))
     return MuslToolchain(
@@ -501,7 +489,7 @@ def _apkindex(package_repository: str, arch: str) -> dict[str, str]:
 
 
 def _package_repository(branch: str) -> str:
-    return "edge" if branch == "edge" else f"v{branch}"
+    return f"v{branch}"
 
 
 def _channel_packages(branch: str, arch: str, approved: dict[str, str]) -> dict[str, str]:
@@ -945,8 +933,6 @@ def _version_matches(tag: str, version: str, release: str) -> bool:
 
 
 def _channel_from_tag(lock: MuslToolchain, tag: str | None) -> str | None:
-    if tag == "edge":
-        return "edge"
     if (
         tag is not None
         and _VERSION_TAG.fullmatch(tag) is not None
@@ -1036,8 +1022,17 @@ def _stage_check(
             )
         return _Stage(image, tag, digest, platform, None, name == "scratch"), findings, edits
     arch = _platform_arch(platform)
-    adapter_channel = adapter.channel if adapter is not None else None
-    channel = adapter_channel or _channel_from_tag(lock, tag)
+    if tag == "edge":
+        findings.append(
+            _failure(
+                repository,
+                path,
+                f"Alpine edge is not approved; move to the stable channel {lock.channel('stable').image}",
+                line.line,
+            )
+        )
+        return _Stage(image, tag, digest, platform, None, False), findings, edits
+    channel = "stable" if adapter is not None else _channel_from_tag(lock, tag)
     if digest is not None and _SHA256.fullmatch(digest) is None:
         findings.append(_failure(repository, path, f"base digest is not a sha256 digest: {digest}", line.line))
         return _Stage(image, tag, digest, platform, channel, False), findings, edits
@@ -1048,7 +1043,7 @@ def _stage_check(
             _failure(
                 repository,
                 path,
-                "Alpine base digest does not match an approved stable or edge digest",
+                "Alpine base digest does not match the approved stable digest",
                 line.line,
             )
         )
@@ -1520,7 +1515,7 @@ def _adapter_with_lock_findings(
                 f"cannot read adapter lock: {error}",
             )
         ]
-    channel = lock.channel(adapter.channel or "")
+    channel = lock.channel("stable")
     findings: list[Finding] = []
     if adapter.kind == "python-build":
         linux = document.get("linux_toolchain")
@@ -1667,14 +1662,14 @@ def _adapter_workflow_findings(
         source, error = _read_adapter_file(root, adapter.workflow, repository)
         if source is None:
             return [error] if error is not None else []
-        channel = lock.channel(adapter.channel or "")
+        channel = lock.channel("stable")
         findings: list[Finding] = []
         image = re.search(r"(?m)^\s*ALPINE_AMD64:\s*(?P<image>\S+)\s*$", source)
         _, _, digest = _split_image(image.group("image")) if image is not None else ("", None, None)
         approved = {channel.index_digest, *channel.manifests.values()}
         if digest not in approved:
             findings.append(
-                _failure(repository, adapter.workflow, "ALPINE_AMD64 digest is not the approved edge digest")
+                _failure(repository, adapter.workflow, "ALPINE_AMD64 digest is not the approved stable digest")
             )
         apk_lines = []
         for index, line in enumerate(source.splitlines(), start=1):
@@ -1693,7 +1688,7 @@ def _adapter_workflow_findings(
                     adapter.workflow,
                     index,
                     package,
-                    adapter.channel,
+                    "stable",
                     require_table=True,
                     live=file_fixable,
                 )
@@ -1905,7 +1900,7 @@ def _linux_musl_toolchain_fix(root: Path, repository: Repository) -> dict[str, s
     if adapter is not None and adapter.kind == "node-build" and adapter.workflow is not None:
         source, error = _read_adapter_file(root, adapter.workflow, repository)
         if source is not None and error is None:
-            fixed = _fixed_node_workflow(source, lock, adapter.channel or "")
+            fixed = _fixed_node_workflow(source, lock, "stable")
             if fixed != source:
                 plan[adapter.workflow] = fixed
     if adapter is not None and adapter.kind == "zzz" and adapter.zig_archive_sha256 is not None:

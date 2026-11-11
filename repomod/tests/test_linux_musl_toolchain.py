@@ -11,9 +11,8 @@ from repomod.types import Finding, RepoId, Repository
 
 FIXTURES = Path(__file__).parent / "fixtures" / "musl_toolchain"
 STABLE_INDEX = "sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
-EDGE_INDEX = "sha256:020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000"
-EDGE_AMD64 = "sha256:266f29255458134745f2bf588cb23ed1ed1768b96ff2580a05d70a8aba59e145"
-EDGE_ARM64 = "sha256:42d86a3173522de4786cfba0b5d631dbadb3d03a86d218dafb070dafd9809c7e"
+STABLE_AMD64 = "sha256:d56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395"
+STABLE_ARM64 = "sha256:260479a1cfaf304c4c20da7f8405d3ce313513dcd534bb743257bdd2fe0f3e2d"
 CANONICAL_DIGEST = "sha256:" + "9" * 64
 
 
@@ -65,12 +64,22 @@ def test_approved_builder_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 def test_floating_base_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    root = bare_repo(tmp_path, "FROM alpine:edge\n")
+    root = bare_repo(tmp_path, "FROM alpine:3.24.2\n")
 
     findings = check(monkeypatch, root)
 
-    assert any("approved stable" in message or "approved edge" in message for message in messages(findings))
+    assert any("approved stable" in message for message in messages(findings))
     assert findings[0].fixable is True
+
+
+def test_edge_base_is_reported_and_left_for_review(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = bare_repo(tmp_path, "FROM alpine:edge\nRUN apk add --no-cache bash=5.3.9-r1\n")
+
+    findings = check(monkeypatch, root)
+
+    assert any("Alpine edge is not approved" in message for message in messages(findings))
+    assert not any(finding.fixable for finding in findings)
+    assert musl._linux_musl_toolchain_fix(root, repository()) == {}
 
 
 def test_missing_digest_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -241,7 +250,7 @@ def test_rust_builder_without_contract_skips_toolchain_requirements(
 def test_fixer_rewrites_base_and_packages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = bare_repo(
         tmp_path,
-        "FROM alpine:edge\nRUN apk add --no-cache bash musl-dev=1.2.6-r2\n",
+        "FROM alpine:3.24.2\nRUN apk add --no-cache bash musl-dev=1.2.6-r2\n",
     )
     install_lock(monkeypatch, approved_lock())
 
@@ -249,9 +258,9 @@ def test_fixer_rewrites_base_and_packages(tmp_path: Path, monkeypatch: pytest.Mo
     for relative, source in plan.items():
         (root / relative).write_text(source, encoding="utf-8")
 
-    assert f"FROM alpine:edge@{EDGE_INDEX}" in plan["Dockerfile"]
-    assert "bash=5.3.9-r2" in plan["Dockerfile"]
-    assert "musl-dev=1.2.6-r6" in plan["Dockerfile"]
+    assert f"FROM alpine:3.24.2@{STABLE_INDEX}" in plan["Dockerfile"]
+    assert "bash=5.3.9-r1" in plan["Dockerfile"]
+    assert "musl-dev=1.2.6-r3" in plan["Dockerfile"]
     assert musl._linux_musl_toolchain_findings(root, repository()) == []
 
 
@@ -269,22 +278,22 @@ def test_fixer_does_not_edit_a_file_with_an_unapproved_package(
     assert not any(finding.fixable for finding in findings)
 
 
-def _python_lock(root: Path, musl_dev: str = "1.2.6-r6") -> None:
+def _python_lock(root: Path, musl_dev: str = "1.2.6-r3") -> None:
     document = {
         "linux_toolchain": {
-            "release": "3.25.0_alpha20260805",
-            "image_index_digest": EDGE_INDEX,
+            "release": "3.24.2",
+            "image_index_digest": STABLE_INDEX,
             "images": {
-                "amd64": {"digest": EDGE_AMD64},
-                "arm64": {"digest": EDGE_ARM64},
+                "amd64": {"digest": STABLE_AMD64},
+                "arm64": {"digest": STABLE_ARM64},
             },
             "apk_closure": {
                 "x86_64": [
-                    {"name": "musl", "version": "1.2.6-r6"},
+                    {"name": "musl", "version": "1.2.6-r3"},
                     {"name": "musl-dev", "version": musl_dev},
                 ],
                 "aarch64": [
-                    {"name": "musl", "version": "1.2.6-r6"},
+                    {"name": "musl", "version": "1.2.6-r3"},
                     {"name": "musl-dev", "version": musl_dev},
                 ],
             },
@@ -305,7 +314,7 @@ def test_python_build_adapter_checks_the_bootstrap_closure(
 
     assert musl._linux_musl_toolchain_findings(root, name) == []
 
-    _python_lock(root, "1.2.6-r5")
+    _python_lock(root, "1.2.6-r2")
     findings = musl._linux_musl_toolchain_findings(root, name)
 
     assert any("bootstrap refresh" in message for message in messages(findings))
@@ -352,7 +361,7 @@ def _node_workflow(root: Path, packages: str) -> None:
         "name: build\n"
         "on: push\n"
         "env:\n"
-        f"  ALPINE_AMD64: alpine@{EDGE_AMD64}\n"
+        f"  ALPINE_AMD64: alpine@{STABLE_AMD64}\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"

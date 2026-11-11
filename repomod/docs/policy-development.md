@@ -162,24 +162,26 @@ drift). A failing fetch or malformed source exits 2 and writes nothing.
 `musl-toolchain.toml` is the single approved lock for musl Linux build inputs. It owns:
 
 - the upstream musl release and release date;
-- the `stable` and `edge` Alpine channels, with the approved `image` tag, index digest,
+- the `stable` Alpine channel, with the approved `image` tag, index digest,
   per-architecture (`amd64`, `arm64`) manifest digests, and Alpine release;
-- the exact direct `apk` versions per channel and architecture (`x86_64`, `aarch64`);
+- the exact direct `apk` versions per architecture (`x86_64`, `aarch64`);
 - the LLVM, mold, and rustup version and archive pins with SHA256 checksums;
 - the bespoke builder adapters (`python-build`, `chromium-build`, `node-build`, `git-build`,
   and `zzz`);
 - an optional `[image]` reference and digest for the published canonical builder.
 
-The loader rejects a lock whose version is not `1`, whose channel names are not `stable` and
-`edge`, whose digests are not `sha256:` values with 64 lowercase hex characters, whose
+Alpine edge is not approved. Edge keeps only the newest revision of each package, so exact
+pins against it break whenever a package is rebuilt. Builders use the stable channel.
+
+The loader rejects a lock whose version is not `1`, whose only channel is not `stable`, whose
+digests are not `sha256:` values with 64 lowercase hex characters, whose
 `musl` and `musl-dev` versions differ within a channel and architecture, whose musl package
 does not match the upstream release, whose adapter kind or fields are unknown, or whose
-adapter paths escape the repository. The `stable` branch is an Alpine major/minor line; the
-`edge` branch is `edge`.
+adapter paths escape the repository. The `stable` branch is an Alpine major/minor line.
 
-`pins refresh --only musl` reads the musl release page, the stable and edge main and
-community `APKINDEX` files for both architectures, and the Docker image metadata for each
-approved channel. It parses `P:`/`V:`/`S:` records directly rather than shelling out to
+`pins refresh --only musl` reads the musl release page, the stable main and
+community `APKINDEX` files for both architectures, and the Docker image metadata for the
+approved image. It parses `P:`/`V:`/`S:` records directly rather than shelling out to
 `apk`, keeps the approved package set, and verifies that each package still exists. Unrelated
 packages that appear more than once in an index do not affect the approved set. A missing
 package, a malformed index, a failed fetch, a Docker failure, or a rendered lock that does not
@@ -203,9 +205,10 @@ returns no findings when no musl builder exists, and skips private, `fork`, and
 release or CI workflows that build a Linux musl target. A Dockerfile is in scope when its raw
 text mentions musl or when its referencing workflow step mentions musl or the file does.
 
-For every in-scope Dockerfile, each Alpine base must carry the approved channel digest
-(the index digest, or the per-architecture manifest for a `--platform` stage), and an
-adapter-listed builder uses its configured channel. `ARG` defaults are resolved, so a build
+For every in-scope Dockerfile, each Alpine base must carry the approved stable digest
+(the index digest, or the per-architecture manifest for a `--platform` stage). An
+`alpine:edge` base is a manual finding; the fixer does not move it to stable, because the
+stable package set can differ. `ARG` defaults are resolved, so a build
 argument that controls a base image or package version must carry an approved default.
 Every `apk add` package must be an exact `name=version`; `musl` and `musl-dev` must equal the
 channel, other packages must equal the lock when it records them, and an unrecorded package

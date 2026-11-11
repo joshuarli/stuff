@@ -139,8 +139,8 @@ and validates it before any file is replaced, so a failed run leaves the approve
 untouched.
 
 `musl-toolchain.toml` is the approved source for musl Linux builds. It records the upstream
-musl release, the `stable` and `edge` Alpine channels with their index and per-architecture
-manifest digests, exact direct package versions per channel and architecture, the LLVM, mold,
+musl release, the `stable` Alpine channel with its index and per-architecture
+manifest digests, exact direct package versions per architecture, the LLVM, mold,
 and rustup archives with SHA256 checksums, the bespoke builder adapters, and an optional
 published canonical image. The refresh reads only the musl release page, the Alpine
 `APKINDEX` files, and Docker image metadata; it preserves the manually owned toolchain

@@ -76,80 +76,6 @@ xz = "5.8.4-r0"
 zlib-dev = "1.4-r0"
 zlib-static = "1.4-r0"
 
-[channels.edge]
-branch = "edge"
-image = "alpine:edge"
-index_digest = "sha256:020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000"
-release = "3.25.0_alpha20260805"
-
-[channels.edge.manifests]
-amd64 = "sha256:266f29255458134745f2bf588cb23ed1ed1768b96ff2580a05d70a8aba59e145"
-arm64 = "sha256:42d86a3173522de4786cfba0b5d631dbadb3d03a86d218dafb070dafd9809c7e"
-
-[channels.edge.packages.x86_64]
-bash = "5.3.9-r2"
-binutils = "2.45.1-r1"
-build-base = "0.5-r4"
-ca-certificates = "20261020-r0"
-clang22 = "22.1.8-r1"
-clang23 = "23.1.5-r0"
-coreutils = "9.11-r2"
-curl = "8.23.0-r0"
-file = "5.48-r0"
-gcc = "15.2.0-r9"
-git = "2.56.0-r0"
-libgcc = "15.2.0-r9"
-linux-headers = "7.2.1-r0"
-lld22 = "22.1.8-r1"
-llvm22 = "22.1.8-r1"
-make = "4.4.1-r4"
-mold = "2.39.1-r0"
-musl = "1.2.6-r6"
-musl-dev = "1.2.6-r6"
-openssl = "3.5.9-r0"
-pax-utils = "1.3.11-r0"
-perl = "5.44.0-r0"
-pkgconf = "3.0.10-r0"
-python3 = "3.14.10-r1"
-strace = "7.2-r0"
-tar = "1.35-r5"
-tzdata = "2026f-r0"
-xz = "5.8.4-r0"
-zlib-dev = "1.4-r0"
-zlib-static = "1.4-r0"
-
-[channels.edge.packages.aarch64]
-bash = "5.3.9-r2"
-binutils = "2.45.1-r1"
-build-base = "0.5-r4"
-ca-certificates = "20261020-r0"
-clang22 = "22.1.8-r1"
-clang23 = "23.1.5-r0"
-coreutils = "9.11-r2"
-curl = "8.23.0-r0"
-file = "5.48-r0"
-gcc = "15.2.0-r9"
-git = "2.56.0-r0"
-libgcc = "15.2.0-r9"
-linux-headers = "7.2.1-r0"
-lld22 = "22.1.8-r1"
-llvm22 = "22.1.8-r1"
-make = "4.4.1-r4"
-mold = "2.39.1-r0"
-musl = "1.2.6-r6"
-musl-dev = "1.2.6-r6"
-openssl = "3.5.9-r0"
-pax-utils = "1.3.11-r0"
-perl = "5.44.0-r0"
-pkgconf = "3.0.10-r0"
-python3 = "3.14.10-r1"
-strace = "7.2-r0"
-tar = "1.35-r5"
-tzdata = "2026f-r0"
-xz = "5.8.4-r0"
-zlib-dev = "1.4-r0"
-zlib-static = "1.4-r0"
-
 [toolchain]
 llvm_version = "23.1.5"
 llvm_release = "4c2254e"
@@ -184,22 +110,18 @@ sha256 = "1ddf36182ac5d1782dbeefcb9bea7f5f9412d88f4a0d5047b1564a223624e8c6"
 
 [adapters."laputa-systems/python-build"]
 kind = "python-build"
-channel = "edge"
 lock = "bootstrap.lock.json"
 
 [adapters."laputa-systems/chromium-build"]
 kind = "chromium-build"
-channel = "stable"
 lock = "config/packages.amd64.lock"
 
 [adapters."laputa-systems/node-build"]
 kind = "node-build"
-channel = "edge"
 workflow = ".github/workflows/build.yml"
 
 [adapters."laputa-systems/git-build"]
 kind = "git-build"
-channel = "stable"
 dockerfile = "Dockerfile"
 
 [adapters."laputa-systems/zzz"]
