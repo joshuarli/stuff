@@ -185,6 +185,59 @@ def test_workflow_artifacts_pinned_and_unpinned() -> None:
     assert "dynamic.tar.gz" in dynamic[0].message
 
 
+def test_checksum_on_a_later_line_pins_the_downloaded_file() -> None:
+    workflow = (
+        "jobs:\n"
+        "  build:\n"
+        "    steps:\n"
+        "      - run: |\n"
+        '          curl -fsSL -o "$RUNNER_TEMP/binaryen.tar.gz" '
+        "https://example.com/binaryen-version_133-x86_64-linux.tar.gz\n"
+        f'          echo "{SHA256}  $RUNNER_TEMP/binaryen.tar.gz" | sha256sum -c -\n'
+        "          curl -fsSL https://sh.rustup.rs | sh\n"
+    )
+    result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
+
+    pinned = _direct(result, "binaryen-version_133-x86_64-linux.tar.gz", Ecosystem.GENERIC)[0]
+    assert pinned.resolution is Resolution.RESOLVED
+    unpinned = _direct(result, "sh.rustup.rs", Ecosystem.GENERIC)[0]
+    assert unpinned.resolution is Resolution.DECLARED_ONLY
+
+
+def test_shasum_check_on_a_later_line_pins_the_downloaded_file() -> None:
+    workflow = (
+        "jobs:\n"
+        "  build:\n"
+        "    steps:\n"
+        "      - run: |\n"
+        "          curl -fSL -o /tmp/bylaws.zip https://example.com/bylaws.zip\n"
+        f'          echo "{SHA256}  /tmp/bylaws.zip" | shasum -a 256 -c -\n'
+    )
+    result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
+
+    pinned = _direct(result, "bylaws.zip", Ecosystem.GENERIC)[0]
+    assert pinned.resolution is Resolution.RESOLVED
+
+
+def test_regex_escaped_urls_are_not_artifacts() -> None:
+    workflow = (
+        "jobs:\n"
+        "  build:\n"
+        "    steps:\n"
+        "      - run: |\n"
+        "          perl -pi -e 's{href=\"https://docs\\.rs/(deser...}/{href=\"x\"}' file\n"
+        "          curl -fsSL https://sh.rustup.rs | sh\n"
+    )
+    result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
+
+    assert not any(
+        instance.component == purl(Ecosystem.GENERIC, "docs")
+        for instance in result.instances
+    )
+    rustup = _direct(result, "sh.rustup.rs", Ecosystem.GENERIC)[0]
+    assert rustup.resolution is Resolution.DECLARED_ONLY
+
+
 def test_artifact_userinfo_is_redacted() -> None:
     workflow = (
         "jobs:\n"
@@ -486,6 +539,7 @@ def test_adapter_matchers() -> None:
     assert ToolchainsAdapter().matches(".python-version")
     assert ToolchainsAdapter().matches("package.json")
     assert SubmodulesAdapter().matches(".gitmodules")
+    assert not SubmodulesAdapter().matches("deser-ini/tests/data/real-world/rust/.gitmodules")
     assert CmakeAdapter().matches("CMakeLists.txt")
     assert CloudflareAdapter().matches("wrangler.test.jsonc")
     assert not CloudflareAdapter().matches("wrangler.yaml")

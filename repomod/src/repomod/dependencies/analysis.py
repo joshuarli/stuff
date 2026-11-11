@@ -57,31 +57,69 @@ def report(
         item for item in graph.edges if item.repository.casefold() in selected_names
     )
     edges = tuple(item.edge for item in located)
+    repositories_of = {
+        instance_id: frozenset(
+            repository
+            for repository in graph.instance_repositories.get(instance_id, frozenset())
+            if repository.casefold() in selected_names
+        )
+        for instance_id in instances
+    }
     component_of = {
         instance_id: graph.components.get(instance.component)
         for instance_id, instance in instances.items()
     }
-    issues: list[Issue] = []
-    missing_locks: list[MissingLock] = []
-    for name in names:
-        for issue in graph.repositories[name].issues:
-            issues.append(issue)
-            if issue.kind is CoverageKind.MISSING_LOCK:
-                missing_locks.append(MissingLock(name, issue.path, issue.message))
+    fork_names = frozenset(name for name in names if "fork" in graph.repositories[name].tags)
+    fleet_names = frozenset(names) - fork_names
     data = tuple(graph.repositories[name] for name in names)
     return {
         "repositories": list(names),
         "composition": _composition(names, data, instances, edges, component_of),
         "concentration": _concentration(graph, names, instances, located, component_of, top),
         "divergence": _divergence(graph, instances, located, component_of),
-        "source_risk": _source_risk(
-            instances, edges, component_of, tuple(issues), tuple(missing_locks)
+        "source_risk": _source_risk_for(
+            graph, fleet_names, instances, located, component_of, repositories_of
+        ),
+        "source_risk_forks": _source_risk_for(
+            graph, fork_names, instances, located, component_of, repositories_of
         ),
         "scopes": _scopes(edges),
         "first_party": _first_party(graph, instances, located, component_of),
         "roles": _roles(graph, names),
         "freshness": _freshness(data, component_of),
     }
+
+
+def _source_risk_for(
+    graph: Graph,
+    group: frozenset[str],
+    instances: Mapping[str, Instance],
+    located: tuple[RepositoryEdge, ...],
+    component_of: Mapping[str, Component | None],
+    repositories_of: Mapping[str, frozenset[str]],
+) -> dict[str, object]:
+    issues: list[Issue] = []
+    missing_locks: list[MissingLock] = []
+    for name in sorted(group, key=str.casefold):
+        for issue in graph.repositories[name].issues:
+            issues.append(issue)
+            if issue.kind is CoverageKind.MISSING_LOCK:
+                missing_locks.append(MissingLock(name, issue.path, issue.message))
+    group_repositories = {
+        instance_id: repositories & group for instance_id, repositories in repositories_of.items()
+    }
+    return _source_risk(
+        {
+            instance_id: instance
+            for instance_id, instance in instances.items()
+            if group_repositories[instance_id]
+        },
+        tuple(item for item in located if item.repository in group),
+        component_of,
+        tuple(issues),
+        tuple(missing_locks),
+        group_repositories,
+    )
 
 
 def _selected(repositories: Iterable[str] | None) -> set[str] | None:
@@ -358,25 +396,31 @@ def _divergence_row(
 
 def _source_risk(
     instances: Mapping[str, Instance],
-    edges: tuple[Edge, ...],
+    located: tuple[RepositoryEdge, ...],
     component_of: Mapping[str, Component | None],
     issues: tuple[Issue, ...],
     missing_locks: tuple[MissingLock, ...],
+    repositories_of: Mapping[str, frozenset[str]],
 ) -> dict[str, object]:
     incoming: dict[str, list[Edge]] = defaultdict(list)
-    for edge in edges:
-        incoming[edge.to_id].append(edge)
+    evidence: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    for item in located:
+        incoming[item.edge.to_id].append(item.edge)
+        for entry in item.edge.evidence:
+            evidence[item.edge.to_id].add((item.repository, entry.path))
     git: list[str] = []
     vendored: list[str] = []
     actions: list[str] = []
     images: list[str] = []
     artifacts: list[str] = []
     for instance_id, instance in instances.items():
-        if instance.source_kind is SourceKind.GIT:
+        component = _component(component_of, instance_id)
+        if instance.source_kind is SourceKind.GIT and (
+            component is None or component.ecosystem is not Ecosystem.GITHUB
+        ):
             git.append(instance_id)
         if instance.source_kind is SourceKind.VENDORED:
             vendored.append(instance_id)
-        component = _component(component_of, instance_id)
         if component is None:
             continue
         if component.ecosystem is Ecosystem.GITHUB:
@@ -430,7 +474,47 @@ def _source_risk(
             "unpinned_artifacts": tuple(unpinned_artifacts),
             "vendored": tuple(vendored),
         },
+        "locations": {
+            "git_sources": _location_rows(git, instances, repositories_of, evidence),
+            "unpinned_actions": _location_rows(
+                unpinned_actions, instances, repositories_of, evidence
+            ),
+            "floating_images": _location_rows(
+                floating_images, instances, repositories_of, evidence
+            ),
+            "unpinned_artifacts": _location_rows(
+                unpinned_artifacts, instances, repositories_of, evidence
+            ),
+        },
     }
+
+
+def _location_rows(
+    instance_ids: Iterable[str],
+    instances: Mapping[str, Instance],
+    repositories_of: Mapping[str, frozenset[str]],
+    evidence: Mapping[str, set[tuple[str, str]]],
+) -> list[dict[str, str]]:
+    rows: set[tuple[str, str, str]] = set()
+    for instance_id in instance_ids:
+        instance = instances[instance_id]
+        repositories = repositories_of.get(instance_id, frozenset())
+        pairs = {
+            (repository, path)
+            for repository, path in evidence.get(instance_id, set())
+            if repository in repositories
+        }
+        if pairs:
+            for repository, path in pairs:
+                rows.add((repository, path, instance.purl))
+        else:
+            for repository in repositories:
+                rows.add((repository, "", instance.purl))
+    ordered = sorted(rows, key=lambda row: (row[0].casefold(), row[0], row[1], row[2]))
+    return [
+        {"repository": repository, "path": path, "purl": purl_value}
+        for repository, path, purl_value in ordered
+    ]
 
 
 def _has_resolved_edge(edges: Iterable[Edge]) -> bool:
@@ -554,10 +638,12 @@ def report_text(value: Mapping[str, Any]) -> list[str]:
                 for version in _list(record.get("versions"))
             )
             lines.append(f"  {record['component']}: {versions}")
-    risk = _table(value["source_risk"])
     lines.append("")
     lines.append("source risk")
-    lines.extend(_metric_lines(risk, prefix="  "))
+    lines.extend(_risk_lines(_table(value["source_risk"])))
+    lines.append("")
+    lines.append("source risk in forks (upstream workflows stay outside local policy)")
+    lines.extend(_risk_lines(_table(value["source_risk_forks"])))
     lines.append("")
     lines.append("scopes")
     lines.extend(_metric_lines(_table(_table(value["scopes"]).get("by_scope")), prefix="  "))
@@ -601,6 +687,52 @@ def report_text(value: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+_LOCATION_KEYS = (
+    "git_sources",
+    "unpinned_actions",
+    "floating_images",
+    "unpinned_artifacts",
+)
+
+
+def _risk_lines(risk: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    locations = _table(risk.get("locations"))
+    details = _table(risk.get("details"))
+    for key, value in risk.items():
+        if not isinstance(value, Mapping) or "value" not in value:
+            continue
+        metric = _table(value)
+        lines.append(
+            f"  {key}: {metric['value']} {metric['unit']} "
+            f"(denominator: {metric['denominator']})"
+        )
+        if key == "missing_locks":
+            rows = sorted(
+                (_table(item) for item in _list(details.get("missing_locks"))),
+                key=lambda row: (
+                    str(row.get("repository") or "").casefold(),
+                    str(row.get("repository") or ""),
+                    str(row.get("path") or ""),
+                ),
+            )
+            for row in rows:
+                fields = [str(row.get("repository") or "")]
+                path = row.get("path")
+                fields.append(path if isinstance(path, str) and path else str(row.get("message") or ""))
+                lines.append(f"    {' '.join(fields)}")
+        elif key in _LOCATION_KEYS:
+            for item in _list(locations.get(key)):
+                row = _table(item)
+                fields = [str(row.get("repository") or "")]
+                path = row.get("path")
+                if isinstance(path, str) and path:
+                    fields.append(path)
+                fields.append(str(row.get("purl") or ""))
+                lines.append(f"    {' '.join(fields)}")
+    return lines
+
+
 def _metric_lines(values: Mapping[str, Any], *, prefix: str) -> list[str]:
     lines: list[str] = []
     for key, value in values.items():
@@ -620,4 +752,6 @@ def _table(value: object) -> Mapping[str, Any]:
 
 
 def _list(value: object) -> list[Any]:
-    return cast(list[Any], value) if isinstance(value, list) else []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return []

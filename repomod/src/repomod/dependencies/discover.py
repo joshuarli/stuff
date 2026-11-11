@@ -29,7 +29,6 @@ _NAME_RULES: dict[str, tuple[Ecosystem, str]] = {
     ".python-version": (Ecosystem.GENERIC, ".python-version"),
     ".tool-versions": (Ecosystem.GENERIC, ".tool-versions"),
     ".nvmrc": (Ecosystem.GENERIC, ".nvmrc"),
-    ".gitmodules": (Ecosystem.GENERIC, ".gitmodules"),
     "CMakeLists.txt": (Ecosystem.GENERIC, "CMakeLists.txt"),
     "wrangler.toml": (Ecosystem.GENERIC, "wrangler.toml"),
     "wrangler.json": (Ecosystem.GENERIC, "wrangler.json"),
@@ -68,6 +67,10 @@ class Discovery:
 
 def classify(path: str) -> DiscoveredInput | None:
     name = path.rsplit("/", 1)[-1]
+    if name == ".gitmodules":
+        if path != ".gitmodules":
+            return None
+        return DiscoveredInput(path, Ecosystem.GENERIC, ".gitmodules")
     rule = _NAME_RULES.get(name)
     if rule is not None:
         return DiscoveredInput(path, *rule)

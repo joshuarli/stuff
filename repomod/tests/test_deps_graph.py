@@ -18,6 +18,7 @@ from repomod.dependencies.model import (
     Component,
     Ecosystem,
     Edge,
+    Evidence,
     IndexEntry,
     Instance,
     Project,
@@ -91,6 +92,7 @@ def _edge(
     scope: Scope = Scope.RUNTIME,
     resolution: Resolution = Resolution.RESOLVED,
     constraint: str | None = None,
+    evidence: tuple[Evidence, ...] = (),
 ) -> Edge:
     return Edge(
         from_id=source,
@@ -103,6 +105,7 @@ def _edge(
         condition=None,
         source_kind=target.source_kind,
         resolution=resolution,
+        evidence=evidence,
     )
 
 
@@ -488,6 +491,159 @@ def test_report_text_renders_sections(tmp_path: Path) -> None:
     assert any(line.startswith("source risk") for line in lines)
     assert any(line.startswith("first-party links:") for line in lines)
     assert any(line.startswith("freshness:") for line in lines)
+
+
+def _risk_repository(
+    name: str = "acme/risk", tags: tuple[str, ...] = ("tool",)
+) -> RepositoryData:
+    project = _project(".", Ecosystem.GENERIC)
+    git_source = _instance(
+        Ecosystem.CARGO,
+        "libfuzzer-sys",
+        "0.1.0",
+        source_kind=SourceKind.GIT,
+        vcs_url="https://example.com/libfuzzer-sys",
+    )
+    action = _instance(
+        Ecosystem.GITHUB,
+        "actions/checkout",
+        "a" * 40,
+        source_kind=SourceKind.GIT,
+        vcs_url="https://github.com/actions/checkout",
+    )
+    image = _instance(
+        Ecosystem.DOCKER, "python", "3.13-slim", source_kind=SourceKind.IMAGE
+    )
+    artifact = _instance(
+        Ecosystem.GENERIC, "tool.tar.gz", None, source_kind=SourceKind.URL
+    )
+    return _repository(
+        name,
+        tags,
+        (project,),
+        (git_source, action, image, artifact),
+        (
+            _edge(
+                project.id,
+                git_source,
+                evidence=(Evidence("Cargo.lock", "package[name=app]"),),
+            ),
+            _edge(
+                project.id,
+                action,
+                scope=Scope.CI,
+                resolution=Resolution.DECLARED_ONLY,
+                evidence=(
+                    Evidence(".github/workflows/ci.yml", "jobs.build.steps[0].uses"),
+                ),
+            ),
+            _edge(
+                project.id,
+                image,
+                scope=Scope.IMAGE,
+                resolution=Resolution.DECLARED_ONLY,
+                evidence=(Evidence(".github/workflows/ci.yml", "jobs.build.container"),),
+            ),
+            _edge(
+                project.id,
+                artifact,
+                scope=Scope.CI,
+                resolution=Resolution.DECLARED_ONLY,
+                evidence=(Evidence(".github/workflows/ci.yml", "jobs.build.steps[1].run"),),
+            ),
+        ),
+    )
+
+
+def test_source_risk_locations_are_in_json_and_text(tmp_path: Path) -> None:
+    built = _graph(tmp_path, [_risk_repository()])
+
+    value = report(built)
+    risk = _dict(value["source_risk"])
+    locations = _dict(risk["locations"])
+
+    assert _dict(risk["git_sources"])["value"] == 1
+    assert _list(locations["git_sources"]) == [
+        {
+            "repository": "acme/risk",
+            "path": "Cargo.lock",
+            "purl": "pkg:cargo/libfuzzer-sys@0.1.0",
+        }
+    ]
+    assert _list(locations["unpinned_actions"]) == [
+        {
+            "repository": "acme/risk",
+            "path": ".github/workflows/ci.yml",
+            "purl": f"pkg:github/actions/checkout@{'a' * 40}",
+        }
+    ]
+    assert _list(locations["floating_images"]) == [
+        {
+            "repository": "acme/risk",
+            "path": ".github/workflows/ci.yml",
+            "purl": "pkg:docker/python@3.13-slim",
+        }
+    ]
+    assert _list(locations["unpinned_artifacts"]) == [
+        {
+            "repository": "acme/risk",
+            "path": ".github/workflows/ci.yml",
+            "purl": "pkg:generic/tool.tar.gz",
+        }
+    ]
+
+    text = "\n".join(report_text(value))
+    assert "    acme/risk Cargo.lock pkg:cargo/libfuzzer-sys@0.1.0" in text
+    assert "    acme/risk .github/workflows/ci.yml pkg:github/actions/checkout@" in text
+    assert "    acme/risk .github/workflows/ci.yml pkg:docker/python@3.13-slim" in text
+    assert "    acme/risk .github/workflows/ci.yml pkg:generic/tool.tar.gz" in text
+
+
+def test_fork_source_risk_is_reported_apart_from_the_fleet(tmp_path: Path) -> None:
+    built = _graph(
+        tmp_path,
+        [_risk_repository(), _risk_repository("acme/upstream", ("tool", "fork"))],
+    )
+
+    value = report(built)
+    fleet = _dict(value["source_risk"])
+    forks = _dict(value["source_risk_forks"])
+
+    for risk, repository in ((fleet, "acme/risk"), (forks, "acme/upstream")):
+        assert _dict(risk["floating_images"])["value"] == 1
+        assert {
+            _dict(row)["repository"]
+            for key in ("git_sources", "unpinned_actions", "floating_images", "unpinned_artifacts")
+            for row in _list(_dict(risk["locations"])[key])
+        } == {repository}
+    text = "\n".join(report_text(value))
+    fork_section = text.split("source risk in forks", 1)[1]
+    assert "acme/upstream" in fork_section
+    assert "acme/upstream" not in text.split("source risk in forks", 1)[0]
+
+
+def test_report_cli_json_includes_source_risk_locations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    inventory = _write_inventory(tmp_path, [_risk_repository()])
+    catalog = _catalog(tmp_path, '[repos."acme"]\nrisk = ["tool"]\n')
+    monkeypatch.setattr(deps, "_inventory", lambda: inventory)
+    monkeypatch.setattr(common, "default_catalog", lambda: catalog)
+    args = argparse.Namespace(
+        operation="report", include_private=False, repo=[], tag=[], json=True
+    )
+
+    assert deps._deps(args) == 0
+    value = json.loads(capsys.readouterr().out)
+    locations = value["source_risk"]["locations"]
+    assert locations["git_sources"] == [
+        {
+            "repository": "acme/risk",
+            "path": "Cargo.lock",
+            "purl": "pkg:cargo/libfuzzer-sys@0.1.0",
+        }
+    ]
+    assert locations["unpinned_artifacts"][0]["path"] == ".github/workflows/ci.yml"
 
 
 def test_graph_and_report_do_not_open_sockets(

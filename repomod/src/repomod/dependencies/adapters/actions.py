@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import shlex
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar, cast
@@ -404,7 +406,10 @@ def _run_artifacts(
     edges: list[Edge],
     issues: list[Issue],
 ) -> None:
-    for command, _line in logical_commands(run):
+    commands = logical_commands(run)
+    verified = _verified_files(commands)
+    for command, line in commands:
+        targets = _output_targets(command)
         for artifact in find_artifacts(command):
             if artifact.dynamic:
                 issues.append(
@@ -419,6 +424,7 @@ def _run_artifacts(
             ref = _artifact_ref(artifact.url, vendored)
             if ref.key not in drafts:
                 drafts[ref.key] = ref
+            pinned = artifact.pinned or _target_verified(targets, verified, line)
             edges.append(
                 Edge(
                     from_id=project_id,
@@ -431,11 +437,57 @@ def _run_artifacts(
                     condition=None,
                     source_kind=ref.source_kind,
                     resolution=Resolution.RESOLVED
-                    if artifact.pinned
+                    if pinned
                     else Resolution.DECLARED_ONLY,
                     evidence=(Evidence(path, locator),),
                 )
             )
+
+
+_SHA256_TOOL = re.compile(r"\bsha256sum\b|\bshasum\s+(?:-a|--algorithm)\s+256\b")
+_SHA256_LINE = re.compile(r"(?<![0-9A-Fa-f])([0-9A-Fa-f]{64})(?![0-9A-Fa-f])\s+\*?(\S+)")
+
+
+def _verified_files(commands: Sequence[tuple[str, int]]) -> dict[str, set[int]]:
+    verified: dict[str, set[int]] = {}
+    for command, line in commands:
+        if _SHA256_TOOL.search(command) is None:
+            continue
+        if " -c" not in command and "--check" not in command:
+            continue
+        for match in _SHA256_LINE.finditer(command):
+            target = match.group(2).strip("\"'")
+            if target:
+                verified.setdefault(target, set()).add(line)
+    return verified
+
+
+def _output_targets(command: str) -> tuple[str, ...]:
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return ()
+    if not tokens:
+        return ()
+    tool = tokens[0].rsplit("/", 1)[-1]
+    flags = {"-O", "--output-document"} if tool == "wget" else {"-o", "--output"}
+    targets: list[str] = []
+    for index, token in enumerate(tokens):
+        if token in flags and index + 1 < len(tokens):
+            targets.append(tokens[index + 1])
+        elif any(token.startswith(flag + "=") for flag in flags):
+            targets.append(token.split("=", 1)[1])
+    return tuple(targets)
+
+
+def _target_verified(
+    targets: Sequence[str], verified: Mapping[str, set[int]], line: int
+) -> bool:
+    for target in targets:
+        lines = verified.get(target.strip("\"'"))
+        if lines is not None and any(item >= line for item in lines):
+            return True
+    return False
 
 
 def _comment(node: object, key: str) -> str | None:

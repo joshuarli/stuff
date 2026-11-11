@@ -104,6 +104,20 @@ uv run repomod deps render
 uv run repomod deps render --output .work/dependencies/dashboard
 ```
 
+### Source risk
+
+`deps report` counts the inputs that can change without a new commit. Each source-risk metric
+prints one line per location as `repository evidence-file package-url`; `--json` carries the
+same rows under `source_risk.locations`. Pinned GitHub Actions are not also counted as Git
+sources. Only the repository-root `.gitmodules` is read, so nested copies such as test data are
+ignored. A download counts as pinned when its output file is verified with `sha256sum -c` or
+`shasum -a 256 -c` and a 64-character SHA-256 anywhere in the same `run` block, including on a
+later line. A regex fragment whose URL stops at a backslash is not a download.
+
+Repositories tagged `fork` are reported apart, under `source_risk_forks` and a separate text
+section, because their upstream workflows stay outside local policy. `source_risk` and the
+dashboard count only the other repositories. An instance used by both kinds counts in both.
+
 ## Data layout
 
 - `index.json` records the schema, `PARSER_VERSION`, and each repository's commit,
@@ -174,6 +188,11 @@ line-ending conversion cannot change a fingerprint.
 - Unpinned or lockless declarations become versionless instances with `declared_only` or
   `unknown` edges. A value the adapter cannot resolve statically becomes `dynamic_value`, never
   a guessed edge.
+- A Cargo manifest whose package is locked as a path package by another lock in the same
+  repository, such as a vendored crate excluded from the workspace, resolves through that lock
+  instead of reporting `missing_lock`. A cargo-fuzz harness with `[package.metadata] cargo-fuzz =
+  true` is development-only and does not report `missing_lock` either. Other lockless manifests
+  still do.
 - The dashboard caps consumers at 20 per package and transitive expansion at 8 per direct edge
   for size. Use `why`, `report --json`, or `diff --json` for complete data.
 

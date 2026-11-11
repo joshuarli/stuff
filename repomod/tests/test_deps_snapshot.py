@@ -385,6 +385,7 @@ def test_discovery_classifies_real_input_names() -> None:
     for path in recognized:
         assert classify(path) is not None, path
     assert classify(".github/workflows/nested/ci.yml") is None
+    assert classify("deser-ini/tests/data/real-world/rust/.gitmodules") is None
     assert classify("src/main.rs") is None
     assert classify("README.md") is None
 

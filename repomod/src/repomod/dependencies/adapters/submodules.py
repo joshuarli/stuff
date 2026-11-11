@@ -31,7 +31,7 @@ class SubmodulesAdapter:
     name: ClassVar[str] = "submodules"
 
     def matches(self, path: str) -> bool:
-        return path.rsplit("/", 1)[-1] == ".gitmodules"
+        return path == ".gitmodules"
 
     def extract(self, inputs: Sequence[InputContent]) -> AdapterResult:
         issues: list[Issue] = []

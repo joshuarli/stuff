@@ -43,6 +43,9 @@ def find_artifacts(command: str) -> tuple[Artifact, ...]:
         end = index
         while end < len(command) and command[end] not in _DELIMITERS:
             end += 1
+        if end < len(command) and command[end] == "\\":
+            index = max(end, index + 1)
+            continue
         url = command[index:end].rstrip(".,:")
         if url and url not in seen:
             seen.add(url)

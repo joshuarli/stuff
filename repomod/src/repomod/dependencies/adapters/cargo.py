@@ -542,6 +542,10 @@ def _project_plan(
     if manifest.package is None:
         return None
     lock = locks.get(_lock_path(manifest))
+    consuming = False
+    if lock is None:
+        lock = _consuming_lock(manifest, locks)
+        consuming = lock is not None
     own = _own_package(lock, manifest) if lock is not None else None
     if lock is not None and manifest.dependencies and own is None:
         issues.append(
@@ -551,7 +555,7 @@ def _project_plan(
                 path=manifest.path,
             )
         )
-    if lock is None and manifest.dependencies:
+    if lock is None and manifest.dependencies and not _cargo_fuzz(manifest):
         issues.append(
             Issue(
                 CoverageKind.MISSING_LOCK,
@@ -585,6 +589,13 @@ def _project_plan(
             continue
         package = _match_lock(lock, declaration, own)
         if package is None:
+            if consuming:
+                resolved.append(
+                    _ResolvedDeclaration(
+                        declaration, None, _unlocked_resolution(declaration), None
+                    )
+                )
+                continue
             issues.append(
                 Issue(
                     CoverageKind.LOCK_MISMATCH,
@@ -607,6 +618,35 @@ def _project_plan(
         own=own,
         declarations=tuple(resolved),
     )
+
+
+def _consuming_lock(manifest: _Manifest, locks: Mapping[str, _Lock]) -> _Lock | None:
+    if manifest.package is None or manifest.version is None:
+        return None
+    wanted = _normalize(manifest.package)
+    own_path = _lock_path(manifest)
+    for path in sorted(locks):
+        if path == own_path:
+            continue
+        lock = locks[path]
+        for package in lock.packages:
+            if (
+                package.source is None
+                and _normalize(package.name) == wanted
+                and package.version == manifest.version
+            ):
+                return lock
+    return None
+
+
+def _cargo_fuzz(manifest: _Manifest) -> bool:
+    package = manifest.document.get("package")
+    if not isinstance(package, Mapping):
+        return False
+    metadata = package.get("metadata")
+    if not isinstance(metadata, Mapping):
+        return False
+    return metadata.get("cargo-fuzz") is True
 
 
 def _unlocked_resolution(declaration: _Declaration) -> Resolution:

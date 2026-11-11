@@ -488,6 +488,66 @@ def test_missing_lock_produces_declared_only_edges() -> None:
     assert floating[0].constraint == "main"
 
 
+def test_path_package_consumed_by_another_lock_has_no_missing_lock() -> None:
+    result = _extract(
+        {
+            "Cargo.toml": (
+                "[workspace]\nmembers = []\nexclude = [\"vendor/foo\"]\n\n"
+                "[package]\nname = \"app\"\nversion = \"0.1.0\"\n\n"
+                "[dependencies]\nfoo = { path = \"vendor/foo\" }\n"
+            ),
+            "vendor/foo/Cargo.toml": (
+                "[package]\nname = \"foo\"\nversion = \"0.1.0\"\n\n"
+                "[dependencies]\nserde = \"1\"\n\n"
+                "[dev-dependencies]\nquickcheck = \"1\"\n"
+            ),
+            "Cargo.lock": _lock(
+                _package("app", "0.1.0", dependencies=("foo",)),
+                _package("foo", "0.1.0", dependencies=("serde",)),
+                _package(
+                    "serde",
+                    "1.0.0",
+                    source="registry+https://github.com/rust-lang/crates.io-index",
+                ),
+            ),
+        },
+        vendored=("vendor/foo/Cargo.toml",),
+    )
+
+    assert result.issues == ()
+    edges = [edge for edge in _direct(result, "serde") if edge.from_id == "vendor/foo:cargo"]
+    assert len(edges) == 1
+    assert edges[0].resolution is Resolution.RESOLVED
+    assert edges[0].resolved_version == "1.0.0"
+    assert [item.path for item in edges[0].evidence] == ["vendor/foo/Cargo.toml", "Cargo.lock"]
+    quickcheck = _direct(result, "quickcheck")
+    assert len(quickcheck) == 1
+    assert quickcheck[0].resolution is Resolution.DECLARED_ONLY
+
+
+def test_cargo_fuzz_harness_has_no_missing_lock_but_a_library_still_does() -> None:
+    result = _extract(
+        {
+            "fuzz/Cargo.toml": (
+                "[package]\nname = \"app-fuzz\"\nversion = \"0.1.0\"\n\n"
+                "[package.metadata]\ncargo-fuzz = true\n\n"
+                "[dependencies]\nlibfuzzer-sys = \"0.4\"\n"
+            ),
+            "lib/Cargo.toml": (
+                "[package]\nname = \"lib\"\nversion = \"0.2.0\"\n\n"
+                "[dependencies]\nserde = \"1\"\n"
+            ),
+        }
+    )
+
+    missing = [
+        issue for issue in result.issues if issue.kind is CoverageKind.MISSING_LOCK
+    ]
+    assert [issue.path for issue in missing] == ["lib/Cargo.lock"]
+    edge = _direct(result, "libfuzzer-sys")[0]
+    assert edge.resolution is Resolution.DECLARED_ONLY
+
+
 def test_malformed_inputs_are_parse_errors() -> None:
     result = _extract(
         {
