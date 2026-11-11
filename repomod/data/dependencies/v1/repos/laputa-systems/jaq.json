@@ -4265,15 +4265,15 @@
  ],
  "inputs": [
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "00c211030a083b71ebaa64bf74ade0aee4e27ab7",
+   "blob": "8d5fb0e6913017d935f2609e3bd26fb7ce80afec",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "ba5f3480419cf240e6a2e089948c45e4f6ad71a2",
+   "blob": "f8f59c06fa4af9c9f8028bd51d34a675192976ed",
    "path": ".github/workflows/test.yml"
   },
   {
@@ -4329,7 +4329,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "a3c71f8e39e2399e1f98a8fdcda962c6727115fdb3c9c7eeef0728ce8142ffbe",
+ "inputs_fingerprint": "45863e20e3440d1ace6df9ff68d3686d6a870c6a191a3b6ffd3f267c16f8aa20",
  "instances": [
   {
    "commit": null,
@@ -5696,12 +5696,6 @@
    "locator": null,
    "message": "no parser for Makefile",
    "path": "docs/Makefile"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at jaq-core/fuzz/Cargo.lock",
-   "path": "jaq-core/fuzz/Cargo.lock"
   }
  ],
  "projects": [

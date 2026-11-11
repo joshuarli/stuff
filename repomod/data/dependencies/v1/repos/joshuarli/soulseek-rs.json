@@ -5063,7 +5063,7 @@
  ],
  "inputs": [
   {
-   "blob": "4c92c627783d1955e18c9aaed9747e1471fa1539",
+   "blob": "36cc0402d6edbc8e2a8bf12a59298671399b3aea",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -5075,7 +5075,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "bfad76980d1ec7939cc7e32c54873f64fb9ddcae",
+   "blob": "6cc25c9ec111468125bf85528eabf993e910da84",
    "path": "Dockerfile"
   },
   {
@@ -5095,7 +5095,7 @@
    "path": "soulseek-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "dd8813664a09c5fbdace3e3b0342f6ea96da7e8e977d9b81c8849ee3e889d3f6",
+ "inputs_fingerprint": "45b88690ccee1d54faafb25857ce5eb8c61a8d38a9054a31fc606e7a3e0f649b",
  "instances": [
   {
    "commit": null,
@@ -6792,7 +6792,7 @@
   {
    "kind": "dynamic_value",
    "locator": "L29",
-   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-c4f9b08/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
    "path": "Dockerfile"
   },
   {

@@ -1642,7 +1642,7 @@
    "display_name": "playwright",
    "ecosystem": "docker",
    "name": "playwright",
-   "purl": "pkg:docker/playwright?repository_url=https%3A%2F%2Fmcr.microsoft.com%2F"
+   "purl": "pkg:docker/playwright?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F"
   },
   {
    "display_name": "gen-api-types",
@@ -4686,7 +4686,7 @@
   },
   {
    "condition": null,
-   "constraint": "v1.64.0-noble",
+   "constraint": "sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f",
    "evidence": [
     {
      "locator": "L3",
@@ -4696,11 +4696,11 @@
    "from": "docker:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
+   "resolution": "resolved",
    "resolved_version": "v1.64.0-noble",
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/playwright@v1.64.0-noble?repository_url=https%3A%2F%2Fmcr.microsoft.com%2F#"
+   "to": "pkg:docker/playwright@v1.64.0-noble?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F#"
   },
   {
    "condition": null,
@@ -17417,16 +17417,20 @@
     {
      "locator": "dependencies.aho-corasick",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.1.5",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/aho-corasick#"
+   "to": "pkg:cargo/aho-corasick@1.1.5#"
   },
   {
    "condition": null,
@@ -17435,16 +17439,20 @@
     {
      "locator": "dependencies.arc-swap",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.9.3",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/arc-swap#"
+   "to": "pkg:cargo/arc-swap@1.9.3#"
   },
   {
    "condition": null,
@@ -17453,16 +17461,20 @@
     {
      "locator": "dependencies.base64",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.23.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/base64#"
+   "to": "pkg:cargo/base64@0.23.1#"
   },
   {
    "condition": null,
@@ -17471,16 +17483,20 @@
     {
      "locator": "dependencies.bitpacking",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.9.3",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/bitpacking#"
+   "to": "pkg:cargo/bitpacking@0.9.3#"
   },
   {
    "condition": null,
@@ -17489,16 +17505,20 @@
     {
      "locator": "dependencies.bon",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[4]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "3.10.3",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/bon#"
+   "to": "pkg:cargo/bon@3.10.3#"
   },
   {
    "condition": null,
@@ -17507,16 +17527,20 @@
     {
      "locator": "dependencies.byteorder",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[5]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/byteorder#"
+   "to": "pkg:cargo/byteorder@1.5.0#"
   },
   {
    "condition": null,
@@ -17525,16 +17549,20 @@
     {
      "locator": "dependencies.census",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[6]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/census#"
+   "to": "pkg:cargo/census@0.4.2#"
   },
   {
    "condition": null,
@@ -17543,16 +17571,20 @@
     {
      "locator": "dependencies.crc32fast",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[7]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.4",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/crc32fast#"
+   "to": "pkg:cargo/crc32fast@1.5.4#"
   },
   {
    "condition": null,
@@ -17561,16 +17593,20 @@
     {
      "locator": "dependencies.crossbeam-channel",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[8]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.5.17",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/crossbeam-channel#"
+   "to": "pkg:cargo/crossbeam-channel@0.5.17#"
   },
   {
    "condition": null,
@@ -17579,16 +17615,20 @@
     {
      "locator": "dependencies.downcast-rs",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[9]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.0.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/downcast-rs#"
+   "to": "pkg:cargo/downcast-rs@2.0.2#"
   },
   {
    "condition": null,
@@ -17597,16 +17637,20 @@
     {
      "locator": "dependencies.fastdivide",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[10]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/fastdivide#"
+   "to": "pkg:cargo/fastdivide@0.4.2#"
   },
   {
    "condition": null,
@@ -17615,16 +17659,20 @@
     {
      "locator": "dependencies.fnv",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[11]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.7",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/fnv#"
+   "to": "pkg:cargo/fnv@1.0.7#"
   },
   {
    "condition": "feature:mmap",
@@ -17633,16 +17681,20 @@
     {
      "locator": "dependencies.fs4",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[12]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.13.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/fs4#"
+   "to": "pkg:cargo/fs4@0.13.1#"
   },
   {
    "condition": null,
@@ -17651,16 +17703,20 @@
     {
      "locator": "dependencies.itertools",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[13]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.14.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/itertools#"
+   "to": "pkg:cargo/itertools@0.14.0#"
   },
   {
    "condition": null,
@@ -17669,16 +17725,20 @@
     {
      "locator": "dependencies.levenshtein_automata",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[14]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.2.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/levenshtein_automata#"
+   "to": "pkg:cargo/levenshtein_automata@0.2.1#"
   },
   {
    "condition": null,
@@ -17687,16 +17747,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[15]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -17705,16 +17769,20 @@
     {
      "locator": "dependencies.lru",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[16]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.18.5",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lru#"
+   "to": "pkg:cargo/lru@0.18.5#"
   },
   {
    "condition": "feature:lz4-compression",
@@ -17723,16 +17791,20 @@
     {
      "locator": "dependencies.lz4_flex",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[17]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.14.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lz4_flex#"
+   "to": "pkg:cargo/lz4_flex@0.14.0#"
   },
   {
    "condition": null,
@@ -17741,16 +17813,20 @@
     {
      "locator": "dependencies.measure_time",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[18]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/measure_time#"
+   "to": "pkg:cargo/measure_time@0.9.0#"
   },
   {
    "condition": "feature:mmap",
@@ -17759,16 +17835,20 @@
     {
      "locator": "dependencies.memmap2",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[19]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.9.12",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/memmap2#"
+   "to": "pkg:cargo/memmap2@0.9.12#"
   },
   {
    "condition": null,
@@ -17777,16 +17857,20 @@
     {
      "locator": "dependencies.once_cell",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[20]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.21.4",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/once_cell#"
+   "to": "pkg:cargo/once_cell@1.21.4#"
   },
   {
    "condition": null,
@@ -17795,16 +17879,20 @@
     {
      "locator": "dependencies.oneshot",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[21]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.1.13",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/oneshot#"
+   "to": "pkg:cargo/oneshot@0.1.13#"
   },
   {
    "condition": null,
@@ -17813,16 +17901,20 @@
     {
      "locator": "dependencies.rayon",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[22]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.12.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rayon#"
+   "to": "pkg:cargo/rayon@1.12.0#"
   },
   {
    "condition": null,
@@ -17831,16 +17923,20 @@
     {
      "locator": "dependencies.regex",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[23]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.13.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/regex#"
+   "to": "pkg:cargo/regex@1.13.1#"
   },
   {
    "condition": null,
@@ -17849,16 +17945,20 @@
     {
      "locator": "dependencies.rustc-hash",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[24]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rustc-hash#"
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
   },
   {
    "condition": null,
@@ -17867,16 +17967,20 @@
     {
      "locator": "dependencies.serde",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[25]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/serde#"
+   "to": "pkg:cargo/serde@1.0.229#"
   },
   {
    "condition": null,
@@ -17885,16 +17989,20 @@
     {
      "locator": "dependencies.serde_json",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[26]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.154",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/serde_json#"
+   "to": "pkg:cargo/serde_json@1.0.154#"
   },
   {
    "condition": null,
@@ -17903,16 +18011,20 @@
     {
      "locator": "dependencies.smallvec",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[27]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.16.4",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/smallvec#"
+   "to": "pkg:cargo/smallvec@1.16.4#"
   },
   {
    "condition": null,
@@ -17921,16 +18033,20 @@
     {
      "locator": "dependencies.tantivy-bitpacker",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[28]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.27.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-bitpacker#"
+   "to": "pkg:cargo/tantivy-bitpacker@0.27.0#"
   },
   {
    "condition": null,
@@ -17939,16 +18055,20 @@
     {
      "locator": "dependencies.columnar",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[29]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.27.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-columnar#"
+   "to": "pkg:cargo/tantivy-columnar@0.27.0#"
   },
   {
    "condition": null,
@@ -17957,16 +18077,20 @@
     {
      "locator": "dependencies.common",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[30]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.27.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-common#"
+   "to": "pkg:cargo/tantivy-common@0.27.0#"
   },
   {
    "condition": null,
@@ -17975,16 +18099,20 @@
     {
      "locator": "dependencies.tantivy-fst",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[31]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.5.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-fst#"
+   "to": "pkg:cargo/tantivy-fst@0.5.0#"
   },
   {
    "condition": null,
@@ -17993,16 +18121,20 @@
     {
      "locator": "dependencies.stacker",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[32]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.27.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-stacker#"
+   "to": "pkg:cargo/tantivy-stacker@0.27.0#"
   },
   {
    "condition": null,
@@ -18011,16 +18143,20 @@
     {
      "locator": "dependencies.tokenizer-api",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[33]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.7.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tantivy-tokenizer-api#"
+   "to": "pkg:cargo/tantivy-tokenizer-api@0.7.0#"
   },
   {
    "condition": "feature:mmap",
@@ -18029,16 +18165,20 @@
     {
      "locator": "dependencies.tempfile",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[34]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "3.27.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/tempfile#"
+   "to": "pkg:cargo/tempfile@3.27.0#"
   },
   {
    "condition": null,
@@ -18047,16 +18187,20 @@
     {
      "locator": "dependencies.thiserror",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[35]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.0.21",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/thiserror#"
+   "to": "pkg:cargo/thiserror@2.0.21#"
   },
   {
    "condition": null,
@@ -18065,16 +18209,20 @@
     {
      "locator": "dependencies.time",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[36]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.55",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/time#"
+   "to": "pkg:cargo/time@0.3.55#"
   },
   {
    "condition": null,
@@ -18083,16 +18231,20 @@
     {
      "locator": "dependencies.unwrap-infallible",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[37]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/unwrap-infallible#"
+   "to": "pkg:cargo/unwrap-infallible@1.0.0#"
   },
   {
    "condition": null,
@@ -18101,16 +18253,20 @@
     {
      "locator": "dependencies.uuid",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[38]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.29.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/uuid#"
+   "to": "pkg:cargo/uuid@1.29.0#"
   },
   {
    "condition": "cfg(windows)",
@@ -18119,16 +18275,20 @@
     {
      "locator": "target.'cfg(windows)'.dependencies.winapi",
      "path": "vendor/tantivy/Cargo.toml"
+    },
+    {
+     "locator": "package[name=tantivy,version=0.27.0].dependencies[39]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/tantivy:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.3.9",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/winapi#"
+   "to": "pkg:cargo/winapi@0.3.9#"
   }
  ],
  "inputs": [
@@ -18181,11 +18341,11 @@
    "path": "crates/tansu-webauthn/Cargo.toml"
   },
   {
-   "blob": "c35205ee2d58d9a4d3aec4cb385a15046d85fd83",
+   "blob": "496441e41b5e7f66d85a747f1b650670f9d53f02",
    "path": "docker/linux-e2e-baselines.Dockerfile"
   },
   {
-   "blob": "ead79134a99d8f0db10b3fd9e184d7b40fcd58e1",
+   "blob": "12c3c4cfe1717f3204922e809eaca7e488bd38f9",
    "path": "docker/linux-musl.Dockerfile"
   },
   {
@@ -18209,7 +18369,7 @@
    "path": "vendor/tantivy/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "681c919dc60890f661eae2346ecd170356786e549111483bfd481362e43cd372",
+ "inputs_fingerprint": "3e7fd240d22d38532e80af7fba6e1ace62c7cda793539d83b86a4bfb8a24f022",
  "instances": [
   {
    "commit": null,
@@ -18333,19 +18493,6 @@
    "component": "pkg:cargo/aho-corasick",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/aho-corasick#",
-   "purl": "pkg:cargo/aho-corasick",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/aho-corasick",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/aho-corasick@1.1.5#",
    "purl": "pkg:cargo/aho-corasick@1.1.5",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -18353,19 +18500,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.1.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/arc-swap",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/arc-swap#",
-   "purl": "pkg:cargo/arc-swap",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -18418,19 +18552,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.5.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/base64",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/base64#",
-   "purl": "pkg:cargo/base64",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -18502,19 +18623,6 @@
    "component": "pkg:cargo/bitpacking",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/bitpacking#",
-   "purl": "pkg:cargo/bitpacking",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bitpacking",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/bitpacking@0.9.3#",
    "purl": "pkg:cargo/bitpacking@0.9.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -18548,19 +18656,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.6.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bon",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/bon#",
-   "purl": "pkg:cargo/bon",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -18632,19 +18727,6 @@
    "component": "pkg:cargo/byteorder",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/byteorder#",
-   "purl": "pkg:cargo/byteorder",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/byteorder",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/byteorder@1.5.0#",
    "purl": "pkg:cargo/byteorder@1.5.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -18678,19 +18760,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.10.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/census",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/census#",
-   "purl": "pkg:cargo/census",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -18840,19 +18909,6 @@
    "component": "pkg:cargo/crc32fast",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/crc32fast#",
-   "purl": "pkg:cargo/crc32fast",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/crc32fast",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/crc32fast@1.5.4#",
    "purl": "pkg:cargo/crc32fast@1.5.4",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -18860,19 +18916,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.5.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/crossbeam-channel",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/crossbeam-channel#",
-   "purl": "pkg:cargo/crossbeam-channel",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -19126,19 +19169,6 @@
    "component": "pkg:cargo/downcast-rs",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/downcast-rs#",
-   "purl": "pkg:cargo/downcast-rs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/downcast-rs",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/downcast-rs@2.0.2#",
    "purl": "pkg:cargo/downcast-rs@2.0.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19217,19 +19247,6 @@
    "component": "pkg:cargo/fastdivide",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/fastdivide#",
-   "purl": "pkg:cargo/fastdivide",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/fastdivide",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/fastdivide@0.4.2#",
    "purl": "pkg:cargo/fastdivide@0.4.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19269,19 +19286,6 @@
    "component": "pkg:cargo/fnv",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/fnv#",
-   "purl": "pkg:cargo/fnv",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/fnv",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/fnv@1.0.7#",
    "purl": "pkg:cargo/fnv@1.0.7",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19302,19 +19306,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/fs4",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/fs4#",
-   "purl": "pkg:cargo/fs4",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -19679,19 +19670,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.11.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/itertools",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/itertools#",
-   "purl": "pkg:cargo/itertools",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20088,19 +20066,6 @@
    "component": "pkg:cargo/levenshtein_automata",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/levenshtein_automata#",
-   "purl": "pkg:cargo/levenshtein_automata",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/levenshtein_automata",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/levenshtein_automata@0.2.1#",
    "purl": "pkg:cargo/levenshtein_automata@0.2.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20166,19 +20131,6 @@
    "component": "pkg:cargo/log",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/log#",
-   "purl": "pkg:cargo/log",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/log",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/log@0.4.35#",
    "purl": "pkg:cargo/log@0.4.35",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20186,19 +20138,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.4.35"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/lru",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/lru#",
-   "purl": "pkg:cargo/lru",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20218,19 +20157,6 @@
    "component": "pkg:cargo/lz4_flex",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/lz4_flex#",
-   "purl": "pkg:cargo/lz4_flex",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/lz4_flex",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/lz4_flex@0.14.0#",
    "purl": "pkg:cargo/lz4_flex@0.14.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20238,19 +20164,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.14.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/measure_time",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/measure_time#",
-   "purl": "pkg:cargo/measure_time",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20277,19 +20190,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.8.3"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/memmap2",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/memmap2#",
-   "purl": "pkg:cargo/memmap2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20478,19 +20378,6 @@
    "component": "pkg:cargo/once_cell",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/once_cell#",
-   "purl": "pkg:cargo/once_cell",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/once_cell",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/once_cell@1.21.4#",
    "purl": "pkg:cargo/once_cell@1.21.4",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20498,19 +20385,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.21.4"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/oneshot",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/oneshot#",
-   "purl": "pkg:cargo/oneshot",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20826,19 +20700,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/rayon",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rayon#",
-   "purl": "pkg:cargo/rayon",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/rayon-core",
    "context": "",
    "first_party": false,
@@ -20862,19 +20723,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.12.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/regex",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/regex#",
-   "purl": "pkg:cargo/regex",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20966,19 +20814,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.43.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rustc-hash",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rustc-hash#",
-   "purl": "pkg:cargo/rustc-hash",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21193,19 +21028,6 @@
    "component": "pkg:cargo/serde",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/serde#",
-   "purl": "pkg:cargo/serde",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/serde@1.0.229#",
    "purl": "pkg:cargo/serde@1.0.229",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21239,19 +21061,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.229"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde_json",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/serde_json#",
-   "purl": "pkg:cargo/serde_json",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21317,19 +21126,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.4.12"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/smallvec",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/smallvec#",
-   "purl": "pkg:cargo/smallvec",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21440,19 +21236,6 @@
    "component": "pkg:cargo/tantivy-bitpacker",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/tantivy-bitpacker#",
-   "purl": "pkg:cargo/tantivy-bitpacker",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-bitpacker",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/tantivy-bitpacker@0.27.0#",
    "purl": "pkg:cargo/tantivy-bitpacker@0.27.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21460,19 +21243,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.27.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-columnar",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/tantivy-columnar#",
-   "purl": "pkg:cargo/tantivy-columnar",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21492,19 +21262,6 @@
    "component": "pkg:cargo/tantivy-common",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/tantivy-common#",
-   "purl": "pkg:cargo/tantivy-common",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-common",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/tantivy-common@0.27.0#",
    "purl": "pkg:cargo/tantivy-common@0.27.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21512,19 +21269,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.27.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-fst",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/tantivy-fst#",
-   "purl": "pkg:cargo/tantivy-fst",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21557,19 +21301,6 @@
    "component": "pkg:cargo/tantivy-stacker",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/tantivy-stacker#",
-   "purl": "pkg:cargo/tantivy-stacker",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-stacker",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/tantivy-stacker@0.27.0#",
    "purl": "pkg:cargo/tantivy-stacker@0.27.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21583,19 +21314,6 @@
    "component": "pkg:cargo/tantivy-tokenizer-api",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/tantivy-tokenizer-api#",
-   "purl": "pkg:cargo/tantivy-tokenizer-api",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tantivy-tokenizer-api",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/tantivy-tokenizer-api@0.7.0#",
    "purl": "pkg:cargo/tantivy-tokenizer-api@0.7.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21603,19 +21321,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.7.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/tempfile",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/tempfile#",
-   "purl": "pkg:cargo/tempfile",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21645,19 +21350,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/thiserror",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/thiserror#",
-   "purl": "pkg:cargo/thiserror",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/thiserror-impl",
    "context": "",
    "first_party": false,
@@ -21681,19 +21373,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.0.21"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/time",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/time#",
-   "purl": "pkg:cargo/time",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21895,19 +21574,6 @@
    "component": "pkg:cargo/unwrap-infallible",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/unwrap-infallible#",
-   "purl": "pkg:cargo/unwrap-infallible",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/unwrap-infallible",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/unwrap-infallible@1.0.0#",
    "purl": "pkg:cargo/unwrap-infallible@1.0.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21928,19 +21594,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.5"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/uuid",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/uuid#",
-   "purl": "pkg:cargo/uuid",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -22084,19 +21737,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.11"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/winapi",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/winapi#",
-   "purl": "pkg:cargo/winapi",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -22412,11 +22052,11 @@
   },
   {
    "commit": null,
-   "component": "pkg:docker/playwright?repository_url=https%3A%2F%2Fmcr.microsoft.com%2F",
+   "component": "pkg:docker/playwright?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/playwright@v1.64.0-noble?repository_url=https%3A%2F%2Fmcr.microsoft.com%2F#",
-   "purl": "pkg:docker/playwright@v1.64.0-noble?repository_url=https%3A%2F%2Fmcr.microsoft.com%2F",
+   "id": "pkg:docker/playwright@v1.64.0-noble?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F#",
+   "purl": "pkg:docker/playwright@v1.64.0-noble?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",
@@ -24480,12 +24120,6 @@
    "locator": "L36",
    "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.1/${arch}-unknown-linux-musl/rustup-init' is not literal",
    "path": "docker/rust-check.Dockerfile"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at vendor/tantivy/Cargo.lock",
-   "path": "vendor/tantivy/Cargo.lock"
   },
   {
    "kind": "vendored_unknown",

@@ -389,7 +389,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[0]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -411,7 +411,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[1]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -433,7 +433,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[2]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -455,7 +455,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[3]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2189,11 +2189,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "565c2f8ce5e435a1d40369e2967cf4fcc44a9747",
+   "blob": "9f25cf0c70fe0a2793f6cd46cdb18a69ff8f9db5",
    "path": "Cargo.lock"
   },
   {
-   "blob": "c60da32a82000afe29110f5e09c736671d6204a0",
+   "blob": "07e1a213433c97acb00429892b29081348bfdcd5",
    "path": "Cargo.toml"
   },
   {
@@ -2205,7 +2205,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "73065f0516f6aecf1b6ab43a70dcfad69fccc95cb713c9ef50cc88e19e4978f4",
+ "inputs_fingerprint": "d9b46c2a29a92508a9ea02dc340814a583ba70d6dabef5916ef59f8a573b1c56",
  "instances": [
   {
    "commit": null,
@@ -2979,13 +2979,13 @@
    "component": "pkg:generic/laputa-ptytest",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/laputa-ptytest@0.3.0#",
-   "purl": "pkg:generic/laputa-ptytest@0.3.0",
+   "id": "pkg:generic/laputa-ptytest@0.4.0#",
+   "purl": "pkg:generic/laputa-ptytest@0.4.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "path",
    "vcs_url": null,
-   "version": "0.3.0"
+   "version": "0.4.0"
   },
   {
    "commit": null,

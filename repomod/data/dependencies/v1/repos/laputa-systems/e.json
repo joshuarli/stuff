@@ -1449,15 +1449,15 @@
  ],
  "inputs": [
   {
-   "blob": "970ad3760380f9d88f417502cd07db088d4767a3",
+   "blob": "fff6aca153eb9cff70a8b7ab7fc0cac8e4838f74",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "b36ba8d083f5b8748ad4b33850dfcb71309b71fd",
+   "blob": "78bebc87b409371862658effc6d74239f3104597",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -1469,7 +1469,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "c6b4ae8b7fdb471db616a04cec9dad20f123d9fb",
+   "blob": "f82931d052fa338a623c6e5162d8b3608d95885f",
    "path": "Dockerfile"
   },
   {
@@ -1481,7 +1481,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "b238d5681db0fcc3c4f282c3923da6fc24ac6a811220fa92842e0c0b97970f92",
+ "inputs_fingerprint": "78e5025482477bbe322069fe9b3dd4d4d077f0e3cb7f8d4fcc125ec289750354",
  "instances": [
   {
    "commit": null,

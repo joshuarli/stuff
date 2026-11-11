@@ -922,7 +922,7 @@
    "display_name": "alpine",
    "ecosystem": "docker",
    "name": "alpine",
-   "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
+   "purl": "pkg:docker/alpine?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf"
   },
   {
    "display_name": "rust",
@@ -1158,7 +1158,7 @@
   },
   {
    "condition": null,
-   "constraint": "2.54.0-r0",
+   "constraint": "2.54.1-r0",
    "evidence": [
     {
      "locator": "L15",
@@ -1169,10 +1169,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.54.0-r0",
+   "resolved_version": "2.54.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git@2.54.0-r0#"
+   "to": "pkg:apk/git@2.54.1-r0#"
   },
   {
    "condition": null,
@@ -1284,7 +1284,7 @@
   },
   {
    "condition": null,
-   "constraint": "sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
+   "constraint": "sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
    "evidence": [
     {
      "locator": "L4",
@@ -1295,10 +1295,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.24.2",
+   "resolved_version": "3.24.4",
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#"
+   "to": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf#"
   },
   {
    "condition": null,
@@ -2213,10 +2213,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.13.0",
+   "resolved_version": "8.14.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rust-embed@8.13.0#"
+   "to": "pkg:cargo/rust-embed@8.14.0#"
   },
   {
    "condition": null,
@@ -2331,11 +2331,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=arc-swap,version=1.9.4].dependencies[0]",
+     "locator": "package[name=arc-swap,version=1.9.5].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/arc-swap@1.9.4#",
+   "from": "pkg:cargo/arc-swap@1.9.5#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3113,10 +3113,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.10.2",
+   "resolved_version": "0.10.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/const-oid@0.10.2#"
+   "to": "pkg:cargo/const-oid@0.10.3#"
   },
   {
    "condition": null,
@@ -3185,10 +3185,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -3851,10 +3851,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -5039,10 +5039,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.9.4",
+   "resolved_version": "1.9.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/arc-swap@1.9.4#"
+   "to": "pkg:cargo/arc-swap@1.9.5#"
   },
   {
    "condition": null,
@@ -5183,10 +5183,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.13.0",
+   "resolved_version": "8.14.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rust-embed@8.13.0#"
+   "to": "pkg:cargo/rust-embed@8.14.0#"
   },
   {
    "condition": null,
@@ -6047,10 +6047,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -6219,11 +6219,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[0]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6237,11 +6237,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[1]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6255,11 +6255,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[2]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6273,29 +6273,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[3]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.13.0",
+   "resolved_version": "8.14.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rust-embed-utils@8.13.0#"
+   "to": "pkg:cargo/rust-embed-utils@8.14.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[4]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6309,11 +6309,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-impl,version=8.13.0].dependencies[5]",
+     "locator": "package[name=rust-embed-impl,version=8.14.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-impl@8.13.0#",
+   "from": "pkg:cargo/rust-embed-impl@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6327,11 +6327,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-utils,version=8.13.0].dependencies[0]",
+     "locator": "package[name=rust-embed-utils,version=8.14.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-utils@8.13.0#",
+   "from": "pkg:cargo/rust-embed-utils@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6345,11 +6345,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed-utils,version=8.13.0].dependencies[1]",
+     "locator": "package[name=rust-embed-utils,version=8.14.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed-utils@8.13.0#",
+   "from": "pkg:cargo/rust-embed-utils@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6363,47 +6363,47 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed,version=8.13.0].dependencies[0]",
+     "locator": "package[name=rust-embed,version=8.14.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed@8.13.0#",
+   "from": "pkg:cargo/rust-embed@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.13.0",
+   "resolved_version": "8.14.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rust-embed-impl@8.13.0#"
+   "to": "pkg:cargo/rust-embed-impl@8.14.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed,version=8.13.0].dependencies[1]",
+     "locator": "package[name=rust-embed,version=8.14.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed@8.13.0#",
+   "from": "pkg:cargo/rust-embed@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.13.0",
+   "resolved_version": "8.14.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rust-embed-utils@8.13.0#"
+   "to": "pkg:cargo/rust-embed-utils@8.14.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rust-embed,version=8.13.0].dependencies[2]",
+     "locator": "package[name=rust-embed,version=8.14.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rust-embed@8.13.0#",
+   "from": "pkg:cargo/rust-embed@8.14.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6821,10 +6821,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -7029,11 +7029,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7047,11 +7047,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7065,11 +7065,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7181,10 +7181,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -7729,19 +7729,19 @@
  ],
  "inputs": [
   {
-   "blob": "67150dfca51ed03dbeb6d54ffd776b28dc56a026",
+   "blob": "1ede6b89e8d63f02416fe59115412c7066bc14b2",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "e27ba5a04de70d795cad0607bbb1db6318bceedf",
+   "blob": "f611efa287e76bcbc6c15cf2acdae83ad776d628",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "9fcc61683be1a4f5f13f612820e7f63043fb9fcc",
+   "blob": "b34a39d7c5a5bf68f1cfaccc3cb57166d9cfcc1b",
    "path": "Cargo.lock"
   },
   {
@@ -7749,7 +7749,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "d163f7f1dd04644c9c377b0547c28e3423aa4370",
+   "blob": "465bb69e85e287677cebbd1b48e5496d122c9014",
    "path": "Dockerfile"
   },
   {
@@ -7761,7 +7761,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "e53359c68d9ab7e886fab82a4ccfc00aba3cad21aaa01b1db47fb881cc50387a",
+ "inputs_fingerprint": "4f8acd8a0c55569534860118aba38662239982ca9c6590b62cf41bbadbcf00e2",
  "instances": [
   {
    "commit": null,
@@ -7820,13 +7820,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git@2.54.0-r0#",
-   "purl": "pkg:apk/git@2.54.0-r0",
+   "id": "pkg:apk/git@2.54.1-r0#",
+   "purl": "pkg:apk/git@2.54.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.54.0-r0"
+   "version": "2.54.1-r0"
   },
   {
    "commit": null,
@@ -7976,13 +7976,13 @@
    "component": "pkg:cargo/arc-swap",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/arc-swap@1.9.4#",
-   "purl": "pkg:cargo/arc-swap@1.9.4",
+   "id": "pkg:cargo/arc-swap@1.9.5#",
+   "purl": "pkg:cargo/arc-swap@1.9.5",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.9.4"
+   "version": "1.9.5"
   },
   {
    "commit": null,
@@ -8132,13 +8132,13 @@
    "component": "pkg:cargo/const-oid",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/const-oid@0.10.2#",
-   "purl": "pkg:cargo/const-oid@0.10.2",
+   "id": "pkg:cargo/const-oid@0.10.3#",
+   "purl": "pkg:cargo/const-oid@0.10.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.10.2"
+   "version": "0.10.3"
   },
   {
    "commit": null,
@@ -9198,39 +9198,39 @@
    "component": "pkg:cargo/rust-embed-impl",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rust-embed-impl@8.13.0#",
-   "purl": "pkg:cargo/rust-embed-impl@8.13.0",
+   "id": "pkg:cargo/rust-embed-impl@8.14.0#",
+   "purl": "pkg:cargo/rust-embed-impl@8.14.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.13.0"
+   "version": "8.14.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rust-embed-utils",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rust-embed-utils@8.13.0#",
-   "purl": "pkg:cargo/rust-embed-utils@8.13.0",
+   "id": "pkg:cargo/rust-embed-utils@8.14.0#",
+   "purl": "pkg:cargo/rust-embed-utils@8.14.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.13.0"
+   "version": "8.14.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rust-embed",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rust-embed@8.13.0#",
-   "purl": "pkg:cargo/rust-embed@8.13.0",
+   "id": "pkg:cargo/rust-embed@8.14.0#",
+   "purl": "pkg:cargo/rust-embed@8.14.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.13.0"
+   "version": "8.14.0"
   },
   {
    "commit": null,
@@ -9536,13 +9536,13 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,
@@ -9884,16 +9884,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
+   "component": "pkg:docker/alpine?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#",
-   "purl": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
+   "id": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf#",
+   "purl": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",
    "vcs_url": null,
-   "version": "3.24.2"
+   "version": "3.24.4"
   },
   {
    "commit": null,
@@ -10004,13 +10004,13 @@
   {
    "kind": "dynamic_value",
    "locator": "L34",
-   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-dc0d9b9/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
    "path": "Dockerfile"
   },
   {
    "kind": "dynamic_value",
    "locator": "L56",
-   "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.1/${arch}-unknown-linux-musl/rustup-init' is not literal",
+   "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.3/${arch}-unknown-linux-musl/rustup-init' is not literal",
    "path": "Dockerfile"
   },
   {

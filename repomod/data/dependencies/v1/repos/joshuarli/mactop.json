@@ -44,7 +44,7 @@
    "from": ".:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
+   "resolution": "resolved",
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
@@ -165,11 +165,11 @@
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "6a698c69622a53ec31dd3ac4524c010fbed8c4f8",
+   "blob": "d2d86aa9458501b46a8b8567691a33a84c864830",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "962d91ce5ab837cfe1f521018545f0b6533feb8e",
+   "blob": "2de8c595324e16369c03f2b479163c0033414a76",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -181,7 +181,7 @@
    "path": "Package.swift"
   }
  ],
- "inputs_fingerprint": "2d8c6a76c909380ea2deaf50e3229b7603cfbd647128e3edaea55e8e4ce3c65c",
+ "inputs_fingerprint": "5adcbd737da97dcf4d2d97304cae31510d67c7e572afa80ab3c86e2293e032e5",
  "instances": [
   {
    "commit": null,

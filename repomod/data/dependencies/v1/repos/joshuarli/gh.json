@@ -2451,15 +2451,15 @@
    "path": ".github/workflows/dependabot-triage-schedule.yml"
   },
   {
-   "blob": "f255a358bdf4bdf8dc789260b309f1149c9d3347",
+   "blob": "9572aef93becc4e7a29f3d688338f399fc51efea",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "93e999bf620321e779661b3dc1466485eedee836",
+   "blob": "5cd2c01a1503a44d4137628c6b5e160badcc97d8",
    "path": ".github/workflows/prerelease.yml"
   },
   {
-   "blob": "500d6e8db6e5fdbab70f704ebf0a556680bb47f6",
+   "blob": "b8b7d8d529f524e59dc5ba7c5ce84fa40c1bd2a6",
    "path": ".github/workflows/test.yml"
   },
   {
@@ -2475,7 +2475,7 @@
    "path": "go.sum"
   }
  ],
- "inputs_fingerprint": "7951aeaf5c43928d40a1f7b34d2de157c5da2d57879b91659fdc08c3c5d0e3af",
+ "inputs_fingerprint": "37720c472dfb82a3adabc1a93e4828532405d37c77c1750fc5b54cb845c8f662",
  "instances": [
   {
    "commit": null,

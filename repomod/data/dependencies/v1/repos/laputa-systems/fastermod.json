@@ -839,10 +839,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.17.0",
+   "resolved_version": "0.17.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/hashbrown@0.17.0#"
+   "to": "pkg:cargo/hashbrown@0.17.1#"
   },
   {
    "condition": null,
@@ -1807,11 +1807,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=hashbrown,version=0.17.0].dependencies[0]",
+     "locator": "package[name=hashbrown,version=0.17.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/hashbrown@0.17.0#",
+   "from": "pkg:cargo/hashbrown@0.17.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2031,10 +2031,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -2049,10 +2049,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -2445,10 +2445,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -2463,10 +2463,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -2545,11 +2545,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2563,11 +2563,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2581,11 +2581,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2687,19 +2687,19 @@
  ],
  "inputs": [
   {
-   "blob": "df94e015b0123f3676184d83a57daab655bd9dd1",
+   "blob": "5e0ba89ba27e31b841ef09d45b0a5e47504b0922",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "5574e98c5036ae048124edc00657ba2908832698",
+   "blob": "bb48dbaa44373b482c87d989cdc2cbd7d25f2fdc",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "71556261a529e24b439699b484db694ab95da3b7",
+   "blob": "ac5bf22ab251582ef3a9e7fff44630de98c3f789",
    "path": "Cargo.lock"
   },
   {
@@ -2707,7 +2707,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "90d1053fc9b14f06ea35c7bdb9c2fb7fc6d994de",
+   "blob": "0addf4397e0041cb0b24dbfd75e631435d445397",
    "path": "Dockerfile"
   },
   {
@@ -2723,7 +2723,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "c9e813e94527c8bc237a4cbd14961b9f07e1c89347aaa07d61a3157a49f78c27",
+ "inputs_fingerprint": "e6df1c71f4856c9ec1e6c302c40303968d523ff5eb64b268fd0d2ad301bf1b58",
  "instances": [
   {
    "commit": null,
@@ -3042,13 +3042,13 @@
    "component": "pkg:cargo/hashbrown",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/hashbrown@0.17.0#",
-   "purl": "pkg:cargo/hashbrown@0.17.0",
+   "id": "pkg:cargo/hashbrown@0.17.1#",
+   "purl": "pkg:cargo/hashbrown@0.17.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.17.0"
+   "version": "0.17.1"
   },
   {
    "commit": null,
@@ -3068,13 +3068,13 @@
    "component": "pkg:cargo/itoa",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/itoa@1.0.18#",
-   "purl": "pkg:cargo/itoa@1.0.18",
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.18"
+   "version": "1.0.19"
   },
   {
    "commit": null,
@@ -3406,13 +3406,13 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,

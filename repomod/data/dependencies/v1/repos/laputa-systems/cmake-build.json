@@ -1,0 +1,520 @@
+{
+ "components": [
+  {
+   "display_name": ".github/actions/native-setup",
+   "ecosystem": "generic",
+   "name": ".github/actions/native-setup",
+   "purl": "pkg:generic/.github/actions/native-setup"
+  },
+  {
+   "display_name": "FixtureMath",
+   "ecosystem": "generic",
+   "name": "FixtureMath",
+   "purl": "pkg:generic/FixtureMath"
+  },
+  {
+   "display_name": "Graph",
+   "ecosystem": "generic",
+   "name": "Graph",
+   "purl": "pkg:generic/Graph"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.package.steps[1].uses",
+     "path": ".github/workflows/complete-tools-size.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:generic/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.controller.steps[1].uses",
+     "path": ".github/workflows/controller.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:generic/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.baseline.steps[1].uses",
+     "path": ".github/workflows/memory-baseline.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:generic/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.qualify.steps[1].uses",
+     "path": ".github/workflows/qualify.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:generic/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.reproduce.steps[1].uses",
+     "path": ".github/workflows/reproduce-arm.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:generic/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.package.steps[0].uses",
+     "path": ".github/workflows/complete-tools-size.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.controller.steps[0].uses",
+     "path": ".github/workflows/controller.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.baseline.steps[0].uses",
+     "path": ".github/workflows/memory-baseline.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.qualify.steps[0].uses",
+     "path": ".github/workflows/qualify.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.prerelease.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.reproduce.steps[0].uses",
+     "path": ".github/workflows/reproduce-arm.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.package.steps[3].uses",
+     "path": ".github/workflows/complete-tools-size.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.baseline.steps[4].uses",
+     "path": ".github/workflows/memory-baseline.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.qualify.steps[5].uses",
+     "path": ".github/workflows/qualify.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.qualify.steps[6].uses",
+     "path": ".github/workflows/qualify.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.reproduce.steps[4].uses",
+     "path": ".github/workflows/reproduce-arm.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L3",
+     "path": "tests/acceptance/graph/downstream/CMakeLists.txt"
+    }
+   ],
+   "from": "tests/acceptance/graph/downstream:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:generic/Graph#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L12",
+     "path": "tests/acceptance/graph/CMakeLists.txt"
+    }
+   ],
+   "from": "tests/acceptance/graph:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:generic/FixtureMath#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "5fb001d329249b3cc5cbd21bfa128430b90f2848",
+   "path": ".github/workflows/complete-tools-size.yml"
+  },
+  {
+   "blob": "64ce62f8e5af5d986b826aacc75808a06b5f1879",
+   "path": ".github/workflows/controller.yml"
+  },
+  {
+   "blob": "25ac380a22eff785abc9a6eadfc152af0c5ab7f8",
+   "path": ".github/workflows/memory-baseline.yml"
+  },
+  {
+   "blob": "b76f35e033201a99184c115aeaf8603910407686",
+   "path": ".github/workflows/qualify.yml"
+  },
+  {
+   "blob": "2f312ced76c32d62c78d426684d9a66c7c43aed1",
+   "path": ".github/workflows/release.yml"
+  },
+  {
+   "blob": "4b8516bb3df0dae918fbd1df648f551a1cf962c6",
+   "path": ".github/workflows/reproduce-arm.yml"
+  },
+  {
+   "blob": "1c90be585cf462b5e8a958a9dd7a9ac2aa8a6a76",
+   "path": "docker/builder.Dockerfile"
+  },
+  {
+   "blob": "b6faa5a157f5d3810a74a96fc3c3ea2067e1a9cc",
+   "path": "tests/acceptance/graph/CMakeLists.txt"
+  },
+  {
+   "blob": "01c261b249cf3786809b740df08cab2da9167ec5",
+   "path": "tests/acceptance/graph/downstream/CMakeLists.txt"
+  },
+  {
+   "blob": "48fcdd8afab7ce9c806c250f76eb2917fd28466a",
+   "path": "tests/acceptance/network/internet/CMakeLists.txt"
+  },
+  {
+   "blob": "be708e10855cb26141a4556105cf77485d7faab8",
+   "path": "tests/fixtures/native/CMakeLists.txt"
+  }
+ ],
+ "inputs_fingerprint": "894ce956ba8264f64cec39747c07a591645107055520cc723a095041f22158c0",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:generic/.github/actions/native-setup",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/.github/actions/native-setup#",
+   "purl": "pkg:generic/.github/actions/native-setup",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/FixtureMath",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/FixtureMath#",
+   "purl": "pkg:generic/FixtureMath",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/Graph",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/Graph#",
+   "purl": "pkg:generic/Graph",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#",
+   "purl": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "parse_error",
+   "locator": null,
+   "message": "containers: invalid package name: '/dev/null'",
+   "path": null
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "L4",
+   "message": "locked_source URL is not literal",
+   "path": "tests/acceptance/network/internet/CMakeLists.txt"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:generic"
+  },
+  {
+   "directory": "tests/acceptance/graph/downstream",
+   "ecosystem": "generic",
+   "id": "tests/acceptance/graph/downstream:generic"
+  },
+  {
+   "directory": "tests/acceptance/graph",
+   "ecosystem": "generic",
+   "id": "tests/acceptance/graph:generic"
+  },
+  {
+   "directory": "tests/acceptance/network/internet",
+   "ecosystem": "generic",
+   "id": "tests/acceptance/network/internet:generic"
+  },
+  {
+   "directory": "tests/fixtures/native",
+   "ecosystem": "generic",
+   "id": "tests/fixtures/native:generic"
+  }
+ ],
+ "repository": "laputa-systems/cmake-build",
+ "schema": 1,
+ "tags": [
+  "build"
+ ]
+}

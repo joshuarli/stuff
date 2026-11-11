@@ -1181,7 +1181,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "8cd1c0256efa0ce4bb92aade11715c9ebad435cd57c3c1b74b857117b5102035",
+ "inputs_fingerprint": "8e9dc01ccae824cc5ae507f60e2951b7a695e091eb572882868193062d99dccf",
  "instances": [
   {
    "commit": null,
@@ -1598,12 +1598,6 @@
    "locator": null,
    "message": "no lockfile at compare/Cargo.lock",
    "path": "compare/Cargo.lock"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at fuzz/Cargo.lock",
-   "path": "fuzz/Cargo.lock"
   }
  ],
  "projects": [

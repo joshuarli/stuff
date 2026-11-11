@@ -173,7 +173,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[1]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -195,7 +195,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[0]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -217,7 +217,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[2]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -239,7 +239,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[3]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -261,7 +261,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[4]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -276,14 +276,14 @@
   },
   {
    "condition": null,
-   "constraint": "=0.4.0",
+   "constraint": "=0.5.0",
    "evidence": [
     {
      "locator": "dependencies.rustybench-macros",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[5]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -291,10 +291,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.4.0",
+   "resolved_version": "0.5.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustybench-macros@0.4.0#"
+   "to": "pkg:generic/rustybench-macros@0.5.0#"
   },
   {
    "condition": null,
@@ -539,7 +539,7 @@
      "path": "macros/Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench-macros,version=0.4.0].dependencies[0]",
+     "locator": "package[name=rustybench-macros,version=0.5.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -547,10 +547,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -601,10 +601,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -637,10 +637,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -709,10 +709,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.24",
+   "resolved_version": "1.0.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/unicode-ident@1.0.24#"
+   "to": "pkg:cargo/unicode-ident@1.0.27#"
   },
   {
    "condition": null,
@@ -737,11 +737,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -755,11 +755,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -773,18 +773,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.24",
+   "resolved_version": "1.0.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/unicode-ident@1.0.24#"
+   "to": "pkg:cargo/unicode-ident@1.0.27#"
   }
  ],
  "inputs": [
@@ -797,11 +797,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "88686dc8598073921001e0518fa76d01668f081f",
+   "blob": "29cd5871129a682ce3786941aba872a1731ed47b",
    "path": "Cargo.lock"
   },
   {
-   "blob": "78289854e7418787ee7a60c53cbbb3600688b3b4",
+   "blob": "6b4a887bbf624a442c6ab8ffcd651b458f7c8ce9",
    "path": "Cargo.toml"
   },
   {
@@ -813,7 +813,7 @@
    "path": "Makefile"
   },
   {
-   "blob": "9dc3635092000e4793c85a6ac3b960c771e8577e",
+   "blob": "9b63e1e398c671ebd320a0f4ba93166b5e0f62ec",
    "path": "macros/Cargo.toml"
   },
   {
@@ -821,7 +821,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "602c17bb4108c7aa5b302a1161244a0b9cdb322c9ae21755636ff97af5c25fcb",
+ "inputs_fingerprint": "9e24dba0a01f514b68e589258122e67a08104e3d9397b2777d615b07471deb55",
  "instances": [
   {
    "commit": null,
@@ -984,13 +984,13 @@
    "component": "pkg:cargo/itoa",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/itoa@1.0.18#",
-   "purl": "pkg:cargo/itoa@1.0.18",
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.18"
+   "version": "1.0.19"
   },
   {
    "commit": null,
@@ -1062,26 +1062,26 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,
    "component": "pkg:cargo/unicode-ident",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/unicode-ident@1.0.24#",
-   "purl": "pkg:cargo/unicode-ident@1.0.24",
+   "id": "pkg:cargo/unicode-ident@1.0.27#",
+   "purl": "pkg:cargo/unicode-ident@1.0.27",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.24"
+   "version": "1.0.27"
   },
   {
    "commit": null,
@@ -1127,26 +1127,26 @@
    "component": "pkg:generic/rustybench-macros",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/rustybench-macros@0.4.0#",
-   "purl": "pkg:generic/rustybench-macros@0.4.0",
+   "id": "pkg:generic/rustybench-macros@0.5.0#",
+   "purl": "pkg:generic/rustybench-macros@0.5.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.5.0"
   },
   {
    "commit": null,
    "component": "pkg:generic/rustybench",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/rustybench@0.4.0#",
-   "purl": "pkg:generic/rustybench@0.4.0",
+   "id": "pkg:generic/rustybench@0.5.0#",
+   "purl": "pkg:generic/rustybench@0.5.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.5.0"
   },
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",

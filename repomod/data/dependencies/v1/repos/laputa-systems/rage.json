@@ -19965,7 +19965,7 @@
  ],
  "inputs": [
   {
-   "blob": "91839c9bfa9d41b546cff263a61281123a229206",
+   "blob": "9ac9d1c80f7ccdaeed83b06e81a997af3f7c3bf4",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -19977,7 +19977,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "98ef6a29f9505537980c2fc87f491e4ccadc4fe5",
+   "blob": "8ef8233f307a8ebfc317f290508234a46948781d",
    "path": "Dockerfile"
   },
   {
@@ -20021,7 +20021,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "e4107bdd2a9827d5b68352c2a0595732828a963d4a363ad4512b362092207c3c",
+ "inputs_fingerprint": "c3d90b1a13cb38892f02bead1857891a2a49ab3439b941b6c46fec4a1b97a2d4",
  "instances": [
   {
    "commit": null,
@@ -23486,7 +23486,7 @@
   {
    "kind": "dynamic_value",
    "locator": "L23",
-   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-c4f9b08/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
    "path": "Dockerfile"
   },
   {

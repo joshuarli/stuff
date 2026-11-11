@@ -463,10 +463,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -733,10 +733,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -751,10 +751,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -1391,6 +1391,60 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/syn@3.0.10#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/syn@3.0.10#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/syn@3.0.10#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.27",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/unicode-ident@1.0.27#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=syn,version=3.0.3].dependencies[0]",
      "path": "tools/hi-lite-syntect/Cargo.lock"
     }
@@ -1439,60 +1493,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/unicode-ident@1.0.24#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/syn@3.0.9#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.107",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/syn@3.0.9#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.47",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.47#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/syn@3.0.9#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.27",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/unicode-ident@1.0.27#"
   },
   {
    "condition": null,
@@ -2067,7 +2067,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "33af4bd112620c9256162a954dd1cab3a486cd9d",
+   "blob": "287dda01e330ca6e61942b96a3c7ea7bfa1ec9b9",
    "path": "Cargo.lock"
   },
   {
@@ -2091,7 +2091,7 @@
    "path": "tools/hi-lite-syntect/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "6d934714ee389f75448c502f4cc91f60be87304caf434f8170ec1e18736ff1ce",
+ "inputs_fingerprint": "f30b01843784acba9c5415699a108a7209a6cf42f8731f6d6b4a5c8f51baf8b1",
  "instances": [
   {
    "commit": null,
@@ -2287,6 +2287,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.18"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/itoa",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.0.19"
   },
   {
    "commit": null,
@@ -2670,6 +2683,19 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "3.0.10"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/syn",
+   "context": "",
+   "first_party": false,
    "id": "pkg:cargo/syn@3.0.3#",
    "purl": "pkg:cargo/syn@3.0.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -2677,19 +2703,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "3.0.3"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/syn",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "3.0.9"
   },
   {
    "commit": null,

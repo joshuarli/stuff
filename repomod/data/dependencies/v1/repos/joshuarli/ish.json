@@ -5181,15 +5181,15 @@
  ],
  "inputs": [
   {
-   "blob": "4d3327b23da2b5cfbb1cab1f59b119bb422218f0",
+   "blob": "4bbdc1533ce90d1b6497830253c2279bbe257bfb",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "dd4a5816923959c983f777a971b614fa8dbcb161",
+   "blob": "2eb80dff35e15a6115c609d19f68a75f72401a1b",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "b5a271d51b35fa534b8fe0b544e3536334221624",
+   "blob": "890e0d438cf6ebe84687bf257e9439459b765f24",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -5197,11 +5197,11 @@
    "path": "Cargo.lock"
   },
   {
-   "blob": "733252c311595db3345be6f00c133410f31f2517",
+   "blob": "9e182d10d4dc49266249d05b3200678608d3ddee",
    "path": "Cargo.toml"
   },
   {
-   "blob": "af700fd7187834a49a3dadbd1eba93c2df6cb16a",
+   "blob": "1230aa7c8ee46c42a08cb71188db0ad15c1579f8",
    "path": "Dockerfile"
   },
   {
@@ -5241,7 +5241,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "981d4ea309abb7424da43b8421c268ced880c52c2bf1c8c9d35c9bc534452c9a",
+ "inputs_fingerprint": "a1e84a71af3ffd27b60a460bf31591c18cb4e05ee211ba1c89fcf58970704459",
  "instances": [
   {
    "commit": null,
@@ -6912,7 +6912,7 @@
   {
    "kind": "dynamic_value",
    "locator": "L30",
-   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-c4f9b08/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
    "path": "Dockerfile"
   },
   {

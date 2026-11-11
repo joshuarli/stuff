@@ -4,7 +4,7 @@
    "display_name": "python",
    "ecosystem": "docker",
    "name": "python",
-   "purl": "pkg:docker/python"
+   "purl": "pkg:docker/python?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90"
   },
   {
    "display_name": "joshuarli-pytest-parallel",
@@ -94,7 +94,7 @@
  "edges": [
   {
    "condition": null,
-   "constraint": "3.13-slim",
+   "constraint": "sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90",
    "evidence": [
     {
      "locator": "L1",
@@ -104,11 +104,11 @@
    "from": ".:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
+   "resolution": "resolved",
    "resolved_version": "3.13-slim",
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/python@3.13-slim#"
+   "to": "pkg:docker/python@3.13-slim?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90#"
   },
   {
    "condition": null,
@@ -465,7 +465,7 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "c63c5653bcaaae2a0104c78ace24164e2192eada",
+   "blob": "9fb6c99bf02015dd8c150b32ea3a891096383c3e",
    "path": "Dockerfile"
   },
   {
@@ -481,15 +481,15 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "203c14a34c0059d474dcb0d5dc15ab96fe9f38b12fd47ac92e04b965ba719cf1",
+ "inputs_fingerprint": "f55358535cc47480b1c3d85d8099734a267a64d86281a5a97b9940dd84056cb6",
  "instances": [
   {
    "commit": null,
-   "component": "pkg:docker/python",
+   "component": "pkg:docker/python?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/python@3.13-slim#",
-   "purl": "pkg:docker/python@3.13-slim",
+   "id": "pkg:docker/python@3.13-slim?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90#",
+   "purl": "pkg:docker/python@3.13-slim?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",

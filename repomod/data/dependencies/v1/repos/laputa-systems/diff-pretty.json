@@ -1123,15 +1123,15 @@
  ],
  "inputs": [
   {
-   "blob": "a64ad1b37fde6599d1747b50298449766dce4131",
+   "blob": "f35d85a526e3e560e61e2bdba5f9d0930ee4adcb",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "66ab2d64e5f1d213257e7843f59be4a7690fc338",
+   "blob": "e351e22b51e36550b6c10597785eedc7bef889cf",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -1143,7 +1143,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "ef76a7ca0b75e714d078872fb5672e59b14aaafe",
+   "blob": "79fa36f0c2c15707d678cb58f7332d1db4219af6",
    "path": "Dockerfile"
   },
   {
@@ -1159,7 +1159,7 @@
    "path": "scrl/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "b74d88ed274ac0f9e6307c1534c91c2ecd671a7a2e4a9052de6555d80d5a4702",
+ "inputs_fingerprint": "c032eac5edf09fa12d26fc48d2b57417ecfa00e81a8fc8c432350f665f51cc40",
  "instances": [
   {
    "commit": null,

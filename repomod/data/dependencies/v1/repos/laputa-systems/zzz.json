@@ -179,15 +179,15 @@
  ],
  "inputs": [
   {
-   "blob": "225e9e96385df51330657cba4c4928e9cf28b330",
+   "blob": "4ff5248e971b9db28d018c760dbdb594723a0372",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "dda89e1ce23349f6339bc3a20a3a9ff05dc8a2e0",
+   "blob": "ea7b4bbbf5f1656956f6081566cbcbb1a71473fe",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -195,7 +195,7 @@
    "path": "Makefile"
   }
  ],
- "inputs_fingerprint": "42d4dabb8492da0d3ed23e087c89b125e5a0348f043a51328fcc11f9fe51054e",
+ "inputs_fingerprint": "2d10f62c4d95cc741b370c6028b4a2612398e58a0f0bc26583a9087a1651a2cf",
  "instances": [
   {
    "commit": null,

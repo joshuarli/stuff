@@ -397,12 +397,6 @@
    "purl": "pkg:generic/deser-yaml"
   },
   {
-   "display_name": "docs",
-   "ecosystem": "generic",
-   "name": "docs",
-   "purl": "pkg:generic/docs?download_url=https%3A%2F%2Fdocs"
-  },
-  {
    "display_name": "pipeline",
    "ecosystem": "generic",
    "name": "pipeline",
@@ -451,82 +445,10 @@
    "purl": "pkg:github/dtolnay/rust-toolchain"
   },
   {
-   "display_name": "rust-embedded/book",
-   "ecosystem": "github",
-   "name": "rust-embedded/book",
-   "purl": "pkg:github/rust-embedded/book"
-  },
-  {
-   "display_name": "rust-lang/backtrace-rs",
-   "ecosystem": "github",
-   "name": "rust-lang/backtrace-rs",
-   "purl": "pkg:github/rust-lang/backtrace-rs"
-  },
-  {
-   "display_name": "rust-lang/book",
-   "ecosystem": "github",
-   "name": "rust-lang/book",
-   "purl": "pkg:github/rust-lang/book"
-  },
-  {
-   "display_name": "rust-lang/cargo",
-   "ecosystem": "github",
-   "name": "rust-lang/cargo",
-   "purl": "pkg:github/rust-lang/cargo"
-  },
-  {
    "display_name": "rust-lang/crates-io-auth-action",
    "ecosystem": "github",
    "name": "rust-lang/crates-io-auth-action",
    "purl": "pkg:github/rust-lang/crates-io-auth-action"
-  },
-  {
-   "display_name": "rust-lang/edition-guide",
-   "ecosystem": "github",
-   "name": "rust-lang/edition-guide",
-   "purl": "pkg:github/rust-lang/edition-guide"
-  },
-  {
-   "display_name": "rust-lang/enzyme",
-   "ecosystem": "github",
-   "name": "rust-lang/enzyme",
-   "purl": "pkg:github/rust-lang/enzyme"
-  },
-  {
-   "display_name": "rust-lang/gcc",
-   "ecosystem": "github",
-   "name": "rust-lang/gcc",
-   "purl": "pkg:github/rust-lang/gcc"
-  },
-  {
-   "display_name": "rust-lang/llvm-project",
-   "ecosystem": "github",
-   "name": "rust-lang/llvm-project",
-   "purl": "pkg:github/rust-lang/llvm-project"
-  },
-  {
-   "display_name": "rust-lang/nomicon",
-   "ecosystem": "github",
-   "name": "rust-lang/nomicon",
-   "purl": "pkg:github/rust-lang/nomicon"
-  },
-  {
-   "display_name": "rust-lang/reference",
-   "ecosystem": "github",
-   "name": "rust-lang/reference",
-   "purl": "pkg:github/rust-lang/reference"
-  },
-  {
-   "display_name": "rust-lang/rust-by-example",
-   "ecosystem": "github",
-   "name": "rust-lang/rust-by-example",
-   "purl": "pkg:github/rust-lang/rust-by-example"
-  },
-  {
-   "display_name": "rust-lang/rustc-perf",
-   "ecosystem": "github",
-   "name": "rust-lang/rustc-perf",
-   "purl": "pkg:github/rust-lang/rustc-perf"
   },
   {
    "display_name": "ruff",
@@ -548,24 +470,6 @@
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[4].run",
-     "path": ".github/workflows/docs.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "url",
-   "to": "pkg:generic/docs?download_url=https%3A%2F%2Fdocs#"
-  },
   {
    "condition": null,
    "constraint": "nightly-2026-09-15",
@@ -2305,222 +2209,6 @@
    "scope": "dev",
    "source_kind": "workspace",
    "to": "pkg:generic/deser@0.10.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L30",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-embedded/book#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L34",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/backtrace-rs#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L13",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/book#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L5",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/cargo#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L21",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/edition-guide#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L42",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/enzyme#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L46",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/gcc#"
-  },
-  {
-   "condition": null,
-   "constraint": "rustc/23.1-2026-07-22",
-   "evidence": [
-    {
-     "locator": "L25",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/llvm-project#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/nomicon#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L9",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/reference#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L17",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/rust-by-example#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L38",
-     "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-    }
-   ],
-   "from": "deser-ini/tests/data/real-world/rust:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/rustc-perf#"
   },
   {
    "condition": null,
@@ -8203,14 +7891,6 @@
    "path": "deser-ini/Cargo.toml"
   },
   {
-   "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-   "path": "deser-ini/tests/data/real-world/ghostty/.gitmodules"
-  },
-  {
-   "blob": "9d04fae2375057b34c905bdb022347353fe90766",
-   "path": "deser-ini/tests/data/real-world/rust/.gitmodules"
-  },
-  {
    "blob": "c0166b7692e93d5386c4e6f5ddd7e7e7823db3d5",
    "path": "deser-ini/tests/data/suites/editorconfig/parser/CMakeLists.txt"
   },
@@ -8471,7 +8151,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "e6306c9132343a0900cf2c75382273730f47e1d15840988e58dbaae2ccf0450b",
+ "inputs_fingerprint": "65d5acdc2b45dce08ca01687dcec72cab2500f8b04e29bf8dcba5833fd59827f",
  "instances": [
   {
    "commit": null,
@@ -9333,19 +9013,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/docs?download_url=https%3A%2F%2Fdocs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/docs?download_url=https%3A%2F%2Fdocs#",
-   "purl": "pkg:generic/docs?download_url=https%3A%2F%2Fdocs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/pipeline-extras",
    "context": "",
    "first_party": true,
@@ -9476,58 +9143,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:github/rust-embedded/book",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-embedded/book#",
-   "purl": "pkg:github/rust-embedded/book",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-embedded/book",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/backtrace-rs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/backtrace-rs#",
-   "purl": "pkg:github/rust-lang/backtrace-rs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/backtrace-rs",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/book",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/book#",
-   "purl": "pkg:github/rust-lang/book",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/book",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/cargo",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/cargo#",
-   "purl": "pkg:github/rust-lang/cargo",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/cargo",
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:github/rust-lang/crates-io-auth-action",
    "context": "",
    "first_party": false,
@@ -9538,110 +9153,6 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/rust-lang/crates-io-auth-action",
    "version": "v1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/edition-guide",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/edition-guide#",
-   "purl": "pkg:github/rust-lang/edition-guide",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/edition-guide",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/enzyme",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/enzyme#",
-   "purl": "pkg:github/rust-lang/enzyme",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/enzyme",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/gcc",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/gcc#",
-   "purl": "pkg:github/rust-lang/gcc",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/gcc",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/llvm-project",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/llvm-project#",
-   "purl": "pkg:github/rust-lang/llvm-project",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/llvm-project",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/nomicon",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/nomicon#",
-   "purl": "pkg:github/rust-lang/nomicon",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/nomicon",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/reference",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/reference#",
-   "purl": "pkg:github/rust-lang/reference",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/reference",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/rust-by-example",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/rust-by-example#",
-   "purl": "pkg:github/rust-lang/rust-by-example",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/rust-by-example",
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:github/rust-lang/rustc-perf",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:github/rust-lang/rustc-perf#",
-   "purl": "pkg:github/rust-lang/rustc-perf",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/rust-lang/rustc-perf",
-   "version": null
   },
   {
    "commit": null,
@@ -9719,12 +9230,6 @@
    "locator": null,
    "message": "no lockfile at compile-times/serde-version/Cargo.lock",
    "path": "compile-times/serde-version/Cargo.lock"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at fuzz/Cargo.lock",
-   "path": "fuzz/Cargo.lock"
   }
  ],
  "projects": [
@@ -9797,16 +9302,6 @@
    "directory": "deser-hj",
    "ecosystem": "cargo",
    "id": "deser-hj:cargo"
-  },
-  {
-   "directory": "deser-ini/tests/data/real-world/ghostty",
-   "ecosystem": "generic",
-   "id": "deser-ini/tests/data/real-world/ghostty:generic"
-  },
-  {
-   "directory": "deser-ini/tests/data/real-world/rust",
-   "ecosystem": "generic",
-   "id": "deser-ini/tests/data/real-world/rust:generic"
   },
   {
    "directory": "deser-ini/tests/data/suites/editorconfig/parser",

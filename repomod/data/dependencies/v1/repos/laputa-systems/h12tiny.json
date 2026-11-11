@@ -1525,12 +1525,6 @@
    "purl": "pkg:generic/rust"
   },
   {
-   "display_name": "sh.rustup.rs",
-   "ecosystem": "generic",
-   "name": "sh.rustup.rs",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -1553,7 +1547,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -1575,7 +1569,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -1597,7 +1591,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -1619,7 +1613,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -1641,7 +1635,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1663,7 +1657,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1685,7 +1679,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -1707,7 +1701,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[14]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -1729,7 +1723,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[13]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -1751,7 +1745,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[15]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
@@ -1773,7 +1767,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[16]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
@@ -1795,7 +1789,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[17]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[17]",
      "path": "Cargo.lock"
     }
    ],
@@ -1817,7 +1811,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[19]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[19]",
      "path": "Cargo.lock"
     }
    ],
@@ -1839,7 +1833,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[20]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[20]",
      "path": "Cargo.lock"
     }
    ],
@@ -1861,7 +1855,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[22]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[22]",
      "path": "Cargo.lock"
     }
    ],
@@ -1883,7 +1877,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[21]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[21]",
      "path": "Cargo.lock"
     }
    ],
@@ -1898,14 +1892,14 @@
   },
   {
    "condition": "feature:client-sync",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-client-sync",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[8]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -1913,21 +1907,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-sync@0.8.0#"
+   "to": "pkg:generic/h12tiny-client-sync@0.9.0#"
   },
   {
    "condition": "feature:client",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-client",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[7]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1935,21 +1929,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client@0.8.0#"
+   "to": "pkg:generic/h12tiny-client@0.9.0#"
   },
   {
    "condition": "feature:core",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-core",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -1957,21 +1951,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.8.0#"
+   "to": "pkg:generic/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:server",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-server",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[10]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -1979,21 +1973,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-server@0.8.0#"
+   "to": "pkg:generic/h12tiny-server@0.9.0#"
   },
   {
    "condition": "feature:util",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-util",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[11]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -2001,21 +1995,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-util@0.8.0#"
+   "to": "pkg:generic/h12tiny-util@0.9.0#"
   },
   {
    "condition": "feature:web",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-web",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[12]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -2023,10 +2017,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-web@0.8.0#"
+   "to": "pkg:generic/h12tiny-web@0.9.0#"
   },
   {
    "condition": null,
@@ -2037,7 +2031,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny,version=0.8.0].dependencies[18]",
+     "locator": "package[name=h12tiny,version=0.9.0].dependencies[18]",
      "path": "Cargo.lock"
     }
    ],
@@ -2601,7 +2595,7 @@
    "resolution": "resolved",
    "resolved_version": "0.8.0",
    "scope": "runtime",
-   "source_kind": "workspace",
+   "source_kind": "path",
    "to": "pkg:generic/h12tiny@0.8.0#"
   },
   {
@@ -2624,24 +2618,6 @@
   },
   {
    "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L26",
-     "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
-    }
-   ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "url",
-   "to": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#"
-  },
-  {
-   "condition": null,
    "constraint": "1.5.0",
    "evidence": [
     {
@@ -2649,7 +2625,7 @@
      "path": "crates/h12tiny-client-normalize/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-normalize,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-client-normalize,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -2671,7 +2647,7 @@
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -2693,7 +2669,7 @@
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -2715,7 +2691,7 @@
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -2737,7 +2713,7 @@
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2752,14 +2728,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-client-normalize",
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -2767,21 +2743,21 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-normalize@0.8.0#"
+   "to": "pkg:generic/h12tiny-client-normalize@0.9.0#"
   },
   {
    "condition": "feature:tls",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-tls-system",
      "path": "crates/h12tiny-client-sync/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -2789,10 +2765,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-tls-system@0.8.0#"
+   "to": "pkg:generic/h12tiny-tls-system@0.9.0#"
   },
   {
    "condition": null,
@@ -2803,7 +2779,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -2825,7 +2801,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -2847,7 +2823,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -2869,7 +2845,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2891,7 +2867,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[8]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -2913,7 +2889,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[7]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -2935,7 +2911,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -2957,7 +2933,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -2979,7 +2955,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[10]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -3001,7 +2977,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[11]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -3023,7 +2999,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[13]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -3045,7 +3021,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[15]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
@@ -3067,7 +3043,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[16]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
@@ -3089,7 +3065,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[14]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -3104,14 +3080,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-client-normalize",
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3119,21 +3095,21 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-normalize@0.8.0#"
+   "to": "pkg:generic/h12tiny-client-normalize@0.9.0#"
   },
   {
    "condition": null,
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-core",
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3141,21 +3117,21 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.8.0#"
+   "to": "pkg:generic/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:tls",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-tls-system",
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3163,10 +3139,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-tls-system@0.8.0#"
+   "to": "pkg:generic/h12tiny-tls-system@0.9.0#"
   },
   {
    "condition": null,
@@ -3177,7 +3153,7 @@
      "path": "crates/h12tiny-client/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-client,version=0.8.0].dependencies[12]",
+     "locator": "package[name=h12tiny-client,version=0.9.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -3199,7 +3175,7 @@
      "path": "crates/h12tiny-core/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-core,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-core,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -3221,7 +3197,7 @@
      "path": "crates/h12tiny-core/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-core,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-core,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -3243,7 +3219,7 @@
      "path": "crates/h12tiny-core/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-core,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-core,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -3265,7 +3241,7 @@
      "path": "crates/h12tiny-core/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-core,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-core,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3287,7 +3263,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -3309,7 +3285,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -3331,7 +3307,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3353,7 +3329,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -3375,7 +3351,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3397,7 +3373,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[7]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -3419,7 +3395,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3441,7 +3417,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[8]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -3463,7 +3439,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -3485,7 +3461,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[11]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -3507,7 +3483,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[12]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -3522,14 +3498,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-core",
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3537,10 +3513,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.8.0#"
+   "to": "pkg:generic/h12tiny-core@0.9.0#"
   },
   {
    "condition": null,
@@ -3551,7 +3527,7 @@
      "path": "crates/h12tiny-server/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-server,version=0.8.0].dependencies[10]",
+     "locator": "package[name=h12tiny-server,version=0.9.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -3573,7 +3549,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -3595,7 +3571,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -3617,7 +3593,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3639,7 +3615,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3661,7 +3637,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3683,7 +3659,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3705,7 +3681,7 @@
      "path": "crates/h12tiny-tls-system/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -3727,7 +3703,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -3749,7 +3725,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3771,7 +3747,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -3793,7 +3769,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -3815,7 +3791,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -3837,7 +3813,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -3859,7 +3835,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[7]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -3881,7 +3857,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -3903,7 +3879,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -3925,7 +3901,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[8]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -3947,7 +3923,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -3969,7 +3945,7 @@
      "path": "crates/h12tiny-util/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-util,version=0.8.0].dependencies[10]",
+     "locator": "package[name=h12tiny-util,version=0.9.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -3991,7 +3967,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[0]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -4013,7 +3989,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[1]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -4035,7 +4011,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[3]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -4057,7 +4033,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -4079,7 +4055,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[2]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -4101,7 +4077,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[4]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -4115,6 +4091,28 @@
    "to": "pkg:cargo/futures-util@0.3.34#"
   },
   {
+   "condition": "feature:websocket-client",
+   "constraint": "0.4.3",
+   "evidence": [
+    {
+     "locator": "dependencies.getrandom",
+     "path": "crates/h12tiny-web/Cargo.toml"
+    },
+    {
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/h12tiny-web:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.4.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/getrandom@0.4.3#"
+  },
+  {
    "condition": null,
    "constraint": "0.1.5",
    "evidence": [
@@ -4123,7 +4121,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[10]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -4145,7 +4143,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[9]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -4167,7 +4165,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[8]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -4189,7 +4187,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[11]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -4211,7 +4209,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[13]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -4233,7 +4231,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[13]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -4255,7 +4253,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[15]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
@@ -4277,7 +4275,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[16]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[17]",
      "path": "Cargo.lock"
     }
    ],
@@ -4292,14 +4290,14 @@
   },
   {
    "condition": "feature:websocket",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-core",
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[5]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -4307,21 +4305,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.8.0#"
+   "to": "pkg:generic/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:upgrade",
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-server",
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[6]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -4329,21 +4327,21 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-server@0.8.0#"
+   "to": "pkg:generic/h12tiny-server@0.9.0#"
   },
   {
    "condition": null,
-   "constraint": "0.8.0",
+   "constraint": "0.9.0",
    "evidence": [
     {
      "locator": "dependencies.h12tiny-util",
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[7]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -4351,21 +4349,21 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.8.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-util@0.8.0#"
+   "to": "pkg:generic/h12tiny-util@0.9.0#"
   },
   {
    "condition": "feature:websocket",
-   "constraint": "0.10.1",
+   "constraint": "0.10.2",
    "evidence": [
     {
      "locator": "dependencies.fastwebsockets",
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[12]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -4373,10 +4371,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.10.1",
+   "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.1#"
+   "to": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2#"
   },
   {
    "condition": null,
@@ -4387,7 +4385,7 @@
      "path": "crates/h12tiny-web/Cargo.toml"
     },
     {
-     "locator": "package[name=h12tiny-web,version=0.8.0].dependencies[14]",
+     "locator": "package[name=h12tiny-web,version=0.9.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
@@ -4497,7 +4495,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[0]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[0]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4519,7 +4517,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[1]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[1]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4541,7 +4539,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[2]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[2]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4563,7 +4561,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[3]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[3]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4585,7 +4583,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[3]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[3]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4607,7 +4605,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[4]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[4]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -4629,7 +4627,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.1].dependencies[5]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[5]",
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
     }
    ],
@@ -5225,16 +5223,20 @@
     {
      "locator": "dependencies.bytes",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.12.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/bytes#"
+   "to": "pkg:cargo/bytes@1.12.1#"
   },
   {
    "condition": null,
@@ -5261,16 +5263,20 @@
     {
      "locator": "dependencies.fnv",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.7",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/fnv#"
+   "to": "pkg:cargo/fnv@1.0.7#"
   },
   {
    "condition": null,
@@ -5279,16 +5285,20 @@
     {
      "locator": "dependencies.futures-core",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-core#"
+   "to": "pkg:cargo/futures-core@0.3.34#"
   },
   {
    "condition": null,
@@ -5297,16 +5307,20 @@
     {
      "locator": "dependencies.futures-io",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-io#"
+   "to": "pkg:cargo/futures-io@0.3.34#"
   },
   {
    "condition": null,
@@ -5315,16 +5329,20 @@
     {
      "locator": "dependencies.futures-sink",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[4]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-sink#"
+   "to": "pkg:cargo/futures-sink@0.3.34#"
   },
   {
    "condition": null,
@@ -5351,16 +5369,20 @@
     {
      "locator": "dependencies.http",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[5]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/http#"
+   "to": "pkg:cargo/http@1.5.0#"
   },
   {
    "condition": null,
@@ -5369,16 +5391,20 @@
     {
      "locator": "dependencies.indexmap",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[6]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/indexmap#"
+   "to": "pkg:cargo/indexmap@2.14.2#"
   },
   {
    "condition": null,
@@ -5387,16 +5413,20 @@
     {
      "locator": "dependencies.atomic-waker",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[7]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-atomic-waker#"
+   "to": "pkg:cargo/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -5405,16 +5435,20 @@
     {
      "locator": "dependencies.futures-lite",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[8]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-futures-lite#"
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5423,16 +5457,20 @@
     {
      "locator": "dependencies.log",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[9]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -5441,16 +5479,20 @@
     {
      "locator": "dependencies.pin-project-lite",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[10]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite#"
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
   },
   {
    "condition": null,
@@ -5500,11 +5542,11 @@
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde#"
+   "to": "pkg:cargo/serde@1.0.229#"
   },
   {
    "condition": null,
@@ -5531,16 +5573,20 @@
     {
      "locator": "dependencies.slab",
      "path": "crates/laputa-h2-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-h2-futures-lite,version=0.4.20-beta.2].dependencies[11]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.12",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/slab#"
+   "to": "pkg:cargo/slab@0.4.12#"
   },
   {
    "condition": "feature:tracing",
@@ -5572,11 +5618,11 @@
    "from": "crates/laputa-h2-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.5.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/walkdir#"
+   "to": "pkg:cargo/walkdir@2.5.0#"
   },
   {
    "condition": null,
@@ -5621,16 +5667,20 @@
     {
      "locator": "dependencies.bytes",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.12.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/bytes#"
+   "to": "pkg:cargo/bytes@1.12.1#"
   },
   {
    "condition": null,
@@ -5657,16 +5707,20 @@
     {
      "locator": "dev-dependencies.futures-channel",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-channel#"
+   "to": "pkg:cargo/futures-channel@0.3.34#"
   },
   {
    "condition": null,
@@ -5675,16 +5729,20 @@
     {
      "locator": "dependencies.futures-channel",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-channel#"
+   "to": "pkg:cargo/futures-channel@0.3.34#"
   },
   {
    "condition": "feature:http1",
@@ -5693,16 +5751,20 @@
     {
      "locator": "dependencies.futures-core",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-core#"
+   "to": "pkg:cargo/futures-core@0.3.34#"
   },
   {
    "condition": null,
@@ -5711,16 +5773,20 @@
     {
      "locator": "dev-dependencies.futures-io",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-io#"
+   "to": "pkg:cargo/futures-io@0.3.34#"
   },
   {
    "condition": null,
@@ -5729,16 +5795,20 @@
     {
      "locator": "dependencies.futures-io",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-io#"
+   "to": "pkg:cargo/futures-io@0.3.34#"
   },
   {
    "condition": null,
@@ -5752,47 +5822,11 @@
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.34",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/futures-util#"
-  },
-  {
-   "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.http",
-     "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
-    }
-   ],
-   "from": "crates/laputa-hyper-futures-lite:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/http#"
-  },
-  {
-   "condition": null,
-   "constraint": "1",
-   "evidence": [
-    {
-     "locator": "dependencies.http-body",
-     "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
-    }
-   ],
-   "from": "crates/laputa-hyper-futures-lite:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/http-body#"
+   "to": "pkg:cargo/futures-util@0.3.34#"
   },
   {
    "condition": null,
@@ -5806,11 +5840,11 @@
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.1.5",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/http-body-util#"
+   "to": "pkg:cargo/http-body-util@0.1.5#"
   },
   {
    "condition": "feature:ffi",
@@ -5824,11 +5858,55 @@
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.1.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/http-body-util#"
+   "to": "pkg:cargo/http-body-util@0.1.5#"
+  },
+  {
+   "condition": null,
+   "constraint": "1",
+   "evidence": [
+    {
+     "locator": "dependencies.http-body",
+     "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/laputa-hyper-futures-lite:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/http-body@1.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "1",
+   "evidence": [
+    {
+     "locator": "dependencies.http",
+     "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/laputa-hyper-futures-lite:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/http@1.5.0#"
   },
   {
    "condition": "feature:http1",
@@ -5837,16 +5915,20 @@
     {
      "locator": "dependencies.httparse",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[6]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "1.10.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/httparse#"
+   "to": "pkg:cargo/httparse@1.10.1#"
   },
   {
    "condition": "feature:server",
@@ -5855,16 +5937,20 @@
     {
      "locator": "dependencies.httpdate",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[7]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "1.0.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/httpdate#"
+   "to": "pkg:cargo/httpdate@1.0.3#"
   },
   {
    "condition": "feature:http1",
@@ -5873,16 +5959,20 @@
     {
      "locator": "dependencies.itoa",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[8]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "1.0.18",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa#"
+   "to": "pkg:cargo/itoa@1.0.18#"
   },
   {
    "condition": "feature:http1",
@@ -5891,16 +5981,20 @@
     {
      "locator": "dependencies.atomic-waker",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[9]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-atomic-waker#"
+   "to": "pkg:cargo/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -5909,16 +6003,20 @@
     {
      "locator": "dependencies.futures-lite",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[10]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-futures-lite#"
+   "to": "pkg:cargo/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5932,11 +6030,11 @@
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-smol#"
+   "to": "pkg:cargo/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -5945,16 +6043,20 @@
     {
      "locator": "dev-dependencies.pin-project-lite",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[12]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.2.17",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite#"
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
   },
   {
    "condition": "feature:client",
@@ -5963,16 +6065,20 @@
     {
      "locator": "dependencies.pin-project-lite",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[12]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.2.17",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/pin-project-lite#"
+   "to": "pkg:cargo/pin-project-lite@0.2.17#"
   },
   {
    "condition": null,
@@ -6004,11 +6110,11 @@
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.0.229",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/serde#"
+   "to": "pkg:cargo/serde@1.0.229#"
   },
   {
    "condition": null,
@@ -6035,16 +6141,20 @@
     {
      "locator": "dependencies.smallvec",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[13]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "1.16.4",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/smallvec#"
+   "to": "pkg:cargo/smallvec@1.16.4#"
   },
   {
    "condition": null,
@@ -6125,16 +6235,20 @@
     {
      "locator": "dependencies.want",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[14]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "0.3.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/want#"
+   "to": "pkg:cargo/want@0.3.2#"
   },
   {
    "condition": "feature:http2",
@@ -6143,12 +6257,16 @@
     {
      "locator": "dependencies.h2",
      "path": "crates/laputa-hyper-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-hyper-futures-lite,version=1.12.0-beta.1].dependencies[11]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "crates/laputa-hyper-futures-lite:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.4.20-beta.2",
    "scope": "runtime",
    "source_kind": "workspace",
@@ -18615,11 +18733,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "481545cc150e9ad4363c690582ba6837f7a80575",
+   "blob": "e4ba26f80adbdfd989f25928d78f3e1df38acef2",
    "path": "Cargo.lock"
   },
   {
-   "blob": "d0c8b509bb4564a1650e80b34c7d8d56e4ad883a",
+   "blob": "4012f64809080ac21ae0fcf6e1510ccdd84b6380",
    "path": "Cargo.toml"
   },
   {
@@ -18643,47 +18761,47 @@
    "path": "benchmarks/twelve-dollar/crates/h12tiny-app/Cargo.toml"
   },
   {
-   "blob": "7318e82213f3c48fab7ec7a10f7e87ff2492f91f",
+   "blob": "517610b12f201dab016b9edcda0362c359d51041",
    "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
   },
   {
-   "blob": "46d5895f00472bb3469ad2851cf81b052ecd51a9",
+   "blob": "344820aae504809a09572dafcd86d3b26b907d9a",
    "path": "crates/h12tiny-client-normalize/Cargo.toml"
   },
   {
-   "blob": "eeb72ea212d4056bcae961468f1e8986f5279e1a",
+   "blob": "a0023520523be3d10a49d8f905eb8319a8adcbe5",
    "path": "crates/h12tiny-client-sync/Cargo.toml"
   },
   {
-   "blob": "d0d3619769a4a9bc9012f33310bcf5a701e77b51",
+   "blob": "5373558e6077c5ec4259cc849052db13832477e0",
    "path": "crates/h12tiny-client/Cargo.toml"
   },
   {
-   "blob": "25f82ca3bf99012c8d8258dfbd5b82ff4da98a7f",
+   "blob": "703931f89841b8a0cb05a7b63a67c9c045d50630",
    "path": "crates/h12tiny-core/Cargo.toml"
   },
   {
-   "blob": "e5509766f140fad970b505278aec1a1426ab5c7d",
+   "blob": "81b400571c4b2003ed65376aef9a733488fd3c3b",
    "path": "crates/h12tiny-server/Cargo.toml"
   },
   {
-   "blob": "b1db3e365bbc1eb71e84efa4e299095bd7fc0241",
+   "blob": "36a9a259589992a75e8dc13110d267c7a2f81400",
    "path": "crates/h12tiny-tls-system/Cargo.toml"
   },
   {
-   "blob": "1bc7fce064505d8fdac7b0546a2d59ff95768a12",
+   "blob": "f65031bddb2afeeaa6cd6d25ef70c213141c29d3",
    "path": "crates/h12tiny-util/Cargo.toml"
   },
   {
-   "blob": "4f65cdd864ad8e55c45207bfc2b52a792017003a",
+   "blob": "2961509270223043d58c54b6d382c48158a5bc41",
    "path": "crates/h12tiny-web/Cargo.toml"
   },
   {
-   "blob": "49c05f136ecf2dda1424a7fe119de4363e3dfed4",
+   "blob": "33096365b042d960428a629b3c7b7e661fffcdbc",
    "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.lock"
   },
   {
-   "blob": "54f0013f8a27388092bd03f559fcf4e182a81495",
+   "blob": "3ae843aed1221b6ad9d3d9ff45ca23aa29c5318a",
    "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
   },
   {
@@ -18763,7 +18881,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "62816051d00ed095e09aea0d62a5a29fc31a34b4657fca1fe4b9b3d052baaa15",
+ "inputs_fingerprint": "cd5871738f002eeb504ca5ce00b262d953e83dfd5caee066379c61bfba62fd34",
  "instances": [
   {
    "commit": null,
@@ -19511,19 +19629,6 @@
    "component": "pkg:cargo/fnv",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/fnv#",
-   "purl": "pkg:cargo/fnv",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/fnv",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/fnv@1.0.7#",
    "purl": "pkg:cargo/fnv@1.0.7",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19576,19 +19681,6 @@
    "component": "pkg:cargo/futures-channel",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/futures-channel#",
-   "purl": "pkg:cargo/futures-channel",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/futures-channel",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/futures-channel@0.3.32#",
    "purl": "pkg:cargo/futures-channel@0.3.32",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19609,19 +19701,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.34"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/futures-core",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/futures-core#",
-   "purl": "pkg:cargo/futures-core",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -19745,19 +19824,6 @@
    "component": "pkg:cargo/futures-sink",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/futures-sink#",
-   "purl": "pkg:cargo/futures-sink",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/futures-sink",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/futures-sink@0.3.32#",
    "purl": "pkg:cargo/futures-sink@0.3.32",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -19804,19 +19870,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.34"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/futures-util",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/futures-util#",
-   "purl": "pkg:cargo/futures-util",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20015,32 +20068,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/http-body",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/http-body#",
-   "purl": "pkg:cargo/http-body",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/http-body-util",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/http-body-util#",
-   "purl": "pkg:cargo/http-body-util",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/http-body-util",
    "context": "",
    "first_party": false,
@@ -20083,19 +20110,6 @@
    "component": "pkg:cargo/httparse",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/httparse#",
-   "purl": "pkg:cargo/httparse",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/httparse",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/httparse@1.10.1#",
    "purl": "pkg:cargo/httparse@1.10.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20103,19 +20117,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.10.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/httpdate",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/httpdate#",
-   "purl": "pkg:cargo/httpdate",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20148,19 +20149,6 @@
    "component": "pkg:cargo/indexmap",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/indexmap#",
-   "purl": "pkg:cargo/indexmap",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/indexmap",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/indexmap@2.14.2#",
    "purl": "pkg:cargo/indexmap@2.14.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20168,19 +20156,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.14.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/itoa",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/itoa#",
-   "purl": "pkg:cargo/itoa",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20415,19 +20390,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/laputa-atomic-waker",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/laputa-atomic-waker#",
-   "purl": "pkg:cargo/laputa-atomic-waker",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -20720,19 +20682,6 @@
    "component": "pkg:cargo/log",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/log#",
-   "purl": "pkg:cargo/log",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/log",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/log@0.4.35#",
    "purl": "pkg:cargo/log@0.4.35",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -20948,19 +20897,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "4.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/pin-project-lite",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/pin-project-lite#",
-   "purl": "pkg:cargo/pin-project-lite",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -21578,19 +21514,6 @@
    "component": "pkg:cargo/serde",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/serde#",
-   "purl": "pkg:cargo/serde",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/serde",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/serde@1.0.229#",
    "purl": "pkg:cargo/serde@1.0.229",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21747,19 +21670,6 @@
    "component": "pkg:cargo/slab",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/slab#",
-   "purl": "pkg:cargo/slab",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/slab",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/slab@0.4.12#",
    "purl": "pkg:cargo/slab@0.4.12",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -21767,19 +21677,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.4.12"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/smallvec",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/smallvec#",
-   "purl": "pkg:cargo/smallvec",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -22248,19 +22145,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.5.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/want",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/want#",
-   "purl": "pkg:cargo/want",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -22739,22 +22623,35 @@
    "purl": "pkg:generic/h12tiny-client-normalize@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-client-normalize",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-client-normalize@0.9.0#",
+   "purl": "pkg:generic/h12tiny-client-normalize@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
    "component": "pkg:generic/h12tiny-client-sync",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/h12tiny-client-sync@0.8.0#",
-   "purl": "pkg:generic/h12tiny-client-sync@0.8.0",
+   "id": "pkg:generic/h12tiny-client-sync@0.9.0#",
+   "purl": "pkg:generic/h12tiny-client-sync@0.9.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.8.0"
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22765,9 +22662,22 @@
    "purl": "pkg:generic/h12tiny-client@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-client",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-client@0.9.0#",
+   "purl": "pkg:generic/h12tiny-client@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22778,9 +22688,22 @@
    "purl": "pkg:generic/h12tiny-core@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-core@0.9.0#",
+   "purl": "pkg:generic/h12tiny-core@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22791,22 +22714,35 @@
    "purl": "pkg:generic/h12tiny-server@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-server",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-server@0.9.0#",
+   "purl": "pkg:generic/h12tiny-server@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
    "component": "pkg:generic/h12tiny-tls-system",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/h12tiny-tls-system@0.8.0#",
-   "purl": "pkg:generic/h12tiny-tls-system@0.8.0",
+   "id": "pkg:generic/h12tiny-tls-system@0.9.0#",
+   "purl": "pkg:generic/h12tiny-tls-system@0.9.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.8.0"
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22817,9 +22753,22 @@
    "purl": "pkg:generic/h12tiny-util@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-util",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-util@0.9.0#",
+   "purl": "pkg:generic/h12tiny-util@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22830,9 +22779,22 @@
    "purl": "pkg:generic/h12tiny-web@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny-web",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny-web@0.9.0#",
+   "purl": "pkg:generic/h12tiny-web@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22843,9 +22805,22 @@
    "purl": "pkg:generic/h12tiny@0.8.0",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.8.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/h12tiny",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:generic/h12tiny@0.9.0#",
+   "purl": "pkg:generic/h12tiny@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
   },
   {
    "commit": null,
@@ -22878,13 +22853,13 @@
    "component": "pkg:generic/laputa-fastwebsockets-futures-lite",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.1#",
-   "purl": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.1",
+   "id": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2#",
+   "purl": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "path",
    "vcs_url": null,
-   "version": "0.10.1"
+   "version": "0.10.2"
   },
   {
    "commit": null,
@@ -22939,19 +22914,6 @@
    "version": "nightly-2026-09-15"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -22986,6 +22948,12 @@
    "path": "Makefile"
   },
   {
+   "kind": "dynamic_value",
+   "locator": "L28",
+   "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.3/$arch-unknown-linux-gnu/rustup-init' is not literal",
+   "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
+  },
+  {
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for Makefile",
@@ -23002,18 +22970,6 @@
    "locator": null,
    "message": "no lockfile at crates/laputa-h2-futures-lite/Cargo.lock",
    "path": "crates/laputa-h2-futures-lite/Cargo.lock"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at crates/laputa-h2-futures-lite/fuzz/Cargo.lock",
-   "path": "crates/laputa-h2-futures-lite/fuzz/Cargo.lock"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at crates/laputa-hyper-futures-lite/Cargo.lock",
-   "path": "crates/laputa-hyper-futures-lite/Cargo.lock"
   },
   {
    "kind": "unsupported_format",

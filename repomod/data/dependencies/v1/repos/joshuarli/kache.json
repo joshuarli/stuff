@@ -361,12 +361,6 @@
    "purl": "pkg:cargo/jobserver"
   },
   {
-   "display_name": "js-sys",
-   "ecosystem": "cargo",
-   "name": "js-sys",
-   "purl": "pkg:cargo/js-sys"
-  },
-  {
    "display_name": "kunobi-daemon",
    "ecosystem": "cargo",
    "name": "kunobi-daemon",
@@ -2781,10 +2775,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "build",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -4911,10 +4905,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -5397,10 +5391,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.2.41",
+   "resolved_version": "0.2.43",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/jiff@0.2.41#"
+   "to": "pkg:cargo/jiff@0.2.43#"
   },
   {
    "condition": null,
@@ -5487,10 +5481,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -5523,10 +5517,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -5595,10 +5589,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -6127,24 +6121,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=hashbrown,version=0.16.1].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/hashbrown@0.16.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/foldhash@0.2.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=hashbrown,version=0.17.1].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -6307,11 +6283,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff-core,version=0.1.4].dependencies[0]",
+     "locator": "package[name=jiff-core,version=0.1.5].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff-core@0.1.4#",
+   "from": "pkg:cargo/jiff-core@0.1.5#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6325,29 +6301,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff-static,version=0.2.41].dependencies[0]",
+     "locator": "package[name=jiff-static,version=0.2.43].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff-static@0.2.41#",
+   "from": "pkg:cargo/jiff-static@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.1.4",
+   "resolved_version": "0.1.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/jiff-core@0.1.4#"
+   "to": "pkg:cargo/jiff-core@0.1.5#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff-static,version=0.2.41].dependencies[1]",
+     "locator": "package[name=jiff-static,version=0.2.43].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff-static@0.2.41#",
+   "from": "pkg:cargo/jiff-static@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6361,11 +6337,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff-static,version=0.2.41].dependencies[2]",
+     "locator": "package[name=jiff-static,version=0.2.43].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff-static@0.2.41#",
+   "from": "pkg:cargo/jiff-static@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6379,11 +6355,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff-static,version=0.2.41].dependencies[3]",
+     "locator": "package[name=jiff-static,version=0.2.43].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff-static@0.2.41#",
+   "from": "pkg:cargo/jiff-static@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6397,47 +6373,47 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[0]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.1.4",
+   "resolved_version": "0.1.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/jiff-core@0.1.4#"
+   "to": "pkg:cargo/jiff-core@0.1.5#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[1]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.2.41",
+   "resolved_version": "0.2.43",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/jiff-static@0.2.41#"
+   "to": "pkg:cargo/jiff-static@0.2.43#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[2]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6451,11 +6427,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[4]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6469,11 +6445,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[3]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6487,11 +6463,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=jiff,version=0.2.41].dependencies[5]",
+     "locator": "package[name=jiff,version=0.2.43].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/jiff@0.2.41#",
+   "from": "pkg:cargo/jiff@0.2.43#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6535,42 +6511,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/libc@0.2.191#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=js-sys,version=0.3.107].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/js-sys@0.3.107#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cfg-if@1.0.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=js-sys,version=0.3.107].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/js-sys@0.3.107#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.130",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wasm-bindgen@0.2.130#"
   },
   {
    "condition": null,
@@ -7621,29 +7561,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rsqlite-vfs,version=0.1.1].dependencies[0]",
+     "locator": "package[name=rsqlite-vfs,version=0.2.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rsqlite-vfs@0.1.1#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.16.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/hashbrown@0.16.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rsqlite-vfs,version=0.1.1].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rsqlite-vfs@0.1.1#",
+   "from": "pkg:cargo/rsqlite-vfs@0.2.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7773,10 +7695,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.5.5",
+   "resolved_version": "0.6.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/sqlite-wasm-rs@0.5.5#"
+   "to": "pkg:cargo/sqlite-wasm-rs@0.6.3#"
   },
   {
    "condition": null,
@@ -8223,10 +8145,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -8331,10 +8253,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -8521,11 +8443,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=sqlite-wasm-rs,version=0.5.5].dependencies[0]",
+     "locator": "package[name=sqlite-wasm-rs,version=0.6.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/sqlite-wasm-rs@0.5.5#",
+   "from": "pkg:cargo/sqlite-wasm-rs@0.6.3#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -8539,54 +8461,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=sqlite-wasm-rs,version=0.5.5].dependencies[1]",
+     "locator": "package[name=sqlite-wasm-rs,version=0.6.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/sqlite-wasm-rs@0.5.5#",
+   "from": "pkg:cargo/sqlite-wasm-rs@0.6.3#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.3.107",
+   "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/js-sys@0.3.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=sqlite-wasm-rs,version=0.5.5].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/sqlite-wasm-rs@0.5.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rsqlite-vfs@0.1.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=sqlite-wasm-rs,version=0.5.5].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/sqlite-wasm-rs@0.5.5#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.130",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wasm-bindgen@0.2.130#"
+   "to": "pkg:cargo/rsqlite-vfs@0.2.0#"
   },
   {
    "condition": null,
@@ -8701,11 +8587,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -8719,11 +8605,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -8737,11 +8623,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -8925,10 +8811,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -9591,10 +9477,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -10513,19 +10399,19 @@
  ],
  "inputs": [
   {
-   "blob": "8df500de51250700051292013d0bea8c3262246b",
+   "blob": "a66aeb83cdff1d4f4ae6cb8b8cf08adc5616cf39",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "398c327963e3662e9e5fe7a889b8797b23e9a9d6",
+   "blob": "f10cd17fec2faf662afe4b6344ac19b4cd667053",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "84e46c787586f2cf0659e274ecf0a4e55fdb5845",
+   "blob": "3a1f4a32aa34d7ae1e4d0c00924378984b21b7c4",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "53fa33ef2daa9a92fc8236558b747fb5f7c6d632",
+   "blob": "08c81d68579edf30e69da1f9ebcf40c5e5ed6a18",
    "path": "Cargo.lock"
   },
   {
@@ -10533,7 +10419,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "c935e51c95d74028e373af64c02f89012492e93b",
+   "blob": "aa5ed34627297c235ce68381b638266c462b4264",
    "path": "Dockerfile"
   },
   {
@@ -11037,7 +10923,7 @@
    "path": "test-projects/stale-check/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "99954977d4400f79951444bc95bfb08a101da0fab6d2a7f1a15885cd1f47341c",
+ "inputs_fingerprint": "854952a281ba1645bfccdcf7b6202a119ff1dc7d861b363e6dc70328a6c1f78e",
  "instances": [
   {
    "commit": null,
@@ -11785,19 +11671,6 @@
    "component": "pkg:cargo/hashbrown",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/hashbrown@0.16.1#",
-   "purl": "pkg:cargo/hashbrown@0.16.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.16.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/hashbrown",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/hashbrown@0.17.1#",
    "purl": "pkg:cargo/hashbrown@0.17.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -11873,42 +11746,55 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/jiff-core",
+   "component": "pkg:cargo/itoa",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/jiff-core@0.1.4#",
-   "purl": "pkg:cargo/jiff-core@0.1.4",
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.4"
+   "version": "1.0.19"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/jiff-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/jiff-core@0.1.5#",
+   "purl": "pkg:cargo/jiff-core@0.1.5",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.5"
   },
   {
    "commit": null,
    "component": "pkg:cargo/jiff-static",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/jiff-static@0.2.41#",
-   "purl": "pkg:cargo/jiff-static@0.2.41",
+   "id": "pkg:cargo/jiff-static@0.2.43#",
+   "purl": "pkg:cargo/jiff-static@0.2.43",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.2.41"
+   "version": "0.2.43"
   },
   {
    "commit": null,
    "component": "pkg:cargo/jiff",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/jiff@0.2.41#",
-   "purl": "pkg:cargo/jiff@0.2.41",
+   "id": "pkg:cargo/jiff@0.2.43#",
+   "purl": "pkg:cargo/jiff@0.2.43",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.2.41"
+   "version": "0.2.43"
   },
   {
    "commit": null,
@@ -11922,19 +11808,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.35"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/js-sys",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/js-sys@0.3.107#",
-   "purl": "pkg:cargo/js-sys@0.3.107",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.3.107"
   },
   {
    "commit": null,
@@ -12539,13 +12412,13 @@
    "component": "pkg:cargo/rsqlite-vfs",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rsqlite-vfs@0.1.1#",
-   "purl": "pkg:cargo/rsqlite-vfs@0.1.1",
+   "id": "pkg:cargo/rsqlite-vfs@0.2.0#",
+   "purl": "pkg:cargo/rsqlite-vfs@0.2.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.1"
+   "version": "0.2.0"
   },
   {
    "commit": null,
@@ -12838,13 +12711,13 @@
    "component": "pkg:cargo/sqlite-wasm-rs",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/sqlite-wasm-rs@0.5.5#",
-   "purl": "pkg:cargo/sqlite-wasm-rs@0.5.5",
+   "id": "pkg:cargo/sqlite-wasm-rs@0.6.3#",
+   "purl": "pkg:cargo/sqlite-wasm-rs@0.6.3",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.5.5"
+   "version": "0.6.3"
   },
   {
    "commit": null,
@@ -12877,13 +12750,13 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,
@@ -14047,7 +13920,7 @@
   {
    "kind": "dynamic_value",
    "locator": "L30",
-   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-4c2254e/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/llvm-prebuilt-musl/releases/download/llvm-musl-23.1.5-c4f9b08/clang+llvm-23.1.5-${arch}-linux-musl.tar.xz' is not literal",
    "path": "Dockerfile"
   },
   {

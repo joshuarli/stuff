@@ -2693,7 +2693,7 @@
    "path": "zlib-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "9ebae9e188ed471e20ca1efebeb19423274d7672bb6a8e064876a0285f500661",
+ "inputs_fingerprint": "f175f6f672769b924822916edd9bf012bbe9331cd5f47a9cbf7be9498bed5388",
  "instances": [
   {
    "commit": null,
@@ -3619,14 +3619,7 @@
    "version": "0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d"
   }
  ],
- "issues": [
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at fuzz/Cargo.lock",
-   "path": "fuzz/Cargo.lock"
-  }
- ],
+ "issues": [],
  "projects": [
   {
    "directory": ".",

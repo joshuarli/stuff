@@ -31,12 +31,6 @@
    "purl": "pkg:apk/clang"
   },
   {
-   "display_name": "cmake",
-   "ecosystem": "apk",
-   "name": "cmake",
-   "purl": "pkg:apk/cmake"
-  },
-  {
    "display_name": "coreutils",
    "ecosystem": "apk",
    "name": "coreutils",
@@ -127,12 +121,6 @@
    "purl": "pkg:apk/fontconfig"
   },
   {
-   "display_name": "fontconfig-dev",
-   "ecosystem": "apk",
-   "name": "fontconfig-dev",
-   "purl": "pkg:apk/fontconfig-dev"
-  },
-  {
    "display_name": "freetype-dev",
    "ecosystem": "apk",
    "name": "freetype-dev",
@@ -193,10 +181,10 @@
    "purl": "pkg:apk/meson"
   },
   {
-   "display_name": "ninja",
+   "display_name": "muon",
    "ecosystem": "apk",
-   "name": "ninja",
-   "purl": "pkg:apk/ninja"
+   "name": "muon",
+   "purl": "pkg:apk/muon"
   },
   {
    "display_name": "patchelf",
@@ -563,12 +551,6 @@
    "ecosystem": "cargo",
    "name": "rubato",
    "purl": "pkg:cargo/rubato"
-  },
-  {
-   "display_name": "ruopus",
-   "ecosystem": "cargo",
-   "name": "ruopus",
-   "purl": "pkg:cargo/ruopus"
   },
   {
    "display_name": "rustc-hash",
@@ -1115,7 +1097,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[0]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -1137,7 +1119,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[1]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -1159,7 +1141,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[2]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -1181,7 +1163,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[3]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -1203,7 +1185,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[4]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -1225,7 +1207,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[5]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -1247,7 +1229,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[6]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -1269,7 +1251,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[7]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1291,7 +1273,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[8]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -1313,7 +1295,7 @@
      "path": "crates/player-app/Cargo.toml"
     },
     {
-     "locator": "package[name=player-app,version=0.43.1].dependencies[9]",
+     "locator": "package[name=player-app,version=0.43.2].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -1739,10 +1721,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.43.1",
+   "resolved_version": "0.43.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-app@0.43.1#"
+   "to": "pkg:generic/player-app@0.43.2#"
   },
   {
    "condition": null,
@@ -2100,25 +2082,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/cmake#"
-  },
-  {
-   "condition": null,
-   "constraint": "9.11-r2",
+   "constraint": "9.11-r3",
    "evidence": [
     {
      "locator": "L3",
@@ -2129,10 +2093,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "9.11-r2",
+   "resolved_version": "9.11-r3",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/coreutils@9.11-r2#"
+   "to": "pkg:apk/coreutils@9.11-r3#"
   },
   {
    "condition": null,
@@ -2402,29 +2366,11 @@
    "resolved_version": null,
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/fontconfig-dev#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
    "to": "pkg:apk/freetype-dev#"
   },
   {
    "condition": null,
-   "constraint": "2.56.0-r0",
+   "constraint": "2.56.1-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2435,10 +2381,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.56.0-r0",
+   "resolved_version": "2.56.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git@2.56.0-r0#"
+   "to": "pkg:apk/git@2.56.1-r0#"
   },
   {
    "condition": null,
@@ -2600,7 +2546,7 @@
    "resolved_version": null,
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/ninja#"
+   "to": "pkg:apk/muon#"
   },
   {
    "condition": null,
@@ -4409,16 +4355,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-bundle-flac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-flac,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-flac:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4427,6 +4377,10 @@
     {
      "locator": "dependencies.symphonia-common",
      "path": "vendor/symphonia/symphonia-bundle-flac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-flac,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-flac:cargo",
@@ -4436,7 +4390,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
   },
   {
    "condition": null,
@@ -4445,6 +4399,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-bundle-flac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-flac,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-flac:cargo",
@@ -4454,7 +4412,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4463,6 +4421,10 @@
     {
      "locator": "dependencies.symphonia-metadata",
      "path": "vendor/symphonia/symphonia-bundle-flac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-flac,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-flac:cargo",
@@ -4472,7 +4434,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
   },
   {
    "condition": null,
@@ -4481,16 +4443,20 @@
     {
      "locator": "dependencies.lazy_static",
      "path": "vendor/symphonia/symphonia-bundle-mp3/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-mp3,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-mp3:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lazy_static#"
+   "to": "pkg:cargo/lazy_static@1.5.1#"
   },
   {
    "condition": null,
@@ -4499,16 +4465,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-bundle-mp3/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-mp3,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-mp3:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4517,6 +4487,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-bundle-mp3/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-bundle-mp3,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-bundle-mp3:cargo",
@@ -4526,7 +4500,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4607,16 +4581,20 @@
     {
      "locator": "dependencies.lazy_static",
      "path": "vendor/symphonia/symphonia-codec-aac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-aac,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-aac:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lazy_static#"
+   "to": "pkg:cargo/lazy_static@1.5.1#"
   },
   {
    "condition": null,
@@ -4625,16 +4603,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-codec-aac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-aac,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-aac:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4643,6 +4625,10 @@
     {
      "locator": "dependencies.symphonia-common",
      "path": "vendor/symphonia/symphonia-codec-aac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-aac,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-aac:cargo",
@@ -4652,7 +4638,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
   },
   {
    "condition": null,
@@ -4661,6 +4647,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-codec-aac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-aac,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-aac:cargo",
@@ -4670,7 +4660,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4715,16 +4705,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-codec-alac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-alac,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-alac:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4733,6 +4727,10 @@
     {
      "locator": "dependencies.symphonia-common",
      "path": "vendor/symphonia/symphonia-codec-alac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-alac,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-alac:cargo",
@@ -4742,7 +4740,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
   },
   {
    "condition": null,
@@ -4751,6 +4749,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-codec-alac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-alac,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-alac:cargo",
@@ -4760,7 +4762,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4769,16 +4771,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-codec-opus/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-opus,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-opus:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4787,16 +4793,20 @@
     {
      "locator": "dependencies.ruopus",
      "path": "vendor/symphonia/symphonia-codec-opus/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-opus,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-opus:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.1.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/ruopus#"
+   "to": "pkg:generic/ruopus@0.1.2#"
   },
   {
    "condition": null,
@@ -4805,6 +4815,10 @@
     {
      "locator": "dependencies.symphonia-common",
      "path": "vendor/symphonia/symphonia-codec-opus/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-opus,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-opus:cargo",
@@ -4814,7 +4828,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
   },
   {
    "condition": null,
@@ -4823,6 +4837,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-codec-opus/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-opus,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-opus:cargo",
@@ -4832,7 +4850,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4841,16 +4859,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-codec-pcm/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-pcm,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-pcm:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4859,6 +4881,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-codec-pcm/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-pcm,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-pcm:cargo",
@@ -4868,7 +4894,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4877,16 +4903,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-codec-vorbis/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-vorbis,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-vorbis:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4895,6 +4925,10 @@
     {
      "locator": "dependencies.symphonia-common",
      "path": "vendor/symphonia/symphonia-codec-vorbis/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-vorbis,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-vorbis:cargo",
@@ -4904,7 +4938,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
   },
   {
    "condition": null,
@@ -4913,6 +4947,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-codec-vorbis/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-codec-vorbis,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-codec-vorbis:cargo",
@@ -4922,7 +4960,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -4967,16 +5005,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-common/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-common,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-common:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -4985,6 +5027,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-common/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-common,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-common:cargo",
@@ -4994,7 +5040,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -5003,6 +5049,10 @@
     {
      "locator": "dependencies.symphonia-metadata",
      "path": "vendor/symphonia/symphonia-common/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-common,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-common:cargo",
@@ -5012,7 +5062,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
   },
   {
    "condition": null,
@@ -5021,16 +5071,20 @@
     {
      "locator": "dependencies.bitflags",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "2.13.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/bitflags#"
+   "to": "pkg:cargo/bitflags@2.13.2#"
   },
   {
    "condition": null,
@@ -5039,16 +5093,20 @@
     {
      "locator": "dependencies.bytemuck",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.25.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/bytemuck#"
+   "to": "pkg:cargo/bytemuck@1.25.2#"
   },
   {
    "condition": null,
@@ -5057,16 +5115,20 @@
     {
      "locator": "dependencies.lazy_static",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lazy_static#"
+   "to": "pkg:cargo/lazy_static@1.5.1#"
   },
   {
    "condition": null,
@@ -5075,16 +5137,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -5093,16 +5159,20 @@
     {
      "locator": "dependencies.num-complex",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[4]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.6",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/num-complex#"
+   "to": "pkg:cargo/num-complex@0.4.6#"
   },
   {
    "condition": null,
@@ -5129,16 +5199,20 @@
     {
      "locator": "dependencies.rustfft",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[5]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "conditional",
+   "resolved_version": "6.4.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rustfft#"
+   "to": "pkg:cargo/rustfft@6.4.1#"
   },
   {
    "condition": null,
@@ -5147,16 +5221,20 @@
     {
      "locator": "dependencies.smallvec",
      "path": "vendor/symphonia/symphonia-core/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-core,version=0.6.1].dependencies[6]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-core:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.16.4",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/smallvec#"
+   "to": "pkg:cargo/smallvec@1.16.4#"
   },
   {
    "condition": null,
@@ -5507,16 +5585,20 @@
     {
      "locator": "dependencies.lazy_static",
      "path": "vendor/symphonia/symphonia-metadata/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-metadata,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-metadata:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lazy_static#"
+   "to": "pkg:cargo/lazy_static@1.5.1#"
   },
   {
    "condition": null,
@@ -5525,16 +5607,20 @@
     {
      "locator": "dependencies.log",
      "path": "vendor/symphonia/symphonia-metadata/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-metadata,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-metadata:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/log#"
+   "to": "pkg:cargo/log@0.4.35#"
   },
   {
    "condition": null,
@@ -5543,16 +5629,20 @@
     {
      "locator": "dependencies.regex-lite",
      "path": "vendor/symphonia/symphonia-metadata/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-metadata,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-metadata:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/regex-lite#"
+   "to": "pkg:cargo/regex-lite@0.1.9#"
   },
   {
    "condition": null,
@@ -5561,16 +5651,20 @@
     {
      "locator": "dependencies.smallvec",
      "path": "vendor/symphonia/symphonia-metadata/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-metadata,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-metadata:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.16.4",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/smallvec#"
+   "to": "pkg:cargo/smallvec@1.16.4#"
   },
   {
    "condition": null,
@@ -5579,6 +5673,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia-metadata/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia-metadata,version=0.6.1].dependencies[4]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia-metadata:cargo",
@@ -5588,7 +5686,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": null,
@@ -5795,16 +5893,20 @@
     {
      "locator": "dependencies.lazy_static",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
+   "resolution": "resolved",
+   "resolved_version": "1.5.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lazy_static#"
+   "to": "pkg:cargo/lazy_static@1.5.1#"
   },
   {
    "condition": "feature:flac",
@@ -5813,16 +5915,20 @@
     {
      "locator": "dependencies.symphonia-bundle-flac",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[1]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-bundle-flac@0.6.1#f62eec8f079380da"
+   "to": "pkg:generic/symphonia-bundle-flac@0.6.1#"
   },
   {
    "condition": "feature:mp1",
@@ -5831,16 +5937,20 @@
     {
      "locator": "dependencies.symphonia-bundle-mp3",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[2]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-bundle-mp3@0.6.1#b0c35d411ca6b51c"
+   "to": "pkg:generic/symphonia-bundle-mp3@0.6.1#"
   },
   {
    "condition": "feature:aac",
@@ -5849,16 +5959,20 @@
     {
      "locator": "dependencies.symphonia-codec-aac",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[3]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-aac@0.6.1#aa94bdfaf0f7c5bf"
+   "to": "pkg:generic/symphonia-codec-aac@0.6.1#"
   },
   {
    "condition": "feature:adpcm",
@@ -5885,16 +5999,20 @@
     {
      "locator": "dependencies.symphonia-codec-alac",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[4]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-alac@0.6.1#5ffd6acab0fcea20"
+   "to": "pkg:generic/symphonia-codec-alac@0.6.1#"
   },
   {
    "condition": "feature:opus",
@@ -5903,16 +6021,20 @@
     {
      "locator": "dependencies.symphonia-codec-opus",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[5]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-opus@0.6.1#d883eb0f2912966d"
+   "to": "pkg:generic/symphonia-codec-opus@0.6.1#"
   },
   {
    "condition": "feature:pcm",
@@ -5921,16 +6043,20 @@
     {
      "locator": "dependencies.symphonia-codec-pcm",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[6]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-pcm@0.6.1#04f9d26076a78e9c"
+   "to": "pkg:generic/symphonia-codec-pcm@0.6.1#"
   },
   {
    "condition": "feature:vorbis",
@@ -5939,16 +6065,20 @@
     {
      "locator": "dependencies.symphonia-codec-vorbis",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[7]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
    "optional": true,
    "relation": "direct",
-   "resolution": "resolved",
+   "resolution": "conditional",
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-vorbis@0.6.1#c5d73d9300473395"
+   "to": "pkg:generic/symphonia-codec-vorbis@0.6.1#"
   },
   {
    "condition": null,
@@ -5957,6 +6087,10 @@
     {
      "locator": "dependencies.symphonia-core",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[8]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
@@ -5966,7 +6100,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
   },
   {
    "condition": "feature:caf",
@@ -6065,6 +6199,10 @@
     {
      "locator": "dependencies.symphonia-metadata",
      "path": "vendor/symphonia/symphonia/Cargo.toml"
+    },
+    {
+     "locator": "package[name=symphonia,version=0.6.1].dependencies[9]",
+     "path": "Cargo.lock"
     }
    ],
    "from": "vendor/symphonia/symphonia:cargo",
@@ -6074,7 +6212,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
   },
   {
    "condition": null,
@@ -6097,19 +6235,19 @@
  ],
  "inputs": [
   {
-   "blob": "167c572df7baa42665b27e4495a986821bd5ac75",
+   "blob": "210679ed114c331909d1d5c53bffb6618b8ab531",
    "path": ".github/workflows/linux.yml"
   },
   {
-   "blob": "d93a98c1baac0635f8f1dfb6859408450f74a0fd",
+   "blob": "c69351999df81e31af6fd12037b6771d21ab7ccb",
    "path": ".github/workflows/macos.yml"
   },
   {
-   "blob": "820902c060e1bb6eeba753789ce497876288afdd",
+   "blob": "8bcbefb333c6c6029b66325d37b1373273ff0b3c",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "484119a4259358803d64b9a69f6f2dcd3d13f73f",
+   "blob": "d401000bfa7baee561e86ad218600fc4eeddf8ca",
    "path": "Cargo.lock"
   },
   {
@@ -6117,11 +6255,11 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "3722332152cea8a3dfcd45a54b45a95b3b93333e",
+   "blob": "62035feea0f74e73757a7e1a145c08c946835dbb",
    "path": "Makefile"
   },
   {
-   "blob": "a9398c2ed219be6a3797432ffe39e8b19987a0b6",
+   "blob": "b25b7a97f4b6be1fea419434d526f18489aed0a5",
    "path": "crates/player-app/Cargo.toml"
   },
   {
@@ -6169,8 +6307,12 @@
    "path": "crates/player-tui/Cargo.toml"
   },
   {
-   "blob": "6f444253b84d6cf7358522358c64d591da4e470a",
+   "blob": "646754bfe293bd57fb7ab8941ef7273f92678994",
    "path": "docker/linux/Dockerfile"
+  },
+  {
+   "blob": "95b5fd17401bb4637e65aeabc1f33d8fd45d416f",
+   "path": "native/spirv-cross/meson.build"
   },
   {
    "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
@@ -6277,7 +6419,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "ee48bc00e64b736d85c5ffc3c36bd71ef9bd85e28ac35afa811fd9e2dd1d75c1",
+ "inputs_fingerprint": "05211fc3e2a72da973369bcaa60f98ff2c0755ef9cab96e6424dea9d1ec0d07f",
  "instances": [
   {
    "commit": null,
@@ -6346,29 +6488,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/cmake",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/cmake#",
-   "purl": "pkg:apk/cmake",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:apk/coreutils",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/coreutils@9.11-r2#",
-   "purl": "pkg:apk/coreutils@9.11-r2",
+   "id": "pkg:apk/coreutils@9.11-r3#",
+   "purl": "pkg:apk/coreutils@9.11-r3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "9.11-r2"
+   "version": "9.11-r3"
   },
   {
    "commit": null,
@@ -6554,19 +6683,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/fontconfig-dev",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/fontconfig-dev#",
-   "purl": "pkg:apk/fontconfig-dev",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:apk/freetype-dev",
    "context": "",
    "first_party": false,
@@ -6583,13 +6699,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git@2.56.0-r0#",
-   "purl": "pkg:apk/git@2.56.0-r0",
+   "id": "pkg:apk/git@2.56.1-r0#",
+   "purl": "pkg:apk/git@2.56.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.56.0-r0"
+   "version": "2.56.1-r0"
   },
   {
    "commit": null,
@@ -6697,11 +6813,11 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/ninja",
+   "component": "pkg:apk/muon",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/ninja#",
-   "purl": "pkg:apk/ninja",
+   "id": "pkg:apk/muon#",
+   "purl": "pkg:apk/muon",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
@@ -6986,19 +7102,6 @@
    "component": "pkg:cargo/bitflags",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/bitflags#",
-   "purl": "pkg:cargo/bitflags",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bitflags",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/bitflags@2.13.2#",
    "purl": "pkg:cargo/bitflags@2.13.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -7006,19 +7109,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.13.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/bytemuck",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/bytemuck#",
-   "purl": "pkg:cargo/bytemuck",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -7376,19 +7466,6 @@
    "component": "pkg:cargo/num-complex",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/num-complex#",
-   "purl": "pkg:cargo/num-complex",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/num-complex",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/num-complex@0.4.6#",
    "purl": "pkg:cargo/num-complex@0.4.6",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -7594,19 +7671,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/ruopus",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/ruopus#",
-   "purl": "pkg:cargo/ruopus",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/rustc-hash",
    "context": "",
    "first_party": false,
@@ -7617,19 +7681,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.1.3"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rustfft",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rustfft#",
-   "purl": "pkg:cargo/rustfft",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -7747,19 +7798,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.4.6"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/smallvec",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/smallvec#",
-   "purl": "pkg:cargo/smallvec",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": null
   },
   {
    "commit": null,
@@ -8013,13 +8051,13 @@
    "component": "pkg:generic/player-app",
    "context": "",
    "first_party": true,
-   "id": "pkg:generic/player-app@0.43.1#",
-   "purl": "pkg:generic/player-app@0.43.1",
+   "id": "pkg:generic/player-app@0.43.2#",
+   "purl": "pkg:generic/player-app@0.43.2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.43.1"
+   "version": "0.43.2"
   },
   {
    "commit": null,
@@ -8193,9 +8231,9 @@
   {
    "commit": null,
    "component": "pkg:generic/symphonia-bundle-flac",
-   "context": "63c8831824b59b5f",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-flac@0.6.1#63c8831824b59b5f",
+   "id": "pkg:generic/symphonia-bundle-flac@0.6.1#",
    "purl": "pkg:generic/symphonia-bundle-flac@0.6.1",
    "registry_url": null,
    "repository_url": null,
@@ -8205,23 +8243,10 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/symphonia-bundle-flac",
-   "context": "f62eec8f079380da",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-flac@0.6.1#f62eec8f079380da",
-   "purl": "pkg:generic/symphonia-bundle-flac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/symphonia-bundle-mp3",
-   "context": "50f55264e3293bdd",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-mp3@0.6.1#50f55264e3293bdd",
+   "id": "pkg:generic/symphonia-bundle-mp3@0.6.1#",
    "purl": "pkg:generic/symphonia-bundle-mp3@0.6.1",
    "registry_url": null,
    "repository_url": null,
@@ -8231,40 +8256,14 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/symphonia-bundle-mp3",
-   "context": "b0c35d411ca6b51c",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-mp3@0.6.1#b0c35d411ca6b51c",
-   "purl": "pkg:generic/symphonia-bundle-mp3@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/symphonia-codec-aac",
-   "context": "0b922c8d543595a3",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-codec-aac@0.6.1#0b922c8d543595a3",
+   "id": "pkg:generic/symphonia-codec-aac@0.6.1#",
    "purl": "pkg:generic/symphonia-codec-aac@0.6.1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-aac",
-   "context": "aa94bdfaf0f7c5bf",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-aac@0.6.1#aa94bdfaf0f7c5bf",
-   "purl": "pkg:generic/symphonia-codec-aac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
    "vcs_url": null,
    "version": "0.6.1"
   },
@@ -8284,9 +8283,9 @@
   {
    "commit": null,
    "component": "pkg:generic/symphonia-codec-alac",
-   "context": "3d83109943320a5f",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-codec-alac@0.6.1#3d83109943320a5f",
+   "id": "pkg:generic/symphonia-codec-alac@0.6.1#",
    "purl": "pkg:generic/symphonia-codec-alac@0.6.1",
    "registry_url": null,
    "repository_url": null,
@@ -8296,23 +8295,10 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/symphonia-codec-alac",
-   "context": "5ffd6acab0fcea20",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-alac@0.6.1#5ffd6acab0fcea20",
-   "purl": "pkg:generic/symphonia-codec-alac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/symphonia-codec-opus",
-   "context": "439ee52ea5dfab8d",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-codec-opus@0.6.1#439ee52ea5dfab8d",
+   "id": "pkg:generic/symphonia-codec-opus@0.6.1#",
    "purl": "pkg:generic/symphonia-codec-opus@0.6.1",
    "registry_url": null,
    "repository_url": null,
@@ -8322,36 +8308,10 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/symphonia-codec-opus",
-   "context": "d883eb0f2912966d",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-opus@0.6.1#d883eb0f2912966d",
-   "purl": "pkg:generic/symphonia-codec-opus@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/symphonia-codec-pcm",
-   "context": "04f9d26076a78e9c",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-codec-pcm@0.6.1#04f9d26076a78e9c",
-   "purl": "pkg:generic/symphonia-codec-pcm@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-pcm",
-   "context": "d0b8dd595a90a911",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-pcm@0.6.1#d0b8dd595a90a911",
+   "id": "pkg:generic/symphonia-codec-pcm@0.6.1#",
    "purl": "pkg:generic/symphonia-codec-pcm@0.6.1",
    "registry_url": null,
    "repository_url": null,
@@ -8362,26 +8322,13 @@
   {
    "commit": null,
    "component": "pkg:generic/symphonia-codec-vorbis",
-   "context": "42cf337c08bab041",
+   "context": "",
    "first_party": true,
-   "id": "pkg:generic/symphonia-codec-vorbis@0.6.1#42cf337c08bab041",
+   "id": "pkg:generic/symphonia-codec-vorbis@0.6.1#",
    "purl": "pkg:generic/symphonia-codec-vorbis@0.6.1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-vorbis",
-   "context": "c5d73d9300473395",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-vorbis@0.6.1#c5d73d9300473395",
-   "purl": "pkg:generic/symphonia-codec-vorbis@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
    "vcs_url": null,
    "version": "0.6.1"
   },
@@ -8602,10 +8549,10 @@
    "path": "Makefile"
   },
   {
-   "kind": "missing_lock",
+   "kind": "unsupported_format",
    "locator": null,
-   "message": "no lockfile at vendor/ruopus/Cargo.lock",
-   "path": "vendor/ruopus/Cargo.lock"
+   "message": "no parser for meson.build",
+   "path": "native/spirv-cross/meson.build"
   },
   {
    "kind": "missing_lock",
@@ -8618,12 +8565,6 @@
    "locator": null,
    "message": "no parser for Makefile",
    "path": "vendor/symphonia/Makefile"
-  },
-  {
-   "kind": "missing_lock",
-   "locator": null,
-   "message": "no lockfile at vendor/symphonia/symphonia/fuzz/Cargo.lock",
-   "path": "vendor/symphonia/symphonia/fuzz/Cargo.lock"
   }
  ],
  "projects": [

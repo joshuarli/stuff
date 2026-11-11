@@ -789,11 +789,11 @@
  ],
  "inputs": [
   {
-   "blob": "fb1f0b9704838593ae380ec62f679802e6a4ad8d",
+   "blob": "a044985d2464fddf2074600a30336da8bbf5f0a7",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "dabb6b60aab35720fcd3e595a05b644c67625289",
+   "blob": "3406c357366e04fa4af5d434a89eccf664e65dbd",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -813,7 +813,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "06028af8fc73a38184b3922488f03f3af70289219b6c516d1e8352002110a492",
+ "inputs_fingerprint": "702eef9ca89cdc2de6215108af17883b4010476f03f7dfb02aeca12a63b7b17b",
  "instances": [
   {
    "commit": null,

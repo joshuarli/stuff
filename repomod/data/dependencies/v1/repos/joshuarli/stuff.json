@@ -331,6 +331,12 @@
    "purl": "pkg:cargo/js-sys"
   },
   {
+   "display_name": "lexopt",
+   "ecosystem": "cargo",
+   "name": "lexopt",
+   "purl": "pkg:cargo/lexopt"
+  },
+  {
    "display_name": "libc",
    "ecosystem": "cargo",
    "name": "libc",
@@ -481,6 +487,12 @@
    "purl": "pkg:cargo/rand_core"
   },
   {
+   "display_name": "regex-lite",
+   "ecosystem": "cargo",
+   "name": "regex-lite",
+   "purl": "pkg:cargo/regex-lite"
+  },
+  {
    "display_name": "ring",
    "ecosystem": "cargo",
    "name": "ring",
@@ -491,6 +503,12 @@
    "ecosystem": "cargo",
    "name": "rust_decimal",
    "purl": "pkg:cargo/rust_decimal"
+  },
+  {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
   },
   {
    "display_name": "rustc_version",
@@ -551,6 +569,18 @@
    "ecosystem": "cargo",
    "name": "rustversion",
    "purl": "pkg:cargo/rustversion"
+  },
+  {
+   "display_name": "rustybench",
+   "ecosystem": "cargo",
+   "name": "rustybench",
+   "purl": "pkg:cargo/rustybench"
+  },
+  {
+   "display_name": "rustybench-macros",
+   "ecosystem": "cargo",
+   "name": "rustybench-macros",
+   "purl": "pkg:cargo/rustybench-macros"
   },
   {
    "display_name": "same-file",
@@ -971,12 +1001,6 @@
    "ecosystem": "generic",
    "name": "rust",
    "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "sh.rustup.rs",
-   "ecosystem": "generic",
-   "name": "sh.rustup.rs",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs"
   },
   {
    "display_name": "stuff",
@@ -2192,7 +2216,7 @@
    "from": ".:generic",
    "optional": false,
    "relation": "direct",
-   "resolution": "declared_only",
+   "resolution": "resolved",
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
@@ -2434,7 +2458,7 @@
   },
   {
    "condition": null,
-   "constraint": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "constraint": "v6.1.1",
    "evidence": [
     {
      "locator": "jobs.ecosystem-smoke.steps[4].uses",
@@ -2445,14 +2469,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1#"
+   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
   },
   {
    "condition": null,
-   "constraint": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "constraint": "v6.1.1",
    "evidence": [
     {
      "locator": "jobs.worker-runtime.steps[5].uses",
@@ -2463,10 +2487,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1#"
+   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
   },
   {
    "condition": null,
@@ -4075,6 +4099,28 @@
    "to": "pkg:cargo/deser@0.10.2#"
   },
   {
+   "condition": null,
+   "constraint": "0.5",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.rustybench",
+     "path": "crates/stuff-worker/Cargo.toml"
+    },
+    {
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/stuff-worker:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.5.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustybench@0.5.0#"
+  },
+  {
    "condition": "cfg(target_arch = \"wasm32\")",
    "constraint": "=0.2.130",
    "evidence": [
@@ -4083,7 +4129,7 @@
      "path": "crates/stuff-worker/Cargo.toml"
     },
     {
-     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[7]",
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -4101,11 +4147,33 @@
    "constraint": "0.1.0",
    "evidence": [
     {
+     "locator": "dev-dependencies.stuff-cargo-shard",
+     "path": "crates/stuff-worker/Cargo.toml"
+    },
+    {
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/stuff-worker:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "dev",
+   "source_kind": "workspace",
+   "to": "pkg:generic/stuff-cargo-shard@0.1.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.1.0",
+   "evidence": [
+    {
      "locator": "dependencies.stuff-catalog",
      "path": "crates/stuff-worker/Cargo.toml"
     },
     {
-     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[3]",
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -4127,7 +4195,7 @@
      "path": "crates/stuff-worker/Cargo.toml"
     },
     {
-     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[4]",
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -4149,7 +4217,7 @@
      "path": "crates/stuff-worker/Cargo.toml"
     },
     {
-     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[5]",
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -4171,7 +4239,7 @@
      "path": "crates/stuff-worker/Cargo.toml"
     },
     {
-     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[6]",
+     "locator": "package[name=stuff-worker,version=0.1.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -4803,24 +4871,6 @@
    "scope": "runtime",
    "source_kind": "workspace",
    "to": "pkg:generic/stuff-url@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L9",
-     "path": "deploy/mypypi-linux.Dockerfile"
-    }
-   ],
-   "from": "deploy:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "build",
-   "source_kind": "url",
-   "to": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#"
   },
   {
    "condition": null,
@@ -8277,6 +8327,132 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/zeroize@1.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench-macros,version=0.5.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench-macros@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/lexopt@0.3.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.1.9",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/regex-lite@0.1.9#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[5]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustybench-macros@0.5.0#"
   },
   {
    "condition": null,
@@ -14203,7 +14379,7 @@
  ],
  "inputs": [
   {
-   "blob": "3fd12d828875b9245837b6a7fa7e51df41abf2d3",
+   "blob": "0eb9db7ea129b5eaf54bffd8b3d87286c5ab5012",
    "path": ".github/workflows/ci.yml"
   },
   {
@@ -14211,7 +14387,7 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "1540a8d506f7cb68786c2b023f5ca77715f3ee8c",
+   "blob": "75471d38cc9db236d39d4b7b7b6a9a94fa8e3252",
    "path": "Cargo.lock"
   },
   {
@@ -14219,7 +14395,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "20e8002cc195188e4be8f92631de68133f07abc7",
+   "blob": "cb4db7d5116f5f3bb44c9e7fcd22d0837b4ba408",
    "path": "Makefile"
   },
   {
@@ -14275,7 +14451,7 @@
    "path": "crates/stuff-url/Cargo.toml"
   },
   {
-   "blob": "71df075a06cfba22249c6f06aafcfdcf80325646",
+   "blob": "2122a82e1b4d9d8c143643b5f26f50eeab3cdf60",
    "path": "crates/stuff-worker/Cargo.toml"
   },
   {
@@ -14295,7 +14471,7 @@
    "path": "crates/stuff/tests/fixtures/cargo-publish/Cargo.toml"
   },
   {
-   "blob": "01a1a14e32977ddbb162ce0cb2ce19f96df8b8ca",
+   "blob": "e56a6e5ec58fab92073b87046b12ec5b445e1dc7",
    "path": "deploy/mypypi-linux.Dockerfile"
   },
   {
@@ -14319,7 +14495,7 @@
    "path": "tests/fixtures/mypypi/rust-toolchain-sdist/pyproject.toml"
   }
  ],
- "inputs_fingerprint": "67d74c2f1741970dceacf1fd5e15fc8ce10957f741b1deb67fccaf38bd3bca2c",
+ "inputs_fingerprint": "e3fb0d52055c457720018fe7d9561daf9bf60cbcb8e745fcca8b39a5d95ece62",
  "instances": [
   {
    "commit": null,
@@ -15064,6 +15240,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/lexopt",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/lexopt@0.3.2#",
+   "purl": "pkg:cargo/lexopt@0.3.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.3.2"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/libc",
    "context": "",
    "first_party": false,
@@ -15441,6 +15630,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/regex-lite",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/regex-lite@0.1.9#",
+   "purl": "pkg:cargo/regex-lite@0.1.9",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.9"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/ring",
    "context": "",
    "first_party": false,
@@ -15464,6 +15666,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.43.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
   },
   {
    "commit": null,
@@ -15594,6 +15809,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.0.23"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustybench-macros",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustybench-macros@0.5.0#",
+   "purl": "pkg:cargo/rustybench-macros@0.5.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.5.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustybench",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustybench@0.5.0#",
+   "purl": "pkg:cargo/rustybench@0.5.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.5.0"
   },
   {
    "commit": null,
@@ -16533,19 +16774,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:generic/stuff-cargo-shard",
    "context": "",
    "first_party": true,
@@ -16727,17 +16955,17 @@
    "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
   },
   {
-   "commit": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "commit": "73e46992e05b19abd31f2f3c20e0e7370d762115",
    "component": "pkg:github/pnpm/action-setup",
    "context": "",
    "first_party": false,
-   "id": "pkg:github/pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1#",
-   "purl": "pkg:github/pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+   "id": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#",
+   "purl": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/pnpm/action-setup",
-   "version": "b906affcce14559ad1aafd4ab0e942779e9f58b1"
+   "version": "73e46992e05b19abd31f2f3c20e0e7370d762115"
   },
   {
    "commit": null,
@@ -19307,6 +19535,12 @@
    "locator": null,
    "message": "no parser for Makefile",
    "path": "Makefile"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "L10",
+   "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.3/$arch-unknown-linux-gnu/rustup-init' is not literal",
+   "path": "deploy/mypypi-linux.Dockerfile"
   },
   {
    "kind": "dynamic_value",
