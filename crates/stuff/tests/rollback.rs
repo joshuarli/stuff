@@ -76,7 +76,9 @@ fn mutations(fake: &FakeS3) -> usize {
 }
 
 fn record(work: &Path, registry: &str) -> String {
-    std::fs::read_to_string(work.join("state").join(registry).join("promoted-generation")).unwrap()
+    let state = work.join("state").join(registry);
+    let state = if registry == "oci" { state.join("transaction") } else { state };
+    std::fs::read_to_string(state.join("promoted-generation")).unwrap()
 }
 
 #[test]

@@ -20,7 +20,7 @@ fn main() {
             eprintln!("stuff: {e}");
             if !is_publishing(&argv) {
                 eprintln!(
-                    "usage: stuff <ls|search|diff|doctor|render|publish|republish|rollback|credentials> [options]"
+                    "usage: stuff <ls|search|diff|doctor|render|publish|republish|rollback|credentials|lock-path> [options]"
                 );
             }
             std::process::exit(e.exit_code());
@@ -34,6 +34,16 @@ fn main() {
         }
     };
     std::process::exit(code);
+}
+
+fn lock_path(
+    parsed: &stuff::cli::Parsed,
+    environment: &Environment,
+) -> std::result::Result<std::path::PathBuf, PublishError> {
+    match parsed.registry_filter().and_then(stuff::publish::Registry::parse) {
+        Some(registry) => Ok(stuff::publish::paths::Paths::from_environment(environment).publish_lock(registry)),
+        None => stuff::publish::publish_lock_for_bucket(environment, &parsed.positionals[0]),
+    }
 }
 
 fn is_publishing(argv: &[String]) -> bool {
@@ -53,6 +63,16 @@ fn run(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<i32> {
         Command::Publish | Command::Republish | Command::Rollback => {
             run_publish(parsed, environment)
         }
+        Command::LockPath => match lock_path(parsed, environment) {
+            Ok(path) => {
+                println!("{}", path.display());
+                Ok(0)
+            }
+            Err(error) => {
+                eprintln!("{}", output::error(&error));
+                Ok(error.exit_code())
+            }
+        },
         Command::Credentials => {
             match stuff::publish::r2::credentials::shell_exports(environment, &parsed.positionals[0]) {
                 Ok(exports) => {

@@ -8,7 +8,7 @@ use deser_value::Value;
 use stuff_store::write_file_durable;
 
 use crate::publish::paths::Paths;
-use crate::publish::{Environment, PublishError};
+use crate::publish::{Environment, PublishError, Registry};
 
 pub const LEGACY_STATE_VARIABLE: &str = "STUFF_MYCRATES_STATE";
 pub const BACKUP_DIRECTORY: &str = "mycrates-backup";
@@ -28,7 +28,7 @@ impl CargoLayout {
         let paths = Paths::from_environment(environment);
         let cache_dir = paths.cache_dir("cargo");
         CargoLayout {
-            state_dir: paths.state_dir("cargo"),
+            state_dir: paths.publish_state_dir(Registry::Cargo),
             site_dir: cache_dir.join("site"),
             cargo_home: cache_dir.join("cargo-home"),
             cache_dir,

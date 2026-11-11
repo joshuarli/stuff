@@ -16,6 +16,7 @@ import urllib.parse
 import xml.sax.saxutils
 
 SCRIPT = pathlib.Path(__file__).with_name("r2-gc.py")
+STUFF = os.environ.get("STUFF") or str(SCRIPT.parents[1] / "target" / "debug" / "stuff")
 spec = importlib.util.spec_from_file_location("r2_gc", SCRIPT)
 gc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gc)
@@ -124,6 +125,11 @@ class GcTests(unittest.TestCase):
         self.server.change_current_on_delete = False
         self.state = tempfile.TemporaryDirectory()
         os.environ["STUFF_STATE_HOME"] = self.state.name
+        config = pathlib.Path(self.state.name, "config")
+        config.mkdir()
+        (config / "config.json").write_text('{"cargo": {"bucket": "bucket"}}')
+        os.environ["STUFF_CONFIG_HOME"] = str(config)
+        os.environ["STUFF"] = STUFF
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         for key, value in ENDPOINT_KEYS.items():
@@ -271,8 +277,8 @@ class GcTests(unittest.TestCase):
         self.assertEqual(len(self.server.deleted), 1)
         self.assertIn("blobs/old1", self.server.objects)
 
-    def test_waits_for_the_registry_publish_lock(self):
-        path = pathlib.Path(self.state.name, "bucket", "publish.lock")
+    def test_waits_for_the_native_publisher_lock_of_the_configured_bucket(self):
+        path = pathlib.Path(self.state.name, "cargo", "publish.lock")
         path.parent.mkdir(parents=True)
         holder = open(path, "a")
         fcntl.flock(holder, fcntl.LOCK_EX)

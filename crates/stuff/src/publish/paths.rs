@@ -2,7 +2,8 @@
 
 use std::path::PathBuf;
 
-use crate::publish::Environment;
+use crate::publish::transaction::LOCK_FILE;
+use crate::publish::{Environment, Registry};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
@@ -41,6 +42,20 @@ impl Paths {
     pub fn state_dir(&self, registry: &str) -> PathBuf {
         self.state_root.join(registry)
     }
+
+    /// Directory holding a registry's publication record and publish lock.
+    /// Every writer of that registry, including the `deploy/` maintenance
+    /// helpers through `stuff lock-path`, must lock the file inside it.
+    pub fn publish_state_dir(&self, registry: Registry) -> PathBuf {
+        match registry {
+            Registry::Oci => self.state_dir("oci").join("transaction"),
+            Registry::Cargo | Registry::Npm | Registry::Pypi => self.state_dir(registry.as_str()),
+        }
+    }
+
+    pub fn publish_lock(&self, registry: Registry) -> PathBuf {
+        self.publish_state_dir(registry).join(LOCK_FILE)
+    }
 }
 
 #[cfg(test)]
@@ -60,6 +75,15 @@ mod tests {
             paths.state_dir("oci"),
             PathBuf::from("/home/person/.local/state/stuff/oci")
         );
+    }
+
+    #[test]
+    fn publish_locks_live_in_each_registry_publication_state() {
+        let paths = Paths::from_environment(&env(&[("STUFF_STATE_HOME", "/s")]));
+        assert_eq!(paths.publish_lock(Registry::Cargo), PathBuf::from("/s/cargo/publish.lock"));
+        assert_eq!(paths.publish_lock(Registry::Npm), PathBuf::from("/s/npm/publish.lock"));
+        assert_eq!(paths.publish_lock(Registry::Pypi), PathBuf::from("/s/pypi/publish.lock"));
+        assert_eq!(paths.publish_lock(Registry::Oci), PathBuf::from("/s/oci/transaction/publish.lock"));
     }
 
     #[test]

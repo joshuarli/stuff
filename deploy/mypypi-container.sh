@@ -4,9 +4,10 @@
 #
 # usage: mypypi-container.sh ARCH(arm64|amd64) PLATFORM(linux-aarch64|linux-x86_64) COMMAND [ARGS...]
 # Optional env: STUFF_STATE_HOME STATE_DIR SITE_DIR CATALOG_FILE CONFIG_FILE
-# LOCK_DIR (defaults match stuff publish pypi), IMAGE_REBUILD=1.
-# Holds the host's mypypi publish lock for the whole container run, so
-# platforms publish one at a time against the shared state.
+# STUFF (the stuff CLI), IMAGE_REBUILD=1.
+# Holds the pypi registry's publish lock (`stuff lock-path --registry pypi`)
+# for the whole container run, so platforms and `stuff publish pypi` write
+# one at a time.
 # The image is built from deploy/mypypi-linux.Dockerfile. The container is
 # started detached and waited on; `docker run --rm` and `docker rm` can hang
 # on OrbStack after the container has exited.
@@ -35,8 +36,7 @@ CONFIG_DIR=$(dirname "$CONFIG_FILE")
 mkdir -p "$STATE_DIR" "$SITE_DIR" "$CATALOG_DIR" "$CONFIG_DIR"
 
 . "$ROOT/deploy/publish-lock.sh"
-mkdir -p "$STUFF_STATE_HOME/mypypi"
-acquire_publish_lock "${LOCK_DIR:-$STUFF_STATE_HOME/mypypi/publish.lock}"
+acquire_registry_lock pypi
 trap 'release_publish_lock' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM

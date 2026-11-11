@@ -1,8 +1,13 @@
 #!/bin/sh
 set -eu
 
-bucket_lock_path() {
-  printf '%s/%s/publish.lock\n' "${STUFF_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/stuff}" "${1#stuff-}"
+resolve_lock_path() {
+  resolved=$("${STUFF:-stuff}" lock-path "$@") || return 1
+  [ -n "$resolved" ] || {
+    echo "publish: stuff lock-path $* printed no path" >&2
+    return 1
+  }
+  printf '%s\n' "$resolved"
 }
 
 publish_lock_try() {
@@ -36,6 +41,16 @@ clear_legacy_lock_dir() {
       return 1
     fi
   done
+}
+
+acquire_bucket_lock() {
+  lock_path=$(resolve_lock_path "$1") || return 1
+  acquire_publish_lock "$lock_path"
+}
+
+acquire_registry_lock() {
+  lock_path=$(resolve_lock_path --registry "$1") || return 1
+  acquire_publish_lock "$lock_path"
 }
 
 acquire_publish_lock() {

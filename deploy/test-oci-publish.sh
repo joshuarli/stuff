@@ -17,6 +17,7 @@ fail() {
 (cd "$ROOT" && cargo build -q -p stuff -p myoci)
 BIN_DIR=${CARGO_TARGET_DIR:-"$ROOT/target"}/debug
 STUFF=$BIN_DIR/stuff
+export STUFF
 MYOCI=$BIN_DIR/myoci
 
 FIFO=$WORK/fake-s3.stdin

@@ -29,7 +29,7 @@ impl OciPaths {
         OciPaths {
             state_dir: base.join("state"),
             site_dir: base.join("site"),
-            transaction_state_dir: base.join("transaction"),
+            transaction_state_dir: paths.publish_state_dir(Registry::Oci),
             cache_dir: paths.cache_dir("oci"),
         }
     }

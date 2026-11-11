@@ -21,7 +21,7 @@ pub fn rollback(
         credentials,
         registry,
         &bucket,
-        paths.state_dir(registry.as_str()),
+        paths.publish_state_dir(registry),
         generation,
         options.dry_run,
         TransactionOptions::default().lock_wait,

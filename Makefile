@@ -112,6 +112,7 @@ test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAI
 
 test-r2: ## Check S3 uploads, multipart SigV4, pull, gc, and pagination without network access
 	@mkdir -p .work/tmp
+	cargo build -q -p stuff
 	TMPDIR="$${TMPDIR:-.work/tmp}" deploy/test-r2-pull.sh
 	python3 deploy/test-r2-pull.py
 	deploy/test-prune-generations.sh
@@ -125,6 +126,7 @@ test-oci-publish: ## Check stuff OCI publication, blob GC, rollback, and adoptio
 	deploy/test-oci-publish.sh
 
 test-r2-gc-blobs: ## Check OCI blob GC against a fake S3 endpoint
+	cargo build -q -p stuff
 	python3 deploy/test-r2-gc-blobs.py
 
 test-r2-live: ## Opt-in live R2 multipart acceptance (R2_ACCEPTANCE_BUCKET=... and R2_S3_*)

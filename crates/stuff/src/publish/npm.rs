@@ -168,7 +168,7 @@ pub fn run_publication(
     let library = library_config(&config);
 
     let cache_dir = paths.cache_dir("npm");
-    let state_dir = paths.state_dir("npm");
+    let state_dir = paths.publish_state_dir(Registry::Npm);
     let staging = if options.dry_run {
         Some(Staging::create(&cache_dir, "npm-dry-run")?)
     } else {

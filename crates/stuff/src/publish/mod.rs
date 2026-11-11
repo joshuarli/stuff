@@ -286,6 +286,21 @@ impl std::fmt::Display for PublishError {
 
 impl std::error::Error for PublishError {}
 
+pub fn publish_lock_for_bucket(
+    environment: &Environment,
+    bucket: &str,
+) -> Result<std::path::PathBuf, PublishError> {
+    let paths = paths::Paths::from_environment(environment);
+    let config = config::Config::load(&paths.config_file())?;
+    let registry = config.registry_for_bucket(bucket).ok_or_else(|| {
+        PublishError::Config(format!(
+            "bucket {bucket} is not configured for any registry in {}",
+            paths.config_file().display()
+        ))
+    })?;
+    Ok(paths.publish_lock(registry))
+}
+
 pub fn run(request: Request, environment: &Environment) -> Result<Outcome, PublishError> {
     match request {
         Request::Publish {

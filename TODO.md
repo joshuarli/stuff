@@ -13,15 +13,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-67 · P2 · Maintenance helpers do not acquire the Rust publisher's lock
-
-- **Area:** Concurrency
-- **Where:** `deploy/r2_common.py:68-82`, `deploy/publish-lock.sh:7-8`, `crates/stuff/src/publish/state.rs:27-34`, `crates/stuff/src/publish/npm.rs:170-198`, `crates/stuff/src/publish/pypi.rs:47`, `crates/stuff/src/publish/transaction.rs:509-511`
-- **Problem:** Native publishers lock `cargo`, `npm`, and `pypi` state directories. Maintenance helpers derive `mycrates`, `mynpm`, and `mypypi` from bucket suffixes. Actual `r2_common.publish_lock` calls entered all three helper locks while exclusive flocks were held on the corresponding Rust-derived paths. Thus GC and container work can overlap a same-host publication despite the intended exclusion. Custom bucket names make suffix inference unreliable too. GC's marker rechecks do not close the race between a check and its deletion batch. The probe established missing exclusion, not a live corrupted publication.
-- **Recommendation:** Resolve one explicit logical-registry lock identity across Rust, Python, and shell, including configured bucket names. Add a cross-language contention check that holds each native publisher's lock while invoking the helper, and the reverse. Preserve the lock inode across releases.
-- **Fix with:** single-source-of-truth
-- **Effort:** S
-
 ### STUF-68 · P2 · OCI blob GC ignores its grace period and in-flight uploads
 
 - **Area:** Data

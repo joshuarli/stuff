@@ -48,6 +48,7 @@ pub enum Command {
     Republish,
     Rollback,
     Credentials,
+    LockPath,
 }
 
 impl Command {
@@ -62,6 +63,7 @@ impl Command {
             Command::Republish => "republish",
             Command::Rollback => "rollback",
             Command::Credentials => "credentials",
+            Command::LockPath => "lock-path",
         }
     }
 
@@ -98,7 +100,11 @@ impl Command {
                 output: true,
                 ..AllowedFlags::default()
             },
-            Command::Publish | Command::Republish | Command::Rollback | Command::Credentials => {
+            Command::Publish
+            | Command::Republish
+            | Command::Rollback
+            | Command::Credentials
+            | Command::LockPath => {
                 AllowedFlags::default()
             }
         }
@@ -160,7 +166,8 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
         Some("publish") => parse_publish(&argv[1..]),
         Some("republish") => parse_republish(&argv[1..]),
         Some("rollback") => parse_rollback(&argv[1..]),
-        Some("credentials") => parse_credentials(&argv[1..]),
+        Some("credentials") => parse_bucket(Command::Credentials, &argv[1..]),
+        Some("lock-path") => parse_lock_path(&argv[1..]),
         _ => parse_read_only(argv),
     }
 }
@@ -277,18 +284,36 @@ fn parse_read_only(argv: &[String]) -> Result<Parsed> {
                 return Err(usage_error("diff requires two catalog paths"));
             }
         }
-        Command::Publish | Command::Republish | Command::Rollback | Command::Credentials => {}
+        Command::Publish
+            | Command::Republish
+            | Command::Rollback
+            | Command::Credentials
+            | Command::LockPath => {}
     }
     Ok(parsed)
 }
 
-fn parse_credentials(args: &[String]) -> Result<Parsed> {
+fn parse_bucket(command: Command, args: &[String]) -> Result<Parsed> {
     match args {
         [bucket] if !bucket.is_empty() && !bucket.starts_with('-') => Ok(Parsed {
             positionals: vec![bucket.clone()],
-            ..request_parsed(Command::Credentials, None)
+            ..request_parsed(command, None)
         }),
-        _ => Err(usage_error("credentials requires exactly one bucket")),
+        _ => Err(usage_error(format!("{} requires exactly one bucket", command.name()))),
+    }
+}
+
+fn parse_lock_path(args: &[String]) -> Result<Parsed> {
+    match args {
+        [flag, name] if flag == "--registry" => {
+            let registry = RegistryFilter::parse(name)
+                .ok_or_else(|| usage_error(format!("unknown registry: {name}")))?;
+            Ok(Parsed {
+                registry: Some(registry),
+                ..request_parsed(Command::LockPath, None)
+            })
+        }
+        _ => parse_bucket(Command::LockPath, args),
     }
 }
 
@@ -643,6 +668,9 @@ Commands:
   credentials <bucket>
      print shell exports of short-lived R2 S3 credentials for one bucket,
      minted through the configured cf_profile; use with eval
+  lock-path <bucket> | lock-path --registry cargo|npm|pypi|oci
+     print the publish lock file of a registry, or of the registry that owns
+     a configured bucket; maintenance helpers hold it while they write
 
 Sources default to the live registries (no credentials needed).
 Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir (site, generation, or

@@ -14,9 +14,9 @@ generation directory with no manifest is deleted only after the grace period;
 a recent one is a sync in flight and blocks shared-store deletion for that
 bucket.
 
-Each bucket is processed under its registry's publish lock
-($STUFF_STATE_HOME/<bucket without "stuff-">/publish.lock, the lock the
-publish helpers hold). Before every delete batch the helper re-reads
+Each bucket is processed under the publish lock of the registry that owns it
+in the stuff configuration (`stuff lock-path BUCKET`), the lock `stuff
+publish` holds. Before every delete batch the helper re-reads
 `current` and the manifest list and aborts if either changed.
 
 Without R2_S3_* it mints bucket-scoped temporary credentials from the

@@ -57,17 +57,19 @@ def single_put_max():
     return int(os.environ.get("R2_SINGLE_PUT_MAX", str(DEFAULT_SINGLE_PUT_MAX)))
 
 
-def state_home():
-    explicit = os.environ.get("STUFF_STATE_HOME")
-    if explicit:
-        return explicit
-    base = os.environ.get("XDG_STATE_HOME") or os.path.join(os.path.expanduser("~"), ".local", "state")
-    return os.path.join(base, "stuff")
-
-
 def bucket_lock_path(bucket):
-    registry = bucket[len("stuff-"):] if bucket.startswith("stuff-") else bucket
-    return os.path.join(state_home(), registry, "publish.lock")
+    """The publish lock of the registry that owns `bucket`, as `stuff` resolves it."""
+    stuff = os.environ.get("STUFF", "stuff")
+    try:
+        done = subprocess.run([stuff, "lock-path", bucket], capture_output=True, text=True)
+    except FileNotFoundError:
+        fail(f"{stuff} is not on PATH; install the stuff CLI or set STUFF")
+    if done.returncode != 0:
+        fail((done.stderr or done.stdout).strip() or f"{stuff} lock-path {bucket} failed")
+    path = done.stdout.strip()
+    if not path:
+        fail(f"{stuff} lock-path {bucket} printed no path")
+    return path
 
 
 @contextlib.contextmanager

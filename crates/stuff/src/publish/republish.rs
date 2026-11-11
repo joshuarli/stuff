@@ -197,7 +197,7 @@ fn npm(
     let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let library = library_config(&config);
     let cache_dir = paths.cache_dir("npm");
-    let state_dir = paths.state_dir("npm");
+    let state_dir = paths.publish_state_dir(Registry::Npm);
     let staging = Staging::create(&cache_dir, "npm-republish")?;
     let site_dir = staging.join("site");
     let work_state = staging.join("state");
@@ -337,7 +337,7 @@ fn pypi(
     let bucket = config.pypi.bucket.clone();
     let credentials = credentials::resolve(environment, &config.cf_profile, &bucket)?;
     let cache_dir = paths.cache_dir("pypi");
-    let state_dir = paths.state_dir("pypi");
+    let state_dir = paths.publish_state_dir(Registry::Pypi);
     let staging = Staging::create(&cache_dir, "pypi-republish")?;
     let site = staging.path().join("site");
     let snapshot_cache = cache_dir.clone();

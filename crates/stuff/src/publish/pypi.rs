@@ -44,7 +44,7 @@ pub fn run(
         &config,
         &settings,
         publish,
-        &paths.state_dir("pypi"),
+        &paths.publish_state_dir(Registry::Pypi),
         &paths.cache_dir("pypi"),
         options,
     )

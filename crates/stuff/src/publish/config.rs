@@ -4,7 +4,7 @@ use std::path::Path;
 
 use deser_value::Value;
 
-use crate::publish::PublishError;
+use crate::publish::{PublishError, Registry};
 use crate::publish::cargo::render::CargoUrls;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,6 +43,22 @@ pub struct Config {
     pub npm: RegistryConfig,
     pub pypi: RegistryConfig,
     pub oci: OciConfig,
+}
+
+impl Config {
+    /// The registry whose publication owns `bucket`; the OCI blob bucket
+    /// belongs to the OCI registry.
+    pub fn registry_for_bucket(&self, bucket: &str) -> Option<Registry> {
+        [
+            (&self.cargo.bucket, Registry::Cargo),
+            (&self.npm.bucket, Registry::Npm),
+            (&self.pypi.bucket, Registry::Pypi),
+            (&self.oci.bucket, Registry::Oci),
+            (&self.oci.blobs_bucket, Registry::Oci),
+        ]
+        .into_iter()
+        .find_map(|(name, registry)| (name == bucket).then_some(registry))
+    }
 }
 
 impl Default for Config {
@@ -217,6 +233,11 @@ mod tests {
         let config = Config::load(&path).unwrap();
         assert_eq!(config.cf_profile, "publisher");
         assert_eq!(config.cargo.bucket, "custom-cargo");
+        assert_eq!(config.registry_for_bucket("custom-cargo"), Some(Registry::Cargo));
+        assert_eq!(config.registry_for_bucket("stuff-mycrates"), None);
+        assert_eq!(config.registry_for_bucket("stuff-mynpm"), Some(Registry::Npm));
+        assert_eq!(config.registry_for_bucket("custom-meta"), Some(Registry::Oci));
+        assert_eq!(config.registry_for_bucket("custom-blobs"), Some(Registry::Oci));
         assert_eq!(config.cargo.public_base_url, "https://crates.17166969.xyz");
         assert_eq!(config.npm.bucket, "stuff-mynpm");
         assert_eq!(config.npm.public_base_url, "https://npm.example");

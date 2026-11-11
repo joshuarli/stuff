@@ -15,6 +15,7 @@ import urllib.parse
 import xml.sax.saxutils
 
 SCRIPT = pathlib.Path(__file__).with_name("r2-gc-blobs.py")
+STUFF = os.environ.get("STUFF") or str(SCRIPT.parents[1] / "target" / "debug" / "stuff")
 spec = importlib.util.spec_from_file_location("r2_gc_blobs", SCRIPT)
 gcblobs = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gcblobs)
@@ -128,6 +129,8 @@ class GcBlobsTest(unittest.TestCase):
             "R2_S3_SECRET_ACCESS_KEY": "test-secret",
             "R2_S3_REGION": "auto",
             "STUFF_STATE_HOME": self.home.name,
+            "STUFF_CONFIG_HOME": self.home.name,
+            "STUFF": STUFF,
         }
         self.saved = {name: os.environ.get(name) for name in self.env}
         os.environ.update(self.env)
