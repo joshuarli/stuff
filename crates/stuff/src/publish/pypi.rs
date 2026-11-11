@@ -6,7 +6,7 @@ use deser_value::Value;
 use mypypi::build::{acquire_or_build, BuildOptions};
 use mypypi::catalog::{parse_catalog, Catalog};
 use mypypi::cli::create_plan;
-use mypypi::models::Target;
+use mypypi::models::{Target, WheelIdentity};
 use mypypi::planner::PlanOutcome;
 use stuff_store::{HashAlg, stream_file_hash};
 
@@ -107,6 +107,7 @@ fn publish_internal(
     let platforms: Vec<String> = targets.iter().map(|target| target.platform.clone()).collect();
     let staging = Staging::create(cache_dir, "pypi-site")?;
     let site = staging.path().join("site");
+    let selection = staging.path().join("selection");
     let transaction_state = if options.dry_run {
         staging.join("transaction")
     } else {
@@ -136,13 +137,15 @@ fn publish_internal(
         })?;
         pull_live(pending.client(), &config.pypi.bucket, &site, state_dir)?;
         if !acquired {
-            acquire_wheels(&catalog, settings, &targets, &site, state_dir, publish.allow_sdist)?;
+            select_cached_wheels(&catalog, state_dir, &selection)?;
+            acquire_wheels(&catalog, settings, &targets, &site, state_dir, &selection, publish.allow_sdist)?;
+            select_cached_wheels(&catalog, state_dir, &selection)?;
             acquired = true;
         }
         mypypi::publish::publish(&mypypi::publish::PublishOptions {
             settings,
             output: &site,
-            state_dir,
+            state_dir: &selection,
             catalog: &catalog,
             platforms: &platforms,
         })
@@ -189,19 +192,68 @@ fn resolved_catalog(
     parse_catalog(&text).map_err(map_mypypi)
 }
 
+/// Links the cached wheels of the packages this invocation's catalog names
+/// into `selection/wheels`. The permanent cache keeps wheels from earlier
+/// invocations, which mypypi would otherwise reject as absent from the
+/// catalog.
+fn select_cached_wheels(
+    catalog: &Catalog,
+    state_dir: &Path,
+    selection: &Path,
+) -> Result<(), PublishError> {
+    let selected = selection.join("wheels");
+    std::fs::create_dir_all(&selected).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", selected.display()))
+    })?;
+    let cache = state_dir.join("wheels");
+    let entries = match std::fs::read_dir(&cache) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(PublishError::Config(format!(
+                "could not read {}: {error}",
+                cache.display()
+            )));
+        }
+    };
+    let packages = catalog.by_package();
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            PublishError::Config(format!("could not read {}: {error}", cache.display()))
+        })?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str().filter(|name| name.ends_with(".whl")) else {
+            continue;
+        };
+        let identity = WheelIdentity::parse(name).map_err(|error| {
+            PublishError::Integrity(format!(
+                "invalid cached wheel {}: {}",
+                entry.path().display(),
+                error.detail
+            ))
+        })?;
+        let target = selected.join(name);
+        if packages.contains_key(&identity.package) && target.symlink_metadata().is_err() {
+            link_or_copy(&entry.path(), &target)?;
+        }
+    }
+    Ok(())
+}
+
 fn acquire_wheels(
     catalog: &Catalog,
     settings: &mypypi::config::ProjectSettings,
     targets: &[Target],
     site: &Path,
     state_dir: &Path,
+    selection: &Path,
     allow_sdist: bool,
 ) -> Result<(), PublishError> {
     let wheels = state_dir.join("wheels");
     std::fs::create_dir_all(&wheels).map_err(|error| {
         PublishError::Config(format!("could not create {}: {error}", wheels.display()))
     })?;
-    let data = create_plan(catalog, settings, targets, site, state_dir).map_err(map_mypypi)?;
+    let data = create_plan(catalog, settings, targets, site, selection).map_err(map_mypypi)?;
     let entries = catalog.by_package();
     let prebuild_cwd = std::env::current_dir().map_err(|error| {
         PublishError::Config(format!("could not determine the working directory: {error}"))

@@ -54,6 +54,35 @@ with zipfile.ZipFile(path, "w") as archive:
     assert!(status.success(), "python3 could not build {RETAINED_WHEEL}");
 }
 
+const OTHER_WHEEL: &str = "other_fixture-1.0-py3-none-any.whl";
+
+fn write_other_wheel(path: &Path) {
+    let script = r#"
+import base64, hashlib, sys, zipfile
+dist = "other_fixture-1.0.dist-info"
+files = {
+    "other_fixture/__init__.py": b"",
+    f"{dist}/METADATA": b"Metadata-Version: 2.4\nName: other-fixture\nVersion: 1.0\nRequires-Python: >=3.15,<3.16\n\n",
+    f"{dist}/WHEEL": b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+}
+def digest(body):
+    return base64.urlsafe_b64encode(hashlib.sha256(body).digest()).rstrip(b"=").decode()
+record = "".join(f"{name},sha256={digest(body)},{len(body)}\n" for name, body in files.items())
+record += f"{dist}/RECORD,,\n"
+with zipfile.ZipFile(sys.argv[1], "w") as archive:
+    for name, body in files.items():
+        archive.writestr(name, body)
+    archive.writestr(f"{dist}/RECORD", record)
+"#;
+    let status = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(path)
+        .status()
+        .expect("run python3 to build the other wheel");
+    assert!(status.success(), "python3 could not build {OTHER_WHEEL}");
+}
+
 fn seed_live_generation(fake: &FakeS3, wheel: &Path, targets: Vec<Target>) -> String {
     let root = tempfile::tempdir().unwrap();
     let site = root.path().join("site");
@@ -298,6 +327,31 @@ fn a_spec_absent_from_live_and_state_is_added_validated_and_published() {
         log.contains("pip install") && log.contains("--no-index"),
         "the validate step never ran: {log}"
     );
+}
+
+#[test]
+fn cached_wheels_of_other_packages_do_not_block_an_unrelated_publish() {
+    let work = Workspace::new();
+    let cache = work.state_dir().join("wheels");
+    write_other_wheel(&cache.join(OTHER_WHEEL));
+    let other = &["publish", "pypi", "other-fixture==1.0"];
+
+    assert_success(&work.publish_args(&[other, &["--dry-run"][..]].concat()));
+    assert_success(&work.publish());
+    assert_success(&work.publish_args(other));
+    let generation = work.current();
+    let published: Vec<String> = manifest_targets(&work, &generation)
+        .into_iter()
+        .map(|(filename, _)| filename)
+        .collect();
+    assert!(published.contains(&FIXTURE_WHEEL.to_string()), "{published:?}");
+    assert!(published.contains(&OTHER_WHEEL.to_string()), "{published:?}");
+    assert!(cache.join(FIXTURE_WHEEL).is_file(), "the first package's cached wheel was dropped");
+
+    let remote = object_snapshot(&work.fake);
+    assert_success(&work.publish_args(other));
+    assert_eq!(work.current(), generation, "repeating the publish moved current");
+    assert_eq!(object_snapshot(&work.fake), remote, "repeating the publish changed the remote");
 }
 
 #[test]

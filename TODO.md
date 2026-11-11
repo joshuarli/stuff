@@ -13,15 +13,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-70 · P2 · Cached wheels block the next unrelated Python publication
-
-- **Area:** Data
-- **Where:** `crates/stuff/src/publish/pypi.rs:104-146`, `crates/stuff/src/publish/pypi.rs:161-204`, `crates/mypypi/src/cli.rs:336-357`, `crates/mypypi/src/cli.rs:404-414`, `crates/mypypi/src/publish.rs:255-266`
-- **Problem:** Each invocation resolves a fresh catalog, but planning and validation scan the permanent `state/pypi/wheels` directory. Both reject cached package/version entries absent from that invocation's catalog. After A is published, unrelated B therefore fails on A's leftover wheel. `pull_live` only reads or links cache entries; it neither scopes the candidates nor unions their catalog. A cold dry-run can populate the same permanent directory and obstruct a later publish. Two independent source reviews confirmed the complete path; an end-to-end Rust reproduction remains unproven because the toolchain was unavailable.
-- **Recommendation:** Separate reusable downloaded bytes from the selected candidate set. Plan and validate only wheels selected by the resolved invocation catalog, while preserving remote published artifacts through the existing merge. In the fake-S3 harness, publish A then B with the same state/cache homes, require both in the active generation, retain A's cache, and require repeating B to be a no-op. Cover a preceding cold dry-run as well.
-- **Fix with:** isolate-effects
-- **Effort:** M
-
 ### STUF-71 · P2 · Subprocess cleanup does not own descendants and pipe lifetime
 
 - **Area:** Concurrency
