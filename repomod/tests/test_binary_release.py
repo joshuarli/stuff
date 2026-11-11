@@ -9,9 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from repomod.rules import musl_toolchain, static_elf
+from repomod.rules import musl_toolchain, release_notes, static_elf
 from repomod.rules.binary_release import (
     _binary_release_findings,
+    _binary_release_notes_findings,
+    _binary_release_notes_fix,
     _binary_release_standard_findings,
     _binary_release_static_findings,
     _binary_release_static_fix,
@@ -798,3 +800,164 @@ def test_verifier_rejects_gcc_objects_in_the_comment_section(tmp_path: Path) -> 
     assert result.returncode == 1
     assert "links GCC-built objects" in result.stderr
     assert "GCC: (Alpine 15.2.0) 15.2.0" in result.stderr
+
+
+def fix_release_notes(root: Path, repository: Repository) -> str:
+    findings = _binary_release_notes_findings(root, repository)
+    assert [finding.fixable for finding in findings] == [True]
+    plan = _binary_release_notes_fix(root, repository)
+    assert set(plan) == {".github/workflows/release.yml"}
+    workflow = plan[".github/workflows/release.yml"]
+    (root / ".github" / "workflows" / "release.yml").write_text(workflow, encoding="utf-8")
+    assert _binary_release_notes_findings(root, repository) == []
+    assert _binary_release_notes_fix(root, repository) == {}
+    return workflow
+
+
+def test_release_notes_fixer_writes_the_changelog_before_publication(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(
+        tmp_path,
+        standard_workflow(["x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl"]),
+    )
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+
+    workflow = fix_release_notes(tmp_path, tool)
+
+    release_job = workflow.split("  release:\n", 1)[1]
+    assert release_job.count("- name: Write release notes") == 1
+    assert release_job.index("Write release notes") < release_job.index("zip -9 dist/demo.zip")
+    assert (
+        '--prerelease --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag' in release_job
+    )
+    assert "\n\n\n" not in workflow
+
+
+@pytest.mark.parametrize(
+    ("fixture", "tags"),
+    [
+        ("joshuarli_ish", ("tool", "rust")),
+        ("joshuarli_mactop", ("tool", "macos", "swift")),
+        ("joshuarli_gh", ("tool", "go", "fork")),
+        ("laputa-systems_srv", ("tool", "rust")),
+    ],
+)
+def test_release_notes_fixer_repairs_captured_fleet_workflows(
+    tmp_path: Path, fixture: str, tags: tuple[str, ...]
+) -> None:
+    source = Path(__file__).parent / "fixtures" / "binary_release" / fixture
+    root = tmp_path / fixture
+    shutil.copytree(source, root)
+    owner, name = fixture.split("_", 1)
+    workflows = root / ".github" / "workflows"
+    for path in workflows.iterdir():
+        if path.name != "release.yml":
+            path.rename(workflows / "release.yml")
+
+    workflow = fix_release_notes(root, Repository(RepoId(owner, name), tags))
+
+    create = next(line for line in workflow.splitlines() if "gh release create" in line)
+    assert release_notes.RELEASE_NOTES_FLAG in workflow
+    assert workflow.index("- name: Write release notes") < workflow.index(create)
+
+
+def test_release_notes_fixer_replaces_a_drifted_or_misplaced_step(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(tmp_path, binary_workflow("cargo build --release"))
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+    workflow = fix_release_notes(tmp_path, tool)
+    start = workflow.index("      - name: Write release notes")
+    end = workflow.index("      - run: gh release create", start)
+    step = workflow[start:end].replace("--limit 1", "--limit 2")
+    drifted = workflow[:start] + workflow[end:] + "\n" + step
+    write_workflow(tmp_path, drifted)
+
+    fixed = fix_release_notes(tmp_path, tool)
+
+    assert fixed.count("- name: Write release notes") == 1
+    assert "--limit 2" not in fixed
+    assert fixed.index("Write release notes") < fixed.index("gh release create")
+
+
+def test_release_notes_rule_reports_release_action_publishers_as_manual(
+    tmp_path: Path,
+) -> None:
+    write_rust_executable(tmp_path)
+    workflow = binary_workflow("cargo build --release").replace(
+        '      - run: gh release create "$RELEASE_TAG" dist/demo.zip --prerelease --target "$GITHUB_SHA"\n',
+        "      - uses: softprops/action-gh-release@v2\n"
+        "        with:\n          prerelease: true\n          files: dist/demo.zip\n"
+        "          target_commitish: ${{ github.sha }}\n",
+    )
+    write_workflow(tmp_path, workflow)
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+
+    findings = _binary_release_notes_findings(tmp_path, tool)
+
+    assert [finding.fixable for finding in findings] == [False]
+    assert _binary_release_notes_fix(tmp_path, tool) == {}
+
+
+FAKE_GH = """#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  "release list --repo acme/demo "*) printf '%s\\n' "$FAKE_PREVIOUS" ;;
+  "api --paginate repos/acme/demo/compare/release-old...abc123?per_page=100 "*)
+    printf -- '- 1111111111aa feat: one\\n- 2222222222bb fix: two\\n' ;;
+  "api repos/acme/demo/compare/release-old...abc123 "*) printf '%s\\n' "$FAKE_STATUS" ;;
+  *) echo "unexpected gh $*" >&2; exit 2 ;;
+esac
+"""
+
+
+def run_release_notes(tmp_path: Path, previous: str, status: str) -> tuple[int, str, str]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "gh"
+    fake.write_text(FAKE_GH, encoding="utf-8")
+    fake.chmod(0o755)
+    runner_temp = tmp_path / "runner"
+    runner_temp.mkdir()
+    result = subprocess.run(
+        ["bash", "-euo", "pipefail", "-c", release_notes.SCRIPT],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            "PATH": f"{bin_dir}:/usr/bin:/bin",
+            "RUNNER_TEMP": str(runner_temp),
+            "GITHUB_REPOSITORY": "acme/demo",
+            "GITHUB_SHA": "abc123",
+            "GITHUB_SERVER_URL": "https://github.com",
+            "FAKE_PREVIOUS": previous,
+            "FAKE_STATUS": status,
+        },
+    )
+    notes = runner_temp / "release-notes.md"
+    return result.returncode, notes.read_text() if notes.exists() else "", result.stderr
+
+
+def test_release_notes_script_lists_commits_since_the_previous_release(tmp_path: Path) -> None:
+    code, notes, _ = run_release_notes(tmp_path, "release-old", "ahead")
+
+    assert code == 0
+    assert notes == (
+        "## Changes since release-old\n\n"
+        "- 1111111111aa feat: one\n"
+        "- 2222222222bb fix: two\n\n"
+        "**Full changelog**: https://github.com/acme/demo/compare/release-old...abc123\n"
+    )
+
+
+def test_release_notes_script_marks_the_initial_release(tmp_path: Path) -> None:
+    code, notes, _ = run_release_notes(tmp_path, "", "ahead")
+
+    assert code == 0
+    assert notes == "Initial release at abc123.\n"
+
+
+def test_release_notes_script_rejects_a_head_that_is_not_ahead(tmp_path: Path) -> None:
+    code, _, stderr = run_release_notes(tmp_path, "release-old", "diverged")
+
+    assert code == 1
+    assert "abc123 is diverged relative to release-old" in stderr

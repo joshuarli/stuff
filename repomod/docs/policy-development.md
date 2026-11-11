@@ -60,6 +60,17 @@ per Linux architecture; explicit artifact paths are checked individually. The ch
 a test keeps the image copy byte-identical. The fixer inserts the step when the workflow downloads
 artifacts in its prerelease job before publication.
 
+`binary-release-notes` requires every public tool prerelease to publish a changelog. The
+notes list each commit from the newest non-draft release to the triggering SHA, oldest first, as
+`- <12-hex sha> <subject>`, and end with a compare link. The step builds them from the GitHub
+compare API, so the release job does not need a checkout. With no earlier release, the notes
+record an initial release. When the triggering SHA is not ahead of the previous release, the step
+fails, because a diverged history has no single changelog. GitHub's `--generate-notes` is not
+used because it lists merged pull requests, and these repositories commit directly to the default
+branch. The fixer inserts the step text from `src/repomod/rules/release_notes.py` before the
+`gh release create` step and adds the `--notes-file` flag. A drifted copy of the step is reported
+and replaced. Publishers that use `softprops/action-gh-release` are manual findings.
+
 An image-mode builder, whose Dockerfile starts from the published canonical image by digest, must
 pass `--trace "$RUNNER_TEMP/linker-trace"` to the verifier. The trace must name the builder's
 `/usr/lib/libc.a` and CRT objects, and it must not contain a rustup self-contained path, a

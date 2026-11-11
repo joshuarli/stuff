@@ -103,6 +103,11 @@ dependencies and, when scanning a directory, requires one binary for each Linux 
 `/usr/lib/libc.a` and CRT paths and rejects a rustup self-contained or glibc path. It skips tools
 tagged `macos` and private repositories.
 
+`binary-release-notes` checks public tool prereleases, including forks and `macos` tools. Each
+publishing job must run the shared `Write release notes` step from
+`src/repomod/rules/release_notes.py` before `gh release create`, and the command must pass
+`--notes-file "$RUNNER_TEMP/release-notes.md"`.
+
 `registry-sources` skips repositories tagged `fork`, whose upstream manifests and lockfiles stay
 outside local policy.
 

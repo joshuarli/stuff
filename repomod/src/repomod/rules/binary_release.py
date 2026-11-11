@@ -7,6 +7,11 @@ from pathlib import Path
 
 from repomod.catalog import LANGUAGE_TAGS, PLATFORM_TAGS
 from repomod.rules.release import _POLICY as _RELEASE_POLICY
+from repomod.rules.release_notes import (
+    RELEASE_NOTES_FLAG,
+    RELEASE_NOTES_STEP_NAME,
+)
+from repomod.rules.release_notes import render_workflow_step as render_release_notes_step
 from repomod.rules.static_elf import SCRIPT_MARKER, STATIC_SMOKE_NAME, render_workflow_step
 from repomod.rules.workflows import read_workflow_sources
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
@@ -55,6 +60,10 @@ _STATIC_SMOKE_STEP = re.compile(
     rf"(?m)^(?P<indent> *)-\s+name:\s*{re.escape(STATIC_SMOKE_NAME)}\s*$"
 )
 _DOWNLOAD_STEP = re.compile(r"(?m)^(?P<indent> *)-\s+uses:\s*actions/download-artifact@")
+_NOTES_STEP = re.compile(
+    rf"(?m)^(?P<indent> *)-\s+name:\s*{re.escape(RELEASE_NOTES_STEP_NAME)}\s*$"
+)
+_PRERELEASE_FLAG = re.compile(r"(?<!\S)--prerelease\b")
 _JOB_KEY = re.compile(r"^  ([A-Za-z0-9_-]+):\s*$")
 
 
@@ -727,6 +736,138 @@ def _binary_release_static_fix(root: Path, repository: Repository) -> dict[str, 
     return plan
 
 
+def _containing_step(lines: list[str], line: int, job_start: int) -> tuple[int, int] | None:
+    for index in range(line, job_start, -1):
+        stripped = lines[index].lstrip(" ")
+        if stripped.startswith("- ") and len(lines[index]) - len(stripped) <= len(lines[line]) - len(
+            lines[line].lstrip(" ")
+        ):
+            return index, len(lines[index]) - len(stripped)
+    return None
+
+
+def _trimmed(lines: list[str]) -> list[str]:
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    return lines[:end]
+
+
+def _release_notes_job_edits(
+    lines: list[str], clean_lines: list[str], job_start: int, job_end: int
+) -> list[tuple[int, int, list[str]]] | None:
+    job_source = "\n".join(clean_lines[job_start:job_end])
+    create = _PRERELEASE_COMMAND.search(job_source)
+    if create is None:
+        return None
+    create_line = job_start + job_source.count("\n", 0, create.start())
+    located = _containing_step(clean_lines, create_line, job_start)
+    if located is None:
+        return None
+    create_start, indentation = located
+    create_end = _step_end(lines, create_start, job_end, indentation)
+    rendered = render_release_notes_step(indentation)
+    notes_starts = [
+        job_start + job_source.count("\n", 0, match.start())
+        for match in _NOTES_STEP.finditer(job_source)
+    ]
+    notes_steps = [
+        (start, _step_end(lines, start, job_end, indentation)) for start in notes_starts
+    ]
+    create_block = lines[create_start:create_end]
+    has_flag = RELEASE_NOTES_FLAG in "\n".join(clean_lines[create_start:create_end])
+    if (
+        has_flag
+        and len(notes_steps) == 1
+        and notes_steps[0][1] <= create_start
+        and _trimmed(lines[notes_steps[0][0] : notes_steps[0][1]]) == rendered
+    ):
+        return []
+    if not has_flag:
+        offset = create_line - create_start
+        for index in range(offset, len(create_block)):
+            if _PRERELEASE_FLAG.search(clean_lines[create_start + index]) is not None:
+                create_block[index] = _PRERELEASE_FLAG.sub(
+                    f"--prerelease {RELEASE_NOTES_FLAG}", create_block[index], count=1
+                )
+                break
+        else:
+            return None
+    edits: list[tuple[int, int, list[str]]] = [(start, end, []) for start, end in notes_steps]
+    edits.append((create_start, create_end, [*rendered, "", *_trimmed(create_block)]))
+    return edits
+
+
+def _release_notes_edits(source: str) -> list[tuple[int, int, list[str]]] | None:
+    lines = source.splitlines()
+    clean_lines = _workflow_without_comments(source).splitlines()
+    ranges = _publish_job_ranges(source)
+    if not ranges:
+        return None
+    edits = []
+    for job_start, job_end in ranges:
+        job_edits = _release_notes_job_edits(lines, clean_lines, job_start, job_end)
+        if job_edits is None:
+            return None
+        edits.extend(job_edits)
+    return edits
+
+
+def _apply_edits(source: str, edits: list[tuple[int, int, list[str]]]) -> str:
+    lines = source.splitlines()
+    for start, end, block in sorted(edits, reverse=True):
+        before = lines[:start]
+        after = lines[end:]
+        while before and not before[-1].strip():
+            before.pop()
+        while after and not after[0].strip():
+            after.pop(0)
+        middle = [*before, "", *block] if block else before
+        lines = [*middle, "", *after] if after else middle
+    return "\n".join(lines) + "\n"
+
+
+def _binary_release_notes_findings(root: Path, repository: Repository) -> list[Finding]:
+    if repository.private:
+        return []
+    sources, problems = read_workflow_sources(root)
+    findings = [
+        operational(repository, "binary-release-notes", path, message)
+        for path, message in problems
+    ]
+    for path, source in sources:
+        clean = _workflow_without_comments(source)
+        if _release_kind(root, clean) != "binary":
+            continue
+        edits = _release_notes_edits(source)
+        if edits == []:
+            continue
+        findings.append(
+            violation(
+                repository,
+                "binary-release-notes",
+                path,
+                "binary prerelease must publish the commit changelog since the previous release: "
+                f"run the shared '{RELEASE_NOTES_STEP_NAME}' step before gh release create and pass "
+                f"{RELEASE_NOTES_FLAG}",
+                fixable=edits is not None,
+            )
+        )
+    return findings
+
+
+def _binary_release_notes_fix(root: Path, repository: Repository) -> dict[str, str]:
+    sources, _ = read_workflow_sources(root)
+    plan = {}
+    for path, source in sources:
+        if _release_kind(root, _workflow_without_comments(source)) != "binary":
+            continue
+        edits = _release_notes_edits(source)
+        if edits is not None and edits:
+            plan[path] = _apply_edits(source, edits)
+    return plan
+
+
 def binary_release_rules() -> tuple[Rule, ...]:
     return (
         Rule(
@@ -754,6 +895,15 @@ def binary_release_rules() -> tuple[Rule, ...]:
             _binary_release_static_findings,
             _binary_release_static_fix,
             "fix(release): verify static Linux artifacts",
+            (".github/workflows/*.yml", ".github/workflows/*.yaml"),
+        ),
+        Rule(
+            "binary-release-notes",
+            "Require commit changelogs in native binary prerelease notes",
+            TagPredicate(any_of=frozenset({"tool"})),
+            _binary_release_notes_findings,
+            _binary_release_notes_fix,
+            "fix(release): publish commit changelogs in prerelease notes",
             (".github/workflows/*.yml", ".github/workflows/*.yaml"),
         ),
     )
