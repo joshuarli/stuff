@@ -76,6 +76,7 @@ Start one subagent per repository that has manual upgrades, a failed fixer, or r
 - Never use a `repomod/fix/*` branch.
 - Do not weaken or delete a test unless the test is wrong, and say so when it is.
 - Verify with the commands CI runs, then push and open or update a pull request with `gh`.
+- From the lane worktree, follow the `green` skill (`~/.agents/skills/green/SKILL.md`) on that pull request. It owns conflicts, bot review comments, and watching, fixing, and rerunning required checks. Its no-merge rule holds: report the pull request as ready, and the parent merges.
 - Do not write `TODO.md`. Report each blocker to the parent with its evidence.
 - Stop after three rounds without progress, and report what was tried.
 
@@ -83,11 +84,9 @@ If the same workflow failure appears in several lanes, run the matching `fix --r
 
 ### 5. Merge and wait
 
-1. Wait on checks with `gh pr checks <number> --watch` in the background.
-2. Rerun a failed job once with `gh run rerun --failed`. A second identical failure is a real failure, so send it back to the lane.
-3. Merge green lane pull requests with `gh pr merge --auto --rebase`. If the repository refuses auto-merge, wait for green and run `gh pr merge --rebase`.
-4. Never merge a red pull request. Do not use `repomod merge`, which does not check CI itself.
-5. Wait for default-branch CI after each merge, because a pull request can pass and the push build can still fail.
+1. Merge lane pull requests that `green` reported ready with `gh pr merge --auto --rebase`. If the repository refuses auto-merge, confirm required checks are green and run `gh pr merge --rebase`. For `fix` pull requests, wait on `gh pr checks <number> --watch` in the background first.
+2. Never merge a red pull request. Send a red `fix` pull request to a lane. Do not use `repomod merge`, which does not check CI itself.
+3. Wait for default-branch CI after each merge, because a pull request can pass and the push build can still fail. Send a red push build back to a lane as a new pull request, not a direct push.
 
 ### Exit condition
 
