@@ -182,3 +182,11 @@ ignore_reason = "shadowdriver stays private and is never published to stuff, so 
 [overrides."joshuarli/stuff"]
 ignore = ["registry-sources"]
 ignore_reason = "The registry service must remain buildable when its own package registries are unavailable."
+
+[overrides."joshuarli/play"]
+ignore = ["rust-project:lockfile:vendor/symphonia"]
+ignore_reason = "The vendored symphonia fork keeps upstream's own workspace; play locks the crates it consumes, and the remaining members (symphonia-play, symphonia-check, benchtest) are upstream development tools play never builds."
+
+[overrides."laputa-systems/cmake-build"]
+ignore = ["linux-musl-toolchain"]
+ignore_reason = "plan.md P2 prescribes an offline builder from the Alpine 3.25.0_alpha20260805 edge image that python-build pins, with each apk pinned by sha256 in bootstrap.lock.json and installed from local files, so it is not a stable-channel name=version builder."
