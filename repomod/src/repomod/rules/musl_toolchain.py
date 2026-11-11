@@ -855,6 +855,11 @@ def _shell_tokens(text: str) -> list[_Token]:
     return tokens
 
 
+_APK_VALUE_OPTIONS = frozenset(
+    {"--virtual", "-t", "--repositories-file", "--keys-dir", "--cache-dir", "--root", "-p", "--arch"}
+)
+
+
 def _apk_commands(text: str) -> list[_ApkCommand]:
     tokens = _shell_tokens(text)
     commands: list[_ApkCommand] = []
@@ -875,7 +880,7 @@ def _apk_commands(text: str) -> list[_ApkCommand]:
         repositories: list[str] = []
         while cursor < len(tokens) and not tokens[cursor].separator:
             current = tokens[cursor]
-            if current.text in {"--virtual", "-t"}:
+            if current.text in _APK_VALUE_OPTIONS:
                 cursor += 2
                 continue
             if current.text == "--repository":

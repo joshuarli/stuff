@@ -102,6 +102,19 @@ def test_unversioned_package_is_reported(tmp_path: Path, monkeypatch: pytest.Mon
     assert findings[0].fixable is True
 
 
+def test_apk_option_values_are_not_packages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = bare_repo(
+        tmp_path,
+        f"FROM alpine:3.24.2@{STABLE_INDEX}\n"
+        "RUN apk add --no-cache --repositories-file /dev/null --keys-dir /etc/apk/keys "
+        "--cache-dir /var/cache/apk --root / --arch x86_64 -p / bash\n",
+    )
+
+    findings = check(monkeypatch, root)
+
+    assert messages(findings) == ["package bash must be pinned as bash=5.3.9-r1"]
+
+
 def test_stale_package_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = bare_repo(
         tmp_path,
