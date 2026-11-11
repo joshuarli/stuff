@@ -8,6 +8,13 @@ lists `sha256/*` in the blob bucket, and deletes the unreferenced keys.
 Retention matches r2-gc.py in S3 mode. Under CF_LOCAL_STATE the listing is
 read through the cf CLI and every generation with a manifest is retained,
 because the local simulation is a single-writer rehearsal.
+
+Anything younger than --grace-minutes (default 60, the upload session
+lifetime) is kept: blobs uploaded within it, generations whose manifest was
+written within it, and the blobs.json of a recent generation that has no
+manifest yet. A recent generation without a readable blobs.json blocks all
+deletion. Before every delete batch the helper re-reads `current`, the
+manifests, and the generation set, and aborts if any of them changed.
 """
 
 import argparse
@@ -18,6 +25,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from r2_common import cf_command, fail, publish_lock, s3_list_meta, s3_ready
@@ -99,8 +107,13 @@ def local_delete(bucket, key):
     return f"{key}: {detail or 'delete failed'}"
 
 
-def retained_generations(args, meta_objects, get_body):
-    gc = load_gc()
+def generation_of(key):
+    if not key.startswith(GENERATION_PREFIX) or "/" not in key[len(GENERATION_PREFIX) :]:
+        return None
+    return key[len(GENERATION_PREFIX) :].split("/", 1)[0]
+
+
+def manifest_times(gc, meta_objects):
     manifests = {}
     for key in meta_objects:
         if not key.startswith(MANIFEST_PREFIX) or not key.endswith(".json"):
@@ -108,11 +121,13 @@ def retained_generations(args, meta_objects, get_body):
         generation = key[len(MANIFEST_PREFIX) : -len(".json")]
         if not gc.GENERATION_ID.match(generation):
             fail(f"invalid manifest key {key}")
-        if s3_ready():
-            time = gc.parse_time(meta_objects[key][2])
-        else:
-            time = gc.parse_time(meta_objects[key][2])
-        manifests[generation] = {"time": time}
+        manifests[generation] = {"time": gc.parse_time(meta_objects[key][2])}
+    return manifests
+
+
+def retained_generations(args, meta_objects, get_body, cutoff):
+    gc = load_gc()
+    manifests = manifest_times(gc, meta_objects)
     if not manifests:
         fail(f"bucket {args.meta_bucket} has no generation manifests")
     current = None
@@ -121,10 +136,87 @@ def retained_generations(args, meta_objects, get_body):
     if not current or not gc.GENERATION_ID.match(current):
         fail(f"bucket {args.meta_bucket} has no valid current marker")
     if not s3_ready():
-        return set(manifests)
+        return set(manifests), current
     keep_newer = None if args.keep_newer == "all" else int(args.keep_newer)
     retained, _, _ = gc.select_retained(manifests, current, args.keep_previous, keep_newer)
-    return retained
+    recent = {generation for generation, entry in manifests.items() if entry["time"] >= cutoff}
+    return retained | recent, current
+
+
+def in_flight_generations(meta_objects, cutoff):
+    gc = load_gc()
+    manifests = set(manifest_times(gc, meta_objects))
+    newest = {}
+    for key, (_, _, modified) in meta_objects.items():
+        generation = generation_of(key)
+        if generation is None or generation in manifests:
+            continue
+        newest[generation] = max(newest.get(generation, 0.0), gc.parse_time(modified))
+    return {generation for generation, when in newest.items() if when >= cutoff}
+
+
+def meta_signature(meta_objects, current):
+    manifests = frozenset(
+        (key, meta_objects[key][1]) for key in meta_objects if key.startswith(MANIFEST_PREFIX)
+    )
+    generations = frozenset(generation_of(key) for key in meta_objects) - {None}
+    return current, manifests, generations
+
+
+def plan_drop(args, meta_objects, blobs, get_body):
+    gc = load_gc()
+    cutoff = time.time() - args.grace_minutes * 60
+    retained, current = retained_generations(args, meta_objects, get_body, cutoff)
+    in_flight = in_flight_generations(meta_objects, cutoff)
+    unreadable = sorted(
+        generation
+        for generation in in_flight
+        if f"{GENERATION_PREFIX}{generation}/blobs.json" not in meta_objects
+    )
+    referenced = referenced_blobs(args.meta_bucket, retained | (in_flight - set(unreadable)), get_body)
+    managed = {key for key in blobs if BLOB_KEY.fullmatch(key)}
+    recent = {key for key in managed if gc.parse_time(blobs[key][2]) >= cutoff}
+    drop = [] if unreadable else sorted(managed - referenced - recent)
+    return {
+        "current": current,
+        "retained": retained,
+        "in_flight": sorted(in_flight),
+        "unreadable": unreadable,
+        "kept": len(managed) - len(drop),
+        "recent": len(recent - referenced),
+        "drop": drop,
+        "signature": meta_signature(meta_objects, current),
+    }
+
+
+def report(args, plan):
+    print(f"meta: {args.meta_bucket}; current: {plan['current']}")
+    print(f"retain generations: {', '.join(sorted(plan['retained']))}")
+    if plan["in_flight"]:
+        print(f"in-flight generations: {', '.join(plan['in_flight'])}")
+    if plan["unreadable"]:
+        print(
+            "keeping every blob: recent generations without blobs.json: "
+            + ", ".join(plan["unreadable"])
+        )
+    print(
+        f"keep blobs: {plan['kept']} ({plan['recent']} within the grace period), "
+        f"drop blobs: {len(plan['drop'])}"
+    )
+    for key in plan["drop"]:
+        print(f"drop {key}")
+
+
+def delete_batches(args, plan, list_meta, get_body, delete_batch):
+    for start in range(0, len(plan["drop"]), DELETE_BATCH):
+        meta_objects = list_meta(args.meta_bucket)
+        current = None
+        if CURRENT_KEY in meta_objects:
+            body = get_body(args.meta_bucket, CURRENT_KEY)
+            current = body.decode("utf-8", "replace").strip() if body is not None else None
+        if meta_signature(meta_objects, current) != plan["signature"]:
+            fail(f"{args.meta_bucket} metadata changed during blob gc; rerun gc")
+        delete_batch(plan["drop"][start : start + DELETE_BATCH])
 
 
 def referenced_blobs(meta_bucket, retained, get_body):
@@ -195,51 +287,38 @@ def delete_local(bucket, keys, jobs):
 
 def main(argv):
     args = parse_args(argv)
+    if args.grace_minutes < 0:
+        fail("--grace-minutes must be non-negative")
+    jobs = max(1, args.jobs)
     if s3_ready():
         gc = load_gc()
         api = gc.load_api()
         endpoint = os.environ["R2_S3_ENDPOINT"].rstrip("/")
-        with publish_lock(args.meta_bucket):
-            meta_objects = s3_list_meta(args.meta_bucket)
-            retained = retained_generations(
-                args,
-                meta_objects,
-                lambda bucket, key: s3_get_body(api, endpoint, bucket, key),
-            )
-            referenced = referenced_blobs(
-                args.meta_bucket,
-                retained,
-                lambda bucket, key: s3_get_body(api, endpoint, bucket, key),
-            )
-            blobs = s3_list_meta(args.blob_bucket)
-            managed = {key for key in blobs if BLOB_KEY.fullmatch(key)}
-            drop = sorted(managed - referenced)
-            print(f"meta: {args.meta_bucket}; current: {args.meta_bucket}")
-            print(f"retain generations: {', '.join(sorted(retained))}")
-            print(f"keep blobs: {len(managed & referenced)}, drop blobs: {len(drop)}")
-            for key in drop:
-                print(f"drop {key}")
-            if args.dry_run:
-                print("dry run: no objects deleted")
-                return 0
-            delete_s3(api, endpoint, args.blob_bucket, drop, max(1, args.jobs))
+
+        def get_body(bucket, key):
+            return s3_get_body(api, endpoint, bucket, key)
+
+        list_meta = s3_list_meta
+
+        def delete_batch(keys):
+            delete_s3(api, endpoint, args.blob_bucket, keys, jobs)
     else:
-        with publish_lock(args.meta_bucket):
-            meta_objects = local_list(args.meta_bucket)
-            retained = retained_generations(args, meta_objects, local_get)
-            referenced = referenced_blobs(args.meta_bucket, retained, local_get)
-            blobs = local_list(args.blob_bucket)
-            managed = {key for key in blobs if BLOB_KEY.fullmatch(key)}
-            drop = sorted(managed - referenced)
-            print(f"retain generations: {', '.join(sorted(retained))}")
-            print(f"keep blobs: {len(managed & referenced)}, drop blobs: {len(drop)}")
-            for key in drop:
-                print(f"drop {key}")
-            if args.dry_run:
-                print("dry run: no objects deleted")
-                return 0
-            delete_local(args.blob_bucket, drop, max(1, args.jobs))
-    print(f"deleted {len(drop)} blobs from {args.blob_bucket}; kept {len(managed & referenced)}")
+        get_body = local_get
+        list_meta = local_list
+
+        def delete_batch(keys):
+            delete_local(args.blob_bucket, keys, jobs)
+
+    with publish_lock(args.meta_bucket):
+        meta_objects = list_meta(args.meta_bucket)
+        blobs = list_meta(args.blob_bucket)
+        plan = plan_drop(args, meta_objects, blobs, get_body)
+        report(args, plan)
+        if args.dry_run:
+            print("dry run: no objects deleted")
+            return 0
+        delete_batches(args, plan, list_meta, get_body, delete_batch)
+    print(f"deleted {len(plan['drop'])} blobs from {args.blob_bucket}; kept {plan['kept']}")
     return 0
 
 

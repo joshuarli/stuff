@@ -149,7 +149,10 @@ Each generation carries `manifests/<id>.json`; `stuff publish oci` writes it,
 and the Worker writes it during push from the ETags it
 receives. Blob GC is separate: `deploy/r2-gc-blobs.py` unions `blobs.json`
 from retained metadata generations and deletes unreferenced `sha256/*` from
-the blob bucket, with the existing `--dry-run` preview. Generation GC and
+the blob bucket, with the existing `--dry-run` preview. Blobs, manifests, and
+in-flight generations younger than `--grace-minutes` (default one hour, the
+upload session lifetime) survive, and a metadata change between delete
+batches aborts the run. Generation GC and
 rollback keep older generations readable.
 
 ## Limits

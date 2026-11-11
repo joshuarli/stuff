@@ -88,12 +88,12 @@ ORPHAN_FILE=$WORK/orphan
 echo orphan >"$ORPHAN_FILE"
 ORPHAN=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$ORPHAN_FILE")
 curl -fsS -X PUT --data-binary "@$ORPHAN_FILE" "$ENDPOINT/stuff-oci-blobs/sha256/$ORPHAN" >/dev/null
-python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs --dry-run >"$WORK/gc-dry.txt"
+python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs --grace-minutes 0 --dry-run >"$WORK/gc-dry.txt"
 grep -q "drop sha256/$ORPHAN" "$WORK/gc-dry.txt" || {
   cat "$WORK/gc-dry.txt" >&2
   fail "dry run did not plan the unreferenced blob"
 }
-python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs >"$WORK/gc.txt"
+python3 "$ROOT/deploy/r2-gc-blobs.py" stuff-oci stuff-oci-blobs --grace-minutes 0 >"$WORK/gc.txt"
 remote_keys stuff-oci-blobs >"$WORK/blobs-after.keys"
 ! grep -qx "sha256/$ORPHAN" "$WORK/blobs-after.keys" || fail "gc kept the unreferenced blob"
 [ "$(grep -c '^sha256/' "$WORK/blobs-after.keys")" = 6 ] || fail "gc dropped a referenced blob"

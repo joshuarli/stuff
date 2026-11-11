@@ -30,6 +30,14 @@ def stamp(hours):
     return (BASE + datetime.timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
 
 
+def now_stamp():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def blobs_json(*digests):
+    return json.dumps({"schemaVersion": 1, "blobs": ["sha256:" + d for d in digests]}).encode()
+
+
 def md5(body):
     return hashlib.md5(body).hexdigest()
 
@@ -90,6 +98,9 @@ class FakeR2(http.server.BaseHTTPRequestHandler):
             return
         if self.command == "DELETE":
             self.server.deleted.append(key)
+            if self.server.on_delete is not None:
+                self.server.on_delete(self.server)
+                self.server.on_delete = None
             if key in objects:
                 del objects[key]
                 self._reply(204)
@@ -120,6 +131,7 @@ class GcBlobsTest(unittest.TestCase):
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeR2)
         self.server.objects = {}
         self.server.deleted = []
+        self.server.on_delete = None
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.home = tempfile.TemporaryDirectory()
@@ -191,6 +203,62 @@ class GcBlobsTest(unittest.TestCase):
         self.assertIn("sha256/" + B, remaining)
         self.assertNotIn("sha256/" + A, remaining)
         self.assertNotIn("sha256/" + ORPHAN, remaining)
+
+    def meta(self, key, body, when):
+        self.server.objects["stuff-oci"][key] = {"body": body, "time": when}
+
+    def blob(self, digest, when):
+        self.server.objects["stuff-oci-blobs"]["sha256/" + digest] = {"body": digest.encode(), "time": when}
+
+    def remaining(self):
+        return set(self.server.objects["stuff-oci-blobs"])
+
+    def test_keeps_recent_uploads_until_the_grace_period_expires(self):
+        fresh = "e" * 64
+        self.blob(fresh, now_stamp())
+        self.assertEqual(gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0"]), 0)
+        self.assertIn("sha256/" + fresh, self.remaining())
+        self.assertNotIn("sha256/" + ORPHAN, self.remaining())
+        self.assertEqual(
+            gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0", "--grace-minutes", "0"]),
+            0,
+        )
+        self.assertNotIn("sha256/" + fresh, self.remaining())
+
+    def test_a_recent_generation_without_a_manifest_keeps_its_blobs(self):
+        self.meta("generations/g3/blobs.json", blobs_json(A), now_stamp())
+        self.assertEqual(gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0"]), 0)
+        self.assertIn("sha256/" + A, self.remaining())
+        self.assertNotIn("sha256/" + ORPHAN, self.remaining())
+
+    def test_a_recent_generation_without_blobs_json_blocks_deletion(self):
+        self.meta("generations/g3/catalog.json", b"three", now_stamp())
+        self.assertEqual(gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0"]), 0)
+        self.assertEqual(self.server.deleted, [])
+
+    def test_a_recent_unactivated_generation_is_retained(self):
+        files = [("generations/g3/catalog.json", b"three")]
+        self.meta("generations/g3/catalog.json", b"three", now_stamp())
+        self.meta("generations/g3/blobs.json", blobs_json(A), now_stamp())
+        self.meta("manifests/g3.json", manifest(files), now_stamp())
+        self.assertEqual(
+            gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0", "--keep-newer", "0"]),
+            0,
+        )
+        self.assertIn("sha256/" + A, self.remaining())
+
+    def test_stops_when_current_moves_between_delete_batches(self):
+        self.blob("f" * 64, stamp(1))
+        gcblobs.DELETE_BATCH = 1
+        self.addCleanup(setattr, gcblobs, "DELETE_BATCH", 256)
+
+        def activate(server):
+            server.objects["stuff-oci"]["current"] = {"body": b"g1", "time": now_stamp()}
+
+        self.server.on_delete = activate
+        with self.assertRaises(SystemExit):
+            gcblobs.main(["stuff-oci", "stuff-oci-blobs", "--keep-previous", "0"])
+        self.assertEqual(len(self.server.deleted), 1)
 
 
 if __name__ == "__main__":

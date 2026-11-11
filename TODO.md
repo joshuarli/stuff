@@ -13,15 +13,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-68 · P2 · OCI blob GC ignores its grace period and in-flight uploads
-
-- **Area:** Data
-- **Where:** `deploy/r2-gc-blobs.py:43-51`, `deploy/r2-gc-blobs.py:203-241`, `deploy/myoci-writer.sh`, `crates/stuff/src/publish/transaction.rs:360-378`
-- **Problem:** `--grace-minutes` is parsed but never used. Blob GC deletes every digest outside completed retained generations regardless of object age or recent incomplete publication. Against the existing FakeR2 fixture, the actual GC deleted a newly timestamped blob referenced by a fresh generation without a manifest even with `--grace-minutes 10000000`. Network push uploads blobs before a separate manifest request and does not hold the metadata lock over that interval. Same-host native OCI publishing uses the correct OCI lock; the optional network writer does not gain that protection. Blob deletion also lacks the manifest/current rechecks used by generation GC.
-- **Recommendation:** Enforce the grace cutoff, protect recent incomplete uploads/publications, and stop deletion when the metadata view changes. Preserve the one-hour session contract when choosing the cutoff. Verify that recent uploads and incomplete generations survive, old truly unreferenced blobs are reclaimed, and a concurrent activation cannot invalidate a deletion plan.
-- **Fix with:** durable-state
-- **Effort:** M
-
 ### STUF-69 · P2 · OCI rollback can select metadata whose image blobs no longer exist
 
 - **Area:** Data

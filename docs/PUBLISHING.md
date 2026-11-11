@@ -105,10 +105,15 @@ Blob garbage collection is separate from generation GC:
 `blobs.json` and deletes unreferenced `sha256/*` objects. `myoci verify`
 exits 3 on any digest, size, tag, or referrer mismatch.
 
-Blob GC currently ignores `--grace-minutes` and does not protect a network
-upload awaiting its manifest. Keep it separate from network pushes. Retain
-the blobs for every generation you need to restore; metadata retention alone
-does not make OCI rollback usable. Both gaps are tracked in [TODO.md](../TODO.md).
+Blob GC keeps everything younger than `--grace-minutes` (default 60, the
+upload session lifetime): recent blobs, generations whose manifest is recent,
+and the `blobs.json` of a recent generation still awaiting its manifest. A
+recent generation without `blobs.json` blocks blob deletion entirely. Before
+each delete batch it re-reads the metadata bucket and aborts if `current`, a
+manifest, or the generation set changed. `--grace-minutes 0` is only safe
+when no network push or publication can be in flight. Retain the blobs for
+every generation you need to restore; metadata retention alone does not make
+OCI rollback usable (tracked in [TODO.md](../TODO.md)).
 
 The registry is sha256-only. Limits: repository name 255 characters, tag 128
 characters, manifest 4 MiB, upload session one hour, one upload 20 GiB.
