@@ -3,24 +3,6 @@ Next: 74
 
 Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b0278e8ae071`. Priorities are reviewer-assigned. Executed probes used local fixtures; source-only conclusions and unavailable runtime checks are identified below. The checked-in Worker configuration leaves network push disabled, so the push findings describe the optional capability, not observed production incidents.
 
-### STUF-65 · P1 · OCI pushes acknowledge failed generation activation
-
-- **Area:** Data
-- **Where:** `crates/stuff-worker/entry.ts:49-53`, `crates/stuff-worker/entry.ts:455-468`, `crates/stuff-worker/test/runtime.test.mjs:771-795`
-- **Problem:** R2 conditional `put` returns `null` when its precondition fails, but `ociPushManifest` ignores the result and returns 201. Its retry loop handles exceptions only. An executed probe loading the actual TypeScript returned 201 with the old pointer unchanged and one activation attempt when the R2 boundary returned `null`. The first-publication branch also writes `current` unconditionally. The existing concurrent-push check accepts either tag rather than requiring both acknowledged tags. The nullable result is part of the [R2 API contract](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/#bucket-method-definitions).
-- **Recommendation:** Use the actual nullable R2 write contract, restart from the winning generation on a failed condition, and acknowledge only successful activation. Make the absent-pointer write conditional on absence. Exercise existing-pointer and first-publication races and require both acknowledged tags to remain readable; a failed activation must never return success.
-- **Fix with:** durable-state
-- **Effort:** S
-
-### STUF-66 · P1 · OCI push rebuilds a generation from an incomplete prior view
-
-- **Area:** Data
-- **Where:** `crates/stuff-worker/entry.ts:392-430`, `crates/stuff-worker/src/oci_push.rs:310-362`, `crates/stuff-worker/entry.ts:629-644`
-- **Problem:** The replacement generation contains all supplied repository views but only the target repository's referrer indexes. Pushing repository B therefore removes A's signature/SBOM discovery indexes from the active generation; the read path interprets their absence as an empty result. Both R2 listings also ignore `truncated` and `cursor`, dropping repositories or referrers beyond page one. An actual-TypeScript probe supplied a short truncated page and observed 201 without any continuation request. Cross-repository referrer loss is traced through both sides of the WASM boundary; the Rust planner was not executed. Old generations retain the bytes, but current discovery silently loses them.
-- **Recommendation:** Construct a complete prior snapshot before modifying it: consume every listing page and preserve referrers keyed by repository and subject. Fail on an incomplete or unreadable snapshot. Verify that pushing B preserves A's referrers, and that a truncated first page with fewer than 1,000 objects preserves every later repository and referrer in the new generation.
-- **Fix with:** durable-state
-- **Effort:** M
-
 ### STUF-45 · P2 · Python builds and wheel imports run with the publisher's filesystem access
 
 - **Area:** Security
@@ -75,24 +57,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Recommendation:** Own the child, group, and readers through bounded completion on every exit path. Bound pipe draining after direct-child exit, terminate remaining owned descendants, and use/check valid negative-PGID signaling. Preserve partial diagnostics. Verify an early-exiting parent with inherited pipes and a descendant ignoring TERM; require bounded return and no surviving owned PIDs after success, timeout, or output overflow.
 - **Fix with:** lifecycle-concurrency
 - **Effort:** M
-
-### STUF-72 · P2 · Worker cache keys merge different OCI pages and filters
-
-- **Area:** Data
-- **Where:** `crates/stuff-worker/entry.ts:907-912`, `crates/stuff-worker/cloudflare.config.ts:9-10`, `crates/stuff-worker/cloudflare.config.ts:55-62`, `crates/stuff-oci/src/response.rs:213-247`, `crates/stuff-oci/src/response.rs:278-322`
-- **Problem:** The gateway supplies hostname plus pathname as `cf.cacheKey`, dropping the query. Tag pages use `n`/`last`, and referrers use `artifactType`; both responses are cacheable. An executed probe of the actual gateway produced the same key for distinct pages and for distinct filters. The [Workers cache contract](https://developers.cloudflare.com/workers/cache/cache-keys/#custom-cache-keys) says a custom key replaces path and query, so these requests share a cached response. Production caching was not exercised; the runtime harness omits the configured cache boundary and therefore cannot establish this behavior.
-- **Recommendation:** Include `url.search` in the key while preserving hostname isolation. Verify first and later tag pages and distinct referrer filters through the configured cached gateway, including the repeated request that should hit the matching cache entry.
-- **Fix with:** none
-- **Effort:** S
-
-### STUF-73 · P2 · A Range fallback returns an empty full response
-
-- **Area:** Types
-- **Where:** `crates/stuff-worker/entry.ts:34-40`, `crates/stuff-worker/entry.ts:730-732`, `crates/stuff-worker/entry.ts:884-903`, `crates/stuff-worker/src/api.rs:580-598`
-- **Problem:** A Range header triggers an R2 HEAD lookup. When Rust intentionally ignores an invalid or multiple range and plans a full 200 response, the host must fetch the body. Actual HEAD metadata has no `body`, but the host tests only `body === null`; it returns an empty body with the full content length. An actual-TypeScript probe returned 200, length 11, and zero bytes for `bytes=0-0,2-2`, issuing only HEAD. A single-range control correctly returned 206 and five bytes. The probe stubbed the independently inspected Rust plan and R2 boundary, not the TypeScript response logic.
-- **Recommendation:** Distinguish metadata-only objects from objects with bodies. After handling HEAD, fetch full bytes whenever a GET plan needs a body and the lookup supplied only metadata. Preserve single-range behavior and cover invalid/multiple-range fallback with status, declared length, and actual body assertions.
-- **Fix with:** typing-audit
-- **Effort:** S
 
 ### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
 

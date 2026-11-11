@@ -297,7 +297,14 @@ pub fn oci_generation_json(
     if let Err(error) = parse_repository_json(&repository, view_text) {
         return error_json(&error);
     }
-    let mut blobs = parse_blobs_json(blobs_text).unwrap_or_default();
+    let mut blobs = if blobs_text.is_empty() {
+        BTreeSet::new()
+    } else {
+        match parse_blobs_json(blobs_text) {
+            Ok(blobs) => blobs,
+            Err(error) => return internal_error(&format!("prior blobs.json: {error}")),
+        }
+    };
     if let Image::Manifest(manifest) = match stuff_oci::parse_image(manifest_body.as_bytes()) {
         Ok(image) => image,
         Err(error) => return error_json(&error),
@@ -307,24 +314,10 @@ pub fn oci_generation_json(
             blobs.insert(layer.digest.clone());
         }
     }
-    let mut referrers: BTreeMap<Digest, Vec<Descriptor>> = BTreeMap::new();
-    if let Ok(value) = parse(referrers_json, "referrers")
-        && let Some(seq) = value.as_seq()
-    {
-        for entry in seq.iter() {
-            let Some(map) = entry.as_map() else { continue };
-            let (Some(subject), Some(text)) = (
-                map.get("subject").and_then(|value| value.as_str()),
-                map.get("text").and_then(|value| value.as_str()),
-            ) else {
-                continue;
-            };
-            let Ok(subject) = Digest::parse(subject) else { continue };
-            if let Ok(descriptors) = parse_referrers(text) {
-                referrers.entry(subject).or_default().extend(descriptors);
-            }
-        }
-    }
+    let mut referrers = match prior_referrers(referrers_json) {
+        Ok(referrers) => referrers,
+        Err(error) => return internal_error(&error),
+    };
     let image = match stuff_oci::parse_image(manifest_body.as_bytes()) {
         Ok(image) => image,
         Err(error) => return error_json(&error),
@@ -339,7 +332,10 @@ pub fn oci_generation_json(
     }
     let descriptor = image.descriptor(digest.clone(), manifest_body.len() as u64);
     if let Some(subject) = image.subject() {
-        referrers.entry(subject.digest.clone()).or_default().push(descriptor);
+        referrers
+            .entry((repository.as_str().to_string(), subject.digest.clone()))
+            .or_default()
+            .push(descriptor);
     }
 
     let mut files: BTreeMap<String, Vec<u8>> = BTreeMap::new();
@@ -349,14 +345,10 @@ pub fn oci_generation_json(
         let text = repositories.get(name).expect("repository");
         files.insert(format!("repositories/{name}/repository.json"), text.as_bytes().to_vec());
     }
-    for (subject, descriptors) in &referrers {
+    for ((owner, subject), descriptors) in &referrers {
         let sorted = filter_referrers(descriptors, None);
         files.insert(
-            format!(
-                "repositories/{}/referrers/sha256/{}.json",
-                repository.as_str(),
-                subject.hex()
-            ),
+            format!("repositories/{owner}/referrers/sha256/{}.json", subject.hex()),
             render_referrers(&sorted).into_bytes(),
         );
     }
@@ -364,13 +356,14 @@ pub fn oci_generation_json(
     let generation = generation_id(&files);
     let mut inputs = Vec::new();
     for name in &order {
-        let Ok(name) = RepositoryName::parse(name) else { continue };
-        let Ok(view) = parse_repository_json(&name, repositories.get(name.as_str()).expect("repository"))
-        else {
-            continue;
+        let view = match RepositoryName::parse(name)
+            .and_then(|name| parse_repository_json(&name, repositories.get(name.as_str()).expect("repository")))
+        {
+            Ok(view) => view,
+            Err(error) => return internal_error(&format!("prior repository {name}: {error}")),
         };
         inputs.push(OciInput {
-            name: name.as_str().to_string(),
+            name: name.clone(),
             tags: view.tags.keys().map(|tag| tag.as_str().to_string()).collect(),
         });
     }
@@ -400,6 +393,34 @@ pub fn oci_generation_json(
     }
     out.push_str("]}");
     out
+}
+
+type ReferrerIndexes = BTreeMap<(String, Digest), Vec<Descriptor>>;
+
+fn prior_referrers(referrers_json: &str) -> Result<ReferrerIndexes, String> {
+    let value = parse(referrers_json, "referrers")?;
+    let seq = value.as_seq().ok_or("referrers must be an array")?;
+    let mut referrers = ReferrerIndexes::new();
+    for entry in seq.iter() {
+        let map = entry.as_map().ok_or("referrer entry must be an object")?;
+        let field = |name: &str| {
+            map.get(name)
+                .and_then(|value| value.as_str())
+                .ok_or_else(|| format!("referrer entry must have {name}"))
+        };
+        let repository = RepositoryName::parse(field("repository")?)
+            .map_err(|error| format!("referrer repository: {error}"))?;
+        let subject = Digest::parse(field("subject")?)
+            .map_err(|error| format!("referrer subject: {error}"))?;
+        let descriptors = parse_referrers(field("text")?).map_err(|error| {
+            format!("referrers for {}@{subject}: {error}", repository.as_str())
+        })?;
+        referrers
+            .entry((repository.as_str().to_string(), subject))
+            .or_default()
+            .extend(descriptors);
+    }
+    Ok(referrers)
 }
 
 fn repository_text(

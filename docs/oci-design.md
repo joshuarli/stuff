@@ -96,13 +96,13 @@ atomically with `current`; rollback is
 `stuff rollback oci <id>`.
 
 The push front checks referenced blobs and child manifests before constructing
-a generation. Its intended activation contract is a complete replacement view
-and a conditional `current` write against the source ETag. The Worker host
-currently loses unrelated referrer indexes, reads only one listing page, and
-fails to handle R2's nullable conditional-write result. Its exception retry
-loop does not establish that contract; the fixes are in [TODO.md](../TODO.md).
-Keep the checked-in network-push configuration disabled until those defects
-are resolved. Native `stuff publish oci` uses its separate S3 transaction path.
+a generation. It rebuilds from a complete snapshot of the current generation:
+every listing page, every repository view, every repository's referrer
+indexes, and `blobs.json`. A missing or malformed snapshot object fails the
+push. Activation is a conditional `current` write against the source ETag, or
+against absence for a first publication; a failed condition restarts from the
+winning generation, and only a successful activation returns 201.
+Native `stuff publish oci` uses its separate S3 transaction path.
 
 ## Catalog
 
@@ -174,8 +174,7 @@ the pinned configuration does not enable.
 concurrency; blobs of 1 MiB, 64 MiB, 256 MiB, and 1 GiB cold and warm; and a
 full multi-platform pull. Five interleaved runs report p50/p95/p99 and bytes
 per second in [oci-benchmarks.md](oci-benchmarks.md). Deployed cold means a
-freshly published blob digest because the gateway cache key ignores query
-strings; the 1 GiB row is expected to miss the Worker's 512 MB cacheable
+freshly published blob digest; the 1 GiB row is expected to miss the Worker's 512 MB cacheable
 object cap.
 
 ## Direct blob origin

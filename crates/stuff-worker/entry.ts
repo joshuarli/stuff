@@ -47,10 +47,14 @@ interface R2BucketLike {
   put(
     key: string,
     value: string | Uint8Array,
-    options?: { onlyIf?: { etagMatches?: string } },
-  ): Promise<R2ObjectLike>;
-  list(options?: { prefix?: string }): Promise<{ objects: { key: string }[] }>;
+    options?: { onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string } },
+  ): Promise<R2ObjectLike | null>;
+  list(options?: { prefix?: string; cursor?: string }): Promise<R2ListingLike>;
 }
+
+type R2ListingLike =
+  | { objects: { key: string }[]; truncated: true; cursor: string }
+  | { objects: { key: string }[]; truncated: false };
 
 interface WorkerVersion {
   readonly id: string;
@@ -388,46 +392,14 @@ async function ociPushManifest(
   const encoder = new TextEncoder();
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const pointer = await meta.get("current");
-    const base = pointer === null ? "" : (await pointer.text()).trim();
-    const repositories: { name: string; text: string }[] = [];
-    let blobsText = "";
-    const referrers: { subject: string; text: string }[] = [];
-    if (base !== "" && generation_id_valid(base)) {
-      const prefix = `generations/${base}/repositories/`;
-      const listed = await meta.list({ prefix });
-      for (const object of listed.objects) {
-        if (!object.key.endsWith("/repository.json")) {
-          continue;
-        }
-        const name = object.key.slice(prefix.length, -"/repository.json".length);
-        const stored = await meta.get(object.key);
-        if (stored !== null) {
-          repositories.push({ name, text: await stored.text() });
-        }
-      }
-      const storedBlobs = await meta.get(`generations/${base}/blobs.json`);
-      if (storedBlobs !== null) {
-        blobsText = await storedBlobs.text();
-      }
-      const referrerPrefix = `generations/${base}/repositories/${repository}/referrers/sha256/`;
-      const listedReferrers = await meta.list({ prefix: referrerPrefix });
-      for (const object of listedReferrers.objects) {
-        if (!object.key.endsWith(".json")) {
-          continue;
-        }
-        const subject = object.key.slice(referrerPrefix.length, -".json".length);
-        const stored = await meta.get(object.key);
-        if (stored !== null) {
-          referrers.push({ subject: `sha256:${subject}`, text: await stored.text() });
-        }
-      }
-    }
+    const snapshot =
+      pointer === null ? EMPTY_OCI_SNAPSHOT : await ociSnapshot(meta, (await pointer.text()).trim());
     const planned = JSON.parse(
       oci_generation_json(
         repository,
-        JSON.stringify(repositories),
-        blobsText,
-        JSON.stringify(referrers),
+        JSON.stringify(snapshot.repositories),
+        snapshot.blobsText,
+        JSON.stringify(snapshot.referrers),
         body,
         reference,
         JSON.stringify(availableBlobs),
@@ -440,36 +412,103 @@ async function ociPushManifest(
     }
     const generation = planned.generation;
     const objects: { key: string; size: number; etag: string }[] = [];
-    const manifestObject = await meta.put(planned.manifest_key, body);
-    objects.push({ key: planned.manifest_key, size: encoder.encode(body).length, etag: manifestObject.etag });
+    objects.push({
+      key: planned.manifest_key,
+      size: encoder.encode(body).length,
+      etag: written(await meta.put(planned.manifest_key, body), planned.manifest_key).etag,
+    });
     for (const file of planned.files ?? []) {
       const key = `generations/${generation}/${file.key}`;
       const value = encoder.encode(file.text);
-      const stored = await meta.put(key, value);
-      objects.push({ key, size: value.length, etag: stored.etag });
+      objects.push({ key, size: value.length, etag: written(await meta.put(key, value), key).etag });
     }
-    await meta.put(
-      `manifests/${generation}.json`,
-      JSON.stringify({ schemaVersion: 1, objects }),
+    const manifestKey = `manifests/${generation}.json`;
+    written(
+      await meta.put(manifestKey, JSON.stringify({ schemaVersion: 1, objects })),
+      manifestKey,
     );
-    try {
-      if (pointer !== null) {
-        await meta.put("current", generation, {
-          onlyIf: { etagMatches: pointer.etag },
-        });
-      } else {
-        await meta.put("current", generation);
-      }
+    const activated = await meta.put("current", generation, {
+      onlyIf:
+        pointer === null ? { etagDoesNotMatch: "*" } : { etagMatches: pointer.etag },
+    });
+    if (activated !== null) {
       return ociPlanResponse(
         JSON.parse(oci_manifest_put_json(repository, planned.digest)) as OciPlan,
       );
-    } catch {
-      continue;
     }
   }
   return ociPlanResponse(
     JSON.parse(oci_error_json("CONFLICT", "could not activate the generation")) as OciPlan,
   );
+}
+
+function written(object: R2ObjectLike | null, key: string): R2ObjectLike {
+  if (object === null) {
+    throw new Error(`unconditional R2 write returned no object: ${key}`);
+  }
+  return object;
+}
+
+interface OciSnapshot {
+  readonly repositories: { name: string; text: string }[];
+  readonly blobsText: string;
+  readonly referrers: { repository: string; subject: string; text: string }[];
+}
+
+const EMPTY_OCI_SNAPSHOT: OciSnapshot = { repositories: [], blobsText: "", referrers: [] };
+
+async function listAll(store: R2BucketLike, prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const listed = await store.list(cursor === undefined ? { prefix } : { prefix, cursor });
+    for (const object of listed.objects) {
+      keys.push(object.key);
+    }
+    if (!listed.truncated) {
+      return keys;
+    }
+    cursor = listed.cursor;
+  }
+}
+
+async function requiredText(store: R2BucketLike, key: string): Promise<string> {
+  const object = await store.get(key);
+  if (object === null) {
+    throw new Error(`oci generation object is missing: ${key}`);
+  }
+  return object.text();
+}
+
+const REFERRERS_INFIX = "/referrers/sha256/";
+
+async function ociSnapshot(meta: R2BucketLike, generation: string): Promise<OciSnapshot> {
+  if (!generation_id_valid(generation)) {
+    throw new Error("invalid oci generation pointer");
+  }
+  const prefix = `generations/${generation}/repositories/`;
+  const repositories: { name: string; text: string }[] = [];
+  const referrers: { repository: string; subject: string; text: string }[] = [];
+  for (const key of await listAll(meta, prefix)) {
+    const path = key.slice(prefix.length);
+    if (path.endsWith("/repository.json")) {
+      const name = path.slice(0, -"/repository.json".length);
+      repositories.push({ name, text: await requiredText(meta, key) });
+      continue;
+    }
+    const infix = path.lastIndexOf(REFERRERS_INFIX);
+    if (infix > 0 && path.endsWith(".json")) {
+      referrers.push({
+        repository: path.slice(0, infix),
+        subject: `sha256:${path.slice(infix + REFERRERS_INFIX.length, -".json".length)}`,
+        text: await requiredText(meta, key),
+      });
+      continue;
+    }
+    throw new Error(`unexpected oci generation object: ${key}`);
+  }
+  const blobsText = await requiredText(meta, `generations/${generation}/blobs.json`);
+  return { repositories, blobsText, referrers };
 }
 
 async function ociPush(req: Request, env: WorkerEnv, url: URL): Promise<Response> {
@@ -881,7 +920,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
     if (plan.status === 304 || plan.status === 416) {
       return new Response(null, { status: plan.status, headers });
     }
-    if (plan.head || object.body === null) {
+    if (plan.head) {
       return new Response(null, { status: plan.status, headers });
     }
     if (plan.range_start !== undefined && plan.range_length !== undefined) {
@@ -893,7 +932,7 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
       }
       return new Response(ranged.body, { status: plan.status, headers });
     }
-    if (object.body === null) {
+    if (wantsRange) {
       const full = await store.get(key);
       if (full === null) {
         throw new Error("object vanished");
@@ -908,7 +947,7 @@ export default {
   async fetch(req: Request, _env: WorkerEnv, ctx: WorkerContext): Promise<Response> {
     const url = new URL(req.url);
     return ctx.exports.Registry.fetch(req, {
-      cf: { cacheKey: `${url.hostname}${url.pathname}` },
+      cf: { cacheKey: `${url.hostname}${url.pathname}${url.search}` },
     });
   },
 };

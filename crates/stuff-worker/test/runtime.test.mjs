@@ -264,6 +264,20 @@ test("a ranged artifact request returns only the requested bytes", async (t) => 
   assert.match(missing.headers.get("cache-control") ?? "", /max-age=60/);
 });
 
+test("an ignored multi-range request returns the full body", async (t) => {
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const response = await server.getWorker().fetch(
+    "https://pypi.test/generations/g1/wheels/wheelpkg-1.0-py3-none-any.whl",
+    { headers: { range: "bytes=0-0,2-2" } },
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-length"), "11");
+  assert.equal(await response.text(), "wheel-bytes");
+});
+
 test("a pinned project page's relative wheel link resolves", async (t) => {
   const server = workerHarness();
   t.after(() => server.close());
@@ -417,6 +431,15 @@ const OCI_REFERRER = "sha256:3a91f0fb91009745e3a72651ec98d02a4c758c4f580bd9ab868
 const OCI_LAYER = "sha256:882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
 const OCI_REFERRER_TYPE = "application/vnd.stuff.sbom.v1+json";
 
+const OCI_BLOBS = [
+  "120ab4e8b5d4dfbdda6b6ccd16c9e4320530c08b35463b414e411fb76d9e30c9",
+  "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55",
+  "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "6615b2d5776183ba25e1bfa8e789346fe3a65066e808ac5b6beb5710bb94d10e",
+  "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f",
+  "bf2585f7b79b5ba8a5d7f256f7c2ce5a537ebc1c0d9e043ca90c461f2183f718",
+].map((hex) => `sha256:${hex}`);
+
 function ociDescriptor(mediaType, digest, size, extra = {}) {
   return { mediaType, digest, size, ...extra };
 }
@@ -448,21 +471,16 @@ async function seedOci(server) {
       manifests: [referrer],
     }),
   );
+  await meta.put("generations/g1/blobs.json", JSON.stringify({ schemaVersion: 1, blobs: OCI_BLOBS }));
   for (const digest of [OCI_INDEX, OCI_ARM64, OCI_AMD64, OCI_REFERRER]) {
     await meta.put(
       `oci/manifests/sha256/${digest.slice("sha256:".length)}`,
       readFileSync(join(blobDir, digest.slice("sha256:".length))),
     );
   }
-  for (const digest of [
-    "120ab4e8b5d4dfbdda6b6ccd16c9e4320530c08b35463b414e411fb76d9e30c9",
-    "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55",
-    "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "6615b2d5776183ba25e1bfa8e789346fe3a65066e808ac5b6beb5710bb94d10e",
-    "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f",
-    "bf2585f7b79b5ba8a5d7f256f7c2ce5a537ebc1c0d9e043ca90c461f2183f718",
-  ]) {
-    await blobs.put(`sha256/${digest}`, readFileSync(join(blobDir, digest)));
+  for (const digest of OCI_BLOBS) {
+    const hex = digest.slice("sha256:".length);
+    await blobs.put(`sha256/${hex}`, readFileSync(join(blobDir, hex)));
   }
 }
 
@@ -768,29 +786,102 @@ test("oci push rejects a missing blob and leaves current unchanged", async (t) =
   assert.equal(after, before);
 });
 
-test("oci push retries a concurrent current flip", async (t) => {
+function putManifest(server, repository, tag, body) {
+  return server.getWorker().fetch(`https://oci.test/v2/${repository}/manifests/${tag}`, {
+    method: "PUT",
+    headers: {
+      ...AUTH,
+      "content-type": "application/vnd.oci.image.manifest.v1+json",
+    },
+    body,
+  });
+}
+
+async function assertTagsServe(server, repository, bodies) {
+  for (const [tag, body] of Object.entries(bodies)) {
+    const read = await server.getWorker().fetch(`https://oci.test/v2/${repository}/manifests/${tag}`);
+    assert.equal(read.status, 200, `${repository}:${tag}`);
+    assert.equal(await read.text(), body, `${repository}:${tag}`);
+  }
+}
+
+test("oci push keeps every acknowledged tag under a concurrent current flip", async (t) => {
   const server = pushWorker();
   t.after(() => server.close());
   await server.listen();
   await seedOci(server);
-  const put = (tag, body) =>
-    server.getWorker().fetch(`https://oci.test/v2/example/app/manifests/${tag}`, {
-      method: "PUT",
-      headers: {
-        ...AUTH,
-        "content-type": "application/vnd.oci.image.manifest.v1+json",
-      },
-      body,
-    });
-  const first = pushedManifest().replace("pushed", "concurrent-a");
-  const second = pushedManifest().replace("pushed", "concurrent-b");
-  const [a, b] = await Promise.all([put("concurrent-a", first), put("concurrent-b", second)]);
-  assert.equal(a.status, 201);
-  assert.equal(b.status, 201);
+  const bodies = {
+    "concurrent-a": pushedManifest().replace("pushed", "concurrent-a"),
+    "concurrent-b": pushedManifest().replace("pushed", "concurrent-b"),
+    "concurrent-c": pushedManifest().replace("pushed", "concurrent-c"),
+  };
+  const responses = await Promise.all(
+    Object.entries(bodies).map(([tag, body]) => putManifest(server, "example/app", tag, body)),
+  );
+  assert.deepEqual(responses.map((response) => response.status), [201, 201, 201]);
+  await assertTagsServe(server, "example/app", bodies);
+});
+
+test("oci first publications race without losing an acknowledged tag", async (t) => {
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
   const meta = (await server.getWorker().getEnv())["OCI"];
-  const current = (await (await meta.get("current")).text()).trim();
-  const repository = await (await meta.get(
-    `generations/${current}/repositories/example/app/repository.json`,
-  )).text();
-  assert.match(repository, /concurrent-a|concurrent-b/);
+  await meta.delete("current");
+  const tags = ["first-a", "first-b", "first-c", "first-d"];
+  const bodies = Object.fromEntries(tags.map((tag) => [tag, pushedManifest().replace("pushed", tag)]));
+  const responses = await Promise.all(
+    tags.map((tag) => putManifest(server, "example/app", tag, bodies[tag])),
+  );
+  assert.deepEqual(responses.map((response) => response.status), tags.map(() => 201));
+  await assertTagsServe(server, "example/app", bodies);
+});
+
+test("oci push preserves other repositories and referrers across listing pages", async (t) => {
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
+  const meta = (await server.getWorker().getEnv())["OCI"];
+  const referrers = JSON.stringify({
+    schemaVersion: 2,
+    mediaType: "application/vnd.oci.image.index.v1+json",
+    manifests: [],
+  });
+  const fillers = Array.from({ length: 1000 }, (_, index) => index.toString(16).padStart(64, "f"));
+  for (let start = 0; start < fillers.length; start += 100) {
+    await Promise.all(
+      fillers.slice(start, start + 100).map((hex) =>
+        meta.put(`generations/g1/repositories/example/app/referrers/sha256/${hex}.json`, referrers),
+      ),
+    );
+  }
+  const body = pushedManifest().replace("pushed", "other");
+  const pushed = await putManifest(server, "other/repo", "latest", body);
+  assert.equal(pushed.status, 201);
+  await assertTagsServe(server, "other/repo", { latest: body });
+
+  const stable = await server.getWorker().fetch("https://oci.test/v2/example/app/manifests/stable");
+  assert.equal(stable.status, 200, "a repository past the first listing page survives");
+  const discovered = await server.getWorker().fetch(
+    `https://oci.test/v2/example/app/referrers/${OCI_ARM64}`,
+  );
+  assert.equal(discovered.status, 200);
+  assert.deepEqual(
+    (await discovered.json()).manifests.map((manifest) => manifest.digest),
+    [OCI_REFERRER],
+  );
+});
+
+test("oci push refuses to rebuild from an incomplete prior generation", async (t) => {
+  const server = pushWorker();
+  t.after(() => server.close());
+  await server.listen();
+  await seedOci(server);
+  const meta = (await server.getWorker().getEnv())["OCI"];
+  await meta.delete("generations/g1/blobs.json");
+  const pushed = await putManifest(server, "example/app", "pushed", pushedManifest());
+  assert.equal(pushed.status, 500);
+  assert.equal((await (await meta.get("current")).text()).trim(), "g1");
 });

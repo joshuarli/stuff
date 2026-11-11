@@ -5,7 +5,7 @@
 - Host: Darwin 27.0.0 arm64; rustc 1.100.0-nightly (574ff7d98 2026-09-14)
 - Date: 2026-11-01T18:56:58Z
 - Runs: 5
-- Method: local loopback unless the base URL is deployed. Cold is the first pass with a new client; warm repeats with the same client. On the deployed Worker, cold means a freshly published blob digest because the gateway cache key ignores query strings. The 1 GiB row is a local measurement; the Worker's 512 MB cacheable-object cap applies only to the deployed path (Needs environment).
+- Method: local loopback unless the base URL is deployed. Cold is the first pass with a new client; warm repeats with the same client. On the deployed Worker, cold means a freshly published blob digest. The 1 GiB row is a local measurement; the Worker's 512 MB cacheable-object cap applies only to the deployed path (Needs environment).
 
 ## Manifest requests
 
