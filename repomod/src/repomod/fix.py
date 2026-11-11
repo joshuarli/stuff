@@ -307,10 +307,10 @@ def _pending_fix_branches(root: Path, baseline: str) -> tuple[tuple[str, ...], t
             integrated = run_git(
                 ["merge-base", "--is-ancestor", tip, baseline], cwd=root, check=False
             )
+            if integrated.returncode not in {0, 1}:
+                raise GitError(integrated.stderr.strip() or f"cannot inspect branch {branch}")
             if integrated.returncode == 1 and not _patches_upstream(root, baseline, tip):
                 diverged.append(branch)
-            elif integrated.returncode != 0:
-                raise GitError(integrated.stderr.strip() or f"cannot inspect branch {branch}")
     return tuple(pending), tuple(diverged)
 
 

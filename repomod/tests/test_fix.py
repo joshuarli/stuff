@@ -89,7 +89,7 @@ def test_fix_branch_whose_patches_landed_upstream_does_not_block(
     initial = fix_repository(catalog, repository, selected, "main")
     assert initial.branch is not None
     git("branch", "repomod/fix/hand-named", initial.branch, cwd=path)
-    git("cherry-pick", initial.branch, cwd=path)
+    git("cherry-pick", "-x", initial.branch, cwd=path)
     (path / "main.txt").write_text("main advanced independently\n", encoding="utf-8")
     git("add", "main.txt", cwd=path)
     git("commit", "-m", "advance main", cwd=path)
