@@ -225,7 +225,7 @@ def test_build_rejects_gcc_in_the_image_before_docker(
     dockerfile = root / "docker" / "musl" / "Dockerfile"
     dockerfile.write_text(
         dockerfile.read_text(encoding="utf-8").replace(
-            "    git=2.54.0-r0 \\\n", "    gcc=15.2.0-r5 \\\n    git=2.54.0-r0 \\\n"
+            "    git=2.54.1-r0 \\\n", "    gcc=15.2.0-r5 \\\n    git=2.54.0-r0 \\\n"
         ),
         encoding="utf-8",
     )

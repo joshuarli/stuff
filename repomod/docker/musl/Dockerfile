@@ -23,7 +23,7 @@ RUN apk add --no-cache \
     coreutils=9.11-r0 \
     curl=8.23.0-r0 \
     file=5.47-r2 \
-    git=2.54.0-r0 \
+    git=2.54.1-r0 \
     libgcc=15.2.0-r5 \
     make=4.4.1-r4 \
     musl-dev=1.2.6-r3 \
