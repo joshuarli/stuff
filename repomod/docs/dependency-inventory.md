@@ -118,6 +118,9 @@ Repositories tagged `fork` are reported apart, under `source_risk_forks` and a s
 section, because their upstream workflows stay outside local policy. `source_risk` and the
 dashboard count only the other repositories. An instance used by both kinds counts in both.
 
+A catalog `rust-project:lockfile:DIR` override also hides that directory's missing-lock issue
+from the report, so lint and the inventory share one exemption.
+
 ## Data layout
 
 - `index.json` records the schema, `PARSER_VERSION`, and each repository's commit,

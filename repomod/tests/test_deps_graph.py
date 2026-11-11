@@ -4,6 +4,7 @@ import argparse
 import json
 import socket
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -16,11 +17,13 @@ from repomod.dependencies import snapshot
 from repomod.dependencies.analysis import report, report_text
 from repomod.dependencies.model import (
     Component,
+    CoverageKind,
     Ecosystem,
     Edge,
     Evidence,
     IndexEntry,
     Instance,
+    Issue,
     Project,
     Relation,
     RepositoryData,
@@ -620,6 +623,35 @@ def test_fork_source_risk_is_reported_apart_from_the_fleet(tmp_path: Path) -> No
     fork_section = text.split("source risk in forks", 1)[1]
     assert "acme/upstream" in fork_section
     assert "acme/upstream" not in text.split("source risk in forks", 1)[0]
+
+
+def test_catalog_lockfile_ignore_hides_a_missing_lock(tmp_path: Path) -> None:
+    missing = Issue(
+        CoverageKind.MISSING_LOCK,
+        "no lockfile at vendor/upstream/Cargo.lock",
+        path="vendor/upstream/Cargo.lock",
+    )
+    repository = replace(_risk_repository(), issues=(missing,))
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        DOCUMENT.replace("version = 1", "version = 3")
+        + '[repos."acme"]\nrisk = ["tool"]\n\n'
+        + '[overrides."acme/risk"]\n'
+        + 'ignore = ["rust-project:lockfile:vendor/upstream"]\n'
+        + 'ignore_reason = "upstream workspace members are never built here"\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(
+        catalog_path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")}
+    )
+
+    (tmp_path / "ignored").mkdir()
+    (tmp_path / "reported").mkdir()
+    ignored = _dict(report(_graph(tmp_path / "ignored", [repository], catalog))["source_risk"])
+    reported = _dict(report(_graph(tmp_path / "reported", [repository]))["source_risk"])
+
+    assert _dict(ignored["missing_locks"])["value"] == 0
+    assert _dict(reported["missing_locks"])["value"] == 1
 
 
 def test_report_cli_json_includes_source_risk_locations(

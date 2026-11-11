@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from repomod import dependency_roles
+from repomod.catalog import LOCKFILE_IGNORE_PREFIX
 from repomod.dependencies import enrich as enrich_module
 from repomod.dependencies import insights
 from repomod.dependencies.graph import Graph, RepositoryEdge, is_first_party_edge
@@ -69,7 +70,7 @@ def report(
         instance_id: graph.components.get(instance.component)
         for instance_id, instance in instances.items()
     }
-    fork_names = frozenset(name for name in names if "fork" in graph.repositories[name].tags)
+    fork_names = frozenset(name for name in names if "fork" in graph.tags.get(name, ()))
     fleet_names = frozenset(names) - fork_names
     data = tuple(graph.repositories[name] for name in names)
     return {
@@ -98,10 +99,19 @@ def _source_risk_for(
     component_of: Mapping[str, Component | None],
     repositories_of: Mapping[str, frozenset[str]],
 ) -> dict[str, object]:
+    ignored = (
+        {str(repository.id).casefold(): repository.ignored_rules for repository in graph.catalog.repositories}
+        if graph.catalog is not None
+        else {}
+    )
     issues: list[Issue] = []
     missing_locks: list[MissingLock] = []
     for name in sorted(group, key=str.casefold):
         for issue in graph.repositories[name].issues:
+            if issue.kind is CoverageKind.MISSING_LOCK and _lock_ignored(
+                issue.path, ignored.get(name.casefold(), frozenset())
+            ):
+                continue
             issues.append(issue)
             if issue.kind is CoverageKind.MISSING_LOCK:
                 missing_locks.append(MissingLock(name, issue.path, issue.message))
@@ -120,6 +130,13 @@ def _source_risk_for(
         tuple(missing_locks),
         group_repositories,
     )
+
+
+def _lock_ignored(path: str | None, ignored_rules: frozenset[str]) -> bool:
+    if path is None:
+        return False
+    directory = path.rsplit("/", 1)[0] if "/" in path else "."
+    return f"{LOCKFILE_IGNORE_PREFIX}{directory}" in ignored_rules
 
 
 def _selected(repositories: Iterable[str] | None) -> set[str] | None:
