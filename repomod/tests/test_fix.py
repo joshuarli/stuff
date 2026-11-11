@@ -79,6 +79,34 @@ def test_diverged_fix_branch_blocks_until_verified_merged(
     assert [rule for rule, _ in resumed.commits] == ["first"]
 
 
+def test_fix_branch_whose_patches_landed_upstream_does_not_block(
+    tmp_path: Path,
+    git_environment: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog, repository, path, _base = initialize_repository(tmp_path)
+    selected = (file_rule("first", "first.txt", "first\n"),)
+    initial = fix_repository(catalog, repository, selected, "main")
+    assert initial.branch is not None
+    git("branch", "repomod/fix/hand-named", initial.branch, cwd=path)
+    git("cherry-pick", initial.branch, cwd=path)
+    (path / "main.txt").write_text("main advanced independently\n", encoding="utf-8")
+    git("add", "main.txt", cwd=path)
+    git("commit", "-m", "advance main", cwd=path)
+
+    def unexpected_lookup(_repository, branch):
+        raise AssertionError(f"looked up integrated branch {branch}")
+
+    monkeypatch.setattr(fix_module, "fix_branch_was_merged", unexpected_lookup)
+    selected = (*selected, file_rule("second", "second.txt", "second\n"))
+
+    resumed = fix_repository(catalog, repository, selected, "main")
+
+    assert resumed.failures == []
+    assert resumed.branch not in {None, initial.branch, "repomod/fix/hand-named"}
+    assert [rule for rule, _ in resumed.commits] == ["second"]
+
+
 def test_failed_middle_fixer_is_discarded_while_later_success_commits(
     tmp_path: Path,
     git_environment: None,

@@ -280,6 +280,11 @@ def _recovery_references(root: Path, repository: Repository) -> tuple[str, ...]:
     return tuple(line for line in result.stdout.splitlines() if line)
 
 
+def _patches_upstream(root: Path, baseline: str, tip: str) -> bool:
+    commits = run_git(["cherry", baseline, tip], cwd=root).stdout.splitlines()
+    return bool(commits) and all(line.startswith("- ") for line in commits)
+
+
 def _pending_fix_branches(root: Path, baseline: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     result = run_git(
         ["for-each-ref", "--format=%(refname:short)", "refs/heads/repomod/fix/"],
@@ -302,7 +307,7 @@ def _pending_fix_branches(root: Path, baseline: str) -> tuple[tuple[str, ...], t
             integrated = run_git(
                 ["merge-base", "--is-ancestor", tip, baseline], cwd=root, check=False
             )
-            if integrated.returncode == 1:
+            if integrated.returncode == 1 and not _patches_upstream(root, baseline, tip):
                 diverged.append(branch)
             elif integrated.returncode != 0:
                 raise GitError(integrated.stderr.strip() or f"cannot inspect branch {branch}")

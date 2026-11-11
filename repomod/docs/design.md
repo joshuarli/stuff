@@ -117,6 +117,9 @@ that branch and opens or reuses a pull request against the default branch. It en
 auto-merge only when the repository allows it and the default branch requires status checks. The
 next fix run resumes its unmerged branch from the current default branch. Failed or interrupted
 work remains on its branch or in its worktree.
+A `repomod/fix/` branch that has diverged from the default branch blocks the next run unless
+GitHub reports its pull request merged, or `git cherry` finds every one of its commits already on
+the default branch, as happens after a squash or cherry-pick.
 
 Fix pull requests are identified by their `repomod/fix/<id>` head branch. `merge` lists open pull
 requests in selected repositories whose head branch matches that pattern and merges each with a

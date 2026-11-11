@@ -262,6 +262,7 @@ def test_general_actions_fixer_uses_pinact_in_tmp_worktree(
         "fix",
         "--catalog",
         str(catalog),
+        "--upgrade",
         "--",
         ".github/workflows/ci.yaml",
     ]
