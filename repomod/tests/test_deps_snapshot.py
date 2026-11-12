@@ -650,3 +650,31 @@ def test_parser_accepts_deps_subcommands() -> None:
     assert args.operation == "check"
     assert args.tag == ["tool"]
     assert args.strict is True
+
+
+@pytest.mark.parametrize("endpoint", ["from_id", "to_id"])
+def test_snapshot_refuses_dangling_adapter_edges_before_writing(
+    tmp_path: Path, git_environment: None, monkeypatch: pytest.MonkeyPatch, endpoint: str,
+) -> None:
+    from dataclasses import replace
+
+    import repomod.dependencies.snapshot as snapshot_module
+    from repomod.dependencies.adapters.javascript import JavaScriptAdapter
+
+    catalog = _one_repo(tmp_path)
+    _checkout(tmp_path, "tool", {"package-lock.json": json.dumps({
+        "lockfileVersion": 3, "packages": {"": {"dependencies": {"demo": "1.0.0"}},
+            "node_modules/demo": {"version": "1.0.0"}},
+    })})
+    original_extract = JavaScriptAdapter.extract
+
+    def broken_extract(self, inputs):
+        result = original_extract(self, inputs)
+        broken = replace(result.edges[0], **{endpoint: "missing-node"})
+        return replace(result, edges=(broken,))
+
+    monkeypatch.setattr(JavaScriptAdapter, "extract", broken_extract)
+    inventory = tmp_path / "inventory"
+    with pytest.raises(ValueError, match="missing endpoint"):
+        snapshot_module.snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
+    assert not inventory.exists()

@@ -101,6 +101,9 @@ uv run repomod deps enrich --offline --json
 ```
 
 Enrichment never adds edges and never changes package identities.
+An OSV transport, response, or classification failure exits 2 and records an error in JSON output.
+Failed refreshes preserve previous advisories and their check timestamps, marking them stale.
+Packages without a successful check remain `not checked`. A later successful refresh clears the error.
 
 ### `deps render`
 
@@ -157,14 +160,17 @@ files into fixtures. Use synthetic inputs or public examples.
 The output contract excludes absolute paths, timestamps, credentials, `.npmrc` auth lines,
 `_authToken`, `.netrc` contents, environment values, and `GITHUB_TOKEN`-style expressions.
 Strip userinfo from every URL and queries and fragments from download and registry URLs.
-Record useful sanitized source information instead of skipping the dependency. Open redaction
-and visibility defects are tracked in [TODO.md](../TODO.md).
+This applies to constraints, origin fields, identity qualifiers, evidence, and diagnostics.
+YAML parser diagnostics omit source excerpts because they can contain partial credentials.
+Record useful sanitized source information instead of skipping the dependency.
 
 ### Identity and resolution
 
 Configured mirrors of public registries map to public package identities while retaining the
 observed registry URL. Native and distinct registries retain source qualifiers. Action subpaths
 and Docker registry qualifiers are identity fields; collapsing them loses dependencies.
+Extraction deduplicates these instances by their complete canonical ID. Before writing a repository,
+every edge must connect an emitted project or instance to an emitted instance.
 Evidence locators are structured key paths or line references, never source excerpts.
 First-party links require positive evidence as defined in [tagging](tagging.md), never a
 similar package name.

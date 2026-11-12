@@ -18,7 +18,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 
 from repomod.catalog import (
     GIT_SOURCE_IGNORE_PREFIX,
@@ -34,6 +37,7 @@ from repomod.dependency_roles import Ban, find_ban, load_roles
 from repomod.git import GitError, status
 from repomod.github import UpstreamStatus
 from repomod.io import cache_file, read_toml, safe_relative
+from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Severity
 from repomod.types import operational as _operational
 from repomod.types import violation as _violation
@@ -636,22 +640,8 @@ def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[st
 
 
 def _locked_versions(lock: Path, normalize: Callable[[str], str]) -> tuple[dict[str, str], str | None]:
-    if not lock.is_file() or lock.is_symlink():
-        return {}, None
-    document, error = read_toml(lock)
-    if document is None:
-        return {}, error
-    locked: dict[str, str] = {}
-    packages = document.get("package")
-    if isinstance(packages, list):
-        for package in packages:
-            if not isinstance(package, dict):
-                continue
-            name = package.get("name")
-            version = package.get("version")
-            if isinstance(name, str) and isinstance(version, str):
-                locked.setdefault(normalize(name), version)
-    return locked, None
+    versions, error = _locked_all_versions(lock, normalize)
+    return {name: values[0] for name, values in versions.items() if values}, error
 
 
 def _locked_all_versions(
@@ -685,6 +675,10 @@ def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
 
 def _uv_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
     return _locked_versions(root / "uv.lock", _normalize_python_name)
+
+
+def _uv_locked_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return _locked_all_versions(root / "uv.lock", _normalize_python_name)
 
 
 def _python_direct_specs(root: Path) -> tuple[list[str], dict[str, Any] | None, str | None]:
@@ -758,23 +752,37 @@ def _read_text_if_regular(path: Path) -> str | None:
         return None
 
 
-def _pnpm_inline_versions(source: str) -> dict[str, str]:
-    locked: dict[str, str] = {}
-    for line in source.splitlines():
-        key_match = re.match(r"^  '?([^'\":\s][^':]*?)@([0-9][^':\s]*?)'?:\s*$", line)
-        if key_match is None:
-            continue
-        name = key_match.group(1).strip().strip("\"'")
-        version = re.split(r"[()]", key_match.group(2).strip(), maxsplit=1)[0]
-        locked.setdefault(name, version)
-    return locked
+def _read_pnpm_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    lock = root / "pnpm-lock.yaml"
+    if not lock.is_file() or lock.is_symlink():
+        return {}, None
+    try:
+        source = lock.read_text(encoding="utf-8")
+        documents = list(YAML(typ="safe").load_all(source))
+    except (OSError, UnicodeError, YAMLError) as error:
+        return {}, str(error)
+    if not documents or any(not isinstance(document, dict) for document in documents):
+        return {}, "lockfile must contain mappings"
+    versions: dict[str, list[str]] = {}
+    for document in documents:
+        for section in ("packages", "snapshots"):
+            entries = document.get(section, {})
+            if not isinstance(entries, dict):
+                return {}, f"{section} must be a mapping"
+            for key in entries:
+                if not isinstance(key, str):
+                    return {}, f"{section} keys must be package references"
+                name, separator, version = key.split("(", 1)[0].rpartition("@")
+                if not separator or not name or re.fullmatch(r"[0-9][^()\s]*", version) is None:
+                    continue
+                values = versions.setdefault(name, [])
+                if version not in values:
+                    values.append(version)
+    return versions, None
 
 
-def _pnpm_all_versions(root: Path) -> dict[str, str]:
-    source = _read_text_if_regular(root / "pnpm-lock.yaml")
-    if source is None:
-        return {}
-    return _pnpm_inline_versions(source)
+def _pnpm_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return cached(("audit_pnpm_versions", root), lambda: _read_pnpm_all_versions(root))
 
 
 def _pnpm_locked_versions(root: Path) -> dict[str, str]:
@@ -826,7 +834,8 @@ def _pnpm_locked_versions(root: Path) -> dict[str, str]:
                 locked.setdefault(current, simple.group(1))
     if locked:
         return locked
-    return _pnpm_inline_versions(source)
+    versions, _ = _pnpm_all_versions(root)
+    return {name: values[0] for name, values in versions.items()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -1306,11 +1315,28 @@ _OSV_ECOSYSTEMS = {
 }
 
 
+class VulnerabilityLookupError(RuntimeError):
+    pass
+
+
+def _validated_vulns(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+    result: list[dict[str, Any]] = []
+    for vuln in cast(list[object], value):
+        if not isinstance(vuln, dict):
+            raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+        row = cast(dict[str, Any], vuln)
+        if not isinstance(row.get("id"), str) or not row["id"]:
+            raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+        result.append(row)
+    return result
+
+
 def osv_query_batch(queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     results: list[list[dict[str, Any]]] = []
     for offset in range(0, len(queries), _OSV_BATCH_SIZE):
         batch = queries[offset : offset + _OSV_BATCH_SIZE]
-        expected = len(results) + len(batch)
         try:
             request = urllib.request.Request(
                 _OSV_URL,
@@ -1319,22 +1345,16 @@ def osv_query_batch(queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]
             )
             with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-        except (OSError, UnicodeError, json.JSONDecodeError):
-            results.extend([[] for _ in batch])
-            continue
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise VulnerabilityLookupError("OSV request failed") from error
         entries = payload.get("results") if isinstance(payload, dict) else None
-        if not isinstance(entries, list):
-            results.extend([[] for _ in batch])
-            continue
+        if not isinstance(entries, list) or len(entries) != len(batch):
+            raise VulnerabilityLookupError("OSV returned an unexpected number of results")
         for entry in entries:
-            vulns = entry.get("vulns") if isinstance(entry, dict) else None
-            if isinstance(vulns, list):
-                results.append([vuln for vuln in vulns if isinstance(vuln, dict)])
-            else:
-                results.append([])
-        while len(results) < expected:
-            results.append([])
-    return results[: len(queries)]
+            if not isinstance(entry, dict) or entry.get("next_page_token") or "error" in entry:
+                raise VulnerabilityLookupError("OSV returned an incomplete or malformed result")
+            results.append(_validated_vulns(entry.get("vulns", [])))
+    return results
 
 
 @dataclass(slots=True)
@@ -1384,6 +1404,11 @@ def _collect_locked(
         seen_js: set[str] = set()
         for project in _js_project_roots(root):
             dependencies = _js_direct_dependencies(project)
+            _, lock_error = _pnpm_all_versions(project)
+            if lock_error is not None:
+                relative = (project / "pnpm-lock.yaml").relative_to(root).as_posix()
+                findings.append(_finding(repository, "audit-lock", relative,
+                                         f"pnpm lockfile is unreadable: {lock_error}", operational=True))
             versions = _pnpm_locked_versions(project)
             for name in sorted(dependencies):
                 if name.casefold() in seen_js:
@@ -1455,16 +1480,16 @@ def _collect_vuln_candidates(
     seen = {(item.ecosystem, item.name.casefold(), item.locked) for item in candidates}
     tags = set(repository.tags)
     if _has_ecosystem(tags, root, "uv.lock", "python"):
-        versions, _ = _uv_locked_versions(root)
-        for name, version in versions.items():
+        versions, _ = _uv_locked_all_versions(root)
+        for name, version in ((name, version) for name, values in versions.items() for version in values):
             key = ("pypi", name.casefold(), version)
             if key not in seen:
                 seen.add(key)
                 candidates.append(LockedDependency("pypi", name, version, False))
     if _has_ecosystem(tags, root, "Cargo.lock", "rust"):
-        versions, _ = _cargo_locked_versions(root)
+        versions, _ = _cargo_locked_all_versions(root)
         local_names = _local_rust_package_names(root)
-        for name, version in versions.items():
+        for name, version in ((name, version) for name, values in versions.items() for version in values):
             if _normalize_rust_name(name) in local_names:
                 continue
             key = ("crates", name.casefold(), version)
@@ -1480,7 +1505,8 @@ def _collect_vuln_candidates(
                 candidates.append(LockedDependency("go", name, version, False))
     if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         for project in _js_project_roots(root):
-            for name, version in _pnpm_all_versions(project).items():
+            versions, _ = _pnpm_all_versions(project)
+            for name, version in ((name, version) for name, values in versions.items() for version in values):
                 key = ("npm", name.casefold(), version)
                 if key not in seen:
                     seen.add(key)
@@ -1963,7 +1989,7 @@ def _complete_rustsec_advisory(advisory: dict[str, Any]) -> dict[str, Any]:
         return advisory
     detail = _http_json(f"https://api.osv.dev/v1/vulns/{urllib.parse.quote(advisory_id, safe='')}")
     if not isinstance(detail, dict) or detail.get("id") != advisory_id or not isinstance(detail.get("affected"), list):
-        raise RuntimeError(f"could not classify OSV advisory {advisory_id}")
+        raise VulnerabilityLookupError(f"could not classify OSV advisory {advisory_id}")
     return detail
 
 
@@ -1979,60 +2005,52 @@ def resolve_vulns(
     osv_entries = cache.get("osv")
     if not isinstance(osv_entries, dict):
         osv_entries = {}
-        cache["osv"] = osv_entries
     resolved: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     queries: list[dict[str, Any]] = []
     order: list[LockedDependency] = []
+    seen: set[tuple[str, str, str]] = set()
+    updates: dict[str, dict[str, Any]] = {}
     for item in candidates:
         ecosystem = _OSV_ECOSYSTEMS.get(item.ecosystem)
-        if ecosystem is None:
+        identity = (item.ecosystem, item.name, item.locked)
+        if ecosystem is None or identity in seen:
             continue
+        seen.add(identity)
         key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
         entry = osv_entries.get(key)
-        is_hit = (
-            isinstance(entry, dict)
-            and isinstance(entry.get("vulns"), list)
-            and not refresh
-            and _cache_fresh(entry.get("fetched_at"), now)
-        )
-        if is_hit:
-            assert isinstance(entry, dict)
-            raw = entry.get("vulns")
-            assert isinstance(raw, list)
-            resolved[(item.ecosystem, item.name, item.locked)] = [
-                vuln for vuln in raw if isinstance(vuln, dict)
-            ]
-        elif offline:
-            if isinstance(entry, dict) and isinstance(entry.get("vulns"), list):
-                raw_offline = entry.get("vulns")
-                assert isinstance(raw_offline, list)
-                cached = [vuln for vuln in raw_offline if isinstance(vuln, dict)]
-            else:
-                cached = []
-            resolved[(item.ecosystem, item.name, item.locked)] = cached
-        else:
+        if isinstance(entry, dict) and isinstance(entry.get("vulns"), list) and (
+            offline or (not refresh and _cache_fresh(entry.get("fetched_at"), now))
+        ):
+            resolved[identity] = _validated_vulns(entry["vulns"])
+        elif not offline:
             queries.append(
                 {"package": {"name": item.name, "ecosystem": ecosystem}, "version": item.locked}
             )
             order.append(item)
     if queries:
-        batches = osv_fetcher(queries) if osv_fetcher is not None else osv_query_batch(queries)
-        for item, vulns in zip(order, batches, strict=True):
+        try:
+            batches = osv_fetcher(queries) if osv_fetcher is not None else osv_query_batch(queries)
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise VulnerabilityLookupError("OSV request failed") from error
+        if not isinstance(batches, list) or len(batches) != len(order):
+            raise VulnerabilityLookupError("OSV returned an unexpected number of results")
+        for item, raw in zip(order, batches, strict=True):
+            vulns = _validated_vulns(raw)
             resolved[(item.ecosystem, item.name, item.locked)] = vulns
             key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
-            osv_entries[key] = {"vulns": vulns, "fetched_at": now}
-    for item in candidates:
-        key = (item.ecosystem, item.name, item.locked)
-        if key not in resolved:
-            continue
-        advisories = resolved[key]
+            updates[key] = {"vulns": vulns, "fetched_at": now}
+    for identity, advisories in resolved.items():
         if not offline and osv_fetcher is None:
             advisories = [_complete_rustsec_advisory(advisory) for advisory in advisories]
-            cache_key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
-            entry = osv_entries.get(cache_key)
+            ecosystem, name, version = identity
+            cache_key = f"{ecosystem}:{name.casefold()}:{version}"
+            entry = updates.get(cache_key, osv_entries.get(cache_key))
             if isinstance(entry, dict):
-                entry["vulns"] = advisories
-        resolved[key] = [advisory for advisory in advisories if not _informational_advisory(advisory)]
+                updates[cache_key] = {**entry, "vulns": advisories}
+        resolved[identity] = [advisory for advisory in advisories if not _informational_advisory(advisory)]
+    if updates:
+        osv_entries.update(updates)
+        cache["osv"] = osv_entries
     return resolved
 
 
@@ -2099,7 +2117,8 @@ def _audit_one(
             )
     locked, lock_findings = _collect_locked(root, repository)
     outcome.findings.extend(finding for finding in lock_findings if finding.rule not in ignored)
-    if locked:
+    candidates = _collect_vuln_candidates(root, repository, locked)
+    if locked or candidates:
         direct = [item for item in locked if item.direct]
         latest = resolve_latest(
             direct, offline=offline, refresh=refresh, cache=cache, now=now, fetcher=latest_fetcher
@@ -2111,10 +2130,14 @@ def _audit_one(
             if _is_outdated(item.locked, newest) and "audit-outdated" not in ignored:
                 message = f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}"
                 outcome.findings.append(_finding(repository, "audit-outdated", None, message))
-        candidates = _collect_vuln_candidates(root, repository, locked)
-        vulns = resolve_vulns(
-            candidates, offline=offline, refresh=refresh, cache=cache, now=now, osv_fetcher=osv_fetcher
-        )
+        try:
+            vulns = resolve_vulns(
+                candidates, offline=offline, refresh=refresh, cache=cache, now=now, osv_fetcher=osv_fetcher
+            )
+        except VulnerabilityLookupError as error:
+            if "audit-vuln" not in ignored:
+                outcome.findings.append(_finding(repository, "audit-vuln", None, str(error), operational=True))
+            vulns = resolve_vulns(candidates, offline=True, refresh=False, cache=cache, now=now)
         for item in sorted(
             candidates, key=lambda entry: (entry.ecosystem, entry.name.casefold(), entry.locked)
         ):

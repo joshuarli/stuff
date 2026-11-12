@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import posixpath
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import ClassVar
 
 from repomod.dependencies.model import (
@@ -22,6 +22,7 @@ from repomod.dependencies.model import (
     SourceKind,
     purl,
     redact_url,
+    redact_urls,
 )
 
 
@@ -87,7 +88,7 @@ class ZigAdapter:
             components=tuple(components.values()),
             instances=tuple(instances),
             edges=tuple(edges),
-            issues=tuple(issues),
+            issues=tuple(replace(item, message=redact_urls(item.message)) for item in issues),
         )
 
 
@@ -163,7 +164,7 @@ def _dependency(
             f"url:{target}",
             qualifiers=(("download_url", target),),
         )
-        constraint = checksum or url
+        constraint = checksum or target
         if checksum is None:
             resolution = Resolution.DECLARED_ONLY
         else:

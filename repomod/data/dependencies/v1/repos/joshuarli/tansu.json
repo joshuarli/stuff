@@ -18293,11 +18293,11 @@
  ],
  "inputs": [
   {
-   "blob": "3c0f8a945260c3ea6dcb211d49dfa62c5340373e",
+   "blob": "a93012bb8e6976eb9360f150437b360578f31438",
    "path": ".github/workflows/check.yml"
   },
   {
-   "blob": "a91659fde9bf7f310e3a1f23cd4319ad90e8bf78",
+   "blob": "673a0a76c15fc10db7a1e042535fae62e4703c23",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -18341,7 +18341,7 @@
    "path": "crates/tansu-webauthn/Cargo.toml"
   },
   {
-   "blob": "496441e41b5e7f66d85a747f1b650670f9d53f02",
+   "blob": "c7102cb23c61054eb9d9faf00f7e9000944ab9c4",
    "path": "docker/linux-e2e-baselines.Dockerfile"
   },
   {
@@ -18369,7 +18369,7 @@
    "path": "vendor/tantivy/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "3e7fd240d22d38532e80af7fba6e1ace62c7cda793539d83b86a4bfb8a24f022",
+ "inputs_fingerprint": "baf4915c95fcc6a37197f700924dc1dcc7f713dbb47556ab415580b788531148",
  "instances": [
   {
    "commit": null,
@@ -24087,14 +24087,14 @@
   },
   {
    "kind": "dynamic_value",
-   "locator": "L13",
+   "locator": "L15",
    "message": "artifact URL 'https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linux-x64.tar.gz' is not literal",
    "path": "docker/linux-e2e-baselines.Dockerfile"
   },
   {
    "kind": "dynamic_value",
    "locator": "L2",
-   "message": "FROM image 'node:${NODE_VERSION}-bookworm' is not literal",
+   "message": "FROM image 'node:${NODE_VERSION}-bookworm@sha256:a546d3f8acd2af4382668a7e6acd3bc4418e6a27478373e3246f8162f5181509' is not literal",
    "path": "docker/linux-e2e-baselines.Dockerfile"
   },
   {

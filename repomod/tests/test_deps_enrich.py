@@ -5,7 +5,7 @@ import json
 import socket
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from deps_fixtures import build_graph, instance, repository
@@ -255,3 +255,58 @@ def test_legacy_rustsec_cache_is_refreshed() -> None:
     classified = {"fetched_at": 1000.0, "vulns": [{"id": "RUSTSEC-2026-0001", "affected": []}]}
     assert not is_fresh(old, 1000.0)
     assert is_fresh(classified, 1000.0)
+
+
+@pytest.mark.parametrize("previous", [False, True])
+def test_failed_osv_refresh_preserves_stale_advisories_and_never_marks_clean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, previous: bool,
+) -> None:
+    graph = _fixture_graph(tmp_path)
+    cache_path = tmp_path / "cache.json"
+    if previous:
+        enrich.enrich(graph, cache_path=cache_path, now=1000.0, latest_fetcher=_latest, osv_fetcher=_osv)
+
+    def fail(*_args, **_kwargs):
+        raise OSError("offline")
+
+    monkeypatch.setattr("repomod.audit.urllib.request.urlopen", fail)
+    report = enrich.enrich(graph, cache_path=cache_path, refresh=True, now=1001.0, latest_fetcher=_latest)
+    assert report.checked == 0
+    assert report.errors == ("OSV request failed",)
+    assert report.stale == (4 if previous else 0)
+    assert report.not_checked == (1 if previous else 5)
+    assert report.cache.fetched_at == (1000.0 if previous else None)
+    for entry in report.cache.results.values():
+        assert entry["vuln_error"] == "OSV request failed"
+        if previous:
+            assert entry["vulns"]
+            assert entry["fetched_at"] == 1000.0
+        else:
+            assert "fetched_at" not in entry
+            assert "vulns" not in entry
+    from repomod.dependencies import analysis
+
+    monkeypatch.setattr(enrich, "load_cache", lambda: report.cache)
+    security = cast(dict[str, Any], analysis.report(graph)["freshness"])
+    assert security["checked"]["value"] == 0
+
+
+def test_enrich_cli_reports_failed_checks_and_operational_exit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    _fixture_graph(tmp_path)
+    catalog = _catalog(tmp_path)
+    monkeypatch.setattr(deps, "_inventory", lambda: tmp_path / "data/dependencies/v1")
+    monkeypatch.setattr(common, "default_catalog", lambda: catalog)
+    monkeypatch.setattr(enrich, "cache_file", lambda _name: tmp_path / "cache.json")
+    monkeypatch.setattr(enrich, "resolve_latest", lambda *_args, **_kwargs: {})
+
+    def fail(*_args, **_kwargs):
+        raise OSError("offline")
+
+    monkeypatch.setattr("repomod.audit.urllib.request.urlopen", fail)
+    assert deps._deps(argparse.Namespace(operation="enrich", offline=False, refresh=True, json=True)) == 2
+    value = json.loads(capsys.readouterr().out)
+    assert value["checked"] == 0
+    assert value["not_checked"] == 5
+    assert value["errors"] == ["OSV request failed"]

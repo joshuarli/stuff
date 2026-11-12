@@ -403,7 +403,7 @@
    "path": "tests/fixtures/native/CMakeLists.txt"
   }
  ],
- "inputs_fingerprint": "894ce956ba8264f64cec39747c07a591645107055520cc723a095041f22158c0",
+ "inputs_fingerprint": "3ccf938b358fa836de66abe4ab05f8ffce14baf9cd3ec62495805cefb26698a0",
  "instances": [
   {
    "commit": null,

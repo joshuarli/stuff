@@ -1131,7 +1131,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "e351e22b51e36550b6c10597785eedc7bef889cf",
+   "blob": "b91c158b1efe35e6c8eb460906f3043954be022d",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -1159,7 +1159,7 @@
    "path": "scrl/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "c032eac5edf09fa12d26fc48d2b57417ecfa00e81a8fc8c432350f665f51cc40",
+ "inputs_fingerprint": "2d62f7476e88a4197babfe58ae71fbc9f59881b25adcdf942f530d24ba8d79a0",
  "instances": [
   {
    "commit": null,

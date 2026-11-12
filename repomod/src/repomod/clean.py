@@ -7,7 +7,16 @@ from pathlib import Path
 from typing import Literal
 
 from repomod.catalog import CatalogError, repository_path
-from repomod.git import GitError, expected_origin, origin_url, repository_lock, stash_count, status
+from repomod.git import (
+    GitError,
+    expected_origin,
+    origin_url,
+    repository_lock,
+    repository_removal_state,
+    stash_count,
+    status,
+    unpublished_ref,
+)
 from repomod.types import Catalog, GitStatus, RepoId
 
 type CleanAction = Literal["absent", "planned", "removed", "skipped", "failed"]
@@ -25,7 +34,7 @@ class CleanResult:
         return self.action in {"skipped", "failed"}
 
 
-def removal_blocker(current: GitStatus, stashes: int) -> str | None:
+def _checkout_removal_blocker(current: GitStatus, stashes: int) -> str | None:
     if current.dirty:
         return "checkout has uncommitted changes"
     if current.detached:
@@ -41,6 +50,25 @@ def removal_blocker(current: GitStatus, stashes: int) -> str | None:
     if stashes:
         noun = "entry" if stashes == 1 else "entries"
         return f"repository has {stashes} stash {noun}"
+    return None
+
+
+def removal_blocker(path: Path, current: GitStatus, *, force: bool = False) -> str | None:
+    before = repository_removal_state(path)
+    if before.storage_blocker is not None:
+        return before.storage_blocker
+    for ref, _ in before.refs:
+        if ref != "refs/stash" and not ref.startswith(("refs/heads/", "refs/tags/", "refs/remotes/")):
+            return f"repository has recovery or unpublished ref {ref}"
+    if not force:
+        blocker = _checkout_removal_blocker(current, stash_count(path))
+        if blocker is not None:
+            return blocker
+        blocker = unpublished_ref(path, before)
+        if blocker is not None:
+            return blocker
+    if status(path, RepoId.parse(current.repository)) != current or repository_removal_state(path) != before:
+        return "repository changed during removal inspection"
     return None
 
 
@@ -146,10 +174,10 @@ def gc_one(
                             "skipped",
                             f"origin matches catalogued {repo.id}; move the checkout instead",
                         )
-            blocker = removal_blocker(current, stash_count(path))
-            if blocker is not None and not force:
-                return CleanResult(label, path, "skipped", f"{blocker}; pass --force to remove")
-            summary = blocker or "clean checkout"
+            blocker = removal_blocker(path, current, force=force)
+            if blocker is not None:
+                return CleanResult(label, path, "skipped", blocker)
+            summary = "forced checkout removal" if force else "clean published checkout"
             if dry_run:
                 return CleanResult(label, path, "planned", summary)
             shutil.rmtree(path)

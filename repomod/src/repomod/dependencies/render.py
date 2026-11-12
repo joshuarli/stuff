@@ -177,9 +177,8 @@ def _site(
         except ValueError:
             diff_value = None
     if diff_value is not None:
-        invisible = hidden | unmanaged
         visible = tuple(
-            change for change in diff_value.repositories if change.repository not in invisible
+            change for change in diff_value.repositories if change.repository in graph.repositories
         )
         diff_value = replace(diff_value, repositories=visible)
     declared = insights.declarations(graph)
@@ -1681,7 +1680,7 @@ def _duplicates(site: _Site, data: RepositoryData) -> list[tuple[str, list[str]]
 
 def _enrichment_cell(site: _Site, instance: Instance) -> str:
     entry = site.cache.results.get(instance.purl)
-    if entry is None:
+    if entry is None or not isinstance(entry.get("vulns"), list):
         return '<span class="unknown">not checked</span>'
     if not enrich.is_fresh(entry, site.now):
         return '<span class="unknown">stale</span>'

@@ -105,7 +105,7 @@ def _deps(args: argparse.Namespace) -> int:
             common.print_json(_enrich_dict(result))
         else:
             print(enrich_module.summary_text(result))
-        return 0
+        return 2 if result.errors else 0
     reported = common.reporting_repositories(
         catalog,
         getattr(args, "repo", []),
@@ -119,7 +119,7 @@ def _deps(args: argparse.Namespace) -> int:
         managed = frozenset(str(repository.id) for repository in catalog.repositories)
         hidden = frozenset(str(repository.id) for repository in repositories) - frozenset(selected)
         unmanaged = frozenset(loaded.repositories) - managed
-        visible_inventory = graph.excluding(loaded, hidden | unmanaged)
+        visible_inventory = graph.excluding(loaded, frozenset(loaded.repositories) - frozenset(selected))
         visible_graph = graph.build_graph(visible_inventory, catalog)
         output = _render_output(args.output)
         status = _repository_status(catalog, reported, visible_graph) if args.status else None
@@ -183,6 +183,7 @@ def _enrich_dict(value: EnrichReport) -> dict[str, object]:
         "cache": str(value.cache.path),
         "fetched_at": value.cache.fetched_at,
         "results": value.cache.results,
+        "errors": list(value.errors),
     }
 
 

@@ -1658,7 +1658,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.41",
+   "constraint": "0.42",
    "evidence": [
     {
      "locator": "dependencies.rusqlite",
@@ -1673,10 +1673,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.41.1",
+   "resolved_version": "0.42.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rusqlite@0.41.1#"
+   "to": "pkg:cargo/rusqlite@0.42.0#"
   },
   {
    "condition": null,
@@ -4366,7 +4366,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.41",
+   "constraint": "0.42",
    "evidence": [
     {
      "locator": "dependencies.rusqlite",
@@ -4381,10 +4381,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.41.1",
+   "resolved_version": "0.42.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rusqlite@0.41.1#"
+   "to": "pkg:cargo/rusqlite@0.42.0#"
   },
   {
    "condition": null,
@@ -6661,11 +6661,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=libsqlite3-sys,version=0.39.1].dependencies[0]",
+     "locator": "package[name=libsqlite3-sys,version=0.40.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/libsqlite3-sys@0.39.1#",
+   "from": "pkg:cargo/libsqlite3-sys@0.40.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6679,11 +6679,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=libsqlite3-sys,version=0.39.1].dependencies[1]",
+     "locator": "package[name=libsqlite3-sys,version=0.40.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/libsqlite3-sys@0.39.1#",
+   "from": "pkg:cargo/libsqlite3-sys@0.40.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6697,11 +6697,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=libsqlite3-sys,version=0.39.1].dependencies[2]",
+     "locator": "package[name=libsqlite3-sys,version=0.40.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/libsqlite3-sys@0.39.1#",
+   "from": "pkg:cargo/libsqlite3-sys@0.40.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7579,11 +7579,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[0]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7597,11 +7597,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[1]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7615,11 +7615,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[2]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7633,11 +7633,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[3]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7651,29 +7651,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[4]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.39.1",
+   "resolved_version": "0.40.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/libsqlite3-sys@0.39.1#"
+   "to": "pkg:cargo/libsqlite3-sys@0.40.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[5]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7687,11 +7687,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rusqlite,version=0.41.1].dependencies[6]",
+     "locator": "package[name=rusqlite,version=0.42.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rusqlite@0.41.1#",
+   "from": "pkg:cargo/rusqlite@0.42.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -10411,11 +10411,11 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "08c81d68579edf30e69da1f9ebcf40c5e5ed6a18",
+   "blob": "fa3c72e6a83a2a88bba7106c8c9dfea9099b5de6",
    "path": "Cargo.lock"
   },
   {
-   "blob": "51fa5f75de97696d409a84c89ed155488834a85a",
+   "blob": "1e81c51477e95774311b1f1eeabe888a58eba7bb",
    "path": "Cargo.toml"
   },
   {
@@ -10471,7 +10471,7 @@
    "path": "crates/kache-shims/Cargo.toml"
   },
   {
-   "blob": "909ab86312087992e9e2eb5ce499f02765027e31",
+   "blob": "87339fdd3219505a89417586834b9fa8d79dac12",
    "path": "crates/kache-store/Cargo.toml"
   },
   {
@@ -10923,7 +10923,7 @@
    "path": "test-projects/stale-check/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "854952a281ba1645bfccdcf7b6202a119ff1dc7d861b363e6dc70328a6c1f78e",
+ "inputs_fingerprint": "5ec695d3d5e8e278d3c4d9989a1a5b0fbca3abd3e725d5951febceb9d08db0f6",
  "instances": [
   {
    "commit": null,
@@ -11879,13 +11879,13 @@
    "component": "pkg:cargo/libsqlite3-sys",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/libsqlite3-sys@0.39.1#",
-   "purl": "pkg:cargo/libsqlite3-sys@0.39.1",
+   "id": "pkg:cargo/libsqlite3-sys@0.40.0#",
+   "purl": "pkg:cargo/libsqlite3-sys@0.40.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.39.1"
+   "version": "0.40.0"
   },
   {
    "commit": null,
@@ -12425,13 +12425,13 @@
    "component": "pkg:cargo/rusqlite",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rusqlite@0.41.1#",
-   "purl": "pkg:cargo/rusqlite@0.41.1",
+   "id": "pkg:cargo/rusqlite@0.42.0#",
+   "purl": "pkg:cargo/rusqlite@0.42.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.41.1"
+   "version": "0.42.0"
   },
   {
    "commit": null,

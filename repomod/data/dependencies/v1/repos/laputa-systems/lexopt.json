@@ -143,7 +143,7 @@
    "path": "fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "9538f723ae6845227cd780fae75609b0c242c9750a51c2838296f6b866fea1e1",
+ "inputs_fingerprint": "153d7da8092224d1c19d8b93bff27e8a33a91101383fba272e5a3e3abb6b9637",
  "instances": [
   {
    "commit": null,

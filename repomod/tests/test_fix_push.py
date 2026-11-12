@@ -90,3 +90,29 @@ def test_push_uses_checked_commit_when_checkout_changes_before_push(
     assert state == "pushed", message
     assert remote_head == main_head
     assert head(path) == switched[0]
+
+
+def test_fix_push_uses_validated_commit_when_branch_moves(
+    tmp_path: Path, git_environment: None, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _catalog, repository, path, base = initialize_repository(tmp_path)
+    branch = "repomod/fix/" + "b" * 32
+    git("branch", branch, base, cwd=path)
+    original_run_git = fix_module.run_git
+    moved: list[str] = []
+
+    def advance_before_push(
+        arguments: list[str], cwd: Path | None = None, **options: Any,
+    ) -> subprocess.CompletedProcess[str]:
+        if arguments[0] == "push" and not moved:
+            new_head = git("commit-tree", f"{base}^{{tree}}", "-p", base, "-m", "unvalidated", cwd=path).stdout.strip()
+            git("update-ref", f"refs/heads/{branch}", new_head, cwd=path)
+            moved.append(new_head)
+        return original_run_git(arguments, cwd=cwd, **options)
+
+    monkeypatch.setattr(fix_module, "run_git", advance_before_push)
+    state, message = push_fix_branch(repository, path, branch, "main", base, base)
+    assert state == "pushed", message
+    remote_head = git("--git-dir", str(tmp_path / "remote.git"), "rev-parse", f"refs/heads/{branch}").stdout.strip()
+    assert remote_head == base
+    assert git("rev-parse", f"refs/heads/{branch}", cwd=path).stdout.strip() == moved[0]

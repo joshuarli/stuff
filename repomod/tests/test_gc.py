@@ -56,6 +56,7 @@ def clone_into(
     git("clone", "--branch", "main", str(bare), str(destination))
     if origin is not None:
         git("remote", "set-url", "origin", origin, cwd=destination)
+        git("config", "--global", "--add", f"url.file://{bare}.insteadOf", origin)
     return destination
 
 

@@ -790,3 +790,66 @@ def test_excluding_drops_a_repository_from_the_graph(tmp_path: Path) -> None:
     remaining = graph.build_graph(graph.excluding(inventory, frozenset({"acme/hostile"})))
     assert "acme/hostile" not in remaining.repositories
     assert HOSTILE_PURL not in remaining.components
+
+
+@pytest.mark.parametrize("selected", ["kept", "secret"])
+def test_filtered_render_uses_only_the_reported_allowlist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, selected: str,
+) -> None:
+    names = ("kept", "secret", "other")
+    inventory = write_inventory(tmp_path, [
+        repository(f"acme/{name}", (instance(Ecosystem.CARGO, f"{name}-pkg", "1.0.0"),),
+                   projects=(project(".", Ecosystem.CARGO),)) for name in names
+    ])
+    catalog_path = tmp_path / "catalog.toml"
+    catalog_path.write_text(
+        'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos.acme]\nkept = ["tool"]\nsecret = ["tool"]\nother = ["tool"]\n'
+    )
+    catalog = load_catalog(catalog_path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")})
+    monkeypatch.setattr(deps, "_inventory", lambda: inventory)
+    monkeypatch.setattr(common, "default_catalog", lambda: catalog)
+    visibility_queries: list[str] = []
+
+    def visibility(repositories: tuple[Repository, ...], **_kwargs: object) -> dict[str, bool]:
+        visibility_queries.extend(str(repository.id) for repository in repositories)
+        return {str(repository.id): repository.id.name == "secret" for repository in repositories}
+
+    monkeypatch.setattr("repomod.github.repository_visibility", visibility)
+    monkeypatch.setattr(render.diff_module, "diff_inventory", lambda *_args, **_kwargs: diff_module.Diff(
+        True, "HEAD~1", "working tree", tuple(_downgrade(f"acme/{name}", f"{name}-pkg") for name in names)
+    ))
+    status_queries: list[str] = []
+
+    def statuses(_catalog, repositories, _graph):
+        status_queries.extend(str(repository.id) for repository in repositories)
+        return {}
+
+    monkeypatch.setattr(deps, "_repository_status", statuses)
+    output = tmp_path / "dashboard"
+    assert deps._deps(argparse.Namespace(operation="render", output=str(output),
+        include_private=False, status=True, repo=[f"acme/{selected}"], tag=[])) == 0
+    assert status_queries == [f"acme/{selected}"]
+    assert set(visibility_queries) <= {f"acme/{selected}"}
+    for name in names:
+        assert (output / "repos/acme" / name / "index.html").exists() == (name == selected)
+    for page in ("packages.html", "changes.html", "assets/search.js"):
+        text = (output / page).read_text()
+        assert f"{selected}-pkg" in text
+        for name in set(names) - {selected}:
+            assert f"{name}-pkg" not in text
+
+
+def test_first_failed_osv_check_renders_not_checked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inventory, built = _fixture(tmp_path)
+    results = {instance.purl: {"vuln_error": "OSV request failed"} for instance in built.instances.values()}
+    monkeypatch.setattr(
+        render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, results)
+    )
+    result = render.render(inventory, built, tmp_path / "dashboard")
+    packages = (result.output / "packages.html").read_text()
+    assert '<span class="unknown">not checked</span>' in packages
+    assert '<span class="unknown">stale</span>' not in packages
+    assert "no known vulnerabilities" not in packages

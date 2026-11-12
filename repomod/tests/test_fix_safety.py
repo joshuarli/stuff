@@ -265,3 +265,17 @@ def test_two_concurrent_fix_runs_create_only_one_commit(
     assert fix_branch is not None
     assert len(subjects(path, base, fix_branch)) == 1
     assert head(path) == base
+
+
+@pytest.mark.parametrize("scope", ["--local", "--global"])
+def test_fixer_refuses_untracked_files_hidden_by_display_settings(
+    tmp_path: Path, git_environment: None, scope: str,
+) -> None:
+    catalog, repository, path, base = initialize_repository(tmp_path)
+    git("config", scope, "status.showUntrackedFiles", "no", cwd=path)
+    (path / "local.txt").write_text("preserve")
+    result = fix_repository(catalog, repository, (file_rule("first", "first.txt", "first\n"),), "main")
+    assert result.skipped == "checkout is dirty"
+    assert head(path) == base
+    assert (path / "local.txt").read_text() == "preserve"
+    assert not (path / "first.txt").exists()

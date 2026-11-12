@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -257,7 +258,10 @@ def status(path: Path, repo: RepoId) -> GitStatus:
             str(repo), path, True, False, None, False, 0, 0, 0, None, None, None, False,
             "directory is not a valid Git checkout",
         )
-    result = run_git(["status", "--porcelain=v2", "--branch", "-z"], cwd=path, check=False)
+    result = run_git(
+        ["status", "--porcelain=v2", "--untracked-files=all", "--branch", "-z"],
+        cwd=path, check=False,
+    )
     if result.returncode != 0:
         if not is_git_checkout(path):
             return GitStatus(
@@ -405,7 +409,7 @@ def is_ancestor(path: Path, older: str, newer: str) -> bool:
 
 def _checkout_matches(path: Path, branch: str, expected_head: str) -> bool:
     output = run_git(
-        ["status", "--porcelain=v2", "--branch", "-z"], cwd=path
+        ["status", "--porcelain=v2", "--untracked-files=all", "--branch", "-z"], cwd=path
     ).stdout
     current_branch = None
     current_head = None
@@ -502,3 +506,70 @@ def stash_count(path: Path) -> int:
     if result.returncode != 0:
         raise GitError(result.stderr.strip() or "git stash list failed")
     return len([line for line in result.stdout.splitlines() if line.strip()])
+
+
+@dataclass(frozen=True, slots=True)
+class RepositoryRemovalState:
+    identity: tuple[tuple[int, int], ...]
+    refs: tuple[tuple[str, str], ...]
+    worktrees: bytes
+    origin: str | None
+    head: str
+    storage_blocker: str | None
+
+
+def repository_removal_state(path: Path) -> RepositoryRemovalState:
+    git_path = path / ".git"
+    identity = tuple((value.st_dev, value.st_ino) for value in (path.lstat(), git_path.lstat()))
+    refs = tuple(
+        (ref, oid) for ref, oid in (
+            line.split(" ", 1) for line in
+            run_git(["for-each-ref", "--format=%(refname) %(objectname)"], cwd=path).stdout.splitlines()
+        )
+    )
+    worktrees = run_git_bytes(["worktree", "list", "--porcelain", "-z"], cwd=path).stdout
+    registered = [record.removeprefix(b"worktree ") for record in worktrees.split(b"\0")
+                  if record.startswith(b"worktree ")]
+    blocker = None
+    if not git_path.is_dir() or git_path.is_symlink():
+        blocker = "checkout uses shared Git storage"
+    elif registered != [os.fsencode(path.resolve())]:
+        blocker = "repository has another registered worktree"
+    return RepositoryRemovalState(identity, refs, worktrees, origin_url(path), head(path), blocker)
+
+
+def unpublished_ref(path: Path, state: RepositoryRemovalState) -> str | None:
+    result = run_git(["ls-remote", "--refs", "origin"], cwd=path)
+    published = {ref: oid for oid, ref in (line.split() for line in result.stdout.splitlines())}
+    remote_tips = set(published.values())
+    remote_heads = {oid for ref, oid in published.items() if ref.startswith("refs/heads/")}
+    for remote in run_git(["remote"], cwd=path).stdout.splitlines():
+        if remote == "origin":
+            continue
+        advertised = run_git(["ls-remote", "--refs", remote], cwd=path).stdout
+        for oid, ref in (line.split() for line in advertised.splitlines()):
+            remote_tips.add(oid)
+            if ref.startswith("refs/heads/"):
+                remote_heads.add(oid)
+    for ref, oid in state.refs:
+        if ref.startswith("refs/remotes/"):
+            if oid in remote_tips:
+                continue
+            for tip in remote_heads:
+                present = run_git(["cat-file", "-e", f"{tip}^{{commit}}"], cwd=path, check=False)
+                if present.returncode == 0 and is_ancestor(path, oid, tip):
+                    break
+            else:
+                return f"ref {ref} has no verified published counterpart"
+            continue
+        if not ref.startswith(("refs/heads/", "refs/tags/")):
+            return f"repository has recovery or unpublished ref {ref}"
+        remote_oid = published.get(ref)
+        if remote_oid == oid:
+            continue
+        if ref.startswith("refs/heads/") and remote_oid is not None:
+            present = run_git(["cat-file", "-e", f"{remote_oid}^{{commit}}"], cwd=path, check=False)
+            if present.returncode == 0 and is_ancestor(path, oid, remote_oid):
+                continue
+        return f"ref {ref} has no verified published counterpart"
+    return None

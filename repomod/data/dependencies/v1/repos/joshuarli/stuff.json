@@ -14395,7 +14395,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "cb4db7d5116f5f3bb44c9e7fcd22d0837b4ba408",
+   "blob": "e1425f1d15b5873b4701750b0f8bfeb5c4010929",
    "path": "Makefile"
   },
   {
@@ -14495,7 +14495,7 @@
    "path": "tests/fixtures/mypypi/rust-toolchain-sdist/pyproject.toml"
   }
  ],
- "inputs_fingerprint": "e3fb0d52055c457720018fe7d9561daf9bf60cbcb8e745fcca8b39a5d95ece62",
+ "inputs_fingerprint": "9c0cc94e2f562efa1d165b4b98f960fc0f8c4c5c2f4677abb351cdf9904402a8",
  "instances": [
   {
    "commit": null,

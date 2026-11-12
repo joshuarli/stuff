@@ -244,7 +244,7 @@
  "edges": [
   {
    "condition": null,
-   "constraint": "0.3",
+   "constraint": "0.4",
    "evidence": [
     {
      "locator": "dev-dependencies.laputa-ptytest",
@@ -259,10 +259,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.3.0",
+   "resolved_version": "0.4.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/laputa-ptytest@0.3.0#"
+   "to": "pkg:cargo/laputa-ptytest@0.4.0#"
   },
   {
    "condition": null,
@@ -376,7 +376,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.16.2",
+   "constraint": "0.18.1",
    "evidence": [
     {
      "locator": "dependencies.vt100",
@@ -391,10 +391,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.16.2",
+   "resolved_version": "0.18.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/vt100@0.16.2#"
+   "to": "pkg:cargo/vt100@0.18.1#"
   },
   {
    "condition": null,
@@ -743,11 +743,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[0]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-ptytest@0.3.0#",
+   "from": "pkg:cargo/laputa-ptytest@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -761,18 +761,36 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=laputa-ptytest,version=0.3.0].dependencies[1]",
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/laputa-ptytest@0.3.0#",
+   "from": "pkg:cargo/laputa-ptytest@0.4.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.16.2",
+   "resolved_version": "2.1.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/vt100@0.16.2#"
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-ptytest,version=0.4.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-ptytest@0.4.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.18.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/vt100@0.18.1#"
   },
   {
    "condition": null,
@@ -823,10 +841,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "3.0.9",
+   "resolved_version": "3.0.10",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
+   "to": "pkg:cargo/syn@3.0.10#"
   },
   {
    "condition": null,
@@ -841,10 +859,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
@@ -1085,11 +1103,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1103,11 +1121,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1121,11 +1139,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1139,29 +1157,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=vt100,version=0.16.2].dependencies[0]",
+     "locator": "package[name=vt100,version=0.18.1].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/vt100@0.16.2#",
+   "from": "pkg:cargo/vt100@0.18.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.0.18",
+   "resolved_version": "1.0.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
+   "to": "pkg:cargo/itoa@1.0.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=vt100,version=0.16.2].dependencies[1]",
+     "locator": "package[name=vt100,version=0.18.1].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/vt100@0.16.2#",
+   "from": "pkg:cargo/vt100@0.18.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1175,11 +1193,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=vt100,version=0.16.2].dependencies[2]",
+     "locator": "package[name=vt100,version=0.18.1].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/vt100@0.16.2#",
+   "from": "pkg:cargo/vt100@0.18.1#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1253,15 +1271,15 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "2a0577584c9868188dbf5e24e991b4a5cb4bf46e",
+   "blob": "80d3813b9293cecb7acb8c702764e625e1464241",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "1128286f4ad9021143275c1b466a20f8471f42b8",
+   "blob": "06d86a7f69d9486ce6ae1f65b23ba25dc075486a",
    "path": "Cargo.lock"
   },
   {
-   "blob": "e38b867919cf4622214f11ad11b9c9755a83ba6d",
+   "blob": "97cf469e0c797ed804ba3bc64a1c01d744276bc0",
    "path": "Cargo.toml"
   },
   {
@@ -1277,7 +1295,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "72a4c856cb8d4f9aff3e0e91998115a3112027ea5a4f1f2e13eeca8817332522",
+ "inputs_fingerprint": "d51ff5c8a6f19631cd6af822b5f50784bfe2dc18eaac04e117cb9146645c9eed",
  "instances": [
   {
    "commit": null,
@@ -1388,26 +1406,26 @@
    "component": "pkg:cargo/itoa",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/itoa@1.0.18#",
-   "purl": "pkg:cargo/itoa@1.0.18",
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.18"
+   "version": "1.0.19"
   },
   {
    "commit": null,
    "component": "pkg:cargo/laputa-ptytest",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/laputa-ptytest@0.3.0#",
-   "purl": "pkg:cargo/laputa-ptytest@0.3.0",
+   "id": "pkg:cargo/laputa-ptytest@0.4.0#",
+   "purl": "pkg:cargo/laputa-ptytest@0.4.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.3.0"
+   "version": "0.4.0"
   },
   {
    "commit": null,
@@ -1583,13 +1601,13 @@
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,
@@ -1622,13 +1640,13 @@
    "component": "pkg:cargo/vt100",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/vt100@0.16.2#",
-   "purl": "pkg:cargo/vt100@0.16.2",
+   "id": "pkg:cargo/vt100@0.18.1#",
+   "purl": "pkg:cargo/vt100@0.18.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.16.2"
+   "version": "0.18.1"
   },
   {
    "commit": null,

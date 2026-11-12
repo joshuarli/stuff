@@ -78,7 +78,6 @@ class _Ref:
     version: str | None
     ecosystem: Ecosystem
     source_kind: SourceKind
-    source_key: str
     qualifiers: tuple[tuple[str, str], ...] = ()
     commit: str | None = None
     first_party: bool = False
@@ -90,10 +89,6 @@ class _Ref:
     @property
     def component(self) -> str:
         return purl(self.ecosystem, self.name, qualifiers=dict(self.qualifiers))
-
-    @property
-    def key(self) -> str:
-        return self.source_key
 
     @property
     def instance_id(self) -> str:
@@ -145,7 +140,6 @@ def image_ref(image: Image, source_kind: SourceKind = SourceKind.IMAGE) -> _Ref:
         image.tag,
         Ecosystem.DOCKER,
         source_kind,
-        f"docker:{image.name}:{image.tag or ''}:{image.digest or ''}",
         qualifiers=image.qualifiers,
     )
 
@@ -280,7 +274,7 @@ def _image_edge(
     ref = image_ref(
         image, SourceKind.VENDORED if vendored else SourceKind.IMAGE
     )
-    drafts.setdefault(ref.key, ref)
+    drafts.setdefault(ref.instance_id, ref)
     edges.append(
         Edge(
             from_id=project_id,
@@ -359,9 +353,8 @@ def _run(
                 version if separator else None,
                 Ecosystem.APK,
                 SourceKind.VENDORED if vendored else SourceKind.REGISTRY,
-                f"apk:{name}:{version if separator else ''}",
             )
-            drafts.setdefault(ref.key, ref)
+            drafts.setdefault(ref.instance_id, ref)
             edges.append(
                 Edge(
                     from_id=project_id,
@@ -390,7 +383,7 @@ def _run(
             )
             continue
         ref = artifact_ref(artifact.url, vendored)
-        drafts.setdefault(ref.key, ref)
+        drafts.setdefault(ref.instance_id, ref)
         edges.append(
             Edge(
                 from_id=project_id,
@@ -416,7 +409,6 @@ def artifact_ref(url: str, vendored: bool) -> _Ref:
         None,
         Ecosystem.GENERIC,
         SourceKind.VENDORED if vendored else SourceKind.URL,
-        f"url:{target}",
         qualifiers=(("download_url", target),),
     )
 

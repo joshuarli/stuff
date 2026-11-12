@@ -187,7 +187,7 @@ def _freshness(
                 not_checked += 1
                 continue
             entry = cache.results.get(instance.purl)
-            if entry is None:
+            if entry is None or not isinstance(entry.get("vulns"), list):
                 not_checked += 1
             elif not enrich_module.is_fresh(entry, now):
                 stale += 1

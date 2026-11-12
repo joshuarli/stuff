@@ -32,6 +32,11 @@ reported until it is available there, so upgrade findings match what the
 repository can install. Crate release metadata for MSRV and exact-pin checks
 comes from the same Cargo source. Vulnerabilities come from the free OSV API
 with no authentication.
+Vulnerability checks include every distinct locked version in Cargo, uv, and pnpm lockfiles.
+Direct-upgrade selection remains separate. Lockfile parse failures are operational findings in
+both `audit-lock` and `audit-vuln`, causing `lint` to exit 2.
+Failed or malformed OSV responses also produce operational findings. They preserve cached advisories
+without advancing their check timestamps. Responses must cover every query before cache updates commit.
 For npm, "latest" is the newest stable release the repository's pnpm can
 install: versions younger than `minimumReleaseAge` (minutes, from
 `pnpm-workspace.yaml`, then `.npmrc` `minimum-release-age`, default 1440 as in

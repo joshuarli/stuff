@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+from io import StringIO
 from pathlib import Path
+
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.error import YAMLError
 
 from repomod.git import GitError, run_git
 from repomod.rules.actions import _validate_workflows
@@ -220,12 +225,38 @@ def _ensure_concurrency(lines: list[str]) -> bool:
     return changed
 
 
+def _block_mapping(value: CommentedMap) -> None:
+    value.fa.set_block_style()
+    for child in value.values():
+        if isinstance(child, CommentedMap):
+            _block_mapping(child)
+
+
+def _expand_inline_mapping(lines: list[str], index: int) -> bool:
+    parsed = _key_value(lines[index])
+    assert parsed is not None
+    if not parsed[2].startswith("{"):
+        return False
+    yaml = YAML(typ="rt")
+    try:
+        value = yaml.load(lines[index].lstrip())
+    except YAMLError as error:
+        raise GitError("cannot preserve inline workflow mapping") from error
+    if not isinstance(value, CommentedMap):
+        raise GitError("expected an inline workflow mapping")
+    _block_mapping(value)
+    output = StringIO()
+    yaml.dump(value, output)
+    lines[index:index + 1] = [" " * parsed[0] + line for line in output.getvalue().splitlines()]
+    return True
+
+
 def _ensure_defaults(lines: list[str]) -> bool:
     index = _top_key_index(lines, "defaults")
     if index is None:
         _insert_top_block(lines, ["defaults:", "  run:", f"    shell: {_SHELL}"])
         return True
-    changed = False
+    changed = _expand_inline_mapping(lines, index)
     parsed = _key_value(lines[index])
     assert parsed is not None
     if parsed[2]:
@@ -240,6 +271,10 @@ def _ensure_defaults(lines: list[str]) -> bool:
         return True
     current = _key_value(lines[run])
     assert current is not None
+    if _expand_inline_mapping(lines, run):
+        changed = True
+        current = _key_value(lines[run])
+        assert current is not None
     if current[2]:
         lines[run] = f"{' ' * current[0]}run:"
         changed = True

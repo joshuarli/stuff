@@ -9,6 +9,7 @@ from threading import Barrier, Lock
 
 import pytest
 from fix_helpers import initialize_repository
+from ruamel.yaml import YAML
 
 from repomod import github
 from repomod.catalog import load_catalog
@@ -2373,3 +2374,24 @@ def test_naming_a_private_repository_reports_it(
     assert _names(
         cmd_common.reporting_repositories(catalog, ["acme/secret"], [], include_private=False)
     ) == ["secret"]
+
+
+@pytest.mark.parametrize("defaults", [
+    "defaults: {run: {shell: bash, working-directory: frontend}}\n",
+    "defaults:\n  run: {shell: bash, working-directory: frontend}\n",
+])
+def test_workflow_settings_preserve_inline_run_fields(tmp_path: Path, defaults: str) -> None:
+    workflows = tmp_path / ".github/workflows"
+    workflows.mkdir(parents=True)
+    workflow = workflows / "ci.yml"
+    workflow.write_text(
+        "name: ci\non: push\n" + defaults +
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n"
+    )
+    updated = _fix_workflow_settings(tmp_path, repo())[".github/workflows/ci.yml"]
+    workflow.write_text(updated)
+    document = YAML(typ="safe").load(updated)
+    assert document["defaults"]["run"]["working-directory"] == "frontend"
+    assert document["defaults"]["run"]["shell"] == "bash -euo pipefail {0}"
+    assert _workflow_settings(tmp_path, repo()) == []
+    assert _fix_workflow_settings(tmp_path, repo()) == {}

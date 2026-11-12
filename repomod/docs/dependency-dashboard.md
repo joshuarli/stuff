@@ -19,7 +19,8 @@ Private repositories are left out of every page, count, and change list by defau
 says how many are hidden. Use `make deps PRIVATE=1`, or `deps render --include-private`, to include
 them. Repositories the catalog no longer manages, including those marked `IGNORE`, are left out of
 every page as well. Their inventory files remain until the next unfiltered `deps snapshot` deletes
-them.
+them. With `--repo` or `--tag`, pages, search, counts, changes, and status include only the selected
+reportable repositories. Explicit `--repo` selection includes that repository even when it is private.
 
 The site has no fetch, CDN, web font, or chart library, and it works from `file://`. Python
 precomputes every page. The browser only filters, searches, routes, and expands.

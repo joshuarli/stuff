@@ -5095,7 +5095,7 @@
    "path": "soulseek-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "45b88690ccee1d54faafb25857ce5eb8c61a8d38a9054a31fc606e7a3e0f649b",
+ "inputs_fingerprint": "0799f7e3d2afaefa101642de179db8447eef2d952e17a88c5641fff4c323b7f4",
  "instances": [
   {
    "commit": null,

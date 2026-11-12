@@ -29,6 +29,10 @@ TRACE_FORBIDDEN = (
 )
 
 
+class NotElfError(ValueError):
+    pass
+
+
 def fail(message):
     print(f"verify-static-elf: {message}", file=sys.stderr)
     return 1
@@ -36,8 +40,10 @@ def fail(message):
 
 def read_elf(path):
     data = path.read_bytes()
-    if len(data) < 64 or data[:4] != b"\x7fELF":
+    if data[:4] != b"\x7fELF":
         return None
+    if len(data) < 64:
+        raise ValueError("ELF header is truncated")
     if data[4] != ELFCLASS64 or data[5] != ELFDATA2LSB:
         raise ValueError("not a little-endian ELF64 file")
     machine = struct.unpack_from("<H", data, 18)[0]
@@ -135,7 +141,7 @@ def gcc_comments(data):
 def check_elf(path):
     parsed = read_elf(path)
     if parsed is None:
-        raise ValueError("not an ELF file")
+        raise NotElfError("not an ELF file")
     machine, data, headers = parsed
     dynamic = []
     for kind, offset, _address, size in headers:
@@ -209,9 +215,9 @@ def main():
     for path in scanned:
         try:
             machine = check_elf(path)
-        except ValueError:
+        except NotElfError:
             continue
-        except (OSError, struct.error) as error:
+        except (OSError, ValueError, struct.error) as error:
             return fail(f"{path}: {error}")
         machines.add(machine)
         verified += 1

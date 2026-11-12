@@ -104,7 +104,6 @@ class _Ref:
     version: str | None
     ecosystem: Ecosystem
     source_kind: SourceKind
-    source_key: str
     vcs_url: str | None = None
     commit: str | None = None
     first_party: bool = False
@@ -124,10 +123,6 @@ class _Ref:
     @property
     def component(self) -> str:
         return purl(self.ecosystem, self.name, qualifiers=dict(self.qualifiers), subpath=self.subpath)
-
-    @property
-    def key(self) -> str:
-        return self.source_key
 
     @property
     def instance_id(self) -> str:
@@ -254,8 +249,8 @@ def _uses_edge(
         if image is None:
             return
         ref = _image_ref(image, vendored)
-        if ref.key not in drafts:
-            drafts[ref.key] = ref
+        if ref.instance_id not in drafts:
+            drafts[ref.instance_id] = ref
         edges.append(
             Edge(
                 from_id=project_id,
@@ -280,11 +275,10 @@ def _uses_edge(
             None,
             Ecosystem.GENERIC,
             SourceKind.VENDORED if vendored else SourceKind.PATH,
-            f"actions:path:{text}",
             first_party=True,
         )
-        if ref.key not in drafts:
-            drafts[ref.key] = ref
+        if ref.instance_id not in drafts:
+            drafts[ref.instance_id] = ref
         edges.append(
             Edge(
                 from_id=project_id,
@@ -322,14 +316,13 @@ def _uses_edge(
         ref_value,
         Ecosystem.GITHUB,
         SourceKind.VENDORED if vendored else SourceKind.GIT,
-        f"actions:{name}:{ref_value}",
         vcs_url=f"https://github.com/{name}",
         commit=commit,
         subpath=subpath,
         qualifiers=(),
     )
-    if ref.key not in drafts:
-        drafts[ref.key] = ref
+    if ref.instance_id not in drafts:
+        drafts[ref.instance_id] = ref
     edges.append(
         Edge(
             from_id=project_id,
@@ -375,8 +368,8 @@ def _image_value(
     if image is None:
         return
     ref = _image_ref(image, vendored)
-    if ref.key not in drafts:
-        drafts[ref.key] = ref
+    if ref.instance_id not in drafts:
+        drafts[ref.instance_id] = ref
     edges.append(
         Edge(
             from_id=project_id,
@@ -422,8 +415,8 @@ def _run_artifacts(
                 )
                 continue
             ref = _artifact_ref(artifact.url, vendored)
-            if ref.key not in drafts:
-                drafts[ref.key] = ref
+            if ref.instance_id not in drafts:
+                drafts[ref.instance_id] = ref
             pinned = artifact.pinned or _target_verified(targets, verified, line)
             edges.append(
                 Edge(
@@ -515,14 +508,12 @@ def _is_sha(value: str) -> bool:
 def _image_ref(image: Image, vendored: bool) -> _Ref:
     name = image.name
     tag = image.tag
-    digest = image.digest
     qualifiers = image.qualifiers
     return _Ref(
         name,
         tag,
         Ecosystem.DOCKER,
         SourceKind.VENDORED if vendored else SourceKind.IMAGE,
-        f"docker:{name}:{tag or ''}:{digest or ''}",
         qualifiers=qualifiers,
     )
 
@@ -535,6 +526,5 @@ def _artifact_ref(url: str, vendored: bool) -> _Ref:
         None,
         Ecosystem.GENERIC,
         SourceKind.VENDORED if vendored else SourceKind.URL,
-        f"url:{target}",
         qualifiers=(("download_url", target),),
     )

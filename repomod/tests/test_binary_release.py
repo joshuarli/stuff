@@ -961,3 +961,41 @@ def test_release_notes_script_rejects_a_head_that_is_not_ahead(tmp_path: Path) -
 
     assert code == 1
     assert "abc123 is diverged relative to release-old" in stderr
+
+
+@pytest.mark.parametrize("invalid", ["dynamic", "gcc", "unsupported", "truncated"])
+def test_directory_verification_rejects_every_recognized_invalid_elf(tmp_path: Path, invalid: str) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    for arch in ("x86_64", "aarch64"):
+        shutil.copy(STATIC_FIXTURES / f"static-{arch}.elf", dist / arch)
+    (dist / "README").write_text("not an ELF")
+    assert run_verifier(dist).returncode == 0
+    if invalid == "gcc":
+        payload = build_elf(comments=("GCC: forbidden",))
+    elif invalid == "truncated":
+        payload = b"\x7fELF"
+    else:
+        name = "dynamic-x86_64.elf" if invalid == "dynamic" else "unsupported.elf"
+        payload = (STATIC_FIXTURES / name).read_bytes()
+    (dist / "invalid").write_bytes(payload)
+    result = run_verifier(dist)
+    assert result.returncode == 1
+    assert "invalid:" in result.stderr
+
+
+def test_static_fixer_replaces_a_stale_embedded_verifier(tmp_path: Path) -> None:
+    write_rust_executable(tmp_path)
+    write_workflow(tmp_path, binary_workflow("cargo build --release --target x86_64-unknown-linux-musl"))
+    tool = Repository(RepoId("acme", "demo"), ("tool",))
+    path = ".github/workflows/release.yml"
+    current = _binary_release_static_fix(tmp_path, tool)[path]
+    stale = current.replace("except NotElfError:", "except ValueError:")
+    assert stale != current
+    write_workflow(tmp_path, stale)
+    assert _binary_release_static_findings(tmp_path, tool)
+    refreshed = _binary_release_static_fix(tmp_path, tool)[path]
+    assert "except NotElfError:" in refreshed
+    write_workflow(tmp_path, refreshed)
+    assert _binary_release_static_findings(tmp_path, tool) == []
+    assert _binary_release_static_fix(tmp_path, tool) == {}

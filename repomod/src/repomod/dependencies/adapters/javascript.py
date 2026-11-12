@@ -5,13 +5,14 @@ import json
 import posixpath
 import tomllib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 from pathlib import Path
 from typing import Any, ClassVar, cast
+from urllib.parse import urlsplit, urlunsplit
 
 from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError
+from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from repomod.dependencies.model import (
     AdapterResult,
@@ -30,6 +31,7 @@ from repomod.dependencies.model import (
     SourceKind,
     purl,
     redact_url,
+    redact_urls,
 )
 
 _UNSUPPORTED = frozenset({"yarn.lock", "bun.lock", "bun.lockb"})
@@ -66,6 +68,8 @@ class JavaScriptAdapter:
         refs: list[_Ref] = []
         edges: list[_EdgeSpec] = []
         registry = self.registry if self.registry is not None else _default_registry()
+        if registry is not None:
+            registry = redact_url(registry, drop_query_and_fragment=True)
         for content in inputs:
             name = content.path.rsplit("/", 1)[-1]
             if name in _UNSUPPORTED:
@@ -183,12 +187,12 @@ def _assemble(
                 relation=spec.relation,
                 scope=spec.scope,
                 optional=spec.optional,
-                constraint=spec.constraint,
+                constraint=redact_urls(spec.constraint) if spec.constraint is not None else None,
                 resolved_version=spec.ref.version,
                 condition=spec.condition,
                 source_kind=spec.ref.source_kind,
                 resolution=spec.resolution,
-                evidence=spec.evidence,
+                evidence=tuple(replace(item, locator=redact_urls(item.locator)) for item in spec.evidence),
             )
         )
     unique_projects: dict[str, Project] = {}
@@ -199,7 +203,9 @@ def _assemble(
         components=tuple(components.values()),
         instances=tuple(instances),
         edges=tuple(final_edges),
-        issues=tuple(issues),
+        issues=tuple(replace(item, message=redact_urls(item.message),
+                             locator=redact_urls(item.locator) if item.locator is not None else None)
+                     for item in issues),
     )
 
 
@@ -337,9 +343,8 @@ def _is_sha(value: str) -> bool:
 
 
 def _origin(value: str) -> str:
-    scheme, _, rest = value.partition("://")
-    host = rest.split("/", 1)[0]
-    return f"{scheme}://{host}/"
+    parsed = urlsplit(redact_url(value, drop_query_and_fragment=True))
+    return urlunsplit((parsed.scheme, parsed.netloc, "/", "", ""))
 
 
 def _ref(
@@ -399,7 +404,8 @@ def _parse_pnpm(
             if isinstance(document, dict)
         )
     except YAMLError as error:
-        issues.append(Issue(CoverageKind.PARSE_ERROR, f"invalid YAML: {error}", path=path))
+        detail = error.problem if isinstance(error, MarkedYAMLError) else type(error).__name__
+        issues.append(Issue(CoverageKind.PARSE_ERROR, f"invalid YAML: {detail}", path=path))
         return None
     if not documents:
         issues.append(Issue(CoverageKind.PARSE_ERROR, "pnpm lock is empty", path=path))

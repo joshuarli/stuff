@@ -2723,7 +2723,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "e6df1c71f4856c9ec1e6c302c40303968d523ff5eb64b268fd0d2ad301bf1b58",
+ "inputs_fingerprint": "bc0f013606283d3051f7fe71270e277cc4f6fcc250d6d19d4d44c8019742ba90",
  "instances": [
   {
    "commit": null,

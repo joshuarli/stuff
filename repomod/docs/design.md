@@ -41,8 +41,12 @@ for archival: when GitHub reports a catalogued repository as archived, sync remo
 checkout instead of cloning or fetching it and adds `IGNORE` to its entry, preserving tags and overrides, so later
 runs stop tracking it. Removal and untracking require a verified checkout whose origin
 matches the catalogued repository and refuse dirty, detached, ahead, stashed, or otherwise
-unverifiable checkouts without deleting anything; a checkout that cannot be safely removed stays
-tracked. Dry-run fetches GitHub metadata but does not
+unverifiable checkouts without deleting anything. It verifies retained refs against live remotes
+and refuses recovery refs or shared worktree storage. The same inspection protects unforced GC.
+Both paths recheck local identities and state before deletion. Non-cooperating writers can still
+race after that check. A checkout that cannot be safely removed stays tracked. See the
+[removal contract](rfc/RPMD-74-checkout-removal.md). Dry-run fetches GitHub metadata and inspects
+remote publication for archived checkouts but does not
 mutate checkouts; it reports what would be cloned, updated, removed, or untracked. For repositories that GitHub reports as forks of a parent, sync also
 ensures a conventional `upstream` remote pointing at the parent and fetches the parent's default
 branch, so fork-behind comparisons stay verifiable locally; a failing upstream fetch is reported

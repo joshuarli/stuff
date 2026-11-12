@@ -1795,6 +1795,12 @@
    "purl": "pkg:github/google/oss-fuzz#infra/cifuzz/actions/build_fuzzers"
   },
   {
+   "display_name": "google/oss-fuzz",
+   "ecosystem": "github",
+   "name": "google/oss-fuzz",
+   "purl": "pkg:github/google/oss-fuzz#infra/cifuzz/actions/run_fuzzers"
+  },
+  {
    "display_name": "ilammy/setup-nasm",
    "ecosystem": "github",
    "name": "ilammy/setup-nasm",
@@ -16461,7 +16467,7 @@
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "31176dc2c85381a223e2aefe3d849630bab9356b125d34feb79428cac3efc1bb",
+ "inputs_fingerprint": "69e6a4a31d880fa27a438ebc206ec7611122e6a6ffdf3000ca0d6be27f8ff0f1",
  "instances": [
   {
    "commit": null,
@@ -20591,6 +20597,19 @@
    "first_party": false,
    "id": "pkg:github/google/oss-fuzz@master#infra/cifuzz/actions/build_fuzzers#",
    "purl": "pkg:github/google/oss-fuzz@master#infra/cifuzz/actions/build_fuzzers",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/google/oss-fuzz",
+   "version": "master"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/google/oss-fuzz#infra/cifuzz/actions/run_fuzzers",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/google/oss-fuzz@master#infra/cifuzz/actions/run_fuzzers#",
+   "purl": "pkg:github/google/oss-fuzz@master#infra/cifuzz/actions/run_fuzzers",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",

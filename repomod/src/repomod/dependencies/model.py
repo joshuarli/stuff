@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -258,7 +259,7 @@ def purl(
         value += f"@{quote(version, safe='')}"
     pairs = sorted(qualifiers.items()) if qualifiers is not None else []
     if pairs:
-        encoded = "&".join(f"{quote(key, safe='')}={quote(item, safe='')}" for key, item in pairs)
+        encoded = "&".join(f"{quote(key, safe='')}={quote(redact_urls(item), safe='')}" for key, item in pairs)
         value += f"?{encoded}"
     if subpath is not None and len(subpath) > 0:
         value += f"#{quote(subpath, safe='/')}"
@@ -269,8 +270,16 @@ def redact_url(value: str, *, drop_query_and_fragment: bool = False) -> str:
     try:
         parsed = urlsplit(value)
     except ValueError:
-        return value
+        return "[redacted-invalid-url]"
     netloc = parsed.netloc.rsplit("@", 1)[-1] if "@" in parsed.netloc else parsed.netloc
     query = "" if drop_query_and_fragment else parsed.query
     fragment = "" if drop_query_and_fragment else parsed.fragment
     return urlunsplit((parsed.scheme, netloc, parsed.path, query, fragment))
+
+
+def redact_urls(value: str) -> str:
+    return re.sub(
+        r"[A-Za-z][A-Za-z0-9+.-]*://[^\s\"'<>]+",
+        lambda match: redact_url(match.group(), drop_query_and_fragment=True),
+        value,
+    )

@@ -568,7 +568,7 @@ def push_fix_branch(
     if confirmed.dirty or not confirmed.origin_valid:
         return "skipped", "checkout changed before push"
     result = run_git(
-        ["push", "origin", f"refs/heads/{branch}:refs/heads/{branch}"],
+        ["push", "origin", f"{branch_head}:refs/heads/{branch}"],
         cwd=path,
         check=False,
     )

@@ -20,7 +20,6 @@ from repomod.git import (
     repository_lock,
     safe_fast_forward,
     shallow,
-    stash_count,
     status,
     upstream_url,
 )
@@ -71,7 +70,7 @@ def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bo
                 return SyncResult(name, "failed", current.error or "invalid checkout", True)
             if not current.origin_valid:
                 return SyncResult(name, "failed", current.error or "invalid origin", True)
-            blocker = removal_blocker(current, stash_count(path))
+            blocker = removal_blocker(path, current)
             if blocker is not None:
                 return SyncResult(
                     name, "skipped", f"{blocker}; refusing to remove archived checkout", True
@@ -96,7 +95,7 @@ def _remove_archived_checkout(catalog: Catalog, repo: Repository, *, dry_run: bo
                     f"{current.error or 'invalid origin'}; refusing to remove an unverified checkout",
                     True,
                 )
-            blocker = removal_blocker(current, stash_count(path))
+            blocker = removal_blocker(path, current)
             if blocker is not None:
                 return SyncResult(
                     name, "skipped", f"{blocker}; refusing to remove archived checkout", True

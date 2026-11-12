@@ -1180,6 +1180,24 @@
   },
   {
    "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
    "constraint": "v1",
    "evidence": [
     {
@@ -10133,8 +10151,12 @@
  ],
  "inputs": [
   {
-   "blob": "02f9ac519d19a06cce1233d509046baac27e40c0",
+   "blob": "04f1057ab1b514773d8dd656a995deb437853bc3",
    "path": ".github/workflows/ci.yml"
+  },
+  {
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
+   "path": ".github/workflows/lint.yml"
   },
   {
    "blob": "d948d530ac8c54fbd9e1135ab006435913400781",
@@ -10269,7 +10291,7 @@
    "path": "tests/qualify/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "0ca2e65df18eed33ce47c737dde405cd0ca28d25678b12d241cf7935c917c085",
+ "inputs_fingerprint": "9c72eb865380a2d6126df3fc542571ba499c557042670c9ef7c2e577b9043f44",
  "instances": [
   {
    "commit": null,

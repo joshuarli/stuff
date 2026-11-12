@@ -12,7 +12,7 @@ from repomod.rules.release_notes import (
     RELEASE_NOTES_STEP_NAME,
 )
 from repomod.rules.release_notes import render_workflow_step as render_release_notes_step
-from repomod.rules.static_elf import SCRIPT_MARKER, STATIC_SMOKE_NAME, render_workflow_step
+from repomod.rules.static_elf import STATIC_SMOKE_NAME, render_workflow_step
 from repomod.rules.workflows import read_workflow_sources
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
@@ -604,9 +604,7 @@ def _static_smoke_valid(source: str, image_mode: bool) -> bool:
     indentation = len(smoke.group("indent"))
     end = _step_end(lines, start, len(lines), indentation)
     block = "\n".join(lines[start:end])
-    if SCRIPT_MARKER not in block or "<<'PY'" not in block or "python3 -" not in block or " dist" not in block:
-        return False
-    return not image_mode or '"$RUNNER_TEMP/linker-trace"' in block
+    return block.rstrip() == "\n".join(render_workflow_step(indentation, image_mode)).rstrip()
 
 
 def _insert_static_smoke(source: str, image_mode: bool) -> str | None:

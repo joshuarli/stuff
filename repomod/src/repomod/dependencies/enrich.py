@@ -11,6 +11,7 @@ from typing import Any, cast
 from repomod.audit import (
     LockedDependency,
     RegistrySources,
+    VulnerabilityLookupError,
     resolve_latest,
     resolve_vulns,
 )
@@ -46,6 +47,7 @@ class EnrichReport:
     not_checked: int
     vulnerable: int
     total: int
+    errors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +83,8 @@ def load_cache(path: Path | None = None) -> Enrichment:
 
 
 def is_fresh(entry: Mapping[str, object], now: float) -> bool:
+    if entry.get("vuln_error") or not isinstance(entry.get("vulns"), list):
+        return False
     vulns = entry.get("vulns")
     if isinstance(vulns, list) and any(
         isinstance(item, dict)
@@ -125,6 +129,7 @@ def enrich(
     registry = sources if sources is not None else registry_sources()
     latest_map: dict[tuple[str, str], str | None] = {}
     vulns_map: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    errors: tuple[str, ...] = ()
     if pending:
         latest_items: dict[tuple[str, str], LockedDependency] = {}
         for item in pending:
@@ -141,26 +146,25 @@ def enrich(
             fetcher=latest_fetcher,
             sources=registry,
         )
-        vulns_map = resolve_vulns(
-            [
-                LockedDependency(item.ecosystem, item.name, item.version, True)
-                for item in pending
-            ],
-            offline=False,
-            refresh=True,
-            cache={},
-            now=current,
-            osv_fetcher=osv_fetcher,
-        )
+        try:
+            vulns_map = resolve_vulns(
+                [LockedDependency(item.ecosystem, item.name, item.version, True) for item in pending],
+                offline=False, refresh=True, cache={}, now=current, osv_fetcher=osv_fetcher,
+            )
+        except VulnerabilityLookupError as error:
+            errors = (str(error),)
     results: dict[str, Mapping[str, object]] = dict(cache.results)
     for item in pending:
+        if errors:
+            results[item.purl] = {**results.get(item.purl, {}), "vuln_error": errors[0]}
+            continue
         results[item.purl] = {
             "latest": latest_map.get((item.ecosystem, item.name)),
             "latest_source": _source_for(registry, item.ecosystem),
             "vulns": vulns_map.get((item.ecosystem, item.name, item.version), []),
             "fetched_at": current,
         }
-    fetched_at = current if pending else cache.fetched_at
+    fetched_at = current if pending and not errors else cache.fetched_at
     if pending:
         _write(cache.path, {"fetched_at": fetched_at, "results": results})
     checked = stale = not_checked = vulnerable = 0
@@ -178,7 +182,7 @@ def enrich(
                 not_checked += 1
                 continue
             entry = results.get(instance.purl)
-            if entry is None:
+            if entry is None or not isinstance(entry.get("vulns"), list):
                 not_checked += 1
             elif not is_fresh(entry, current):
                 stale += 1
@@ -195,6 +199,7 @@ def enrich(
         not_checked,
         vulnerable,
         total,
+        errors,
     )
 
 
@@ -264,9 +269,10 @@ def _table(value: object) -> Mapping[str, Any]:
 
 
 def summary_text(report: EnrichReport) -> str:
-    return (
+    summary = (
         f"{report.checked} checked, {report.stale} stale, "
         f"{report.not_checked} not checked, {report.vulnerable} vulnerable "
         f"of {report.total} instances; fetched {report.fetched} entries "
         f"to {report.cache.path}"
     )
+    return summary + ("; " + "; ".join(report.errors) if report.errors else "")

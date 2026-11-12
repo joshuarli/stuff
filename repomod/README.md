@@ -49,8 +49,9 @@ uv run repomod sync
 ```
 
 Sync also removes archived checkouts when its removal guard passes, then marks their catalog
-entries `IGNORE`. The guard has known gaps for unpublished branches, linked worktrees, and hidden
-untracked files; review the removal tickets in [TODO.md](TODO.md) before using this path or `gc`.
+entries `IGNORE`. Removal verifies publication of retained refs against live remotes and protects
+untracked files, recovery refs, and shared worktree storage. See the
+[removal contract](docs/rfc/RPMD-74-checkout-removal.md).
 
 Tag edits need a separate publish step: `sync` only manages checkouts and never
 touches GitHub topics. Preview the difference with `topics diff`, then publish
@@ -63,10 +64,10 @@ uv run repomod topics apply --repo joshuarli/mypypi
 
 When a repository leaves the catalog (for example after a rename), its old
 checkout stays on disk. Preview the leftovers with `gc --dry-run`, then remove
-them with `gc`. Without `--force`, the current guard rejects reported uncommitted changes,
-a detached HEAD, an unverified upstream, commits ahead on the checked-out branch, and stashes.
-`--force` overrides these state checks and permits stray-file removal, but symlinks and
-unverified checkout paths are still refused:
+them with `gc`. Ordinary removal requires a clean checkout, verified publication of all retained
+refs, and no stashes or other registered worktrees. Unknown remote state blocks removal.
+`--force` overrides checkout-state and publication checks and permits stray-file removal.
+Recovery refs, shared worktrees, symlinks, unverified paths, and catalogued origins remain protected:
 
 ```sh
 uv run repomod gc --dry-run

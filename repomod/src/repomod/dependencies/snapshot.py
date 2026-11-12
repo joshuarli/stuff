@@ -26,11 +26,13 @@ from repomod.dependencies.model import (
     Issue,
     Project,
     RepositoryData,
+    redact_url,
+    redact_urls,
 )
 from repomod.git import GitError, expected_origin, is_git_checkout, origin_url
 from repomod.types import Repository
 
-PARSER_VERSION = 3
+PARSER_VERSION = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,7 +173,7 @@ def inspect_repository(catalog: Catalog, repository: Repository) -> RepositoryIn
         try:
             result = adapter.extract(tuple(items))
         except ValueError as error:
-            issues.append(Issue(CoverageKind.PARSE_ERROR, f"{adapter.name}: {error}"))
+            issues.append(Issue(CoverageKind.PARSE_ERROR, redact_urls(f"{adapter.name}: {error}")))
             continue
         projects.extend(result.projects)
         components.extend(result.components)
@@ -282,9 +284,9 @@ def repository_dict(data: RepositoryData) -> dict[str, object]:
                 "version": item.version,
                 "source_kind": item.source_kind.value,
                 "context": item.context,
-                "registry_url": item.registry_url,
-                "repository_url": item.repository_url,
-                "vcs_url": item.vcs_url,
+                "registry_url": _private_url(item.registry_url),
+                "repository_url": _private_url(item.repository_url),
+                "vcs_url": _private_url(item.vcs_url),
                 "commit": item.commit,
                 "first_party": item.first_party,
             }
@@ -295,8 +297,8 @@ def repository_dict(data: RepositoryData) -> dict[str, object]:
             {
                 "kind": item.kind.value,
                 "path": item.path,
-                "locator": item.locator,
-                "message": item.message,
+                "locator": redact_urls(item.locator) if item.locator is not None else None,
+                "message": redact_urls(item.message),
             }
             for item in sorted(data.issues, key=_issue_key)
         ],
@@ -330,13 +332,17 @@ def _edge_dict(edge: Edge) -> dict[str, object]:
         "relation": edge.relation.value,
         "scope": edge.scope.value,
         "optional": edge.optional,
-        "constraint": edge.constraint,
+        "constraint": redact_urls(edge.constraint) if edge.constraint is not None else None,
         "resolved_version": edge.resolved_version,
         "condition": edge.condition,
         "source_kind": edge.source_kind.value,
         "resolution": edge.resolution.value,
-        "evidence": [{"path": item.path, "locator": item.locator} for item in edge.evidence],
+        "evidence": [{"path": item.path, "locator": redact_urls(item.locator)} for item in edge.evidence],
     }
+
+
+def _private_url(value: str | None) -> str | None:
+    return redact_url(value, drop_query_and_fragment=True) if value is not None else None
 
 
 def _edge_key(edge: Edge) -> tuple[str, ...]:
@@ -379,6 +385,10 @@ def _repository_data(
     unique_edges: dict[Edge, Edge] = {}
     for edge in edges:
         unique_edges.setdefault(edge, edge)
+    nodes = by_project.keys() | by_instance.keys()
+    for edge in unique_edges:
+        if edge.from_id not in nodes or edge.to_id not in by_instance:
+            raise ValueError(f"dependency edge has a missing endpoint: {edge.from_id} -> {edge.to_id}")
     return RepositoryData(
         repository=str(repository.id),
         tags=tuple(sorted(repository.tags)),

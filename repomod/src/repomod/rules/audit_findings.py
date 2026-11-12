@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 from repomod.audit import (
+    LockedDependency,
+    VulnerabilityLookupError,
     _collect_locked,
     _collect_vuln_candidates,
     _policy_findings,
@@ -12,7 +15,14 @@ from repomod.audit import (
     resolve_vulns,
 )
 from repomod.run_cache import cached
-from repomod.types import Finding, Repository, Rule, TagPredicate, violation
+from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
+
+
+def _collection(root: Path, repository: Repository) -> tuple[list[LockedDependency], list[Finding]]:
+    return cached(
+        ("audit_collection", root, repository),
+        lambda: _collect_locked(root, repository),
+    )
 
 
 def _policy_rule(
@@ -25,25 +35,33 @@ def _policy_rule(
             ("audit_policy", root, str(repository.id), repository.tags, repository.ignored_rules),
             lambda: _policy_findings(root, repository),
         )
-        return [finding for finding in findings if finding.rule == rule_id]
+        selected = [finding for finding in findings if finding.rule == rule_id]
+        if rule_id == "audit-lock":
+            _, problems = _collection(root, repository)
+            selected.extend(problems)
+        return selected
 
     return check
 
 
 def _vuln_check(root: Path, repository: Repository) -> list[Finding]:
-    with audit_cache() as cache:
-        locked, _ = _collect_locked(root, repository)
-        if not locked:
-            return []
-        candidates = _collect_vuln_candidates(root, repository, locked)
-        vulns = resolve_vulns(
-            candidates,
-            offline=False,
-            refresh=False,
-            cache=cache,
-            now=time.time(),
-        )
+    locked, problems = _collection(root, repository)
+    if problems:
+        return [replace(finding, rule="audit-vuln") for finding in problems]
+    candidates = _collect_vuln_candidates(root, repository, locked)
+    if not candidates:
+        return []
     findings: list[Finding] = []
+    with audit_cache() as cache:
+        try:
+            vulns = resolve_vulns(
+                candidates, offline=False, refresh=False, cache=cache, now=time.time(),
+            )
+        except VulnerabilityLookupError as error:
+            findings.append(operational(repository, "audit-vuln", None, str(error)))
+            vulns = resolve_vulns(
+                candidates, offline=True, refresh=False, cache=cache, now=time.time(),
+            )
     for item in sorted(
         candidates, key=lambda entry: (entry.ecosystem, entry.name.casefold(), entry.locked)
     ):

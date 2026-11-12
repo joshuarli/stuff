@@ -19221,7 +19221,7 @@
    "path": "cloudflare/wrangler.test.jsonc"
   },
   {
-   "blob": "d2f01cb0712cb4ae05df075db102b6c3aaa90478",
+   "blob": "a957389d3a13cbd0c622fe1c63a9e54009c4b440",
    "path": "deploy/node/Dockerfile"
   },
   {
@@ -19245,7 +19245,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "4fdd89b13e7bcd3906b08f50fd97bdecc9e1f1a9d4c622d2d6a51617a738a747",
+ "inputs_fingerprint": "27eb49e833bd3eaca7329576d90d3cb6b1bcb224c0481bafbef3ba3ca6d4890f",
  "instances": [
   {
    "commit": null,

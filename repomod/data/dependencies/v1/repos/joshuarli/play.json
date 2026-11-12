@@ -25,10 +25,10 @@
    "purl": "pkg:apk/bzip2"
   },
   {
-   "display_name": "clang",
+   "display_name": "clang22",
    "ecosystem": "apk",
-   "name": "clang",
-   "purl": "pkg:apk/clang"
+   "name": "clang22",
+   "purl": "pkg:apk/clang22"
   },
   {
    "display_name": "coreutils",
@@ -47,12 +47,6 @@
    "ecosystem": "apk",
    "name": "diffutils",
    "purl": "pkg:apk/diffutils"
-  },
-  {
-   "display_name": "ffmpeg",
-   "ecosystem": "apk",
-   "name": "ffmpeg",
-   "purl": "pkg:apk/ffmpeg"
   },
   {
    "display_name": "file",
@@ -175,18 +169,6 @@
    "purl": "pkg:apk/mesa-vulkan-swrast"
   },
   {
-   "display_name": "meson",
-   "ecosystem": "apk",
-   "name": "meson",
-   "purl": "pkg:apk/meson"
-  },
-  {
-   "display_name": "muon",
-   "ecosystem": "apk",
-   "name": "muon",
-   "purl": "pkg:apk/muon"
-  },
-  {
    "display_name": "patchelf",
    "ecosystem": "apk",
    "name": "patchelf",
@@ -221,12 +203,6 @@
    "ecosystem": "apk",
    "name": "rustup",
    "purl": "pkg:apk/rustup"
-  },
-  {
-   "display_name": "samurai",
-   "ecosystem": "apk",
-   "name": "samurai",
-   "purl": "pkg:apk/samurai"
   },
   {
    "display_name": "tar",
@@ -706,7 +682,7 @@
    "display_name": "alpine",
    "ecosystem": "docker",
    "name": "alpine",
-   "purl": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000"
+   "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
    "display_name": ".github/workflows/linux.yml",
@@ -2010,7 +1986,7 @@
   },
   {
    "condition": null,
-   "constraint": "5.3.9-r2",
+   "constraint": "5.3.9-r1",
    "evidence": [
     {
      "locator": "L3",
@@ -2021,10 +1997,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "5.3.9-r2",
+   "resolved_version": "5.3.9-r1",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/bash@5.3.9-r2#"
+   "to": "pkg:apk/bash@5.3.9-r1#"
   },
   {
    "condition": null,
@@ -2064,25 +2040,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/clang#"
-  },
-  {
-   "condition": null,
-   "constraint": "9.11-r3",
+   "constraint": "22.1.3-r2",
    "evidence": [
     {
      "locator": "L3",
@@ -2093,10 +2051,28 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "9.11-r3",
+   "resolved_version": "22.1.3-r2",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/coreutils@9.11-r3#"
+   "to": "pkg:apk/clang22@22.1.3-r2#"
+  },
+  {
+   "condition": null,
+   "constraint": "9.11-r0",
+   "evidence": [
+    {
+     "locator": "L3",
+     "path": "docker/linux/Dockerfile"
+    }
+   ],
+   "from": "docker/linux:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9.11-r0",
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/coreutils@9.11-r0#"
   },
   {
    "condition": null,
@@ -2136,25 +2112,7 @@
   },
   {
    "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/ffmpeg#"
-  },
-  {
-   "condition": null,
-   "constraint": "5.48-r0",
+   "constraint": "5.47-r2",
    "evidence": [
     {
      "locator": "L3",
@@ -2165,10 +2123,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "5.48-r0",
+   "resolved_version": "5.47-r2",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/file@5.48-r0#"
+   "to": "pkg:apk/file@5.47-r2#"
   },
   {
    "condition": null,
@@ -2370,7 +2328,7 @@
   },
   {
    "condition": null,
-   "constraint": "2.56.1-r0",
+   "constraint": "2.54.1-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2381,10 +2339,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.56.1-r0",
+   "resolved_version": "2.54.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git@2.56.1-r0#"
+   "to": "pkg:apk/git@2.54.1-r0#"
   },
   {
    "condition": null,
@@ -2460,7 +2418,7 @@
   },
   {
    "condition": null,
-   "constraint": "7.2.1-r0",
+   "constraint": "7.0.0-r1",
    "evidence": [
     {
      "locator": "L3",
@@ -2471,10 +2429,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "7.2.1-r0",
+   "resolved_version": "7.0.0-r1",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/linux-headers@7.2.1-r0#"
+   "to": "pkg:apk/linux-headers@7.0.0-r1#"
   },
   {
    "condition": null,
@@ -2528,47 +2486,11 @@
    "resolved_version": null,
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/meson#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/muon#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
    "to": "pkg:apk/patchelf#"
   },
   {
    "condition": null,
-   "constraint": "5.44.0-r0",
+   "constraint": "5.42.3-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2579,14 +2501,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "5.44.0-r0",
+   "resolved_version": "5.42.3-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/perl@5.44.0-r0#"
+   "to": "pkg:apk/perl@5.42.3-r0#"
   },
   {
    "condition": null,
-   "constraint": "3.0.10-r0",
+   "constraint": "2.5.1-r0",
    "evidence": [
     {
      "locator": "L3",
@@ -2597,10 +2519,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.0.10-r0",
+   "resolved_version": "2.5.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/pkgconf@3.0.10-r0#"
+   "to": "pkg:apk/pkgconf@2.5.1-r0#"
   },
   {
    "condition": null,
@@ -2655,24 +2577,6 @@
    "scope": "system",
    "source_kind": "registry",
    "to": "pkg:apk/rustup#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L3",
-     "path": "docker/linux/Dockerfile"
-    }
-   ],
-   "from": "docker/linux:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/samurai#"
   },
   {
    "condition": null,
@@ -2892,7 +2796,7 @@
   },
   {
    "condition": null,
-   "constraint": "sha256:020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
+   "constraint": "sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "evidence": [
     {
      "locator": "L1",
@@ -2906,7 +2810,7 @@
    "resolved_version": null,
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000#"
+   "to": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#"
   },
   {
    "condition": null,
@@ -6235,11 +6139,11 @@
  ],
  "inputs": [
   {
-   "blob": "210679ed114c331909d1d5c53bffb6618b8ab531",
+   "blob": "914f14a2e0a72399ff1d90c63e5d100ae5480ccb",
    "path": ".github/workflows/linux.yml"
   },
   {
-   "blob": "c69351999df81e31af6fd12037b6771d21ab7ccb",
+   "blob": "296087da033c9d5ccbab8223c2233015c018e929",
    "path": ".github/workflows/macos.yml"
   },
   {
@@ -6307,7 +6211,7 @@
    "path": "crates/player-tui/Cargo.toml"
   },
   {
-   "blob": "646754bfe293bd57fb7ab8941ef7273f92678994",
+   "blob": "07d9d1f19d2cc9d35a1a4ed4cb914b11a8d91129",
    "path": "docker/linux/Dockerfile"
   },
   {
@@ -6419,7 +6323,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "05211fc3e2a72da973369bcaa60f98ff2c0755ef9cab96e6424dea9d1ec0d07f",
+ "inputs_fingerprint": "b1995befb9ce96d5475944c82ad92972e0b8d57c5dce31bd1ec90ee56f096b1d",
  "instances": [
   {
    "commit": null,
@@ -6439,13 +6343,13 @@
    "component": "pkg:apk/bash",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/bash@5.3.9-r2#",
-   "purl": "pkg:apk/bash@5.3.9-r2",
+   "id": "pkg:apk/bash@5.3.9-r1#",
+   "purl": "pkg:apk/bash@5.3.9-r1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.3.9-r2"
+   "version": "5.3.9-r1"
   },
   {
    "commit": null,
@@ -6475,29 +6379,29 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/clang",
+   "component": "pkg:apk/clang22",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/clang#",
-   "purl": "pkg:apk/clang",
+   "id": "pkg:apk/clang22@22.1.3-r2#",
+   "purl": "pkg:apk/clang22@22.1.3-r2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": null
+   "version": "22.1.3-r2"
   },
   {
    "commit": null,
    "component": "pkg:apk/coreutils",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/coreutils@9.11-r3#",
-   "purl": "pkg:apk/coreutils@9.11-r3",
+   "id": "pkg:apk/coreutils@9.11-r0#",
+   "purl": "pkg:apk/coreutils@9.11-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "9.11-r3"
+   "version": "9.11-r0"
   },
   {
    "commit": null,
@@ -6527,29 +6431,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/ffmpeg",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/ffmpeg#",
-   "purl": "pkg:apk/ffmpeg",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:apk/file",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/file@5.48-r0#",
-   "purl": "pkg:apk/file@5.48-r0",
+   "id": "pkg:apk/file@5.47-r2#",
+   "purl": "pkg:apk/file@5.47-r2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.48-r0"
+   "version": "5.47-r2"
   },
   {
    "commit": null,
@@ -6699,13 +6590,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git@2.56.1-r0#",
-   "purl": "pkg:apk/git@2.56.1-r0",
+   "id": "pkg:apk/git@2.54.1-r0#",
+   "purl": "pkg:apk/git@2.54.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.56.1-r0"
+   "version": "2.54.1-r0"
   },
   {
    "commit": null,
@@ -6764,13 +6655,13 @@
    "component": "pkg:apk/linux-headers",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/linux-headers@7.2.1-r0#",
-   "purl": "pkg:apk/linux-headers@7.2.1-r0",
+   "id": "pkg:apk/linux-headers@7.0.0-r1#",
+   "purl": "pkg:apk/linux-headers@7.0.0-r1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "7.2.1-r0"
+   "version": "7.0.0-r1"
   },
   {
    "commit": null,
@@ -6800,32 +6691,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:apk/meson",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/meson#",
-   "purl": "pkg:apk/meson",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:apk/muon",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/muon#",
-   "purl": "pkg:apk/muon",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:apk/patchelf",
    "context": "",
    "first_party": false,
@@ -6842,26 +6707,26 @@
    "component": "pkg:apk/perl",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/perl@5.44.0-r0#",
-   "purl": "pkg:apk/perl@5.44.0-r0",
+   "id": "pkg:apk/perl@5.42.3-r0#",
+   "purl": "pkg:apk/perl@5.42.3-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.44.0-r0"
+   "version": "5.42.3-r0"
   },
   {
    "commit": null,
    "component": "pkg:apk/pkgconf",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/pkgconf@3.0.10-r0#",
-   "purl": "pkg:apk/pkgconf@3.0.10-r0",
+   "id": "pkg:apk/pkgconf@2.5.1-r0#",
+   "purl": "pkg:apk/pkgconf@2.5.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.10-r0"
+   "version": "2.5.1-r0"
   },
   {
    "commit": null,
@@ -6896,19 +6761,6 @@
    "first_party": false,
    "id": "pkg:apk/rustup#",
    "purl": "pkg:apk/rustup",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:apk/samurai",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:apk/samurai#",
-   "purl": "pkg:apk/samurai",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
@@ -8009,11 +7861,11 @@
   },
   {
    "commit": null,
-   "component": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
+   "component": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000#",
-   "purl": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
+   "id": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#",
+   "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",
@@ -8547,6 +8399,12 @@
    "locator": null,
    "message": "no parser for Makefile",
    "path": "Makefile"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "L16",
+   "message": "artifact URL 'https://github.com/laputa-systems/ffmpeg-build/releases/download/20261111/$archive' is not literal",
+   "path": "docker/linux/Dockerfile"
   },
   {
    "kind": "unsupported_format",

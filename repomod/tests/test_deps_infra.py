@@ -543,3 +543,31 @@ def test_adapter_matchers() -> None:
     assert CmakeAdapter().matches("CMakeLists.txt")
     assert CloudflareAdapter().matches("wrangler.test.jsonc")
     assert not CloudflareAdapter().matches("wrangler.yaml")
+
+
+def test_action_subpaths_keep_distinct_instances_and_resolved_edges() -> None:
+    result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": (
+        "jobs:\n  test:\n    steps:\n      - uses: actions/cache/restore@v4\n"
+        "      - uses: actions/cache/save@v4\n      - uses: actions/cache/restore@v4\n"
+    )})
+    assert result.issues == ()
+    assert len(result.instances) == 2
+    assert {instance.purl for instance in result.instances} == {
+        "pkg:github/actions/cache@v4#restore", "pkg:github/actions/cache@v4#save"
+    }
+    assert {edge.to_id for edge in result.edges} == {instance.id for instance in result.instances}
+
+
+def test_docker_registries_keep_distinct_instances_in_dockerfiles_and_workflows() -> None:
+    dockerfile = "FROM ghcr.io/acme/tool:1 AS first\nFROM quay.io/acme/tool:1\n"
+    workflow = ("jobs:\n  test:\n    steps:\n      - uses: docker://ghcr.io/acme/tool:1\n"
+                "      - uses: docker://quay.io/acme/tool:1\n")
+    results = (
+        _extract(ContainersAdapter(), {"Dockerfile": dockerfile}),
+        _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow}),
+    )
+    for result in results:
+        assert result.issues == ()
+        assert len(result.instances) == 2
+        assert {edge.to_id for edge in result.edges} == {instance.id for instance in result.instances}
+        assert len({instance.purl for instance in result.instances}) == 2

@@ -1171,28 +1171,76 @@
    "path": "tests/differential/fixtures/meson/builtin-cli-options/meson.build"
   },
   {
+   "blob": "d422be1d49314f4d469a070a23a9af2b49f2635e",
+   "path": "tests/differential/fixtures/meson/c-links-cpp-static/meson.build"
+  },
+  {
    "blob": "b9bb77fc13adfca2aee3a44c5381abb9fc261afa",
    "path": "tests/differential/fixtures/meson/cmake-probe-cwd/meson.build"
+  },
+  {
+   "blob": "25d3123229e63e2c3fbd00f3c17439b6fcaf8dfe",
+   "path": "tests/differential/fixtures/meson/cpp-builtin-options/meson.build"
+  },
+  {
+   "blob": "6b07439acba1b5888fcdcf3c8a2fef7da2ec11e7",
+   "path": "tests/differential/fixtures/meson/custom-target-command/meson.build"
   },
   {
    "blob": "50d97ec49a7644aa1e635a045471c8e683052b66",
    "path": "tests/differential/fixtures/meson/custom-target-nested-command/meson.build"
   },
   {
+   "blob": "34dc5c010023da342e94470bea71532d6df97215",
+   "path": "tests/differential/fixtures/meson/default-all-phony/meson.build"
+  },
+  {
+   "blob": "b13cfbceb0b29a79c77f42bc29b652b45176aeca",
+   "path": "tests/differential/fixtures/meson/env-flags/meson.build"
+  },
+  {
    "blob": "f0fd786a9dea2192a2195e0c9500d980d0493874",
    "path": "tests/differential/fixtures/meson/feature-not/meson.build"
+  },
+  {
+   "blob": "24d082ac787a3244805aaccb095d1097eaf9fb82",
+   "path": "tests/differential/fixtures/meson/files-from-subdir/meson.build"
+  },
+  {
+   "blob": "f21751220d51f7c29db1922866c4745ec196e89c",
+   "path": "tests/differential/fixtures/meson/files-from-subdir/src/meson.build"
+  },
+  {
+   "blob": "33fdf0baf851d7b54a2efa64b11161d2ddd3fd6d",
+   "path": "tests/differential/fixtures/meson/files-list/meson.build"
   },
   {
    "blob": "99dcbcd0be596b1580cc8611862e134ac7b5280f",
    "path": "tests/differential/fixtures/meson/generator-depends/meson.build"
   },
   {
+   "blob": "83b2dfe1eb23e7e2b8ea8fc2b8080e64f08e335e",
+   "path": "tests/differential/fixtures/meson/generator-header-order-only/meson.build"
+  },
+  {
    "blob": "08b43f26628043fcdc9630b84d94559f69b63139",
    "path": "tests/differential/fixtures/meson/gnu-symbol-visibility/meson.build"
   },
   {
+   "blob": "dbfa7450675f0dece204011cfa73b8c221aea8b9",
+   "path": "tests/differential/fixtures/meson/install-custom-dylib/meson.build"
+  },
+  {
    "blob": "04835dd3a750d46f29a63b086e5e454e4f3bf774",
    "path": "tests/differential/fixtures/meson/install-plan/meson.build"
+  },
+  {
+   "blob": "c3696397b71cb8509b5742d8778465a2d3bd742d",
+   "path": "tests/differential/fixtures/meson/install-script-missing/meson.build"
+  },
+  {
+   "blob": "5e9a8d9eee3a6b1fca61772ad9b0217659f811a8",
+   "path": "tests/differential/fixtures/meson/install-script/meson.build"
   },
   {
    "blob": "cca0aa61c9bedbe51e873e8c23e54d52fdcdab68",
@@ -1203,12 +1251,56 @@
    "path": "tests/differential/fixtures/meson/libplacebo-multiline-plus/meson.build"
   },
   {
+   "blob": "6cfc32094696c5c8209bb31507a5fc168a605c06",
+   "path": "tests/differential/fixtures/meson/link-whole-weak-reference/meson.build"
+  },
+  {
+   "blob": "1add009d92a29ded2a9b1ed6a102d60cf13d3e43",
+   "path": "tests/differential/fixtures/meson/llvm-config-tool/meson.build"
+  },
+  {
+   "blob": "f0cab6459a9aeeecc4741a2cca31908e10c5cc35",
+   "path": "tests/differential/fixtures/meson/multi-output-command/meson.build"
+  },
+  {
    "blob": "95a951ab31a961a592cfbfaeba0898ed4f8e75af",
    "path": "tests/differential/fixtures/meson/multiline-plus/meson.build"
   },
   {
+   "blob": "26826f45e9ee6b226302bb44fbe00ff10b0a7aea",
+   "path": "tests/differential/fixtures/meson/nested-c-args/meson.build"
+  },
+  {
+   "blob": "b6e91b169332e6f50905639db6af8500524d8293",
+   "path": "tests/differential/fixtures/meson/nested-include-dirs/meson.build"
+  },
+  {
+   "blob": "685e66f11dd76e7411822d1abe88e4f0867f78c9",
+   "path": "tests/differential/fixtures/meson/nested-include-dirs/src/meson.build"
+  },
+  {
    "blob": "feee4977b6206af790e274adba8afa1f58e1e823",
    "path": "tests/differential/fixtures/meson/pkgconfig-generate/meson.build"
+  },
+  {
+   "blob": "d65ba1d33a6643f742d4e32bc4c3a74e6053ddb1",
+   "path": "tests/differential/fixtures/meson/postconf-script/meson.build"
+  },
+  {
+   "blob": "0c7478b55e04f7d4d3a20ee112e82b288a8f3d9e",
+   "path": "tests/differential/fixtures/meson/preprocess-custom-target/meson.build"
+  },
+  {
+   "blob": "a3132783b42183f266477c5f0307fb257bf02610",
+   "path": "tests/differential/fixtures/meson/project-args-language-list/meson.build"
+  },
+  {
+   "blob": "94139e0b9acb3bca2a1cef0c82fc7faf58d463e0",
+   "path": "tests/differential/fixtures/meson/repeated-source/meson.build"
+  },
+  {
+   "blob": "ca6f0dff5cf4e32322056c293210fe3b80a18fd8",
+   "path": "tests/differential/fixtures/meson/same-name-libraries/meson.build"
   },
   {
    "blob": "8bada193e3e1c158905ee346cb6b1a75411110d7",
@@ -1227,15 +1319,47 @@
    "path": "tests/differential/fixtures/meson/shlib-version-soversion/meson.build"
   },
   {
+   "blob": "42d5c12c0ea102e171146d1a53fae0ef2049a00c",
+   "path": "tests/differential/fixtures/meson/single-sources-kwarg/meson.build"
+  },
+  {
    "blob": "d5007ba0c9581f831fe0fd3ea9837cb94d10ef45",
    "path": "tests/differential/fixtures/meson/static-args/meson.build"
   },
   {
+   "blob": "3d1088490811e5fff6667774e79a8107beb1a4a1",
+   "path": "tests/differential/fixtures/meson/symbol-visibility/meson.build"
+  },
+  {
+   "blob": "ad81b00de7b457611a068b55650f3d7ca0368b86",
+   "path": "tests/differential/fixtures/meson/target-override-options/meson.build"
+  },
+  {
    "blob": "544ce94abaa3ecd0bbe34dec0c2580d5330c4e89",
    "path": "tests/differential/fixtures/meson/trivial/meson.build"
+  },
+  {
+   "blob": "e9a5e47355767d930e799227c5a89981ecaaa55c",
+   "path": "tests/differential/fixtures/meson/wayland-find-protocol/meson.build"
+  },
+  {
+   "blob": "be0725c704644df91f392ca17bbd0fe1672d4e1d",
+   "path": "tests/differential/fixtures/meson/wayland-scan-xml/meson.build"
+  },
+  {
+   "blob": "c88407d6cc97b5657a813d82443650e9922952fc",
+   "path": "tests/install/fixture-build-rpath/meson.build"
+  },
+  {
+   "blob": "b1bc15cf737e93c3948e8518e3f9b45248f75753",
+   "path": "tests/install/fixture-rpath/meson.build"
+  },
+  {
+   "blob": "444502391e0cf9da00e3aa667614607efadcdf27",
+   "path": "tests/install/fixture/meson.build"
   }
  ],
- "inputs_fingerprint": "72d2e2699d25179bf9515ccb89917c636c38596863fe3d130a0742d86f301762",
+ "inputs_fingerprint": "d9dae410c187ff403c43cc58483c6a2944a286e02625e9b25b8be7807773ef49",
  "instances": [
   {
    "commit": null,
@@ -1696,7 +1820,25 @@
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/c-links-cpp-static/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/cmake-probe-cwd/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/cpp-builtin-options/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/custom-target-command/meson.build"
   },
   {
    "kind": "unsupported_format",
@@ -1708,7 +1850,37 @@
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/default-all-phony/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/env-flags/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/feature-not/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/files-from-subdir/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/files-from-subdir/src/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/files-list/meson.build"
   },
   {
    "kind": "unsupported_format",
@@ -1720,13 +1892,37 @@
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/generator-header-order-only/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/gnu-symbol-visibility/meson.build"
   },
   {
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/install-custom-dylib/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/install-plan/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/install-script-missing/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/install-script/meson.build"
   },
   {
    "kind": "unsupported_format",
@@ -1744,13 +1940,79 @@
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/link-whole-weak-reference/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/llvm-config-tool/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/multi-output-command/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/multiline-plus/meson.build"
   },
   {
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/nested-c-args/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/nested-include-dirs/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/nested-include-dirs/src/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/pkgconfig-generate/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/postconf-script/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/preprocess-custom-target/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/project-args-language-list/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/repeated-source/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/same-name-libraries/meson.build"
   },
   {
    "kind": "unsupported_format",
@@ -1780,13 +2042,61 @@
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/single-sources-kwarg/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/static-args/meson.build"
   },
   {
    "kind": "unsupported_format",
    "locator": null,
    "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/symbol-visibility/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/target-override-options/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
    "path": "tests/differential/fixtures/meson/trivial/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/wayland-find-protocol/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/differential/fixtures/meson/wayland-scan-xml/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/install/fixture-build-rpath/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/install/fixture-rpath/meson.build"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for meson.build",
+   "path": "tests/install/fixture/meson.build"
   }
  ],
  "projects": [
