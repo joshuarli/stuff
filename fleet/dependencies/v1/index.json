@@ -82,13 +82,13 @@
    "state": "partial"
   },
   "laputa-systems/diff-pretty": {
-   "commit": "d58e13dfd30b7492e596870f18cf360ea2d9a7bf",
-   "inputs_fingerprint": "74863923e50387b062affba45e7e244ef96184940c1a28cda32f14b951c5f8d6",
+   "commit": "55957445b0fb57ee8493120666b78e52db3110c1",
+   "inputs_fingerprint": "6efa640b16de2712605df27b9afbc78538941198fa8d8ea39e3e862093b6a6a5",
    "state": "partial"
   },
   "laputa-systems/e": {
-   "commit": "baa1aa8c76cc978b64b4183afac66b175a739a6f",
-   "inputs_fingerprint": "0db9ce3609cda905698c4c15282fa4255c7e9b9faafaf214cfd28ba453ffe9f9",
+   "commit": "7889bba8aa639efc6bb334b8864bc1b76ff16150",
+   "inputs_fingerprint": "75d9cb7222b16b0212a353bd4acd1120a0265ef5b29058b002c628cfdc00db67",
    "state": "partial"
   },
   "laputa-systems/fastermod": {
@@ -172,8 +172,8 @@
    "state": "partial"
   },
   "laputa-systems/srv": {
-   "commit": "84bdec3d1dbb896318b1434476b72262a97f2c39",
-   "inputs_fingerprint": "c612c3ff5ebe57483c0b9c5137e29cb2ed2206daa4b6553f55eabb912fcfa6fd",
+   "commit": "3e0ab3a0c81c35355c30419ecbdda2d0291158b0",
+   "inputs_fingerprint": "0f6bb63d502d711647a3a0259011a67a7cdef503c7af228b9b99d34c4abc6237",
    "state": "partial"
   },
   "laputa-systems/tm": {
