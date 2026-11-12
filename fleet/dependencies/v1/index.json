@@ -52,8 +52,8 @@
    "state": "partial"
   },
   "joshuarli/stuff": {
-   "commit": "24e994d1c5a271a99045fb758d3ddbcd21c3ab29",
-   "inputs_fingerprint": "44b4ded9c46b83f9385bf444ed911856d56a22ea43d48491a3c299c49b939d1e",
+   "commit": "f48447548aea976b28b0dfe1bc1d45ec9ae054ee",
+   "inputs_fingerprint": "c277b689cd23af3ec2976ec6eab86e3495398545d99719fce09c9cb330621377",
    "state": "partial"
   },
   "joshuarli/syncthing": {
@@ -92,8 +92,8 @@
    "state": "partial"
   },
   "laputa-systems/fastermod": {
-   "commit": "a7fe02b598a875c0648904009414b017beeab425",
-   "inputs_fingerprint": "20fbfae1ec1e1810c964b60933abe95d9e64f53f14ae0b280fa60b56f1ecf1c9",
+   "commit": "bd88c1155088a52ecde24df61b0b478aeb3476c9",
+   "inputs_fingerprint": "3dd5e2ae3c86d01fbcd46001300d2f7681776a3918ab8fce1ef370a5ec57dd7d",
    "state": "partial"
   },
   "laputa-systems/fd": {
@@ -164,6 +164,11 @@
   "laputa-systems/rustybench": {
    "commit": "1e82363269645415a78c023fed2a41014813db46",
    "inputs_fingerprint": "04c827e3fb3fe14442a4474be9e7aea1ed85c5c503fbb7c46515289ddd0735f4",
+   "state": "partial"
+  },
+  "laputa-systems/smolith": {
+   "commit": "d3e233946b95cc05eb36a511f3821091a03c639a",
+   "inputs_fingerprint": "420ba8d2af50ce8658f02e69f1943aba6bdd7aaaa8e64aba667071a9f0a05ffc",
    "state": "partial"
   },
   "laputa-systems/srv": {
