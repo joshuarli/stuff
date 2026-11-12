@@ -163,3 +163,32 @@ def test_actions_rank_by_urgency_then_repositories_fixed() -> None:
         (ActionKind.LOCKFILE, "Missing lockfiles"),
         (ActionKind.ROUTINE, "2 upgrades"),
     ]
+
+
+def test_fleet_replacement_rows_route_to_migrate_actions() -> None:
+    found = _actions(
+        outdated=(
+            _outdated("rustix", ("laputa-systems/e",)),
+            _outdated("serde", ("joshuarli/kache",)),
+        )
+    )
+    routine = [action for action in found if action.kind is ActionKind.ROUTINE]
+    migrate = [action for action in found if action.kind is ActionKind.MIGRATE]
+    assert len(routine) == 1
+    assert routine[0].repositories == ("joshuarli/kache",)
+    assert len(migrate) == 1
+    assert migrate[0].subject == "rustix → laputa-rustix"
+    assert migrate[0].repositories == ("laputa-systems/e",)
+    assert migrate[0].command == "uv run repomod fix --rule laputa-rustix"
+
+
+def test_oxlint_tsgolint_routes_to_removal_without_a_command() -> None:
+    found = _actions(
+        outdated=(_outdated("oxlint-tsgolint", ("joshuarli/stuff",), ecosystem=Ecosystem.NPM),)
+    )
+    migrate = [action for action in found if action.kind is ActionKind.MIGRATE]
+    assert len(migrate) == 1
+    assert migrate[0].subject == "oxlint-tsgolint → remove"
+    assert migrate[0].command is None
+    assert "tsrs" in migrate[0].reason
+    assert not [action for action in found if action.kind is ActionKind.ROUTINE]

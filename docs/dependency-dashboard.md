@@ -40,8 +40,11 @@ Overview.
 
 - **To do** (`index.html`) starts with open work per repository, then groups each change once:
   **Fix now** for vulnerable packages with a clean upgrade, **Decide** for those without one,
-  and **Clear in one pass** for lockfiles, pinned Python tools, and all upgrades. Forks are left
-  out. `triage.py` builds this list.
+  and **Clear in one pass** for lockfiles, pinned Python tools, fleet migrations, and all upgrades. Forks are left
+  out. `triage.py` builds this list. Migrations are direct dependencies the fleet replaces
+  rather than bumps: `rustix` (the laputa-systems fork, through `laputa-rustix`) and
+  `oxlint-tsgolint` (Oxlint loads tsrs-lint from the `tsrs` package). They appear on To do and
+  under **Migrate, don't bump** on Upgrades, never as an upgrade.
 - **Repositories** groups repositories with work to do as Vulnerable or Maintenance, with bars
   on one scale. Clean repositories are a count. Forks appear only when they carry vulnerable
   versions. With `--status`, a Status group comes first: one card for each
@@ -71,7 +74,9 @@ Overview.
   advisories of its own. Forks with vulnerable versions sit in a collapsed panel.
 - **Upgrades** (`outdated.html`) charts upgrades by ecosystem, then lists them with bars for
   repositories affected. Upgrades are not classified by version component, because packages do not
-  reliably follow semver. Needs `repomod deps enrich`.
+  reliably follow semver. Needs `repomod deps enrich`. A direct dependency the fleet replaces
+  appears under **Migrate, don't bump** instead of as a release bump, and is left out of the
+  upgrade counts.
 - **Alignment** groups version drift by ecosystem, leaving out repositories that an upgrade to
   the latest release already moves. Those appear on Upgrades. Each card draws the versions from
   oldest to newest, with the target in green, and names the repositories to move.

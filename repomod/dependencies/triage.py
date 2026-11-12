@@ -5,7 +5,7 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
-from repomod.dependencies import insights
+from repomod.dependencies import insights, migrations
 from repomod.dependencies.model import Component, Ecosystem
 
 _ADVISORIES_SHOWN = 2
@@ -18,6 +18,7 @@ class ActionKind(Enum):
     UNREADABLE = "unreadable"
     LOCKFILE = "lockfile"
     TOOLING = "tooling"
+    MIGRATE = "migrate"
     ROUTINE = "routine"
 
     @property
@@ -51,10 +52,12 @@ def actions(
         row.component.purl: row.component.ecosystem is Ecosystem.PYPI and row.component.name in tools
         for row in outdated
     }
+    migrating, upgradable = migrations.split(outdated)
     found = [
         *_security(vulnerable, forks),
-        *_tooling([row for row in outdated if is_tool[row.component.purl]]),
-        *_routine([row for row in outdated if not is_tool[row.component.purl]]),
+        *_migrate(migrating),
+        *_tooling([row for row in upgradable if is_tool[row.component.purl]]),
+        *_routine([row for row in upgradable if not is_tool[row.component.purl]]),
     ]
     if unreadable:
         found.append(
@@ -154,6 +157,27 @@ def _upgrade_target(
     if parsed_latest is None or parsed_latest <= newest:
         return None
     return latest
+
+
+def _migrate(rows: list[tuple[migrations.Migration, insights.Outdated]]) -> Iterable[Action]:
+    grouped: dict[migrations.Migration, list[insights.Outdated]] = defaultdict(list)
+    for migration, row in rows:
+        grouped[migration].append(row)
+    for migration, group in grouped.items():
+        yield Action(
+            ActionKind.MIGRATE,
+            (
+                f"{group[0].component.display_name} → {migration.target}"
+                if migration.target is not None
+                else f"{group[0].component.display_name} → remove"
+            ),
+            group[0].component.purl,
+            ", ".join(use.version for row in group for use in row.uses),
+            migration.reason,
+            _repositories(group),
+            migration.reason,
+            migration.command,
+        )
 
 
 def _tooling(rows: Sequence[insights.Outdated]) -> Iterable[Action]:

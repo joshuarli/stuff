@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 from packaging.version import InvalidVersion, Version
 
 from repomod import dependency_roles, paths
-from repomod.dependencies import analysis, enrich, insights, triage, ui, world
+from repomod.dependencies import analysis, enrich, insights, migrations, triage, ui, world
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
 from repomod.dependencies.model import (
@@ -60,6 +60,7 @@ _KIND_LABELS = {
     ActionKind.UNREADABLE: ("Unreadable", Tone.BAD),
     ActionKind.LOCKFILE: ("Lockfile", Tone.WARN),
     ActionKind.TOOLING: ("Tooling", Tone.NEUTRAL),
+    ActionKind.MIGRATE: ("Migrate", Tone.NEUTRAL),
     ActionKind.ROUTINE: ("Routine", Tone.NEUTRAL),
 }
 
@@ -82,6 +83,7 @@ class _Site:
     index: tuple[dict[str, object], ...]
     now: float
     outdated: tuple[insights.Outdated, ...]
+    migrations: tuple[tuple[migrations.Migration, insights.Outdated], ...]
     vulnerable: tuple[insights.Vulnerable, ...]
     weights: tuple[insights.Weight, ...]
     drift: tuple[insights.Split, ...]
@@ -186,12 +188,13 @@ def _site(
     forks = insights.forks(graph)
     results = cache.results
     outdated = insights.outdated(mine, results)
+    migration_rows, upgradable = migrations.split(outdated)
     vulnerable = insights.vulnerable(graph, declared, results)
     weights = insights.weights(graph, mine)
     splits = insights.splits(
         mine, results, pins={name: pin.sha for name, pin in actions_rule.load_pins().items()}
     )
-    drift = insights.drift(splits, outdated)
+    drift = insights.drift(splits, upgradable)
     roles = insights.role_uses(dependency_roles.load_roles(), mine)
     return _Site(
         graph,
@@ -202,7 +205,8 @@ def _site(
         diff_value,
         tuple(index),
         time.time(),
-        outdated,
+        upgradable,
+        migration_rows,
         vulnerable,
         weights,
         drift,
@@ -602,7 +606,7 @@ def _command_group(site: _Site) -> str:
     actions = [
         action
         for action in site.actions
-        if action.kind in (ActionKind.UNREADABLE, ActionKind.LOCKFILE, ActionKind.TOOLING, ActionKind.ROUTINE)
+        if action.kind in (ActionKind.UNREADABLE, ActionKind.LOCKFILE, ActionKind.TOOLING, ActionKind.MIGRATE, ActionKind.ROUTINE)
     ]
     if not actions:
         return ""
@@ -705,9 +709,15 @@ def _security_repository_card(name: str, actions: Sequence[triage.Action]) -> st
 
 def _outdated(site: _Site) -> str:
     body = [ui.page_header("Upgrades", f"Direct dependencies behind the registry · {_enrichment_stamp(site)}")]
+    if site.migrations:
+        body.append(_migrations_panel(site))
     if not site.outdated:
         message = (
-            '<p class="zero">every checked direct dependency is on its latest release</p>'
+            (
+                '<p class="zero">nothing left to upgrade; the migration candidates above supersede release bumps</p>'
+                if site.migrations
+                else '<p class="zero">every checked direct dependency is on its latest release</p>'
+            )
             if _checked(site)
             else '<p class="unknown">not checked</p>'
         )
@@ -733,6 +743,35 @@ def _outdated(site: _Site) -> str:
         )
     )
     return "\n".join(body)
+
+
+def _migrations_panel(site: _Site) -> str:
+    cards = []
+    for migration, row in site.migrations:
+        versions = ", ".join(use.version for use in row.uses)
+        target = migration.target or "remove"
+        change = f"{versions} → {target}"
+        foot = f"{_plural(row.repositories, 'repository', 'repositories')}: {_repository_names(sorted({name for use in row.uses for name in use.repositories}, key=str.casefold))}"
+        command = (
+            f'<div class="command-line"><code>{_e(migration.command)}</code>{ui.copy_button(migration.command)}</div>'
+            if migration.command is not None
+            else f'<div class="card-foot">{_e(migration.reason)}</div>'
+        )
+        cards.append(
+            ui.card(
+                _package_link(row.component.purl, "", row.component.display_name),
+                f'<div class="card-change">{_e(change)}</div>'
+                f'{command}<div class="card-foot">{foot}</div>',
+                meta=ui.badge("Migrate", Tone.NEUTRAL, dot=True),
+            )
+        )
+    return ui.group(
+        "Migrate, don't bump",
+        ui.card_grid(cards, wide=True),
+        count=len(cards),
+        note="The fleet replaces these; a release bump is not the fix",
+        group_id="migrate",
+    )
 
 
 def _ecosystem_upgrades_panel(site: _Site) -> str:
@@ -1114,6 +1153,7 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
     ]
     upgrades: list[Line] = []
     behind: set[str] = set()
+    migrated: list[Line] = []
     for row in site.outdated:
         for use in row.uses:
             if name not in use.repositories:
@@ -1123,6 +1163,17 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
                 Line(
                     _package_link(row.component.purl, prefix, row.component.display_name),
                     f"{_e(use.version)} → {_e(row.latest)}",
+                )
+            )
+    for migration, row in site.migrations:
+        for use in row.uses:
+            if name not in use.repositories:
+                continue
+            target = migration.target or "remove"
+            migrated.append(
+                Line(
+                    _package_link(row.component.purl, prefix, row.component.display_name),
+                    f"{_e(use.version)} → {_e(target)}",
                 )
             )
     drift = [
@@ -1147,6 +1198,7 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
         (title, tone, lines)
         for title, tone, lines in (
             ("Security", Tone.BAD, security),
+            ("Migrate", Tone.NEUTRAL, migrated),
             ("Upgrades", Tone.NEUTRAL, upgrades),
             ("Version drift", Tone.NEUTRAL, drift),
             ("Role conflicts", Tone.NEUTRAL, roles),
