@@ -45,8 +45,8 @@ sha = "68559e99cc807c1eb7e9238fd43a15bba460eec2"
 
 [actions."cargo-bins/cargo-binstall"]
 channel = "v1"
-version = "v1.26.2"
-sha = "851112458b5f28a29e5bc14a690c3f283d9dcc6f"
+version = "v1.27.0"
+sha = "5885714d0a40a14b2535c6ffc051fd8e49aa9665"
 
 [actions."denoland/setup-deno"]
 channel = "v2"
