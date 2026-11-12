@@ -1,5 +1,5 @@
 Prefix: STUF
-Next: 74
+Next: 75
 
 New tickets use STUF. RPMD tickets were filed in repomod before it moved into stuff; they keep their IDs.
 
@@ -53,3 +53,12 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Fix with:** `none`
 - **Effort:** M (days)
 - **Design:** [Musl rollout scope and qualification](docs/rfc/RPMD-85-musl-rollout.md)
+
+### STUF-74 · P3 · Replace BTreeMap and BTreeSet in the registry crates
+
+- **Area:** Policy
+- **Where:** `crates/mypypi` (222), `crates/mynpm` (136), `crates/stuff` (105), `crates/myoci` (49), `crates/stuff-catalog` (46), `crates/stuff-oci` (41), `crates/stuff-worker` (24); counts are `rust-collections` findings at `2cf1489`
+- **Problem:** repomod's `rust-collections` rule bans `BTreeMap` and `BTreeSet` (623 sites outside `crates/h12tiny-*`). These crates use ordered collections where iteration order reaches published bytes: catalogs (`catalog.json`, `index.html`, `llms.txt`), sparse index files, generation identities, fingerprints, CLI output, and golden tests. A plain swap to hash collections would change output order. The 3 sites in `crates/h12tiny-tls-system` must change upstream, because those sources stay byte-identical to the imported revision.
+- **Recommendation:** Replace them with `rustc_hash::{FxHashMap, FxHashSet}` from `rustc-hash` 2, which is already in `Cargo.lock`, added only to crates that need it. Wherever order is observable, sort explicitly at that point (collect into a `Vec` and sort by the old key order, or serialize a sorted view with `serialize_with`). Use a sorted `Vec` where a BTree served range queries, `first`/`last`, or sorted dedup. Do not edit golden files or expected outputs. Work crate by crate. Done when `uv run repomod lint --repo joshuarli/stuff --checkout "$PWD" --rule rust-collections` reports only the 3 h12tiny sites, and `cargo test --workspace`, `cargo clippy --all-targets -- -D warnings`, and `make test-mycrates` (the Python parity oracle for published bytes) all pass.
+- **Fix with:** worker
+- **Effort:** L
