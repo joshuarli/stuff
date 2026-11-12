@@ -45,7 +45,6 @@ fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result
             crate::limits::format_bytes(crate::limits::TARBALL_BYTES)
         )));
     }
-    let expected_directory = expected.map_or("package", |(name, _)| name.rsplit('/').next().unwrap_or(""));
 
     let file = fs::File::open(archive_path)
         .map_err(|_| Error::Input(format!("could not inspect package archive {archive_path}")))?;
@@ -94,7 +93,7 @@ fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result
             Some(i) => path[..i].to_string(),
             None => path.clone(),
         };
-        if root != "package" && root != expected_directory {
+        if root == "." || root == ".." {
             return Err(Error::Input(format!("package archive entry is outside package/: {path}")));
         }
         if let Some(ref prev) = root_directory
@@ -105,7 +104,8 @@ fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result
         let normalized = if path == root {
             "package".to_string()
         } else {
-            format!("package/{}", &path[root.len() + 1..])
+            let rest: Vec<&str> = path[root.len() + 1..].split('/').filter(|part| *part != ".").collect();
+            if rest.is_empty() { "package".to_string() } else { format!("package/{}", rest.join("/")) }
         };
         if normalized.starts_with('/') || normalized.split('/').any(|p| p.is_empty() || p == "." || p == "..") {
             return Err(Error::Input(format!("package archive entry has an unsafe path: {normalized}")));
@@ -264,6 +264,24 @@ mod tests {
         enc.write_all(&vec![0u8; 1024]).unwrap();
         enc.finish().unwrap();
         (dir, path)
+    }
+
+    #[test]
+    fn accepts_any_single_root_and_current_directory_segments_like_npm() {
+        let manifest = br#"{"name":"@types/node","version":"24.19.2"}"#;
+        let (_dir, path) = make_raw_tarball(&[("node v24.19/package.json", manifest), ("node v24.19/./index.d.ts", b"x")]);
+        let inspected = inspect_package_archive(&path, "@types/node", "24.19.2").unwrap();
+        let paths: Vec<&str> = inspected.entries.iter().map(|e| e.path.as_str()).collect();
+        assert_eq!(paths, ["package/package.json", "package/index.d.ts"]);
+    }
+
+    #[test]
+    fn rejects_multiple_roots_and_dot_roots() {
+        let manifest = br#"{"name":"flatdemo","version":"1.2.3"}"#;
+        let (_dir, path) = make_raw_tarball(&[("package/package.json", manifest), ("other/index.js", b"x")]);
+        assert!(format!("{}", inspect_package_archive(&path, "flatdemo", "1.2.3").unwrap_err()).contains("multiple roots"));
+        let (_dir, path) = make_raw_tarball(&[("./package.json", manifest)]);
+        assert!(format!("{}", inspect_package_archive(&path, "flatdemo", "1.2.3").unwrap_err()).contains("outside package"));
     }
 
     #[test]
