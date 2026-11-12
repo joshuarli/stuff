@@ -109,7 +109,7 @@ def render(
     if missing:
         raise FileNotFoundError(
             f"@laputa-systems/ui-dashboard is not installed at {UI_DASHBOARD}; "
-            "run `pnpm install --frozen-lockfile` in the repomod checkout"
+            f"run `pnpm install --frozen-lockfile` in {paths.DASHBOARD_TS}"
         )
     site = _site(inventory, graph, root, diff_value, status, hidden, unmanaged)
     if output.is_symlink():
