@@ -61,13 +61,13 @@ fn packument_modified(record: &ArtifactRecord) -> String {    record
         .to_string()
 }
 
-pub fn dist_latest_tags(records: &[ArtifactRecord]) -> std::collections::BTreeMap<String, String> {
-    let mut grouped: std::collections::BTreeMap<&str, Vec<&ArtifactRecord>> =
-        std::collections::BTreeMap::new();
+pub fn dist_latest_tags(records: &[ArtifactRecord]) -> rustc_hash::FxHashMap<String, String> {
+    let mut grouped: rustc_hash::FxHashMap<&str, Vec<&ArtifactRecord>> =
+        rustc_hash::FxHashMap::default();
     for record in records {
         grouped.entry(record.name.as_str()).or_default().push(record);
     }
-    let mut out = std::collections::BTreeMap::new();
+    let mut out = rustc_hash::FxHashMap::default();
     for (name, group) in grouped {
         let owned: Vec<ArtifactRecord> = group.into_iter().cloned().collect();
         let Ok(snapshot) = latest_snapshot(&owned) else {
@@ -91,9 +91,9 @@ pub fn dist_latest_tags(records: &[ArtifactRecord]) -> std::collections::BTreeMa
 
 fn package_time(
     records: &[ArtifactRecord],
-    selected: &std::collections::BTreeSet<String>,
+    selected: &rustc_hash::FxHashSet<String>,
 ) -> Result<Option<deser_value::Value>> {
-    let mut values: std::collections::BTreeMap<String, deser_value::Value> = Default::default();
+    let mut values: rustc_hash::FxHashMap<String, deser_value::Value> = Default::default();
     for record in records {
         let time = record
             .packument
@@ -216,7 +216,7 @@ fn render_package(
     renderer: u32,
 ) -> Result<deser_value::Value> {
     let mut versions = deser_value::Map::new();
-    let mut selected = std::collections::BTreeSet::new();
+    let mut selected = rustc_hash::FxHashSet::default();
     for record in records {
         selected.insert(record.version.clone());
         versions.insert(record.version.clone(), version_document(record, public_base_url, renderer)?);
@@ -305,7 +305,7 @@ pub fn render_packument_files(
     if dedup.len() != identities.len() {
         return Err(Error::Conflict("verified artifacts contain duplicate package identities".to_string()));
     }
-    let mut grouped: std::collections::BTreeMap<String, (Vec<ArtifactRecord>, Vec<&MetadataOnlyRecord>)> =
+    let mut grouped: rustc_hash::FxHashMap<String, (Vec<ArtifactRecord>, Vec<&MetadataOnlyRecord>)> =
         Default::default();
     for record in records {
         grouped.entry(record.name.clone()).or_default().0.push(record);
@@ -324,6 +324,8 @@ pub fn render_packument_files(
         versions.push(record);
     }
     let mut files = Vec::new();
+    let mut grouped: Vec<_> = grouped.into_iter().collect();
+    grouped.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     for (name, (package_records, stubs)) in grouped {
         let rendered = render_package(&name, &package_records, &stubs, &base, renderer)?;
         let mut sorted = rendered;

@@ -2,8 +2,8 @@
 
 use crate::error::{Error, Result};
 use h12tiny_client_sync::{http, Client};
+use rustc_hash::{FxHashMap, FxHashSet};
 use stuff_oci::{parse_image, Digest, Image, RepositoryName, Tag};
-use std::collections::BTreeSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -260,7 +260,7 @@ fn measure_manifest(
 
 struct Graph {
     manifests: Vec<(String, Vec<u8>)>,
-    blobs: BTreeSet<Digest>,
+    blobs: FxHashSet<Digest>,
 }
 
 fn graph(
@@ -286,7 +286,7 @@ fn graph(
     let root = parse_image(&response.body)
         .map_err(|error| Error::Integrity(format!("benchmark manifest: {error}")))?;
     let mut manifests = vec![(format!("manifests/{}", tag.as_str()), response.body)];
-    let mut blobs = BTreeSet::new();
+    let mut blobs = FxHashSet::default();
     match &root {
         Image::Index(index) => {
             for child in &index.manifests {
@@ -317,7 +317,7 @@ fn graph(
     Ok(Graph { manifests, blobs })
 }
 
-fn collect_blobs(image: &Image, blobs: &mut BTreeSet<Digest>) {
+fn collect_blobs(image: &Image, blobs: &mut FxHashSet<Digest>) {
     if let Image::Manifest(manifest) = image {
         blobs.insert(manifest.config.digest.clone());
         for layer in &manifest.layers {
@@ -330,7 +330,7 @@ fn blob_sizes(
     base: &str,
     repository: &RepositoryName,
     tag: &Tag,
-) -> Result<std::collections::BTreeMap<u64, Digest>> {
+) -> Result<FxHashMap<u64, Digest>> {
     let client = client();
     let response = request(
         &client,
@@ -341,7 +341,7 @@ fn blob_sizes(
     )?;
     let root = parse_image(&response.body)
         .map_err(|error| Error::Integrity(format!("benchmark manifest: {error}")))?;
-    let mut sizes = std::collections::BTreeMap::new();
+    let mut sizes = FxHashMap::default();
     let mut add = |image: &Image| {
         if let Image::Manifest(manifest) = image {
             for layer in &manifest.layers {

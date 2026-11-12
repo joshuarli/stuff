@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 
 use crate::model::Catalog;
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PackageRef {
     pub name: String,
     pub source: Option<String>,
@@ -49,16 +49,16 @@ pub fn diff_catalogs(before: &Catalog, after: &Catalog) -> Result<CatalogDiff, S
             after.registry.as_str()
         ));
     }
-    let mut before_map: BTreeMap<PackageRef, &crate::model::Package> = BTreeMap::new();
+    let mut before_map: FxHashMap<PackageRef, &crate::model::Package> = FxHashMap::default();
     for p in &before.packages {
         before_map.insert(package_ref(p), p);
     }
-    let mut after_map: BTreeMap<PackageRef, &crate::model::Package> = BTreeMap::new();
+    let mut after_map: FxHashMap<PackageRef, &crate::model::Package> = FxHashMap::default();
     for p in &after.packages {
         after_map.insert(package_ref(p), p);
     }
-    let before_keys: BTreeSet<&PackageRef> = before_map.keys().collect();
-    let after_keys: BTreeSet<&PackageRef> = after_map.keys().collect();
+    let before_keys: FxHashSet<&PackageRef> = before_map.keys().collect();
+    let after_keys: FxHashSet<&PackageRef> = after_map.keys().collect();
     let mut diff = CatalogDiff::default();
     for key in after_keys.difference(&before_keys) {
         diff.added_packages.push((*key).clone());
@@ -69,8 +69,8 @@ pub fn diff_catalogs(before: &Catalog, after: &Catalog) -> Result<CatalogDiff, S
     for key in before_keys.intersection(&after_keys) {
         let b = before_map[*key];
         let a = after_map[*key];
-        let b_versions: BTreeMap<&str, bool> = b.versions.iter().map(|v| (v.version.as_str(), v.yanked)).collect();
-        let a_versions: BTreeMap<&str, bool> = a.versions.iter().map(|v| (v.version.as_str(), v.yanked)).collect();
+        let b_versions: FxHashMap<&str, bool> = b.versions.iter().map(|v| (v.version.as_str(), v.yanked)).collect();
+        let a_versions: FxHashMap<&str, bool> = a.versions.iter().map(|v| (v.version.as_str(), v.yanked)).collect();
         let mut pkg = PackageDiff {
             name: key.name.clone(),
             source: key.source.clone(),
@@ -98,6 +98,10 @@ pub fn diff_catalogs(before: &Catalog, after: &Catalog) -> Result<CatalogDiff, S
                 _ => {}
             }
         }
+        pkg.added_versions.sort_unstable();
+        pkg.removed_versions.sort_unstable();
+        pkg.yanked_now.sort_unstable();
+        pkg.unyanked_now.sort_unstable();
         if pkg.latest_before == pkg.latest_after {
             pkg.latest_before = None;
             pkg.latest_after = None;

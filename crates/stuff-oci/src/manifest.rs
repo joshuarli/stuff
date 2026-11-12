@@ -5,7 +5,7 @@ use crate::error::{Error, ErrorCode};
 use crate::json;
 use crate::media;
 use deser_value::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub const MAX_MANIFEST_BYTES: usize = 4 * 1024 * 1024;
 
@@ -25,7 +25,7 @@ pub struct Descriptor {
     pub digest: Digest,
     pub size: u64,
     pub artifact_type: Option<String>,
-    pub annotations: BTreeMap<String, String>,
+    pub annotations: FxHashMap<String, String>,
     pub platform: Option<Platform>,
     pub urls: Vec<String>,
 }
@@ -84,9 +84,11 @@ fn render_strings(values: &[String]) -> String {
     values.iter().map(|value| json::quoted(value)).collect::<Vec<_>>().join(",")
 }
 
-fn render_string_map(map: &BTreeMap<String, String>) -> String {
-    let entries: Vec<String> = map
-        .iter()
+fn render_string_map(map: &FxHashMap<String, String>) -> String {
+    let mut entries: Vec<_> = map.iter().collect();
+    entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    let entries: Vec<String> = entries
+        .into_iter()
         .map(|(key, value)| format!("{}:{}", json::quoted(key), json::quoted(value)))
         .collect();
     format!("{{{}}}", entries.join(","))
@@ -109,7 +111,7 @@ pub(crate) fn parse_descriptor(value: &Value, context: &str) -> Result<Descripto
     let artifact_type = json::optional_string_field(map, "artifactType", context)?;
     let annotations = match map.get("annotations") {
         Some(value) => json::string_map(value, &format!("{context}.annotations"))?,
-        None => BTreeMap::new(),
+        None => FxHashMap::default(),
     };
     let platform = match map.get("platform") {
         Some(value) => Some(parse_platform(value, &format!("{context}.platform"))?),
@@ -164,10 +166,10 @@ fn string_array(value: Option<&Value>, context: &str) -> Result<Vec<String>, Err
     Ok(out)
 }
 
-fn parse_annotations(map: &deser_value::Map, context: &str) -> Result<BTreeMap<String, String>, Error> {
+fn parse_annotations(map: &deser_value::Map, context: &str) -> Result<FxHashMap<String, String>, Error> {
     match map.get("annotations") {
         Some(value) => json::string_map(value, &format!("{context}.annotations")),
-        None => Ok(BTreeMap::new()),
+        None => Ok(FxHashMap::default()),
     }
 }
 
@@ -184,7 +186,7 @@ pub struct Manifest {
     pub layers: Vec<Descriptor>,
     pub subject: Option<Descriptor>,
     pub artifact_type: Option<String>,
-    pub annotations: BTreeMap<String, String>,
+    pub annotations: FxHashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,7 +195,7 @@ pub struct Index {
     pub manifests: Vec<Descriptor>,
     pub subject: Option<Descriptor>,
     pub artifact_type: Option<String>,
-    pub annotations: BTreeMap<String, String>,
+    pub annotations: FxHashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -224,7 +226,7 @@ impl Image {
         }
     }
 
-    pub fn annotations(&self) -> &BTreeMap<String, String> {
+    pub fn annotations(&self) -> &FxHashMap<String, String> {
         match self {
             Self::Manifest(manifest) => &manifest.annotations,
             Self::Index(index) => &index.annotations,
@@ -317,8 +319,8 @@ pub fn parse_image(bytes: &[u8]) -> Result<Image, Error> {
 
 pub fn validate_manifest_push(
     bytes: &[u8],
-    blobs: &BTreeSet<Digest>,
-    manifests: &BTreeSet<Digest>,
+    blobs: &FxHashSet<Digest>,
+    manifests: &FxHashSet<Digest>,
 ) -> Result<(Digest, Image), Error> {
     let image = parse_image(bytes)?;
     let digest = Digest::from_bytes(bytes);
@@ -365,30 +367,29 @@ mod tests {
 
     #[test]
     fn validates_manifest_push_references() {
-        use std::collections::BTreeSet;
         let layer = "882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f";
         let config = "1c17d23d45cae9129edb6a0f9ce247f5713ae939577e1b8f3e0b1bdf66972b55";
         let body = manifest_json(&format!(
             r#"{{"mediaType":"application/vnd.oci.image.layer.v1.tar+gzip","digest":"sha256:{layer}","size":117}}"#
         ));
-        let mut blobs = BTreeSet::new();
+        let mut blobs = FxHashSet::default();
         blobs.insert(Digest::parse(&format!("sha256:{config}")).unwrap());
         blobs.insert(Digest::parse(&format!("sha256:{layer}")).unwrap());
-        let manifests = BTreeSet::new();
+        let manifests = FxHashSet::default();
         let (digest, _) = validate_manifest_push(body.as_bytes(), &blobs, &manifests).unwrap();
         assert_eq!(digest, Digest::from_bytes(body.as_bytes()));
-        let error = validate_manifest_push(body.as_bytes(), &BTreeSet::new(), &manifests).unwrap_err();
+        let error = validate_manifest_push(body.as_bytes(), &FxHashSet::default(), &manifests).unwrap_err();
         assert_eq!(error.code, ErrorCode::ManifestBlobUnknown);
 
         let child = "576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4";
         let index = format!(
             r#"{{"schemaVersion":2,"mediaType":"application/vnd.oci.image.index.v1+json","manifests":[{{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:{child}","size":401}}]}}"#
         );
-        let mut children = BTreeSet::new();
+        let mut children = FxHashSet::default();
         children.insert(Digest::parse(&format!("sha256:{child}")).unwrap());
         assert!(validate_manifest_push(index.as_bytes(), &blobs, &children).is_ok());
         assert_eq!(
-            validate_manifest_push(index.as_bytes(), &blobs, &BTreeSet::new()).unwrap_err().code,
+            validate_manifest_push(index.as_bytes(), &blobs, &FxHashSet::default()).unwrap_err().code,
             ErrorCode::ManifestBlobUnknown
         );
     }

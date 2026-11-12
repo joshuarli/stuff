@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-
+use rustc_hash::FxHashMap;
 use sha2::{Digest, Sha256};
 use stuff_catalog::{
     CargoInput, CargoSource, Catalog, Dependencies, cargo_catalog, catalog_fingerprint,
@@ -17,8 +16,8 @@ pub const GENERATION_ID_LENGTH: usize = 24;
 pub const FINGERPRINT_GENERATION: &str = "fingerprint";
 
 pub type FileKey = (String, String);
-pub type Files = BTreeMap<FileKey, Vec<u8>>;
-pub type Manifest = BTreeMap<FileKey, String>;
+pub type Files = FxHashMap<FileKey, Vec<u8>>;
+pub type Manifest = FxHashMap<FileKey, String>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rendered {
@@ -77,7 +76,9 @@ pub fn render(
         .map(|(key, data)| (key.clone(), sha256_hex(data)))
         .collect();
     let mut canonical = format!("v:{RENDERER_VERSION}\ncatalog:{fingerprint}\n");
-    for ((view, relative), digest) in &manifest {
+    let mut manifest_rows: Vec<_> = manifest.iter().collect();
+    manifest_rows.sort_unstable_by(|left, right| left.0.cmp(right.0));
+    for ((view, relative), digest) in manifest_rows {
         canonical.push_str(&format!("{view}|{relative}|{digest}\n"));
     }
     let generation_id = sha256_hex(canonical.as_bytes())[..GENERATION_ID_LENGTH].to_string();
@@ -108,7 +109,7 @@ fn render_index(
     urls: &CargoUrls,
     auth_required: bool,
 ) -> Result<Files, Rejection> {
-    let mut files = Files::new();
+    let mut files = Files::default();
     files.insert(
         key("registry", "config.json"),
         native_config_json(urls, auth_required).into_bytes(),
@@ -118,7 +119,7 @@ fn render_index(
         mirror_config_json(urls).into_bytes(),
     );
 
-    let mut native_by_crate: BTreeMap<String, Vec<&NativeRecord>> = BTreeMap::new();
+    let mut native_by_crate: FxHashMap<String, Vec<&NativeRecord>> = FxHashMap::default();
     for record in native {
         names::validate_crate_name(&record.entry.name)?;
         native_by_crate
@@ -126,7 +127,9 @@ fn render_index(
             .or_default()
             .push(record);
     }
-    for (crate_name, records) in &native_by_crate {
+    let mut native_crates: Vec<_> = native_by_crate.iter().collect();
+    native_crates.sort_unstable_by(|left, right| left.0.cmp(right.0));
+    for (crate_name, records) in native_crates {
         let mut records = records.clone();
         records.sort_by(|left, right| compare_text(&left.entry.vers, &right.entry.vers));
         let lines: Vec<String> = records
@@ -138,7 +141,7 @@ fn render_index(
         files.insert(key("registry", &shard), text.into_bytes());
     }
 
-    let mut upstream_by_crate: BTreeMap<String, Vec<&UpstreamRecord>> = BTreeMap::new();
+    let mut upstream_by_crate: FxHashMap<String, Vec<&UpstreamRecord>> = FxHashMap::default();
     for record in upstream {
         names::validate_crate_name(&record.name)?;
         upstream_by_crate
@@ -146,7 +149,9 @@ fn render_index(
             .or_default()
             .push(record);
     }
-    for (crate_name, records) in &upstream_by_crate {
+    let mut upstream_crates: Vec<_> = upstream_by_crate.iter().collect();
+    upstream_crates.sort_unstable_by(|left, right| left.0.cmp(right.0));
+    for (crate_name, records) in upstream_crates {
         let mut records = records.clone();
         records.sort_by(|left, right| compare_text(&left.vers, &right.vers));
         let lines: Vec<&str> = records

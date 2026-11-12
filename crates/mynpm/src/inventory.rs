@@ -4,7 +4,7 @@ use crate::error::{Error, Result};
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 pub const SCHEMA_VERSION: u64 = 2;
 pub const METADATA_ONLY_SCHEMA_VERSION: u64 = 3;
@@ -327,7 +327,7 @@ pub fn validate_integrity(value: Option<&str>, label: &str, category: Category) 
     if text.trim().is_empty() {
         return Err(err(category, format!("{label} is malformed")));
     }
-    let mut claims: BTreeMap<String, String> = BTreeMap::new();
+    let mut claims: FxHashMap<String, String> = FxHashMap::default();
     for token in text.split_whitespace() {
         let claim = token.split('?').next().unwrap_or("");
         let Some(sep) = claim.find('-') else {
@@ -371,8 +371,8 @@ fn lenient_hex(bytes_text: &str) -> String {
         .unwrap_or_default()
 }
 
-fn digest_claims(integrity: Option<&str>, label: &str, category: Category) -> Result<BTreeMap<String, String>> {
-    let mut claims = BTreeMap::new();
+fn digest_claims(integrity: Option<&str>, label: &str, category: Category) -> Result<FxHashMap<String, String>> {
+    let mut claims = FxHashMap::default();
     let Some(text) = integrity else { return Ok(claims) };
     for token in text.split_whitespace() {
         let claim = token.split('?').next().unwrap_or("");
@@ -391,12 +391,14 @@ fn digest_claims(integrity: Option<&str>, label: &str, category: Category) -> Re
 }
 
 fn add_digest_claims(
-    target: &mut BTreeMap<String, String>,
-    source: &BTreeMap<String, String>,
+    target: &mut FxHashMap<String, String>,
+    source: &FxHashMap<String, String>,
     label: &str,
     category: Category,
 ) -> Result<()> {
-    for (algo, digest) in source {
+    let mut claims: Vec<_> = source.iter().collect();
+    claims.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (algo, digest) in claims {
         if let Some(existing) = target.get(algo)
             && existing != digest {
                 return Err(err(category, format!("conflicting {algo} integrity for {label}")));
@@ -748,7 +750,7 @@ fn normalize_metadata(
             // leave null dist as-is
         } else {
             let dmap = require_record(&dist, &format!("{label}.dist"), category)?;
-            let mut normalized: BTreeMap<String, deser_value::Value> = BTreeMap::new();
+            let mut normalized: FxHashMap<String, deser_value::Value> = FxHashMap::default();
             for i in 0..dmap.len() {
                 if let Some((k, item)) = dmap.get_index(i) {
                     let key = k.as_str().unwrap_or("").to_string();
@@ -922,7 +924,7 @@ fn validate_artifact_digests(record: &ArtifactRecord, category: Category) -> Res
     let mut claims = digest_claims(dist_integrity, &format!("upstream metadata for {}@{}", record.name, record.version), category)?;
     let dist_shasum = record.metadata.as_map().and_then(|m| m.get("dist")).and_then(|d| d.as_map()).and_then(|m| m.get("shasum")).and_then(|v| v.as_str());
     if let Some(shasum) = dist_shasum {
-        let mut extra = BTreeMap::new();
+        let mut extra = FxHashMap::default();
         extra.insert("sha1".to_string(), shasum.to_string());
         add_digest_claims(&mut claims, &extra, &format!("{}@{}", record.name, record.version), category)?;
     }
@@ -930,11 +932,11 @@ fn validate_artifact_digests(record: &ArtifactRecord, category: Category) -> Res
     if record.artifact.legacy_sha1_only != legacy {
         return Err(err(category, format!("legacy SHA-1 policy marker is inconsistent for {}@{}", record.name, record.version)));
     }
-    let mut extra = BTreeMap::new();
+    let mut extra = FxHashMap::default();
     extra.insert("sha512".to_string(), record.artifact.sha512.clone());
     add_digest_claims(&mut claims, &extra, &format!("{}@{}", record.name, record.version), category)?;
     if let Some(ref s) = record.artifact.shasum {
-        let mut extra = BTreeMap::new();
+        let mut extra = FxHashMap::default();
         extra.insert("sha1".to_string(), s.clone());
         add_digest_claims(&mut claims, &extra, &format!("{}@{}", record.name, record.version), category)?;
     }
@@ -988,7 +990,7 @@ fn validate_metadata_only(
     records: &[MetadataOnlyRecord],
     category: Category,
 ) -> Result<()> {
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = rustc_hash::FxHashSet::default();
     for record in records {
         let identity = format!("{}@{}", record.name, record.version);
         if !seen.insert(identity.clone()) {
@@ -1165,8 +1167,8 @@ fn normalize_project(v: &deser_value::Value, label: &str, category: Category) ->
 }
 
 fn validate_digest_conflicts(projects: &[ProjectRecord], artifacts: &[ArtifactRecord], category: Category) -> Result<()> {
-    let mut claims_by_identity: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
-    let mut sources_by_identity: BTreeMap<String, Vec<SourceKind>> = BTreeMap::new();
+    let mut claims_by_identity: FxHashMap<String, FxHashMap<String, String>> = FxHashMap::default();
+    let mut sources_by_identity: FxHashMap<String, Vec<SourceKind>> = FxHashMap::default();
     for project in projects {
         for pkg in &project.packages {
             let Some(ref ver) = pkg.version else { continue };
@@ -1196,7 +1198,7 @@ fn validate_digest_conflicts(projects: &[ProjectRecord], artifacts: &[ArtifactRe
             if !is_sha1_hex(shasum) {
                 return Err(err(category, format!("upstream shasum is malformed for {}@{}", artifact.name, artifact.version)));
             }
-            let mut extra = BTreeMap::new();
+            let mut extra = FxHashMap::default();
             extra.insert("sha1".to_string(), shasum.to_string());
             add_digest_claims(&mut upstream_claims, &extra, &format!("{}@{}", artifact.name, artifact.version), category)?;
         }
@@ -1205,11 +1207,11 @@ fn validate_digest_conflicts(projects: &[ProjectRecord], artifacts: &[ArtifactRe
         if artifact.artifact.legacy_sha1_only != legacy {
             return Err(err(category, format!("legacy SHA-1 policy marker is inconsistent for {}@{}", artifact.name, artifact.version)));
         }
-        let mut extra = BTreeMap::new();
+        let mut extra = FxHashMap::default();
         extra.insert("sha512".to_string(), artifact.artifact.sha512.clone());
         add_digest_claims(claims, &extra, &format!("{}@{}", artifact.name, artifact.version), category)?;
         if let Some(ref s) = artifact.artifact.shasum {
-            let mut extra = BTreeMap::new();
+            let mut extra = FxHashMap::default();
             extra.insert("sha1".to_string(), s.clone());
             add_digest_claims(claims, &extra, &format!("{}@{}", artifact.name, artifact.version), category)?;
         }
@@ -1295,7 +1297,7 @@ pub fn parse_inventory(text: &str) -> Result<Inventory> {
 }
 
 fn project_stable_string(p: &ProjectRecord) -> Result<String> {
-    let mut map = BTreeMap::new();
+    let mut map = FxHashMap::default();
     map.insert("id".to_string(), p.id.clone());
     map.insert("lockfilePath".to_string(), p.lockfile_path.clone());
     map.insert("manager".to_string(), p.manager.as_str().to_string());
@@ -1333,7 +1335,17 @@ fn project_stable_string(p: &ProjectRecord) -> Result<String> {
     );
     map.insert("snapshot".to_string(), snapshot_digest(p)?);
     map.insert("pin".to_string(), p.package_manager_pin.clone().unwrap_or_default());
-    Ok(format!("{map:?}"))
+    let mut entries: Vec<_> = map.into_iter().collect();
+    entries.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    let mut rendered = String::from("{");
+    for (index, (key, value)) in entries.iter().enumerate() {
+        if index > 0 {
+            rendered.push_str(", ");
+        }
+        rendered.push_str(&format!("{key:?}: {value:?}"));
+    }
+    rendered.push('}');
+    Ok(rendered)
 }
 
 fn package_flags_stable(flags: &PackageFlags) -> String {
@@ -1741,7 +1753,7 @@ fn inventory_roundtrip(inv: &Inventory) -> Result<String> {
 }
 
 pub fn package_identities(inv: &Inventory) -> Vec<(String, String, Vec<String>, Vec<String>)> {
-    let mut out: BTreeMap<(String, String), (Vec<SourceKind>, Vec<String>)> = BTreeMap::new();
+    let mut out: FxHashMap<(String, String), (Vec<SourceKind>, Vec<String>)> = FxHashMap::default();
     for p in &inv.projects {
         for pkg in &p.packages {
             if let Some(ref ver) = pkg.version {
@@ -1751,7 +1763,10 @@ pub fn package_identities(inv: &Inventory) -> Vec<(String, String, Vec<String>, 
             }
         }
     }
-    out.into_iter()
+    let mut pairs: Vec<_> = out.into_iter().collect();
+    pairs.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    pairs
+        .into_iter()
         .map(|((n, v), (kinds, mut targets))| {
             let mut kinds: Vec<String> = kinds.into_iter().map(|k| k.as_str().to_string()).collect();
             kinds.sort();

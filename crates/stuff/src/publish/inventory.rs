@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::path::{Path, PathBuf};
 
 use deser_value::Value;
@@ -96,12 +96,13 @@ pub fn pull_live_generation(
         )));
     }
     let prefix = format!("generations/{generation}/");
-    let keys: Vec<String> = snapshot
+    let mut keys: Vec<String> = snapshot
         .metadata()
         .keys()
         .filter(|key| key.starts_with(&prefix))
         .cloned()
         .collect();
+    keys.sort();
     if keys.is_empty() {
         return Err(PublishError::Integrity(format!(
             "generation {generation} has no objects in {bucket}"
@@ -233,10 +234,12 @@ fn ensure_objects(
     std::fs::create_dir_all(&objects).map_err(|error| {
         PublishError::Config(format!("could not create {}: {error}", objects.display()))
     })?;
-    let mut digests = BTreeSet::new();
+    let mut digests = FxHashSet::default();
     for artifact in artifacts {
         digests.insert(artifact.artifact.sha512);
     }
+    let mut digests: Vec<_> = digests.into_iter().collect();
+    digests.sort();
     for digest in digests {
         let object = objects.join(format!("{digest}.tgz"));
         if object.is_file() {
@@ -268,14 +271,16 @@ fn materialize(
     std::fs::create_dir_all(&tarballs).map_err(|error| {
         PublishError::Config(format!("could not create {}: {error}", tarballs.display()))
     })?;
-    let mut digests = BTreeSet::new();
+    let mut digests = FxHashSet::default();
     for artifact in retained.iter().chain(incoming) {
         digests.insert(artifact.artifact.sha512.clone());
     }
-    let mut live_digests = BTreeSet::new();
+    let mut live_digests = FxHashSet::default();
     for artifact in retained {
         live_digests.insert(artifact.artifact.sha512.clone());
     }
+    let mut digests: Vec<_> = digests.into_iter().collect();
+    digests.sort();
     for digest in digests {
         let object = objects.join(format!("{digest}.tgz"));
         if !object.is_file() {

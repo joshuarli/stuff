@@ -2,7 +2,7 @@
 
 mod support;
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 
 use stuff::publish::oci::OciPaths;
@@ -68,13 +68,13 @@ fn current_generation(site: &Path) -> String {
         .to_string()
 }
 
-fn tree(root: &Path) -> BTreeMap<String, Vec<u8>> {
-    let mut out = BTreeMap::new();
+fn tree(root: &Path) -> FxHashMap<String, Vec<u8>> {
+    let mut out = FxHashMap::default();
     collect(root, root, &mut out);
     out
 }
 
-fn collect(dir: &Path, root: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
+fn collect(dir: &Path, root: &Path, out: &mut FxHashMap<String, Vec<u8>>) {
     for entry in std::fs::read_dir(dir).expect("read dir") {
         let entry = entry.expect("entry");
         let path = entry.path();

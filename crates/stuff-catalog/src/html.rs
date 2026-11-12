@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use crate::model::{Catalog, DependencyKind, Package, PackagesByName, Registry};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 fn escape_html(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
@@ -128,10 +128,10 @@ struct Dependent<'a> {
     kind: DependencyKind,
 }
 
-fn dependents_of<'a>(catalog: &'a Catalog, by_name: &PackagesByName<'a>) -> BTreeMap<String, Vec<Dependent<'a>>> {
-    let mut dependents: BTreeMap<String, Vec<Dependent<'a>>> = BTreeMap::new();
+fn dependents_of<'a>(catalog: &'a Catalog, by_name: &PackagesByName<'a>) -> FxHashMap<String, Vec<Dependent<'a>>> {
+    let mut dependents: FxHashMap<String, Vec<Dependent<'a>>> = FxHashMap::default();
     for package in &catalog.packages {
-        let mut strongest: BTreeMap<String, DependencyKind> = BTreeMap::new();
+        let mut strongest: FxHashMap<String, DependencyKind> = FxHashMap::default();
         for (kind, name) in package.dependencies.iter() {
             if let Some(target) = by_name.resolve(name) {
                 let slot = strongest.entry(anchor(catalog.registry, target)).or_insert(kind);
@@ -358,7 +358,7 @@ pub fn render_unified_with_notices(catalogs: &[Catalog], notices: &[String]) -> 
 mod tests {
     use super::*;
     use crate::model::{CargoInput, CargoSource, Dependencies, NpmInput, cargo_catalog, npm_catalog};
-    use std::collections::BTreeMap;
+    use rustc_hash::FxHashMap;
 
     fn cargo_input(name: &str, version: &str, dependencies: &[&str]) -> CargoInput {
         CargoInput {
@@ -402,7 +402,7 @@ mod tests {
         let catalog = npm_catalog(
             "gen1",
             vec![NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() }],
-            &BTreeMap::new(),
+            &FxHashMap::default(),
         )
         .unwrap();
         for html in [render_html(&catalog), render_unified(std::slice::from_ref(&catalog))] {
@@ -512,7 +512,7 @@ mod tests {
                 NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["@scope/b".to_string()]) },
                 NpmInput { name: "@scope/b".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
             ],
-            &BTreeMap::new(),
+            &FxHashMap::default(),
         )
         .unwrap();
         let html = render_html(&catalog);
@@ -527,7 +527,7 @@ mod tests {
             "g",
             vec![NpmInput { name: "shared".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
                  NpmInput { name: "user".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["shared".to_string()]) }],
-            &BTreeMap::new(),
+            &FxHashMap::default(),
         )
         .unwrap();
         let html = render_unified(&[cargo, npm]);

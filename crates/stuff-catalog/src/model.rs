@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use crate::version::{compare_npm_version, compare_semver, is_stable_semver, parse_pep440};
-use std::collections::BTreeMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub const SCHEMA_VERSION: u32 = 4;
 const OLDEST_READABLE_SCHEMA_VERSION: u32 = 1;
@@ -140,8 +140,9 @@ impl Dependencies {
             if names.iter().any(|n| n.is_empty() || n.contains('\0')) {
                 return Err(format!("package {owner} has an empty dependency name"));
             }
-            let unique: std::collections::BTreeSet<String> = names.iter().map(|n| rename(n)).collect();
-            *self.of_mut(kind) = unique.into_iter().collect();
+            let mut unique: Vec<String> = names.iter().map(|n| rename(n)).collect::<FxHashSet<_>>().into_iter().collect();
+            unique.sort_unstable();
+            *self.of_mut(kind) = unique;
         }
         Ok(self)
     }
@@ -157,7 +158,7 @@ pub struct Package {
     pub dependencies: Dependencies,
 }
 
-pub struct PackagesByName<'a>(BTreeMap<&'a str, &'a Package>);
+pub struct PackagesByName<'a>(FxHashMap<&'a str, &'a Package>);
 
 impl<'a> PackagesByName<'a> {
     pub fn resolve(&self, name: &str) -> Option<&'a Package> {
@@ -184,7 +185,7 @@ impl Catalog {
     }
 
     pub fn packages_by_name(&self) -> PackagesByName<'_> {
-        let mut first = BTreeMap::new();
+        let mut first = FxHashMap::default();
         for package in &self.packages {
             first.entry(package.name.as_str()).or_insert(package);
         }
@@ -389,7 +390,7 @@ fn parse_package(v: &deser_value::Value, registry: Registry, schema: u32) -> Res
     for (i, item) in seq.iter().enumerate() {
         versions.push(parse_version_entry(item, &format!("package {name} versions[{i}]"))?);
     }
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = FxHashSet::default();
     for v in &versions {
         if !seen.insert(v.version.clone()) {
             return Err(format!("package {name} has a duplicate version {}", v.version));
@@ -466,7 +467,7 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
 #[derive(Default)]
 struct VersionGroup {
     versions: Vec<VersionEntry>,
-    dependencies_by_version: BTreeMap<String, Dependencies>,
+    dependencies_by_version: FxHashMap<String, Dependencies>,
 }
 
 impl VersionGroup {
@@ -508,7 +509,7 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<(String, CargoSource), VersionGroup> = BTreeMap::new();
+    let mut grouped: FxHashMap<(String, CargoSource), VersionGroup> = FxHashMap::default();
     for input in inputs {
         if input.name.is_empty() || input.version.is_empty() {
             return Err("cargo package name and version must not be empty".to_string());
@@ -518,10 +519,12 @@ pub fn cargo_catalog(generation: &str, inputs: Vec<CargoInput>) -> Result<Catalo
         }
         grouped.entry((input.name, input.source)).or_default().push(input.version, input.yanked, input.dependencies);
     }
+    let mut grouped: Vec<_> = grouped.into_iter().collect();
+    grouped.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     let mut packages = Vec::with_capacity(grouped.len());
     for ((name, source), group) in grouped {
         let VersionGroup { mut versions, dependencies_by_version: mut dependencies } = group;
-        let mut seen = std::collections::BTreeSet::new();
+        let mut seen = FxHashSet::default();
         for v in &versions {
             if !seen.insert(v.version.clone()) {
                 return Err(format!(
@@ -550,12 +553,12 @@ pub struct NpmInput {
 pub fn npm_catalog(
     generation: &str,
     inputs: Vec<NpmInput>,
-    dist_latest: &BTreeMap<String, String>,
+    dist_latest: &FxHashMap<String, String>,
 ) -> Result<Catalog, String> {
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<String, VersionGroup> = BTreeMap::new();
+    let mut grouped: FxHashMap<String, VersionGroup> = FxHashMap::default();
     for input in inputs {
         if input.name.is_empty() || input.version.is_empty() {
             return Err("npm package name and version must not be empty".to_string());
@@ -565,10 +568,12 @@ pub fn npm_catalog(
         }
         grouped.entry(input.name).or_default().push(input.version, false, input.dependencies);
     }
+    let mut grouped: Vec<_> = grouped.into_iter().collect();
+    grouped.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     let mut packages = Vec::with_capacity(grouped.len());
     for (name, group) in grouped {
         let VersionGroup { mut versions, dependencies_by_version: mut dependencies } = group;
-        let mut seen = std::collections::BTreeSet::new();
+        let mut seen = FxHashSet::default();
         for v in &versions {
             if !seen.insert(v.version.clone()) {
                 return Err(format!("npm package {name} has a duplicate version {}", v.version));
@@ -596,7 +601,7 @@ pub fn oci_catalog(generation: &str, inputs: Vec<OciInput>) -> Result<Catalog, S
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut grouped: FxHashMap<String, Vec<String>> = FxHashMap::default();
     for input in inputs {
         if input.name.is_empty() {
             return Err("oci repository name must not be empty".to_string());
@@ -604,6 +609,8 @@ pub fn oci_catalog(generation: &str, inputs: Vec<OciInput>) -> Result<Catalog, S
         let slot = grouped.entry(input.name).or_default();
         slot.extend(input.tags);
     }
+    let mut grouped: Vec<_> = grouped.into_iter().collect();
+    grouped.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     let mut packages = Vec::with_capacity(grouped.len());
     for (name, mut tags) in grouped {
         if tags.iter().any(|tag| tag.is_empty()) {
@@ -662,8 +669,8 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
     if generation.is_empty() {
         return Err("generation must not be empty".to_string());
     }
-    let mut grouped: BTreeMap<String, BTreeMap<String, Vec<bool>>> = BTreeMap::new();
-    let mut dependencies_by_project: BTreeMap<String, BTreeMap<String, Dependencies>> = BTreeMap::new();
+    let mut grouped: FxHashMap<String, FxHashMap<String, Vec<bool>>> = FxHashMap::default();
+    let mut dependencies_by_project: FxHashMap<String, FxHashMap<String, Dependencies>> = FxHashMap::default();
     for file in files {
         if file.name.is_empty() || file.version.is_empty() {
             return Err("pypi package name and version must not be empty".to_string());
@@ -683,10 +690,14 @@ pub fn pypi_catalog(generation: &str, files: Vec<PypiInput>) -> Result<Catalog, 
             .merge(file.dependencies);
         grouped.entry(project).or_default().entry(file.version).or_default().push(file.yanked);
     }
+    let mut grouped: Vec<_> = grouped.into_iter().collect();
+    grouped.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     let mut packages = Vec::with_capacity(grouped.len());
     for (name, versions_map) in grouped {
-        let mut entries: Vec<(String, bool)> = Vec::with_capacity(versions_map.len());
-        for (version, flags) in versions_map {
+        let mut version_rows: Vec<_> = versions_map.into_iter().collect();
+        version_rows.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        let mut entries: Vec<(String, bool)> = Vec::with_capacity(version_rows.len());
+        for (version, flags) in version_rows {
             // Version-level yank is conservative-by-construction: the index
             // stays per-file, so a version reads yanked only when every file
             // is. Partial yank information lives in the simple pages, not here.
@@ -788,7 +799,7 @@ mod tests {
 
     #[test]
     fn npm_prefers_dist_tag() {
-        let mut tags = BTreeMap::new();
+        let mut tags = FxHashMap::default();
         tags.insert("pkg".to_string(), "1.0.0".to_string());
         let catalog = npm_catalog(
             "g",

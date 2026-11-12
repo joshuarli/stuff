@@ -254,14 +254,14 @@ pub fn parse_npm_lock(text: &str, options: NpmOptions) -> Result<ProjectRecord> 
                 keys.push(s.to_string());
             }
     }
-    let workspace_lookup: std::collections::BTreeSet<String> = keys
+    let workspace_lookup: rustc_hash::FxHashSet<String> = keys
         .iter()
         .filter(|k| package_name_from_key(k).is_none())
         .cloned()
         .collect();
 
     let mut records: Vec<PackageRecord> = Vec::new();
-    let mut by_key: std::collections::BTreeMap<String, (String, Option<String>)> = std::collections::BTreeMap::new();
+    let mut by_key: rustc_hash::FxHashMap<String, (String, Option<String>)> = rustc_hash::FxHashMap::default();
     for key in &keys {
         let requested = match package_name_from_key(key) {
             Some(n) => n,

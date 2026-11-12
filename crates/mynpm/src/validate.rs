@@ -13,7 +13,8 @@ use crate::lock_pnpm::{parse_pnpm_lock, PnpmOptions};
 use crate::process::{run_process, ProcessOptions, StdoutMode};
 use crate::project_snapshot::assert_restorable_snapshot;
 use crate::publish::{publish_site, PublishOptions};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::os::unix::fs::PermissionsExt;
@@ -146,7 +147,7 @@ fn integrity_key(
     let Some(artifact) = artifact else {
         return Err(Error::Corrupt(format!("no verified artifact is available for {identity}")));
     };
-    let mut expected: BTreeMap<String, String> = BTreeMap::new();
+    let mut expected: FxHashMap<String, String> = FxHashMap::default();
     expected.insert("sha512".to_string(), artifact.artifact.sha512.clone());
     if let Some(ref shasum) = artifact.artifact.shasum {
         expected.insert("sha1".to_string(), shasum.clone());
@@ -187,11 +188,11 @@ fn package_selection(
     allow_local_host: bool,
     local_origin: Option<&str>,
 ) -> Result<Vec<SelectedPackage>> {
-    let by_identity: BTreeMap<(String, String), &ArtifactRecord> = artifacts
+    let by_identity: FxHashMap<(String, String), &ArtifactRecord> = artifacts
         .iter()
         .map(|r| ((r.name.clone(), r.version.clone()), r))
         .collect();
-    let mut selected: BTreeMap<String, SelectedPackage> = BTreeMap::new();
+    let mut selected: FxHashMap<String, SelectedPackage> = FxHashMap::default();
     for item in packages {
         let Some(ref version) = item.version else { continue };
         if item.source_kind == crate::inventory::SourceKind::Local || !supports_target(&item.platform, target) {
@@ -246,8 +247,8 @@ fn selection_key(item: &SelectedPackage) -> String {
 }
 
 fn compare_selections(expected: &[SelectedPackage], actual: &[SelectedPackage], project_id: &str, manager: &Manager) -> Result<()> {
-    let expected_set: BTreeSet<String> = expected.iter().map(selection_key).collect();
-    let actual_set: BTreeSet<String> = actual.iter().map(selection_key).collect();
+    let expected_set: FxHashSet<String> = expected.iter().map(selection_key).collect();
+    let actual_set: FxHashSet<String> = actual.iter().map(selection_key).collect();
     let mut missing: Vec<String> = expected_set.difference(&actual_set).cloned().collect();
     let mut extra: Vec<String> = actual_set.difference(&expected_set).cloned().collect();
     missing.sort();
@@ -596,7 +597,7 @@ fn assert_snapshot_restorable(project: &ProjectRecord) -> Result<()> {
     let snapshot = project.snapshot.as_ref().ok_or_else(|| {
         Error::Input(format!("validation requires an imported package.json snapshot for {}", project.id))
     })?;
-    let files: BTreeMap<&str, &str> = snapshot
+    let files: FxHashMap<&str, &str> = snapshot
         .workspace_files
         .iter()
         .map(|f| (f.path.as_str(), f.contents.as_str()))
@@ -822,12 +823,12 @@ fn rewrite_npm_legacy(
     if lock_map.get("dependencies").unwrap_or(&null).as_map().is_none() {
         return Ok(());
     }
-    let by_key: BTreeMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
+    let by_key: FxHashMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
     fn visit(
         entries: &mut deser_value::Map,
         parent: &str,
         project: &ProjectRecord,
-        by_key: &BTreeMap<&str, &PackageRecord>,
+        by_key: &FxHashMap<&str, &PackageRecord>,
         target: &Target,
         artifacts: &[ArtifactRecord],
         registry: &str,
@@ -882,8 +883,8 @@ fn normalize_npm_legacy(lock_map: &mut deser_value::Map, project: &ProjectRecord
     if lock_map.get("dependencies").unwrap_or(&null).as_map().is_none() {
         return Ok(());
     }
-    let by_key: BTreeMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
-    fn visit(entries: &mut deser_value::Map, parent: &str, by_key: &BTreeMap<&str, &PackageRecord>) {
+    let by_key: FxHashMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
+    fn visit(entries: &mut deser_value::Map, parent: &str, by_key: &FxHashMap<&str, &PackageRecord>) {
         let keys: Vec<String> = (0..entries.len())
             .filter_map(|i| entries.get_index(i).and_then(|(k, _)| k.as_str().map(|s| s.to_string())))
             .collect();
@@ -924,7 +925,7 @@ fn rewrite_pnpm_lock(project: &ProjectRecord, target: &Target, artifacts: &[Arti
     })?;
     let values = crate::lock_pnpm::decode_pnpm_documents(&snapshot.lockfile)
         .map_err(|e| Error::Corrupt(format!("could not migrate saved pnpm lockfile for {}: {e}", project.id)))?;
-    let by_key: BTreeMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
+    let by_key: FxHashMap<&str, &PackageRecord> = project.packages.iter().map(|p| (p.key.as_str(), p)).collect();
     let mut docs = values;
     for (document_index, document) in docs.iter_mut().enumerate() {
         let Some(doc_map) = document.as_map_mut() else { continue };
@@ -1158,9 +1159,9 @@ struct ExpectedInstance {
     optional: bool,
 }
 
-fn expected_npm_instances(project: &ProjectRecord, target: &Target) -> Result<(Vec<ExpectedInstance>, usize, BTreeSet<String>)> {
+fn expected_npm_instances(project: &ProjectRecord, target: &Target) -> Result<(Vec<ExpectedInstance>, usize, FxHashSet<String>)> {
     let mut skipped = 0;
-    let mut skipped_identities = BTreeSet::new();
+    let mut skipped_identities = FxHashSet::default();
     let mut instances = Vec::new();
     for item in &project.packages {
         if !item.key.starts_with("node_modules/") || item.version.is_none() {
@@ -1189,18 +1190,18 @@ fn expected_npm_instances(project: &ProjectRecord, target: &Target) -> Result<(V
     Ok((instances, skipped, skipped_identities))
 }
 
-fn expected_pnpm_instances(project: &ProjectRecord, target: &Target) -> Result<(Vec<ExpectedInstance>, usize, BTreeSet<String>)> {
+fn expected_pnpm_instances(project: &ProjectRecord, target: &Target) -> Result<(Vec<ExpectedInstance>, usize, FxHashSet<String>)> {
     let snapshot = project.snapshot.as_ref().ok_or_else(|| {
         Error::Input(format!("validation requires a saved snapshot for {}", project.id))
     })?;
     let values = crate::lock_pnpm::decode_pnpm_documents(&snapshot.lockfile)
         .map_err(|_| Error::Corrupt(format!("could not inspect saved pnpm installation graph for {}", project.id)))?;
-    let by_key: BTreeMap<String, &PackageRecord> = project
+    let by_key: FxHashMap<String, &PackageRecord> = project
         .packages
         .iter()
         .map(|p| (p.key.strip_prefix('/').unwrap_or(&p.key).to_string(), p))
         .collect();
-    let mut snapshots: BTreeMap<String, deser_value::Value> = BTreeMap::new();
+    let mut snapshots: FxHashMap<String, deser_value::Value> = FxHashMap::default();
     for (document_index, document) in values.iter().enumerate() {
         let Some(doc) = document.as_map() else { continue };
         let null = deser_value::Value::from(deser_value::Kind::Null);
@@ -1219,9 +1220,11 @@ fn expected_pnpm_instances(project: &ProjectRecord, target: &Target) -> Result<(
         }
     }
     let mut skipped = 0;
-    let mut skipped_identities = BTreeSet::new();
+    let mut skipped_identities = FxHashSet::default();
     let mut instances = Vec::new();
-    for (key, snapshot_value) in &snapshots {
+    let mut snapshot_entries: Vec<_> = snapshots.iter().collect();
+    snapshot_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (key, snapshot_value) in snapshot_entries {
         let artifact_key = key.split('(').next().unwrap_or("").to_string();
         let Some(item) = by_key.get(&artifact_key) else {
             return Err(Error::Corrupt(format!("saved pnpm snapshot has no package entry: {key}")));
@@ -1316,7 +1319,7 @@ fn inspect_installed_package(project_dir: &Path, instance: &ExpectedInstance) ->
     Ok(())
 }
 
-fn report_nodes(value: &deser_value::Value, output: &mut Vec<deser_value::Value>, seen: &mut BTreeSet<String>, top_level: bool, dependency_name: Option<&str>) {
+fn report_nodes(value: &deser_value::Value, output: &mut Vec<deser_value::Value>, seen: &mut FxHashSet<String>, top_level: bool, dependency_name: Option<&str>) {
     if let Some(seq) = value.as_seq() {
         for item in seq.iter() {
             report_nodes(item, output, seen, true, None);
@@ -1359,8 +1362,8 @@ fn report_nodes(value: &deser_value::Value, output: &mut Vec<deser_value::Value>
     }
 }
 
-fn identity_counts(instances: &[(String, String)]) -> BTreeMap<String, usize> {
-    let mut counts = BTreeMap::new();
+fn identity_counts(instances: &[(String, String)]) -> FxHashMap<String, usize> {
+    let mut counts = FxHashMap::default();
     for (name, version) in instances {
         *counts.entry(format!("{name}\0{version}")).or_insert(0) += 1;
     }
@@ -1436,7 +1439,7 @@ fn run_package_report(
         )));
     }
     let mut nodes = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen = FxHashSet::default();
     for root in &roots {
         report_nodes(root, &mut nodes, &mut seen, true, None);
     }
@@ -1456,11 +1459,11 @@ fn run_package_report(
 fn verify_reported_links(
     roots: &[deser_value::Value],
     project_dir: &Path,
-    skipped: &BTreeSet<String>,
+    skipped: &FxHashSet<String>,
 ) -> Result<()> {
     let project_root = std::fs::canonicalize(project_dir)
         .map_err(|_| Error::Operation(format!("could not resolve restored project directory {}", project_dir.display())))?;
-    let mut visited: BTreeSet<PathBuf> = BTreeSet::new();
+    let mut visited: FxHashSet<PathBuf> = FxHashSet::default();
     let mut stack: Vec<deser_value::Value> = roots.to_vec();
     let mut order: Vec<deser_value::Value> = Vec::new();
     while let Some(node) = stack.pop() {
@@ -1573,7 +1576,7 @@ fn assert_report_matches_expected(
     project_dir: &Path,
 ) -> Result<()> {
     let null = deser_value::Value::from(deser_value::Kind::Null);
-    let by_path: BTreeMap<String, &ExpectedInstance> = expected.iter().map(|i| (i.key.clone(), i)).collect();
+    let by_path: FxHashMap<String, &ExpectedInstance> = expected.iter().map(|i| (i.key.clone(), i)).collect();
     let mut actual_instances: Vec<(String, String)> = Vec::new();
     for item in report_nodes {
         let Some(map) = item.as_map() else { continue };
@@ -1598,9 +1601,10 @@ fn assert_report_matches_expected(
     }
     let expected_counts = identity_counts(&expected.iter().map(|e| (e.name.clone(), e.version.clone())).collect::<Vec<_>>());
     let actual_counts = identity_counts(&actual_instances);
-    let mut identities: BTreeSet<String> =
-        expected_counts.keys().chain(actual_counts.keys()).cloned().collect();
-    for identity in std::mem::take(&mut identities) {
+    let mut identities: Vec<String> = expected_counts.keys().chain(actual_counts.keys()).cloned().collect();
+    identities.sort_unstable();
+    identities.dedup();
+    for identity in identities {
         if expected_counts.get(&identity) != actual_counts.get(&identity) {
             let (name, version) = identity.split_once('\0').unwrap_or((identity.as_str(), ""));
             return Err(Error::Conflict(format!(
@@ -1630,7 +1634,7 @@ fn verify_installed_tree(
     } else {
         expected_pnpm_instances(project, target)?
     };
-    let optional_identities: BTreeSet<String> = instances
+    let optional_identities: FxHashSet<String> = instances
         .iter()
         .filter(|i| i.optional)
         .map(|i| format!("{}\0{}", i.name, i.version))
@@ -1775,8 +1779,8 @@ fn assert_project_static_responses(
     target: &Target,
     artifacts: &[ArtifactRecord],
 ) -> Result<()> {
-    let mut expected_names: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    let mut expected_digests: BTreeSet<String> = BTreeSet::new();
+    let mut expected_names: FxHashMap<String, Vec<String>> = FxHashMap::default();
+    let mut expected_digests: FxHashSet<String> = FxHashSet::default();
     for item in &project.packages {
         let Some(ref version) = item.version else { continue };
         if item.source_kind != crate::inventory::SourceKind::Registry || !supports_target(&item.platform, target) {
@@ -1807,7 +1811,9 @@ fn assert_project_static_responses(
             )));
         }
     }
-    for digest in &expected_digests {
+    let mut digests: Vec<_> = expected_digests.iter().collect();
+    digests.sort_unstable();
+    for digest in digests {
         let pathname = format!("{mount}current/-/tarballs/{digest}.tgz");
         let matching: Vec<&StaticRequest> =
             requests.iter().filter(|r| r.pathname == pathname && r.method == "GET").collect();
@@ -2078,7 +2084,7 @@ pub fn validate_inventory(options: &ValidateOptions) -> Result<ValidationResult>
         for project in &projects {
             assert_snapshot_matches_project(project, &target)?;
         }
-        let mut expected_by_project: BTreeMap<String, Vec<SelectedPackage>> = BTreeMap::new();
+        let mut expected_by_project: FxHashMap<String, Vec<SelectedPackage>> = FxHashMap::default();
         for project in &projects {
             expected_by_project.insert(
                 project.id.clone(),
@@ -2100,7 +2106,7 @@ pub fn validate_inventory(options: &ValidateOptions) -> Result<ValidationResult>
             let _ = &mut environment;
             let version = check_client_version(&options.client, &target, &workspace.to_string_lossy(), &environment)?;
             let mut project_number = 0;
-            let mut validated: BTreeSet<String> = BTreeSet::new();
+            let mut validated: FxHashSet<String> = FxHashSet::default();
             let mut platform_skipped = 0;
             let mut executables: Vec<(String, String)> = Vec::new();
             let mut generation_id: Option<String> = None;

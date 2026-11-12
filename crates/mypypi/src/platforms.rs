@@ -2,7 +2,7 @@
 
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::Target;
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::str::FromStr;
 use std::sync::OnceLock;
 
@@ -228,8 +228,8 @@ pub fn ordered_tag_strings(target: &Target, linux_repair_policy: &str) -> Result
         .collect())
 }
 
-pub fn tag_preference(target: &Target, linux_repair_policy: &str) -> Result<BTreeMap<String, usize>> {
-    let mut map = BTreeMap::new();
+pub fn tag_preference(target: &Target, linux_repair_policy: &str) -> Result<FxHashMap<String, usize>> {
+    let mut map = FxHashMap::default();
     for (i, t) in ordered_target_tags(target, linux_repair_policy)?.iter().enumerate() {
         map.entry(t.as_string()).or_insert(i);
     }
@@ -264,7 +264,7 @@ pub fn wheel_tag_triples(filename: &str) -> Result<Vec<TagTriple>> {
     Ok(out)
 }
 
-pub fn wheel_rank(filename: &str, preference: &BTreeMap<String, usize>) -> Option<usize> {
+pub fn wheel_rank(filename: &str, preference: &FxHashMap<String, usize>) -> Option<usize> {
     let triples = wheel_tag_triples(filename).ok()?;
     triples
         .iter()
@@ -296,7 +296,7 @@ fn u32be(b: &[u8]) -> u32 {
     u32::from_be_bytes([b[0], b[1], b[2], b[3]])
 }
 
-pub fn native_architectures_from_bytes(content: &[u8]) -> std::result::Result<BTreeSet<String>, NativeFormatError> {
+pub fn native_architectures_from_bytes(content: &[u8]) -> std::result::Result<FxHashSet<String>, NativeFormatError> {
     let err = |m: &str| NativeFormatError(m.to_string());
     if content.starts_with(b"\x7fELF") {
         if content.len() < 16 {
@@ -375,7 +375,7 @@ pub fn native_architectures_from_bytes(content: &[u8]) -> std::result::Result<BT
         if content.len() < 8 + count as usize * rec {
             return Err(err("truncated universal Mach-O header"));
         }
-        let mut result = BTreeSet::new();
+        let mut result = FxHashSet::default();
         for i in 0..count as usize {
             let off = 8 + i * rec;
             let cpu = if little { u32le(&content[off..off + 4]) } else { u32be(&content[off..off + 4]) };
@@ -410,10 +410,10 @@ pub fn native_architectures_from_bytes(content: &[u8]) -> std::result::Result<BT
         };
         return Ok([arch.to_string()].into_iter().collect());
     }
-    Ok(BTreeSet::new())
+    Ok(FxHashSet::default())
 }
 
-pub fn expected_architectures(filename: &str) -> Result<BTreeSet<String>> {
+pub fn expected_architectures(filename: &str) -> Result<FxHashSet<String>> {
     let stem = filename
         .strip_suffix(".whl")
         .ok_or_else(|| Error::configuration("wheel filename must end in .whl"))?;
@@ -423,7 +423,7 @@ pub fn expected_architectures(filename: &str) -> Result<BTreeSet<String>> {
         6 => parts[5],
         _ => return Err(Error::configuration("invalid wheel filename")),
     };
-    let mut result = BTreeSet::new();
+    let mut result = FxHashSet::default();
     for tag in plat_group.split('.') {
         if tag == "any" {
             continue;
@@ -464,7 +464,7 @@ pub fn python_binary() -> String {
     std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_string())
 }
 
-pub fn verify_repair_tool(target: &Target, env: &BTreeMap<String, String>) -> Result<String> {
+pub fn verify_repair_tool(target: &Target, env: &FxHashMap<String, String>) -> Result<String> {
     let family = family_of(target.platform.as_str()).map_err(|e| {
         Error::new(Kind::Incompatible, e.detail, Stage::Repair)
     })?;

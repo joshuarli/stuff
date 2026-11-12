@@ -6,7 +6,7 @@ use crate::json;
 use crate::manifest::Descriptor;
 use crate::manifest::parse_descriptor;
 use crate::reference::{RepositoryName, Tag};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub const REPOSITORY_SCHEMA_VERSION: u32 = 1;
 pub const BLOBS_SCHEMA_VERSION: u32 = 1;
@@ -14,13 +14,13 @@ pub const BLOBS_SCHEMA_VERSION: u32 = 1;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepositoryView {
     pub name: RepositoryName,
-    pub tags: BTreeMap<Tag, Descriptor>,
-    pub manifests: BTreeMap<Digest, Descriptor>,
+    pub tags: FxHashMap<Tag, Descriptor>,
+    pub manifests: FxHashMap<Digest, Descriptor>,
 }
 
 impl RepositoryView {
     pub fn new(name: RepositoryName) -> Self {
-        Self { name, tags: BTreeMap::new(), manifests: BTreeMap::new() }
+        Self { name, tags: FxHashMap::default(), manifests: FxHashMap::default() }
     }
 
     pub fn insert_manifest(&mut self, descriptor: Descriptor) {
@@ -46,8 +46,10 @@ pub fn render_repository_json(view: &RepositoryView) -> String {
     out.push_str("  \"repository\": ");
     out.push_str(&json::quoted(view.name.as_str()));
     out.push_str(",\n  \"tags\": {");
+    let mut tags: Vec<_> = view.tags.iter().collect();
+    tags.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let mut first = true;
-    for (tag, descriptor) in &view.tags {
+    for (tag, descriptor) in tags {
         out.push_str(if first { "\n" } else { ",\n" });
         first = false;
         out.push_str("    ");
@@ -64,10 +66,12 @@ pub fn render_repository_json(view: &RepositoryView) -> String {
         return out;
     }
     out.push('\n');
-    for (i, descriptor) in view.manifests.values().enumerate() {
+    let mut manifests: Vec<_> = view.manifests.iter().collect();
+    manifests.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (i, (_, descriptor)) in manifests.iter().enumerate() {
         out.push_str("    ");
         out.push_str(&descriptor.render_json());
-        if i + 1 < view.manifests.len() {
+        if i + 1 < manifests.len() {
             out.push(',');
         }
         out.push('\n');
@@ -130,9 +134,11 @@ pub fn parse_repository_json(name: &RepositoryName, text: &str) -> Result<Reposi
     Ok(view)
 }
 
-pub fn render_blobs_json(blobs: &BTreeSet<Digest>) -> String {
+pub fn render_blobs_json(blobs: &FxHashSet<Digest>) -> String {
     let mut out = format!("{{\"schemaVersion\":{BLOBS_SCHEMA_VERSION},\"blobs\":[");
-    for (i, digest) in blobs.iter().enumerate() {
+    let mut digests: Vec<_> = blobs.iter().collect();
+    digests.sort_unstable();
+    for (i, digest) in digests.iter().enumerate() {
         if i > 0 {
             out.push(',');
         }
@@ -142,7 +148,7 @@ pub fn render_blobs_json(blobs: &BTreeSet<Digest>) -> String {
     out
 }
 
-pub fn parse_blobs_json(text: &str) -> Result<BTreeSet<Digest>, Error> {
+pub fn parse_blobs_json(text: &str) -> Result<FxHashSet<Digest>, Error> {
     let value = json::parse(text, "blobs")?;
     let map = value
         .as_map()
@@ -161,7 +167,7 @@ pub fn parse_blobs_json(text: &str) -> Result<BTreeSet<Digest>, Error> {
         .get("blobs")
         .and_then(|value| value.as_seq())
         .ok_or_else(|| Error::new(ErrorCode::ManifestInvalid, "blobs.blobs must be an array"))?;
-    let mut out = BTreeSet::new();
+    let mut out = FxHashSet::default();
     for (i, value) in seq.iter().enumerate() {
         let text = value
             .as_str()
@@ -188,7 +194,7 @@ mod tests {
             digest: Digest::parse(digest).unwrap(),
             size,
             artifact_type: None,
-            annotations: BTreeMap::new(),
+            annotations: FxHashMap::default(),
             platform: None,
             urls: Vec::new(),
         }
@@ -223,7 +229,7 @@ mod tests {
 
     #[test]
     fn round_trips_blobs_and_rejects_duplicates() {
-        let blobs: BTreeSet<Digest> = [
+        let blobs: FxHashSet<Digest> = [
             Digest::parse("sha256:882765efc0f62ee831f26df7bd0a5098a1c10dbbe340dd03d84311b2d8cdeb6f").unwrap(),
             Digest::parse("sha256:bf2585f7b79b5ba8a5d7f256f7c2ce5a537ebc1c0d9e043ca90c461f2183f718").unwrap(),
         ]

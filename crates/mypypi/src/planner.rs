@@ -3,7 +3,7 @@
 use crate::catalog::Catalog;
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target, WheelIdentity};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactRecord {
@@ -84,7 +84,7 @@ pub fn validate_catalog_targets(
     catalog: &Catalog,
     configured: &[Target],
 ) -> Result<()> {
-    let configured_platforms: BTreeSet<&str> =
+    let configured_platforms: FxHashSet<&str> =
         configured.iter().map(|t| t.platform.as_str()).collect();
     for e in &catalog.entries {
         for (platform, _) in &e.excluded_platforms {
@@ -120,19 +120,23 @@ pub fn validate_catalog_targets(
 pub fn plan(
     catalog: &Catalog,
     targets: &[Target],
-    published: &BTreeMap<(PackageVersion, Target), ArtifactRecord>,
-    upstream: &BTreeMap<(PackageVersion, Target), Vec<UpstreamArtifact>>,
-    pending: &BTreeMap<(PackageVersion, Target), ArtifactRecord>,
+    published: &FxHashMap<(PackageVersion, Target), ArtifactRecord>,
+    upstream: &FxHashMap<(PackageVersion, Target), Vec<UpstreamArtifact>>,
+    pending: &FxHashMap<(PackageVersion, Target), ArtifactRecord>,
     configured_targets: Option<&[Target]>,
 ) -> Result<Vec<PlanOutcome>> {
     validate_catalog_targets(catalog, configured_targets.unwrap_or(targets))?;
-    let mut local_filenames: BTreeMap<String, &ArtifactRecord> = BTreeMap::new();
-    for record in published.values().chain(pending.values()) {
+    let mut local_filenames: FxHashMap<String, &ArtifactRecord> = FxHashMap::default();
+    let mut published_records: Vec<_> = published.iter().collect();
+    published_records.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    let mut pending_records: Vec<_> = pending.iter().collect();
+    pending_records.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (_, record) in published_records.into_iter().chain(pending_records) {
         local_filenames.insert(record.wheel.filename.clone(), record);
     }
     let mut outcomes = Vec::new();
     for e in &catalog.entries {
-        let exclusions: BTreeMap<&str, &str> = e
+        let exclusions: FxHashMap<&str, &str> = e
             .excluded_platforms
             .iter()
             .map(|(p, r)| (p.as_str(), r.as_str()))
@@ -252,7 +256,7 @@ mod tests {
         let package = catalog.entries[0].package.clone();
         let wheel = WheelIdentity::parse("foo-1.0-py3-none-any.whl").unwrap();
         let key = (package.clone(), targets[0].clone());
-        let upstream: BTreeMap<(PackageVersion, Target), Vec<UpstreamArtifact>> = [(
+        let upstream: FxHashMap<(PackageVersion, Target), Vec<UpstreamArtifact>> = [(
             key.clone(),
             vec![UpstreamArtifact::Wheel(UpstreamWheel {
                 wheel: wheel.clone(),
@@ -265,14 +269,14 @@ mod tests {
         let outcomes = plan(
             &catalog,
             &targets,
-            &BTreeMap::new(),
+            &FxHashMap::default(),
             &upstream,
-            &BTreeMap::new(),
+            &FxHashMap::default(),
             None,
         )
         .unwrap();
         assert!(matches!(outcomes[0], PlanOutcome::DownloadWheel { .. }));
-        let published: BTreeMap<(PackageVersion, Target), ArtifactRecord> = [(
+        let published: FxHashMap<(PackageVersion, Target), ArtifactRecord> = [(
             key,
             ArtifactRecord {
                 wheel,
@@ -285,8 +289,8 @@ mod tests {
             &catalog,
             &targets,
             &published,
-            &BTreeMap::new(),
-            &BTreeMap::new(),
+            &FxHashMap::default(),
+            &FxHashMap::default(),
             None,
         )
         .unwrap();

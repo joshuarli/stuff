@@ -191,7 +191,7 @@ fn parse_manifest(text: &str, label: &str, manager: &Manager) -> Result<deser_va
 fn parse_npmrc(text: Option<&str>, manager: &Manager, public_base_url: &str) -> Result<NpmInstallOptions> {
     let mut options = NpmInstallOptions { legacy_peer_deps: None, install_links: None };
     let Some(text) = text else { return Ok(options) };
-    let mut seen: std::collections::BTreeSet<String> = Default::default();
+    let mut seen: rustc_hash::FxHashSet<String> = Default::default();
     for (index, raw_line) in text.split(['\n']).enumerate() {
         let line = raw_line.strip_suffix('\r').unwrap_or(raw_line).trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
@@ -420,7 +420,7 @@ pub fn assert_restorable_snapshot(manager: &Manager, snapshot: &ProjectSnapshot)
     Ok(())
 }
 
-fn npm_workspace_paths(lock_text: &str) -> Result<std::collections::BTreeSet<String>> {
+fn npm_workspace_paths(lock_text: &str) -> Result<rustc_hash::FxHashSet<String>> {
     let lock: deser_value::Value = deser_json::from_str(lock_text)
         .map_err(|_| Error::Input("npm lockfile must be an object".to_string()))?;
     let root = lock.as_map().ok_or_else(|| Error::Input("npm lockfile must be an object".to_string()))?;
@@ -430,7 +430,7 @@ fn npm_workspace_paths(lock_text: &str) -> Result<std::collections::BTreeSet<Str
         return Ok(Default::default());
     }
     let packages = packages_val.as_map().ok_or_else(|| Error::Input("npm lockfile packages must be an object".to_string()))?;
-    let mut paths = std::collections::BTreeSet::new();
+    let mut paths = rustc_hash::FxHashSet::default();
     for i in 0..packages.len() {
         let Some((_, entry_value)) = packages.get_index(i) else { continue };
         let Some(entry) = entry_value.as_map() else { continue };
@@ -470,7 +470,7 @@ pub fn capture_project_snapshot(options: &CaptureOptions) -> Result<ProjectSnaps
         }
     }
     let workspace_paths = if *options.manager == Manager::Pnpm {
-        options.project.importers.iter().filter(|i| *i != ".").cloned().collect::<std::collections::BTreeSet<_>>()
+        options.project.importers.iter().filter(|i| *i != ".").cloned().collect::<rustc_hash::FxHashSet<_>>()
     } else {
         npm_workspace_paths(options.lockfile_text)?
     };

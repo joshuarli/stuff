@@ -10,7 +10,8 @@ use crate::inventory::{
 use crate::inventory_store::load_inventory;
 use crate::packument::{render_packument_files, PackumentFile, RENDERER_VERSION};
 use sha2::{Digest, Sha256, Sha512};
-use std::collections::{BTreeMap, HashMap};
+use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -150,7 +151,7 @@ fn catalog_for(
     artifacts: &[ArtifactRecord],
     files: &[PackumentFile],
 ) -> std::result::Result<stuff_catalog::Catalog, String> {
-    let mut dist_latest: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
+    let mut dist_latest: rustc_hash::FxHashMap<String, String> = rustc_hash::FxHashMap::default();
     for file in files {
         let text = String::from_utf8(file.bytes.clone()).map_err(|_| "packument is not valid UTF-8".to_string())?;
         let value: deser_value::Value =
@@ -171,7 +172,7 @@ fn catalog_for(
             dependencies: catalog_dependencies(&r.metadata),
         })
         .collect();
-    stuff_catalog::npm_catalog(generation_id, inputs, &dist_latest)
+    stuff_catalog::npm_catalog(generation_id, inputs, &dist_latest.into_iter().collect())
 }
 
 fn manifest_value(
@@ -559,7 +560,7 @@ fn read_current(
 }
 
 fn merge_artifacts(retained: &[ArtifactRecord], incoming: &[ArtifactRecord]) -> Result<Vec<ArtifactRecord>> {
-    let mut merged: BTreeMap<String, ArtifactRecord> = BTreeMap::new();
+    let mut merged: FxHashMap<String, ArtifactRecord> = FxHashMap::default();
     for record in retained {
         merged.insert(format!("{}\0{}", record.name, record.version), record.clone());
     }
@@ -584,7 +585,7 @@ fn merge_metadata_only(
     incoming: &[MetadataOnlyRecord],
     artifacts: &[ArtifactRecord],
 ) -> Result<Vec<MetadataOnlyRecord>> {
-    let mut merged: BTreeMap<String, MetadataOnlyRecord> = BTreeMap::new();
+    let mut merged: FxHashMap<String, MetadataOnlyRecord> = FxHashMap::default();
     for record in retained.iter().chain(incoming) {
         let key = format!("{}\0{}", record.name, record.version);
         if let Some(existing) = merged.get(&key)

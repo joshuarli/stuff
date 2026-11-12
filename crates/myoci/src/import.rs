@@ -5,7 +5,7 @@ use crate::state::State;
 use stuff_oci::{
     parse_image, Descriptor, Digest, Image, RepositoryName, Tag,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::process::Command;
 
 pub const MAX_MANIFEST_BYTES: u64 = 4 * 1024 * 1024;
@@ -64,11 +64,15 @@ pub fn import_layout(
     }
     view.tag(root_tag.clone(), walk.manifests[&root.digest].0.clone());
 
-    for digest in walk.blobs.iter() {
+    let mut blob_digests: Vec<&Digest> = walk.blobs.iter().collect();
+    blob_digests.sort_unstable();
+    for digest in blob_digests {
         let source = layout_blob_path(layout, digest);
         state.store_blob(&source, digest)?;
     }
-    for (digest, (_, bytes)) in &walk.manifests {
+    let mut manifest_entries: Vec<_> = walk.manifests.iter().collect();
+    manifest_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (digest, (_, bytes)) in manifest_entries {
         state.store_manifest(digest, bytes)?;
     }
 
@@ -185,8 +189,8 @@ impl Drop for Scratch {
 
 #[derive(Default)]
 struct Walk {
-    manifests: BTreeMap<Digest, (Descriptor, Vec<u8>)>,
-    blobs: BTreeSet<Digest>,
+    manifests: FxHashMap<Digest, (Descriptor, Vec<u8>)>,
+    blobs: FxHashSet<Digest>,
 }
 
 fn read_layout_index(layout: &std::path::Path) -> Result<Vec<Descriptor>> {

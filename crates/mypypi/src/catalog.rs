@@ -2,7 +2,7 @@
 
 use crate::error::{Error, Result, Stage};
 use crate::models::PackageVersion;
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildSettings {
@@ -34,7 +34,7 @@ pub struct Catalog {
 }
 
 impl Catalog {
-    pub fn by_package(&self) -> BTreeMap<PackageVersion, &PackageEntry> {
+    pub fn by_package(&self) -> FxHashMap<PackageVersion, &PackageEntry> {
         self.entries.iter().map(|e| (e.package.clone(), e)).collect()
     }
 }
@@ -354,7 +354,7 @@ pub fn parse_catalog(source: &str) -> Result<Catalog> {
         .as_seq()
         .ok_or_else(|| fail("packages must be an array of tables"))?;
     let mut entries: Vec<PackageEntry> = Vec::new();
-    let mut positions: BTreeMap<PackageVersion, usize> = BTreeMap::new();
+    let mut positions: FxHashMap<PackageVersion, usize> = FxHashMap::default();
     for row in rows.iter() {
         let e = entry_of(row)?;
         match positions.get(&e.package) {

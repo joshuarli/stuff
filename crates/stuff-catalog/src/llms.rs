@@ -330,7 +330,7 @@ mod tests {
             &npm_catalog(
                 "g",
                 vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string(), dependencies: Dependencies::default() }],
-                &std::collections::BTreeMap::new(),
+                &rustc_hash::FxHashMap::default(),
             )
             .unwrap(),
             "https://npm.example.test",
@@ -355,7 +355,7 @@ mod tests {
         let npm = npm_catalog(
             "g",
             vec![NpmInput { name: "@mine/utils".to_string(), version: "1.3.0".to_string(), dependencies: Dependencies::default() }],
-            &std::collections::BTreeMap::new(),
+            &rustc_hash::FxHashMap::default(),
         )
         .unwrap();
         let text = render_llms_txt(&npm, DEFAULT_NPM_ORIGIN);
@@ -386,7 +386,7 @@ mod tests {
         let npm = npm_catalog(
             "g2",
             vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() }],
-            &std::collections::BTreeMap::new(),
+            &rustc_hash::FxHashMap::default(),
         )
         .unwrap();
         let text = render_unified_llms_txt(&[npm, cargo], &CatalogOrigins::default());
@@ -405,7 +405,7 @@ mod tests {
         let npm = npm_catalog(
             "g2",
             vec![NpmInput { name: "pkg".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() }],
-            &std::collections::BTreeMap::new(),
+            &rustc_hash::FxHashMap::default(),
         )
         .unwrap();
         let origins = CatalogOrigins::new(

@@ -5,7 +5,7 @@ use crate::models::{PackageVersion, Target, WheelIdentity, canonicalize_name};
 use crate::platforms::{current_platform, native_architectures_from_bytes, target_platform_tags};
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use sha2::{Digest, Sha384, Sha512, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -47,7 +47,7 @@ impl ValidationException {
                 if parts.iter().any(|p| !is_extra_name(p)) {
                     return Err(Error::validation("validation extras must be comma-separated extra names", Stage::Validation));
                 }
-                let mut seen = BTreeSet::new();
+                let mut seen = FxHashSet::default();
                 for p in &parts {
                     if !seen.insert(*p) {
                         return Err(Error::validation("validation extras must be unique", Stage::Validation));
@@ -130,7 +130,7 @@ pub struct ValidationPolicy {
 
 impl ValidationPolicy {
     pub fn new(exceptions: Vec<ValidationException>) -> Result<Self> {
-        let mut seen = BTreeSet::new();
+        let mut seen = FxHashSet::default();
         for e in &exceptions {
             if !seen.insert((e.kind.as_str(), e.value.clone())) {
                 return Err(Error::validation("validation exceptions must be unique", Stage::Validation));
@@ -150,7 +150,7 @@ impl ValidationPolicy {
         self.exceptions.iter().filter(|e| e.kind == ExceptionKind::MissingDependency).map(|e| e.value.as_str()).collect()
     }
 
-    pub fn skipped_imports(&self) -> BTreeSet<&str> {
+    pub fn skipped_imports(&self) -> FxHashSet<&str> {
         self.exceptions.iter().filter(|e| e.kind == ExceptionKind::SkipImport).map(|e| e.value.as_str()).collect()
     }
 }
@@ -159,9 +159,9 @@ impl ValidationPolicy {
 pub struct WheelMetadata {
     pub identity: WheelIdentity,
     pub requires_python: String,
-    pub tags: BTreeSet<String>,
+    pub tags: FxHashSet<String>,
     pub imports: Vec<String>,
-    pub native_architectures: BTreeSet<String>,
+    pub native_architectures: FxHashSet<String>,
 }
 
 fn failure(package: Option<&PackageVersion>, target: &Target, detail: impl Into<String>) -> Error {
@@ -183,14 +183,14 @@ pub fn platform_architecture(platform_name: &str) -> Result<String> {
     }
 }
 
-pub fn supported_tags(target: &Target, linux_repair_policy: &str) -> Result<BTreeSet<String>> {
+pub fn supported_tags(target: &Target, linux_repair_policy: &str) -> Result<FxHashSet<String>> {
     let release = target.python_version.release();
     if release.len() < 2 {
         return Err(Error::validation("target Python version has no minor release", Stage::Validation));
     }
     let platforms = target_platform_tags(target, linux_repair_policy)
         .map_err(|e| Error::validation(e.detail, Stage::Validation))?;
-    let mut out = BTreeSet::new();
+    let mut out = FxHashSet::default();
     let triples = crate::platforms::ordered_target_tags(target, linux_repair_policy)
         .map_err(|e| Error::validation(e.detail, Stage::Validation))?;
     for t in triples {
@@ -216,7 +216,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     let archive = crate::wheel_zip::Archive::open(path).map_err(|e| fail(e.to_string()))?;
     let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
-        let mut seen = BTreeSet::new();
+        let mut seen = FxHashSet::default();
         names.iter().any(|n| !seen.insert(n.clone()))
     }; if res {
         return Err(fail("wheel contains duplicate archive paths".to_string()));
@@ -236,7 +236,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
             return Err(fail("wheel contains a symbolic link".to_string()));
         }
     }
-    let dist_infos: BTreeSet<String> = names
+    let dist_infos: FxHashSet<String> = names
         .iter()
         .map(|n| n.split('/').next().unwrap_or("").to_string())
         .filter(|d| d.ends_with(".dist-info"))
@@ -251,7 +251,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     let metadata_path = format!("{dist_info}/METADATA");
     let wheel_path = format!("{dist_info}/WHEEL");
     let record_path = format!("{dist_info}/RECORD");
-    let name_set: BTreeSet<&str> = names.iter().map(|s| s.as_str()).collect();
+    let name_set: FxHashSet<&str> = names.iter().map(|s| s.as_str()).collect();
     if !(name_set.contains(metadata_path.as_str()) && name_set.contains(wheel_path.as_str()) && name_set.contains(record_path.as_str())) {
         return Err(fail("wheel requires METADATA, WHEEL, and RECORD".to_string()));
     }
@@ -296,14 +296,14 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
             return Err(fail("wheel dependencies cannot use direct URLs".to_string()));
         }
     }
-    let wheel_tags: BTreeSet<String> = wheel_headers
+    let wheel_tags: FxHashSet<String> = wheel_headers
         .get("tag")
         .cloned()
         .unwrap_or_default()
         .iter()
         .flat_map(|v| v.split_whitespace().map(|s| s.to_string()))
         .collect();
-    let filename_tags: BTreeSet<String> = crate::platforms::wheel_tag_triples(&filename)
+    let filename_tags: FxHashSet<String> = crate::platforms::wheel_tag_triples(&filename)
         .map_err(|e| fail(e.detail))?
         .iter()
         .map(|t| t.as_string())
@@ -324,7 +324,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     // RECORD verification
     let record_bytes = read_member(&record_path)?;
     let record_text = String::from_utf8(record_bytes).map_err(|_| fail("wheel RECORD is not valid UTF-8".to_string()))?;
-    let mut recorded: BTreeMap<String, (String, String)> = BTreeMap::new();
+    let mut recorded: FxHashMap<String, (String, String)> = FxHashMap::default();
     for row in parse_csv(&record_text).map_err(fail)? {
         if row.len() != 3 || row[0].is_empty() {
             return Err(fail("wheel RECORD contains an invalid row".to_string()));
@@ -334,11 +334,13 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         }
         recorded.insert(row[0].clone(), (row[1].clone(), row[2].clone()));
     }
-    let file_names: BTreeSet<String> = names.iter().filter(|n| !n.ends_with('/')).cloned().collect();
-    if recorded.keys().cloned().collect::<BTreeSet<_>>() != file_names {
+    let file_names: FxHashSet<String> = names.iter().filter(|n| !n.ends_with('/')).cloned().collect();
+    if recorded.keys().cloned().collect::<FxHashSet<_>>() != file_names {
         return Err(fail("wheel RECORD does not match its files".to_string()));
     }
-    for name in &file_names {
+    let mut ordered_names: Vec<&String> = file_names.iter().collect();
+    ordered_names.sort_unstable();
+    for name in ordered_names {
         let (digest_value, size_value) = recorded.get(name.as_str()).expect("recorded");
         if *name == record_path {
             if !digest_value.is_empty() || !size_value.is_empty() {
@@ -384,8 +386,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         }
     }
     // imports + native architectures
-    let mut imports: BTreeSet<String> = BTreeSet::new();
-    let mut native_architectures: BTreeSet<String> = BTreeSet::new();
+    let mut imports: FxHashSet<String> = FxHashSet::default();
+    let mut native_architectures: FxHashSet<String> = FxHashSet::default();
     let expected_arch = platform_architecture(&target.platform)?;
     // map arm64<->aarch64
     let arch_ok = |have: &str| {
@@ -429,11 +431,13 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
                 }
         }
     }
+    let mut import_names: Vec<String> = imports.into_iter().collect();
+    import_names.sort_unstable();
     Ok(WheelMetadata {
         identity,
         requires_python,
         tags: wheel_tags,
-        imports: imports.into_iter().collect(),
+        imports: import_names,
         native_architectures,
     })
 }
@@ -491,9 +495,9 @@ fn base64_url_nopad(bytes: &[u8]) -> String {
     out
 }
 
-pub(crate) fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
+pub(crate) fn parse_headers(bytes: &[u8]) -> FxHashMap<String, Vec<String>> {
     let text = String::from_utf8_lossy(bytes);
-    let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut map: FxHashMap<String, Vec<String>> = FxHashMap::default();
     let mut current: Option<String> = None;
     for line in text.split_inclusive('\n') {
         let line = line.strip_suffix('\n').unwrap_or(line);
@@ -727,7 +731,7 @@ pub fn validate_wheels(
     wheels: &[PathBuf],
     targets: &[Target],
     wheel_set: &Path,
-    policies: &BTreeMap<PackageVersion, ValidationPolicy>,
+    policies: &FxHashMap<PackageVersion, ValidationPolicy>,
     linux_repair_policy: &str,
 ) -> Result<Vec<(WheelMetadata, Target)>> {
     if wheels.is_empty() {
@@ -737,7 +741,7 @@ pub fn validate_wheels(
         return Err(Error::validation("validation requires at least one target", Stage::Validation));
     }
     {
-        let mut seen = BTreeSet::new();
+        let mut seen = FxHashSet::default();
         for t in targets {
             if !seen.insert((t.python_version.to_string(), t.platform.clone())) {
                 return Err(Error::validation("validation targets must be unique", Stage::Validation));
@@ -764,7 +768,7 @@ pub fn validate_wheels(
     Ok(out)
 }
 
-fn filename_tags_set(filename: &str) -> Result<BTreeSet<String>> {
+fn filename_tags_set(filename: &str) -> Result<FxHashSet<String>> {
     Ok(crate::platforms::wheel_tag_triples(filename)
         .map_err(|e| Error::validation(e.detail, Stage::Validation))?
         .iter()
@@ -772,7 +776,7 @@ fn filename_tags_set(filename: &str) -> Result<BTreeSet<String>> {
         .collect())
 }
 
-fn triple_intersects(a: &BTreeSet<String>, b: &BTreeSet<String>) -> bool {
+fn triple_intersects(a: &FxHashSet<String>, b: &FxHashSet<String>) -> bool {
     a.intersection(b).next().is_some()
 }
 

@@ -62,7 +62,7 @@ pub fn seed_pypi_generation(
     let (_, activation) = mypypi::store::publish(
         &[artifact],
         output,
-        &std::collections::BTreeMap::new(),
+        &rustc_hash::FxHashMap::default(),
         public_base_url,
     )
     .expect("seed the pypi generation");

@@ -5,7 +5,7 @@ use crate::error::{Error, Result};
 use crate::inventory::{Manager, PackageRecord, ProjectRecord};
 use crate::lock_npm::{parse_npm_lock, NpmOptions};
 use crate::lock_pnpm::{parse_pnpm_lock, pnpm_build_package_keys, PnpmOptions};
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::path::Path;
 
 pub struct ManagerPin {
@@ -216,7 +216,7 @@ pub fn run_doctor(project_path: &Path, config: &Config) -> Result<()> {
             },
         )?
     };
-    let script_keys: BTreeSet<String> = if manager == Manager::Npm {
+    let script_keys: FxHashSet<String> = if manager == Manager::Npm {
         project
             .packages
             .iter()

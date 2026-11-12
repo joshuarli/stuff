@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Result};
+use rustc_hash::{FxHashMap, FxHashSet};
 use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_blobs_json, render_referrers,
     render_repository_json, Descriptor, Digest, RepositoryName,
 };
-use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 pub const STATE_SCHEMA_VERSION: u32 = 1;
@@ -194,16 +194,16 @@ impl State {
         Ok(())
     }
 
-    pub fn read_blobs(&self) -> Result<BTreeSet<Digest>> {
+    pub fn read_blobs(&self) -> Result<FxHashSet<Digest>> {
         let path = self.blobs_index_path();
         match std::fs::read_to_string(&path) {
             Ok(text) => parse_blobs_json(&text).map_err(|error| Error::Integrity(error.to_string())),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(BTreeSet::new()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(FxHashSet::default()),
             Err(error) => Err(Error::Operation(format!("could not read {}: {error}", path.display()))),
         }
     }
 
-    pub fn write_blobs(&self, blobs: &BTreeSet<Digest>) -> Result<()> {
+    pub fn write_blobs(&self, blobs: &FxHashSet<Digest>) -> Result<()> {
         stuff_store::write_file_durable(&self.blobs_index_path(), render_blobs_json(blobs).as_bytes())?;
         Ok(())
     }
@@ -215,16 +215,16 @@ impl State {
         Ok(out)
     }
 
-    pub fn blob_digests_on_disk(&self) -> Result<BTreeSet<Digest>> {
+    pub fn blob_digests_on_disk(&self) -> Result<FxHashSet<Digest>> {
         let dir = self.blobs_dir();
         let entries = match std::fs::read_dir(&dir) {
             Ok(entries) => entries,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeSet::new()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(FxHashSet::default()),
             Err(error) => {
                 return Err(Error::Operation(format!("could not read {}: {error}", dir.display())));
             }
         };
-        let mut digests = BTreeSet::new();
+        let mut digests = FxHashSet::default();
         for entry in entries {
             let entry = entry
                 .map_err(|e| Error::Operation(format!("could not read {}: {e}", dir.display())))?;
@@ -281,8 +281,10 @@ impl State {
     }
 
     pub fn rebuild_referrers(&self, view: &stuff_oci::RepositoryView) -> Result<usize> {
-        let mut referrers: std::collections::BTreeMap<Digest, Vec<Descriptor>> = std::collections::BTreeMap::new();
-        for digest in view.manifests.keys() {
+        let mut referrers: FxHashMap<Digest, Vec<Descriptor>> = FxHashMap::default();
+        let mut digests: Vec<_> = view.manifests.keys().collect();
+        digests.sort_unstable();
+        for digest in digests {
             let bytes = self.read_manifest(digest)?;
             let image = stuff_oci::parse_image(&bytes)
                 .map_err(|error| Error::Integrity(format!("manifest {digest}: {error}")))?;
@@ -293,7 +295,9 @@ impl State {
                     .push(descriptor);
             }
         }
-        for (subject, descriptors) in &referrers {
+        let mut subjects: Vec<_> = referrers.iter().collect();
+        subjects.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (subject, descriptors) in subjects {
             let sorted = stuff_oci::filter_referrers(descriptors, None);
             self.write_referrers(&view.name, subject, &sorted)?;
         }

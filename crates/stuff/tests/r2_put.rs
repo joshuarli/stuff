@@ -141,7 +141,7 @@ fn sync_promotes_through_s3() {
         site.path(),
         &manifest_keys,
         &options,
-        &std::collections::BTreeMap::new(),
+        &rustc_hash::FxHashMap::default(),
     )
     .expect("manifest");
     manifest::write(&site.path().join("manifests/g1.json"), &document).expect("write manifest");

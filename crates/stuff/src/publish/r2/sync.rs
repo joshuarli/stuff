@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 
 use md5::{Digest as _, Md5};
@@ -35,8 +35,8 @@ pub struct LocalManifest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalSite {
     pub generation: String,
-    pub files: BTreeMap<String, LocalFile>,
-    pub manifests: BTreeMap<String, LocalManifest>,
+    pub files: FxHashMap<String, LocalFile>,
+    pub manifests: FxHashMap<String, LocalManifest>,
     pub aliases: Vec<String>,
 }
 
@@ -127,17 +127,17 @@ pub fn collect(
     options: &UploadOptions,
     excludes: &[&str],
 ) -> Result<LocalSite, PublishError> {
-    collect_with_known(site, options, excludes, &BTreeMap::new())
+    collect_with_known(site, options, excludes, &FxHashMap::default())
 }
 
 pub fn collect_with_known(
     site: &Path,
     options: &UploadOptions,
     excludes: &[&str],
-    known: &BTreeMap<String, ObjectMeta>,
+    known: &FxHashMap<String, ObjectMeta>,
 ) -> Result<LocalSite, PublishError> {
     let generation = active_generation(site)?;
-    let mut files = BTreeMap::new();
+    let mut files = FxHashMap::default();
     let mut aliases = Vec::new();
     walk(
         site,
@@ -157,7 +157,7 @@ pub fn collect_with_known(
             path: PathBuf::new(),
         });
     }
-    let mut manifests = BTreeMap::new();
+    let mut manifests = FxHashMap::default();
     for directory in generations(site)? {
         let prefix = format!("generations/{directory}/");
         let keys: Vec<String> = files
@@ -191,13 +191,15 @@ pub fn collect_with_known(
 
 pub fn plan(
     local: &LocalSite,
-    remote: &BTreeMap<String, ObjectMeta>,
+    remote: &FxHashMap<String, ObjectMeta>,
     options: &UploadOptions,
 ) -> Result<SitePlan, PublishError> {
     let active_manifest = format!("{MANIFEST_DIRECTORY}{}.json", local.generation);
     let mut entries = Vec::with_capacity(local.files.len() + local.manifests.len());
     let mut conflicts = Vec::new();
-    for (key, file) in &local.files {
+    let mut files: Vec<_> = local.files.iter().collect();
+    files.sort_unstable_by(|left, right| left.0.cmp(right.0));
+    for (key, file) in files {
         let mut action = put::plan_key(
             file.size,
             &file.etag,
@@ -221,7 +223,9 @@ pub fn plan(
             payload: Payload::File(file.path.clone()),
         });
     }
-    for (key, manifest) in &local.manifests {
+    let mut manifests: Vec<_> = local.manifests.iter().collect();
+    manifests.sort_unstable_by(|left, right| left.0.cmp(right.0));
+    for (key, manifest) in manifests {
         let mut action = put::plan_key(
             manifest.size,
             &manifest.etag,
@@ -264,7 +268,7 @@ pub fn plan(
 
 pub fn plan_blobs(
     site: &Path,
-    remote: &BTreeMap<String, ObjectMeta>,
+    remote: &FxHashMap<String, ObjectMeta>,
     options: &UploadOptions,
 ) -> Result<SitePlan, PublishError> {
     let directory = site.join(BLOB_DIRECTORY);
@@ -428,7 +432,7 @@ pub fn sync_blobs(
 pub fn remote_index(
     client: &R2Client,
     bucket: &str,
-) -> Result<BTreeMap<String, ObjectMeta>, PublishError> {
+) -> Result<FxHashMap<String, ObjectMeta>, PublishError> {
     Ok(client
         .list_objects_v2(bucket)?
         .into_iter()
@@ -450,7 +454,7 @@ fn walk(
     relative: &Path,
     options: &UploadOptions,
     excludes: &[&str],
-    files: &mut BTreeMap<String, LocalFile>,
+    files: &mut FxHashMap<String, LocalFile>,
     aliases: &mut Vec<String>,
 ) -> Result<(), PublishError> {
     let directory = root.join(relative);
@@ -760,8 +764,10 @@ mod tests {
         );
         let local = collect(site.path(), &UploadOptions::default(), &[]).unwrap();
         assert_eq!(local.generation, "g1");
+        let mut files: Vec<_> = local.files.keys().cloned().collect();
+        files.sort();
         assert_eq!(
-            local.files.keys().cloned().collect::<Vec<_>>(),
+            files,
             vec!["generations/g1/catalog.json", "tarballs/pkg.tgz"]
         );
         assert_eq!(
@@ -772,10 +778,9 @@ mod tests {
                 "generations/g1/wheels/a.whl",
             ]
         );
-        assert_eq!(
-            local.manifests.keys().cloned().collect::<Vec<_>>(),
-            vec!["manifests/g1.json"]
-        );
+        let mut manifests: Vec<_> = local.manifests.keys().cloned().collect();
+        manifests.sort();
+        assert_eq!(manifests, vec!["manifests/g1.json"]);
         let manifest =
             String::from_utf8(local.manifests["manifests/g1.json"].body.clone()).unwrap();
         assert!(manifest.contains("\"key\": \"generations/g1/catalog.json\""), "{manifest}");
@@ -793,10 +798,9 @@ mod tests {
             "g1",
         );
         let local = collect(site.path(), &UploadOptions::default(), &["blobs/"]).unwrap();
-        assert_eq!(
-            local.files.keys().cloned().collect::<Vec<_>>(),
-            vec!["generations/g1/catalog.json"]
-        );
+        let mut files: Vec<_> = local.files.keys().cloned().collect();
+        files.sort();
+        assert_eq!(files, vec!["generations/g1/catalog.json"]);
     }
 
     #[test]
@@ -811,7 +815,7 @@ mod tests {
         let options = UploadOptions::default();
         let local = collect(site.path(), &options, &[]).unwrap();
         let manifest = &local.manifests["manifests/g1.json"];
-        let mut remote = BTreeMap::new();
+        let mut remote = FxHashMap::default();
         remote.insert(
             "tarballs/pkg.tgz".to_string(),
             object(3, &multipart::md5_hex(b"pkg")),
@@ -845,7 +849,7 @@ mod tests {
         std::fs::write(site.path().join("generations/g0/catalog.json"), b"old").unwrap();
         let options = UploadOptions::default();
         let local = collect(site.path(), &options, &[]).unwrap();
-        let mut remote = BTreeMap::new();
+        let mut remote = FxHashMap::default();
         remote.insert(
             "manifests/g0.json".to_string(),
             object(9, "00000000000000000000000000000000"),
@@ -881,7 +885,7 @@ mod tests {
             ..UploadOptions::default()
         };
         let local = collect(site.path(), &options, &[]).unwrap();
-        let mut remote = BTreeMap::new();
+        let mut remote = FxHashMap::default();
         for key in local.manifests.keys() {
             remote.insert(key.clone(), object(9, "00000000000000000000000000000000"));
         }
@@ -912,7 +916,7 @@ mod tests {
         std::os::unix::fs::symlink("generations/g1", dir.path().join("current")).unwrap();
         let options = UploadOptions::default();
         let local = collect(dir.path(), &options, &[]).unwrap();
-        let planned = plan(&local, &BTreeMap::new(), &options).unwrap();
+        let planned = plan(&local, &FxHashMap::default(), &options).unwrap();
         let ordered = upload_order(&planned.entries);
         assert_eq!(ordered.len(), 122);
         assert_eq!(ordered.last().unwrap().key, "manifests/g1.json");
@@ -938,19 +942,19 @@ mod tests {
             part_size: 4,
             repair: false,
         };
-        let planned = plan_blobs(dir.path(), &BTreeMap::new(), &options).unwrap();
+        let planned = plan_blobs(dir.path(), &FxHashMap::default(), &options).unwrap();
         assert_eq!(planned.entries.len(), 1);
         assert_eq!(planned.entries[0].key, format!("sha256/{hex}"));
         assert_eq!(planned.entries[0].action, PutAction::Multipart);
 
-        let mut remote = BTreeMap::new();
+        let mut remote = FxHashMap::default();
         remote.insert(format!("sha256/{hex}"), object(11, "00000000000000000000000000000000"));
         let error = plan_blobs(dir.path(), &remote, &options).unwrap_err();
         assert_eq!(error.exit_code(), 3, "{error}");
         assert!(error.to_string().contains("content-addressed blobs"), "{error}");
 
         std::fs::write(blobs.join(format!("{hex}0")), b"x").unwrap();
-        let error = plan_blobs(dir.path(), &BTreeMap::new(), &options).unwrap_err();
+        let error = plan_blobs(dir.path(), &FxHashMap::default(), &options).unwrap_err();
         assert_eq!(error.exit_code(), 4, "{error}");
         assert!(error.to_string().contains("sha256 hex"), "{error}");
     }

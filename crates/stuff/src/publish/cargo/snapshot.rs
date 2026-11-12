@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 use std::path::Path;
 
@@ -18,7 +18,7 @@ pub struct LiveSnapshot {
     generation: Option<String>,
     native: Vec<NativeRecord>,
     upstream: Vec<UpstreamRecord>,
-    blobs: BTreeSet<String>,
+    blobs: FxHashSet<String>,
 }
 
 impl LiveSnapshot {
@@ -103,7 +103,7 @@ pub fn merge_native(
     local: Vec<NativeRecord>,
     live: Vec<NativeRecord>,
 ) -> Result<Vec<NativeRecord>, PublishError> {
-    let mut merged: BTreeMap<(String, String), NativeRecord> = BTreeMap::new();
+    let mut merged: FxHashMap<(String, String), NativeRecord> = FxHashMap::default();
     for record in local {
         let key = (record.entry.name.clone(), record.entry.vers.clone());
         if let Some(existing) = merged.get(&key)
@@ -131,14 +131,19 @@ pub fn merge_native(
             }
         }
     }
-    Ok(merged.into_values().collect())
+    let mut records: Vec<_> = merged.into_values().collect();
+    records.sort_by(|left, right| {
+        (left.entry.name.as_str(), left.entry.vers.as_str())
+            .cmp(&(right.entry.name.as_str(), right.entry.vers.as_str()))
+    });
+    Ok(records)
 }
 
 pub fn merge_upstream(
     local: Vec<UpstreamRecord>,
     live: Vec<UpstreamRecord>,
 ) -> Result<Vec<UpstreamRecord>, PublishError> {
-    let mut merged: BTreeMap<(String, String), UpstreamRecord> = BTreeMap::new();
+    let mut merged: FxHashMap<(String, String), UpstreamRecord> = FxHashMap::default();
     for record in local {
         let key = (record.name.clone(), record.vers.clone());
         if let Some(existing) = merged.get(&key)
@@ -166,7 +171,11 @@ pub fn merge_upstream(
             }
         }
     }
-    Ok(merged.into_values().collect())
+    let mut records: Vec<_> = merged.into_values().collect();
+    records.sort_by(|left, right| {
+        (left.name.as_str(), left.vers.as_str()).cmp(&(right.name.as_str(), right.vers.as_str()))
+    });
+    Ok(records)
 }
 
 fn view_dir(view: View) -> &'static str {
@@ -191,13 +200,15 @@ fn fetch(snapshot: &Snapshot, bucket: &str, key: &str) -> Result<Vec<u8>, Publis
     Ok(bytes)
 }
 
-fn shared_blob_checksums(snapshot: &Snapshot) -> Result<BTreeSet<String>, PublishError> {
+fn shared_blob_checksums(snapshot: &Snapshot) -> Result<FxHashSet<String>, PublishError> {
     let store = snapshot
         .shared_stores()
         .first()
         .ok_or_else(|| PublishError::Config("cargo has no shared blob store".to_string()))?;
-    let mut checksums = BTreeSet::new();
-    for object in snapshot.shared_objects(store) {
+    let mut objects: Vec<_> = snapshot.shared_objects(store).collect();
+    objects.sort_unstable_by(|left, right| left.key.cmp(&right.key));
+    let mut checksums = FxHashSet::default();
+    for object in objects {
         let checksum = object
             .key
             .strip_prefix(store.prefix)
@@ -219,7 +230,7 @@ fn is_sha256_hex(text: &str) -> bool {
 }
 
 fn require_blob(
-    blobs: &BTreeSet<String>,
+    blobs: &FxHashSet<String>,
     name: &str,
     vers: &str,
     checksum: &str,
@@ -238,7 +249,7 @@ fn require_blob(
 }
 
 fn check_unique_native(records: &[NativeRecord]) -> Result<(), PublishError> {
-    let mut seen: BTreeMap<(&str, &str), &str> = BTreeMap::new();
+    let mut seen: FxHashMap<(&str, &str), &str> = FxHashMap::default();
     for record in records {
         let key = (record.entry.name.as_str(), record.entry.vers.as_str());
         match seen.get(&key) {
@@ -258,7 +269,7 @@ fn check_unique_native(records: &[NativeRecord]) -> Result<(), PublishError> {
 }
 
 fn check_unique_upstream(records: &[UpstreamRecord]) -> Result<(), PublishError> {
-    let mut seen: BTreeMap<(&str, &str), &str> = BTreeMap::new();
+    let mut seen: FxHashMap<(&str, &str), &str> = FxHashMap::default();
     for record in records {
         let key = (record.name.as_str(), record.vers.as_str());
         match seen.get(&key) {

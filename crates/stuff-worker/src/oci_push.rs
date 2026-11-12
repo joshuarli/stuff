@@ -8,7 +8,7 @@ use stuff_oci::{
     Method, ParsedWrite, Reference, RepositoryName, RepositoryView, SessionToken, WriteMethod,
     DEFAULT_SESSION_TTL_SECS,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 fn quote(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 2);
@@ -244,7 +244,7 @@ pub fn oci_generation_json(
         Ok(values) => values,
         Err(error) => return internal_error(&error),
     };
-    let available_blobs: BTreeSet<Digest> = available_blobs
+    let available_blobs: FxHashSet<Digest> = available_blobs
         .iter()
         .filter_map(|value| Digest::parse(value).ok())
         .collect();
@@ -254,7 +254,7 @@ pub fn oci_generation_json(
         Ok(values) => values,
         Err(error) => return internal_error(&error),
     };
-    let available_manifests: BTreeSet<Digest> = available_manifests
+    let available_manifests: FxHashSet<Digest> = available_manifests
         .iter()
         .filter_map(|value| Digest::parse(value).ok())
         .collect();
@@ -266,7 +266,7 @@ pub fn oci_generation_json(
     let Some(repository_entries) = repositories_value.as_seq() else {
         return internal_error("repositories must be an array");
     };
-    let mut repositories: BTreeMap<String, String> = BTreeMap::new();
+    let mut repositories: FxHashMap<String, String> = FxHashMap::default();
     for entry in repository_entries.iter() {
         let Some(map) = entry.as_map() else {
             return internal_error("repository entry must be an object");
@@ -298,7 +298,7 @@ pub fn oci_generation_json(
         return error_json(&error);
     }
     let mut blobs = if blobs_text.is_empty() {
-        BTreeSet::new()
+        FxHashSet::default()
     } else {
         match parse_blobs_json(blobs_text) {
             Ok(blobs) => blobs,
@@ -338,7 +338,7 @@ pub fn oci_generation_json(
             .push(descriptor);
     }
 
-    let mut files: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+    let mut files: FxHashMap<String, Vec<u8>> = FxHashMap::default();
     let mut order: Vec<String> = repositories.keys().cloned().collect();
     order.sort();
     for name in &order {
@@ -381,7 +381,9 @@ pub fn oci_generation_json(
         quote(digest.as_str()),
         quote(&format!("oci/manifests/sha256/{}", digest.hex()))
     );
-    for (index, (key, bytes)) in files.iter().enumerate() {
+    let mut file_entries: Vec<_> = files.iter().collect();
+    file_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (index, (key, bytes)) in file_entries.into_iter().enumerate() {
         if index > 0 {
             out.push(',');
         }
@@ -395,12 +397,12 @@ pub fn oci_generation_json(
     out
 }
 
-type ReferrerIndexes = BTreeMap<(String, Digest), Vec<Descriptor>>;
+type ReferrerIndexes = FxHashMap<(String, Digest), Vec<Descriptor>>;
 
 fn prior_referrers(referrers_json: &str) -> Result<ReferrerIndexes, String> {
     let value = parse(referrers_json, "referrers")?;
     let seq = value.as_seq().ok_or("referrers must be an array")?;
-    let mut referrers = ReferrerIndexes::new();
+    let mut referrers = ReferrerIndexes::default();
     for entry in seq.iter() {
         let map = entry.as_map().ok_or("referrer entry must be an object")?;
         let field = |name: &str| {
@@ -428,8 +430,8 @@ fn repository_text(
     existing: Option<&str>,
     manifest_body: &str,
     reference: &Reference,
-    available_blobs: &BTreeSet<Digest>,
-    available_manifests: &BTreeSet<Digest>,
+    available_blobs: &FxHashSet<Digest>,
+    available_manifests: &FxHashSet<Digest>,
 ) -> Result<String, Error> {
     let repository = RepositoryName::parse(name)?;
     let mut view = match existing {

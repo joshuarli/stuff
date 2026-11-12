@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::path::Path;
 
 use deser_value::Value;
@@ -29,7 +29,7 @@ pub fn build(
     site: &Path,
     keys: &[String],
     options: &UploadOptions,
-    known: &BTreeMap<String, ObjectMeta>,
+    known: &FxHashMap<String, ObjectMeta>,
 ) -> Result<Manifest, PublishError> {
     let mut keys: Vec<String> = keys
         .iter()
@@ -210,7 +210,7 @@ mod tests {
             site.path(),
             &["b.txt".to_string(), "a/catalog.json".to_string()],
             &options,
-            &BTreeMap::new(),
+            &FxHashMap::default(),
         )
         .unwrap();
         let large_etag = multipart::multipart_etag_file(&site.path().join("b.txt"), 2).unwrap();
@@ -254,7 +254,7 @@ mod tests {
             site.path(),
             &["catalog.json".to_string(), "empty.txt".to_string()],
             &UploadOptions::default(),
-            &BTreeMap::new(),
+            &FxHashMap::default(),
         )
         .unwrap();
         let text = render(&manifest);

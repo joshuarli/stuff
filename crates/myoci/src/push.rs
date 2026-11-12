@@ -9,7 +9,7 @@ use stuff_oci::{
     Digest, Error as OciError, ErrorCode, Image, Method, ParsedWrite, Reference, RepositoryName,
     SessionToken, WriteMethod, DEFAULT_SESSION_TTL_SECS,
 };
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::io::Read;
 use std::net::TcpStream;
 use std::path::PathBuf;
@@ -127,7 +127,7 @@ fn commit_manifest(
         .map_err(map_error)?
         .unwrap_or_else(|| stuff_oci::RepositoryView::new(repository.clone()));
     let blobs = options.state.blob_digests_on_disk().map_err(map_error)?;
-    let children: BTreeSet<Digest> = view.manifests.keys().cloned().collect();
+    let children: FxHashSet<Digest> = view.manifests.keys().cloned().collect();
     let (digest, image) = validate_manifest_push(body, &blobs, &children)?;
     if let Reference::Digest(expected) = reference
         && expected != &digest

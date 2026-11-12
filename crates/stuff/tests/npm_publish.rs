@@ -267,8 +267,8 @@ fn remote_body(fake: &FakeS3, key: &str) -> Option<Vec<u8>> {
         .map(|object| object.body)
 }
 
-fn tree(root: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
-    let mut files = std::collections::BTreeMap::new();
+fn tree(root: &Path) -> rustc_hash::FxHashMap<String, Vec<u8>> {
+    let mut files = rustc_hash::FxHashMap::default();
     let mut stack = if root.exists() {
         vec![root.to_path_buf()]
     } else {

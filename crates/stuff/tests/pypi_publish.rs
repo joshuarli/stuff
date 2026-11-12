@@ -99,7 +99,7 @@ fn seed_live_generation(fake: &FakeS3, wheel: &Path, targets: Vec<Target>) -> St
     let (_, activation) = mypypi::store::publish(
         &[artifact],
         &site,
-        &std::collections::BTreeMap::new(),
+        &rustc_hash::FxHashMap::default(),
         &Config::default().pypi.public_base_url,
     )
     .expect("seed the live pypi generation");

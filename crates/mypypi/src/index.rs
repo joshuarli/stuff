@@ -4,7 +4,7 @@ use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{Target, ValidatedArtifact, canonicalize_name};
 use crate::platforms::{current_platform, target_python_version};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone)]
 pub struct IndexArtifact {
@@ -46,9 +46,9 @@ fn read_member_bytes(archive: &crate::wheel_zip::Archive, name: &str) -> Result<
     archive.read(name).map_err(|e| publication_error(format!("could not read wheel metadata: {e}"), None))
 }
 
-fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
+fn parse_headers(bytes: &[u8]) -> FxHashMap<String, Vec<String>> {
     let text = String::from_utf8_lossy(bytes);
-    let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut map: FxHashMap<String, Vec<String>> = FxHashMap::default();
     let mut current: Option<String> = None;
     for line in text.split_inclusive('\n') {
         let line = line.strip_suffix('\n').unwrap_or(line);
@@ -81,7 +81,7 @@ pub fn wheel_metadata(artifact: &ValidatedArtifact) -> Result<(Option<String>, V
     let wheel = crate::wheel_zip::Archive::open(&artifact.path).map_err(|_| fail("could not read wheel metadata".to_string()))?;
     let members: Vec<String> = wheel.names().map(str::to_string).collect();
     let res = {
-        let mut seen = std::collections::BTreeSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         members.iter().any(|n| !seen.insert(n.clone()))
     }; if res {
         return Err(fail("wheel contains duplicate archive paths".to_string()));
@@ -189,9 +189,11 @@ pub fn supports_target_python(spec: &pep440_rs::VersionSpecifiers, target: &Targ
 
 pub fn prepare_index_artifacts(
     artifacts: &[ValidatedArtifact],
-    yanked: &BTreeMap<String, String>,
+    yanked: &FxHashMap<String, String>,
 ) -> Result<Vec<IndexArtifact>> {
-    for (filename, reason) in yanked {
+    let mut yanked_entries: Vec<_> = yanked.iter().collect();
+    yanked_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (filename, reason) in yanked_entries {
         if filename.is_empty() {
             return Err(publication_error("yanked metadata filenames must be non-empty strings", None));
         }
@@ -199,7 +201,7 @@ pub fn prepare_index_artifacts(
             return Err(publication_error("yanked reason must be a non-empty string", None));
         }
     }
-    let known: std::collections::BTreeSet<&str> =
+    let known: rustc_hash::FxHashSet<&str> =
         artifacts.iter().map(|a| a.wheel.filename.as_str()).collect();
     let unknown: Vec<&String> = yanked.keys().filter(|k| !known.contains(k.as_str())).collect();
     if !unknown.is_empty() {
@@ -209,7 +211,7 @@ pub fn prepare_index_artifacts(
         return Err(publication_error(format!("yanked metadata names unknown wheels: {}", list.join(", ")), None));
     }
     let mut prepared = Vec::new();
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = rustc_hash::FxHashSet::default();
     for artifact in artifacts {
         if !seen.insert(artifact.wheel.filename.clone()) {
             return Err(publication_error(
@@ -378,7 +380,7 @@ mod tests {
             "sample_pkg-1.1-py3-none-any.whl",
             b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.1\nRequires-Python: >=3.15\n\n",
         );
-        let mut yanked = BTreeMap::new();
+        let mut yanked = FxHashMap::default();
         yanked.insert(one.wheel.filename.clone(), "maintainer <team@example.test> & \"held\"".to_string());
         let prepared = prepare_index_artifacts(&[two.clone(), one.clone()], &yanked).unwrap();
         let first = render_project_page(&prepared);
@@ -410,7 +412,7 @@ mod tests {
             "alpha-1.0-py3-none-any.whl",
             b"Metadata-Version: 2.4\nName: alpha\nVersion: 1.0\n\n",
         );
-        let prepared = prepare_index_artifacts(&[a, b], &BTreeMap::new()).unwrap();
+        let prepared = prepare_index_artifacts(&[a, b], &FxHashMap::default()).unwrap();
         let text = String::from_utf8(render_root_page(&prepared)).unwrap();
         assert!(text.find("alpha").unwrap() < text.find("zeta").unwrap());
     }

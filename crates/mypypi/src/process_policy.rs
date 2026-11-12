@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Kind, Result, Stage};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -47,14 +47,14 @@ const ALLOWED_VARIABLES: &[&str] = &[
     "SOURCE_DATE_EPOCH",
 ];
 
-fn allowlisted(base: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+fn allowlisted(base: &FxHashMap<String, String>) -> FxHashMap<String, String> {
     base.iter()
         .filter(|(k, _)| ALLOWED_VARIABLES.contains(&k.as_str()))
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect()
 }
 
-pub fn uv_environment(source: Option<&BTreeMap<String, String>>) -> BTreeMap<String, String> {
+pub fn uv_environment(source: Option<&FxHashMap<String, String>>) -> FxHashMap<String, String> {
     match source {
         Some(map) => allowlisted(map),
         None => allowlisted(&std::env::vars().collect()),
@@ -62,9 +62,9 @@ pub fn uv_environment(source: Option<&BTreeMap<String, String>>) -> BTreeMap<Str
 }
 
 pub fn scratch_environment(
-    source: Option<&BTreeMap<String, String>>,
+    source: Option<&FxHashMap<String, String>>,
     scratch: &Path,
-) -> BTreeMap<String, String> {
+) -> FxHashMap<String, String> {
     let mut env = uv_environment(source);
     let scratch = scratch.display().to_string();
     for name in ["HOME", "TMPDIR", "TEMP", "TMP"] {
@@ -73,7 +73,7 @@ pub fn scratch_environment(
     env
 }
 
-fn source_path(source: &BTreeMap<String, String>, name: &str) -> Option<PathBuf> {
+fn source_path(source: &FxHashMap<String, String>, name: &str) -> Option<PathBuf> {
     source
         .get(name)
         .filter(|value| !value.is_empty())
@@ -84,14 +84,14 @@ fn absolute_path(path: PathBuf) -> PathBuf {
     std::path::absolute(&path).unwrap_or(path)
 }
 
-fn source_home(source: &BTreeMap<String, String>) -> Option<PathBuf> {
+fn source_home(source: &FxHashMap<String, String>) -> Option<PathBuf> {
     source_path(source, "HOME")
         .or_else(|| std::env::var_os("HOME").map(PathBuf::from))
         .map(absolute_path)
 }
 
 fn source_toolchain_home(
-    source: &BTreeMap<String, String>,
+    source: &FxHashMap<String, String>,
     name: &str,
     fallback: &str,
 ) -> Option<PathBuf> {
@@ -127,7 +127,7 @@ fn seed_rustup_home(origin: &Path, scratch: &Path) -> std::io::Result<()> {
 }
 
 pub(crate) fn seed_toolchain_home(
-    source: &BTreeMap<String, String>,
+    source: &FxHashMap<String, String>,
     scratch_home: &Path,
 ) -> std::io::Result<()> {
     if let Some(cargo_home) = source_toolchain_home(source, "CARGO_HOME", ".cargo") {
@@ -351,7 +351,7 @@ fn decode(captured: &[u8]) -> String {
 pub fn run_capture(
     command: &[String],
     cwd: Option<&Path>,
-    env: &BTreeMap<String, String>,
+    env: &FxHashMap<String, String>,
     input: Option<&[u8]>,
     timeout_secs: u64,
 ) -> std::result::Result<Captured, RunError> {
@@ -458,13 +458,13 @@ pub fn make_temp_dir(prefix: &str) -> std::io::Result<std::path::PathBuf> {
 mod tests {
     use super::*;
 
-    fn test_env() -> BTreeMap<String, String> {
-        BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())])
+    fn test_env() -> FxHashMap<String, String> {
+        [("PATH".to_string(), "/usr/bin:/bin".to_string())].into_iter().collect()
     }
 
     #[test]
     fn environment_allowlist_excludes_publisher_secrets() {
-        let mut env = BTreeMap::new();
+        let mut env = FxHashMap::default();
         for name in ["PATH", "SSL_CERT_FILE", "LANG", "CFLAGS"] {
             env.insert(name.to_string(), format!("{name}-value"));
         }
@@ -509,7 +509,7 @@ mod tests {
 
     #[test]
     fn scratch_environment_redirects_home_and_temp() {
-        let mut env = BTreeMap::new();
+        let mut env = FxHashMap::default();
         env.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
         env.insert("HOME".to_string(), "/home/publisher".to_string());
         env.insert("TMPDIR".to_string(), "/home/publisher/tmp".to_string());

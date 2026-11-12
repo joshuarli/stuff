@@ -3,7 +3,9 @@ use stuff_http::{
     RouteKind as HttpRouteKind, cache_policy_for, content_type_for, evaluate_preconditions,
     parse_range, Precondition,
 };
-use std::collections::BTreeMap;
+use deser::ser::{Emit, MapEmitter, Serialize, SerializeHandle};
+use deser::{ContainerShape, Error, Order, State};
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, deser::Deserialize)]
 pub struct RouteEntry {
@@ -425,13 +427,49 @@ pub struct RequestHeadersJson {
     pub range: Option<String>,
 }
 
+pub(crate) struct SortedStringMap;
+
+struct SortedEntries<'a> {
+    entries: Vec<(&'a String, &'a String)>,
+    index: usize,
+}
+
+impl MapEmitter for SortedEntries<'_> {
+    fn next_key(&mut self, _state: &mut State) -> Result<Option<SerializeHandle<'_>>, Error> {
+        Ok(self.entries.get(self.index).map(|(key, _)| SerializeHandle::to(*key)))
+    }
+
+    fn next_value(&mut self, _state: &mut State) -> Result<SerializeHandle<'_>, Error> {
+        let value = SerializeHandle::to(self.entries[self.index].1);
+        self.index += 1;
+        Ok(value)
+    }
+}
+
+impl Serialize<FxHashMap<String, String>> for SortedStringMap {
+    fn serialize<'a>(
+        value: &'a FxHashMap<String, String>,
+        state: &mut State,
+    ) -> Result<Emit<'a>, Error> {
+        let mut entries: Vec<_> = value.iter().collect();
+        entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        Ok(Emit::map(SortedEntries { entries, index: 0 }, state))
+    }
+
+    fn container_shape(value: &FxHashMap<String, String>) -> ContainerShape {
+        let mut shape = ContainerShape::with_order(Order::Sorted);
+        shape.set_len(value.len());
+        shape
+    }
+}
+
 #[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
 pub struct PlanJson {
     pub kind: String,
     #[deser(default)]
     pub status: u16,
-    #[deser(default)]
-    pub headers: BTreeMap<String, String>,
+    #[deser(default, serialize_as = SortedStringMap)]
+    pub headers: FxHashMap<String, String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub body: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
@@ -449,7 +487,7 @@ fn plan_error(message: String) -> String {
         &PlanJson {
             kind: "error".to_string(),
             status: 0,
-            headers: BTreeMap::new(),
+            headers: FxHashMap::default(),
             body: None,
             range_start: None,
             range_length: None,
@@ -465,8 +503,8 @@ fn file_headers(
     file_name: &str,
     etag: &str,
     len: u64,
-) -> BTreeMap<String, String> {
-    let mut headers = BTreeMap::new();
+) -> FxHashMap<String, String> {
+    let mut headers = FxHashMap::default();
     headers.insert("content-type".to_string(), content_type_for(file_name).to_string());
     headers.insert("content-length".to_string(), len.to_string());
     headers.insert("accept-ranges".to_string(), "bytes".to_string());
@@ -529,7 +567,7 @@ fn plan_object_response(
         request.if_match.as_deref(),
     ) {
         Precondition::NotModified => {
-            let mut headers = BTreeMap::new();
+            let mut headers = FxHashMap::default();
             headers.insert("etag".to_string(), etag.to_string());
             return PlanJson {
                 kind: "plan".to_string(),
@@ -546,7 +584,7 @@ fn plan_object_response(
             return PlanJson {
                 kind: "plan".to_string(),
                 status: 412,
-                headers: BTreeMap::new(),
+                headers: FxHashMap::default(),
                 body: Some("precondition failed".to_string()),
                 range_start: None,
                 range_length: None,
@@ -579,7 +617,7 @@ fn plan_object_response(
             }
             Ok(_) => full_response(route_kind, head, file_name, etag, size),
             Err(stuff_http::RangeError::Unsatisfiable) => {
-                let mut headers = BTreeMap::new();
+                let mut headers = FxHashMap::default();
                 headers.insert("content-range".to_string(), format!("bytes */{size}"));
                 headers.insert("etag".to_string(), etag.to_string());
                 PlanJson {

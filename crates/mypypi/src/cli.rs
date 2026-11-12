@@ -209,7 +209,8 @@ use crate::planner::{
 };
 use crate::platforms::target_python_version;
 use crate::publish::{collect_validated, real_directory, selected_targets, sha256_of, wheel_paths};
-use std::collections::{BTreeMap, HashMap};
+use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_BUILD_INDEX: &str = "https://pypi.org/simple";
@@ -269,9 +270,9 @@ fn load_catalog(path: &Path) -> Result<Catalog> {
 
 type ArtifactKey = (PackageVersion, Target);
 
-fn published_inventory(output: &Path, settings: &ProjectSettings) -> Result<BTreeMap<ArtifactKey, ArtifactRecord>> {
+fn published_inventory(output: &Path, settings: &ProjectSettings) -> Result<FxHashMap<ArtifactKey, ArtifactRecord>> {
     let md = match std::fs::symlink_metadata(output) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(FxHashMap::default()),
         Err(_) => {
             return Err(Error::io(
                 format!("could not inspect published index at {}", output.display()),
@@ -290,9 +291,9 @@ fn published_inventory(output: &Path, settings: &ProjectSettings) -> Result<BTre
         Error::new(Kind::Integrity, e.detail.clone(), Stage::Planning)
     })?;
     let configured: Vec<Target> = settings.targets();
-    let known_map: BTreeMap<&str, &Target> = configured.iter().map(|t| (t.platform.as_str(), t)).collect();
-    let mut inventory: BTreeMap<ArtifactKey, ArtifactRecord> = BTreeMap::new();
-    let mut ranks: BTreeMap<ArtifactKey, (usize, String)> = BTreeMap::new();
+    let known_map: FxHashMap<&str, &Target> = configured.iter().map(|t| (t.platform.as_str(), t)).collect();
+    let mut inventory: FxHashMap<ArtifactKey, ArtifactRecord> = FxHashMap::default();
+    let mut ranks: FxHashMap<ArtifactKey, (usize, String)> = FxHashMap::default();
     for artifact in &artifacts {
         for target in artifact.targets.clone() {
             if target.python_version != settings.python_version {
@@ -338,12 +339,12 @@ fn pending_inventory(
     catalog: &Catalog,
     targets: &[Target],
     settings: &ProjectSettings,
-    published: &BTreeMap<ArtifactKey, ArtifactRecord>,
-) -> Result<(BTreeMap<ArtifactKey, ArtifactRecord>, BTreeMap<String, PathBuf>)> {
+    published: &FxHashMap<ArtifactKey, ArtifactRecord>,
+) -> Result<(FxHashMap<ArtifactKey, ArtifactRecord>, FxHashMap<String, PathBuf>)> {
     let entries = catalog.by_package();
-    let mut candidates: BTreeMap<ArtifactKey, Vec<(usize, ArtifactRecord, PathBuf)>> = BTreeMap::new();
-    let mut local_filenames: BTreeMap<String, ArtifactRecord> = BTreeMap::new();
-    let mut local_paths: BTreeMap<String, PathBuf> = BTreeMap::new();
+    let mut candidates: FxHashMap<ArtifactKey, Vec<(usize, ArtifactRecord, PathBuf)>> = FxHashMap::default();
+    let mut local_filenames: FxHashMap<String, ArtifactRecord> = FxHashMap::default();
+    let mut local_paths: FxHashMap<String, PathBuf> = FxHashMap::default();
     for path in paths {
         let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
         let identity = WheelIdentity::parse(name).map_err(|e| {
@@ -386,7 +387,7 @@ fn pending_inventory(
             candidates.entry(key).or_default().push((rank, record.clone(), path.clone()));
         }
     }
-    let mut pending = BTreeMap::new();
+    let mut pending = FxHashMap::default();
     for (key, mut options) in candidates {
         options.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.wheel.filename.cmp(&b.1.wheel.filename)));
         let (_, record, _) = options.into_iter().next().unwrap();
@@ -397,8 +398,8 @@ fn pending_inventory(
 
 pub struct PlanData {
     pub outcomes: Vec<PlanOutcome>,
-    pub releases: BTreeMap<PackageVersion, Release>,
-    pub local_paths: BTreeMap<String, PathBuf>,
+    pub releases: FxHashMap<PackageVersion, Release>,
+    pub local_paths: FxHashMap<String, PathBuf>,
 }
 
 pub fn create_plan(
@@ -412,8 +413,8 @@ pub fn create_plan(
     validate_catalog_targets(catalog, &configured)?;
     let published = published_inventory(output, settings)?;
     let (pending, local_paths) = pending_inventory(&wheel_paths(state_dir)?, catalog, targets, settings, &published)?;
-    let mut upstream: BTreeMap<ArtifactKey, Vec<UpstreamArtifact>> = BTreeMap::new();
-    let mut releases: BTreeMap<PackageVersion, Release> = BTreeMap::new();
+    let mut upstream: FxHashMap<ArtifactKey, Vec<UpstreamArtifact>> = FxHashMap::default();
+    let mut releases: FxHashMap<PackageVersion, Release> = FxHashMap::default();
     for entry in &catalog.entries {
         for target in targets {
             if let Some(platforms) = entry.platforms.as_ref()
@@ -700,7 +701,7 @@ fn command_build(
         }
     }
     let mut completed: HashMap<PackageVersion, Vec<PathBuf>> = HashMap::new();
-    let mut prepared: BTreeMap<String, (PathBuf, &'static str)> = BTreeMap::new();
+    let mut prepared: FxHashMap<String, (PathBuf, &'static str)> = FxHashMap::default();
     let entries = catalog.by_package();
     for outcome in &data.outcomes {
         let (package, target) = match outcome {
@@ -758,7 +759,9 @@ fn command_build(
         }
     }
     let pending_count = data.outcomes.iter().filter(|o| matches!(o, PlanOutcome::PendingValidation { .. })).count();
-    for name in prepared.keys() {
+    let mut prepared_names: Vec<&String> = prepared.keys().collect();
+    prepared_names.sort_unstable();
+    for name in prepared_names {
         let (_, origin) = &prepared[name];
         println!("prepared {name} from {origin}");
     }

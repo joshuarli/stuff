@@ -12,7 +12,7 @@ use crate::project_snapshot::{capture_project_snapshot, CaptureOptions};
 use crate::publish::{adopt_site, publish_site, PublishOptions};
 use crate::resolve::{add_packages, AddOptions};
 use crate::validate::{validate_inventory, ValidateOptions};
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,7 +96,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut all_targets = false;
     let mut targets: Vec<String> = Vec::new();
     let mut positionals: Vec<String> = Vec::new();
-    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut seen: rustc_hash::FxHashSet<String> = rustc_hash::FxHashSet::default();
 
     let mut i = 0;
     while i < argv.len() {
@@ -366,7 +366,7 @@ fn target_ids_for(config: &Config, requested: &[String]) -> Result<Vec<String>> 
     } else {
         requested.to_vec()
     };
-    let available: BTreeSet<&str> = config.targets.iter().map(|t| t.id()).collect();
+    let available: FxHashSet<&str> = config.targets.iter().map(|t| t.id()).collect();
     for id in &ids {
         if !available.contains(id.as_str()) {
             return Err(Error::Input(format!("target is not configured: {id}")));

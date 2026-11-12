@@ -8,7 +8,7 @@ use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::{MACOS_DEPLOYMENT_TARGET, native_architectures_from_bytes, target_python_version};
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment, seed_toolchain_home};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -132,19 +132,19 @@ fn safe_member(name: &str) -> bool {
 }
 
 pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<String>> {
-    let ignored: std::collections::BTreeSet<&str> = ignored_paths.iter().map(|s| s.as_str()).collect();
+    let ignored: rustc_hash::FxHashSet<&str> = ignored_paths.iter().map(|s| s.as_str()).collect();
     // zip sdist?
     std::fs::File::open(sdist).map_err(|e| {
         Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
     })?;
     let zip_archive = crate::wheel_zip::Archive::open(sdist).ok();
-    let mut extensions: BTreeMap<String, bool> = BTreeMap::new();
-    let mut native_payloads: BTreeMap<String, bool> = BTreeMap::new();
+    let mut extensions: FxHashMap<String, bool> = FxHashMap::default();
+    let mut native_payloads: FxHashMap<String, bool> = FxHashMap::default();
     let mut setup_py: Vec<u8> = Vec::new();
     if let Some(archive) = zip_archive {
         let names: Vec<String> = archive.names().map(str::to_string).collect();
         let res = {
-            let mut seen = std::collections::BTreeSet::new();
+            let mut seen = rustc_hash::FxHashSet::default();
             names.iter().any(|n| !seen.insert(n.clone()))
         }; if res {
             return Err(Error::build(
@@ -194,7 +194,7 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         let entries = archive.entries().map_err(|e| {
             Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
         })?;
-        let mut seen: BTreeSet<String> = BTreeSet::new();
+        let mut seen: FxHashSet<String> = FxHashSet::default();
         let mut expanded: u64 = 0;
         for entry in entries {
             let entry = entry.map_err(|e| {
@@ -248,12 +248,14 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
         }
     }
     if !extensions.is_empty() {
-        let list: Vec<&String> = extensions.keys().collect();
+        let mut list: Vec<&String> = extensions.keys().collect();
+        list.sort_unstable();
         let joined = list.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ");
         return Ok(Some(format!("source archive contains compiled-source files: {joined}")));
     }
     if !native_payloads.is_empty() {
-        let list: Vec<&String> = native_payloads.keys().collect();
+        let mut list: Vec<&String> = native_payloads.keys().collect();
+        list.sort_unstable();
         let joined = list.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ");
         return Ok(Some(format!("source archive contains native payloads: {joined}")));
     }
@@ -273,7 +275,7 @@ pub fn produced_binary(wheel: &Path) -> Result<bool> {
     })?;
     let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
-        let mut seen = std::collections::BTreeSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         names.iter().any(|n| !seen.insert(n.clone()))
     }; if res {
         return Err(Error::build("cannot inspect built wheel: wheel contains duplicate archive paths", Stage::Build));
@@ -326,7 +328,7 @@ pub struct BuildOptions<'a> {
     pub linux_repair_policy: &'a str,
     pub build_constraints: Option<&'a Path>,
     pub require_build_hashes: bool,
-    pub env: Option<&'a BTreeMap<String, String>>,
+    pub env: Option<&'a FxHashMap<String, String>>,
     pub prebuild_cwd: Option<&'a Path>,
 }
 
@@ -402,9 +404,9 @@ fn rand_hex() -> u64 {
 }
 
 fn build_environment(
-    base: &BTreeMap<String, String>,
+    base: &FxHashMap<String, String>,
     stage: &Path,
-) -> std::io::Result<BTreeMap<String, String>> {
+) -> std::io::Result<FxHashMap<String, String>> {
     let home = stage.join("home");
     std::fs::create_dir(&home)?;
     seed_toolchain_home(base, &home)?;
@@ -465,7 +467,7 @@ fn build_source_file(
     std::fs::create_dir(&output).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
     let build_temp = stage.join("tmp");
     std::fs::create_dir(&build_temp).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
-    let base_env: BTreeMap<String, String> = match opts.env {
+    let base_env: FxHashMap<String, String> = match opts.env {
         Some(m) => m.clone(),
         None => std::env::vars().collect(),
     };
@@ -617,7 +619,7 @@ fn is_same_bytes(a: &Path, b: &Path) -> Result<bool> {
 fn run_checked(
     command: &[String],
     cwd: &Path,
-    env: &BTreeMap<String, String>,
+    env: &FxHashMap<String, String>,
     timeout: u64,
     package: &PackageVersion,
     target: &Target,
@@ -922,10 +924,12 @@ mod tests {
         )
         .unwrap();
         std::fs::create_dir(&stage).unwrap();
-        let base = BTreeMap::from([
+        let base: FxHashMap<String, String> = [
             ("PATH".to_string(), "/usr/bin".to_string()),
             ("HOME".to_string(), origin.display().to_string()),
-        ]);
+        ]
+        .into_iter()
+        .collect();
 
         let env = build_environment(&base, &stage).unwrap();
         let home = stage.join("home");
@@ -972,12 +976,14 @@ mod tests {
         std::fs::create_dir_all(rustup_home.join("toolchains/stable/bin")).unwrap();
         std::fs::write(rustup_home.join("toolchains/stable/bin/rustc"), b"rustc").unwrap();
         std::fs::create_dir(&stage).unwrap();
-        let base = BTreeMap::from([
+        let base: FxHashMap<String, String> = [
             ("PATH".to_string(), "/usr/bin".to_string()),
             ("HOME".to_string(), origin.display().to_string()),
             ("CARGO_HOME".to_string(), cargo_home.display().to_string()),
             ("RUSTUP_HOME".to_string(), rustup_home.display().to_string()),
-        ]);
+        ]
+        .into_iter()
+        .collect();
 
         let env = build_environment(&base, &stage).unwrap();
         let home = stage.join("home");
@@ -1084,7 +1090,7 @@ mod tests {
         let stage = dir.path().join("stage");
         std::fs::create_dir(&stage).unwrap();
         std::fs::create_dir(stage.join("tmp")).unwrap();
-        let base: BTreeMap<String, String> = std::env::vars().collect();
+        let base: FxHashMap<String, String> = std::env::vars().collect();
         let mut env = build_environment(&base, &stage).unwrap();
         env.insert(
             "RUSTUP_DIST_SERVER".to_string(),

@@ -5,7 +5,7 @@ use stuff_oci::{
     plan_manifest, plan_method_not_allowed, plan_ping, plan_referrers, plan_tags, Body, Digest,
     Method, Pagination, Parsed, Reference, RepositoryName, Request, RequestHeaders, ResponsePlan,
 };
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, deser::Serialize, deser::Deserialize)]
 pub struct OciRequestJson {
@@ -39,8 +39,8 @@ pub struct OciPlanJson {
     pub kind: String,
     #[deser(default)]
     pub status: u16,
-    #[deser(default)]
-    pub headers: BTreeMap<String, String>,
+    #[deser(default, serialize_as = crate::api::SortedStringMap)]
+    pub headers: FxHashMap<String, String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
     pub body: Option<String>,
     #[deser(default, skip_serializing_if = Option::is_none)]
@@ -124,7 +124,7 @@ pub fn oci_request_json(method: &str, raw_target: &str) -> String {
 }
 
 pub(crate) fn plan_to_json(plan: ResponsePlan, bucket: Option<&str>, key: Option<String>, head: bool) -> String {
-    let headers: BTreeMap<String, String> = plan.headers.into_iter().collect();
+    let headers: FxHashMap<String, String> = plan.headers.into_iter().collect();
     let (body, range_start, range_length) = match plan.body {
         Body::Empty => (None, None, None),
         Body::Inline(bytes) => (Some(String::from_utf8_lossy(&bytes).into_owned()), None, None),
@@ -153,7 +153,7 @@ fn internal_error(message: String) -> String {
         "{{\"errors\":[{{\"code\":\"UNKNOWN\",\"message\":{}}}]}}",
         json_string(&message)
     );
-    let mut headers = BTreeMap::new();
+    let mut headers = FxHashMap::default();
     headers.insert("content-type".to_string(), "application/json".to_string());
     headers.insert("content-length".to_string(), body.len().to_string());
     headers.insert("cache-control".to_string(), "no-store".to_string());

@@ -485,10 +485,10 @@ fn parse_pnpm_documents(
     let targets = normalize_targets(options.target_ids)?;
     let null = deser_value::Value::from(deser_value::Kind::Null);
     let mut packages_by_key: Vec<PackageRecord> = Vec::new();
-    let mut snapshot_keys: std::collections::BTreeSet<String> = Default::default();
-    let mut snapshot_entries: std::collections::BTreeSet<String> = Default::default();
-    let mut snapshot_references: std::collections::BTreeSet<String> = Default::default();
-    let mut importer_paths: std::collections::BTreeSet<String> = Default::default();
+    let mut snapshot_keys: rustc_hash::FxHashSet<String> = Default::default();
+    let mut snapshot_entries: rustc_hash::FxHashSet<String> = Default::default();
+    let mut snapshot_references: rustc_hash::FxHashSet<String> = Default::default();
+    let mut importer_paths: rustc_hash::FxHashSet<String> = Default::default();
     let mut roots: Vec<RootDependency> = Vec::new();
     for (index, document) in documents.iter().enumerate() {
         let n = index + 1;
@@ -568,15 +568,17 @@ fn parse_pnpm_documents(
         }
         roots.extend(importer_roots(document, &packages_by_key, &format!("pnpm lockfile document {n}"))?);
     }
-    for snapshot in &snapshot_keys {
-        if !packages_by_key.iter().any(|pkg| snapshot_reference(&pkg.key) == *snapshot) {
-            return Err(invalid(format!("pnpm snapshot has no matching package entry: {snapshot}")));
-        }
+    if let Some(snapshot) = snapshot_keys
+        .iter()
+        .filter(|snapshot| !packages_by_key.iter().any(|pkg| snapshot_reference(&pkg.key) == **snapshot))
+        .min()
+    {
+        return Err(invalid(format!("pnpm snapshot has no matching package entry: {snapshot}")));
     }
-    if let Some(missing) = snapshot_references.iter().find(|r| !snapshot_entries.contains(*r)) {
+    if let Some(missing) = snapshot_references.iter().filter(|r| !snapshot_entries.contains(*r)).min() {
         return Err(invalid(format!("pnpm snapshot dependency has no matching snapshot: {missing}")));
     }
-    let mut seen_roots: std::collections::BTreeSet<String> = Default::default();
+    let mut seen_roots: rustc_hash::FxHashSet<String> = Default::default();
     let mut unique_roots = Vec::new();
     for root in roots {
         if seen_roots.insert(root_canonical(&root)) {
@@ -641,7 +643,7 @@ pub fn pnpm_build_package_keys(text: &str) -> Result<Vec<String>> {
     let documents = decode_pnpm_documents(text)?;
     let maps = lockfile_documents(&documents)?;
     let null = deser_value::Value::from(deser_value::Kind::Null);
-    let mut keys: std::collections::BTreeSet<String> = Default::default();
+    let mut keys: rustc_hash::FxHashSet<String> = Default::default();
     for (index, document) in maps.iter().enumerate() {
         let n = index + 1;
         let packages_val = document.get("packages").unwrap_or(&null);
@@ -660,7 +662,9 @@ pub fn pnpm_build_package_keys(text: &str) -> Result<Vec<String>> {
             }
         }
     }
-    Ok(keys.into_iter().collect())
+    let mut keys: Vec<String> = keys.into_iter().collect();
+    keys.sort_unstable();
+    Ok(keys)
 }
 
 #[cfg(test)]

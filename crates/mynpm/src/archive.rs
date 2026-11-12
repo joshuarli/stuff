@@ -2,7 +2,7 @@
 
 use crate::error::{Error, Result};
 use crate::inventory::{valid_package_name, valid_version};
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::fs;
 use std::io::Read;
 
@@ -53,7 +53,7 @@ fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result
     let mut archive = tar::Archive::new(gz);
 
     let mut entries: Vec<ArchiveEntry> = Vec::new();
-    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut seen: FxHashSet<String> = FxHashSet::default();
     let mut unpacked_bytes: u64 = 0;
     let mut root_directory: Option<String> = None;
     let mut manifest_bytes: Option<Vec<u8>> = None;

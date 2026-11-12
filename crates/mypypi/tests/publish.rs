@@ -5,7 +5,7 @@ use mypypi::config::parse_project_settings;
 use mypypi::error::Kind;
 use mypypi::models::{Target, ValidatedArtifact, WheelIdentity};
 use mypypi::publish::{publish, PublishOptions};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 
 const FIXTURE_WHEEL: &str = "validation_fixture-1.0-py3-none-any.whl";
@@ -53,7 +53,7 @@ fn publish_summary_matches_the_generation_on_disk() {
     let sha256 = mypypi::acquire::sha256_file(&staged).unwrap();
     let target = Target::new("3.15", "macos-arm64").unwrap();
     let artifact = ValidatedArtifact::new(identity, staged.clone(), sha256, vec![target]).unwrap();
-    mypypi::store::publish(&[artifact], &output, &BTreeMap::new(), "https://seed.example.test").unwrap();
+    mypypi::store::publish(&[artifact], &output, &FxHashMap::default(), "https://seed.example.test").unwrap();
 
     settings.public_base_url = "https://fresh.example.test".to_string();
     let summary = publish(&PublishOptions {
@@ -105,7 +105,7 @@ fn identical_publishes_report_no_op_false_then_true() {
     mypypi::store::publish(
         &[artifact],
         &output,
-        &BTreeMap::new(),
+        &FxHashMap::default(),
         &settings.public_base_url,
     )
     .unwrap();

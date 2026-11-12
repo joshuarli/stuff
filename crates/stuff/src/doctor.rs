@@ -1260,7 +1260,7 @@ mod tests {
                 digest: Digest::parse(&format!("sha256:{hex}")).unwrap(),
                 size,
                 artifact_type: None,
-                annotations: std::collections::BTreeMap::new(),
+                annotations: rustc_hash::FxHashMap::default(),
                 platform: None,
                 urls: Vec::new(),
             };
@@ -1409,7 +1409,7 @@ mod tests {
         let npm_catalog = stuff_catalog::npm_catalog(
             "g1",
             vec![stuff_catalog::NpmInput { name: "a".to_string(), version: "1.0.0".to_string(), dependencies: stuff_catalog::Dependencies::default() }],
-            &std::collections::BTreeMap::new(),
+            &rustc_hash::FxHashMap::default(),
         )
         .unwrap();
         let check = sample_local("npm", &npm_catalog, &site, &gen_dir);

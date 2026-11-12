@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -80,14 +80,14 @@ impl TransactionReport {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Staged {
     pub site: PathBuf,
-    pub known: BTreeMap<String, ObjectMeta>,
+    pub known: FxHashMap<String, ObjectMeta>,
 }
 
 impl Staged {
     pub fn new(site: impl Into<PathBuf>) -> Self {
         Staged {
             site: site.into(),
-            known: BTreeMap::new(),
+            known: FxHashMap::default(),
         }
     }
 }
@@ -541,13 +541,13 @@ fn build_client(credentials: &Credentials, options: &TransactionOptions) -> R2Cl
         .with_attempts(options.attempts)
 }
 
-fn metadata_index(snapshot: &Snapshot) -> std::collections::BTreeMap<String, ObjectMeta> {
+fn metadata_index(snapshot: &Snapshot) -> FxHashMap<String, ObjectMeta> {
     index_from_listing(snapshot.metadata())
 }
 
 fn index_from_listing(
-    objects: &std::collections::BTreeMap<String, crate::publish::r2::ListedObject>,
-) -> std::collections::BTreeMap<String, ObjectMeta> {
+    objects: &FxHashMap<String, crate::publish::r2::ListedObject>,
+) -> FxHashMap<String, ObjectMeta> {
     objects
         .iter()
         .map(|(key, object)| {

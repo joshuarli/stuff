@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -64,13 +64,13 @@ fn read_config(path: &Path) -> (String, bool) {
     (base, auth_required)
 }
 
-fn tree_files(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
-    let mut files = BTreeMap::new();
+fn tree_files(root: &Path) -> FxHashMap<PathBuf, Vec<u8>> {
+    let mut files = FxHashMap::default();
     collect_files(root, root, &mut files);
     files
 }
 
-fn collect_files(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+fn collect_files(root: &Path, directory: &Path, files: &mut FxHashMap<PathBuf, Vec<u8>>) {
     for entry in fs::read_dir(directory).expect("read generation directory") {
         let entry = entry.expect("generation entry");
         let path = entry.path();
@@ -129,10 +129,11 @@ fn an_adopted_site_republishes_the_golden_generation_byte_for_byte() {
 
     let expected_files = tree_files(&golden.join("expected-generation"));
     let produced_files = tree_files(&site.join("generations").join(&expected_id));
-    assert_eq!(
-        produced_files.keys().collect::<Vec<&PathBuf>>(),
-        expected_files.keys().collect::<Vec<&PathBuf>>()
-    );
+    let mut produced_keys: Vec<_> = produced_files.keys().collect();
+    produced_keys.sort();
+    let mut expected_keys: Vec<_> = expected_files.keys().collect();
+    expected_keys.sort();
+    assert_eq!(produced_keys, expected_keys);
     for (relative, expected_bytes) in &expected_files {
         assert_eq!(
             &produced_files[relative],

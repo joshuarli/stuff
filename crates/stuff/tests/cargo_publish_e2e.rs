@@ -2,7 +2,7 @@
 
 mod support;
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -273,8 +273,8 @@ fn generation_id(site: &Path) -> String {
         .to_string()
 }
 
-fn generation_files(site: &Path, generation: &str) -> BTreeMap<PathBuf, Vec<u8>> {
-    let mut files = BTreeMap::new();
+fn generation_files(site: &Path, generation: &str) -> FxHashMap<PathBuf, Vec<u8>> {
+    let mut files = FxHashMap::default();
     collect_files(
         &site.join("generations").join(generation),
         &site.join("generations").join(generation),
@@ -283,7 +283,7 @@ fn generation_files(site: &Path, generation: &str) -> BTreeMap<PathBuf, Vec<u8>>
     files
 }
 
-fn collect_files(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+fn collect_files(root: &Path, directory: &Path, files: &mut FxHashMap<PathBuf, Vec<u8>>) {
     for entry in fs::read_dir(directory).expect("read generation directory") {
         let entry = entry.expect("generation entry");
         let path = entry.path();
@@ -307,15 +307,15 @@ fn put_paths(fake: &FakeS3, after: usize) -> Vec<String> {
         .collect()
 }
 
-fn tree(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
-    let mut files = BTreeMap::new();
+fn tree(root: &Path) -> FxHashMap<PathBuf, Vec<u8>> {
+    let mut files = FxHashMap::default();
     if root.exists() {
         collect_tree(root, root, &mut files);
     }
     files
 }
 
-fn collect_tree(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+fn collect_tree(root: &Path, directory: &Path, files: &mut FxHashMap<PathBuf, Vec<u8>>) {
     let mut entries: Vec<_> = fs::read_dir(directory)
         .expect("read tree directory")
         .map(|entry| entry.expect("tree entry"))
@@ -409,10 +409,11 @@ fn cargo_publish_round_trips_and_republishes_unchanged() {
     );
     let python_files = generation_files(&python_site, &python_generation);
     let rust_files = generation_files(&rust_site, &rust_generation);
-    assert_eq!(
-        rust_files.keys().collect::<Vec<_>>(),
-        python_files.keys().collect::<Vec<_>>()
-    );
+    let mut rust_keys: Vec<_> = rust_files.keys().collect();
+    rust_keys.sort();
+    let mut python_keys: Vec<_> = python_files.keys().collect();
+    python_keys.sort();
+    assert_eq!(rust_keys, python_keys);
     for (relative, expected) in &python_files {
         assert_eq!(&rust_files[relative], expected, "{}", relative.display());
     }

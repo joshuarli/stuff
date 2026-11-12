@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 pub fn as_map(v: &deser_value::Value) -> Option<&deser_value::Map> {
     v.as_map()
@@ -151,11 +151,11 @@ pub fn check_integrity_token(algo: &str, digest: &str, label: &str) -> Result<St
     Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 
-pub fn check_integrity_string(text: &str, label: &str) -> Result<BTreeMap<String, String>> {
+pub fn check_integrity_string(text: &str, label: &str) -> Result<FxHashMap<String, String>> {
     if text.trim().is_empty() {
         return Err(Error::Input(format!("{label} is malformed")));
     }
-    let mut claims: BTreeMap<String, String> = BTreeMap::new();
+    let mut claims: FxHashMap<String, String> = FxHashMap::default();
     for token in text.split_whitespace() {
         let claim = token.split('?').next().unwrap_or("");
         let Some(sep) = claim.find('-') else {

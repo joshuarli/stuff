@@ -6,7 +6,7 @@ use crate::models::{PackageVersion, Target};
 use crate::platforms::target_python_version;
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use stuff_store::{FileLock, LockError};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::Path;
@@ -81,16 +81,19 @@ fn parse_exact_requirements(requirements: &[String]) -> Result<(Vec<PackageVersi
     if packages.is_empty() {
         return Err(Error::invalid_input("at least one exact package pin is required", Stage::Command));
     }
-    let mut versions_by_name: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    let mut versions_by_name: FxHashMap<&str, FxHashSet<String>> = FxHashMap::default();
     for package in &packages {
         versions_by_name
             .entry(package.name.as_str())
             .or_default()
             .insert(package.version.to_string());
     }
-    for (name, versions) in &versions_by_name {
+    let mut version_groups: Vec<_> = versions_by_name.iter().collect();
+    version_groups.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (name, versions) in version_groups {
         if versions.len() > 1 {
-            let list: Vec<&str> = versions.iter().map(|s| s.as_str()).collect();
+            let mut list: Vec<&str> = versions.iter().map(|s| s.as_str()).collect();
+            list.sort_unstable();
             return Err(Error::conflict(
                 format!("conflicting requested pins for {name}: {}", list.join(", ")),
                 Stage::Command,
@@ -98,7 +101,7 @@ fn parse_exact_requirements(requirements: &[String]) -> Result<(Vec<PackageVersi
         }
     }
     // dedupe preserving order
-    let mut seen = BTreeSet::new();
+    let mut seen = FxHashSet::default();
     let mut deduped = Vec::new();
     for p in packages {
         let key = format!("{p}");
@@ -236,12 +239,13 @@ fn resolve_dependencies_inner(
     let mut resolutions: Vec<(Target, Vec<PackageVersion>)> = Vec::new();
     for target in targets {
         let resolution = compile_for_target(&normalized, target, python)?;
-        let mut by_name: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+        let mut by_name: FxHashMap<&str, FxHashSet<String>> = FxHashMap::default();
         for package in &resolution {
             by_name.entry(package.name.as_str()).or_default().insert(package.version.to_string());
         }
-        let conflicts: Vec<(&str, &BTreeSet<String>)> =
+        let mut conflicts: Vec<(&str, &FxHashSet<String>)> =
             by_name.iter().filter(|(_, v)| v.len() > 1).map(|(k, v)| (*k, v)).collect();
+        conflicts.sort_unstable_by(|a, b| a.0.cmp(b.0));
         if let Some((name, found)) = conflicts.first() {
             let mut sorted: Vec<&String> = found.iter().collect();
             sorted.sort();
@@ -257,7 +261,7 @@ fn resolve_dependencies_inner(
             e = e.with_package(&pkg).with_target(&target.python_version.to_string(), &target.platform);
             return Err(e);
         }
-        let resolved_by_name: BTreeMap<&str, &pep440_rs::Version> =
+        let resolved_by_name: FxHashMap<&str, &pep440_rs::Version> =
             resolution.iter().map(|p| (p.name.as_str(), &p.version)).collect();
         for pin in &pins {
             if let Some(resolved) = resolved_by_name.get(pin.name.as_str())
@@ -276,8 +280,8 @@ fn resolve_dependencies_inner(
         }
         resolutions.push((target.clone(), resolution));
     }
-    let root_names: BTreeSet<&str> = pins.iter().map(|p| p.name.as_str()).collect();
-    let mut transitive: BTreeMap<PackageVersion, Vec<String>> = BTreeMap::new();
+    let root_names: FxHashSet<&str> = pins.iter().map(|p| p.name.as_str()).collect();
+    let mut transitive: FxHashMap<PackageVersion, Vec<String>> = FxHashMap::default();
     for (target, resolution) in &resolutions {
         for package in resolution {
             if root_names.contains(package.name.as_str()) {
@@ -299,11 +303,11 @@ fn resolve_dependencies_inner(
 }
 
 pub fn append_entries(source: &str, packages: &[ResolvedPin], existing: &Catalog) -> Result<String> {
-    let mut present: BTreeMap<&PackageVersion, &crate::catalog::PackageEntry> = BTreeMap::new();
+    let mut present: FxHashMap<&PackageVersion, &crate::catalog::PackageEntry> = FxHashMap::default();
     for entry in &existing.entries {
         present.insert(&entry.package, entry);
     }
-    let mut requested: BTreeMap<&PackageVersion, Option<BTreeSet<String>>> = BTreeMap::new();
+    let mut requested: FxHashMap<&PackageVersion, Option<FxHashSet<String>>> = FxHashMap::default();
     for item in packages {
         let entry = requested.entry(&item.package).or_insert(None);
         match &item.platforms {
@@ -329,18 +333,20 @@ pub fn append_entries(source: &str, packages: &[ResolvedPin], existing: &Catalog
         match platforms {
             None => additions.push((*package, None)),
             Some(wanted) => {
-                let current_set: BTreeSet<&str> = current
+                let current_set: FxHashSet<&str> = current
                     .and_then(|c| c.platforms.as_ref())
                     .map(|v| v.iter().map(|s| s.as_str()).collect())
                     .unwrap_or_default();
-                let missing: Vec<String> =
+                let mut missing: Vec<String> =
                     wanted.iter().filter(|p| !current_set.contains(p.as_str())).cloned().collect();
+                missing.sort_unstable();
                 if !missing.is_empty() {
                     additions.push((*package, Some(missing)));
                 }
             }
         }
     }
+    additions.sort_unstable_by(|a, b| a.0.cmp(b.0));
     if additions.is_empty() {
         return Ok(source.to_string());
     }

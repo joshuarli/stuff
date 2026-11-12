@@ -7,7 +7,7 @@ use crate::models::{PackageVersion, Target, ValidatedArtifact, WheelIdentity};
 use crate::planner::validate_catalog_targets;
 use crate::platforms::ordered_target_tags;
 use crate::validate::{ExceptionKind, ValidationException, ValidationPolicy};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::{Path, PathBuf};
 
 pub struct PublishOptions<'a> {
@@ -42,7 +42,7 @@ pub struct RepublishSummary {
 pub fn publish(options: &PublishOptions<'_>) -> Result<PublishSummary> {
     let set = collect_validated(options.settings, options.output, options.state_dir, options.platforms, options.catalog)?;
     let entries = options.catalog.by_package();
-    let mut yanked: BTreeMap<String, Option<String>> = BTreeMap::new();
+    let mut yanked: FxHashMap<String, Option<String>> = FxHashMap::default();
     for artifact in crate::store::published_artifacts(options.output).map_err(|e| {
         Error::new(Kind::Integrity, e.detail.clone(), Stage::Publication)
     })? {
@@ -91,16 +91,16 @@ pub(crate) fn selected_targets(settings: &ProjectSettings, requested: &[String])
         return Ok(settings.targets());
     }
     {
-        let mut seen = BTreeSet::new();
+        let mut seen = FxHashSet::default();
         for p in requested {
             if !seen.insert(p.clone()) {
                 return Err(fail("--platform values must be unique"));
             }
         }
     }
-    let configured: BTreeMap<&str, &Target> = BTreeMap::new();
+    let configured: FxHashMap<&str, &Target> = FxHashMap::default();
     let targets = settings.targets();
-    let mut map: BTreeMap<&str, Target> = BTreeMap::new();
+    let mut map: FxHashMap<&str, Target> = FxHashMap::default();
     for t in &targets {
         map.insert(t.platform.as_str(), t.clone());
     }
@@ -249,9 +249,9 @@ pub(crate) fn collect_validated(
     let published = crate::store::published_artifacts(output).map_err(|e| {
         Error::validation(e.detail.clone(), Stage::Validation)
     })?;
-    let published_by_filename: BTreeMap<&str, &ValidatedArtifact> =
+    let published_by_filename: FxHashMap<&str, &ValidatedArtifact> =
         published.iter().map(|a| (a.wheel.filename.as_str(), a)).collect();
-    let mut staged: BTreeMap<String, (WheelIdentity, PathBuf, String, Vec<Target>)> = BTreeMap::new();
+    let mut staged: FxHashMap<String, (WheelIdentity, PathBuf, String, Vec<Target>)> = FxHashMap::default();
     for path in wheel_paths(state_dir)? {
         let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
         let identity = WheelIdentity::parse(&name).map_err(|e| {
@@ -274,12 +274,12 @@ pub(crate) fn collect_validated(
             if entry.excluded_platforms.iter().any(|(p, _)| p == &target.platform) {
                 continue;
             }
-            let wheel_tags: BTreeSet<String> = crate::platforms::wheel_tag_triples(&name)
+            let wheel_tags: FxHashSet<String> = crate::platforms::wheel_tag_triples(&name)
                 .map_err(|e| Error::integrity(format!("invalid wheel {name}: {}", e.detail), Stage::Validation))?
                 .iter()
                 .map(|t| t.as_string())
                 .collect();
-            let supported: BTreeSet<String> = ordered_target_tags(target, &settings.linux_repair_policy)
+            let supported: FxHashSet<String> = ordered_target_tags(target, &settings.linux_repair_policy)
                 .map_err(|e| Error::integrity(e.detail, Stage::Validation))?
                 .iter()
                 .map(|t| t.as_string())
@@ -325,7 +325,7 @@ pub(crate) fn collect_validated(
             .with_target(&target.python_version.to_string(), &target.platform));
         }
     }
-    let mut targets_to_validate: BTreeMap<String, Vec<Target>> = BTreeMap::new();
+    let mut targets_to_validate: FxHashMap<String, Vec<Target>> = FxHashMap::default();
     for (filename, (_, _, _, applicable)) in &staged {
         let mut needed = Vec::new();
         for target in applicable {
@@ -341,17 +341,19 @@ pub(crate) fn collect_validated(
         }
     }
     let local = crate::validate::local_platform();
-    let mut policies: BTreeMap<PackageVersion, ValidationPolicy> = BTreeMap::new();
-    for (package, entry) in &entries {
+    let mut policies: FxHashMap<PackageVersion, ValidationPolicy> = FxHashMap::default();
+    let mut entry_pairs: Vec<_> = entries.iter().collect();
+    entry_pairs.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (package, entry) in entry_pairs {
         policies.insert((*package).clone(), validation_policy(entry)?);
     }
     let scope = TempScope::create("mypypi-candidate-")?;
     let snapshot_root = scope.path.clone();
-    let mut validated_targets: BTreeMap<String, Vec<Target>> = BTreeMap::new();
-    let mut copied_paths: BTreeMap<String, PathBuf> = BTreeMap::new();
+    let mut validated_targets: FxHashMap<String, Vec<Target>> = FxHashMap::default();
+    let mut copied_paths: FxHashMap<String, PathBuf> = FxHashMap::default();
     let mut no_imports = 0usize;
     for target in &targets {
-        let mut candidate_sources: BTreeMap<String, (PathBuf, String)> = BTreeMap::new();
+        let mut candidate_sources: FxHashMap<String, (PathBuf, String)> = FxHashMap::default();
         for artifact in &published {
             if artifact.targets.contains(target) {
                 candidate_sources.insert(artifact.wheel.filename.clone(), (artifact.path.clone(), artifact.sha256.clone()));
@@ -373,8 +375,10 @@ pub(crate) fn collect_validated(
         std::fs::create_dir(&wheel_set).map_err(|e| {
             Error::io(format!("could not create validation snapshot: {e}"), Stage::Validation)
         })?;
-        let mut target_paths: BTreeMap<String, PathBuf> = BTreeMap::new();
-        for (filename, (source, expected_hash)) in &candidate_sources {
+        let mut target_paths: FxHashMap<String, PathBuf> = FxHashMap::default();
+        let mut sources: Vec<_> = candidate_sources.iter().collect();
+        sources.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (filename, (source, expected_hash)) in sources {
             let wheel_path = wheel_set.join(filename);
             std::fs::copy(source, &wheel_path).map_err(|e| {
                 Error::io(format!("could not copy validation snapshot: {e}"), Stage::Validation)
@@ -390,7 +394,9 @@ pub(crate) fn collect_validated(
         }
         let native = local.as_deref() == Some(target.platform.as_str());
         let mut pending = Vec::new();
-        for (filename, required) in &targets_to_validate {
+        let mut validation_order: Vec<_> = targets_to_validate.iter().collect();
+        validation_order.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (filename, required) in validation_order {
             if !required.contains(target) {
                 continue;
             }
@@ -416,7 +422,9 @@ pub(crate) fn collect_validated(
                 }
             }
         }
-        for (filename, wheel_path) in &target_paths {
+        let mut copied: Vec<_> = target_paths.iter().collect();
+        copied.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (filename, wheel_path) in copied {
             if sha256_of(wheel_path)? != candidate_sources[filename].1 {
                 return Err(Error::integrity(
                     format!("candidate wheel changed during validation: {filename}"),
@@ -435,7 +443,7 @@ pub(crate) fn collect_validated(
             new_artifacts.push(ValidatedArtifact::new(identity.clone(), path, checksum.clone(), covered.clone())?);
         }
     }
-    let mut coverage: BTreeSet<(PackageVersion, Target)> = BTreeSet::new();
+    let mut coverage: FxHashSet<(PackageVersion, Target)> = FxHashSet::default();
     for artifact in &published {
         for target in &artifact.targets {
             coverage.insert((artifact.wheel.package.clone(), target.clone()));

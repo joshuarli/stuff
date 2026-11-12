@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -248,7 +248,7 @@ struct SiteBuild<'a> {
 }
 
 impl SiteBuild<'_> {
-    fn run(&self) -> Result<BTreeMap<String, ObjectMeta>, PublishError> {
+    fn run(&self) -> Result<FxHashMap<String, ObjectMeta>, PublishError> {
         let site_dir = self.site_dir;
         let blobs_dir = site_dir.join("blobs");
         let site = Site::new(site_dir.to_path_buf());
@@ -262,7 +262,7 @@ impl SiteBuild<'_> {
             ))
         })?;
         sync_dir(&blobs_dir).map_err(store_error)?;
-        let mut known = BTreeMap::new();
+        let mut known = FxHashMap::default();
         for checksum in self
             .native
             .iter()
@@ -356,7 +356,7 @@ impl SiteBuild<'_> {
 
 struct Workspace {
     root: PathBuf,
-    versions: BTreeMap<String, String>,
+    versions: FxHashMap<String, String>,
 }
 
 struct CargoPublishCommand<'a> {
@@ -415,7 +415,7 @@ impl CargoPublishCommand<'_> {
             .and_then(|root| root.as_str())
             .map(PathBuf::from)
             .ok_or_else(malformed)?;
-        let mut versions = BTreeMap::new();
+        let mut versions = FxHashMap::default();
         for package in packages {
             let package = package.as_map().ok_or_else(malformed)?;
             let field = |name: &str| {

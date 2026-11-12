@@ -418,7 +418,7 @@ mod tests {
     use super::*;
     use crate::error::ErrorCode;
     use crate::request::{parse_request, Pagination, Parsed, Request};
-    use std::collections::BTreeMap;
+    use rustc_hash::FxHashMap;
 
     const INDEX_DIGEST: &str =
         "sha256:04237663eeeaf2ee4f6dec1a5d23c8a7c1bc70275cbfa205e6f35377603c6388";
@@ -438,7 +438,7 @@ mod tests {
             digest: Digest::parse(digest).unwrap(),
             size,
             artifact_type: artifact_type.map(str::to_string),
-            annotations: BTreeMap::new(),
+            annotations: FxHashMap::default(),
             platform: None,
             urls: Vec::new(),
         }

@@ -2,7 +2,7 @@
 
 mod support;
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -147,14 +147,14 @@ fn generation_id(site: &Path) -> String {
         .to_string()
 }
 
-fn generation_files(site: &Path, generation: &str) -> BTreeMap<PathBuf, Vec<u8>> {
-    let mut files = BTreeMap::new();
+fn generation_files(site: &Path, generation: &str) -> FxHashMap<PathBuf, Vec<u8>> {
+    let mut files = FxHashMap::default();
     let root = site.join("generations").join(generation);
     collect_files(&root, &root, &mut files);
     files
 }
 
-fn collect_files(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+fn collect_files(root: &Path, directory: &Path, files: &mut FxHashMap<PathBuf, Vec<u8>>) {
     for entry in fs::read_dir(directory).expect("read generation directory") {
         let entry = entry.expect("generation entry");
         let path = entry.path();
@@ -169,15 +169,15 @@ fn collect_files(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Ve
     }
 }
 
-fn tree(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
-    let mut files = BTreeMap::new();
+fn tree(root: &Path) -> FxHashMap<PathBuf, Vec<u8>> {
+    let mut files = FxHashMap::default();
     if root.exists() {
         collect_tree(root, root, &mut files);
     }
     files
 }
 
-fn collect_tree(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+fn collect_tree(root: &Path, directory: &Path, files: &mut FxHashMap<PathBuf, Vec<u8>>) {
     let mut entries: Vec<_> = fs::read_dir(directory)
         .expect("read tree directory")
         .map(|entry| entry.expect("tree entry"))

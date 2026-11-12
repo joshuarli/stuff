@@ -2,7 +2,7 @@
 
 use crate::error::{Error, Result};
 use crate::state::State;
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,9 +49,9 @@ fn quoted(value: &str) -> String {
 }
 
 pub fn inspect(state: &State) -> Result<Inspection> {
-    let mut tags = BTreeSet::new();
-    let mut manifests = BTreeSet::new();
-    let mut referrers = BTreeSet::new();
+    let mut tags = FxHashSet::default();
+    let mut manifests = FxHashSet::default();
+    let mut referrers = FxHashSet::default();
     for (repository, path) in state.repository_files()? {
         let text = std::fs::read_to_string(&path)
             .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
@@ -65,20 +65,22 @@ pub fn inspect(state: &State) -> Result<Inspection> {
         }
         collect_referrer_subjects(&state.referrers_dir(&repository), &mut referrers)?;
     }
-    let blobs = state
+    let mut tags: Vec<String> = tags.into_iter().collect();
+    tags.sort_unstable();
+    let mut manifests: Vec<String> = manifests.into_iter().collect();
+    manifests.sort_unstable();
+    let mut blobs: Vec<String> = state
         .read_blobs()?
         .iter()
         .map(|digest| digest.as_str().to_string())
         .collect();
-    Ok(Inspection {
-        tags: tags.into_iter().collect(),
-        manifests: manifests.into_iter().collect(),
-        blobs,
-        referrers: referrers.into_iter().collect(),
-    })
+    blobs.sort_unstable();
+    let mut referrers: Vec<String> = referrers.into_iter().collect();
+    referrers.sort_unstable();
+    Ok(Inspection { tags, manifests, blobs, referrers })
 }
 
-fn collect_referrer_subjects(dir: &Path, out: &mut BTreeSet<String>) -> Result<()> {
+fn collect_referrer_subjects(dir: &Path, out: &mut FxHashSet<String>) -> Result<()> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),

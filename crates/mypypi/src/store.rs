@@ -5,7 +5,7 @@ use crate::index::{IndexArtifact, prepare_index_artifacts, project_name, render_
 use crate::models::{Target, ValidatedArtifact, WheelIdentity};
 use sha2::{Digest, Sha256};
 use stuff_store::{write_file_durable, Activation, FileLock, Site};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -238,12 +238,12 @@ pub fn manifest_bytes(items: &[IndexArtifact]) -> Vec<u8> {
     out.into_bytes()
 }
 
-pub fn project_pages(items: &[IndexArtifact]) -> BTreeMap<String, Vec<u8>> {
-    let mut grouped: BTreeMap<String, Vec<IndexArtifact>> = BTreeMap::new();
+pub fn project_pages(items: &[IndexArtifact]) -> FxHashMap<String, Vec<u8>> {
+    let mut grouped: FxHashMap<String, Vec<IndexArtifact>> = FxHashMap::default();
     for item in items {
         grouped.entry(project_name(item)).or_default().push(item.clone());
     }
-    let mut pages = BTreeMap::new();
+    let mut pages = FxHashMap::default();
     pages.insert("simple/index.html".to_string(), render_root_page(items));
     for (name, group) in &grouped {
         pages.insert(format!("simple/{name}/index.html"), render_project_page(group));
@@ -253,7 +253,7 @@ pub fn project_pages(items: &[IndexArtifact]) -> BTreeMap<String, Vec<u8>> {
 
 pub fn generation_id(
     manifest: &[u8],
-    pages: &BTreeMap<String, Vec<u8>>,
+    pages: &FxHashMap<String, Vec<u8>>,
     items: &[IndexArtifact],
     public_base_url: &str,
 ) -> String {
@@ -291,7 +291,7 @@ pub fn catalog_for(generation: &str, items: &[IndexArtifact]) -> stuff_catalog::
 fn verify_generation(
     generation: &Path,
     manifest: &[u8],
-    pages: &BTreeMap<String, Vec<u8>>,
+    pages: &FxHashMap<String, Vec<u8>>,
     items: &[IndexArtifact],
     id: &str,
     public_base_url: &str,
@@ -314,7 +314,9 @@ fn verify_generation(
     {
         return Err(inv("existing package index generation has an invalid manifest", generation));
     }
-    for (rel, expected) in pages {
+    let mut page_entries: Vec<_> = pages.iter().collect();
+    page_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (rel, expected) in page_entries {
         let page = generation.join(rel);
         let parent = page.parent().unwrap_or(generation);
         let md = std::fs::symlink_metadata(parent).map_err(|_| inv("existing package index project path is invalid", parent))?;
@@ -359,7 +361,9 @@ fn write_generation(
     let build = |staging: &Path| -> stuff_store::Result<()> {
         std::fs::create_dir(staging.join("simple"))?;
         std::os::unix::fs::symlink(Path::new("../../wheels"), staging.join("wheels"))?;
-        for (rel, content) in &pages {
+        let mut page_entries: Vec<_> = pages.iter().collect();
+        page_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (rel, content) in page_entries {
             write_file_durable(&staging.join(rel), content)?;
         }
         write_file_durable(&staging.join("manifest.json"), manifest)?;
@@ -437,7 +441,7 @@ fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
         return Err(pub_error(Kind::Integrity, "current wheel storage is not a real directory", Some(&wheels), None));
     }
     let mut artifacts = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen = FxHashSet::default();
     for row in rows {
         if !seen.insert(row.filename.clone()) {
             return Err(pub_error(Kind::Integrity, format!("duplicate wheel filename {}", row.filename), Some(&manifest_path), None));
@@ -477,7 +481,7 @@ fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
             return Err(pub_error(Kind::Integrity, "invalid validation targets", Some(&manifest_path), None));
         }
         {
-            let mut seen_targets = BTreeSet::new();
+            let mut seen_targets = FxHashSet::default();
             for t in &row.targets {
                 if !seen_targets.insert(t.clone()) {
                     return Err(pub_error(Kind::Integrity, "invalid validation targets", Some(&manifest_path), None));
@@ -504,7 +508,7 @@ fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
             targets.clone(),
         )
         .map_err(|e| pub_error(Kind::Integrity, format!("invalid published artifact: {}", e.detail), Some(&manifest_path), None))?;
-        let prepared = prepare_index_artifacts(std::slice::from_ref(&artifact), &BTreeMap::new())
+        let prepared = prepare_index_artifacts(std::slice::from_ref(&artifact), &FxHashMap::default())
             .map_err(|_| pub_error(Kind::Integrity, format!("published metadata disagrees with manifest: {}", row.filename), Some(&manifest_path), None))?;
         let item = prepared.into_iter().next().unwrap();
         if item.metadata != sidecar_bytes || item.requires_python.as_deref() != row.requires_python.as_deref() {
@@ -634,16 +638,18 @@ pub fn republish(output: &Path, public_base_url: &str) -> Result<(PathBuf, Activ
     if published_artifacts(output)?.is_empty() {
         return Err(pub_error(Kind::InvalidInput, "no published index to republish", Some(output), None));
     }
-    publish(&[], output, &BTreeMap::new(), public_base_url)
+    publish(&[], output, &FxHashMap::default(), public_base_url)
 }
 
 pub fn publish(
     artifacts: &[ValidatedArtifact],
     output: &Path,
-    yanked: &BTreeMap<String, Option<String>>,
+    yanked: &FxHashMap<String, Option<String>>,
     public_base_url: &str,
 ) -> Result<(PathBuf, Activation)> {
-    for (filename, reason) in yanked {
+    let mut yanked_entries: Vec<_> = yanked.iter().collect();
+    yanked_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (filename, reason) in yanked_entries {
         if filename.is_empty() {
             return Err(pub_error(Kind::InvalidInput, "yanked metadata filenames must be non-empty strings", None, None));
         }
@@ -653,8 +659,8 @@ pub fn publish(
             return Err(pub_error(Kind::InvalidInput, "yanked reason must be a non-empty string", None, None));
         }
     }
-    let new_filenames: BTreeSet<&str> = artifacts.iter().map(|a| a.wheel.filename.as_str()).collect();
-    let mut reasons: BTreeMap<String, String> = BTreeMap::new();
+    let new_filenames: FxHashSet<&str> = artifacts.iter().map(|a| a.wheel.filename.as_str()).collect();
+    let mut reasons: FxHashMap<String, String> = FxHashMap::default();
     for (filename, reason) in yanked {
         if new_filenames.contains(filename.as_str())
             && let Some(r) = reason
@@ -674,7 +680,7 @@ pub fn publish(
     site.recover_staging()
         .map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&output), None))?;
     let current = current_items(&site)?;
-    let mut merged: BTreeMap<String, IndexArtifact> = BTreeMap::new();
+    let mut merged: FxHashMap<String, IndexArtifact> = FxHashMap::default();
     for item in current {
         merged.insert(item.wheel_filename.clone(), item);
     }
@@ -719,9 +725,10 @@ pub fn publish(
         let list: Vec<&str> = sorted.iter().map(|s| s.as_str()).collect();
         return Err(pub_error(Kind::InvalidInput, format!("yanked metadata names unknown wheels: {}", list.join(", ")), None, None));
     }
-    let items: Vec<IndexArtifact> = merged.into_values().collect();
+    let mut items: Vec<IndexArtifact> = merged.into_values().collect();
+    items.sort_unstable_by(|a, b| a.wheel_filename.cmp(&b.wheel_filename));
     // store wheels: need source paths for new items
-    let by_filename: BTreeMap<&str, &ValidatedArtifact> =
+    let by_filename: FxHashMap<&str, &ValidatedArtifact> =
         artifacts.iter().map(|a| (a.wheel.filename.as_str(), a)).collect();
     for item in &items {
         let source: PathBuf = if let Some(src) = by_filename.get(item.wheel_filename.as_str()) {
@@ -773,7 +780,7 @@ mod tests {
             b"Metadata-Version: 2.4\nName: sample-pkg\nVersion: 1.0\n\n",
             vec![target("macos-arm64")],
         );
-        publish(std::slice::from_ref(&a), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+        publish(std::slice::from_ref(&a), &out, &FxHashMap::default(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
         let mut b = make_validated(
             &src,
             "sample_pkg-1.0-py3-none-any.whl",
@@ -783,7 +790,7 @@ mod tests {
         // force same filename with different bytes but keep identity consistent-ish:
         // rewrite bytes directly to simulate conflict
         b.sha256 = "0".repeat(64);
-        let err = publish(std::slice::from_ref(&b), &out, &BTreeMap::new(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap_err();
+        let err = publish(std::slice::from_ref(&b), &out, &FxHashMap::default(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap_err();
         assert!(matches!(err.kind, Kind::Conflict | Kind::Integrity));
     }
 

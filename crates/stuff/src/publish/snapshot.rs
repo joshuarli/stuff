@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 use std::path::PathBuf;
 
@@ -57,7 +57,7 @@ pub struct Snapshot {
     metadata_bucket: String,
     cache: PathBuf,
     stores: Vec<SharedStore>,
-    listings: BTreeMap<String, BTreeMap<String, ListedObject>>,
+    listings: FxHashMap<String, FxHashMap<String, ListedObject>>,
 }
 
 impl Snapshot {
@@ -69,13 +69,15 @@ impl Snapshot {
     ) -> Result<Self, PublishError> {
         let stores = shared_stores(registry, config);
         let metadata_bucket = metadata_bucket(registry, config);
-        let mut buckets = BTreeSet::new();
+        let mut buckets = FxHashSet::default();
         buckets.insert(metadata_bucket.clone());
         for store in &stores {
             buckets.insert(store.bucket.clone());
         }
-        let mut listings = BTreeMap::new();
-        for bucket in buckets {
+        let mut bucket_names: Vec<_> = buckets.into_iter().collect();
+        bucket_names.sort();
+        let mut listings = FxHashMap::default();
+        for bucket in bucket_names {
             let objects = client.list_objects_v2(&bucket)?;
             listings.insert(
                 bucket,
@@ -96,7 +98,7 @@ impl Snapshot {
         self.registry
     }
 
-    pub fn metadata(&self) -> &BTreeMap<String, ListedObject> {
+    pub fn metadata(&self) -> &FxHashMap<String, ListedObject> {
         &self.listings[&self.metadata_bucket]
     }
 
@@ -104,7 +106,7 @@ impl Snapshot {
         &self.stores
     }
 
-    pub fn listing(&self, bucket: &str) -> Option<&BTreeMap<String, ListedObject>> {
+    pub fn listing(&self, bucket: &str) -> Option<&FxHashMap<String, ListedObject>> {
         self.listings.get(bucket)
     }
 

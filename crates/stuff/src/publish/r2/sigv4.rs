@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fmt::Write as _;
 
 use hmac::{Hmac, KeyInit, Mac};
@@ -184,7 +184,7 @@ pub fn signing_key(secret: &str, datestamp: &str, region: &str, service: &str) -
 }
 
 pub fn sign_request(material: SigningMaterial<'_>, request: &SignRequest<'_>) -> SignedHeaders {
-    let mut headers: BTreeMap<String, String> = BTreeMap::new();
+    let mut headers: FxHashMap<String, String> = FxHashMap::default();
     headers.insert("host".to_string(), request.host.to_string());
     headers.insert(
         "x-amz-content-sha256".to_string(),
@@ -204,7 +204,8 @@ pub fn sign_request(material: SigningMaterial<'_>, request: &SignRequest<'_>) ->
     for (name, value) in request.extra_headers {
         headers.insert(name.to_ascii_lowercase(), (*value).to_string());
     }
-    let list: Vec<(String, String)> = headers.into_iter().collect();
+    let mut list: Vec<(String, String)> = headers.into_iter().collect();
+    list.sort_unstable_by(|left, right| left.0.cmp(&right.0));
     let (canonical, signed_headers) = canonical_request(
         request.method,
         request.path,

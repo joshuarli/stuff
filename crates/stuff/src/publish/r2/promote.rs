@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 use crate::publish::PublishError;
 
@@ -127,7 +127,7 @@ pub fn verify_generation(
     }
     let text = String::from_utf8_lossy(&response.body);
     let manifest = manifest::parse(text.as_ref())?;
-    let remote: BTreeMap<String, ListedObject> = client
+    let remote: FxHashMap<String, ListedObject> = client
         .list_objects_v2(bucket)?
         .into_iter()
         .map(|object| (object.key.clone(), object))

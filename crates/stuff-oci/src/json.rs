@@ -2,7 +2,7 @@
 
 use crate::error::Error;
 use deser_value::Value;
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 pub(crate) fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 2);
@@ -53,11 +53,11 @@ pub(crate) fn optional_string_field(
 pub(crate) fn string_map(
     value: &Value,
     context: &str,
-) -> Result<BTreeMap<String, String>, Error> {
+) -> Result<FxHashMap<String, String>, Error> {
     let map = value
         .as_map()
         .ok_or_else(|| Error::manifest_invalid(format!("{context} must be an object")))?;
-    let mut out = BTreeMap::new();
+    let mut out = FxHashMap::default();
     for (key, value) in map.iter() {
         let key = key
             .as_str()

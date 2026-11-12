@@ -3,7 +3,7 @@
 use crate::digest::Digest;
 use crate::error::{Error, ErrorCode};
 use crate::reference::{Reference, RepositoryName};
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -159,8 +159,8 @@ pub fn parse_request(method: Method, raw_target: &str) -> Parsed {
     }
 }
 
-pub(crate) fn parse_query(query: &str) -> Result<BTreeMap<String, String>, Error> {
-    let mut params = BTreeMap::new();
+pub(crate) fn parse_query(query: &str) -> Result<FxHashMap<String, String>, Error> {
+    let mut params = FxHashMap::default();
     for pair in query.split('&') {
         if pair.is_empty() {
             continue;
@@ -175,7 +175,7 @@ pub(crate) fn parse_query(query: &str) -> Result<BTreeMap<String, String>, Error
     Ok(params)
 }
 
-fn pagination(params: &BTreeMap<String, String>) -> Result<Pagination, Error> {
+fn pagination(params: &FxHashMap<String, String>) -> Result<Pagination, Error> {
     let n = match params.get("n") {
         Some(text) => Some(
             text.parse::<usize>()

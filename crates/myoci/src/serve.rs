@@ -7,7 +7,7 @@ use stuff_oci::{
     RepositoryName, Request, RequestHeaders, ResponsePlan,
 };
 use stuff_store::Site;
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::io::{Read, Seek, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -374,7 +374,7 @@ fn parse_referrer_descriptors(text: &str) -> std::result::Result<Vec<Descriptor>
             .get("artifactType")
             .and_then(|value| value.as_str())
             .map(str::to_string);
-        let mut annotations = BTreeMap::new();
+        let mut annotations = FxHashMap::default();
         if let Some(values) = descriptor.get("annotations").and_then(|value| value.as_map()) {
             for (key, value) in values.iter() {
                 let key = key

@@ -2,7 +2,7 @@
 
 mod support;
 
-use std::collections::BTreeMap;
+use rustc_hash::FxHashMap;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -156,7 +156,7 @@ fn compare_remote_generation(
     let local = sync::collect(site, &UploadOptions::default(), excludes).unwrap();
     assert_eq!(local.generation, generation);
     let prefix = format!("generations/{generation}/");
-    let mut expected = BTreeMap::new();
+    let mut expected = FxHashMap::default();
     for (key, file) in &local.files {
         if key.starts_with(&prefix) {
             expected.insert(key.clone(), fs::read(site.join(&file.path)).unwrap());

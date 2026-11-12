@@ -8,8 +8,8 @@ use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_blobs_json, render_repository_json, Digest,
     RepositoryName, RepositoryView,
 };
+use rustc_hash::{FxHashMap, FxHashSet};
 use stuff_store::{HashAlg, Site};
-use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -40,7 +40,7 @@ pub fn publish(state: &State, site_dir: &Path, public_url: &str) -> Result<Publi
     let views = load_views(state)?;
     let (generation, files) = render_generation(&views, state, public_url)?;
 
-    let manifest_digests: BTreeSet<Digest> = views
+    let manifest_digests: FxHashSet<Digest> = views
         .iter()
         .flat_map(|(_, view)| view.manifests.keys().cloned())
         .collect();
@@ -82,7 +82,7 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         .ok_or_else(|| Error::Input(format!("{} has no current generation", site_dir.display())))?;
     let generation_dir = site.generations_dir().join(&generation);
     let mut views = Vec::new();
-    let mut manifest_digests = BTreeSet::new();
+    let mut manifest_digests = FxHashSet::default();
     for (name, path) in repository_files_under(&generation_dir.join("repositories"))? {
         let text = std::fs::read_to_string(&path)
             .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
@@ -91,7 +91,9 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         manifest_digests.extend(view.manifests.keys().cloned());
         views.push((name, view));
     }
-    for digest in &manifest_digests {
+    let mut ordered_manifests: Vec<&Digest> = manifest_digests.iter().collect();
+    ordered_manifests.sort_unstable();
+    for digest in ordered_manifests {
         let path = site_dir.join("oci/manifests/sha256").join(digest.hex());
         let bytes = std::fs::read(&path)
             .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
@@ -106,7 +108,9 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         .map_err(|e| Error::Operation(format!("could not read {}: {e}", blobs_path.display())))?;
     let blobs = parse_blobs_json(&blobs_text)
         .map_err(|error| Error::Integrity(error.to_string()))?;
-    for digest in &blobs {
+    let mut ordered_blobs: Vec<&Digest> = blobs.iter().collect();
+    ordered_blobs.sort_unstable();
+    for digest in ordered_blobs {
         let source = site_dir.join("blobs/sha256").join(digest.hex());
         let actual = stuff_store::stream_file_hash(&source, HashAlg::Sha256)?;
         if actual != digest.hex() {
@@ -146,8 +150,8 @@ fn render_generation(
     views: &[(RepositoryName, RepositoryView)],
     state: &State,
     public_url: &str,
-) -> Result<(String, BTreeMap<String, Vec<u8>>)> {
-    let mut files = BTreeMap::new();
+) -> Result<(String, FxHashMap<String, Vec<u8>>)> {
+    let mut files = FxHashMap::default();
     let mut inputs = Vec::new();
     for (name, view) in views {
         let repository = format!("repositories/{}/repository.json", name.as_str());
@@ -187,21 +191,25 @@ fn render_generation(
 fn write_shared(
     state: &State,
     site_dir: &Path,
-    manifests: &BTreeSet<Digest>,
-    blobs: &BTreeSet<Digest>,
+    manifests: &FxHashSet<Digest>,
+    blobs: &FxHashSet<Digest>,
 ) -> Result<()> {
     let manifest_dir = site_dir.join("oci/manifests/sha256");
     let blob_dir = site_dir.join("blobs/sha256");
     std::fs::create_dir_all(&manifest_dir)?;
     std::fs::create_dir_all(&blob_dir)?;
-    for digest in manifests {
+    let mut ordered_manifests: Vec<&Digest> = manifests.iter().collect();
+    ordered_manifests.sort_unstable();
+    for digest in ordered_manifests {
         let bytes = state.read_manifest(digest)?;
         if Digest::from_bytes(&bytes) != *digest {
             return Err(Error::Integrity(format!("manifest {digest} hashes to another digest")));
         }
         write_immutable(&manifest_dir.join(digest.hex()), &bytes)?;
     }
-    for digest in blobs {
+    let mut ordered_blobs: Vec<&Digest> = blobs.iter().collect();
+    ordered_blobs.sort_unstable();
+    for digest in ordered_blobs {
         let source = state.blob_path(digest);
         stuff_store::sync_immutable_file(
             &source,
@@ -216,10 +224,12 @@ fn write_shared(
 fn verify_shared(
     state: &State,
     site_dir: &Path,
-    manifests: &BTreeSet<Digest>,
-    blobs: &BTreeSet<Digest>,
+    manifests: &FxHashSet<Digest>,
+    blobs: &FxHashSet<Digest>,
 ) -> Result<()> {
-    for digest in manifests {
+    let mut ordered_manifests: Vec<&Digest> = manifests.iter().collect();
+    ordered_manifests.sort_unstable();
+    for digest in ordered_manifests {
         let path = site_dir.join("oci/manifests/sha256").join(digest.hex());
         let bytes = std::fs::read(&path)
             .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
@@ -230,7 +240,9 @@ fn verify_shared(
             return Err(Error::Integrity(format!("site manifest {digest} differs from state")));
         }
     }
-    for digest in blobs {
+    let mut ordered_blobs: Vec<&Digest> = blobs.iter().collect();
+    ordered_blobs.sort_unstable();
+    for digest in ordered_blobs {
         let path = site_dir.join("blobs/sha256").join(digest.hex());
         let hash = stuff_store::stream_file_hash(&path, HashAlg::Sha256)?;
         if hash != digest.hex() {
@@ -256,8 +268,8 @@ fn write_immutable(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn tree_matches(root: &Path, expected: &BTreeMap<String, Vec<u8>>) -> stuff_store::Result<bool> {
-    let mut actual = BTreeMap::new();
+fn tree_matches(root: &Path, expected: &FxHashMap<String, Vec<u8>>) -> stuff_store::Result<bool> {
+    let mut actual = FxHashMap::default();
     collect_files(root, root, &mut actual)?;
     Ok(&actual == expected)
 }
@@ -265,7 +277,7 @@ fn tree_matches(root: &Path, expected: &BTreeMap<String, Vec<u8>>) -> stuff_stor
 fn collect_files(
     dir: &Path,
     root: &Path,
-    out: &mut BTreeMap<String, Vec<u8>>,
+    out: &mut FxHashMap<String, Vec<u8>>,
 ) -> stuff_store::Result<()> {
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
@@ -356,8 +368,8 @@ mod tests {
         publish(state, site, DEFAULT_PUBLIC_URL).unwrap()
     }
 
-    fn tree(root: &Path) -> BTreeMap<String, Vec<u8>> {
-        let mut out = BTreeMap::new();
+    fn tree(root: &Path) -> FxHashMap<String, Vec<u8>> {
+        let mut out = FxHashMap::default();
         collect_files(root, root, &mut out).unwrap();
         out
     }
@@ -388,7 +400,9 @@ mod tests {
         ];
         let actual = tree(&generation_dir);
         expected.sort();
-        assert_eq!(actual.keys().cloned().collect::<Vec<_>>(), expected);
+        let mut keys: Vec<_> = actual.keys().cloned().collect();
+        keys.sort_unstable();
+        assert_eq!(keys, expected);
 
         let mut shared = Vec::new();
         for digest in summary_digests(&state) {

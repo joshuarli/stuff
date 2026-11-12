@@ -13,7 +13,8 @@ use crate::limits;
 use h12tiny_client_sync::{http, Client};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use sha1::Sha1;
-use std::collections::{BTreeMap, VecDeque};
+use rustc_hash::FxHashMap;
+use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
 use std::net::{IpAddr, ToSocketAddrs};
@@ -281,12 +282,12 @@ fn record_tarball(record: &ArtifactRecord) -> Option<String> {
     dist_tarball(&metadata_dist(&record.metadata))
 }
 
-pub fn parse_integrity_claims(text: Option<&str>, label: &str) -> Result<BTreeMap<String, String>> {
-    let Some(text) = text else { return Ok(BTreeMap::new()) };
+pub fn parse_integrity_claims(text: Option<&str>, label: &str) -> Result<FxHashMap<String, String>> {
+    let Some(text) = text else { return Ok(FxHashMap::default()) };
     if text.is_empty() {
         return Err(Error::Operation(format!("{label} is malformed")));
     }
-    let mut claims = BTreeMap::new();
+    let mut claims = FxHashMap::default();
     for token in text.split_whitespace() {
         let claim = token.split('?').next().unwrap_or("");
         let Some(sep) = claim.find('-') else {
@@ -331,11 +332,13 @@ fn base64_engine_encode(b: &[u8]) -> String {
     base64::engine::general_purpose::STANDARD.encode(b)
 }
 
-fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Result<(BTreeMap<String, String>, bool)> {
-    let mut claims: BTreeMap<String, String> = BTreeMap::new();
+fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Result<(FxHashMap<String, String>, bool)> {
+    let mut claims: FxHashMap<String, String> = FxHashMap::default();
     for record in records {
         let label = format!("lockfile integrity for {}@{}", record.name, record.version.clone().unwrap_or_default());
-        for (algo, digest) in parse_integrity_claims(record.integrity.as_deref(), &label)? {
+        let mut parsed: Vec<_> = parse_integrity_claims(record.integrity.as_deref(), &label)?.into_iter().collect();
+        parsed.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        for (algo, digest) in parsed {
             if let Some(prior) = claims.get(&algo)
                 && prior != &digest
             {
@@ -349,7 +352,8 @@ fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Res
         }
     }
     let dist = metadata_dist(metadata);
-    let upstream = parse_integrity_claims(dist_integrity(&dist).as_deref(), "upstream metadata integrity")?;
+    let mut upstream: Vec<_> = parse_integrity_claims(dist_integrity(&dist).as_deref(), "upstream metadata integrity")?.into_iter().collect();
+    upstream.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     for (algo, digest) in upstream {
         if let Some(prior) = claims.get(&algo)
             && prior != &digest {
@@ -387,11 +391,13 @@ fn merge_claims(records: &[PackageRecord], metadata: &deser_value::Value) -> Res
     Ok((claims, legacy))
 }
 
-fn lock_claims(records: &[PackageRecord]) -> Result<BTreeMap<String, String>> {
-    let mut claims = BTreeMap::new();
+fn lock_claims(records: &[PackageRecord]) -> Result<FxHashMap<String, String>> {
+    let mut claims = FxHashMap::default();
     for record in records {
         let label = format!("lockfile integrity for {}@{}", record.name, record.version.clone().unwrap_or_default());
-        for (algo, digest) in parse_integrity_claims(record.integrity.as_deref(), &label)? {
+        let mut parsed: Vec<_> = parse_integrity_claims(record.integrity.as_deref(), &label)?.into_iter().collect();
+        parsed.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        for (algo, digest) in parsed {
             if let Some(prior) = claims.get(&algo)
                 && prior != &digest
             {
@@ -534,9 +540,9 @@ fn metadata_only_task(key: &(String, String), records: &[PackageRecord]) -> Resu
 }
 
 pub fn plan_inventory(inventory: &Inventory, config: &Config) -> Result<InventoryPlan> {
-    let mut excluded: BTreeMap<(String, String), Vec<PackageRecord>> = BTreeMap::new();
-    let mut packages: BTreeMap<(String, String), PackageTask> = BTreeMap::new();
-    let mut artifacts: BTreeMap<(String, String), ArtifactRecord> = BTreeMap::new();
+    let mut excluded: FxHashMap<(String, String), Vec<PackageRecord>> = FxHashMap::default();
+    let mut packages: FxHashMap<(String, String), PackageTask> = FxHashMap::default();
+    let mut artifacts: FxHashMap<(String, String), ArtifactRecord> = FxHashMap::default();
     for artifact in &inventory.artifacts {
         artifacts.insert((artifact.name.clone(), artifact.version.clone()), artifact.clone());
     }
@@ -588,8 +594,10 @@ pub fn plan_inventory(inventory: &Inventory, config: &Config) -> Result<Inventor
             }
         }
     }
+    let mut excluded_entries: Vec<_> = excluded.iter().collect();
+    excluded_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let mut metadata_only = Vec::new();
-    for (key, records) in &excluded {
+    for (key, records) in excluded_entries {
         if !packages.contains_key(key) {
             metadata_only.push(metadata_only_task(key, records)?);
         }
@@ -648,7 +656,7 @@ fn validate_metadata_response(value: &deser_value::Value, task: &PackageTask, ex
     Ok((packument, metadata, tarball_url))
 }
 
-fn hash_stream<R: Read>(mut reader: R, max_bytes: u64, label: &str) -> Result<(u64, BTreeMap<String, String>)> {
+fn hash_stream<R: Read>(mut reader: R, max_bytes: u64, label: &str) -> Result<(u64, FxHashMap<String, String>)> {
     let mut sha1 = Sha1::new();
     let mut sha256 = Sha256::new();
     let mut sha384 = Sha384::new();
@@ -672,7 +680,7 @@ fn hash_stream<R: Read>(mut reader: R, max_bytes: u64, label: &str) -> Result<(u
         sha384.update(&buf[..n]);
         sha512.update(&buf[..n]);
     }
-    let mut out = BTreeMap::new();
+    let mut out = FxHashMap::default();
     out.insert("sha1".to_string(), crate::lower_hex(sha1.finalize()));
     out.insert("sha256".to_string(), crate::lower_hex(sha256.finalize()));
     out.insert("sha384".to_string(), crate::lower_hex(sha384.finalize()));
@@ -680,8 +688,10 @@ fn hash_stream<R: Read>(mut reader: R, max_bytes: u64, label: &str) -> Result<(u
     Ok((bytes, out))
 }
 
-fn check_digests(expected: &BTreeMap<String, String>, actual: &BTreeMap<String, String>, identity: &str) -> Result<()> {
-    for (algo, digest) in expected {
+fn check_digests(expected: &FxHashMap<String, String>, actual: &FxHashMap<String, String>, identity: &str) -> Result<()> {
+    let mut expected_entries: Vec<_> = expected.iter().collect();
+    expected_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (algo, digest) in expected_entries {
         if actual.get(algo) != Some(digest) {
             let display = if algo == "sha512" { "SHA-512".to_string() } else { algo.to_uppercase() };
             return Err(Error::Conflict(format!("{display} integrity mismatch for {identity}")));
@@ -730,9 +740,9 @@ fn inspect_object(
     path: &Path,
     task: &PackageTask,
     metadata: &deser_value::Value,
-    expected_claims: &BTreeMap<String, String>,
+    expected_claims: &FxHashMap<String, String>,
     category: &str,
-) -> Result<(u64, BTreeMap<String, String>)> {
+) -> Result<(u64, FxHashMap<String, String>)> {
     let fail = |msg: String| {
         if category == "corrupt" {
             Error::Corrupt(msg)
@@ -851,13 +861,15 @@ fn fetch_metadata_only(
     budget: &Mutex<FetchByteBudget>,
     deadline: Instant,
 ) -> Result<Vec<MetadataOnlyRecord>> {
-    let mut by_name: BTreeMap<&str, Vec<&MetadataOnlyTask>> = BTreeMap::new();
+    let mut by_name: FxHashMap<&str, Vec<&MetadataOnlyTask>> = FxHashMap::default();
     for task in pending {
         by_name.entry(task.name.as_str()).or_default().push(task);
     }
     let base = upstream_registry.trim_end_matches('/');
     let mut records = Vec::with_capacity(pending.len());
-    for (name, tasks) in by_name {
+    let mut names: Vec<_> = by_name.into_iter().collect();
+    names.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (name, tasks) in names {
         check_deadline(deadline)?;
         let url = format!("{}/{}", base, package_route(name));
         let (body, _) = transfer(&url, limits::METADATA_BYTES, expected_host, exchange, budget)?;
@@ -927,9 +939,9 @@ fn download_stage(
     task: &PackageTask,
     metadata: &deser_value::Value,
     tarball_url: &str,
-    expected_claims: &BTreeMap<String, String>,
+    expected_claims: &FxHashMap<String, String>,
     ctx: &AcquisitionContext,
-) -> Result<(String, BTreeMap<String, String>, u64)> {
+) -> Result<(String, FxHashMap<String, String>, u64)> {
     let (body, _) = transfer(tarball_url, limits::TARBALL_BYTES, &ctx.expected_host, ctx.exchange, ctx.budget)?;
     if body.is_empty() {
         return Err(Error::Operation(format!(
@@ -965,7 +977,7 @@ fn download_stage(
     sha256.update(&body);
     sha384.update(&body);
     sha512.update(&body);
-    let mut digests = BTreeMap::new();
+    let mut digests = FxHashMap::default();
     digests.insert("sha1".to_string(), crate::lower_hex(sha1.finalize()));
     digests.insert("sha256".to_string(), crate::lower_hex(sha256.finalize()));
     digests.insert("sha384".to_string(), crate::lower_hex(sha384.finalize()));
@@ -1163,7 +1175,7 @@ fn promote_artifact(result: &mut PackageResult, state_dir: &Path) -> Result<()> 
     match std::fs::hard_link(&stage_path, &destination) {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            let mut expected = BTreeMap::new();
+            let mut expected = FxHashMap::default();
             expected.insert("sha512".to_string(), result.artifact_sha512.clone());
             if let Some(ref shasum) = result.artifact_shasum {
                 expected.insert("sha1".to_string(), shasum.clone());
@@ -1797,7 +1809,7 @@ mod tests {
     }
 
     struct MultiRegistry {
-        tarballs: BTreeMap<String, Vec<u8>>,
+        tarballs: FxHashMap<String, Vec<u8>>,
         delay: Option<Duration>,
         fail_baddemo_after: Option<PathBuf>,
     }
@@ -1846,10 +1858,12 @@ mod tests {
         let good = tarball_for("flatdemo", "1.2.3");
         let bad = tarball_for("baddemo", "1.2.3");
         let exchange = MultiRegistry {
-            tarballs: BTreeMap::from([
+            tarballs: [
                 ("flatdemo".to_string(), good.clone()),
                 ("baddemo".to_string(), bad.clone()),
-            ]),
+            ]
+            .into_iter()
+            .collect(),
             delay: None,
             fail_baddemo_after: Some(
                 state.join("objects").join("sha512").join(format!("{}.tgz", digest_of(&good))),
@@ -1878,7 +1892,7 @@ mod tests {
         let state = dir.path().join("state");
         let good = tarball_for("flatdemo", "1.2.3");
         let exchange = MultiRegistry {
-            tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
+            tarballs: [("flatdemo".to_string(), good.clone())].into_iter().collect(),
             delay: Some(Duration::from_millis(600)),
             fail_baddemo_after: None,
         };
@@ -1903,7 +1917,7 @@ mod tests {
         let state = dir.path().join("state");
         let good = tarball_for("flatdemo", "1.2.3");
         let exchange = MultiRegistry {
-            tarballs: BTreeMap::from([("flatdemo".to_string(), good.clone())]),
+            tarballs: [("flatdemo".to_string(), good.clone())].into_iter().collect(),
             delay: None,
             fail_baddemo_after: None,
         };

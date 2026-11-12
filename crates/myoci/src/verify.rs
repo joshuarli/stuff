@@ -2,9 +2,9 @@
 
 use crate::error::{Error, Result};
 use crate::state::State;
+use rustc_hash::{FxHashMap, FxHashSet};
 use stuff_oci::{filter_referrers, parse_image, render_referrers, Digest};
 use stuff_store::HashAlg;
-use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifySummary {
@@ -17,15 +17,17 @@ pub struct VerifySummary {
 pub fn verify_state(state: &State) -> Result<VerifySummary> {
     let mut manifest_count = 0;
     let mut referrer_count = 0;
-    let mut referenced_blobs: BTreeSet<Digest> = BTreeSet::new();
+    let mut referenced_blobs: FxHashSet<Digest> = FxHashSet::default();
     let repositories = state.repository_files()?;
     for (repository, path) in &repositories {
         let text = std::fs::read_to_string(path)
             .map_err(|e| Error::Operation(format!("could not read {}: {e}", path.display())))?;
         let view = stuff_oci::parse_repository_json(repository, &text)
             .map_err(|error| Error::Integrity(error.to_string()))?;
-        let mut referrers: BTreeMap<Digest, Vec<stuff_oci::Descriptor>> = BTreeMap::new();
-        for (digest, descriptor) in &view.manifests {
+        let mut referrers: FxHashMap<Digest, Vec<stuff_oci::Descriptor>> = FxHashMap::default();
+        let mut manifests: Vec<_> = view.manifests.iter().collect();
+        manifests.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (digest, descriptor) in manifests {
             manifest_count += 1;
             let bytes = state.read_manifest(digest)?;
             let actual = Digest::from_bytes(&bytes);
@@ -75,7 +77,9 @@ pub fn verify_state(state: &State) -> Result<VerifySummary> {
                     .push(referrer);
             }
         }
-        for (tag, descriptor) in &view.tags {
+        let mut tags: Vec<_> = view.tags.iter().collect();
+        tags.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (tag, descriptor) in tags {
             let Some(stored) = view.manifests.get(&descriptor.digest) else {
                 return Err(Error::Integrity(format!(
                     "tag {} points at missing manifest {}",
@@ -90,7 +94,9 @@ pub fn verify_state(state: &State) -> Result<VerifySummary> {
                 )));
             }
         }
-        for (subject, descriptors) in &referrers {
+        let mut referrer_entries: Vec<_> = referrers.iter().collect();
+        referrer_entries.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        for (subject, descriptors) in referrer_entries {
             referrer_count += descriptors.len();
             let expected = render_referrers(&filter_referrers(descriptors, None));
             let path = state.referrers_path(repository, subject);
@@ -113,15 +119,19 @@ pub fn verify_state(state: &State) -> Result<VerifySummary> {
     }
     let listed = state.read_blobs()?;
     if listed != referenced_blobs {
-        let missing: Vec<String> = referenced_blobs.difference(&listed).map(|d| d.to_string()).collect();
-        let extra: Vec<String> = listed.difference(&referenced_blobs).map(|d| d.to_string()).collect();
+        let mut missing: Vec<String> = referenced_blobs.difference(&listed).map(|d| d.to_string()).collect();
+        let mut extra: Vec<String> = listed.difference(&referenced_blobs).map(|d| d.to_string()).collect();
+        missing.sort_unstable();
+        extra.sort_unstable();
         return Err(Error::Integrity(format!(
             "blobs.json disagrees with the manifests (missing: {}; extra: {})",
             missing.join(", "),
             extra.join(", ")
         )));
     }
-    for digest in &referenced_blobs {
+    let mut referenced: Vec<&Digest> = referenced_blobs.iter().collect();
+    referenced.sort_unstable();
+    for digest in referenced {
         let path = state.blob_path(digest);
         let hash = stuff_store::stream_file_hash(&path, HashAlg::Sha256).map_err(|_| {
             Error::Integrity(format!("blob {digest} is missing at {}", path.display()))

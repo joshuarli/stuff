@@ -5,7 +5,7 @@ use crate::json::{self, JVal};
 use crate::models::{PackageVersion, Target, WheelIdentity, canonicalize_name};
 use crate::platforms::{native_architectures_from_bytes, target_python_version, wheel_rank, wheel_tag_triples};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -482,7 +482,7 @@ fn validate_wheel_architectures_at(
             }
             return Err(ArchError::Integrity(format!("could not inspect native artifact {name}")));
         }
-        let expected_for_file: BTreeSet<String> = if expected.is_empty() {
+        let expected_for_file: FxHashSet<String> = if expected.is_empty() {
             [actual_target.to_string()].into_iter().collect()
         } else {
             expected.clone()
@@ -525,7 +525,7 @@ fn safe_member_names(
 ) -> std::result::Result<Vec<String>, String> {
     let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
-        let mut seen = BTreeSet::new();
+        let mut seen = FxHashSet::default();
         names.iter().any(|n| !seen.insert(n.clone()))
     }; if res {
         return Err(format!("invalid or incompatible wheel {filename}: wheel archive contains duplicate paths"));
@@ -538,9 +538,9 @@ fn safe_member_names(
     Ok(names)
 }
 
-fn parse_email_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
+fn parse_email_headers(bytes: &[u8]) -> FxHashMap<String, Vec<String>> {
     let text = String::from_utf8_lossy(bytes);
-    let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut map: FxHashMap<String, Vec<String>> = FxHashMap::default();
     let mut current: Option<String> = None;
     for line in text.split_inclusive('\n') {
         let line = line.strip_suffix('\n').unwrap_or(line);
@@ -565,18 +565,18 @@ fn parse_email_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
         }
     }
     // normalize keys case-insensitively by lowercasing lookup helper below
-    let mut norm: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut norm: FxHashMap<String, Vec<String>> = FxHashMap::default();
     for (k, v) in map {
         norm.entry(k.to_lowercase()).or_default().extend(v);
     }
     norm
 }
 
-fn headers_get<'a>(map: &'a BTreeMap<String, Vec<String>>, key: &str) -> &'a [String] {
+fn headers_get<'a>(map: &'a FxHashMap<String, Vec<String>>, key: &str) -> &'a [String] {
     map.get(&key.to_lowercase()).map(|v| v.as_slice()).unwrap_or(&[])
 }
 
-fn headers_one(map: &BTreeMap<String, Vec<String>>, key: &str) -> Option<String> {
+fn headers_one(map: &FxHashMap<String, Vec<String>>, key: &str) -> Option<String> {
     let v = headers_get(map, key);
     if v.len() == 1 { Some(v[0].clone()) } else { None }
 }
@@ -619,8 +619,8 @@ pub fn validate_wheel_metadata_at(
     let archive =
         crate::wheel_zip::Archive::open(path).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?;
     let names = safe_member_names(&archive, &filename).map_err(integ)?;
-    let name_set: BTreeSet<&str> = names.iter().map(|s| s.as_str()).collect();
-    let dist_infos: BTreeSet<&str> = name_set
+    let name_set: FxHashSet<&str> = names.iter().map(|s| s.as_str()).collect();
+    let dist_infos: FxHashSet<&str> = name_set
         .iter()
         .map(|n| n.split('/').next().unwrap_or(""))
         .filter(|d| d.ends_with(".dist-info"))
@@ -661,11 +661,11 @@ pub fn validate_wheel_metadata_at(
     if !requires_python_text.is_empty() && requires_python_text.parse::<pep440_rs::VersionSpecifiers>().is_err() {
         return Err(integ("wheel metadata contains an invalid Requires-Python".to_string()));
     }
-    let wheel_tags: BTreeSet<String> = headers_get(&wheel_headers, "Tag")
+    let wheel_tags: FxHashSet<String> = headers_get(&wheel_headers, "Tag")
         .iter()
         .flat_map(|v| v.split_whitespace().map(|s| s.to_string()))
         .collect();
-    let filename_tags: BTreeSet<String> = wheel_tag_triples(&filename).map_err(|e| integ(e.detail))?.iter().map(|t| t.as_string()).collect();
+    let filename_tags: FxHashSet<String> = wheel_tag_triples(&filename).map_err(|e| integ(e.detail))?.iter().map(|t| t.as_string()).collect();
     if wheel_tags.is_empty() || wheel_tags != filename_tags {
         return Err(integ("wheel WHEEL tags do not match its filename".to_string()));
     }
@@ -888,7 +888,7 @@ pub fn select_or_download(
         package: Some(release.package.clone()),
         target: Some(target.clone()),
     })?;
-    let mut by_name: BTreeMap<&str, &ReleaseFile> = BTreeMap::new();
+    let mut by_name: FxHashMap<&str, &ReleaseFile> = FxHashMap::default();
     for artifact in &release.wheels {
         if let Some(prev) = by_name.get(artifact.filename.as_str())
             && prev.sha256 != artifact.sha256 {
@@ -926,7 +926,7 @@ pub fn select_or_download(
         target: Some(target.clone()),
     })?;
     let mut last_rejection: Option<CompatibilityRejection> = None;
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
+    let mut seen: FxHashSet<&str> = FxHashSet::default();
     for candidate in &candidates {
         if !seen.insert(candidate.filename.as_str()) {
             continue;

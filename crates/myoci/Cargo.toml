@@ -21,6 +21,7 @@ deser-json = "0.10"
 deser-value = "0.10"
 h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", features = ["tls"] }
 httparse = "1"
+rustc-hash = "2.1.3"
 stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-oci = { version = "0.1.0", path = "../stuff-oci" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }

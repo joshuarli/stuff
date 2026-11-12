@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use rustc_hash::FxHashSet;
 use std::path::Path;
 
 use deser_value::Value;
@@ -12,7 +12,7 @@ use super::promote;
 
 pub const LISTED_DROPS: usize = 20;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Version {
     pub source: String,
     pub name: String,
@@ -73,7 +73,8 @@ pub fn check(
         PublishError::Integrity(format!("cannot read {}: {error}", local_path.display()))
     })?;
     let local = versions(&local_text, &local_path.display().to_string())?;
-    let dropped: Vec<Version> = live.difference(&local).cloned().collect();
+    let mut dropped: Vec<Version> = live.difference(&local).cloned().collect();
+    dropped.sort();
     if dropped.is_empty() {
         return Ok(GuardReport {
             current: Some(current),
@@ -95,7 +96,7 @@ pub fn check(
     )))
 }
 
-pub fn versions(text: &str, origin: &str) -> Result<BTreeSet<Version>, PublishError> {
+pub fn versions(text: &str, origin: &str) -> Result<FxHashSet<Version>, PublishError> {
     let value: Value = deser_json::from_str(text)
         .map_err(|error| PublishError::Integrity(format!("{origin} is invalid JSON: {error}")))?;
     let packages = value
@@ -105,7 +106,7 @@ pub fn versions(text: &str, origin: &str) -> Result<BTreeSet<Version>, PublishEr
         .ok_or_else(|| {
             PublishError::Integrity(format!("{origin} has no packages list"))
         })?;
-    let mut found = BTreeSet::new();
+    let mut found = FxHashSet::default();
     for package in packages {
         let package = package.as_map().ok_or_else(|| {
             PublishError::Integrity(format!("{origin} has a malformed package entry"))
@@ -257,7 +258,8 @@ mod tests {
             "local",
         )
         .unwrap();
-        let dropped: Vec<Version> = live.difference(&local).cloned().collect();
+        let mut dropped: Vec<Version> = live.difference(&local).cloned().collect();
+        dropped.sort();
         assert_eq!(
             dropped,
             vec![Version {
