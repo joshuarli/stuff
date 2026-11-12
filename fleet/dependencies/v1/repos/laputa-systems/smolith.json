@@ -115,12 +115,6 @@
    "purl": "pkg:cargo/asn1-rs-impl"
   },
   {
-   "display_name": "atty",
-   "ecosystem": "cargo",
-   "name": "atty",
-   "purl": "pkg:cargo/atty"
-  },
-  {
    "display_name": "autocfg",
    "ecosystem": "cargo",
    "name": "autocfg",
@@ -1483,28 +1477,10 @@
    "purl": "pkg:cargo/webpki-root-certs"
   },
   {
-   "display_name": "winapi",
-   "ecosystem": "cargo",
-   "name": "winapi",
-   "purl": "pkg:cargo/winapi"
-  },
-  {
-   "display_name": "winapi-i686-pc-windows-gnu",
-   "ecosystem": "cargo",
-   "name": "winapi-i686-pc-windows-gnu",
-   "purl": "pkg:cargo/winapi-i686-pc-windows-gnu"
-  },
-  {
    "display_name": "winapi-util",
    "ecosystem": "cargo",
    "name": "winapi-util",
    "purl": "pkg:cargo/winapi-util"
-  },
-  {
-   "display_name": "winapi-x86_64-pc-windows-gnu",
-   "ecosystem": "cargo",
-   "name": "winapi-x86_64-pc-windows-gnu",
-   "purl": "pkg:cargo/winapi-x86_64-pc-windows-gnu"
   },
   {
    "display_name": "windows-core",
@@ -8498,6 +8474,28 @@
   },
   {
    "condition": null,
+   "constraint": "0.4",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.rustybench",
+     "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
+    },
+    {
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[4]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/laputa-fastwebsockets-futures-lite:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.4.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustybench@0.4.0#"
+  },
+  {
+   "condition": null,
    "constraint": "0.1.5",
    "evidence": [
     {
@@ -8505,7 +8503,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[4]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -8527,7 +8525,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
     },
     {
-     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[5]",
+     "locator": "package[name=laputa-fastwebsockets-futures-lite,version=0.10.2].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -8878,28 +8876,6 @@
   },
   {
    "condition": null,
-   "constraint": "0.2",
-   "evidence": [
-    {
-     "locator": "dependencies.atty",
-     "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
-    },
-    {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "crates/laputa-h2-futures-lite/tests/h2-support:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "0.2.14",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/atty@0.2.14#"
-  },
-  {
-   "condition": null,
    "constraint": "1",
    "evidence": [
     {
@@ -8907,7 +8883,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[1]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -8929,7 +8905,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[3]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -8951,7 +8927,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[2]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -8973,7 +8949,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[4]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -8995,7 +8971,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[10]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -9017,7 +8993,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[11]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -9039,7 +9015,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[9]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -9061,7 +9037,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[5]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -9083,7 +9059,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[6]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -9105,7 +9081,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[7]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -9127,7 +9103,7 @@
      "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
     },
     {
-     "locator": "package[name=h2-support,version=0.1.0].dependencies[8]",
+     "locator": "package[name=h2-support,version=0.1.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -11769,60 +11745,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/time@0.3.55#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=atty,version=0.2.14].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/atty@0.2.14#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.19",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/hermit-abi@0.1.19#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=atty,version=0.2.14].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/atty@0.2.14#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.191",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.191#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=atty,version=0.2.14].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/atty@0.2.14#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.9",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/winapi@0.3.9#"
   },
   {
    "condition": null,
@@ -14937,24 +14859,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/hashbrown@0.17.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=hermit-abi,version=0.1.19].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/hermit-abi@0.1.19#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.191",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.191#"
   },
   {
    "condition": null,
@@ -21945,42 +21849,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=winapi,version=0.3.9].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/winapi@0.3.9#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/winapi-i686-pc-windows-gnu@0.4.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=winapi,version=0.3.9].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/winapi@0.3.9#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.4.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/winapi-x86_64-pc-windows-gnu@0.4.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=windows-core,version=0.100.0].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -23113,7 +22981,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "8811155381b3580bfa753643e3027a3ef8c0e719",
+   "blob": "4b3808e62c19b15f86608643c32bfbc011859bb3",
    "path": "Cargo.lock"
   },
   {
@@ -23261,7 +23129,7 @@
    "path": "crates/h12tiny/Cargo.toml"
   },
   {
-   "blob": "beb4e954bf2f2bf93476b4ad5e76750ca260db3d",
+   "blob": "9f286c174f8ba13cf03bee7415b327645453966f",
    "path": "crates/laputa-fastwebsockets-futures-lite/Cargo.toml"
   },
   {
@@ -23297,7 +23165,7 @@
    "path": "crates/laputa-h2-futures-lite/tests/h2-fuzz/Cargo.toml"
   },
   {
-   "blob": "3c9b594a63925b0db90edb0ca1940116b4193f4c",
+   "blob": "9c4a31f1ac7ed7aa82db89221d15370b08488b37",
    "path": "crates/laputa-h2-futures-lite/tests/h2-support/Cargo.toml"
   },
   {
@@ -23369,7 +23237,7 @@
    "path": "tests/qualify/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "384045a7a0d068a750fad46f878e0c5cef8d23041b3bf95bf95c094ed04e2e8f",
+ "inputs_fingerprint": "2b90442c6fe038cc11995b56cf2c89e347c66795be770a05316709920d8b8676",
  "instances": [
   {
    "commit": null,
@@ -23630,19 +23498,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.7.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/atty",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/atty@0.2.14#",
-   "purl": "pkg:cargo/atty@0.2.14",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.2.14"
   },
   {
    "commit": null,
@@ -24735,19 +24590,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.12.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/hermit-abi",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/hermit-abi@0.1.19#",
-   "purl": "pkg:cargo/hermit-abi@0.1.19",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.19"
   },
   {
    "commit": null,
@@ -27065,19 +26907,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/winapi-i686-pc-windows-gnu",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/winapi-i686-pc-windows-gnu@0.4.0#",
-   "purl": "pkg:cargo/winapi-i686-pc-windows-gnu@0.4.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.4.0"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/winapi-util",
    "context": "",
    "first_party": false,
@@ -27088,32 +26917,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.11"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/winapi-x86_64-pc-windows-gnu",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/winapi-x86_64-pc-windows-gnu@0.4.0#",
-   "purl": "pkg:cargo/winapi-x86_64-pc-windows-gnu@0.4.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.4.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/winapi",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/winapi@0.3.9#",
-   "purl": "pkg:cargo/winapi@0.3.9",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.3.9"
   },
   {
    "commit": null,
