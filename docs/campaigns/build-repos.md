@@ -17,22 +17,30 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
 
 ## Slices
 
-- [ ] stuff: `build-release-standard`, `build-make-targets`, `build-locks` rules; `language-tags`
-  no longer skips binary-release tools; git-build tags
-- [ ] buildlib: repository, lock readers, release manifest, checksums, Mach-O and ELF checks;
-  published to stuff PyPI
-- [ ] per repository (chromium, cmake, ffmpeg, git, node, pi, python, ssh): make targets, lock
-  schema, `release.yml` in the standard format, lint workflow, open lint findings
+- [x] stuff: `build-make-targets`, `build-locks`, `build-release-standard`; `language-tags` no longer
+  skips binary-release tools; vendored trees, Rust `src/target` modules, unmirrored optional npm
+  packages, and compiler-rt CRT traces no longer misfire
+- [x] stuff: `stuff publish pypi --wheel` hosts first-party wheels; mynpm accepts the tarball
+  layouts npm installs (any root name, `./` segments, repeated files)
+- [x] buildlib: laputa-buildlib 0.1.0 published to stuff PyPI, tagged v0.1.0
+- [x] per repository: all eight merged (node #6, cmake #2, ffmpeg #2, chromium #5, ssh #4, pi #1,
+  git #6, python #10); `repomod lint --tag build` reports only python-build's existing git sources
 - [ ] cmake-, node-, python-, ffmpeg-, chromium-build adopt `laputa-buildlib`
-- [ ] `repomod topics apply`
+- [x] `repomod topics apply`
 
 ## Needs owner
 
-- First release dispatch per repository, then bump the consumers that pin old assets: pi-build's
-  `tools/toolchain.pins` (python-build), play's Linux Dockerfile (ffmpeg-build), ssh-build's
-  `git-build.lock.json` (git-build), chromium-build's `helium.inputs.lock` (its own Rust toolchain
-  release).
+- First release dispatch per repository; nothing has been released in the new format.
+- After those releases, bump the consumers that pin old assets: pi-build's python pins in
+  `bootstrap.lock.json`/`sources.lock.json` (python-build), play's Linux Dockerfile and
+  `ffmpeg-sdk.lock.json` (ffmpeg-build), ssh-build's `git-build.lock.json` and
+  `scripts/fetch-git-build.sh` (git-build: `git-<version>-<triple>.tar.xz`, `tar -xJf`).
+- `usr/tools/sync/pi_release.py` and the `dl` installers read the old pi-build, node-build, and
+  ssh-build tags and asset names.
+- Re-measure `release-budgets.json` ceilings on the first xz builds (node, ssh, cmake).
+- python-build's and node-build's Linux builders moved from Alpine edge to the approved 3.24.2
+  image; only a full Linux build proves them.
 
 ## Status
 
-Spec written; starting the stuff rules, buildlib, and the per-repository migrations.
+Every build repository follows the contract and repomod enforces it. Remaining: buildlib adoption.
