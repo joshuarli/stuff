@@ -88,6 +88,16 @@ def classify(path: str) -> DiscoveredInput | None:
     return None
 
 
+_FIXTURE_DIRECTORIES = frozenset({"fixtures", "testdata"})
+
+
+def without_fixtures(entries: Iterable[TreeEntry]) -> tuple[TreeEntry, ...]:
+    """Drop test fixtures, whose manifests describe other repositories rather than this one."""
+    return tuple(
+        entry for entry in entries if not any(part in _FIXTURE_DIRECTORIES for part in entry.path.split("/")[:-1])
+    )
+
+
 def discover(entries: Iterable[TreeEntry]) -> Discovery:
     ordered = tuple(entries)
     inputs: list[DiscoveredInput] = []

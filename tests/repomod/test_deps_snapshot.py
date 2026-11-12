@@ -402,6 +402,25 @@ def test_discovery_classifies_real_input_names() -> None:
     assert found.vendored_unknown == ("vendor",)
 
 
+def test_test_fixture_manifests_are_not_inventoried(tmp_path: Path, git_environment: None) -> None:
+    _checkout(
+        tmp_path,
+        "tool",
+        {
+            "Cargo.toml": "[package]\n",
+            "tests/fixtures/other-repo/Cargo.toml": "[package]\nname = \"other\"\n",
+            "pkg/testdata/package.json": "{}\n",
+            "tests/e2e/package.json": "{}\n",
+        },
+    )
+    catalog = _one_repo(tmp_path)
+
+    data = inspect_repository(catalog, catalog.repositories[0]).data
+
+    assert [item.path for item in data.inputs] == ["Cargo.toml", "tests/e2e/package.json"]
+    assert not [issue for issue in data.issues if issue.path is not None and "fixtures" in issue.path]
+
+
 def test_unchanged_files_are_not_rewritten(tmp_path: Path, git_environment: None) -> None:
     catalog = _catalog(tmp_path, '[repos."acme"]\na = ["tool"]\nb = ["tool"]\n')
     _checkout(tmp_path, "a", {"Cargo.toml": "[package]\n", "README.md": "a\n"})

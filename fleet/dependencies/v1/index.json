@@ -51,6 +51,11 @@
    "inputs_fingerprint": "27eb49e833bd3eaca7329576d90d3cb6b1bcb224c0481bafbef3ba3ca6d4890f",
    "state": "partial"
   },
+  "joshuarli/stuff": {
+   "commit": "910e0fcd8e7b0ff0119fd24ffe3696586b3d4631",
+   "inputs_fingerprint": "470ed831542c7cb97319d4368ab2e03aea62a1548f5d2faccb7839a030bb4127",
+   "state": "partial"
+  },
   "joshuarli/syncthing": {
    "commit": "39ee63372266319cd069a019ede3d5b02ea5ade8",
    "inputs_fingerprint": "f64461a4e808b524ce41d439d5193c1b70e88018ec6bf9a1bd6be7266096d393",
@@ -103,7 +108,7 @@
   },
   "laputa-systems/gluon": {
    "commit": "95bdcf5305bc348d248cc98f328ac914b1c873de",
-   "inputs_fingerprint": "d9dae410c187ff403c43cc58483c6a2944a286e02625e9b25b8be7807773ef49",
+   "inputs_fingerprint": "7eb5ee364c1caf21c40fbf15c76a2f646e905c636886be59dd735df80160b0cd",
    "state": "partial"
   },
   "laputa-systems/h12tiny": {

@@ -9,7 +9,8 @@ GitHub. `render --status` also collects live status; `enrich` contacts registrie
 `snapshot`, `check`, and `diff` do not fetch network data.
 
 `snapshot` and `check` read each checkout's `refs/remotes/origin/HEAD` tree through Git
-plumbing. They never read the working tree and never fetch. An ignored or untracked lock file
+plumbing. They never read the working tree and never fetch. Files under a `fixtures` or `testdata`
+directory are skipped: test fixtures describe other repositories, not the one that holds them. An ignored or untracked lock file
 therefore cannot change the inventory. `check` regenerates the same bytes in memory and never
 writes. Git tree and blob reads disable lazy fetches, so a missing object becomes a coverage
 failure. Extraction never executes managed-repository code, package managers, build scripts,

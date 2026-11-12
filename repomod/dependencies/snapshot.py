@@ -11,7 +11,7 @@ from typing import cast
 
 from repomod.catalog import Catalog, atomic_write, repository_path
 from repomod.dependencies.adapters import ADAPTERS
-from repomod.dependencies.discover import discover
+from repomod.dependencies.discover import discover, without_fixtures
 from repomod.dependencies.git_tree import default_commit, read_blobs, tree_entries
 from repomod.dependencies.model import (
     SCHEMA_VERSION,
@@ -90,7 +90,7 @@ def inspect_repository(catalog: Catalog, repository: Repository) -> RepositoryIn
     except GitError as error:
         return _unavailable(repository, CoverageKind.DEFAULT_REF_MISSING, str(error))
     try:
-        entries = tree_entries(path, commit)
+        entries = without_fixtures(tree_entries(path, commit))
     except GitError as error:
         return _failed(repository, str(error), commit)
 
