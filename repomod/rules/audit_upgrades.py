@@ -475,13 +475,24 @@ def _check(root: Path, repository: Repository) -> list[Finding]:
         return _outdated_findings(root, repository, cache, time.time(), None, _configured_sources(root))
 
 
+_OUTPUT_NAMES = frozenset({"dist", "build"})
+_MANIFESTS = ("Cargo.toml", "package.json", "pyproject.toml", "go.mod")
+
+
+def _ignored_in_copy(directory: str, names: list[str]) -> set[str]:
+    """Skip tool output, keeping a build or dist directory that is itself a package."""
+    return {
+        name
+        for name in names
+        if name in _COPY_IGNORED
+        and not (
+            name in _OUTPUT_NAMES and any((Path(directory) / name / manifest).is_file() for manifest in _MANIFESTS)
+        )
+    }
+
+
 def _copy_tree(root: Path, destination: Path) -> None:
-    shutil.copytree(
-        root,
-        destination,
-        symlinks=True,
-        ignore=lambda directory, names: {name for name in names if name in _COPY_IGNORED},
-    )
+    shutil.copytree(root, destination, symlinks=True, ignore=_ignored_in_copy)
 
 
 def _sibling_sources(root: Path) -> set[Path]:

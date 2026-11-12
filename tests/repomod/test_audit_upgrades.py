@@ -1188,3 +1188,17 @@ def test_named_cargo_registry_resolves_dependency(tmp_path: Path, monkeypatch: p
     assert [finding.message for finding in findings] == ["crates:foo 1.0.0 is outdated; latest is 1.1.0"]
     assert seen
     assert all(url.startswith("https://native.example/") for url in seen)
+
+
+def test_sandbox_copy_keeps_packages_named_build_and_drops_build_output(tmp_path: Path) -> None:
+    from repomod.rules.audit_upgrades import _copy_tree
+
+    root = repo_root(tmp_path)
+    (root / "bins" / "build").mkdir(parents=True)
+    (root / "bins" / "build" / "Cargo.toml").write_text('[package]\nname = "build"\n', encoding="utf-8")
+    (root / "build" / "lib").mkdir(parents=True)
+    (root / "target").mkdir()
+    _copy_tree(root, tmp_path / "copy")
+    assert (tmp_path / "copy" / "bins" / "build" / "Cargo.toml").is_file()
+    assert not (tmp_path / "copy" / "build").exists()
+    assert not (tmp_path / "copy" / "target").exists()
