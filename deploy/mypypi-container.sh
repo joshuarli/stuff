@@ -73,7 +73,7 @@ HOME_DIR=$ROOT/.work/tmp/mypypi-home-$ARCH
 mkdir -p "$HOME_DIR"
 CONTAINER_CMD="mkdir -p \"\$RUSTUP_HOME/toolchains\"; toolchain=\$(basename \"\$(ls -d /opt/rustup/toolchains/* | head -1)\"); ln -sfn \"/opt/rustup/toolchains/\$toolchain\" \"\$RUSTUP_HOME/toolchains/\$toolchain\"; cp -f /opt/rustup/settings.toml \"\$RUSTUP_HOME/settings.toml\"; cargo build -q -p mypypi && .work/linux/target-$ARCH/debug/mypypi --catalog $CATALOG_FILE --config $CONFIG_FILE --state-dir $STATE_DIR --output $SITE_DIR --platform $PLATFORM $*"
 # shellcheck disable=SC2086
-docker run -d --name "$NAME" --platform "linux/$ARCH" --user "$(id -u):$(id -g)" \
+docker run -d --init --name "$NAME" --platform "linux/$ARCH" --user "$(id -u):$(id -g)" \
   -v "$ROOT:/work" $MOUNTS -w /work \
   -e "HOME=$HOME_DIR" -e RUSTUP_TOOLCHAIN=nightly-2026-09-15 \
   -e "CARGO_HOME=/work/.work/linux/cargo-home-$ARCH" \

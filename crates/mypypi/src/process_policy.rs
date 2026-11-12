@@ -11,6 +11,8 @@ use std::time::{Duration, Instant};
 const CAPTURE_LIMIT: usize = 1024 * 1024;
 const READ_CHUNK: usize = 16 * 1024;
 const WAIT_POLL: Duration = Duration::from_millis(10);
+const KILL_GRACE: Duration = Duration::from_secs(5);
+const READER_GRACE: Duration = Duration::from_secs(1);
 
 const ALLOWED_VARIABLES: &[&str] = &[
     "PATH",
@@ -223,37 +225,52 @@ impl std::fmt::Display for RunError {
 
 impl std::error::Error for RunError {}
 
-fn signal_group(pid: u32, signal: &str) {
-    let target = format!("-{pid}");
-    let _ = Command::new("/bin/kill")
-        .args([signal, "--", &target])
+/// Sends `signal` to every member of process group `pgid` through
+/// `/bin/kill` (first-party code forbids `unsafe`, so no `killpg`). Returns
+/// whether any member received it.
+fn signal_group(pgid: u32, signal: &str) -> bool {
+    Command::new("/bin/kill")
+        .args(["-s", signal, "--", &format!("-{pgid}")])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status();
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+/// Terminates every remaining member of the child's process group: TERM,
+/// then KILL after `KILL_GRACE`. Runs after the direct child exits too,
+/// because descendants that outlive it still own its pipes.
+fn terminate_group(pgid: u32) {
+    if !signal_group(pgid, "TERM") {
+        return;
+    }
+    let deadline = Instant::now() + KILL_GRACE;
+    while Instant::now() < deadline {
+        if !signal_group(pgid, "0") {
+            return;
+        }
+        std::thread::sleep(WAIT_POLL);
+    }
+    signal_group(pgid, "KILL");
 }
 
 fn stop_process_group(child: &mut std::process::Child) {
-    let pid = child.id();
-    signal_group(pid, "-TERM");
-    let deadline = Instant::now() + Duration::from_secs(5);
-    loop {
+    let pgid = child.id();
+    signal_group(pgid, "TERM");
+    let deadline = Instant::now() + KILL_GRACE;
+    while Instant::now() < deadline {
         if let Ok(Some(_)) = child.try_wait() {
             break;
         }
-        if Instant::now() >= deadline {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(50));
+        std::thread::sleep(WAIT_POLL);
     }
-    signal_group(pid, "-KILL");
+    signal_group(pgid, "KILL");
+    let _ = child.kill();
     let _ = child.wait();
 }
 
-fn spawn_reader<R: Read + Send + 'static>(
-    pipe: Option<R>,
-    sender: mpsc::Sender<Vec<u8>>,
-) -> std::thread::JoinHandle<()> {
+fn spawn_reader<R: Read + Send + 'static>(pipe: Option<R>, sender: mpsc::Sender<Vec<u8>>) {
     std::thread::spawn(move || {
         let Some(mut pipe) = pipe else {
             return;
@@ -271,7 +288,7 @@ fn spawn_reader<R: Read + Send + 'static>(
                 Err(_) => break,
             }
         }
-    })
+    });
 }
 
 fn append_capped(captured: &mut Vec<u8>, chunk: &[u8]) {
@@ -293,16 +310,36 @@ fn drain_available(receiver: &mpsc::Receiver<Vec<u8>>, captured: &mut Vec<u8>) {
     }
 }
 
+/// Collects the remaining output until both readers reach EOF or
+/// `READER_GRACE` passes. A process outside the group can hold a pipe open
+/// forever; its reader thread is then left detached and the partial output
+/// is kept.
 fn finish_readers(
-    out_handle: std::thread::JoinHandle<()>,
-    err_handle: std::thread::JoinHandle<()>,
     rx_out: &mpsc::Receiver<Vec<u8>>,
     rx_err: &mpsc::Receiver<Vec<u8>>,
     stdout: &mut Vec<u8>,
     stderr: &mut Vec<u8>,
 ) {
-    let _ = out_handle.join();
-    let _ = err_handle.join();
+    let deadline = Instant::now() + READER_GRACE;
+    let mut open = [true, true];
+    while open.iter().any(|open| *open) {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        for (index, (receiver, captured)) in
+            [(rx_out, &mut *stdout), (rx_err, &mut *stderr)].into_iter().enumerate()
+        {
+            if !open[index] {
+                continue;
+            }
+            match receiver.recv_timeout(remaining.min(WAIT_POLL)) {
+                Ok(chunk) => append_capped(captured, &chunk),
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => open[index] = false,
+            }
+        }
+    }
     drain_available(rx_out, stdout);
     drain_available(rx_err, stderr);
 }
@@ -349,8 +386,8 @@ pub fn run_capture(
     }
     let (tx_out, rx_out) = mpsc::channel();
     let (tx_err, rx_err) = mpsc::channel();
-    let out_handle = spawn_reader(child.stdout.take(), tx_out);
-    let err_handle = spawn_reader(child.stderr.take(), tx_err);
+    spawn_reader(child.stdout.take(), tx_out);
+    spawn_reader(child.stderr.take(), tx_err);
     let deadline = Instant::now() + Duration::from_secs(timeout_secs.max(1));
     let mut stdout: Vec<u8> = Vec::new();
     let mut stderr: Vec<u8> = Vec::new();
@@ -359,7 +396,8 @@ pub fn run_capture(
         drain_available(&rx_err, &mut stderr);
         match child.try_wait().map_err(|e| RunError::Spawn(e.to_string()))? {
             Some(status) => {
-                finish_readers(out_handle, err_handle, &rx_out, &rx_err, &mut stdout, &mut stderr);
+                terminate_group(child.id());
+                finish_readers(&rx_out, &rx_err, &mut stdout, &mut stderr);
                 return Ok(Captured {
                     status_code: status.code().unwrap_or(-1),
                     stdout: decode(&stdout),
@@ -369,9 +407,8 @@ pub fn run_capture(
             None => {
                 if Instant::now() >= deadline {
                     stop_process_group(&mut child);
-                    finish_readers(out_handle, err_handle, &rx_out, &rx_err, &mut stdout, &mut stderr);
-                    // Reap fully.
-                    let _ = child.wait();
+                    terminate_group(child.id());
+                    finish_readers(&rx_out, &rx_err, &mut stdout, &mut stderr);
                     return Err(RunError::Timeout {
                         stdout: decode(&stdout),
                         stderr: decode(&stderr),
@@ -565,5 +602,70 @@ mod tests {
             other => panic!("expected timeout, got {other:?}"),
         }
         assert!(started.elapsed() < Duration::from_secs(10));
+    }
+
+    fn shell(script: &str, timeout_secs: u64) -> std::result::Result<Captured, RunError> {
+        run_capture(
+            &["/bin/sh".to_string(), "-c".to_string(), script.to_string()],
+            None,
+            &test_env(),
+            None,
+            timeout_secs,
+        )
+    }
+
+    fn assert_gone(pid_file: &Path) {
+        let pid: u32 = std::fs::read_to_string(pid_file).unwrap().trim().parse().unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Command::new("/bin/kill")
+            .args(["-s", "0", &pid.to_string()])
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success()
+        {
+            assert!(Instant::now() < deadline, "owned descendant {pid} survived");
+            std::thread::sleep(WAIT_POLL);
+        }
+    }
+
+    #[test]
+    fn a_descendant_holding_the_pipes_does_not_outlive_an_exited_parent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let started = Instant::now();
+        let out = shell(
+            &format!("echo parent; sleep 30 & echo $! > {}; exit 0", pid_file.display()),
+            60,
+        )
+        .unwrap();
+        assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+        assert_eq!(out.status_code, 0);
+        assert_eq!(out.stdout, "parent\n");
+        assert_gone(&pid_file);
+    }
+
+    #[test]
+    fn a_descendant_ignoring_term_is_killed() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let started = Instant::now();
+        shell(
+            &format!("(trap '' TERM; sleep 30) & echo $! > {}; exit 0", pid_file.display()),
+            60,
+        )
+        .unwrap();
+        assert!(started.elapsed() < KILL_GRACE + Duration::from_secs(3), "{:?}", started.elapsed());
+        assert_gone(&pid_file);
+    }
+
+    #[test]
+    fn a_timeout_kills_every_owned_descendant() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let err = shell(&format!("sleep 30 & echo $! > {}; sleep 30", pid_file.display()), 1)
+            .unwrap_err();
+        assert!(matches!(err, RunError::Timeout { .. }), "{err:?}");
+        assert_gone(&pid_file);
     }
 }

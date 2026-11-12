@@ -54,14 +54,35 @@ fn append_tail(current: &mut Vec<u8>, next: &[u8], mode: StdoutMode, command: &s
     }
 }
 
-fn signal_group(pid: u32, sig: &str) {
-    let target = format!("-{pid}");
-    let _ = Command::new("/bin/kill")
-        .args([sig, &target])
+/// Sends `signal` to every member of process group `pgid` through
+/// `/bin/kill` (first-party code forbids `unsafe`, so no `killpg`). The `--`
+/// keeps procps from parsing the negative group as an option. Returns
+/// whether any member received it.
+fn signal_group(pgid: u32, signal: &str) -> bool {
+    Command::new("/bin/kill")
+        .args(["-s", signal, "--", &format!("-{pgid}")])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status();
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+/// Terminates every remaining member of the child's process group: TERM,
+/// then KILL after `KILL_GRACE`. Runs after the direct child exits too,
+/// because descendants that outlive it still own its pipes.
+fn terminate_group(pgid: u32) {
+    if !signal_group(pgid, "TERM") {
+        return;
+    }
+    let deadline = Instant::now() + KILL_GRACE;
+    while Instant::now() < deadline {
+        if !signal_group(pgid, "0") {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    signal_group(pgid, "KILL");
 }
 
 fn drain_available(
@@ -111,7 +132,7 @@ fn wait_for_exit(
             return Ok((false, status.code()));
         }
         if Instant::now() >= deadline {
-            signal_group(pid, "-TERM");
+            signal_group(pid, "TERM");
             let grace_end = Instant::now() + KILL_GRACE;
             loop {
                 drain_available(rx_out, stdout, mode, command, true)?;
@@ -120,7 +141,7 @@ fn wait_for_exit(
                     return Ok((true, status.code()));
                 }
                 if Instant::now() >= grace_end {
-                    signal_group(pid, "-KILL");
+                    signal_group(pid, "KILL");
                     let _ = child.kill();
                     let status = child.wait().map_err(|e| Error::Operation(format!("could not wait for {command}: {e}")))?;
                     return Ok((true, status.code()));
@@ -199,9 +220,10 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
     let (timed_out, exit_code) = match wait_for_exit(&mut child, &rx_out, &rx_err, &mut stdout, &mut stderr, pid, command, deadline, mode) {
         Ok(values) => values,
         Err(e) => {
-            signal_group(pid, "-KILL");
+            signal_group(pid, "KILL");
             let _ = child.kill();
             let _ = child.wait();
+            terminate_group(pid);
             if await_readers(&rx_done) {
                 let _ = out_handle.join();
                 let _ = err_handle.join();
@@ -209,6 +231,7 @@ pub fn run_process(command: &str, args: &[String], options: &ProcessOptions) -> 
             return Err(e);
         }
     };
+    terminate_group(pid);
     let readers_done = await_readers(&rx_done);
     while let Ok(chunk) = rx_out.try_recv() {
         append_tail(&mut stdout, &chunk, mode, command)?;
@@ -289,6 +312,72 @@ mod tests {
         .unwrap_err();
         assert!(format!("{err}").contains("output exceeds"), "{err}");
         assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+    }
+
+    fn assert_gone(pid_file: &std::path::Path) {
+        let pid = std::fs::read_to_string(pid_file).unwrap().trim().to_string();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Command::new("/bin/kill")
+            .args(["-s", "0", &pid])
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success()
+        {
+            assert!(Instant::now() < deadline, "owned descendant {pid} survived");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    fn shell(script: String, options: &ProcessOptions) -> Result<ProcessResult> {
+        run_process("/bin/sh", &["-c".to_string(), script], options)
+    }
+
+    #[test]
+    fn a_descendant_holding_the_pipes_does_not_outlive_an_exited_parent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let started = Instant::now();
+        let result = shell(format!("echo parent; sleep 30 & echo $! > {}; exit 0", pid_file.display()), &opts()).unwrap();
+        assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+        assert_eq!(result.stdout, "parent\n");
+        assert_gone(&pid_file);
+    }
+
+    #[test]
+    fn a_descendant_ignoring_term_is_killed() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let started = Instant::now();
+        shell(format!("(trap '' TERM; sleep 30) & echo $! > {}; exit 0", pid_file.display()), &opts()).unwrap();
+        assert!(started.elapsed() < KILL_GRACE + Duration::from_secs(3), "{:?}", started.elapsed());
+        assert_gone(&pid_file);
+    }
+
+    #[test]
+    fn a_timeout_kills_every_owned_descendant() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let mut options = opts();
+        options.timeout_ms = 300;
+        let err = shell(format!("sleep 30 & echo $! > {}; sleep 30", pid_file.display()), &options).unwrap_err();
+        assert!(format!("{err}").contains("time limit"), "{err}");
+        assert_gone(&pid_file);
+    }
+
+    #[test]
+    fn output_overflow_kills_every_owned_descendant() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pid");
+        let mut options = opts();
+        options.stdout_mode = StdoutMode::Full { max_bytes: 1024 };
+        let err = shell(
+            format!("sleep 30 & echo $! > {}; yes | head -c 100000; sleep 30", pid_file.display()),
+            &options,
+        )
+        .unwrap_err();
+        assert!(format!("{err}").contains("output exceeds"), "{err}");
+        assert_gone(&pid_file);
     }
 
     #[test]

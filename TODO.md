@@ -13,15 +13,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-71 · P2 · Subprocess cleanup does not own descendants and pipe lifetime
-
-- **Area:** Concurrency
-- **Where:** `crates/mypypi/src/process_policy.rs:296-307`, `crates/mypypi/src/process_policy.rs:350-378`, `crates/mynpm/src/process.rs:57-65`, `crates/mynpm/src/process.rs:108-126`, `crates/mynpm/src/process.rs:212-222`
-- **Problem:** The Python runner joins output readers without a deadline after the direct child exits. A descendant holding either pipe prevents EOF and bypasses the timeout loop. An OS probe confirmed that `sh -c 'sleep 30 & exit 0'` leaves both pipes open after its parent exits. The npm runner bounds reader waiting but invokes `/bin/kill -TERM -<pgid>` without `--`; that exact argv failed on this Linux host and left the test group alive. Its fallback kills only the direct child. These probes exercise the real OS boundaries; the Rust wrappers were not compiled.
-- **Recommendation:** Own the child, group, and readers through bounded completion on every exit path. Bound pipe draining after direct-child exit, terminate remaining owned descendants, and use/check valid negative-PGID signaling. Preserve partial diagnostics. Verify an early-exiting parent with inherited pipes and a descendant ignoring TERM; require bounded return and no surviving owned PIDs after success, timeout, or output overflow.
-- **Fix with:** lifecycle-concurrency
-- **Effort:** M
-
 ### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
 
 - **Area:** Build

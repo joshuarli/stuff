@@ -29,7 +29,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 # shellcheck disable=SC2016
-docker run -d --name "$NAME" --platform "linux/$ARCH" --user "$(id -u):$(id -g)" \
+docker run -d --init --name "$NAME" --platform "linux/$ARCH" --user "$(id -u):$(id -g)" \
   -v "$ROOT:/work" -w /work \
   -e "HOME=$CONTAINER_WORK/home-$ARCH" \
   -e "CARGO_HOME=$CONTAINER_WORK/cargo-home-$ARCH" \
