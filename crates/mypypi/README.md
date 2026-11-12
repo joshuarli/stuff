@@ -52,6 +52,20 @@ publisher uses `$STUFF_STATE_HOME/pypi/`; their lock identities currently
 differ. Run them separately until the maintenance-lock finding in
 [TODO.md](../../TODO.md) is resolved.
 
+## First-party wheels
+
+`stuff publish pypi --wheel PATH` hosts a pure-Python wheel that exists nowhere
+upstream (see [docs/PUBLISHING.md](../../docs/PUBLISHING.md)). The wheel passes
+the same static inspection as a foreign-target wheel on every configured target
+and must carry only `none-any` tags; it is not installed or imported. Its
+`manifest.json` row carries the extra key `"first_party": true`, which is absent
+from every other row, so existing manifests and generation ids are unchanged.
+`schema_version` stays 1. The live manifest is the only place the record
+persists, so mirror publishes and `stuff republish pypi` carry it forward.
+A first-party name cannot reuse a mirrored name, a mirror publish cannot add
+another version of a first-party name, and a first-party version is immutable.
+Older binaries reject a manifest that contains a first-party row.
+
 ## Build environment
 
 `add`, `build`, and `validate` require `uv` 0.13.6 (pinned in
@@ -110,3 +124,4 @@ When the setting is absent it defaults to `https://pypi.17166969.xyz`.
 
 Generations are identified by `mypypi-simple-html-v5`. Older
 `mypypi-simple-html-v4` generations stay readable and are not rewritten.
+First-party rows add `first_party` to the manifest row without a version change.

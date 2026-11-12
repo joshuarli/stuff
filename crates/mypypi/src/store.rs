@@ -210,6 +210,9 @@ pub fn manifest_bytes(items: &[IndexArtifact]) -> Vec<u8> {
         }
         out.push_str("{\"filename\":");
         out.push_str(&json_escape(&item.wheel_filename));
+        if item.first_party {
+            out.push_str(",\"first_party\":true");
+        }
         out.push_str(",\"metadata_sha256\":");
         out.push_str(&json_escape(&item.metadata_sha256));
         out.push_str(",\"name\":");
@@ -517,6 +520,7 @@ fn current_items(site: &Site) -> Result<Vec<IndexArtifact>> {
         let mut item = item;
         item.yanked_reason = row.yanked;
         item.targets = targets;
+        item.first_party = row.first_party;
         artifacts.push(item);
     }
     Ok(artifacts)
@@ -535,6 +539,7 @@ struct ManifestRow {
     requires_python: Option<String>,
     yanked: Option<String>,
     targets: Vec<String>,
+    first_party: bool,
 }
 
 fn parse_manifest(text: &str, manifest_path: &Path) -> Result<Vec<ManifestRow>> {
@@ -554,7 +559,12 @@ fn parse_manifest(text: &str, manifest_path: &Path) -> Result<Vec<ManifestRow>> 
     let mut rows = Vec::new();
     for entry in arr {
         let map = entry.as_obj().ok_or_else(|| fail("invalid published artifact"))?;
-        if map.len() != 8 {
+        let first_party = match map.iter().find(|(k, _)| k == "first_party") {
+            None => false,
+            Some((_, crate::json::JVal::Bool(true))) => true,
+            Some(_) => return Err(fail("invalid published artifact")),
+        };
+        if map.len() != 8 + usize::from(first_party) {
             return Err(fail("manifest artifact has unknown or missing fields"));
         }
         for key in ["filename", "name", "version", "sha256", "metadata_sha256", "requires_python", "yanked", "targets"] {
@@ -602,6 +612,7 @@ fn parse_manifest(text: &str, manifest_path: &Path) -> Result<Vec<ManifestRow>> 
             requires_python: get_opt("requires_python")?,
             yanked,
             targets,
+            first_party,
         });
     }
     Ok(rows)
@@ -624,7 +635,8 @@ pub fn published_artifacts(output: &Path) -> Result<Vec<ValidatedArtifact>> {
         .map(|item| {
             let identity = WheelIdentity::parse(&item.wheel_filename).expect("stored filename parses");
             let path = item_target_path(&output, &item);
-            ValidatedArtifact::new(identity, path, item.sha256.clone(), item.targets.clone()).expect("stored artifact valid")
+            let artifact = ValidatedArtifact::new(identity, path, item.sha256.clone(), item.targets.clone()).expect("stored artifact valid");
+            if item.first_party { artifact.into_first_party() } else { artifact }
         })
         .collect())
 }
@@ -639,6 +651,33 @@ pub fn republish(output: &Path, public_base_url: &str) -> Result<(PathBuf, Activ
         return Err(pub_error(Kind::InvalidInput, "no published index to republish", Some(output), None));
     }
     publish(&[], output, &FxHashMap::default(), public_base_url)
+}
+
+fn refuse_first_party_clashes(current: &[IndexArtifact], incoming: &[IndexArtifact]) -> Result<()> {
+    for item in incoming {
+        for existing in current.iter().filter(|existing| existing.package_name == item.package_name) {
+            let detail = if item.first_party && !existing.first_party {
+                format!("{} is hosted by the upstream mirror; a first-party package cannot reuse its name", item.package_name)
+            } else if !item.first_party && existing.first_party {
+                format!(
+                    "{}=={} is not a first-party version; {} is a first-party package name",
+                    item.package_name, item.package_version, item.package_name
+                )
+            } else if item.first_party
+                && existing.package_version == item.package_version
+                && existing.wheel_filename != item.wheel_filename
+            {
+                format!(
+                    "{}=={} is already published as {}; first-party versions are immutable",
+                    item.package_name, item.package_version, existing.wheel_filename
+                )
+            } else {
+                continue;
+            };
+            return Err(pub_error(Kind::Conflict, detail, None, Some(item)));
+        }
+    }
+    Ok(())
 }
 
 pub fn publish(
@@ -680,6 +719,7 @@ pub fn publish(
     site.recover_staging()
         .map_err(|e| pub_error(Kind::Io, e.to_string(), Some(&output), None))?;
     let current = current_items(&site)?;
+    refuse_first_party_clashes(&current, &new_items)?;
     let mut merged: FxHashMap<String, IndexArtifact> = FxHashMap::default();
     for item in current {
         merged.insert(item.wheel_filename.clone(), item);
@@ -766,6 +806,42 @@ mod tests {
 
     fn target(platform: &str) -> Target {
         Target::new("3.15", platform).unwrap()
+    }
+
+    #[test]
+    fn first_party_rows_round_trip_and_leave_other_rows_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("src");
+        std::fs::create_dir(&src).unwrap();
+        let out = dir.path().join("index");
+        let mirrored = make_validated(
+            &src,
+            "mirrored-1.0-py3-none-any.whl",
+            b"Metadata-Version: 2.4\nName: mirrored\nVersion: 1.0\n\n",
+            vec![target("macos-arm64")],
+        );
+        let own = make_validated(
+            &src,
+            "own-1.0-py3-none-any.whl",
+            b"Metadata-Version: 2.4\nName: own\nVersion: 1.0\n\n",
+            vec![target("macos-arm64")],
+        )
+        .into_first_party();
+        publish(std::slice::from_ref(&mirrored), &out, &FxHashMap::default(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+        let before = std::fs::read(out.join("current/manifest.json")).unwrap();
+        assert!(!String::from_utf8(before).unwrap().contains("first_party"));
+        publish(std::slice::from_ref(&own), &out, &FxHashMap::default(), stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+        let manifest = String::from_utf8(std::fs::read(out.join("current/manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest.matches("\"first_party\":true").count(), 1, "{manifest}");
+        let flags: Vec<(String, bool)> = published_artifacts(&out)
+            .unwrap()
+            .into_iter()
+            .map(|artifact| (artifact.wheel.filename, artifact.first_party))
+            .collect();
+        assert!(flags.contains(&("own-1.0-py3-none-any.whl".to_string(), true)), "{flags:?}");
+        assert!(flags.contains(&("mirrored-1.0-py3-none-any.whl".to_string(), false)), "{flags:?}");
+        let (_, activation) = republish(&out, stuff_catalog::DEFAULT_PYPI_ORIGIN).unwrap();
+        assert!(activation.is_noop);
     }
 
     #[test]

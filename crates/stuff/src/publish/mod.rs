@@ -10,6 +10,7 @@ pub mod oci;
 pub mod output;
 pub mod paths;
 pub mod pypi;
+pub mod pypi_first_party;
 pub mod r2;
 pub mod republish;
 pub mod rollback;
@@ -136,6 +137,7 @@ pub enum PublishRequest {
     Npm(NpmPublish),
     NpmTarballs(Vec<String>),
     Pypi(PypiPublish),
+    PypiWheels(Vec<String>),
     Oci(OciSource),
 }
 
@@ -144,7 +146,7 @@ impl PublishRequest {
         match self {
             PublishRequest::Cargo(_) | PublishRequest::CargoLockfiles(_) => Registry::Cargo,
             PublishRequest::Npm(_) | PublishRequest::NpmTarballs(_) => Registry::Npm,
-            PublishRequest::Pypi(_) => Registry::Pypi,
+            PublishRequest::Pypi(_) | PublishRequest::PypiWheels(_) => Registry::Pypi,
             PublishRequest::Oci(_) => Registry::Oci,
         }
     }
@@ -328,6 +330,10 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             request: PublishRequest::Pypi(pypi),
             options,
         } => pypi::run(&pypi, &options, environment),
+        Request::Publish {
+            request: PublishRequest::PypiWheels(wheels),
+            options,
+        } => pypi_first_party::publish(&wheels, &options, environment),
         Request::Republish {
             registry,
             allow_drops,
@@ -361,8 +367,10 @@ pub fn help_text(command: &str) -> Option<String> {
             "  stuff publish npm (--lockfile PATH --project ID | --tarball PATH [--tarball PATH...])\n",
             "    [--dry-run] [--json] [--verbose]\n",
             "    --tarball publishes first-party packages packed by npm pack or pnpm pack\n",
-            "  stuff publish pypi SPEC [SPEC...] [--allow-sdist] [--dry-run] [--json] [--verbose]\n",
+            "  stuff publish pypi (SPEC [SPEC...] [--allow-sdist] | --wheel PATH [--wheel PATH...])\n",
+            "    [--dry-run] [--json] [--verbose]\n",
             "    SPEC is name==version\n",
+            "    --wheel publishes first-party pure-Python (none-any) wheels built by uv build or pip wheel\n",
             "  stuff publish oci (--image REPO=REF [--image REPO=REF...] |\n",
             "    --layout DIR --repository NAME [--tag TAG])\n",
             "    [--dry-run] [--json] [--verbose]\n\n",

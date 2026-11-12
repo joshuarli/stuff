@@ -17,6 +17,7 @@ pub struct IndexArtifact {
     pub metadata_sha256: String,
     pub yanked_reason: Option<String>,
     pub targets: Vec<Target>,
+    pub first_party: bool,
 }
 
 impl IndexArtifact {
@@ -242,6 +243,7 @@ pub fn prepare_index_artifacts(
             metadata_sha256,
             yanked_reason: reason,
             targets: artifact.targets.clone(),
+            first_party: artifact.first_party,
         });
     }
     prepared.sort_by(|a, b| {

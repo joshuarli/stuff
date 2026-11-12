@@ -35,6 +35,8 @@ stuff publish npm --lockfile pnpm-lock.yaml --project my-project
 stuff publish npm --tarball joshuarli-ui-0.1.0.tgz
 
 stuff publish pypi six==1.16.0
+
+stuff publish pypi --wheel dist/laputa_buildlib-0.1.0-py3-none-any.whl
 ```
 
 `stuff publish cargo` publishes the `-p` crates in the order given. Each crate's verification resolves a dependency on an earlier crate of the same run from the registry being published to, so list dependencies before their dependents; the mirror need not hold the new versions. A crate version already in that registry's index, including one a failed earlier run recorded locally but did not promote, is skipped, so rerunning the same command completes the remaining crates.
@@ -74,6 +76,32 @@ First-party records live in the generation manifest as artifacts marked `"firstP
 ```
 
 A lockfile that names a first-party `name@version` resolves from the generation, not from npmjs.
+
+## Publish a first-party Python package
+
+`stuff publish pypi --wheel PATH.whl` hosts a pure-Python package that exists nowhere upstream beside the mirror. Build it first with `uv build --wheel` or `pip wheel` (`--wheel` may repeat); `stuff` reads the wheel and never runs a build backend or imports the package. `--wheel` and `SPEC`/`--allow-sdist` are separate modes and do not combine.
+
+```sh
+(cd ../buildlib && uv build --wheel --out-dir /tmp/wheels)
+stuff publish pypi --wheel /tmp/wheels/laputa_buildlib-0.1.0-py3-none-any.whl --dry-run
+stuff publish pypi --wheel /tmp/wheels/laputa_buildlib-0.1.0-py3-none-any.whl
+```
+
+The publish extends the live generation exactly as a mirror publish does, so every mirrored wheel stays. The wheel is stored at `wheels/<filename>` with its `.metadata` sidecar and served by the same simple pages as a mirrored wheel, including `#sha256=`, `data-requires-python`, and `data-core-metadata`. Each wheel is inspected statically for every configured target (METADATA name and version against the filename, `WHEEL` tags, `RECORD` hashes and sizes, unsafe members, native binaries) and must carry only `none-any` tags; a platform wheel exits 2. The wheel is not installed or imported, so its dependencies need not resolve at publish time.
+
+Rules, all exit 3 on violation:
+
+- A first-party `name==version` is immutable. The same wheel reports `unchanged`; different bytes, or a different wheel filename for the same version, conflict.
+- A first-party name cannot reuse a name the mirror hosts.
+- A later mirror publish cannot add another version of a first-party name.
+
+First-party wheels live in the generation manifest as rows marked `"first_party": true`, with no local state of their own, so later mirror publishes and `stuff republish pypi` carry them forward and a machine with no state sees them. Rows of mirrored wheels are unchanged, so existing generations and their ids are unaffected; older binaries reject a manifest that contains a first-party row. Consumers install by version:
+
+```sh
+uv pip install --index-url https://pypi.17166969.xyz/current/simple/ laputa-buildlib==0.1.0
+```
+
+A mirror publish resolves its specs against upstream PyPI, so a spec or dependency naming a first-party package fails to resolve there (exit 2) instead of using the hosted wheel.
 
 ## Publish the OCI registry
 

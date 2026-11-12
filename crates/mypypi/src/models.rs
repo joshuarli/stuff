@@ -141,6 +141,7 @@ pub struct ValidatedArtifact {
     pub path: std::path::PathBuf,
     pub sha256: String,
     pub targets: Vec<Target>,
+    pub first_party: bool,
 }
 
 impl ValidatedArtifact {
@@ -158,7 +159,12 @@ impl ValidatedArtifact {
                 "validated artifact must cover at least one target",
             ));
         }
-        Ok(Self { wheel, path, sha256, targets })
+        Ok(Self { wheel, path, sha256, targets, first_party: false })
+    }
+
+    pub fn into_first_party(mut self) -> Self {
+        self.first_party = true;
+        self
     }
 }
 

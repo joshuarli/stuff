@@ -306,7 +306,7 @@ fn acquire_wheels(
     Ok(())
 }
 
-fn remove_dir_if_present(path: &Path) -> Result<(), PublishError> {
+pub(crate) fn remove_dir_if_present(path: &Path) -> Result<(), PublishError> {
     match std::fs::remove_dir_all(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -335,7 +335,7 @@ fn link_or_copy(source: &Path, target: &Path) -> Result<(), PublishError> {
     }
 }
 
-fn pull_live(
+pub(crate) fn pull_live(
     client: &R2Client,
     bucket: &str,
     site: &Path,
@@ -455,7 +455,7 @@ fn published_filenames(generation: &Path) -> Result<Vec<(String, String)>, Publi
     Ok(filenames)
 }
 
-fn map_mypypi(error: mypypi::error::Error) -> PublishError {
+pub(crate) fn map_mypypi(error: mypypi::error::Error) -> PublishError {
     match error.kind {
         mypypi::error::Kind::Conflict => PublishError::Conflict(error.to_string()),
         mypypi::error::Kind::Integrity => PublishError::Integrity(error.to_string()),

@@ -40,6 +40,22 @@ pub struct RepublishSummary {
 }
 
 pub fn publish(options: &PublishOptions<'_>) -> Result<PublishSummary> {
+    let first_party: FxHashSet<String> = crate::store::published_artifacts(options.output)
+        .map_err(|e| Error::validation(e.detail.clone(), Stage::Validation))?
+        .into_iter()
+        .filter(|artifact| artifact.first_party)
+        .map(|artifact| artifact.wheel.package.name)
+        .collect();
+    if let Some(entry) = options.catalog.entries.iter().find(|entry| first_party.contains(&entry.package.name)) {
+        return Err(Error::conflict(
+            format!(
+                "{} is not a first-party version; {} is a first-party package name",
+                entry.package, entry.package.name
+            ),
+            Stage::Publication,
+        )
+        .with_package(&entry.package));
+    }
     let set = collect_validated(options.settings, options.output, options.state_dir, options.platforms, options.catalog)?;
     let entries = options.catalog.by_package();
     let mut yanked: FxHashMap<String, Option<String>> = FxHashMap::default();
@@ -70,6 +86,73 @@ pub fn publish(options: &PublishOptions<'_>) -> Result<PublishSummary> {
         generation_id: activation.generation_id,
         new_wheels: set.artifacts.len(),
         no_imports: set.no_imports,
+    })
+}
+
+pub struct FirstPartyOptions<'a> {
+    pub settings: &'a ProjectSettings,
+    pub output: &'a Path,
+    pub artifacts: &'a [ValidatedArtifact],
+}
+
+pub fn first_party_artifacts(settings: &ProjectSettings, wheels: &[PathBuf]) -> Result<Vec<ValidatedArtifact>> {
+    let targets = settings.targets();
+    let mut artifacts: Vec<ValidatedArtifact> = Vec::new();
+    for path in wheels {
+        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        if !std::fs::metadata(path).is_ok_and(|md| md.is_file()) {
+            return Err(fail(format!("wheel is not a readable file: {}", path.display())));
+        }
+        let identity = WheelIdentity::parse(name)
+            .map_err(|e| fail(format!("invalid wheel filename {name}: {}", e.detail)))?;
+        let pure = crate::platforms::wheel_tag_triples(name)?
+            .iter()
+            .all(|triple| triple.abi == "none" && triple.platform == "any");
+        if !pure {
+            return Err(fail(format!(
+                "{name} is not a pure-Python none-any wheel; first-party publication supports only none-any wheels"
+            ))
+            .with_package(&identity.package));
+        }
+        for target in &targets {
+            let inspected = crate::validate::inspect_wheel(path, target, &settings.linux_repair_policy)?;
+            if !inspected.native_architectures.is_empty() {
+                return Err(fail(format!("{name} contains native code; first-party publication supports only pure-Python wheels"))
+                    .with_package(&identity.package));
+            }
+        }
+        let sha256 = sha256_of(path)?;
+        if let Some(previous) = artifacts.iter().find(|other| {
+            other.wheel.package == identity.package
+        }) {
+            if previous.wheel.filename == identity.filename && previous.sha256 == sha256 {
+                continue;
+            }
+            let detail = if previous.wheel.filename == identity.filename {
+                format!("{name} is given twice with different bytes")
+            } else {
+                format!("{} is given as both {} and {name}; first-party versions are immutable", identity.package, previous.wheel.filename)
+            };
+            return Err(Error::conflict(detail, Stage::Publication).with_package(&identity.package));
+        }
+        artifacts.push(ValidatedArtifact::new(identity, path.clone(), sha256, targets.clone())?.into_first_party());
+    }
+    Ok(artifacts)
+}
+
+pub fn publish_first_party(options: &FirstPartyOptions<'_>) -> Result<PublishSummary> {
+    let (current, activation) = crate::store::publish(
+        options.artifacts,
+        options.output,
+        &FxHashMap::default(),
+        &options.settings.public_base_url,
+    )?;
+    Ok(PublishSummary {
+        no_op: activation.is_noop,
+        generation: current,
+        generation_id: activation.generation_id,
+        new_wheels: options.artifacts.len(),
+        no_imports: 0,
     })
 }
 

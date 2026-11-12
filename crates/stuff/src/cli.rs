@@ -384,10 +384,7 @@ fn parse_publish(args: &[String]) -> Result<Parsed> {
         Registry::Npm => {
             parse_npm_publish(args, &mut index)?
         }
-        Registry::Pypi => {
-            let (pypi, options) = parse_pypi_publish(args, &mut index)?;
-            (PublishRequest::Pypi(pypi), options)
-        }
+        Registry::Pypi => parse_pypi_publish(args, &mut index)?,
         Registry::Oci => {
             let (oci, options) = parse_oci_publish(args, &mut index)?;
             (PublishRequest::Oci(oci), options)
@@ -509,8 +506,9 @@ fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(PublishReque
     Ok((PublishRequest::Npm(NpmPublish { lockfile, project }), options))
 }
 
-fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(PypiPublish, Options)> {
+fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(PublishRequest, Options)> {
     let mut specs = Vec::new();
+    let mut wheels = Vec::new();
     let mut allow_sdist = false;
     let mut options = Options::default();
     while *index < args.len() {
@@ -524,6 +522,15 @@ fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(PypiPublish
             *index += 1;
             continue;
         }
+        if arg == "--wheel" {
+            let value = next_value(args, index, "--wheel")?;
+            if value.is_empty() {
+                return Err(usage_error("--wheel requires a path"));
+            }
+            wheels.push(value.to_string());
+            *index += 1;
+            continue;
+        }
         if arg.starts_with('-') {
             return Err(usage_error(format!("unknown option: {arg}")));
         }
@@ -532,10 +539,18 @@ fn parse_pypi_publish(args: &[String], index: &mut usize) -> Result<(PypiPublish
         specs.push(spec);
         *index += 1;
     }
-    if specs.is_empty() {
-        return Err(usage_error("publish pypi requires at least one name==version"));
+    if !wheels.is_empty() {
+        if !specs.is_empty() || allow_sdist {
+            return Err(usage_error(
+                "publish pypi takes either --wheel PATH or name==version [--allow-sdist], not both",
+            ));
+        }
+        return Ok((PublishRequest::PypiWheels(wheels), options));
     }
-    Ok((PypiPublish { specs, allow_sdist }, options))
+    if specs.is_empty() {
+        return Err(usage_error("publish pypi requires at least one name==version or --wheel PATH"));
+    }
+    Ok((PublishRequest::Pypi(PypiPublish { specs, allow_sdist }), options))
 }
 
 fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, Options)> {
@@ -1007,6 +1022,15 @@ mod tests {
     }
 
     #[test]
+    fn parses_publish_pypi_wheels() {
+        let (request, options) =
+            publish_request(&["publish", "pypi", "--wheel", "a.whl", "--wheel", "b.whl", "--json"]);
+        let PublishRequest::PypiWheels(wheels) = request else { panic!("{request:?}") };
+        assert_eq!(wheels, vec!["a.whl", "b.whl"]);
+        assert!(options.json);
+    }
+
+    #[test]
     fn parses_both_publish_oci_forms() {
         let (request, _) =
             publish_request(&["publish", "oci", "--image", "repo/a=1.0", "--image", "repo/b=2.0"]);
@@ -1055,6 +1079,9 @@ mod tests {
             vec!["publish", "pypi", "not-a-spec"],
             vec!["publish", "pypi", "name=="],
             vec!["publish", "pypi", "==1.0"],
+            vec!["publish", "pypi", "--wheel"],
+            vec!["publish", "pypi", "--wheel", "a.whl", "alpha==1.0"],
+            vec!["publish", "pypi", "--wheel", "a.whl", "--allow-sdist"],
             vec!["publish", "oci"],
             vec!["publish", "oci", "--layout", "dir"],
             vec!["publish", "oci", "--repository", "repo"],
