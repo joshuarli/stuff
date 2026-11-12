@@ -33,6 +33,11 @@ from repomod.types import Catalog, Repository
 _CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 _LOCKFILE_ECOSYSTEM = {"Cargo.lock": Ecosystem.CARGO, "pnpm-lock.yaml": Ecosystem.NPM, "uv.lock": Ecosystem.PYPI}
 _NPM_PLATFORMS = {"os": frozenset({"darwin", "linux"}), "cpu": frozenset({"x64", "arm64"})}
+_UPSTREAM_REGISTRIES: dict[Ecosystem, frozenset[str | None]] = {
+    Ecosystem.CARGO: frozenset({None}),
+    Ecosystem.NPM: frozenset({None, audit_upgrades.UPSTREAM_NPM_REGISTRY, "https://registry.npmjs.org"}),
+    Ecosystem.PYPI: frozenset({None, audit_upgrades.UPSTREAM_PYTHON_INDEX, "https://pypi.org/simple/"}),
+}
 _SERVED_TIMEOUT_SECONDS = 300.0
 _SERVED_POLL_SECONDS = 15.0
 
@@ -194,17 +199,22 @@ def read_served(policy: RegistryPolicy) -> dict[Ecosystem, dict[str, frozenset[s
     return served
 
 
-def _mirrored_ecosystems(root: Path, policy: RegistryPolicy) -> frozenset[Ecosystem]:
+def _mirrored_ecosystems(root: Path, repository: Repository, policy: RegistryPolicy) -> frozenset[Ecosystem]:
+    """Ecosystems the repository resolves, or the registry-sources fixer will make it resolve, from stuff.
+
+    A repository on another registry, such as an allowed work proxy, keeps it; one exempt from
+    registry-sources stays on the public registries.
+    """
     configured = audit_upgrades._configured_sources(root)
-    if configured is None:
-        return frozenset()
+    moving = "registry-sources" not in repository.ignored_rules
     found = set()
-    if configured.cargo == policy.cargo_source:
-        found.add(Ecosystem.CARGO)
-    if configured.npm == policy.npm_registry:
-        found.add(Ecosystem.NPM)
-    if configured.python == policy.python_index:
-        found.add(Ecosystem.PYPI)
+    for ecosystem, current, stuff in (
+        (Ecosystem.CARGO, configured.cargo if configured else None, policy.cargo_source),
+        (Ecosystem.NPM, configured.npm if configured else None, policy.npm_registry),
+        (Ecosystem.PYPI, configured.python if configured else None, policy.python_index),
+    ):
+        if current == stuff or (moving and current in _UPSTREAM_REGISTRIES[ecosystem]):
+            found.add(ecosystem)
     return frozenset(found)
 
 
@@ -248,7 +258,7 @@ def _repository_lockfiles(
     root = catalog_module.repository_path(catalog, repository)
     if not root.is_dir():
         raise RuntimeError("checkout is missing; run repomod sync")
-    ecosystems = _mirrored_ecosystems(root, policy)
+    ecosystems = _mirrored_ecosystems(root, repository, policy)
     if not ecosystems:
         return [], None
     trees = [root]

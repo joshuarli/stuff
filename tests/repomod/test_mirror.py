@@ -109,7 +109,8 @@ def _upstream_relock(monkeypatch: pytest.MonkeyPatch, calls: list[list[str]]) ->
         work = Path(cwd)
         calls.append(argv)
         if argv[0] == "cargo":
-            assert "[source" not in (work / ".cargo" / "config.toml").read_text()
+            config = work / ".cargo" / "config.toml"
+            assert not config.exists() or "[source" not in config.read_text()
             assert 'rustybench = "0.5"' in (work / "Cargo.toml").read_text()
             (work / "Cargo.lock").write_text(CARGO_LOCK.format(rustybench="0.5.0", checksum="cc"))
         elif argv[0] == "uv":
@@ -306,14 +307,34 @@ def test_private_forked_and_ignoring_repositories_are_not_mirrored() -> None:
     ) == [kept]
 
 
-def test_repository_on_other_registries_is_not_mirrored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_repository_on_another_registry_is_not_mirrored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _checkout(tmp_path)
-    (root / ".cargo" / "config.toml").unlink()
-    (root / "pyproject.toml").write_text('[project]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8")
+    (root / ".cargo" / "config.toml").write_text(
+        '[source.crates-io]\nreplace-with = "work"\n\n[source.work]\nregistry = "sparse+https://work.example/"\n'
+    )
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "1.0.0"\n\n'
+        '[[tool.uv.index]]\nurl = "https://work.example/simple/"\ndefault = true\n',
+        encoding="utf-8",
+    )
     repository = _repository()
     _upstream_relock(monkeypatch, [])
     plan = mirror.plan(_catalog(tmp_path, repository), [repository], POLICY, _served(), tmp_path / "scratch")
     assert (plan.lockfiles, plan.missing, plan.failures) == ([], set(), [])
+
+
+def test_a_repository_still_on_public_registries_is_mirrored_before_it_moves_to_stuff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _checkout(tmp_path)
+    (root / ".cargo" / "config.toml").unlink()
+    repository = _repository()
+    _upstream_relock(monkeypatch, [])
+    plan = mirror.plan(_catalog(tmp_path, repository), [repository], POLICY, _served(), tmp_path / "scratch")
+    assert Package(Ecosystem.CARGO, "rustybench", "0.5.0") in plan.missing
+    exempt = _repository(ignored_rules=frozenset({"registry-sources"}))
+    plan = mirror.plan(_catalog(tmp_path, exempt), [exempt], POLICY, _served(), tmp_path / "scratch-exempt")
+    assert {package.ecosystem for package in plan.missing} == {Ecosystem.PYPI}
 
 
 def test_approved_python_tools_are_mirrored_with_python_lockfiles(

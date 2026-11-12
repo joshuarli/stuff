@@ -227,9 +227,10 @@ relocks each selected repository against crates.io, npm, and PyPI in a disposabl
 the current and upgraded lockfiles and the approved Python tool pins with the stuff catalogs, and
 publishes what is missing through `stuff publish cargo --lockfile`, `stuff publish npm --lockfile`,
 and `stuff publish pypi`. It then waits until the catalogs list the new versions and drops the
-cached latest versions it resolved from stuff. Only ecosystems a repository resolves from stuff
-are mirrored, and private repositories, forks, and repositories that ignore `audit-upgrades` are
-skipped. `--dry-run` lists what is missing without publishing. The command writes to the stuff
+cached latest versions it resolved from stuff. It mirrors the ecosystems a repository resolves
+from stuff, and those still on the public registries that `registry-sources` will move to stuff;
+an ecosystem on another registry, or in a repository exempt from `registry-sources`, is left
+alone. Private repositories, forks, and repositories that ignore `audit-upgrades` are skipped. `--dry-run` lists what is missing without publishing. The command writes to the stuff
 R2 buckets, so the `stuff` CLI on `PATH` must be able to publish
 (see [publishing](PUBLISHING.md)).
 
