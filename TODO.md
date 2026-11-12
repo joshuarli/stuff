@@ -34,16 +34,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-62: Share unchanged index bytes](docs/rfc/STUF-62-shared-index-bytes.md)
 
-### STUF-63 · P3 · Evaluate an explicit Worker WASM interface
-
-- **Area:** Architecture
-- **Where:** `crates/stuff-worker/src/wasm.rs`, `crates/stuff-worker/entry.ts`, `crates/stuff-worker/scripts/build-wasm.sh`, `crates/stuff-worker/scripts/build.mjs`, `crates/stuff-worker/Cargo.toml`
-- **Problem:** The Worker exposes synchronous wasm-bindgen exports carrying JSON strings and primitives to a custom R2/fetch/cache host. The build script now synchronizes `wasm-bindgen-cli` with `Cargo.lock`, resolving the prior executable/schema version skew. Interface shape still lives in Rust exports and TypeScript callers. A WIT/component-model migration has no demonstrated build/deploy/runtime path in this repository and is not a prerequisite for correcting its current host-boundary bugs.
-- **Recommendation:** Time-box a spike over representative routing, response-plan, and catalog exports. Compare an explicit contract on the existing ABI with a component-model prototype; require the existing Cloudflare build and runtime path to work before choosing migration. Keep the current implementation unless the spike demonstrates a concrete improvement.
-- **Fix with:** architect
-- **Effort:** M
-- **Design:** [STUF-63: Evaluate the Worker interface](docs/rfc/STUF-63-worker-interface.md)
-
 ### RPMD-85 · P3 · Reconcile the remaining musl rollout and environment qualification
 
 - **Area:** Operability

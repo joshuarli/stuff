@@ -57,7 +57,7 @@ Run everything from the repository root.
 | Remaining musl rollout decisions | [docs/rfc/RPMD-85-musl-rollout.md](docs/rfc/RPMD-85-musl-rollout.md) |
 | Campaign records | [docs/campaigns/](docs/campaigns/) |
 | Deferred fixes | [TODO.md](TODO.md) |
-| Draft designs | [STUF-45](docs/rfc/STUF-45-python-execution.md), [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md), [STUF-63](docs/rfc/STUF-63-worker-interface.md) |
+| Draft designs | [STUF-45](docs/rfc/STUF-45-python-execution.md), [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md) |
 
 ## Invariants
 
