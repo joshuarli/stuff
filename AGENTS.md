@@ -38,6 +38,7 @@ Run everything from the repository root.
 | Wheel acquisition and validation | [crates/mypypi/README.md](crates/mypypi/README.md) |
 | OCI protocol and storage | [docs/oci-design.md](docs/oci-design.md); [protocol API](crates/stuff-oci/README.md) |
 | OCI CLI, server, writer, benchmarks | [crates/myoci/README.md](crates/myoci/README.md) |
+| OCI benchmark results and the direct blob origin (A11) | [docs/oci-benchmarks.md](docs/oci-benchmarks.md), [docs/oci-a11.md](docs/oci-a11.md) |
 | Worker host, WASM build, runtime tests | [crates/stuff-worker/README.md](crates/stuff-worker/README.md) |
 | Shared storage and generation activation | `crates/stuff-store/src/`; `Site` is used by myoci, while mynpm/mypypi activate their own sites |
 | Shared HTTP policy and native adapter | `crates/stuff-http/src/`, `crates/stuff-server/src/` |
@@ -55,7 +56,8 @@ Run everything from the repository root.
 | Checkout removal contract | [docs/rfc/RPMD-74-checkout-removal.md](docs/rfc/RPMD-74-checkout-removal.md) |
 | Remaining musl rollout decisions | [docs/rfc/RPMD-85-musl-rollout.md](docs/rfc/RPMD-85-musl-rollout.md) |
 | Campaign records | [docs/campaigns/](docs/campaigns/) |
-| Deferred fixes and draft designs | [TODO.md](TODO.md) and its linked RFCs in `docs/rfc/` |
+| Deferred fixes | [TODO.md](TODO.md) |
+| Draft designs | [STUF-45](docs/rfc/STUF-45-python-execution.md), [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md), [STUF-63](docs/rfc/STUF-63-worker-interface.md) |
 
 ## Invariants
 

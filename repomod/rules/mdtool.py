@@ -15,7 +15,7 @@ _SEVERITIES: dict[str, Severity] = {
     "note": "info",
     "info": "info",
 }
-_EXCLUDED_DIRS = frozenset({"expected", "fixtures", "snapshots", "testdata"})
+_EXCLUDED_DIRS = frozenset({"expected", "fixtures", "golden", "snapshots", "testdata"})
 _EXCLUDED_FILES = frozenset({"TODO.md"})
 MDTOOL_IGNORE_PREFIX = "mdtool:"
 _FINDING_CODE = re.compile(r"[A-Z]\d{3}\Z")

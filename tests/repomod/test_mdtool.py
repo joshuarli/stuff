@@ -19,6 +19,7 @@ from repomod.types import RepoId, Repository
         ("internal/attachments/testdata/references.md", True),
         ("tests/fixtures/demo-vault/note.md", True),
         ("tests/snapshots/output.md", True),
+        ("crates/mycrates/tests/golden/adopt-publish/expected-generation/llms.txt", True),
         ("TODO.md", True),
         ("docs/TODO.md", True),
         ("AGENTS.md", False),
