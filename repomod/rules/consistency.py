@@ -211,6 +211,8 @@ def _artifact_name(path: str, languages: set[str]) -> str | None:
             if path.endswith(name):
                 return name
         elif name in parts:
+            if name == "target" and "src" in parts[: parts.index(name)]:
+                continue
             return name
     return None
 

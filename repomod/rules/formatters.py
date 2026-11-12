@@ -475,7 +475,7 @@ def _formatting_findings(root: Path, repository: Repository) -> list[Finding]:
     excluded_prefixes = workspace_excluded(root)
     for relative in paths:
         path = PurePosixPath(relative)
-        if is_workspace_excluded(excluded_prefixes, path):
+        if is_workspace_excluded(excluded_prefixes, path) or "vendor" in path.parts[:-1]:
             continue
         if (
             "fork" in repository.tags

@@ -217,6 +217,24 @@ def test_generated_artifact_lint_does_not_treat_a_python_target_directory_as_rus
     assert _tracked_artifact_findings(tmp_path, repository("tool", "python")) == []
 
 
+def test_generated_artifact_lint_does_not_treat_a_rust_target_module_as_output(
+    tmp_path: Path,
+) -> None:
+    initialize_repository(tmp_path)
+    (tmp_path / ".gitignore").write_text(".DS_Store\nThumbs.db\ntarget/\n!src/target/\n", encoding="utf-8")
+    (tmp_path / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    module = tmp_path / "src" / "target" / "mod.rs"
+    module.parent.mkdir(parents=True)
+    module.write_text("pub fn run() {}\n", encoding="utf-8")
+    (tmp_path / "src" / "lib.rs").write_text("mod target;\n", encoding="utf-8")
+    run_git(["add", ".gitignore", "Cargo.toml", "src/lib.rs"], cwd=tmp_path)
+    run_git(["add", "--force", "src/target/mod.rs"], cwd=tmp_path)
+
+    assert _tracked_artifact_findings(tmp_path, repository("library", "rust")) == []
+
+
 def test_generated_artifact_lint_requires_root_ignore_rules(tmp_path: Path) -> None:
     initialize_repository(tmp_path)
     (tmp_path / ".gitignore").write_text(

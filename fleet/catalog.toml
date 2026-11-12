@@ -151,8 +151,8 @@ ignore = ["rust-project:lockfile:compare"]
 ignore_reason = "compare/ is a development tool for comparing against other zip crates, and the repository ignores Cargo.lock on purpose."
 
 [overrides."laputa-systems/python-build"]
-ignore = ["mdtool:D001", "mdtool:P002", "mdtool:R001", "mdtool:R005"]
-ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees repeat skill text on purpose, and the benchmark README names files its commands generate."
+ignore = ["mdtool:D001", "mdtool:P002", "mdtool:R001", "mdtool:R005", "rust-collections"]
+ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees repeat skill text on purpose, and the benchmark README names files its commands generate. The serc compiler in rust-cpython relies on BTreeMap and BTreeSet iteration order for deterministic output (sorted free variables, position-ordered boundaries)."
 
 [overrides."laputa-systems/ptytest"]
 ignore = ["mdtool:R003", "audit-banned:transitive:polling", "audit-banned:transitive:piper", "audit-banned:transitive:concurrent-queue", "audit-banned:transitive:atomic-waker"]
