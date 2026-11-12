@@ -1,0 +1,987 @@
+{
+ "components": [
+  {
+   "display_name": "bash",
+   "ecosystem": "apk",
+   "name": "bash",
+   "purl": "pkg:apk/bash"
+  },
+  {
+   "display_name": "build-base",
+   "ecosystem": "apk",
+   "name": "build-base",
+   "purl": "pkg:apk/build-base"
+  },
+  {
+   "display_name": "ccache",
+   "ecosystem": "apk",
+   "name": "ccache",
+   "purl": "pkg:apk/ccache"
+  },
+  {
+   "display_name": "clang",
+   "ecosystem": "apk",
+   "name": "clang",
+   "purl": "pkg:apk/clang"
+  },
+  {
+   "display_name": "cmake",
+   "ecosystem": "apk",
+   "name": "cmake",
+   "purl": "pkg:apk/cmake"
+  },
+  {
+   "display_name": "linux-headers",
+   "ecosystem": "apk",
+   "name": "linux-headers",
+   "purl": "pkg:apk/linux-headers"
+  },
+  {
+   "display_name": "lld",
+   "ecosystem": "apk",
+   "name": "lld",
+   "purl": "pkg:apk/lld"
+  },
+  {
+   "display_name": "musl-dev",
+   "ecosystem": "apk",
+   "name": "musl-dev",
+   "purl": "pkg:apk/musl-dev"
+  },
+  {
+   "display_name": "ninja",
+   "ecosystem": "apk",
+   "name": "ninja",
+   "purl": "pkg:apk/ninja"
+  },
+  {
+   "display_name": "patch",
+   "ecosystem": "apk",
+   "name": "patch",
+   "purl": "pkg:apk/patch"
+  },
+  {
+   "display_name": "python3",
+   "ecosystem": "apk",
+   "name": "python3",
+   "purl": "pkg:apk/python3"
+  },
+  {
+   "display_name": "tar",
+   "ecosystem": "apk",
+   "name": "tar",
+   "purl": "pkg:apk/tar"
+  },
+  {
+   "display_name": "xz",
+   "ecosystem": "apk",
+   "name": "xz",
+   "purl": "pkg:apk/xz"
+  },
+  {
+   "display_name": "zlib-dev",
+   "ecosystem": "apk",
+   "name": "zlib-dev",
+   "purl": "pkg:apk/zlib-dev"
+  },
+  {
+   "display_name": "zlib-static",
+   "ecosystem": "apk",
+   "name": "zlib-static",
+   "purl": "pkg:apk/zlib-static"
+  },
+  {
+   "display_name": "alpine",
+   "ecosystem": "docker",
+   "name": "alpine",
+   "purl": "pkg:docker/alpine"
+  },
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache#restore"
+  },
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache#save"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/download-artifact",
+   "ecosystem": "github",
+   "name": "actions/download-artifact",
+   "purl": "pkg:github/actions/download-artifact"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[2].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#restore#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[6].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#restore#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[4].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#save#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[10].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#save#"
+  },
+  {
+   "condition": null,
+   "constraint": "The pinned versions and source checksums live in llvm-source.env and\n      # musl-source.env.",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[0].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[2].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[11].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[12].uses",
+     "path": ".github/workflows/llvm-prebuilt-musl.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/bash#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L9",
+     "path": "docker/validate.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/bash#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/build-base#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ccache#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/clang#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/cmake#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/linux-headers#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/lld#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L9",
+     "path": "docker/validate.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/musl-dev#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ninja#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/patch#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/python3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/tar#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L9",
+     "path": "docker/validate.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/tar#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/xz#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L9",
+     "path": "docker/validate.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/xz#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/zlib-dev#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/zlib-static#"
+  },
+  {
+   "condition": null,
+   "constraint": "3.23",
+   "evidence": [
+    {
+     "locator": "L5",
+     "path": "docker/build.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "3.23",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine@3.23#"
+  },
+  {
+   "condition": null,
+   "constraint": "3.24",
+   "evidence": [
+    {
+     "locator": "L7",
+     "path": "docker/validate.Dockerfile"
+    }
+   ],
+   "from": "docker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "3.24",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine@3.24#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "11bef2e15bcc4aba773a2dd952b959fed74d5a8b",
+   "path": ".github/workflows/llvm-prebuilt-musl.yml"
+  },
+  {
+   "blob": "acb5c34434c0c229517e20801ebe9a45b58acaa1",
+   "path": "Makefile"
+  },
+  {
+   "blob": "ee8974f289c300a87e6a83217382ed3c0be43f08",
+   "path": "docker/build.Dockerfile"
+  },
+  {
+   "blob": "7c2b12562754441d93c0d281129ba2cdcd9f6ce8",
+   "path": "docker/validate.Dockerfile"
+  }
+ ],
+ "inputs_fingerprint": "d51e6547234de1c836aaa7136f36dd069dc7329a11ab48fc16628b25cd67ae3a",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:apk/bash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/bash#",
+   "purl": "pkg:apk/bash",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/build-base",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/build-base#",
+   "purl": "pkg:apk/build-base",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/ccache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/ccache#",
+   "purl": "pkg:apk/ccache",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/clang",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/clang#",
+   "purl": "pkg:apk/clang",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/cmake",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/cmake#",
+   "purl": "pkg:apk/cmake",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/linux-headers",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/linux-headers#",
+   "purl": "pkg:apk/linux-headers",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/lld",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/lld#",
+   "purl": "pkg:apk/lld",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/musl-dev",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/musl-dev#",
+   "purl": "pkg:apk/musl-dev",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/ninja",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/ninja#",
+   "purl": "pkg:apk/ninja",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/patch",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/patch#",
+   "purl": "pkg:apk/patch",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/python3",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/python3#",
+   "purl": "pkg:apk/python3",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/tar",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/tar#",
+   "purl": "pkg:apk/tar",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/xz",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/xz#",
+   "purl": "pkg:apk/xz",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/zlib-dev",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/zlib-dev#",
+   "purl": "pkg:apk/zlib-dev",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:apk/zlib-static",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:apk/zlib-static#",
+   "purl": "pkg:apk/zlib-static",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:docker/alpine",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:docker/alpine@3.23#",
+   "purl": "pkg:docker/alpine@3.23",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "image",
+   "vcs_url": null,
+   "version": "3.23"
+  },
+  {
+   "commit": null,
+   "component": "pkg:docker/alpine",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:docker/alpine@3.24#",
+   "purl": "pkg:docker/alpine@3.24",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "image",
+   "vcs_url": null,
+   "version": "3.24"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/cache#restore",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@v4#restore#",
+   "purl": "pkg:github/actions/cache@v4#restore",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/cache#save",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@v4#save#",
+   "purl": "pkg:github/actions/cache@v4#save",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v4#",
+   "purl": "pkg:github/actions/checkout@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/download-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/download-artifact@v4#",
+   "purl": "pkg:github/actions/download-artifact@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/download-artifact",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@v4#",
+   "purl": "pkg:github/actions/upload-artifact@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "v4"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:repo"
+  },
+  {
+   "directory": "docker",
+   "ecosystem": "generic",
+   "id": "docker:repo"
+  }
+ ],
+ "repository": "laputa-systems/llvm-prebuilt-musl",
+ "schema": 1,
+ "tags": [
+  "build",
+  "shell"
+ ]
+}

@@ -469,7 +469,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "f0821d09ae492283fb0ce7a3aeaf660ca148eb17",
+   "blob": "931c7ed471f4ea6c2854cfc396677e49b90e500f",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -485,7 +485,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "206505c83dbe3e6d2e8ee5da520951c29afff42cc287dbcb36e6cace1b75be7d",
+ "inputs_fingerprint": "be88a16fa7a09775bb040ee5c6f51bc83cf786c4d68489a6abef92533aba9a4e",
  "instances": [
   {
    "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",

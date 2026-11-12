@@ -211,7 +211,7 @@
    "constraint": "v6.1.0",
    "evidence": [
     {
-     "locator": "jobs.build.steps[3].uses",
+     "locator": "jobs.build.steps[2].uses",
      "path": ".github/workflows/release.yml"
     }
    ],
@@ -231,6 +231,24 @@
     {
      "locator": "jobs.ci.steps[0].uses",
      "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
     }
    ],
    "from": ".:repo",
@@ -1149,7 +1167,11 @@
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "239371c8a12be212d184214dde31b53e9c8e82c3",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "4f5aef8803a091ab72ce4590e337859a1f19e674",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -1159,6 +1181,10 @@
   {
    "blob": "1492a79a7f0e92965878dc84782a76450cb1c5f8",
    "path": "Cargo.toml"
+  },
+  {
+   "blob": "1fe9eb88eb166472273c74981695d443433be76a",
+   "path": "Makefile"
   },
   {
    "blob": "e58df6558503f691496f67b1c647a38e93ab4072",
@@ -1209,7 +1235,7 @@
    "path": "tests/install/fixture/meson.build"
   }
  ],
- "inputs_fingerprint": "a70e583d562d763ab0238e69fa045aaa7e24aea14bf6e42a5fb7eed6abe5cc0c",
+ "inputs_fingerprint": "17a188c73dfe09e8c00c029823f6cd8a24779a1a4d368a0d117304b106543fa2",
  "instances": [
   {
    "commit": null,
@@ -1655,6 +1681,12 @@
   }
  ],
  "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  },
   {
    "kind": "unsupported_format",
    "locator": null,

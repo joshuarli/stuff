@@ -2794,7 +2794,7 @@
   },
   {
    "condition": null,
-   "constraint": "2.0.0-beta.v.8",
+   "constraint": "2.0.0-beta.v.16",
    "evidence": [
     {
      "locator": "importers[cloudflare].devDependencies.'@cloudflare/vite-plugin'",
@@ -2805,14 +2805,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.0.0-beta.v.8",
+   "resolved_version": "2.0.0-beta.v.16",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)"
+   "to": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)"
   },
   {
    "condition": null,
-   "constraint": "1.8.0",
+   "constraint": "1.8.1",
    "evidence": [
     {
      "locator": "importers[cloudflare].devDependencies.'@cloudflare/vitest-plugin'",
@@ -2823,10 +2823,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.8.0",
+   "resolved_version": "1.8.1",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))"
+   "to": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))"
   },
   {
    "condition": null,
@@ -2992,7 +2992,7 @@
   },
   {
    "condition": null,
-   "constraint": "1.0.0-beta.29",
+   "constraint": "1.0.0-beta.31",
    "evidence": [
     {
      "locator": "importers[cloudflare].devDependencies.cf",
@@ -3003,14 +3003,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.0.0-beta.29",
+   "resolved_version": "1.0.0-beta.31",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)"
+   "to": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)"
   },
   {
    "condition": null,
-   "constraint": "5.20261023.3-beta",
+   "constraint": "5.20261110.2-beta",
    "evidence": [
     {
      "locator": "importers[cloudflare].devDependencies.miniflare",
@@ -3021,10 +3021,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "5.20261023.3-beta",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
@@ -11629,47 +11629,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/build-output-utils@0.9.12'].dependencies.'@cloudflare/config'",
+     "locator": "snapshots['@cloudflare/build-output-utils@0.9.13'].dependencies.'@cloudflare/config'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/build-output-utils@0.9.12#",
+   "from": "pkg:npm/%40cloudflare/build-output-utils@0.9.13#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.31.1",
+   "resolved_version": "0.32.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/config@0.31.1#"
+   "to": "pkg:npm/%40cloudflare/config@0.32.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/build-output-utils@0.9.6'].dependencies.'@cloudflare/config'",
+     "locator": "snapshots['@cloudflare/config@0.32.0'].dependencies.zod",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/build-output-utils@0.9.6#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.29.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/config@0.29.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['@cloudflare/config@0.29.0'].dependencies.zod",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/%40cloudflare/config@0.29.0#",
+   "from": "pkg:npm/%40cloudflare/config@0.32.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11683,83 +11665,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/config@0.31.1'].dependencies.zod",
+     "locator": "snapshots['@cloudflare/runtime-types@0.1.27(@types/node@26.6.6)'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/config@0.31.1#",
+   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.27#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "4.6.6",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/zod@4.6.6#"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/runtime-types@0.1.19(@types/node@26.6.6)'].dependencies.miniflare",
+     "locator": "snapshots['@cloudflare/runtime-types@0.1.27(@types/node@26.6.6)'].dependencies.workerd",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.19#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.20261023.3-beta",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['@cloudflare/runtime-types@0.1.19(@types/node@26.6.6)'].dependencies.workerd",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.19#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/workerd@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['@cloudflare/runtime-types@0.1.25(@types/node@26.6.6)'].dependencies.miniflare",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.25#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.20261110.0-beta",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['@cloudflare/runtime-types@0.1.25(@types/node@26.6.6)'].dependencies.workerd",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.25#(@types/node@26.6.6)",
+   "from": "pkg:npm/%40cloudflare/runtime-types@0.1.27#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11809,65 +11737,65 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/build-output-utils'",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/build-output-utils'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.9.6",
+   "resolved_version": "0.9.13",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/build-output-utils@0.9.6#"
+   "to": "pkg:npm/%40cloudflare/build-output-utils@0.9.13#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/config'",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/config'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.29.0",
+   "resolved_version": "0.32.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/config@0.29.0#"
+   "to": "pkg:npm/%40cloudflare/config@0.32.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/runtime-types'",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/runtime-types'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.1.19",
+   "resolved_version": "0.1.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/runtime-types@0.1.19#(@types/node@26.6.6)"
+   "to": "pkg:npm/%40cloudflare/runtime-types@0.1.27#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/unenv-preset'",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.'@cloudflare/unenv-preset'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11881,29 +11809,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.miniflare",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261023.3-beta",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.unenv",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.unenv",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11917,11 +11845,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.vite",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.vite",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11935,11 +11863,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.8(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.ws",
+     "locator": "snapshots['@cloudflare/vite-plugin@2.0.0-beta.v.16(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)'].dependencies.ws",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "from": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11953,11 +11881,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.cjs-module-lexer",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.cjs-module-lexer",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11971,11 +11899,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.esbuild",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.esbuild",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11989,29 +11917,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.miniflare",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261110.1-beta",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.vitest",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.vitest",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -12025,29 +11953,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.wrangler",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.wrangler",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "4.160.1",
+   "resolved_version": "4.161.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)"
+   "to": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.zod",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.zod",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -13663,65 +13591,65 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['cf@1.0.0-beta.29(@types/node@26.6.6)'].dependencies.'@cloudflare/build-output-utils'",
+     "locator": "snapshots['cf@1.0.0-beta.31(@types/node@26.6.6)'].dependencies.'@cloudflare/build-output-utils'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
+   "from": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.9.12",
+   "resolved_version": "0.9.13",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/build-output-utils@0.9.12#"
+   "to": "pkg:npm/%40cloudflare/build-output-utils@0.9.13#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['cf@1.0.0-beta.29(@types/node@26.6.6)'].dependencies.'@cloudflare/config'",
+     "locator": "snapshots['cf@1.0.0-beta.31(@types/node@26.6.6)'].dependencies.'@cloudflare/config'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
+   "from": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.31.1",
+   "resolved_version": "0.32.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/config@0.31.1#"
+   "to": "pkg:npm/%40cloudflare/config@0.32.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['cf@1.0.0-beta.29(@types/node@26.6.6)'].dependencies.'@cloudflare/runtime-types'",
+     "locator": "snapshots['cf@1.0.0-beta.31(@types/node@26.6.6)'].dependencies.'@cloudflare/runtime-types'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
+   "from": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.1.25",
+   "resolved_version": "0.1.27",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/runtime-types@0.1.25#(@types/node@26.6.6)"
+   "to": "pkg:npm/%40cloudflare/runtime-types@0.1.27#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['cf@1.0.0-beta.29(@types/node@26.6.6)'].dependencies.blake3-wasm",
+     "locator": "snapshots['cf@1.0.0-beta.31(@types/node@26.6.6)'].dependencies.blake3-wasm",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
+   "from": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -13735,18 +13663,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['cf@1.0.0-beta.29(@types/node@26.6.6)'].dependencies.miniflare",
+     "locator": "snapshots['cf@1.0.0-beta.31(@types/node@26.6.6)'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
+   "from": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261110.0-beta",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
@@ -14527,11 +14455,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -14545,11 +14473,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.sharp",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.sharp",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -14563,11 +14491,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.undici",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.undici",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -14581,119 +14509,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.workerd",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.workerd",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/workerd@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.ws",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "8.21.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/ws@8.21.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261023.3-beta(@types/node@26.6.6)'].dependencies.youch",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "4.1.0-beta.10",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/youch@4.1.0-beta.10#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cspotcode/source-map-support@0.8.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.sharp",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/sharp@0.35.5#(@types/node@26.6.6)"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.undici",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "7.30.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/undici@7.30.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.workerd",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -14707,11 +14527,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.ws",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.ws",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -14725,119 +14545,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['miniflare@5.20261110.0-beta(@types/node@26.6.6)'].dependencies.youch",
+     "locator": "snapshots['miniflare@5.20261110.2-beta(@types/node@26.6.6)'].dependencies.youch",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "4.1.0-beta.10",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/youch@4.1.0-beta.10#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cspotcode/source-map-support@0.8.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.sharp",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.35.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/sharp@0.35.5#(@types/node@26.6.6)"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.undici",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "7.30.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/undici@7.30.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.workerd",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261110.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/workerd@1.20261110.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.ws",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "8.21.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/ws@8.21.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.youch",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "from": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17191,96 +16903,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[workerd@1.20261023.1].optionalDependencies.'@cloudflare/workerd-darwin-64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20261023.1#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots[workerd@1.20261023.1].optionalDependencies.'@cloudflare/workerd-darwin-arm64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20261023.1#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots[workerd@1.20261023.1].optionalDependencies.'@cloudflare/workerd-linux-64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20261023.1#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots[workerd@1.20261023.1].optionalDependencies.'@cloudflare/workerd-linux-arm64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20261023.1#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots[workerd@1.20261023.1].optionalDependencies.'@cloudflare/workerd-windows-64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/workerd@1.20261023.1#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.20261023.1",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261023.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "snapshots[workerd@1.20261110.1].optionalDependencies.'@cloudflare/workerd-darwin-64'",
      "path": "pnpm-lock.yaml"
     }
@@ -17371,11 +16993,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/kv-asset-handler'",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/kv-asset-handler'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17389,11 +17011,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/unenv-preset'",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/unenv-preset'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17407,11 +17029,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.'@cloudflare/workers-types'",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.'@cloudflare/workers-types'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17425,11 +17047,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17443,11 +17065,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.blake3-wasm",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.blake3-wasm",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17461,11 +17083,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.esbuild",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.esbuild",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17479,11 +17101,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.fsevents",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.fsevents",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17497,29 +17119,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.miniflare",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261110.1-beta",
+   "resolved_version": "5.20261110.2-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.path-to-regexp",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.path-to-regexp",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17533,11 +17155,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.unenv",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.unenv",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17551,11 +17173,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.workerd",
+     "locator": "snapshots['wrangler@4.161.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.workerd",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17713,7 +17335,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "1bcef3d7d84fe3a2d9bfc234e8be652d1550eeb8",
+   "blob": "4901d26477fcb6a4a0bf21d15a84e256e7bdc2da",
    "path": "Makefile"
   },
   {
@@ -17729,7 +17351,7 @@
    "path": "agent/build/Dockerfile"
   },
   {
-   "blob": "db42cd36c8eb025beb82a85c82c540b5331a5327",
+   "blob": "2a242b25d623b50b2ca50a798846ded07a8b651e",
    "path": "cloudflare/package.json"
   },
   {
@@ -17753,7 +17375,7 @@
    "path": "packages/stats-producer/Cargo.toml"
   },
   {
-   "blob": "2fd9ab209c811677d6c437e7bbb928e19dd2f2f7",
+   "blob": "6a5b1e6c15fdd2df89302ba8cb309ac01b6ce06c",
    "path": "pnpm-lock.yaml"
   },
   {
@@ -17761,7 +17383,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "87caf170603d19b9fd63998d13fd30db07a53cbde494996cd50b8f850a85cc14",
+ "inputs_fingerprint": "588a5ced28bdd7a4ef7ab43a62c85dfe93eb9c56eccad1331ffe466348f3d44f",
  "instances": [
   {
    "commit": null,
@@ -19770,52 +19392,26 @@
    "component": "pkg:npm/%40cloudflare/build-output-utils",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/build-output-utils@0.9.12#",
-   "purl": "pkg:npm/%40cloudflare/build-output-utils@0.9.12",
+   "id": "pkg:npm/%40cloudflare/build-output-utils@0.9.13#",
+   "purl": "pkg:npm/%40cloudflare/build-output-utils@0.9.13",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.9.12"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/build-output-utils",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/build-output-utils@0.9.6#",
-   "purl": "pkg:npm/%40cloudflare/build-output-utils@0.9.6",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.9.6"
+   "version": "0.9.13"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/config",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/config@0.29.0#",
-   "purl": "pkg:npm/%40cloudflare/config@0.29.0",
+   "id": "pkg:npm/%40cloudflare/config@0.32.0#",
+   "purl": "pkg:npm/%40cloudflare/config@0.32.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.29.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/config",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/config@0.31.1#",
-   "purl": "pkg:npm/%40cloudflare/config@0.31.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.31.1"
+   "version": "0.32.0"
   },
   {
    "commit": null,
@@ -19835,52 +19431,26 @@
    "component": "pkg:npm/%40cloudflare/runtime-types",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.19#",
-   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.19",
+   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.27#",
+   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.27",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.19"
+   "version": "0.1.27"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/runtime-types",
    "context": "(@types/node@26.6.6)",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.19#(@types/node@26.6.6)",
-   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.19",
+   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.27#(@types/node@26.6.6)",
+   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.27",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.19"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/runtime-types",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.25#",
-   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.25",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.25"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/runtime-types",
-   "context": "(@types/node@26.6.6)",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/runtime-types@0.1.25#(@types/node@26.6.6)",
-   "purl": "pkg:npm/%40cloudflare/runtime-types@0.1.25",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.25"
+   "version": "0.1.27"
   },
   {
    "commit": null,
@@ -19913,65 +19483,52 @@
    "component": "pkg:npm/%40cloudflare/vite-plugin",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#",
-   "purl": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8",
+   "id": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#",
+   "purl": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.0.0-beta.v.8"
+   "version": "2.0.0-beta.v.16"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/vite-plugin",
    "context": "(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
-   "purl": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.8",
+   "id": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16#(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2))(workerd@1.20261110.1)",
+   "purl": "pkg:npm/%40cloudflare/vite-plugin@2.0.0-beta.v.16",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.0.0-beta.v.8"
+   "version": "2.0.0-beta.v.16"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/vitest-plugin",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#",
-   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0",
+   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#",
+   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.8.0"
+   "version": "1.8.1"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/vitest-plugin",
    "context": "(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
-   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0",
+   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.1",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.8.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-darwin-64",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261023.1#",
-   "purl": "pkg:npm/%40cloudflare/workerd-darwin-64@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
+   "version": "1.8.1"
   },
   {
    "commit": null,
@@ -19991,19 +19548,6 @@
    "component": "pkg:npm/%40cloudflare/workerd-darwin-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261023.1#",
-   "purl": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-darwin-arm64",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261110.1#",
    "purl": "pkg:npm/%40cloudflare/workerd-darwin-arm64@1.20261110.1",
    "registry_url": "https://npm.17166969.xyz/current/",
@@ -20011,19 +19555,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.20261110.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-linux-64",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261023.1#",
-   "purl": "pkg:npm/%40cloudflare/workerd-linux-64@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
   },
   {
    "commit": null,
@@ -20043,19 +19574,6 @@
    "component": "pkg:npm/%40cloudflare/workerd-linux-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261023.1#",
-   "purl": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-linux-arm64",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261110.1#",
    "purl": "pkg:npm/%40cloudflare/workerd-linux-arm64@1.20261110.1",
    "registry_url": "https://npm.17166969.xyz/current/",
@@ -20063,19 +19581,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.20261110.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40cloudflare/workerd-windows-64",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261023.1#",
-   "purl": "pkg:npm/%40cloudflare/workerd-windows-64@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
   },
   {
    "commit": null,
@@ -22266,26 +21771,26 @@
    "component": "pkg:npm/cf",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/cf@1.0.0-beta.29#",
-   "purl": "pkg:npm/cf@1.0.0-beta.29",
+   "id": "pkg:npm/cf@1.0.0-beta.31#",
+   "purl": "pkg:npm/cf@1.0.0-beta.31",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.0-beta.29"
+   "version": "1.0.0-beta.31"
   },
   {
    "commit": null,
    "component": "pkg:npm/cf",
    "context": "(@types/node@26.6.6)",
    "first_party": false,
-   "id": "pkg:npm/cf@1.0.0-beta.29#(@types/node@26.6.6)",
-   "purl": "pkg:npm/cf@1.0.0-beta.29",
+   "id": "pkg:npm/cf@1.0.0-beta.31#(@types/node@26.6.6)",
+   "purl": "pkg:npm/cf@1.0.0-beta.31",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.0-beta.29"
+   "version": "1.0.0-beta.31"
   },
   {
    "commit": null,
@@ -22682,78 +22187,26 @@
    "component": "pkg:npm/miniflare",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261023.3-beta#",
-   "purl": "pkg:npm/miniflare@5.20261023.3-beta",
+   "id": "pkg:npm/miniflare@5.20261110.2-beta#",
+   "purl": "pkg:npm/miniflare@5.20261110.2-beta",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.20261023.3-beta"
+   "version": "5.20261110.2-beta"
   },
   {
    "commit": null,
    "component": "pkg:npm/miniflare",
    "context": "(@types/node@26.6.6)",
    "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261023.3-beta#(@types/node@26.6.6)",
-   "purl": "pkg:npm/miniflare@5.20261023.3-beta",
+   "id": "pkg:npm/miniflare@5.20261110.2-beta#(@types/node@26.6.6)",
+   "purl": "pkg:npm/miniflare@5.20261110.2-beta",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "5.20261023.3-beta"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/miniflare",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261110.0-beta#",
-   "purl": "pkg:npm/miniflare@5.20261110.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.20261110.0-beta"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/miniflare",
-   "context": "(@types/node@26.6.6)",
-   "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)",
-   "purl": "pkg:npm/miniflare@5.20261110.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.20261110.0-beta"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/miniflare",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261110.1-beta#",
-   "purl": "pkg:npm/miniflare@5.20261110.1-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.20261110.1-beta"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/miniflare",
-   "context": "(@types/node@26.6.6)",
-   "first_party": false,
-   "id": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
-   "purl": "pkg:npm/miniflare@5.20261110.1-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "5.20261110.1-beta"
+   "version": "5.20261110.2-beta"
   },
   {
    "commit": null,
@@ -23280,19 +22733,6 @@
    "component": "pkg:npm/workerd",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/workerd@1.20261023.1#",
-   "purl": "pkg:npm/workerd@1.20261023.1",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.20261023.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/workerd",
-   "context": "",
-   "first_party": false,
    "id": "pkg:npm/workerd@1.20261110.1#",
    "purl": "pkg:npm/workerd@1.20261110.1",
    "registry_url": "https://npm.17166969.xyz/current/",
@@ -23306,26 +22746,26 @@
    "component": "pkg:npm/wrangler",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/wrangler@4.160.1#",
-   "purl": "pkg:npm/wrangler@4.160.1",
+   "id": "pkg:npm/wrangler@4.161.0#",
+   "purl": "pkg:npm/wrangler@4.161.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "4.160.1"
+   "version": "4.161.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/wrangler",
    "context": "(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "first_party": false,
-   "id": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
-   "purl": "pkg:npm/wrangler@4.160.1",
+   "id": "pkg:npm/wrangler@4.161.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "purl": "pkg:npm/wrangler@4.161.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "4.160.1"
+   "version": "4.161.0"
   },
   {
    "commit": null,

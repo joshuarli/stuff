@@ -3227,10 +3227,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3249,10 +3249,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3271,10 +3271,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3366,7 +3366,7 @@
   },
   {
    "condition": "cfg(target_os = \"linux\")",
-   "constraint": "0.4",
+   "constraint": "0.5",
    "evidence": [
     {
      "locator": "target.'cfg(target_os = \"linux\")'.dependencies.crabgrind",
@@ -3381,10 +3381,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.4.0",
+   "resolved_version": "0.5.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/crabgrind@0.4.0#"
+   "to": "pkg:cargo/crabgrind@0.5.0#"
   },
   {
    "condition": null,
@@ -3469,10 +3469,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3513,10 +3513,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3557,10 +3557,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3645,10 +3645,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3865,10 +3865,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3887,10 +3887,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3909,10 +3909,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -3975,10 +3975,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -4085,10 +4085,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -4107,10 +4107,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -4129,10 +4129,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -6065,11 +6065,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=crabgrind,version=0.4.0].dependencies[0]",
+     "locator": "package[name=crabgrind,version=0.5.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/crabgrind@0.4.0#",
+   "from": "pkg:cargo/crabgrind@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6083,11 +6083,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=crabgrind,version=0.4.0].dependencies[1]",
+     "locator": "package[name=crabgrind,version=0.5.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/crabgrind@0.4.0#",
+   "from": "pkg:cargo/crabgrind@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6101,11 +6101,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=crabgrind,version=0.4.0].dependencies[2]",
+     "locator": "package[name=crabgrind,version=0.5.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/crabgrind@0.4.0#",
+   "from": "pkg:cargo/crabgrind@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6119,11 +6119,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=crabgrind,version=0.4.0].dependencies[3]",
+     "locator": "package[name=crabgrind,version=0.5.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/crabgrind@0.4.0#",
+   "from": "pkg:cargo/crabgrind@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6983,24 +6983,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/cfg-if@1.0.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=getrandom,version=0.3.4].dependencies[1]",
      "path": "fuzz/Cargo.lock"
     }
@@ -7019,42 +7001,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.191",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.191#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "5.3.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/r-efi@5.3.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=getrandom,version=0.3.4].dependencies[2]",
      "path": "fuzz/Cargo.lock"
     }
@@ -7067,24 +7013,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/r-efi@5.3.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=getrandom,version=0.3.4].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/getrandom@0.3.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.4+wasi-0.2.12",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wasip2@1.0.4%2Bwasi-0.2.12#"
   },
   {
    "condition": null,
@@ -7181,11 +7109,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=graviola,version=0.4.1].dependencies[0]",
+     "locator": "package[name=graviola,version=0.4.5].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/graviola@0.4.1#",
+   "from": "pkg:cargo/graviola@0.4.5#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7199,18 +7127,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=graviola,version=0.4.1].dependencies[1]",
+     "locator": "package[name=graviola,version=0.4.5].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/graviola@0.4.1#",
+   "from": "pkg:cargo/graviola@0.4.5#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.3.4",
+   "resolved_version": "0.4.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/getrandom@0.3.4#"
+   "to": "pkg:cargo/getrandom@0.4.3#"
   },
   {
    "condition": null,
@@ -11275,10 +11203,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -11635,10 +11563,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.4.1",
+   "resolved_version": "0.4.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/graviola@0.4.1#"
+   "to": "pkg:cargo/graviola@0.4.5#"
   },
   {
    "condition": null,
@@ -11663,11 +11591,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustls-pki-types,version=1.15.0].dependencies[0]",
+     "locator": "package[name=rustls-pki-types,version=1.16.0].dependencies[0]",
      "path": "fuzz/Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustls-pki-types@1.15.0#",
+   "from": "pkg:cargo/rustls-pki-types@1.16.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11681,11 +11609,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustls-pki-types,version=1.15.1].dependencies[0]",
+     "locator": "package[name=rustls-pki-types,version=1.16.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustls-pki-types@1.15.1#",
+   "from": "pkg:cargo/rustls-pki-types@1.16.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11743,10 +11671,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -11772,24 +11700,6 @@
    "evidence": [
     {
      "locator": "package[name=rustls-webpki,version=0.104.0-alpha.8].dependencies[0]",
-     "path": "fuzz/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls-webpki@0.104.0-alpha.8#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.15.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls-webpki,version=0.104.0-alpha.8].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -11797,10 +11707,28 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls-webpki,version=0.104.0-alpha.8].dependencies[0]",
+     "path": "fuzz/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls-webpki@0.104.0-alpha.8#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.16.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -11905,10 +11833,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -13680,24 +13608,6 @@
    "evidence": [
     {
      "locator": "package[name=wasip2,version=1.0.4+wasi-0.2.12].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/wasip2@1.0.4%2Bwasi-0.2.12#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.57.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/wit-bindgen@0.57.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=wasip2,version=1.0.4+wasi-0.2.12].dependencies[0]",
      "path": "fuzz/Cargo.lock"
     }
    ],
@@ -13993,10 +13903,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -14997,7 +14907,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[0]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -15019,7 +14929,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[1]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -15041,7 +14951,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[2]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -15063,7 +14973,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[3]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -15085,7 +14995,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[4]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -15100,14 +15010,14 @@
   },
   {
    "condition": null,
-   "constraint": "1.15",
+   "constraint": "1.16",
    "evidence": [
     {
      "locator": "dependencies.pki-types",
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[6]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -15115,10 +15025,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -15129,7 +15039,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[8]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -15151,7 +15061,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[9]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -15173,7 +15083,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[10]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -15195,7 +15105,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[11]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -15217,7 +15127,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[12]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -15239,7 +15149,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[13]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -15261,7 +15171,7 @@
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[7]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -15276,14 +15186,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls",
      "path": "rustls-aws-lc-rs/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.2].dependencies[5]",
+     "locator": "package[name=rustls-aws-lc-rs,version=0.24.0-dev.3].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -15291,10 +15201,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15379,10 +15289,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": "feature:ring",
@@ -15401,10 +15311,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15445,10 +15355,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15477,6 +15387,28 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "dev-dependencies.rustls",
+     "path": "rustls-fuzzing-provider/Cargo.toml"
+    },
+    {
+     "locator": "package[name=rustls-fuzzing-provider,version=0.1.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "rustls-fuzzing-provider:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.24.0-dev.3",
+   "scope": "dev",
+   "source_kind": "workspace",
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "dependencies.rustls",
      "path": "rustls-fuzzing-provider/Cargo.toml"
     },
@@ -15489,14 +15421,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls-aws-lc-rs",
@@ -15511,14 +15443,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls",
@@ -15533,10 +15465,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15621,14 +15553,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls",
@@ -15643,10 +15575,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15657,7 +15589,7 @@
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[0]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -15679,7 +15611,7 @@
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[1]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -15694,14 +15626,14 @@
   },
   {
    "condition": null,
-   "constraint": "1.15",
+   "constraint": "1.16",
    "evidence": [
     {
      "locator": "dependencies.pki-types",
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[3]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -15709,10 +15641,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -15723,7 +15655,7 @@
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[5]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -15745,7 +15677,7 @@
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[6]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -15767,7 +15699,7 @@
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[4]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -15782,14 +15714,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls",
      "path": "rustls-ring/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-ring,version=0.24.0-dev.2].dependencies[2]",
+     "locator": "package[name=rustls-ring,version=0.24.0-dev.3].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -15797,10 +15729,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -15848,7 +15780,7 @@
   },
   {
    "condition": null,
-   "constraint": "1.15",
+   "constraint": "1.16",
    "evidence": [
     {
      "locator": "dev-dependencies.pki-types",
@@ -15863,10 +15795,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": null,
@@ -15973,10 +15905,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#"
   },
   {
    "condition": "feature:ring",
@@ -15995,10 +15927,10 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -16017,10 +15949,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -16039,10 +15971,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": "feature:tracing",
@@ -16053,7 +15985,7 @@
      "path": "rustls-util/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-util,version=0.24.0-dev.2].dependencies[1]",
+     "locator": "package[name=rustls-util,version=0.24.0-dev.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -16068,14 +16000,14 @@
   },
   {
    "condition": null,
-   "constraint": "0.24.0-dev.2",
+   "constraint": "0.24.0-dev.3",
    "evidence": [
     {
      "locator": "dependencies.rustls",
      "path": "rustls-util/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls-util,version=0.24.0-dev.2].dependencies[0]",
+     "locator": "package[name=rustls-util,version=0.24.0-dev.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -16083,10 +16015,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-dev.2",
+   "resolved_version": "0.24.0-dev.3",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.3#"
   },
   {
    "condition": null,
@@ -16097,7 +16029,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[0]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -16119,7 +16051,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[2]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -16141,7 +16073,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[1]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -16155,26 +16087,26 @@
    "to": "pkg:cargo/brotli@9.0.0#"
   },
   {
-   "condition": "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\"))",
-   "constraint": "0.4",
+   "condition": null,
+   "constraint": "0.4.5",
    "evidence": [
     {
-     "locator": "target.'cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\"))'.dev-dependencies.graviola",
+     "locator": "dev-dependencies.graviola",
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[3]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
    "from": "rustls:cargo",
    "optional": false,
    "relation": "direct",
-   "resolution": "conditional",
-   "resolved_version": "0.4.1",
+   "resolution": "resolved",
+   "resolved_version": "0.4.5",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/graviola@0.4.1#"
+   "to": "pkg:cargo/graviola@0.4.5#"
   },
   {
    "condition": null,
@@ -16185,7 +16117,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[4]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -16200,14 +16132,14 @@
   },
   {
    "condition": null,
-   "constraint": "1.15",
+   "constraint": "1.16",
    "evidence": [
     {
      "locator": "dependencies.pki-types",
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[5]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -16215,10 +16147,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.15.1",
+   "resolved_version": "1.16.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+   "to": "pkg:cargo/rustls-pki-types@1.16.0#"
   },
   {
    "condition": "feature:webpki",
@@ -16229,7 +16161,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[7]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -16251,7 +16183,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[8]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -16273,7 +16205,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[9]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -16295,7 +16227,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[10]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -16317,7 +16249,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[11]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -16339,7 +16271,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[12]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -16361,7 +16293,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[13]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -16383,7 +16315,7 @@
      "path": "rustls/Cargo.toml"
     },
     {
-     "locator": "package[name=rustls,version=0.24.0-dev.2].dependencies[6]",
+     "locator": "package[name=rustls,version=0.24.0-dev.3].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -16399,7 +16331,7 @@
  ],
  "inputs": [
   {
-   "blob": "4f494b8e2e21b8a5a19a2e0fa19a91b0ce6fb9a9",
+   "blob": "eb4fd0220c3ebc3206c6275159c7f6953747ee5f",
    "path": ".github/workflows/build.yml"
   },
   {
@@ -16415,15 +16347,15 @@
    "path": ".github/workflows/daily-tests.yml"
   },
   {
-   "blob": "7595f9a79daaab56c94ae8dbdcd18a5aa0097898",
+   "blob": "55d0b90743d7c847e9c75929f4cb83a278840ec3",
    "path": ".github/workflows/docs.yml"
   },
   {
-   "blob": "5b80af8c2a41b6519fb64f52a9af835ae39ad440",
+   "blob": "e3027d9e0082474b20acd20b672ca569b9636ef2",
    "path": "Cargo.lock"
   },
   {
-   "blob": "4ef7a492bc20b29dead2817271e26c8d5d009835",
+   "blob": "fe0406606d983af781c3ebedf4b4adf7cbdd0aa5",
    "path": "Cargo.toml"
   },
   {
@@ -16443,11 +16375,11 @@
    "path": "examples/Cargo.toml"
   },
   {
-   "blob": "10936e43dbee4c2d01455bef5903da62403969ad",
+   "blob": "df09c557a7eb87763655c1e153231f1df1717fdd",
    "path": "fuzz/Cargo.lock"
   },
   {
-   "blob": "6bd966318238962a886cf540a93809b6bdee6fcd",
+   "blob": "a64fb7d7e32318d7c15bc8d5525d40ecaec1452d",
    "path": "fuzz/Cargo.toml"
   },
   {
@@ -16459,7 +16391,7 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "6f9224a4d06f1700e233731c0f34dfd4398aec19",
+   "blob": "c9ec6ade644fcf32eddab8d3f05d443f314d79eb",
    "path": "rustls-aws-lc-rs/Cargo.toml"
   },
   {
@@ -16467,35 +16399,35 @@
    "path": "rustls-bench/Cargo.toml"
   },
   {
-   "blob": "98d61bedebdebd0eb4dce84ccd5766ced1b01e6f",
+   "blob": "7babc218c2cbacf9831849826a6497b638ebdfb5",
    "path": "rustls-fuzzing-provider/Cargo.toml"
   },
   {
-   "blob": "ed612d343e09bae6c08e8b1ff3e3dd2f697d942e",
+   "blob": "115d067c7adfceb5cd7a910d5681611c9f3317c5",
    "path": "rustls-post-quantum/Cargo.toml"
   },
   {
-   "blob": "d402af636cb5d1f54fd1b9ed73131836929632ef",
+   "blob": "493b1d82913ac9c8b84810238fac260e17e45df1",
    "path": "rustls-provider-test/Cargo.toml"
   },
   {
-   "blob": "8c2185106120ce0c25fa3633d16c4ee1b8c9d4fb",
+   "blob": "97ae4730ba726f7152e88a43ff540306f41b272b",
    "path": "rustls-ring/Cargo.toml"
   },
   {
-   "blob": "e8eb1a7b46bbb47c818305cb2e3b2352f1c6f895",
+   "blob": "e5ff4836112aef586d089c7f9dae9772a5b881e4",
    "path": "rustls-test/Cargo.toml"
   },
   {
-   "blob": "596141aa45fd50b308a9d97fd0fb0eac5ff0e4e9",
+   "blob": "6bccdef3db2c009d701b120b9b90ecf6a4b3f841",
    "path": "rustls-util/Cargo.toml"
   },
   {
-   "blob": "3c1dd76c36d50c0600dd3927ccc644fe0102997b",
+   "blob": "82010e09645d93b4dedd819a485844c8d29894cc",
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "81a9d057528af772a0fa8881a45e571670b9ee1daf16da60080ee7b84fc022de",
+ "inputs_fingerprint": "f773383fbb79ff5cec3c26804e822e5b07ba1c1df454c7a51ce0e06386e45207",
  "instances": [
   {
    "commit": null,
@@ -17217,13 +17149,13 @@
    "component": "pkg:cargo/crabgrind",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/crabgrind@0.4.0#",
-   "purl": "pkg:cargo/crabgrind@0.4.0",
+   "id": "pkg:cargo/crabgrind@0.5.0#",
+   "purl": "pkg:cargo/crabgrind@0.5.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.5.0"
   },
   {
    "commit": null,
@@ -17659,13 +17591,13 @@
    "component": "pkg:cargo/graviola",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/graviola@0.4.1#",
-   "purl": "pkg:cargo/graviola@0.4.1",
+   "id": "pkg:cargo/graviola@0.4.5#",
+   "purl": "pkg:cargo/graviola@0.4.5",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.4.1"
+   "version": "0.4.5"
   },
   {
    "commit": null,
@@ -18946,26 +18878,13 @@
    "component": "pkg:cargo/rustls-pki-types",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustls-pki-types@1.15.0#",
-   "purl": "pkg:cargo/rustls-pki-types@1.15.0",
+   "id": "pkg:cargo/rustls-pki-types@1.16.0#",
+   "purl": "pkg:cargo/rustls-pki-types@1.16.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.15.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rustls-pki-types",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rustls-pki-types@1.15.1#",
-   "purl": "pkg:cargo/rustls-pki-types@1.15.1",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.15.1"
+   "version": "1.16.0"
   },
   {
    "commit": null,
@@ -20571,13 +20490,13 @@
    "component": "pkg:local/rustls-aws-lc-rs",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#",
-   "purl": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2",
+   "id": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3#",
+   "purl": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.24.0-dev.2"
+   "version": "0.24.0-dev.3"
   },
   {
    "commit": null,
@@ -20701,13 +20620,13 @@
    "component": "pkg:local/rustls-ring",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustls-ring@0.24.0-dev.2#",
-   "purl": "pkg:local/rustls-ring@0.24.0-dev.2",
+   "id": "pkg:local/rustls-ring@0.24.0-dev.3#",
+   "purl": "pkg:local/rustls-ring@0.24.0-dev.3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.24.0-dev.2"
+   "version": "0.24.0-dev.3"
   },
   {
    "commit": null,
@@ -20727,26 +20646,26 @@
    "component": "pkg:local/rustls-util",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustls-util@0.24.0-dev.2#",
-   "purl": "pkg:local/rustls-util@0.24.0-dev.2",
+   "id": "pkg:local/rustls-util@0.24.0-dev.3#",
+   "purl": "pkg:local/rustls-util@0.24.0-dev.3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.24.0-dev.2"
+   "version": "0.24.0-dev.3"
   },
   {
    "commit": null,
    "component": "pkg:local/rustls",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustls@0.24.0-dev.2#",
-   "purl": "pkg:local/rustls@0.24.0-dev.2",
+   "id": "pkg:local/rustls@0.24.0-dev.3#",
+   "purl": "pkg:local/rustls@0.24.0-dev.3",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.24.0-dev.2"
+   "version": "0.24.0-dev.3"
   },
   {
    "commit": null,

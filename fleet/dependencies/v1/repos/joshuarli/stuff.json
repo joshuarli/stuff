@@ -2841,7 +2841,7 @@
    "constraint": "v10.3.3",
    "evidence": [
     {
-     "locator": "jobs.pipeline-independence.steps[3].uses",
+     "locator": "jobs.pipeline-independence.steps[4].uses",
      "path": ".github/workflows/ci.yml"
     }
    ],
@@ -16479,7 +16479,7 @@
  ],
  "inputs": [
   {
-   "blob": "2bc7715c957000b6aac80c8d6f1fc34b245044b5",
+   "blob": "118da779feb719518629bf168575032d31608b9f",
    "path": ".github/workflows/ci.yml"
   },
   {
@@ -16575,7 +16575,7 @@
    "path": "crates/stuff/Cargo.toml"
   },
   {
-   "blob": "e56a6e5ec58fab92073b87046b12ec5b445e1dc7",
+   "blob": "6e84ff64fc56d9b33233ceada06982663b4e4c28",
    "path": "deploy/mypypi-linux.Dockerfile"
   },
   {
@@ -16607,7 +16607,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "c8611d455274067532092fe51081d39e555e205b155833bb57d293adf36fa36a",
+ "inputs_fingerprint": "3a5f7ae36fd3495cbd21553a1d6c825d8e47d157078a34ed68e89739c0077b19",
  "instances": [
   {
    "commit": null,
@@ -22196,7 +22196,7 @@
   },
   {
    "kind": "dynamic_value",
-   "locator": "L10",
+   "locator": "L11",
    "message": "artifact URL 'https://static.rust-lang.org/rustup/archive/1.29.3/$arch-unknown-linux-gnu/rustup-init' is not literal",
    "path": "deploy/mypypi-linux.Dockerfile"
   },
@@ -22208,7 +22208,7 @@
   },
   {
    "kind": "dynamic_value",
-   "locator": "L6",
+   "locator": "L7",
    "message": "artifact URL 'https://astral.sh/uv/$UV_VERSION/install.sh' is not literal",
    "path": "deploy/mypypi-linux.Dockerfile"
   },
