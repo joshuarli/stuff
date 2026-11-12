@@ -1045,6 +1045,84 @@ mod tests {
         assert_eq!(compatible_wheels(&r, &t, "manylinux_2_28").unwrap().len(), 1);
     }
 
+    fn release_with(name: &str, version: &str, wheels: &[&str]) -> Release {
+        let urls: Vec<String> = wheels
+            .iter()
+            .map(|file| {
+                format!(
+                    r#"{{"filename": "{file}", "url": "https://files.example.test/{file}", "digests": {{"sha256": "{}"}}, "packagetype": "bdist_wheel", "yanked": false, "requires_python": null}}"#,
+                    "a".repeat(64)
+                )
+            })
+            .collect();
+        let json = format!(
+            r#"{{"info": {{"name": "{name}", "version": "{version}", "requires_python": ">=3.10"}}, "urls": [{}]}}"#,
+            urls.join(",")
+        );
+        release_from_metadata(&PackageVersion::parse(name, version).unwrap(), &json, None).unwrap()
+    }
+
+    fn selected(release: &Release, platform: &str) -> Vec<String> {
+        let target = Target::new("3.15", platform).unwrap();
+        compatible_wheels(release, &target, "manylinux_2_28")
+            .unwrap()
+            .into_iter()
+            .map(|wheel| wheel.filename)
+            .collect()
+    }
+
+    #[test]
+    fn musl_targets_take_musllinux_wheels_and_never_manylinux_ones() {
+        let pillow = release_with(
+            "pillow",
+            "13.0.0",
+            &[
+                "pillow-13.0.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+                "pillow-13.0.0-cp314-cp314-musllinux_1_2_x86_64.whl",
+                "pillow-13.0.0-cp314-cp314-musllinux_1_2_aarch64.whl",
+                "pillow-13.0.0-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+                "pillow-13.0.0-cp314-cp314-macosx_11_0_arm64.whl",
+                "pillow-13.0.0-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+                "pillow-13.0.0-cp315-cp315-musllinux_1_2_x86_64.whl",
+                "pillow-13.0.0-cp315-cp315-musllinux_1_2_aarch64.whl",
+                "pillow-13.0.0-cp315-cp315-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+                "pillow-13.0.0-cp315-cp315-macosx_11_0_arm64.whl",
+            ],
+        );
+        assert_eq!(
+            selected(&pillow, "linux-musl-x86_64"),
+            ["pillow-13.0.0-cp315-cp315-musllinux_1_2_x86_64.whl"]
+        );
+        assert_eq!(
+            selected(&pillow, "linux-musl-aarch64"),
+            ["pillow-13.0.0-cp315-cp315-musllinux_1_2_aarch64.whl"]
+        );
+        assert_eq!(
+            selected(&pillow, "linux-x86_64"),
+            ["pillow-13.0.0-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"]
+        );
+
+        let manylinux_only = release_with(
+            "ruff",
+            "0.17.3",
+            &[
+                "ruff-0.17.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+                "ruff-0.17.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+                "ruff-0.17.3-py3-none-musllinux_1_3_x86_64.whl",
+            ],
+        );
+        assert!(selected(&manylinux_only, "linux-musl-x86_64").is_empty());
+        assert!(selected(&manylinux_only, "linux-musl-aarch64").is_empty());
+        assert_eq!(selected(&manylinux_only, "linux-x86_64").len(), 1);
+
+        let musl_ruff = release_with(
+            "ruff",
+            "0.17.3",
+            &["ruff-0.17.3-py3-none-musllinux_1_1_x86_64.whl", "ruff-0.17.3-py3-none-manylinux_2_17_x86_64.whl"],
+        );
+        assert_eq!(selected(&musl_ruff, "linux-musl-x86_64"), ["ruff-0.17.3-py3-none-musllinux_1_1_x86_64.whl"]);
+    }
+
     #[test]
     fn validates_fixture_wheel_metadata() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -24,7 +24,24 @@ compare them with the published wheel hashes after publishing.
 
 ## Publish and validate platforms
 
-`stuff publish pypi` selects Linux x86_64/aarch64 and macOS x86_64/arm64.
+`stuff publish pypi` selects the glibc Linux targets `linux-x86_64` and
+`linux-aarch64`, the musl Linux targets `linux-musl-x86_64` and
+`linux-musl-aarch64`, and the macOS targets `macos-x86_64` and `macos-arm64`.
+A glibc target accepts `manylinux_2_5` through `manylinux_2_28` tags (and their
+legacy aliases); a musl target accepts `musllinux_1_0` through `musllinux_1_2`
+and never a manylinux tag, so an Alpine host can install from the mirror only
+when each package has a musllinux wheel, or a source archive built with
+`--allow-sdist`. A package with neither fails the publish for the musl targets.
+`mypypi add` resolves dependencies for the musl targets with
+`uv pip compile --python-platform x86_64-unknown-linux-musl` (or
+`aarch64-unknown-linux-musl`).
+
+The local target is `linux-musl-<arch>` when the interpreter named by `PYTHON`
+(default `python3`) is an ELF executable whose program interpreter is
+`ld-musl-*`, and `linux-<arch>` for any other Linux interpreter. Native sdist
+builds on a musl target are repaired with `auditwheel` to `musllinux_1_2`
+whatever `linux_repair_policy` says; that setting applies to the glibc targets.
+
 Publication installs and imports new wheels for the local target. For foreign
 targets it inspects metadata, RECORD hashes, tags, and native binary headers
 without running the package. A foreign target marked validated therefore does
@@ -112,9 +129,12 @@ the origin clients should use:
 public_base_url = "https://pypi.example.net"
 
 [tool.mypypi.targets]
-platforms = ["linux-x86_64", "macos-arm64"]
+platforms = ["linux-x86_64", "linux-musl-x86_64", "macos-arm64"]
 linux_repair_policy = "manylinux_2_28"
 ```
+
+Platform names are `linux-x86_64`, `linux-aarch64`, `linux-musl-x86_64`,
+`linux-musl-aarch64`, `macos-x86_64`, and `macos-arm64`.
 
 The publisher writes that origin into the generation's `llms.txt`, so a
 deployment at another origin publishes pip instructions for its own index.

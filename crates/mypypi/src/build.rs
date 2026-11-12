@@ -93,19 +93,14 @@ pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
 }
 
 pub fn require_native_target(target: &Target) -> Result<()> {
-    let host_family = std::env::consts::OS;
-    let mut host_arch = std::env::consts::ARCH.to_string();
-    if host_family == "macos" && host_arch == "aarch64" {
-        host_arch = "arm64".to_string();
-    } else if host_family == "linux" && host_arch == "amd64" {
-        host_arch = "x86_64".to_string();
-    } else if host_family == "linux" && host_arch == "arm64" {
-        host_arch = "aarch64".to_string();
-    }
-    let expected = format!("{host_family}-{host_arch}");
-    if target.platform != expected {
+    let host = crate::platforms::current_platform();
+    if host.as_deref() != Some(target.platform.as_str()) {
         return Err(Error::incompatible(
-            format!("native builds require a matching host; host is {expected}, target is {}", target.platform),
+            format!(
+                "native builds require a matching host; host is {}, target is {}",
+                host.as_deref().unwrap_or("unsupported"),
+                target.platform
+            ),
             Stage::Build,
         )
         .with_target(&target.python_version.to_string(), &target.platform));
@@ -699,7 +694,11 @@ fn validate_repaired_policy(wheel: &Path, package: &PackageVersion, target: &Tar
         .map_err(|e| ctx(Error::new(Kind::Incompatible, e.detail, Stage::Repair)))?;
     if crate::platforms::wheel_rank(filename, &preference).is_none() {
         return Err(ctx(Error::incompatible(
-            format!("repaired wheel tags do not satisfy {linux_repair_policy} for {}", target.platform),
+            format!(
+                "repaired wheel tags do not satisfy {} for {}",
+                crate::platforms::repair_policy(target, linux_repair_policy),
+                target.platform
+            ),
             Stage::Repair,
         )));
     }
@@ -903,7 +902,7 @@ mod tests {
         let current = crate::platforms::current_platform().unwrap();
         let ok = Target::new("3.15", &current).unwrap();
         assert!(require_native_target(&ok).is_ok());
-        let other = if current.starts_with("linux") { "macos-arm64" } else { "linux-x86_64" };
+        let other = if current.starts_with("linux") { "macos-arm64" } else { "linux-musl-x86_64" };
         let bad = Target::new("3.15", other).unwrap();
         assert!(require_native_target(&bad).is_err());
     }
@@ -1058,7 +1057,9 @@ mod tests {
         .unwrap();
         let name = wheel.file_name().unwrap().to_str().unwrap();
         assert!(name.starts_with("native_probe-0.1.0-cp315-cp315-"), "{name}");
-        if platform.starts_with("linux") {
+        if platform.starts_with("linux-musl-") {
+            assert!(name.contains("-musllinux_1_2_"), "{name}");
+        } else if platform.starts_with("linux") {
             assert!(name.contains("-manylinux_2_28_"), "{name}");
         } else {
             assert!(name.contains("-macosx_15_0_"), "{name}");

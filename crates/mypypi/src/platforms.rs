@@ -7,16 +7,19 @@ use std::str::FromStr;
 use std::sync::OnceLock;
 
 pub const MACOS_DEPLOYMENT_TARGET: (u64, u64) = (15, 0);
+pub const MUSLLINUX_POLICY: &str = "musllinux_1_2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Family {
     Linux,
+    Musllinux,
     Macos,
 }
 
 fn family_of(platform: &str) -> Result<Family> {
     match platform {
         "linux-x86_64" | "linux-aarch64" => Ok(Family::Linux),
+        "linux-musl-x86_64" | "linux-musl-aarch64" => Ok(Family::Musllinux),
         "macos-x86_64" | "macos-arm64" => Ok(Family::Macos),
         _ => Err(Error::new(
             Kind::Incompatible,
@@ -28,21 +31,92 @@ fn family_of(platform: &str) -> Result<Family> {
 
 fn arch_of(platform: &str) -> &str {
     match platform {
-        "linux-x86_64" | "macos-x86_64" => "x86_64",
-        "linux-aarch64" => "aarch64",
+        "linux-x86_64" | "linux-musl-x86_64" | "macos-x86_64" => "x86_64",
+        "linux-aarch64" | "linux-musl-aarch64" => "aarch64",
         "macos-arm64" => "arm64",
         _ => "unknown",
     }
 }
 
-pub fn current_platform() -> Option<String> {
-    match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("macos", "aarch64") => Some("macos-arm64".to_string()),
-        ("macos", "x86_64") => Some("macos-x86_64".to_string()),
-        ("linux", "x86_64") => Some("linux-x86_64".to_string()),
-        ("linux", "aarch64") => Some("linux-aarch64".to_string()),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LinuxLibc {
+    Glibc,
+    Musl,
+}
+
+fn platform_name(os: &str, arch: &str, libc: LinuxLibc) -> Option<String> {
+    match (os, arch, libc) {
+        ("macos", "aarch64", _) => Some("macos-arm64".to_string()),
+        ("macos", "x86_64", _) => Some("macos-x86_64".to_string()),
+        ("linux", "x86_64", LinuxLibc::Glibc) => Some("linux-x86_64".to_string()),
+        ("linux", "aarch64", LinuxLibc::Glibc) => Some("linux-aarch64".to_string()),
+        ("linux", "x86_64", LinuxLibc::Musl) => Some("linux-musl-x86_64".to_string()),
+        ("linux", "aarch64", LinuxLibc::Musl) => Some("linux-musl-aarch64".to_string()),
         _ => None,
     }
+}
+
+fn elf_interpreter(content: &[u8]) -> Option<&[u8]> {
+    if content.len() < 64 || !content.starts_with(b"\x7fELF") || content[4] != 2 {
+        return None;
+    }
+    let little = match content[5] {
+        1 => true,
+        2 => false,
+        _ => return None,
+    };
+    let rd16 = |at: usize| -> Option<usize> {
+        let b: [u8; 2] = content.get(at..at.checked_add(2)?)?.try_into().ok()?;
+        Some(usize::from(if little { u16::from_le_bytes(b) } else { u16::from_be_bytes(b) }))
+    };
+    let rd32 = |at: usize| -> Option<usize> {
+        let b: [u8; 4] = content.get(at..at.checked_add(4)?)?.try_into().ok()?;
+        usize::try_from(if little { u32::from_le_bytes(b) } else { u32::from_be_bytes(b) }).ok()
+    };
+    let rd64 = |at: usize| -> Option<usize> {
+        let b: [u8; 8] = content.get(at..at.checked_add(8)?)?.try_into().ok()?;
+        usize::try_from(if little { u64::from_le_bytes(b) } else { u64::from_be_bytes(b) }).ok()
+    };
+    let table = rd64(32)?;
+    let entry_size = rd16(54)?;
+    let count = rd16(56)?;
+    if entry_size < 56 {
+        return None;
+    }
+    for index in 0..count {
+        let entry = table.checked_add(index.checked_mul(entry_size)?)?;
+        if rd32(entry)? == 3 {
+            let offset = rd64(entry.checked_add(8)?)?;
+            let size = rd64(entry.checked_add(32)?)?;
+            let bytes = content.get(offset..offset.checked_add(size)?)?;
+            return Some(bytes.split(|b| *b == 0).next().unwrap_or(bytes));
+        }
+    }
+    None
+}
+
+fn libc_of_executable(content: &[u8]) -> Option<LinuxLibc> {
+    let interpreter = elf_interpreter(content)?;
+    let name = interpreter.rsplit(|b| *b == b'/').next().unwrap_or(interpreter);
+    Some(if name.starts_with(b"ld-musl-") { LinuxLibc::Musl } else { LinuxLibc::Glibc })
+}
+
+fn host_linux_libc() -> LinuxLibc {
+    use std::io::Read as _;
+    let Some(python) = path_lookup(&python_binary()) else {
+        return LinuxLibc::Glibc;
+    };
+    let mut head = Vec::new();
+    let read = std::fs::File::open(python).and_then(|file| file.take(64 * 1024).read_to_end(&mut head));
+    match read {
+        Ok(_) => libc_of_executable(&head).unwrap_or(LinuxLibc::Glibc),
+        Err(_) => LinuxLibc::Glibc,
+    }
+}
+
+pub fn current_platform() -> Option<String> {
+    let libc = if std::env::consts::OS == "linux" { host_linux_libc() } else { LinuxLibc::Glibc };
+    platform_name(std::env::consts::OS, std::env::consts::ARCH, libc)
 }
 
 fn probed_micro(major: u64, minor: u64) -> Option<u64> {
@@ -100,8 +174,19 @@ fn mac_binary_formats(version: (u64, u64), arch: &str) -> Vec<String> {
     formats
 }
 
+pub fn repair_policy<'a>(target: &Target, linux_repair_policy: &'a str) -> &'a str {
+    match family_of(target.platform.as_str()) {
+        Ok(Family::Musllinux) => MUSLLINUX_POLICY,
+        _ => linux_repair_policy,
+    }
+}
+
 pub fn target_platform_tags(target: &Target, linux_repair_policy: &str) -> Result<Vec<String>> {
     match family_of(target.platform.as_str())? {
+        Family::Musllinux => {
+            let arch = arch_of(target.platform.as_str());
+            Ok((0..=2).rev().map(|minor| format!("musllinux_1_{minor}_{arch}")).collect())
+        }
         Family::Linux => {
             let rest = linux_repair_policy
                 .strip_prefix("manylinux_2_")
@@ -469,7 +554,7 @@ pub fn verify_repair_tool(target: &Target, env: &FxHashMap<String, String>) -> R
         Error::new(Kind::Incompatible, e.detail, Stage::Repair)
     })?;
     let (distribution, module, options, prerequisites) = match family {
-        Family::Linux => (
+        Family::Linux | Family::Musllinux => (
             "auditwheel",
             "auditwheel",
             vec!["--plat", "--wheel-dir"],
@@ -496,7 +581,7 @@ pub fn verify_repair_tool(target: &Target, env: &FxHashMap<String, String>) -> R
             ));
         }
     }
-    let help_cmd: Vec<String> = if family == Family::Linux {
+    let help_cmd: Vec<String> = if family != Family::Macos {
         vec![
             python_binary(),
             "-m".to_string(),
@@ -570,13 +655,14 @@ pub fn path_lookup(exe: &str) -> Option<std::path::PathBuf> {
 
 pub fn repair_command(target: &Target, wheel: &std::path::Path, output: &std::path::Path, linux_repair_policy: &str) -> Result<Vec<String>> {
     match family_of(target.platform.as_str())? {
-        Family::Linux => {
+        Family::Linux | Family::Musllinux => {
             let arch = arch_of(target.platform.as_str());
+            let policy = repair_policy(target, linux_repair_policy);
             Ok(vec![
                 python_binary(),
                 "-mauditwheel".to_string(),
                 "repair".to_string(),
-                format!("--plat={linux_repair_policy}_{arch}"),
+                format!("--plat={policy}_{arch}"),
                 format!("--wheel-dir={}", output.display()),
                 format!("{}", wheel.display()),
             ])
@@ -594,6 +680,7 @@ pub fn repair_command(target: &Target, wheel: &std::path::Path, output: &std::pa
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     fn target(platform: &str) -> Target {
         Target::new("3.15", platform).unwrap()
@@ -634,5 +721,104 @@ mod tests {
         assert!(a.is_empty());
         let a = expected_architectures("foo-1.0-cp315-cp315-manylinux_2_28_x86_64.whl").unwrap();
         assert!(a.contains("x86_64"));
+    }
+
+    fn elf_with_interpreter(interpreter: Option<&str>) -> Vec<u8> {
+        let mut elf = vec![0u8; 64 + 56 * 2];
+        elf[..4].copy_from_slice(b"\x7fELF");
+        elf[4] = 2;
+        elf[5] = 1;
+        elf[6] = 1;
+        elf[32..40].copy_from_slice(&64u64.to_le_bytes());
+        elf[52..54].copy_from_slice(&64u16.to_le_bytes());
+        elf[54..56].copy_from_slice(&56u16.to_le_bytes());
+        elf[56..58].copy_from_slice(&2u16.to_le_bytes());
+        elf[64..68].copy_from_slice(&1u32.to_le_bytes());
+        if let Some(path) = interpreter {
+            let offset = elf.len();
+            let mut bytes = path.as_bytes().to_vec();
+            bytes.push(0);
+            elf[120..124].copy_from_slice(&3u32.to_le_bytes());
+            elf[128..136].copy_from_slice(&(offset as u64).to_le_bytes());
+            elf[152..160].copy_from_slice(&(bytes.len() as u64).to_le_bytes());
+            elf.extend_from_slice(&bytes);
+        }
+        elf
+    }
+
+    #[test]
+    fn native_platform_follows_the_host_libc() {
+        for (arch, glibc, musl) in [
+            ("x86_64", "linux-x86_64", "linux-musl-x86_64"),
+            ("aarch64", "linux-aarch64", "linux-musl-aarch64"),
+        ] {
+            assert_eq!(platform_name("linux", arch, LinuxLibc::Glibc).as_deref(), Some(glibc));
+            assert_eq!(platform_name("linux", arch, LinuxLibc::Musl).as_deref(), Some(musl));
+        }
+        assert_eq!(platform_name("macos", "aarch64", LinuxLibc::Musl).as_deref(), Some("macos-arm64"));
+        assert_eq!(platform_name("linux", "riscv64", LinuxLibc::Musl), None);
+    }
+
+    #[test]
+    fn libc_comes_from_the_program_interpreter() {
+        let musl = elf_with_interpreter(Some("/lib/ld-musl-x86_64.so.1"));
+        assert_eq!(libc_of_executable(&musl), Some(LinuxLibc::Musl));
+        let glibc = elf_with_interpreter(Some("/lib64/ld-linux-x86-64.so.2"));
+        assert_eq!(libc_of_executable(&glibc), Some(LinuxLibc::Glibc));
+        assert_eq!(libc_of_executable(&elf_with_interpreter(None)), None);
+        assert_eq!(libc_of_executable(b"#!/bin/sh\nexec python\n"), None);
+        assert_eq!(libc_of_executable(&musl[..100]), None);
+    }
+
+    #[test]
+    fn local_platform_matches_the_python_loader_on_this_host() {
+        let python = path_lookup(&python_binary()).expect("python3 on PATH");
+        let content = std::fs::read(python).unwrap();
+        let expected = match libc_of_executable(&content) {
+            Some(LinuxLibc::Musl) => format!("linux-musl-{}", std::env::consts::ARCH),
+            _ => format!("linux-{}", std::env::consts::ARCH),
+        };
+        if cfg!(target_os = "linux") {
+            assert_eq!(current_platform().as_deref(), Some(expected.as_str()));
+        }
+    }
+
+    #[test]
+    fn musl_targets_accept_only_musllinux_tags_up_to_1_2() {
+        for (platform, arch) in [("linux-musl-x86_64", "x86_64"), ("linux-musl-aarch64", "aarch64")] {
+            let t = target(platform);
+            let tags = target_platform_tags(&t, "manylinux_2_28").unwrap();
+            assert_eq!(
+                tags,
+                vec![
+                    format!("musllinux_1_2_{arch}"),
+                    format!("musllinux_1_1_{arch}"),
+                    format!("musllinux_1_0_{arch}"),
+                ]
+            );
+            let ordered = ordered_tag_strings(&t, "manylinux_2_28").unwrap();
+            assert_eq!(ordered[0], format!("cp315-cp315-musllinux_1_2_{arch}"));
+            assert!(ordered.iter().all(|tag| !tag.contains("manylinux")));
+            assert!(!ordered.iter().any(|tag| tag.contains("musllinux_1_3")));
+        }
+        let glibc = ordered_tag_strings(&target("linux-x86_64"), "manylinux_2_28").unwrap();
+        assert!(glibc.iter().all(|tag| !tag.contains("musllinux")));
+    }
+
+    #[test]
+    fn musl_targets_repair_to_musllinux_whatever_the_manylinux_policy() {
+        let t = target("linux-musl-x86_64");
+        let command = repair_command(&t, Path::new("w.whl"), Path::new("out"), "manylinux_2_28").unwrap();
+        assert!(command.contains(&"--plat=musllinux_1_2_x86_64".to_string()), "{command:?}");
+        let glibc = repair_command(&target("linux-aarch64"), Path::new("w.whl"), Path::new("out"), "manylinux_2_28").unwrap();
+        assert!(glibc.contains(&"--plat=manylinux_2_28_aarch64".to_string()), "{glibc:?}");
+        assert_eq!(repair_policy(&t, "manylinux_2_28"), MUSLLINUX_POLICY);
+        assert_eq!(repair_policy(&target("linux-x86_64"), "manylinux_2_28"), "manylinux_2_28");
+    }
+
+    #[test]
+    fn derives_expected_architectures_for_musllinux() {
+        let a = expected_architectures("foo-1.0-cp315-cp315-musllinux_1_2_aarch64.whl").unwrap();
+        assert!(a.contains("aarch64") && a.len() == 1);
     }
 }

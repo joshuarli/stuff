@@ -15,6 +15,8 @@ use std::time::Duration;
 const PYTHON_PLATFORMS: &[(&str, &str)] = &[
     ("linux-x86_64", "x86_64-manylinux_2_28"),
     ("linux-aarch64", "aarch64-manylinux_2_28"),
+    ("linux-musl-x86_64", "x86_64-unknown-linux-musl"),
+    ("linux-musl-aarch64", "aarch64-unknown-linux-musl"),
     ("macos-x86_64", "x86_64-apple-darwin"),
     ("macos-arm64", "aarch64-apple-darwin"),
 ];
@@ -528,5 +530,12 @@ mod tests {
         }];
         let updated = append_entries("[[packages]]\nname = \"foo\"\nversion = \"1.0\"\nplatforms = [\"linux-x86_64\"]\n", &pins, &existing).unwrap();
         assert!(updated.contains("macos-arm64"));
+    }
+
+    #[test]
+    fn musl_targets_resolve_with_uv_musl_platforms() {
+        assert_eq!(python_platform("linux-musl-x86_64"), Some("x86_64-unknown-linux-musl"));
+        assert_eq!(python_platform("linux-musl-aarch64"), Some("aarch64-unknown-linux-musl"));
+        assert_eq!(python_platform("linux-x86_64"), Some("x86_64-manylinux_2_28"));
     }
 }
