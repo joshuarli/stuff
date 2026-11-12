@@ -20,7 +20,7 @@ defaults:
 jobs:
   preflight:
     name: Validate release ref
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04-arm
     permissions:
       contents: read
     outputs:
@@ -52,12 +52,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-26
+          - runner: macos-latest
             target: aarch64-apple-darwin
-          - runner: ubuntu-24.04
+            docker_platform: ''
+          - runner: ubuntu-26.04
             target: x86_64-unknown-linux-musl
-          - runner: ubuntu-24.04-arm
+            docker_platform: linux/amd64
+          - runner: ubuntu-26.04-arm
             target: aarch64-unknown-linux-musl
+            docker_platform: linux/arm64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,33 +68,39 @@ jobs:
           ref: ${{ github.sha }}
       - name: Install Rust toolchain
         run: rustup show active-toolchain
-      - name: Install musl tools
-        if: contains(matrix.target, 'linux-musl')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
-          rustup target add "${{ matrix.target }}"
       - name: Test
         run: cargo test --locked -p stuff -p mynpm -p mypypi -p myoci
-      - name: Build release
-        env:
-          TARGET: ${{ matrix.target }}
-          CC_x86_64_unknown_linux_musl: musl-gcc
-          CC_aarch64_unknown_linux_musl: musl-gcc
-          AR_x86_64_unknown_linux_musl: ar
-          AR_aarch64_unknown_linux_musl: ar
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: matrix.docker_platform != ''
+      - name: Build Linux release image
+        if: matrix.docker_platform != ''
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: docker/musl
+          file: docker/musl/Dockerfile
+          platforms: ${{ matrix.docker_platform }}
+          load: true
+          tags: stuff-builder:${{ matrix.target }}
+          cache-from: type=gha,scope=stuff-${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=stuff-${{ matrix.target }}
+      - name: Build macOS release
+        if: matrix.docker_platform == ''
+        run: make release TARGET="${{ matrix.target }}"
+      - name: Build Linux release
+        if: matrix.docker_platform != ''
         run: |
-          if [[ "$TARGET" == *linux-musl ]]; then
-            export RUSTFLAGS="-C target-feature=+crt-static"
-          fi
-          cargo build --locked --release -p stuff --target "$TARGET"
+          docker run --rm --init \
+            --platform "${{ matrix.docker_platform }}" \
+            -e CI \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            stuff-builder:${{ matrix.target }} \
+            sh -ec 'make release TARGET=${{ matrix.target }} && verify-static-elf target/${{ matrix.target }}/dist/stuff'
       - name: Verify release binary
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          binary="target/$TARGET/release/stuff"
+          binary="target/$TARGET/dist/stuff"
           "$binary" --help >/dev/null
           if [[ "$TARGET" == *linux-musl ]]; then
             file "$binary" | grep -Eq 'statically linked|static-pie linked'
@@ -102,7 +111,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           mkdir -p dist
-          cp "target/$TARGET/release/stuff" "dist/stuff-$TARGET"
+          cp "target/$TARGET/dist/stuff" "dist/stuff-$TARGET"
           cp LICENSE NOTICE dist/
           chmod +x "dist/stuff-$TARGET"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -116,7 +125,7 @@ jobs:
   release:
     name: Create pre-release
     needs: [preflight, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 5
     permissions:
       actions: read

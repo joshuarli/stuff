@@ -1,4 +1,4 @@
-.PHONY: help lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -11,8 +11,10 @@ test: test-mycrates repomod-test ## Run the full workspace test suite
 
 lint: clippy repomod-lint ts-lint ## Lint the Rust workspace, repomod, and the TypeScript projects
 
-ts-lint: ## Lint and type-check the Worker and dashboard TypeScript (install each project's pnpm dependencies first)
+ts-lint: ## Lint and type-check the Worker and dashboard TypeScript
+	pnpm --dir crates/stuff-worker install --frozen-lockfile
 	pnpm --dir crates/stuff-worker run lint
+	pnpm --dir $(DASHBOARD_TS) install --frozen-lockfile
 	pnpm --dir $(DASHBOARD_TS) run check
 
 repomod-test: ## Run the repomod tests
@@ -99,6 +101,13 @@ worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 DEPLOY_JOBS ?= 3
 OCI_DEPLOY ?=
 STUFF ?= target/release/stuff
+
+HOST = $(shell rustc -vV | sed -n 's/^host: //p')
+TARGET ?= $(subst -unknown-linux-gnu,-unknown-linux-musl,$(HOST))
+
+release: ## Build the stuff CLI for TARGET with the dist profile; run Linux musl builds inside the docker/musl image
+	MUSL_TARGET="$(TARGET)" MUSL_BUILD_MODE=release-static $(if $(findstring -linux-musl,$(TARGET)),musl-cargo,cargo) \
+	  build --locked --profile dist -p stuff -Z build-std=std -Z build-std-features= --target $(TARGET)
 
 stuff-release: ## Build the release stuff CLI once
 	cargo build -q --release -p stuff
