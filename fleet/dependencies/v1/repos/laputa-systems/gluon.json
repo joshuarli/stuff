@@ -1103,11 +1103,11 @@
  ],
  "inputs": [
   {
-   "blob": "217a190eca303df6c27b24bbd38d2d957bda5156",
+   "blob": "2963cb9482fd002e8e4e4d2e803c3d37291d0ae2",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "2eeb23c6cf849faf1247a1fb2f2c691618b40275",
+   "blob": "239371c8a12be212d184214dde31b53e9c8e82c3",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -1115,7 +1115,7 @@
    "path": "Cargo.lock"
   },
   {
-   "blob": "633e05fc2ed3b8994ea5642492b41b1ae5deb96a",
+   "blob": "1492a79a7f0e92965878dc84782a76450cb1c5f8",
    "path": "Cargo.toml"
   },
   {
@@ -1167,7 +1167,7 @@
    "path": "tests/install/fixture/meson.build"
   }
  ],
- "inputs_fingerprint": "7eb5ee364c1caf21c40fbf15c76a2f646e905c636886be59dd735df80160b0cd",
+ "inputs_fingerprint": "274227f6dc37546be971036eb040a229d649f2baefd4041938fcbab622b763ad",
  "instances": [
   {
    "commit": null,

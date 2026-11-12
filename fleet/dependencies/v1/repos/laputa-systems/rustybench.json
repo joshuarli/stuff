@@ -334,7 +334,7 @@
   },
   {
    "condition": null,
-   "constraint": "2.54.0-r0",
+   "constraint": "2.54.1-r0",
    "evidence": [
     {
      "locator": "L8",
@@ -345,10 +345,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.54.0-r0",
+   "resolved_version": "2.54.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git@2.54.0-r0#"
+   "to": "pkg:apk/git@2.54.1-r0#"
   },
   {
    "condition": null,
@@ -789,11 +789,11 @@
  ],
  "inputs": [
   {
-   "blob": "5e2372f9d7088decea6132a9979f7f246b2d7133",
+   "blob": "9e26404de8d50dbab927d5b92e8b05df0aa238cf",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "a0f58dc7605b0a97557f1ad24d1be49b618d4d98",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -805,7 +805,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "940fb3cab741f1d7d0cb67ee12d4a7fd26d8c3b1",
+   "blob": "bafae9f2772c8b0944e6bfc6d589ade28e785516",
    "path": "Dockerfile"
   },
   {
@@ -821,7 +821,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "d5fbb1027cb359b733048c2b227ee74edf62c226b3ebc405f86871fbc024084e",
+ "inputs_fingerprint": "04c827e3fb3fe14442a4474be9e7aea1ed85c5c503fbb7c46515289ddd0735f4",
  "instances": [
   {
    "commit": null,
@@ -854,13 +854,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git@2.54.0-r0#",
-   "purl": "pkg:apk/git@2.54.0-r0",
+   "id": "pkg:apk/git@2.54.1-r0#",
+   "purl": "pkg:apk/git@2.54.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.54.0-r0"
+   "version": "2.54.1-r0"
   },
   {
    "commit": null,

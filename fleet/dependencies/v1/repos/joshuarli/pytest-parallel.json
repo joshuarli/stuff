@@ -336,7 +336,7 @@
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.99",
+   "constraint": "==0.0.101",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -351,10 +351,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.99",
+   "resolved_version": "0.0.101",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.99#"
+   "to": "pkg:pypi/ty@0.0.101#"
   },
   {
    "condition": "group == 'dev'",
@@ -453,15 +453,15 @@
  ],
  "inputs": [
   {
-   "blob": "ea03376d19870a189e5257f93eaa630870248160",
+   "blob": "98cd95637e37287338c2e63f7e86f7dc7717a22b",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "dd4a5816923959c983f777a971b614fa8dbcb161",
+   "blob": "2eb80dff35e15a6115c609d19f68a75f72401a1b",
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "8f0caa4e1be2a3d4b21145b1d631a08b555b1e90",
+   "blob": "e1f1fb768ab9e1ff62d32c086b9e74c078fd8297",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -473,15 +473,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "e6d33c744b8aeea68284727fd1d26297a987998b",
+   "blob": "dc31e2bdc6ad2a0c3d91eac3f7514052835cbd85",
    "path": "pyproject.toml"
   },
   {
-   "blob": "55ab3413414eaa6bda640acc2da2a53b9b38ac3f",
+   "blob": "6a3138a6a32a6c59ba35b18e71446448720bbf3b",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "b490ed27d6bc5f0c3e7a1c272370d0318c6586ce447ed7804c16c06114642338",
+ "inputs_fingerprint": "a6334a78cf659006881b15312870dfb202f74939ab7399823ed5063b1d53609c",
  "instances": [
   {
    "commit": null,
@@ -657,13 +657,13 @@
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.99#",
-   "purl": "pkg:pypi/ty@0.0.99",
+   "id": "pkg:pypi/ty@0.0.101#",
+   "purl": "pkg:pypi/ty@0.0.101",
    "registry_url": "https://pypi.17166969.xyz/current/simple/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.99"
+   "version": "0.0.101"
   },
   {
    "commit": null,

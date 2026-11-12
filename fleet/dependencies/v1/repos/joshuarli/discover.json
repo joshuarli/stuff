@@ -13,6 +13,18 @@
    "purl": "pkg:generic/pnpm"
   },
   {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "pnpm/setup",
+   "ecosystem": "github",
+   "name": "pnpm/setup",
+   "purl": "pkg:github/pnpm/setup"
+  },
+  {
    "display_name": "@ampproject/remapping",
    "ecosystem": "npm",
    "name": "@ampproject/remapping",
@@ -2623,6 +2635,42 @@
    "scope": "toolchain",
    "source_kind": "url",
    "to": "pkg:generic/pnpm@12.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.1.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
   },
   {
    "condition": null,
@@ -16343,11 +16391,15 @@
  ],
  "inputs": [
   {
+   "blob": "0a083d4670b780dd551e20b4fdbfc3d0f59d3729",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
    "blob": "16abad0ca5470efb91a16166423f269cce023e14",
    "path": ".tool-versions"
   },
   {
-   "blob": "0a2e1b2cf253d76e16a94a923cfb4328017a86d6",
+   "blob": "4f8b033c37507306440bfdcb7f86a42144985968",
    "path": "Makefile"
   },
   {
@@ -16363,7 +16415,7 @@
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "b5422cc696c7f761efd3f392f569e9d8ebaac7e4abd7e262f0515ce10592e9e5",
+ "inputs_fingerprint": "f82ea608ed2983f63098281637e010c4c6df6b1860f6d7bad678fea3bc0c5588",
  "instances": [
   {
    "commit": null,
@@ -16390,6 +16442,32 @@
    "source_kind": "url",
    "vcs_url": null,
    "version": "12.15.0"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "component": "pkg:github/pnpm/setup",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#",
+   "purl": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/pnpm/setup",
+   "version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e"
   },
   {
    "commit": null,

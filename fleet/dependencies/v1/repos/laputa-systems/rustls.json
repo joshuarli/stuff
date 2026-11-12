@@ -1645,6 +1645,12 @@
    "purl": "pkg:generic/bogo"
   },
   {
+   "display_name": "rust",
+   "ecosystem": "generic",
+   "name": "rust",
+   "purl": "pkg:generic/rust"
+  },
+  {
    "display_name": "rustls",
    "ecosystem": "generic",
    "name": "rustls",
@@ -1838,6 +1844,24 @@
   }
  ],
  "edges": [
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/rust@nightly-2026-09-15#"
+  },
   {
    "condition": null,
    "constraint": "v6",
@@ -16431,6 +16455,10 @@
    "path": "openssl-tests/Cargo.toml"
   },
   {
+   "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
+   "path": "rust-toolchain.toml"
+  },
+  {
    "blob": "6f9224a4d06f1700e233731c0f34dfd4398aec19",
    "path": "rustls-aws-lc-rs/Cargo.toml"
   },
@@ -16467,7 +16495,7 @@
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "69e6a4a31d880fa27a438ebc206ec7611122e6a6ffdf3000ca0d6be27f8ff0f1",
+ "inputs_fingerprint": "39b871d8a5fa7add5ef0734bfd9144267993427037decb90e136c20de3925518",
  "instances": [
   {
    "commit": null,
@@ -20251,6 +20279,19 @@
    "source_kind": "workspace",
    "vcs_url": null,
    "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/rust@nightly-2026-09-15#",
+   "purl": "pkg:generic/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   },
   {
    "commit": null,

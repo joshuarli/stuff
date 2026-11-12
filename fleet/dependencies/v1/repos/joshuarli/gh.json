@@ -2455,7 +2455,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "522ec7ed2704d7a3380de6338c38995cf0151437",
+   "blob": "cacb5d75799f13e18ca4763a13d93cd586adafe8",
    "path": ".github/workflows/prerelease.yml"
   },
   {
@@ -2475,7 +2475,7 @@
    "path": "go.sum"
   }
  ],
- "inputs_fingerprint": "9ba67cefc5fdccad5d58c0637ba690f1bb2f9a97660c3f647b04c7376c8a58d6",
+ "inputs_fingerprint": "da9ca0572cf3b15f556844ba0125c1b452dce5b09f1839389621cfeeac70d75e",
  "instances": [
   {
    "commit": null,

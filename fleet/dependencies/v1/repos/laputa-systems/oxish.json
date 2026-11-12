@@ -679,6 +679,12 @@
    "purl": "pkg:generic/oxish-proto"
   },
   {
+   "display_name": "rust",
+   "ecosystem": "generic",
+   "name": "rust",
+   "purl": "pkg:generic/rust"
+  },
+  {
    "display_name": "sh.rustup.rs",
    "ecosystem": "generic",
    "name": "sh.rustup.rs",
@@ -751,6 +757,24 @@
    "scope": "ci",
    "source_kind": "url",
    "to": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -7749,9 +7773,13 @@
   {
    "blob": "1b25c9e013146253bc437695bc51b35411e0e619",
    "path": "oxish/Cargo.toml"
+  },
+  {
+   "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
+   "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "128a2e20b5e1296247ab4940193684e65b2cdedc9684a8a76a11493ced7223bd",
+ "inputs_fingerprint": "914f77227a1c6a0de404e88bd2f9ccce4fefde3709bbb546af262f4f4e67df9f",
  "instances": [
   {
    "commit": null,
@@ -9364,6 +9392,19 @@
    "source_kind": "workspace",
    "vcs_url": null,
    "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/rust@nightly-2026-09-15#",
+   "purl": "pkg:generic/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   },
   {
    "commit": null,

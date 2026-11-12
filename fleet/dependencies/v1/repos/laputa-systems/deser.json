@@ -872,7 +872,7 @@
   },
   {
    "condition": "group == 'dev'",
-   "constraint": "==0.0.99",
+   "constraint": "==0.0.101",
    "evidence": [
     {
      "locator": "dependency-groups.dev[1]",
@@ -887,10 +887,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.0.99",
+   "resolved_version": "0.0.101",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:pypi/ty@0.0.99#"
+   "to": "pkg:pypi/ty@0.0.101#"
   },
   {
    "condition": "group == 'dev'",
@@ -7819,7 +7819,7 @@
    "path": ".github/workflows/docs.yml"
   },
   {
-   "blob": "dabb6b60aab35720fcd3e595a05b644c67625289",
+   "blob": "3406c357366e04fa4af5d434a89eccf664e65dbd",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -8139,7 +8139,7 @@
    "path": "fuzz/Cargo.toml"
   },
   {
-   "blob": "aa94467268e2c1731c7e676dadef5e8a376ddc97",
+   "blob": "9abb86fcbf784d40565ac563924a2bd7bc1e964c",
    "path": "pyproject.toml"
   },
   {
@@ -8147,11 +8147,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "2f7aa9a45cf11e8cc5dc2cc5bb7474aff6090305",
+   "blob": "713b49973d336d0ea5836681318129ac7771b668",
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "86b0775082898b1633f0783e3246b9512b4faa67d38a14fa1079881820785e55",
+ "inputs_fingerprint": "84d0d5796f70f7e69e1ff4392680938c9830647965521de8a72c2335252121ee",
  "instances": [
   {
    "commit": null,
@@ -9172,13 +9172,13 @@
    "component": "pkg:pypi/ty",
    "context": "",
    "first_party": false,
-   "id": "pkg:pypi/ty@0.0.99#",
-   "purl": "pkg:pypi/ty@0.0.99",
+   "id": "pkg:pypi/ty@0.0.101#",
+   "purl": "pkg:pypi/ty@0.0.101",
    "registry_url": "https://pypi.org/simple",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.0.99"
+   "version": "0.0.101"
   },
   {
    "commit": null,

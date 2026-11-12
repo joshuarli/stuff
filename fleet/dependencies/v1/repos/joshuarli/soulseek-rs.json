@@ -931,6 +931,24 @@
    "constraint": "v7.0.1",
    "evidence": [
     {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
      "locator": "jobs.build.steps[0].uses",
      "path": ".github/workflows/release.yml"
     }
@@ -5063,7 +5081,11 @@
  ],
  "inputs": [
   {
-   "blob": "36cc0402d6edbc8e2a8bf12a59298671399b3aea",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "2c71de87cd634151013f94ad7e6647a7ebe731a9",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -5095,7 +5117,7 @@
    "path": "soulseek-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "0799f7e3d2afaefa101642de179db8447eef2d952e17a88c5641fff4c323b7f4",
+ "inputs_fingerprint": "1c3716998d9c338bed1bc4a1b4a1cb50af2db893236992def1f1160c8514f971",
  "instances": [
   {
    "commit": null,

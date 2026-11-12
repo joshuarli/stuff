@@ -997,6 +997,24 @@
    "constraint": "v7.0.1",
    "evidence": [
     {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
      "locator": "jobs.linux.steps[0].uses",
      "path": ".github/workflows/linux.yml"
     }
@@ -6139,15 +6157,19 @@
  ],
  "inputs": [
   {
-   "blob": "914f14a2e0a72399ff1d90c63e5d100ae5480ccb",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "7a3f5ac3e010a26c1f92a339f20b9ce1886bb16f",
    "path": ".github/workflows/linux.yml"
   },
   {
-   "blob": "296087da033c9d5ccbab8223c2233015c018e929",
+   "blob": "2b71cbf388d6827a922b3d7b7656a5df9189941a",
    "path": ".github/workflows/macos.yml"
   },
   {
-   "blob": "8bcbefb333c6c6029b66325d37b1373273ff0b3c",
+   "blob": "26e7680100b26c4470799636796f54a645b936fa",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -6159,7 +6181,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "62035feea0f74e73757a7e1a145c08c946835dbb",
+   "blob": "17ff6c9eeab527e64f600ee255a65251cc1c670e",
    "path": "Makefile"
   },
   {
@@ -6323,7 +6345,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "b1995befb9ce96d5475944c82ad92972e0b8d57c5dce31bd1ec90ee56f096b1d",
+ "inputs_fingerprint": "6b591b08090543a495c4c74053eb33ca53ce68c394d0b16ffa6a9442e01f4ea0",
  "instances": [
   {
    "commit": null,

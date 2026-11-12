@@ -55,6 +55,30 @@
    "purl": "pkg:cargo/bitflags"
   },
   {
+   "display_name": "deser",
+   "ecosystem": "cargo",
+   "name": "deser",
+   "purl": "pkg:cargo/deser"
+  },
+  {
+   "display_name": "deser-core",
+   "ecosystem": "cargo",
+   "name": "deser-core",
+   "purl": "pkg:cargo/deser-core"
+  },
+  {
+   "display_name": "deser-derive",
+   "ecosystem": "cargo",
+   "name": "deser-derive",
+   "purl": "pkg:cargo/deser-derive"
+  },
+  {
+   "display_name": "deser-json",
+   "ecosystem": "cargo",
+   "name": "deser-json",
+   "purl": "pkg:cargo/deser-json"
+  },
+  {
    "display_name": "errno",
    "ecosystem": "cargo",
    "name": "errno",
@@ -85,18 +109,6 @@
    "purl": "pkg:cargo/linux-raw-sys"
   },
   {
-   "display_name": "mini-internal",
-   "ecosystem": "cargo",
-   "name": "mini-internal",
-   "purl": "pkg:cargo/mini-internal"
-  },
-  {
-   "display_name": "miniserde",
-   "ecosystem": "cargo",
-   "name": "miniserde",
-   "purl": "pkg:cargo/miniserde"
-  },
-  {
    "display_name": "proc-macro2",
    "ecosystem": "cargo",
    "name": "proc-macro2",
@@ -113,6 +125,12 @@
    "ecosystem": "cargo",
    "name": "regex-lite",
    "purl": "pkg:cargo/regex-lite"
+  },
+  {
+   "display_name": "rustc-hash",
+   "ecosystem": "cargo",
+   "name": "rustc-hash",
+   "purl": "pkg:cargo/rustc-hash"
   },
   {
    "display_name": "rustix",
@@ -248,7 +266,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.4",
+   "constraint": "0.5",
    "evidence": [
     {
      "locator": "dev-dependencies.rustybench",
@@ -263,10 +281,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.4.0",
+   "resolved_version": "0.5.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench@0.4.0#"
+   "to": "pkg:cargo/rustybench@0.5.0#"
   },
   {
    "condition": null,
@@ -328,7 +346,7 @@
   },
   {
    "condition": null,
-   "constraint": "2.54.0-r0",
+   "constraint": "2.54.1-r0",
    "evidence": [
     {
      "locator": "L12",
@@ -339,10 +357,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "2.54.0-r0",
+   "resolved_version": "2.54.1-r0",
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:apk/git@2.54.0-r0#"
+   "to": "pkg:apk/git@2.54.1-r0#"
   },
   {
    "condition": null,
@@ -601,6 +619,150 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.107",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/proc-macro2@1.0.107#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.47",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/quote@1.0.47#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-derive,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-derive@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.10",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.10#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.19",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/itoa@1.0.19#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser-json,version=0.10.2].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser-json@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.23",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zmij@1.0.23#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-core@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=deser,version=0.10.2].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/deser@0.10.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-derive@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=errno,version=0.3.14].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -631,114 +793,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-sys@0.61.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.107",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/proc-macro2@1.0.107#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.47",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/quote@1.0.47#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=mini-internal,version=0.1.46].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/mini-internal@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "3.0.9",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/syn@3.0.9#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.18",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/itoa@1.0.18#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/mini-internal@0.1.46#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=miniserde,version=0.1.46].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/miniserde@0.1.46#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.0.23",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zmij@1.0.23#"
   },
   {
    "condition": null,
@@ -871,11 +925,65 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[0]",
+     "locator": "package[name=rustybench-macros,version=0.5.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.4.0#",
+   "from": "pkg:cargo/rustybench-macros@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "3.0.10",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/syn@3.0.10#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser-json@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/deser@0.10.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustybench@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -889,29 +997,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[1]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.4.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.1.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/miniserde@0.1.46#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustybench@0.4.0#",
+   "from": "pkg:cargo/rustybench@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -925,29 +1015,47 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=rustybench,version=0.4.0].dependencies[3]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/rustybench@0.4.0#",
+   "from": "pkg:cargo/rustybench@0.5.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.4.0",
+   "resolved_version": "2.1.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench-macros@0.4.0#"
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[0]",
+     "locator": "package[name=rustybench,version=0.5.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/rustybench@0.5.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustybench-macros@0.5.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=syn,version=3.0.10].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -961,11 +1069,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[1]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -979,11 +1087,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=syn,version=3.0.9].dependencies[2]",
+     "locator": "package[name=syn,version=3.0.10].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/syn@3.0.9#",
+   "from": "pkg:cargo/syn@3.0.10#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1078,7 +1186,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.4",
+   "constraint": "0.5",
    "evidence": [
     {
      "locator": "dev-dependencies.rustybench",
@@ -1093,10 +1201,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.4.0",
+   "resolved_version": "0.5.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustybench@0.4.0#"
+   "to": "pkg:cargo/rustybench@0.5.0#"
   },
   {
    "condition": null,
@@ -1135,15 +1243,15 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "a801bc6b8409c1fd70966a97566bb533c7f24837",
+   "blob": "6761f0d62671947fc17e9b57ac61c05c64869d14",
    "path": "Cargo.lock"
   },
   {
-   "blob": "c455478ce43d45cf75d274e9fd257cb488fefc15",
+   "blob": "9b020d4c00a84d279936b9bf3650393621c05852",
    "path": "Cargo.toml"
   },
   {
-   "blob": "79fa36f0c2c15707d678cb58f7332d1db4219af6",
+   "blob": "6903f03624dba9ac2fb4fc9e8cd61e1ef760dd70",
    "path": "Dockerfile"
   },
   {
@@ -1155,11 +1263,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "b68a9a856a4d72a7dce43af4256d2d84325a1d6c",
+   "blob": "f3ecd11c968061e7b682782d658648aa41a74876",
    "path": "scrl/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "2d62f7476e88a4197babfe58ae71fbc9f59881b25adcdf942f530d24ba8d79a0",
+ "inputs_fingerprint": "74863923e50387b062affba45e7e244ef96184940c1a28cda32f14b951c5f8d6",
  "instances": [
   {
    "commit": null,
@@ -1192,13 +1300,13 @@
    "component": "pkg:apk/git",
    "context": "",
    "first_party": false,
-   "id": "pkg:apk/git@2.54.0-r0#",
-   "purl": "pkg:apk/git@2.54.0-r0",
+   "id": "pkg:apk/git@2.54.1-r0#",
+   "purl": "pkg:apk/git@2.54.1-r0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.54.0-r0"
+   "version": "2.54.1-r0"
   },
   {
    "commit": null,
@@ -1280,6 +1388,58 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/deser-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-core@0.10.2#",
+   "purl": "pkg:cargo/deser-core@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-derive",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-derive@0.10.2#",
+   "purl": "pkg:cargo/deser-derive@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser-json",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser-json@0.10.2#",
+   "purl": "pkg:cargo/deser-json@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/deser",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/deser@0.10.2#",
+   "purl": "pkg:cargo/deser@0.10.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/errno",
    "context": "",
    "first_party": false,
@@ -1296,13 +1456,13 @@
    "component": "pkg:cargo/itoa",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/itoa@1.0.18#",
-   "purl": "pkg:cargo/itoa@1.0.18",
+   "id": "pkg:cargo/itoa@1.0.19#",
+   "purl": "pkg:cargo/itoa@1.0.19",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.0.18"
+   "version": "1.0.19"
   },
   {
    "commit": null,
@@ -1345,32 +1505,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:cargo/mini-internal",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/mini-internal@0.1.46#",
-   "purl": "pkg:cargo/mini-internal@0.1.46",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.46"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/miniserde",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/miniserde@0.1.46#",
-   "purl": "pkg:cargo/miniserde@0.1.46",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.1.46"
-  },
-  {
-   "commit": null,
    "component": "pkg:cargo/proc-macro2",
    "context": "",
    "first_party": false,
@@ -1410,6 +1544,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/rustc-hash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-hash@2.1.3#",
+   "purl": "pkg:cargo/rustc-hash@2.1.3",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.1.3"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/rustix",
    "context": "",
    "first_party": false,
@@ -1426,39 +1573,39 @@
    "component": "pkg:cargo/rustybench-macros",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustybench-macros@0.4.0#",
-   "purl": "pkg:cargo/rustybench-macros@0.4.0",
+   "id": "pkg:cargo/rustybench-macros@0.5.0#",
+   "purl": "pkg:cargo/rustybench-macros@0.5.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.5.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/rustybench",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/rustybench@0.4.0#",
-   "purl": "pkg:cargo/rustybench@0.4.0",
+   "id": "pkg:cargo/rustybench@0.5.0#",
+   "purl": "pkg:cargo/rustybench@0.5.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.4.0"
+   "version": "0.5.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/syn",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/syn@3.0.9#",
-   "purl": "pkg:cargo/syn@3.0.9",
+   "id": "pkg:cargo/syn@3.0.10#",
+   "purl": "pkg:cargo/syn@3.0.10",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "3.0.9"
+   "version": "3.0.10"
   },
   {
    "commit": null,

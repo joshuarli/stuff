@@ -250,7 +250,7 @@
   },
   {
    "condition": null,
-   "constraint": "v10.3.2",
+   "constraint": "v10.3.2 [pin:v10.3.3]",
    "evidence": [
     {
      "locator": "jobs.checks.steps[3].uses",
@@ -261,14 +261,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": null,
-   "constraint": "v10.3.2",
+   "constraint": "v10.3.2 [pin:v10.3.3]",
    "evidence": [
     {
      "locator": "jobs.lint.steps[1].uses",
@@ -279,10 +279,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "scope": "ci",
    "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": "extra == 'browser'",
@@ -789,11 +789,11 @@
  ],
  "inputs": [
   {
-   "blob": "a044985d2464fddf2074600a30336da8bbf5f0a7",
+   "blob": "536467d0ccc7acba7ac019c5e888c7c8b3267592",
    "path": ".github/workflows/ci.yml"
   },
   {
-   "blob": "3406c357366e04fa4af5d434a89eccf664e65dbd",
+   "blob": "e5557eed337e30b23daa9ee715ee85e50ce5bd15",
    "path": ".github/workflows/lint.yml"
   },
   {
@@ -813,7 +813,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "7b4c9ec3d0d95f3ab0fe980cf769f5448e48442d641da74c5e5978cc6b06b180",
+ "inputs_fingerprint": "10debcc3a0edf5f839b3afb9db8b5740d5102a20edec63448ce9a514b29c7b45",
  "instances": [
   {
    "commit": null,
@@ -881,17 +881,17 @@
    "version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
   },
   {
-   "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "component": "pkg:github/astral-sh/setup-uv",
    "context": "",
    "first_party": false,
-   "id": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#",
-   "purl": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
-   "version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
   },
   {
    "commit": null,

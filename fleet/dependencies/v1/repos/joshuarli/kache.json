@@ -1761,10 +1761,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.14.3",
+   "resolved_version": "0.14.4",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/zstd@0.14.3#"
+   "to": "pkg:cargo/zstd@0.14.4#"
   },
   {
    "condition": null,
@@ -5707,11 +5707,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=errno,version=0.3.14].dependencies[0]",
+     "locator": "package[name=errno,version=0.3.15].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/errno@0.3.14#",
+   "from": "pkg:cargo/errno@0.3.15#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -5725,11 +5725,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=errno,version=0.3.14].dependencies[1]",
+     "locator": "package[name=errno,version=0.3.15].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/errno@0.3.14#",
+   "from": "pkg:cargo/errno@0.3.15#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -7893,10 +7893,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.3.14",
+   "resolved_version": "0.3.15",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/errno@0.3.14#"
+   "to": "pkg:cargo/errno@0.3.15#"
   },
   {
    "condition": null,
@@ -8361,10 +8361,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.3.14",
+   "resolved_version": "0.3.15",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/errno@0.3.14#"
+   "to": "pkg:cargo/errno@0.3.15#"
   },
   {
    "condition": null,
@@ -9757,29 +9757,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=zstd-safe,version=8.2.0].dependencies[0]",
+     "locator": "package[name=zstd-safe,version=8.3.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/zstd-safe@8.2.0#",
+   "from": "pkg:cargo/zstd-safe@8.3.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "2.1.2+zstd.1.5.7",
+   "resolved_version": "2.1.3+zstd.1.5.7",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/zstd-sys@2.1.2%2Bzstd.1.5.7#"
+   "to": "pkg:cargo/zstd-sys@2.1.3%2Bzstd.1.5.7#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=zstd-sys,version=2.1.2+zstd.1.5.7].dependencies[0]",
+     "locator": "package[name=zstd-sys,version=2.1.3+zstd.1.5.7].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/zstd-sys@2.1.2%2Bzstd.1.5.7#",
+   "from": "pkg:cargo/zstd-sys@2.1.3%2Bzstd.1.5.7#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -9793,11 +9793,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=zstd-sys,version=2.1.2+zstd.1.5.7].dependencies[1]",
+     "locator": "package[name=zstd-sys,version=2.1.3+zstd.1.5.7].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/zstd-sys@2.1.2%2Bzstd.1.5.7#",
+   "from": "pkg:cargo/zstd-sys@2.1.3%2Bzstd.1.5.7#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -9811,18 +9811,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=zstd,version=0.14.3].dependencies[0]",
+     "locator": "package[name=zstd,version=0.14.4].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/zstd@0.14.3#",
+   "from": "pkg:cargo/zstd@0.14.4#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.2.0",
+   "resolved_version": "8.3.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/zstd-safe@8.2.0#"
+   "to": "pkg:cargo/zstd-safe@8.3.0#"
   },
   {
    "condition": null,
@@ -10399,7 +10399,7 @@
  ],
  "inputs": [
   {
-   "blob": "a66aeb83cdff1d4f4ae6cb8b8cf08adc5616cf39",
+   "blob": "0ff336d053fdc311c34c22350d07f5c62efe037c",
    "path": ".github/workflows/ci.yml"
   },
   {
@@ -10407,11 +10407,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "3a1f4a32aa34d7ae1e4d0c00924378984b21b7c4",
+   "blob": "65c99f036429fb13922f24809565af40625b908d",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "fa3c72e6a83a2a88bba7106c8c9dfea9099b5de6",
+   "blob": "56f65d643be0442f5a5ddb36ae6bd88e629885b8",
    "path": "Cargo.lock"
   },
   {
@@ -10923,7 +10923,7 @@
    "path": "test-projects/stale-check/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "5ec695d3d5e8e278d3c4d9989a1a5b0fbca3abd3e725d5951febceb9d08db0f6",
+ "inputs_fingerprint": "3e117c37c72758160fd7ed26e7eb660b5be89f5aef474a5a903dbf8622737f21",
  "instances": [
   {
    "commit": null,
@@ -11450,13 +11450,13 @@
    "component": "pkg:cargo/errno",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/errno@0.3.14#",
-   "purl": "pkg:cargo/errno@0.3.14",
+   "id": "pkg:cargo/errno@0.3.15#",
+   "purl": "pkg:cargo/errno@0.3.15",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.3.14"
+   "version": "0.3.15"
   },
   {
    "commit": null,
@@ -13218,39 +13218,39 @@
    "component": "pkg:cargo/zstd-safe",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/zstd-safe@8.2.0#",
-   "purl": "pkg:cargo/zstd-safe@8.2.0",
+   "id": "pkg:cargo/zstd-safe@8.3.0#",
+   "purl": "pkg:cargo/zstd-safe@8.3.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.2.0"
+   "version": "8.3.0"
   },
   {
    "commit": null,
    "component": "pkg:cargo/zstd-sys",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/zstd-sys@2.1.2%2Bzstd.1.5.7#",
-   "purl": "pkg:cargo/zstd-sys@2.1.2%2Bzstd.1.5.7",
+   "id": "pkg:cargo/zstd-sys@2.1.3%2Bzstd.1.5.7#",
+   "purl": "pkg:cargo/zstd-sys@2.1.3%2Bzstd.1.5.7",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "2.1.2+zstd.1.5.7"
+   "version": "2.1.3+zstd.1.5.7"
   },
   {
    "commit": null,
    "component": "pkg:cargo/zstd",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/zstd@0.14.3#",
-   "purl": "pkg:cargo/zstd@0.14.3",
+   "id": "pkg:cargo/zstd@0.14.4#",
+   "purl": "pkg:cargo/zstd@0.14.4",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.14.3"
+   "version": "0.14.4"
   },
   {
    "commit": null,

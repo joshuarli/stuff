@@ -313,6 +313,12 @@
    "purl": "pkg:generic/libz-rs-sys-cdylib"
   },
   {
+   "display_name": "rust",
+   "ecosystem": "generic",
+   "name": "rust",
+   "purl": "pkg:generic/rust"
+  },
+  {
    "display_name": "test-libz-rs-sys",
    "ecosystem": "generic",
    "name": "test-libz-rs-sys",
@@ -457,6 +463,24 @@
    "scope": "ci",
    "source_kind": "url",
    "to": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -2685,6 +2709,10 @@
    "path": "libz-rs-sys/Cargo.toml"
   },
   {
+   "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
+   "path": "rust-toolchain.toml"
+  },
+  {
    "blob": "848b89342d3670552991c94bd0b5cec94620cd2f",
    "path": "test-libz-rs-sys/Cargo.toml"
   },
@@ -2693,7 +2721,7 @@
    "path": "zlib-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "4f660ca00053dd00ce58861810322246e90af950b562e7aa17ab9bdfbd3d31d6",
+ "inputs_fingerprint": "3801b01bd2fe7981d42dbc56fcdde7b47f238f5639eb42078794ab01d5d56f61",
  "instances": [
   {
    "commit": null,
@@ -3435,6 +3463,19 @@
    "source_kind": "workspace",
    "vcs_url": null,
    "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/rust@nightly-2026-09-15#",
+   "purl": "pkg:generic/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   },
   {
    "commit": null,

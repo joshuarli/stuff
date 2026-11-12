@@ -586,7 +586,7 @@
    "display_name": "alpine",
    "ecosystem": "docker",
    "name": "alpine",
-   "purl": "pkg:docker/alpine?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf"
+   "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
    "display_name": "rust",
@@ -948,7 +948,7 @@
   },
   {
    "condition": null,
-   "constraint": "sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
+   "constraint": "sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "evidence": [
     {
      "locator": "L4",
@@ -959,10 +959,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "3.24.4",
+   "resolved_version": "3.24.2",
    "scope": "image",
    "source_kind": "image",
-   "to": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf#"
+   "to": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#"
   },
   {
    "condition": null,
@@ -5323,7 +5323,7 @@
  ],
  "inputs": [
   {
-   "blob": "1ede6b89e8d63f02416fe59115412c7066bc14b2",
+   "blob": "a1f28e78f87676d08fa8bf2ea8de74c2f844334f",
    "path": ".github/workflows/ci.yml"
   },
   {
@@ -5343,7 +5343,7 @@
    "path": "Cargo.toml"
   },
   {
-   "blob": "465bb69e85e287677cebbd1b48e5496d122c9014",
+   "blob": "4e4088d21072c70afdde0e78d3dd84a329f4fe05",
    "path": "Dockerfile"
   },
   {
@@ -5355,7 +5355,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "6596072411be9f498a8911a8e91ab3de88e7ff28873eba1150fe09d4bde3ee37",
+ "inputs_fingerprint": "ca79fc16f6714a65fd289a05827aeb1715076ade27ef6d61383dfd9be32d20ed",
  "instances": [
   {
    "commit": null,
@@ -6620,16 +6620,16 @@
   },
   {
    "commit": null,
-   "component": "pkg:docker/alpine?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
+   "component": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "context": "",
    "first_party": false,
-   "id": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf#",
-   "purl": "pkg:docker/alpine@3.24.4?digest=sha256%3Af59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
+   "id": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#",
+   "purl": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "image",
    "vcs_url": null,
-   "version": "3.24.4"
+   "version": "3.24.2"
   },
   {
    "commit": null,

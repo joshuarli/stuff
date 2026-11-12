@@ -1783,6 +1783,24 @@
    "constraint": "v7.0.1",
    "evidence": [
     {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
      "locator": "jobs.build.steps[0].uses",
      "path": ".github/workflows/release.yml"
     }
@@ -19965,7 +19983,11 @@
  ],
  "inputs": [
   {
-   "blob": "9ac9d1c80f7ccdaeed83b06e81a997af3f7c3bf4",
+   "blob": "994c12ec3b5c4b6ede47a0d11777ea38b03b3120",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "f5fa8765539e0f37a2a5585fbd52af5777c60269",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -20021,7 +20043,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "f691134b3d88ab3ad42d134387f2a3105022ab49fe1ce0ee1174da99acfffb0f",
+ "inputs_fingerprint": "7c3d93d35d208677a8708f5971a5990f5cb9792dcc8714a6ea25e28c1ac4eff5",
  "instances": [
   {
    "commit": null,

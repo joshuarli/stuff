@@ -13,6 +13,12 @@
    "purl": "pkg:generic/lexopt"
   },
   {
+   "display_name": "rust",
+   "ecosystem": "generic",
+   "name": "rust",
+   "purl": "pkg:generic/rust"
+  },
+  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -20,6 +26,24 @@
   }
  ],
  "edges": [
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:generic/rust@nightly-2026-09-15#"
+  },
   {
    "condition": null,
    "constraint": "v2",
@@ -141,9 +165,13 @@
   {
    "blob": "b53eda13d7bc0dd11e91019b9824304c4b4ed60b",
    "path": "fuzz/Cargo.toml"
+  },
+  {
+   "blob": "a6a805c458344bd3efc73df29f0c99420d5f3fde",
+   "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "153d7da8092224d1c19d8b93bff27e8a33a91101383fba272e5a3e3abb6b9637",
+ "inputs_fingerprint": "4a72990079634ee7f861bb004496914472d97b484e691a6c1fb092020cecefa9",
  "instances": [
   {
    "commit": null,
@@ -170,6 +198,19 @@
    "source_kind": "path",
    "vcs_url": null,
    "version": "0.3.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:generic/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:generic/rust@nightly-2026-09-15#",
+   "purl": "pkg:generic/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   },
   {
    "commit": null,

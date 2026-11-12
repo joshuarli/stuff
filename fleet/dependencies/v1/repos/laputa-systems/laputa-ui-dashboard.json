@@ -912,7 +912,7 @@
    "resolved_version": "3.0.0-next.57",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)"
+   "to": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -1024,7 +1024,7 @@
   },
   {
    "condition": null,
-   "constraint": "8.3.7",
+   "constraint": "8.3.8",
    "evidence": [
     {
      "locator": "importers[.].devDependencies.vite",
@@ -1035,10 +1035,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "8.3.7",
+   "resolved_version": "8.3.8",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.7#"
+   "to": "pkg:npm/vite@8.3.8#"
   },
   {
    "condition": null,
@@ -1056,7 +1056,7 @@
    "resolved_version": "5.1.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/vitest@5.1.0#(vite@8.3.7)"
+   "to": "pkg:npm/vitest@5.1.0#(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -1477,11 +1477,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.'@ampproject/remapping'",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.'@ampproject/remapping'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1495,11 +1495,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.'@solidjs/compiler'",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.'@solidjs/compiler'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1513,11 +1513,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.'@solidjs/web'",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.'@solidjs/web'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1531,11 +1531,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.magic-string",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.magic-string",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1549,11 +1549,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.merge-anything",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.merge-anything",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1567,11 +1567,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.solid-js",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.solid-js",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1585,36 +1585,36 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.vite",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.vite",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.3.7",
+   "resolved_version": "8.3.8",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.7#"
+   "to": "pkg:npm/vite@8.3.8#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)'].dependencies.vitefu",
+     "locator": "snapshots['@solidjs/vite-plugin@3.0.0-next.57(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)'].dependencies.vitefu",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "1.1.3",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/vitefu@1.1.3#(vite@8.3.7)"
+   "to": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -1729,11 +1729,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.7)'].dependencies.'@jridgewell/trace-mapping'",
+     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.8)'].dependencies.'@jridgewell/trace-mapping'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1747,11 +1747,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.7)'].dependencies.'@vitest/spy'",
+     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.8)'].dependencies.'@vitest/spy'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1765,11 +1765,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.7)'].dependencies.estree-walker",
+     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.8)'].dependencies.estree-walker",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1783,11 +1783,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.7)'].dependencies.magic-string",
+     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.8)'].dependencies.magic-string",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1801,18 +1801,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.7)'].optionalDependencies.vite",
+     "locator": "snapshots['@vitest/mocker@5.1.0(vite@8.3.8)'].optionalDependencies.vite",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.3.7",
+   "resolved_version": "8.3.8",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.7#"
+   "to": "pkg:npm/vite@8.3.8#"
   },
   {
    "condition": null,
@@ -3475,11 +3475,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].optionalDependencies.fsevents",
+     "locator": "snapshots[vite@8.3.8].optionalDependencies.fsevents",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3493,11 +3493,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].dependencies.lightningcss",
+     "locator": "snapshots[vite@8.3.8].dependencies.lightningcss",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3511,11 +3511,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].dependencies.picomatch",
+     "locator": "snapshots[vite@8.3.8].dependencies.picomatch",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3529,11 +3529,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].dependencies.postcss",
+     "locator": "snapshots[vite@8.3.8].dependencies.postcss",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3547,11 +3547,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].dependencies.rolldown",
+     "locator": "snapshots[vite@8.3.8].dependencies.rolldown",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3565,11 +3565,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[vite@8.3.7].dependencies.tinyglobby",
+     "locator": "snapshots[vite@8.3.8].dependencies.tinyglobby",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.7#",
+   "from": "pkg:npm/vite@8.3.8#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3583,29 +3583,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitefu@1.1.3(vite@8.3.7)'].optionalDependencies.vite",
+     "locator": "snapshots['vitefu@1.1.3(vite@8.3.8)'].optionalDependencies.vite",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitefu@1.1.3#(vite@8.3.7)",
+   "from": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.3.7",
+   "resolved_version": "8.3.8",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.7#"
+   "to": "pkg:npm/vite@8.3.8#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.'@types/chai'",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.'@types/chai'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3619,29 +3619,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.'@vitest/mocker'",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.'@vitest/mocker'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "5.1.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)"
+   "to": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.chai",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.chai",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3655,11 +3655,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.es-module-lexer",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.es-module-lexer",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3673,11 +3673,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.expect-type",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.expect-type",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3691,11 +3691,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.magic-string",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.magic-string",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3709,11 +3709,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.obug",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.obug",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3727,11 +3727,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.picomatch",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.picomatch",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3745,11 +3745,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.std-env",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.std-env",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3763,11 +3763,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.tinybench",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.tinybench",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3781,11 +3781,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.tinyexec",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.tinyexec",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3799,11 +3799,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.tinyglobby",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.tinyglobby",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3817,29 +3817,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.vite",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.vite",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "8.3.7",
+   "resolved_version": "8.3.8",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.7#"
+   "to": "pkg:npm/vite@8.3.8#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['vitest@5.1.0(vite@8.3.7)'].dependencies.why-is-node-running",
+     "locator": "snapshots['vitest@5.1.0(vite@8.3.8)'].dependencies.why-is-node-running",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3859,15 +3859,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "e753445a991bdd10febe06089a792b4d4f1e718e",
+   "blob": "20d8525ccec4d52311f2d5e460917f7efd51e980",
    "path": "package.json"
   },
   {
-   "blob": "282124fa0cd518c7641f1ef360bc0377d4882e87",
+   "blob": "d6cf1ad716080b562cd24f3b346a1dad352bdfa0",
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "3dd8a9376035bf4ff253f2eedcfb22e8e9f831b0da1d18212d8fe36bbfdb17d6",
+ "inputs_fingerprint": "fca81619eccdeea48c187254012b3ad7e9bc735adae7295a7e3f05299ef77bab",
  "instances": [
   {
    "commit": null,
@@ -4886,9 +4886,9 @@
   {
    "commit": null,
    "component": "pkg:npm/%40solidjs/vite-plugin",
-   "context": "(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "context": "(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.7)",
+   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "purl": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
@@ -5081,9 +5081,9 @@
   {
    "commit": null,
    "component": "pkg:npm/%40vitest/mocker",
-   "context": "(vite@8.3.7)",
+   "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.7)",
+   "id": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
    "purl": "pkg:npm/%40vitest/mocker@5.1.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
@@ -5746,13 +5746,13 @@
    "component": "pkg:npm/vite",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/vite@8.3.7#",
-   "purl": "pkg:npm/vite@8.3.7",
+   "id": "pkg:npm/vite@8.3.8#",
+   "purl": "pkg:npm/vite@8.3.8",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "8.3.7"
+   "version": "8.3.8"
   },
   {
    "commit": null,
@@ -5770,9 +5770,9 @@
   {
    "commit": null,
    "component": "pkg:npm/vitefu",
-   "context": "(vite@8.3.7)",
+   "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/vitefu@1.1.3#(vite@8.3.7)",
+   "id": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)",
    "purl": "pkg:npm/vitefu@1.1.3",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
@@ -5796,9 +5796,9 @@
   {
    "commit": null,
    "component": "pkg:npm/vitest",
-   "context": "(vite@8.3.7)",
+   "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/vitest@5.1.0#(vite@8.3.7)",
+   "id": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
    "purl": "pkg:npm/vitest@5.1.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,

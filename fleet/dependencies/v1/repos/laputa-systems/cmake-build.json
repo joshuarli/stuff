@@ -397,13 +397,9 @@
   {
    "blob": "48fcdd8afab7ce9c806c250f76eb2917fd28466a",
    "path": "tests/acceptance/network/internet/CMakeLists.txt"
-  },
-  {
-   "blob": "be708e10855cb26141a4556105cf77485d7faab8",
-   "path": "tests/fixtures/native/CMakeLists.txt"
   }
  ],
- "inputs_fingerprint": "3ccf938b358fa836de66abe4ab05f8ffce14baf9cd3ec62495805cefb26698a0",
+ "inputs_fingerprint": "f1000359413a36380891040ed4890bf7448020c73d58c517bdb17bc2932eed07",
  "instances": [
   {
    "commit": null,
@@ -505,11 +501,6 @@
    "directory": "tests/acceptance/network/internet",
    "ecosystem": "generic",
    "id": "tests/acceptance/network/internet:generic"
-  },
-  {
-   "directory": "tests/fixtures/native",
-   "ecosystem": "generic",
-   "id": "tests/fixtures/native:generic"
   }
  ],
  "repository": "laputa-systems/cmake-build",

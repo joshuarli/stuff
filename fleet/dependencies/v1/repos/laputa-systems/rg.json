@@ -3811,7 +3811,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "541809241ccf556324a4b1b9034cbee54420d231",
+   "blob": "dcc3148649bf4d4d8d83a9e262942a99fb6e5aa0",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -3875,7 +3875,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "981367bd388956368c94f4f64911cbbd74ac60d34cb113b8aa33ef268a0318cb",
+ "inputs_fingerprint": "2255515bacee604713ea98c8693093a58d79153ba2a65c00d88045318b66d8ae",
  "instances": [
   {
    "commit": null,
