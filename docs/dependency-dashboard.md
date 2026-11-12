@@ -64,9 +64,12 @@ Overview.
   reached. Other ecosystems and packages built inside your repositories are not counted. A
   treemap groups packages by ecosystem and owner, with area proportional to repositories reached.
   It colors cells by ownership, with lighter cells for transitive-only packages and a red outline
-  for vulnerable ones, or, with the toggle, by mirror state. Each cell opens the package. Reach
-  buckets and an owner list, with direct and transitive-only counts, repeat the charted values as
-  text.
+  for vulnerable ones, or, with the toggle, by mirror state. Each cell opens the package. The
+  **How much is yours** ecosystem bars are links: each opens a collapsed list of that
+  ecosystem's packages, showing the versions in use with their per-version repository counts,
+  the owner, the origin, and a per-package deep link to its package section. Reach
+  buckets and an owner list, with direct and transitive-only counts, repeat the charted values
+  as text.
 - **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
   including coverage issues with a link to the file, and the repository's status with `--status`.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest

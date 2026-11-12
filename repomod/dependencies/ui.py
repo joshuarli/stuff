@@ -43,6 +43,7 @@ class Bar:
     note: str = ""
     tip: str = ""
     tail: str = ""
+    href: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -377,11 +378,14 @@ def _bar(bar: Bar, scale: int) -> str:
     note_text = f'<span class="bar-note">{bar.note}</span>' if bar.note else ""
     hint = f' data-tip="{escape(bar.tip)}"' if bar.tip else ""
     tail = f'<div class="bar-tail">{bar.tail}</div>' if bar.tail else ""
-    return (
-        f'<li class="bar-row" data-item{hint}><div class="bar-label"><span>{bar.label}</span>{note_text}</div>'
+    content = (
+        f'<div class="bar-label"><span>{bar.label}</span>{note_text}</div>'
         f'<div class="bar-cell">{_fill(bar.parts, f"calc((100% - 3em) * {width / 100:.3f})", "bar")}'
-        f'<span class="bar-value">{total}</span></div>{tail}</li>'
+        f'<span class="bar-value">{total}</span></div>{tail}'
     )
+    if bar.href:
+        return f'<li data-item{hint}><a class="bar-row bar-link" href="{escape(bar.href)}">{content}</a></li>'
+    return f'<li class="bar-row" data-item{hint}>{content}</li>'
 
 
 def _dot_size(repositories: int) -> int:

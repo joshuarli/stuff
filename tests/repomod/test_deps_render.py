@@ -221,6 +221,39 @@ def test_package_index_and_routing_markup(tmp_path: Path) -> None:
     assert "evil" in packages
 
 
+def test_world_ecosystem_bars_link_to_drilldowns(tmp_path: Path) -> None:
+    toolchain = Instance(
+        "pkg:toolchain/rust@nightly-2026-09-15#",
+        "pkg:toolchain/rust@nightly-2026-09-15",
+        "pkg:toolchain/rust",
+        "nightly-2026-09-15",
+        SourceKind.URL,
+    )
+    local = instance(
+        Ecosystem.LOCAL,
+        "local-thing",
+        None,
+        source_kind=SourceKind.PATH,
+        first_party=True,
+    )
+    repositories = [
+        repository(
+            "acme/demo",
+            (toolchain, local),
+            projects=(project(".", Ecosystem.GENERIC),),
+        )
+    ]
+    inventory = graph.load_inventory(write_inventory(tmp_path, repositories))
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    world = (result.output / "world.html").read_text(encoding="utf-8")
+    for ecosystem in ("toolchain", "local"):
+        assert f'href="#ecosystem-{ecosystem}"' in world
+        assert f'id="ecosystem-{ecosystem}"' in world
+    assert "nightly-2026-09-15" in world
+    assert "local-thing" in world
+    assert "packages.html#pkg=pkg:toolchain/rust" in world
+
+
 def test_packages_page_shows_specific_ecosystems(tmp_path: Path) -> None:
     toolchain = Instance(
         "pkg:toolchain/rust@nightly-2026-09-15#",

@@ -1883,7 +1883,7 @@ def _world(site: _Site) -> str:
         )
     body.extend(
         (
-            _ownership_panel(packages),
+            _ownership_panel(site, packages),
             _mirror_panel(value),
             _world_map(site),
             _yours_panel(packages),
@@ -1909,7 +1909,77 @@ def _origin_legend(caption: str = "") -> str:
     return ui.legend([(_ORIGIN_LABELS[origin], _ORIGIN_MARKS[origin]) for origin in world.Origin], caption)
 
 
-def _ownership_panel(packages: Sequence[world.Package]) -> str:
+_DRILLDOWN_ROWS = 30
+_DRILLDOWN_VERSIONS = 3
+
+
+def _ecosystem_drilldowns(site: _Site, groups: Mapping[Ecosystem, Sequence[world.Package]]) -> str:
+    instances: dict[str, list[Instance]] = defaultdict(list)
+    for item in site.graph.instances.values():
+        instances[item.component].append(item)
+    panels = []
+    for ecosystem in sorted(groups, key=lambda item: (-len(groups[item]), item.value)):
+        rows = sorted(
+            groups[ecosystem],
+            key=lambda package: (-len(package.repositories), package.component.purl.casefold()),
+        )
+        shown = rows[:_DRILLDOWN_ROWS]
+        table = ui.static_table(
+            (
+                Column("Package", wrap=True, mono=True),
+                Column("Versions", wrap=True),
+                Column("Owner"),
+                Column("Origin"),
+                Column("Repos", numeric=True),
+                Column("Direct"),
+            ),
+            [
+                (
+                    _package_link(
+                        package.component.purl,
+                        "",
+                        package.component.display_name,
+                    ),
+                    _e(_version_summary(instances.get(package.component.purl, ()))),
+                    _e(world.display_owner(package.owner) if package.owner else "unknown"),
+                    _e(package.origin.value),
+                    str(len(package.repositories)),
+                    "yes" if package.direct else "",
+                )
+                for package in shown
+            ],
+            label=f"Packages in {ecosystem.value}",
+        )
+        more = (
+            f'<p class="change-group">+{len(rows) - _DRILLDOWN_ROWS} more — search them in '
+            f'<a href="packages.html">Packages</a></p>'
+            if len(rows) > _DRILLDOWN_ROWS
+            else ""
+        )
+        yours = sum(1 for package in rows if package.origin is world.Origin.YOURS)
+        meta = f"{yours} yours · {len(rows) - yours} third-party or unknown"
+        panels.append(
+            ui.collapsed_panel(
+                f"{ecosystem.value} · {len(rows)} {_plural(len(rows), 'package', 'packages')}",
+                table + more,
+                meta=meta,
+                panel_id=f"ecosystem-{ecosystem.value}",
+                flush=True,
+            )
+        )
+    return "".join(panels)
+
+
+def _version_summary(instances: Sequence[Instance]) -> str:
+    counts = Counter(instance.version or "unknown" for instance in instances)
+    ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    parts = [f"{version} ({count})" if count > 1 else version for version, count in ordered[:_DRILLDOWN_VERSIONS]]
+    if len(ordered) > _DRILLDOWN_VERSIONS:
+        parts.append(f"+{len(ordered) - _DRILLDOWN_VERSIONS}")
+    return ", ".join(parts)
+
+
+def _ownership_panel(site: _Site, packages: Sequence[world.Package]) -> str:
     def uses(package: world.Package) -> int:
         return len(package.repositories)
 
@@ -1927,15 +1997,17 @@ def _ownership_panel(packages: Sequence[world.Package]) -> str:
     by_ecosystem: dict[Ecosystem, list[world.Package]] = defaultdict(list)
     for package in packages:
         by_ecosystem[package.component.ecosystem].append(package)
+    ordered = sorted(by_ecosystem.items(), key=lambda item: (-len(item[1]), item[0].value))
     ecosystems = [
-        Bar(_e(ecosystem.value), _origin_parts(rows, one))
-        for ecosystem, rows in sorted(by_ecosystem.items(), key=lambda item: (-len(item[1]), item[0].value))
+        Bar(_e(ecosystem.value), _origin_parts(rows, one), href=f"#ecosystem-{ecosystem.value}")
+        for ecosystem, rows in ordered
     ]
     body = (
         _origin_legend()
         + ui.bar_list(totals, max(sum(part.value for part in bar.parts) for bar in totals), "Ownership")
         + '<p class="change-group">Packages by ecosystem</p>'
-        + ui.bar_list(ecosystems, max(len(rows) for rows in by_ecosystem.values()), "Ownership by ecosystem")
+        + ui.bar_list(ecosystems, max(len(rows) for _, rows in ordered), "Ownership by ecosystem")
+        + _ecosystem_drilldowns(site, by_ecosystem)
     )
     return ui.panel("How much is yours", body)
 

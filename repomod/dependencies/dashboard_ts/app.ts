@@ -196,6 +196,20 @@
     if (match !== null) match.scrollIntoView({ block: "start" });
   }
 
+  function routeEcosystem(): void {
+    if (page !== "world") return;
+    const hash = window.location.hash || "";
+    if (!hash.startsWith("#ecosystem-")) return;
+    const target = document.getElementById(hash.slice(1));
+    if (target instanceof HTMLDetailsElement) {
+      target.open = true;
+      target.scrollIntoView({ block: "start" });
+    }
+  }
+
+  window.addEventListener("hashchange", routeEcosystem);
+  routeEcosystem();
+
   window.addEventListener("hashchange", routePackage);
   routePackage();
 })();
