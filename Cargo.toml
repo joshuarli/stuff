@@ -39,7 +39,7 @@ members = [
   "crates/stuff-server",
   "crates/stuff-worker",
   "crates/stuff-catalog",
-  "crates/stuff", ".work/tmp/bstd-hello",
+  "crates/stuff",
 ]
 
 [profile.dist]
