@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -259,19 +260,24 @@ def test_fork_repositories_and_repositories_without_lockfiles_are_skipped(tmp_pa
     assert messages(tmp_path) == []
 
 
-def test_optional_packages_for_unmirrored_systems_are_skipped(tmp_path: Path) -> None:
+def test_optional_packages_for_unmirrored_platforms_are_skipped(tmp_path: Path) -> None:
     write(tmp_path, ".npmrc", f"registry={NPM}\n")
-    upstream = "https://registry.npmjs.org/@esbuild/{0}/-/{0}-0.25.12.tgz"
-    write(
-        tmp_path,
-        "package-lock.json",
-        '{"lockfileVersion": 3, "packages": {"": {}, '
-        f'"node_modules/@esbuild/win32-x64": {{"resolved": "{upstream.format("win32-x64")}", "optional": true, "os": ["win32"]}}, '
-        f'"node_modules/@esbuild/linux-x64": {{"resolved": "{upstream.format("linux-x64")}", "optional": true, "os": ["linux"]}}}}}}',
-    )
+
+    def esbuild(platform: str, os_name: str, cpu: str) -> dict[str, object]:
+        resolved = f"https://registry.npmjs.org/@esbuild/{platform}/-/{platform}-0.25.12.tgz"
+        return {"resolved": resolved, "optional": True, "os": [os_name], "cpu": [cpu]}
+
+    packages = {
+        "": {},
+        "node_modules/@esbuild/win32-x64": esbuild("win32-x64", "win32", "x64"),
+        "node_modules/@esbuild/linux-ppc64": esbuild("linux-ppc64", "linux", "ppc64"),
+        "node_modules/@esbuild/linux-x64": esbuild("linux-x64", "linux", "x64"),
+    }
+    write(tmp_path, "package-lock.json", json.dumps({"lockfileVersion": 3, "packages": packages}))
     [(file, message)] = messages(tmp_path)
     assert file == "package-lock.json"
-    assert "1 npm package(s)" in message and "@esbuild/linux-x64" in message
+    assert "1 npm package(s)" in message
+    assert "@esbuild/linux-x64" in message
 
 
 def test_vendored_trees_are_skipped(tmp_path: Path) -> None:
