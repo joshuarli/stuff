@@ -1,4 +1,4 @@
-.PHONY: help deploy stuff-release republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -70,6 +70,13 @@ STUFF ?= target/release/stuff
 
 stuff-release: ## Build the release stuff CLI once
 	cargo build -q --release -p stuff
+
+PREFIX ?= $(HOME)/.local
+
+install: stuff-release ## Install the release stuff CLI to $(PREFIX)/bin ([PREFIX=~/.local])
+	install -d "$(PREFIX)/bin"
+	install -m 755 target/release/stuff "$(PREFIX)/bin/stuff"
+	"$(PREFIX)/bin/stuff" lock-path --registry cargo >/dev/null
 
 deploy: ## Test and deploy the worker, republish registries, then check the live site
 	@cf auth whoami >/dev/null
