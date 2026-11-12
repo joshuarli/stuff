@@ -111,7 +111,7 @@ The rule reports only outdated direct dependencies as fixable findings, so
 when the upgrader cannot reach the latest version:
 
 - a Python specifier excludes it (`==`, `<`, `~=`, ...);
-- a Cargo requirement excludes it;
+- a Cargo requirement excludes it and is not a simple caret requirement (for example an exact pin or range);
 - a Cargo release depends on a crate the repository pins with an exact `=`
   version that conflicts, named in the message (for example `wasm-bindgen-test` needing
   `wasm-bindgen =0.2.130` while the repository pins `=0.2.129`);
@@ -120,7 +120,9 @@ when the upgrader cannot reach the latest version:
   message names the Rust versions.
 
 Crate release metadata comes from the configured Cargo source and is cached
-with the rest.
+with the rest. For simple Cargo caret requirements, the fixer updates the
+manifest requirement and lockfile, including workspace and renamed dependencies.
+Such updates can require API changes, so the resulting pull request needs review and tests.
 Vulnerability, ban, and lockfile findings stay manual because the upgraders
 cannot fix them deterministically. A repository
 can opt out with `ignore = ["audit-upgrades"]` in its catalog override.

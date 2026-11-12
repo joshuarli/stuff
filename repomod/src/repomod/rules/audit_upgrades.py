@@ -10,6 +10,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import tomlkit
+
 from repomod.audit import (
     LockedDependency,
     RegistrySources,
@@ -64,6 +66,8 @@ _ALLOWED_PATHS = (
     "package.json",
     "*/package.json",
     "Cargo.lock",
+    "Cargo.toml",
+    "*/Cargo.toml",
     "go.mod",
     "go.sum",
 )
@@ -340,6 +344,7 @@ def _outdated_findings(
     now: float,
     fetcher: Callable[[str, str], str | None] | None,
     sources: RegistrySources | None = None,
+    cargo_upgrades: dict[str, str] | None = None,
 ) -> list[Finding]:
     locked, _ = _collect_locked(root, repository)
     skipped = _non_registry_names(root)
@@ -370,6 +375,7 @@ def _outdated_findings(
             fetcher=fetcher, sources=group_sources,
         ))
     rust_reqs = _rust_version_reqs(root)
+    rust_dependencies, _ = _rust_direct_dependencies(root)
     python_specifiers = _python_specifiers(root)
     lowest_rust_version = _lowest_rust_version(root)
     findings: list[Finding] = []
@@ -382,8 +388,13 @@ def _outdated_findings(
             fixable = True
             blocker = ""
             if item.ecosystem == "crates":
-                req = rust_reqs.get(_normalize_rust_name(item.name))
-                if req is not None and not _cargo_req_satisfies(req, newest):
+                requirements = [
+                    dependency.version_req for dependency in rust_dependencies
+                    if _normalize_rust_name(dependency.name) == _normalize_rust_name(item.name)
+                    and dependency.version_req is not None
+                ]
+                incompatible = [value for value in requirements if not _cargo_req_satisfies(value, newest)]
+                if any(_cargo_upgrade_requirement(value, newest) is None for value in incompatible):
                     fixable = False
                 else:
                     item_sources = _sources_for_dependency(item, sources, registries)
@@ -402,6 +413,8 @@ def _outdated_findings(
                     if reason is not None:
                         fixable = False
                         blocker = f"; manual because {reason}"
+                    elif incompatible and cargo_upgrades is not None:
+                        cargo_upgrades[_normalize_rust_name(item.name)] = newest
             if item.ecosystem == "pypi":
                 fixable = all(
                     _specifier_admits(specifier, newest)
@@ -516,6 +529,7 @@ def _run_upgrade_task(task: UpgradeTask, cache_dir: Path) -> None:
 
 def _candidate_relatives(root: Path) -> list[str]:
     relatives = ["uv.lock", "Cargo.lock", "go.mod", "go.sum"]
+    relatives.extend(path.relative_to(root).as_posix() for path in _cargo_manifests(root))
     for project in _js_project_roots(root):
         try:
             relative = project.relative_to(root).as_posix()
@@ -548,6 +562,55 @@ def _changed_plan(root: Path, refreshed: Path) -> dict[str, str]:
     return plan
 
 
+def _cargo_upgrade_requirement(requirement: str, latest: str) -> str | None:
+    match = re.fullmatch(r"(\^?)(\d+(?:\.\d+){0,2})", requirement)
+    if match is None:
+        return None
+    parts = latest.split(".")
+    prefix = match.group(1)
+    version = match.group(2)
+    assert isinstance(prefix, str)
+    assert isinstance(version, str)
+    count = len(version.split("."))
+    return prefix + ".".join(parts[:count])
+
+
+def _upgrade_cargo_manifests(root: Path, upgrades: dict[str, str]) -> None:
+    for manifest in _cargo_manifests(root):
+        content = manifest.read_text(encoding="utf-8")
+        document = tomlkit.parse(content)
+        tables = [document]
+        workspace = document.get("workspace")
+        if isinstance(workspace, dict):
+            tables.append(workspace)
+        targets = document.get("target")
+        if isinstance(targets, dict):
+            tables.extend(target for target in targets.values() if isinstance(target, dict))
+        for table in tables:
+            for kind in ("dependencies", "dev-dependencies", "build-dependencies"):
+                dependencies = table.get(kind)
+                if not isinstance(dependencies, dict):
+                    continue
+                for name, spec in dependencies.items():
+                    package = spec.get("package", name) if isinstance(spec, dict) else name
+                    latest = upgrades.get(_normalize_rust_name(package)) if isinstance(package, str) else None
+                    if latest is None:
+                        continue
+                    requirement = spec.get("version") if isinstance(spec, dict) else spec
+                    if not isinstance(requirement, str) or _cargo_req_satisfies(requirement, latest):
+                        continue
+                    updated = _cargo_upgrade_requirement(requirement, latest)
+                    if updated is None:
+                        continue
+                    if isinstance(spec, dict):
+                        spec["version"] = updated
+                    else:
+                        dependencies[name] = updated
+        rendered = tomlkit.dumps(document)
+        if rendered != content:
+            manifest.write_text(rendered, encoding="utf-8")
+
+
 def _fix(root: Path, repository: Repository) -> dict[str, str]:
     tasks = _upgrade_tasks(root, repository)
     if not tasks:
@@ -563,6 +626,13 @@ def _fix(root: Path, repository: Repository) -> dict[str, str]:
         work.parent.mkdir(parents=True)
         _copy_tree(root, work)
         _copy_siblings(root, work)
+        cargo_upgrades: dict[str, str] = {}
+        if any(task.tool == "cargo" for task in tasks):
+            with audit_cache() as audit_data:
+                _outdated_findings(
+                    root, repository, audit_data, time.time(), None, _configured_sources(root), cargo_upgrades
+                )
+            _upgrade_cargo_manifests(work, cargo_upgrades)
         cache_dir = Path(temporary) / "cache"
         cache_dir.mkdir()
         for task in tasks:

@@ -429,6 +429,69 @@ def test_manifest_blocked_upgrade_is_manual(tmp_path: Path) -> None:
     assert by_name["bar"].fixable is True
 
 
+def test_cargo_breaking_upgrade_updates_manifest_and_lockfile(tmp_path: Path, monkeypatch) -> None:
+    root = repo_root(tmp_path)
+    manifest = root / "Cargo.toml"
+    manifest.write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\n'
+        '[dependencies]\npty = { package = "laputa-ptytest", version = "0.3", features = ["x"] } # keep\n',
+        encoding="utf-8",
+    )
+    lock = root / "Cargo.lock"
+    lock.write_text(
+        'version = 4\n[[package]]\nname = "laputa-ptytest"\nversion = "0.3.0"\n', encoding="utf-8"
+    )
+    repo = repository("tool", "rust")
+    monkeypatch.setattr("repomod.rules.audit_upgrades.resolve_latest", lambda *a, **kw: {
+        ("crates", "laputa-ptytest"): "0.4.0"
+    })
+    monkeypatch.setattr("repomod.rules.audit_upgrades.shutil.which", lambda _: "/usr/bin/cargo")
+
+    def run(argv, *, cwd, **kwargs):
+        path = Path(cwd)
+        assert 'version = "0.4"' in (path / "Cargo.toml").read_text()
+        (path / "Cargo.lock").write_text(lock.read_text().replace("0.3.0", "0.4.0"))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr("repomod.rules.audit_upgrades.subprocess.run", run)
+    findings = _outdated_findings(root, repo, {}, NOW, lambda *_: "0.4.0")
+    assert findings[0].fixable
+    plan = _fix(root, repo)
+    assert 'version = "0.4", features = ["x"] } # keep' in plan["Cargo.toml"]
+    assert 'version = "0.4.0"' in plan["Cargo.lock"]
+    assert 'version = "0.3"' in manifest.read_text()
+
+
+def test_cargo_breaking_upgrade_updates_workspace_requirement(tmp_path: Path, monkeypatch) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[workspace]\nmembers = ["member"]\n[workspace.dependencies]\n'
+        'pty = { package = "laputa-ptytest", version = "0.3" }\n', encoding="utf-8"
+    )
+    (root / "member").mkdir()
+    (root / "member/Cargo.toml").write_text(
+        '[package]\nname = "member"\nversion = "0.1.0"\n'
+        '[dev-dependencies]\npty = { workspace = true }\n', encoding="utf-8"
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "laputa-ptytest"\nversion = "0.3.0"\n', encoding="utf-8"
+    )
+    monkeypatch.setattr("repomod.rules.audit_upgrades.resolve_latest", lambda *a, **kw: {
+        ("crates", "laputa-ptytest"): "0.4.0"
+    })
+    monkeypatch.setattr("repomod.rules.audit_upgrades.shutil.which", lambda _: "/usr/bin/cargo")
+
+    def run(argv, *, cwd, **kwargs):
+        path = Path(cwd)
+        (path / "Cargo.lock").write_text('version = 4\n[[package]]\nname = "laputa-ptytest"\nversion = "0.4.0"\n')
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr("repomod.rules.audit_upgrades.subprocess.run", run)
+    plan = _fix(root, repository("tool", "rust"))
+    assert 'version = "0.4"' in plan["Cargo.toml"]
+    assert "member/Cargo.toml" not in plan
+
+
 def test_multi_version_lock_attributes_direct_req(tmp_path: Path) -> None:
     from repomod.audit import _collect_locked
 
@@ -763,6 +826,25 @@ def test_msrv_blocks_upgrades_beyond_lowest_workspace_rust_version(
     assert by_name["crates:rcgen"].fixable is False
     assert "needs Rust 1.88 but the lowest workspace rust-version is 1.85" in by_name["crates:rcgen"].message
     assert by_name["crates:rand"].fixable is True
+
+
+def test_msrv_blocks_breaking_manifest_upgrade(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text(
+        '[package]\nname = "demo"\nversion = "0.1.0"\nrust-version = "1.85"\n'
+        '[dependencies]\nfoo = "0.3"\n', encoding="utf-8"
+    )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "foo"\nversion = "0.3.0"\n', encoding="utf-8"
+    )
+    fake_crates(monkeypatch, {"foo/0.4.0": crate_release("1.88")})
+    upgrades: dict[str, str] = {}
+    findings = _outdated_findings(
+        root, repository("rust"), {}, NOW, lambda *_: "0.4.0", cargo_upgrades=upgrades
+    )
+    assert not findings[0].fixable
+    assert "needs Rust 1.88" in findings[0].message
+    assert upgrades == {}
 
 
 def test_dependency_ignore_skips_only_that_dependency(tmp_path: Path) -> None:
