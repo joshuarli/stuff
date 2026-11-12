@@ -146,10 +146,6 @@ ignore_reason = "Fork whose CI and flake pin the nightly the Verus build needs."
 ignore = ["rust-project:lockfile:compare"]
 ignore_reason = "compare/ is a development tool for comparing against other zip crates, and the repository ignores Cargo.lock on purpose."
 
-[overrides."laputa-systems/h12tiny"]
-ignore = ["rust-project:lockfile:crates/laputa-h2-futures-lite"]
-ignore_reason = "The vendored h2 fork keeps upstream's own workspace, whose only executables are its fuzz, fixture, and Huffman-table development utilities."
-
 [overrides."laputa-systems/python-build"]
 ignore = ["mdtool:D001", "mdtool:P002", "mdtool:R001", "mdtool:R005"]
 ignore_reason = "Vendored rustls, webpki, and CPython sources carry \"section N\" text and paths into the CPython tree, the .agents and .claude skill trees repeat skill text on purpose, and the benchmark README names files its commands generate."
@@ -163,8 +159,8 @@ ignore = ["audit-upgrades:crates:getrandom", "audit-banned:transitive:tokio"]
 ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build. Tokio is only reachable through wasm-bindgen's opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; wasm32-unknown-unknown builds never compile it."
 
 [overrides."laputa-systems/smolith"]
-ignore = ["audit-banned:transitive:tokio"]
-ignore_reason = "Tokio is only reachable through wasm-bindgen-futures (via the wasm-bindgen-test dev dependency) under its opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; the wasm32-unknown-unknown test builds never compile it."
+ignore = ["audit-banned:transitive:tokio", "rust-project:lockfile:crates/laputa-h2-futures-lite"]
+ignore_reason = "Tokio is only reachable through wasm-bindgen-futures (via the wasm-bindgen-test dev dependency) under its opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; the wasm32-unknown-unknown test builds never compile it. The vendored h2 fork keeps upstream's own workspace, whose only executables are its fuzz, fixture, and Huffman-table development utilities."
 
 [overrides."joshuarli/kache"]
 ignore = ["audit-banned:transitive:tokio"]
