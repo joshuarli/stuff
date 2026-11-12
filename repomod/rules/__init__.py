@@ -10,6 +10,7 @@ from repomod.rules.consistency import consistency_rules
 from repomod.rules.conventional_commits import conventional_commits_rules
 from repomod.rules.formatters import formatter_rules
 from repomod.rules.languages import language_rules
+from repomod.rules.laputa_rustix import laputa_rustix_rules
 from repomod.rules.lint import lint_rules
 from repomod.rules.mdtool import mdtool_rules
 from repomod.rules.mirrored_docs import mirrored_docs_rules
@@ -57,6 +58,7 @@ def rules() -> tuple[Rule, ...]:
         *workflow_redundancy_rules(),
         *workflow_settings_rules(),
         *registry_sources_rules(),
+        *laputa_rustix_rules(),
         *release_rules(),
         *rust_toolchain_rules(),
         *rust_release_profiles_rules(),

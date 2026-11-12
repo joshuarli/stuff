@@ -421,6 +421,19 @@ repository is ignored the same way with `registry-sources:path:NAME`. Path, `lin
 are allowed while they stay inside the repository. Unapproved registry sources are reported once
 per lockfile and source, listing the first packages.
 
+`laputa-rustix` prefers `laputa-rustix`, the laputa-systems fork of `rustix` with
+Windows support removed, over the crates.io `rustix` crate. It reports a direct
+dependency on `rustix` in tracked `Cargo.toml` files and rewrites the requirement to
+`package = "laputa-rustix"`, keeping the same dependency key so `rustix::` paths in
+dependent code stay unchanged. Dependencies that rename a different package, that point
+at a `path` or `git` source, and fixtures, snapshots, vendored trees, and the
+`workspace.exclude` subtrees are left alone, as is anything that already resolves to
+`laputa-rustix`. The fixer rewrites the manifest and refreshes each affected
+`Cargo.lock` with `cargo metadata` in a disposable copy; it fails rather than writing a
+lockfile that does not resolve. `stuff` itself is exempt (it builds against crates.io),
+and the fork is published from the `laputa-systems/rustix` repository with
+`make publish`.
+
 The fixer adds the missing configuration and leaves every other finding manual. It writes
 `.cargo/config.toml` at the repository root (Cargo merges parent configuration), `registry=` into
 each npm project's `.npmrc` (npm and pnpm read only the project's own file), and, per uv project, the
