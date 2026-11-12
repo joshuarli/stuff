@@ -98,7 +98,10 @@ Overview.
   formats with no parser, are counts. In forks, only checkout problems count.
 - **Changes** counts everything since `HEAD~1` of `data/` and lists only downgrades, source
   changes, and new issues. It says `no baseline` when the previous revision has no inventory.
-- **Packages** counts packages per ecosystem. Search (`/`) finds any package.
+- **Packages** counts packages per ecosystem, with `generic` split by purpose: first-party
+  workspace and paths inside the repository, toolchains, downloads, git sources, system
+  packages (CMake `find_package` and pkg-config), service bindings, and vendored trees.
+  Search (`/`) finds any package.
   `packages.html#pkg=pkg:cargo/serde` deep-links to its versions and consumers.
 
 Charts use status colors only where color means severity, and one hue or emphasis elsewhere. The

@@ -221,6 +221,70 @@ def test_package_index_and_routing_markup(tmp_path: Path) -> None:
     assert "evil" in packages
 
 
+def test_packages_page_splits_generic_by_purpose(tmp_path: Path) -> None:
+    toolchain = Instance(
+        "pkg:generic/rust@nightly-2026-09-15#",
+        "pkg:generic/rust@nightly-2026-09-15",
+        "pkg:generic/rust",
+        "nightly-2026-09-15",
+        SourceKind.URL,
+    )
+    download = Instance(
+        "pkg:generic/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz#",
+        "pkg:generic/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz",
+        "pkg:generic/musl-1.2.6.tar.gz",
+        None,
+        SourceKind.URL,
+    )
+    local = instance(
+        Ecosystem.GENERIC,
+        "local-thing",
+        None,
+        source_kind=SourceKind.PATH,
+        first_party=True,
+    )
+    service = instance(
+        Ecosystem.GENERIC,
+        "cloudflare-d1/DB",
+        None,
+        source_kind=SourceKind.REGISTRY,
+    )
+    system = instance(Ecosystem.GENERIC, "Graph", None)
+    service_edge = Edge(
+        ".:generic",
+        service.id,
+        Relation.DIRECT,
+        Scope.SERVICE,
+        False,
+        None,
+        None,
+        None,
+        SourceKind.REGISTRY,
+        Resolution.RESOLVED,
+    )
+    repositories = [
+        repository(
+            "acme/demo",
+            (toolchain, download, local, service, system),
+            projects=(project(".", Ecosystem.GENERIC),),
+            edges=(service_edge,),
+        )
+    ]
+    inventory_path = write_inventory(tmp_path, repositories)
+    inventory = graph.load_inventory(inventory_path)
+    result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
+    packages = (result.output / "packages.html").read_text(encoding="utf-8")
+    for bucket in (
+        "generic · first-party",
+        "generic · toolchains",
+        "generic · downloads",
+        "generic · services",
+        "generic · system",
+    ):
+        assert bucket in packages
+    assert "<span>generic</span>" not in packages
+
+
 def test_changes_page_reports_no_baseline(tmp_path: Path) -> None:
     result = _render(tmp_path)
     changes = (result.output / "changes.html").read_text(encoding="utf-8")
