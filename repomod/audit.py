@@ -2508,7 +2508,12 @@ def _upgrade_tasks(root: Path, repository: Repository) -> list[UpgradeTask]:
         tasks.append(UpgradeTask(root, ["uv", "lock", "--upgrade"], "uv"))
     if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
         tasks.extend(
-            UpgradeTask(project, ["pnpm", "update", "--latest"], "pnpm")
+            UpgradeTask(
+                project,
+                ["pnpm", "update", "--latest"]
+                + (["--recursive"] if (project / "pnpm-workspace.yaml").is_file() else []),
+                "pnpm",
+            )
             for project in _js_project_roots(root)
             if (project / "pnpm-lock.yaml").is_file()
         )

@@ -390,7 +390,7 @@ registry, and default Python index, so a version the mirror does not carry is no
 repositories without an override use the public registries. Its check refreshes the shared audit
 cache over the network, so it
 is excluded from offline checks. Its fixer runs the native upgraders (`uv lock --upgrade`,
-per-project `pnpm update --latest`, `cargo update`, `go get -u ./...` plus `go mod tidy`) in a
+per-project `pnpm update --latest`, recursive in a pnpm workspace, `cargo update`, `go get -u ./...` plus `go mod tidy`) in a
 disposable copy and returns the changed lockfiles and manifests as its file plan. For Cargo it
 updates simple caret requirements to admit newer incompatible releases before running `cargo update`.
 Explicit pins, ranges, conflicting pins and incompatible Rust versions stay manual.

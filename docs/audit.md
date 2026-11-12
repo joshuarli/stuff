@@ -100,7 +100,7 @@ selected audit rules per repository.
 ## Fixes
 
 The `audit-upgrades` fixer runs native upgraders in a disposable copy when the tool is
-available: `uv lock --upgrade`, per-project `pnpm update --latest`,
+available: `uv lock --upgrade`, per-project `pnpm update --latest` (with `--recursive` in a pnpm workspace),
 `cargo update`, and `go get -u ./...` followed by `go mod tidy`. It reports
 what it ran and what failed. Dirty checkouts are skipped.
 

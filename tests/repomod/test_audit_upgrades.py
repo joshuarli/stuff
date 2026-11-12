@@ -1202,3 +1202,30 @@ def test_sandbox_copy_keeps_packages_named_build_and_drops_build_output(tmp_path
     assert (tmp_path / "copy" / "bins" / "build" / "Cargo.toml").is_file()
     assert not (tmp_path / "copy" / "build").exists()
     assert not (tmp_path / "copy" / "target").exists()
+
+
+def test_pnpm_workspace_upgrades_recurse_and_plan_member_manifests(tmp_path: Path, monkeypatch) -> None:
+    root = repo_root(tmp_path)
+    (root / "package.json").write_text('{"name": "root", "private": true}\n', encoding="utf-8")
+    (root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
+    (root / "pnpm-workspace.yaml").write_text("packages:\n  - cloudflare\n  - packages/*\n", encoding="utf-8")
+    for member in ("cloudflare", "packages/producer"):
+        (root / member).mkdir(parents=True)
+        (root / member / "package.json").write_text('{"devDependencies": {"vite": "8.3.6"}}\n', encoding="utf-8")
+    monkeypatch.setattr("repomod.rules.audit_upgrades.shutil.which", lambda _: "/usr/bin/pnpm")
+    calls = []
+
+    def run(argv, *, cwd, **kwargs):
+        calls.append(argv)
+        for member in ("cloudflare", "packages/producer"):
+            path = Path(cwd) / member / "package.json"
+            path.write_text(path.read_text().replace("8.3.6", "8.3.8"))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr("repomod.rules.audit_upgrades.subprocess.run", run)
+    plan = _fix(root, repository("tool", "typescript"))
+    assert calls == [["pnpm", "update", "--latest", "--recursive"]]
+    assert sorted(plan) == ["cloudflare/package.json", "packages/producer/package.json"]
+    from repomod.fix import _allowed
+
+    assert all(_allowed(path, audit_upgrade_rules()[0].allowed_paths) for path in plan)

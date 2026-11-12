@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import tomlkit
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 
 from repomod.audit import (
     LockedDependency,
@@ -570,6 +572,23 @@ def _run_upgrade_task(task: UpgradeTask, cache_dir: Path) -> None:
         raise RuntimeError(f"{' '.join(task.argv)} failed: {suffix}")
 
 
+def _pnpm_workspace_members(project: Path) -> list[Path]:
+    """Package directories a pnpm-workspace.yaml lists, which `pnpm update --recursive` rewrites."""
+    path = project / "pnpm-workspace.yaml"
+    if not path.is_file() or path.is_symlink():
+        return []
+    try:
+        document = YAML(typ="safe", pure=True).load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, YAMLError):
+        return []
+    patterns = document.get("packages") if isinstance(document, dict) else None
+    members: list[Path] = []
+    for pattern in patterns if isinstance(patterns, list) else []:
+        if isinstance(pattern, str) and not pattern.startswith("!") and ".." not in pattern:
+            members.extend(match for match in sorted(project.glob(pattern)) if (match / "package.json").is_file())
+    return members
+
+
 def _candidate_relatives(root: Path) -> list[str]:
     relatives = ["uv.lock", "Cargo.lock", "go.mod", "go.sum"]
     relatives.extend(path.relative_to(root).as_posix() for path in _cargo_manifests(root))
@@ -580,7 +599,10 @@ def _candidate_relatives(root: Path) -> list[str]:
             continue
         prefix = "" if relative == "." else f"{relative}/"
         relatives.extend((f"{prefix}pnpm-lock.yaml", f"{prefix}package.json"))
-    return relatives
+        relatives.extend(
+            (member / "package.json").relative_to(root).as_posix() for member in _pnpm_workspace_members(project)
+        )
+    return list(dict.fromkeys(relatives))
 
 
 def _changed_plan(root: Path, refreshed: Path) -> dict[str, str]:
