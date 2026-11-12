@@ -91,7 +91,10 @@ uv run repomod deps diff --from HEAD~1 --to HEAD --json
 
 Query latest versions and OSV for resolved Cargo, PyPI, npm, and Go components. Results are
 written to `io.cache_file("deps-enrichment.json")`, outside the repository, as
-`{fetched_at, results: {purl: {latest, latest_source, vulns, fetched_at}}}`. Entries older than
+`{fetched_at, results: {purl: {latest, latest_source, upstream_checked, vulns, fetched_at}}}`.
+Latest versions come from public upstream registries, with configured registries used when the
+package is unavailable upstream. `latest_source` identifies the registry used. Existing entries
+without `upstream_checked: true` are refreshed on the next online enrichment. Entries older than
 24 hours are stale. `--refresh` refetches everything; `--offline` reads only the cache and
 never opens a socket. Components in other ecosystems render as `not checked`.
 

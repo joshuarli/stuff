@@ -1373,14 +1373,9 @@ def _forks_panel(site: _Site) -> str:
 
 def _lane_card(row: insights.Split) -> str:
     in_use = {use.version for use in row.uses}
-    uses = row.uses if row.target in in_use else (*row.uses, insights.VersionUse(row.target, ()))
-    ordered = sorted(
-        uses,
-        key=lambda use: (
-            (parsed := insights.release(row.component.ecosystem, use.version)) is None,
-            parsed or (),
-        ),
-    )
+    ordered = tuple(reversed(row.uses))
+    if row.target not in in_use:
+        ordered += (insights.VersionUse(row.target, ()),)
     stops = [
         Stop(
             _lane_label(use.version),
@@ -1393,9 +1388,15 @@ def _lane_card(row: insights.Split) -> str:
         for use in ordered
     ]
     off_target = sorted(set(row.off_target), key=str.casefold)
+    basis = {
+        insights.TargetBasis.APPROVED_PIN: "Approved pin",
+        insights.TargetBasis.LATEST: "Latest release",
+        insights.TargetBasis.NEWEST_IN_USE: "Newest in use · latest release not confirmed",
+        insights.TargetBasis.MOST_COMMON: "Most common ref · latest release not confirmed",
+    }[row.basis]
     return ui.card(
         _package_link(row.component.purl, "", row.component.display_name),
-        ui.lane(stops) + f'<div class="card-foot">Move {_repository_names(off_target)}</div>',
+        ui.lane(stops) + f'<div class="card-foot">{basis}<br>Move {_repository_names(off_target)}</div>',
         meta=ui.note(f"{len(off_target)} off target"),
     )
 

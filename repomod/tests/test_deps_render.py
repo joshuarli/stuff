@@ -492,9 +492,15 @@ def test_choices_show_which_repositories_deviate_from_preferred(
     assert "clap_complete" in section
 
 
-def test_alignment_orders_versions_oldest_to_newest_and_marks_the_target(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("newer", "older"),
+    [("1.10.0", "1.9.0"), ("3.0.0-next.57", "3.0.0-next.9")],
+)
+def test_alignment_orders_versions_oldest_to_newest_and_marks_the_target(
+    tmp_path: Path, newer: str, older: str,
+) -> None:
     repositories = []
-    for owner, version in (("acme/new", "1.10.0"), ("acme/old", "1.9.0")):
+    for owner, version in (("acme/new", newer), ("acme/old", older)):
         package = instance(Ecosystem.CARGO, "serde", version)
         repositories.append(
             repository(
@@ -521,9 +527,10 @@ def test_alignment_orders_versions_oldest_to_newest_and_marks_the_target(tmp_pat
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
     alignment = (result.output / "alignment.html").read_text(encoding="utf-8")
     lane = alignment.split('class="lane"', 1)[1].split("</section>", 1)[0]
-    assert lane.index(">1.9.0<") < lane.index(">1.10.0<")
+    assert lane.index(f">{older}<") < lane.index(f">{newer}<")
     assert lane.count("stop-target") == 1
-    assert lane.index("stop-target") > lane.index(">1.9.0<")
+    assert lane.index("stop-target") > lane.index(f">{older}<")
+    assert "Newest in use · latest release not confirmed" in lane
 
 
 def test_coverage_shows_fixable_issues_and_only_counts_known_limits(tmp_path: Path) -> None:

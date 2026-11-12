@@ -179,7 +179,7 @@ def _parser() -> argparse.ArgumentParser:
         "enrich",
         help="fetch latest versions and vulnerabilities into the local cache",
         description=(
-            "read the inventory and query registries and OSV for resolved Cargo, "
+            "read the inventory and query upstream registries and OSV for resolved Cargo, "
             "Python, npm, and Go components; write ~/.cache/repomod/deps-enrichment.json"
         ),
     )

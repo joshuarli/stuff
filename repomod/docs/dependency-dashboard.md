@@ -57,8 +57,10 @@ one lookup surface, reached through search.
 - **Alignment** groups version drift by ecosystem, leaving out repositories that an upgrade to
   the latest release already moves. Those appear on Upgrades. Each card draws the versions from
   oldest to newest, with the target in green, and names the repositories to move.
-  The target is the approved pin, else the latest release, else the newest version in use, else
-  the most common ref for tags and commits. Docker images are compared by tag and digest combined
+  The target is the approved pin, else the newest of the upstream release and versions in use,
+  else the most common ref for tags and commits. Stale release metadata never recommends a downgrade.
+  Cards state when the latest release is unconfirmed. Docker images prefer the newest versioned
+  tag over the most common tag and are compared by tag and digest combined
   (a bare name counts as `latest`). Alpine (apk) packages follow their base image and are left
   out.
 - **Choices** shows roles where a repository must change, with one adoption bar per option and
@@ -124,6 +126,10 @@ uv run repomod deps check --strict
 uv run repomod deps enrich
 uv run repomod deps render
 ```
+
+Enrichment checks public upstream registries for current releases, consulting configured registries
+when a package is unavailable upstream. Mirrors can need refreshing before a recommended version
+is installable; `audit-upgrades` continues to check the repository's configured registry.
 
 The renderer refuses to replace a directory that lacks its `.repomod-dashboard` marker, so a
 mistyped `--output` cannot delete unrelated files.

@@ -72,12 +72,34 @@ def _cargo(name: str, version: str, source_kind: SourceKind = SourceKind.REGISTR
         ("1.4.2", "1.4.2", None),
         ("1.5.0", "1.4.2", None),
         ("git-main", "1.0.0", None),
+        ("3.0.0-next.9", "3.0.0-next.57", Gap.PATCH),
+        ("3.0.0-next.57", "3.0.0-next.9", None),
+        ("3.0.0-next.57", "3.0.0", Gap.PATCH),
+        ("3.0.0", "3.0.0-next.57", None),
     ],
 )
 def test_upgrade_gap_follows_the_leftmost_nonzero_component(
     current: str, latest: str, expected: Gap | None
 ) -> None:
     assert insights.gap(Ecosystem.CARGO, current, latest) is expected
+
+
+@pytest.mark.parametrize(
+    ("older", "newer"),
+    [
+        ("1.0.dev1", "1.0a1.dev1"),
+        ("1.0a1.dev1", "1.0a1"),
+        ("1.0rc2", "1.0rc10"),
+        ("1.0rc10", "1.0"),
+        ("1.0", "1.0.post1.dev1"),
+        ("1.0.post1.dev1", "1.0.post1"),
+        ("1.0+2", "1.0+10"),
+        ("2.0", "1!1.0"),
+    ],
+)
+def test_python_upgrade_comparison_respects_release_order(older: str, newer: str) -> None:
+    assert insights.gap(Ecosystem.PYPI, older, newer) is not None
+    assert insights.gap(Ecosystem.PYPI, newer, older) is None
 
 
 def test_outdated_ranks_breaking_upgrades_first_and_skips_current(tmp_path: Path) -> None:
@@ -448,9 +470,75 @@ def test_splits_merge_docker_digests_and_show_untagged_as_latest(tmp_path: Path)
         "3.24.2@sha256:aaa",
         "latest",
     ]
-    assert row.basis is insights.TargetBasis.MOST_COMMON
+    assert row.basis is insights.TargetBasis.NEWEST_IN_USE
     assert row.target == "3.24.2@sha256:aaa"
     assert sorted(row.off_target) == ["acme/one", "acme/three"]
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_stale_release_metadata_never_recommends_a_downgrade(tmp_path: Path, reverse: bool) -> None:
+    built = build_graph(
+        tmp_path,
+        [
+            _app("acme/old", [_cargo("cc", "1.9.0")]),
+            _app("acme/new", [_cargo("cc", "1.11.1")]),
+        ],
+    )
+    found = insights.declarations(built)
+    if reverse:
+        found = tuple(reversed(found))
+    enrichment = {
+        "pkg:cargo/cc@1.9.0": {"latest": "1.10.0"},
+        "pkg:cargo/cc@1.11.1": {"latest": "1.10.0"},
+    }
+    [split] = insights.splits(found, enrichment, pins={})
+    assert (split.target, split.basis) == ("1.11.1", insights.TargetBasis.NEWEST_IN_USE)
+    assert split.off_target == ("acme/old",)
+    [upgrade] = insights.outdated(found, enrichment)
+    assert upgrade.latest == "1.11.1"
+    assert upgrade.uses == (insights.VersionUse("1.9.0", ("acme/old",)),)
+    assert insights.drift((split,), (upgrade,)) == ()
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_latest_release_is_shared_across_partial_and_inconsistent_cache_entries(tmp_path: Path, reverse: bool) -> None:
+    built = build_graph(
+        tmp_path,
+        [
+            _app("acme/one", [_cargo("cc", "1.9.0")]),
+            _app("acme/two", [_cargo("cc", "1.10.0")]),
+            _app("acme/three", [_cargo("cc", "1.8.0")]),
+        ],
+    )
+    found = insights.declarations(built)
+    if reverse:
+        found = tuple(reversed(found))
+    enrichment = {
+        "pkg:cargo/cc@1.9.0": {"latest": "1.11.1"},
+        "pkg:cargo/cc@1.10.0": {"latest": "1.10.0"},
+    }
+    [split] = insights.splits(found, enrichment, pins={})
+    assert (split.target, split.basis) == ("1.11.1", insights.TargetBasis.LATEST)
+    [upgrade] = insights.outdated(found, enrichment)
+    assert upgrade.latest == "1.11.1"
+    assert {repo for use in upgrade.uses for repo in use.repositories} == {
+        "acme/one", "acme/two", "acme/three"
+    }
+    assert insights.drift((split,), (upgrade,)) == ()
+
+
+def test_docker_alignment_prefers_newest_tag_over_most_common(tmp_path: Path) -> None:
+    built = build_graph(
+        tmp_path,
+        [
+            _app("acme/one", [instance(Ecosystem.DOCKER, "alpine", "3.24.2", source_kind=SourceKind.IMAGE)]),
+            _app("acme/two", [instance(Ecosystem.DOCKER, "alpine", "3.24.2", source_kind=SourceKind.IMAGE)]),
+            _app("acme/three", [instance(Ecosystem.DOCKER, "alpine", "3.24.4", source_kind=SourceKind.IMAGE)]),
+        ],
+    )
+    [row] = insights.splits(insights.declarations(built), {}, pins={})
+    assert row.target == "3.24.4"
+    assert row.off_target == ("acme/one", "acme/two")
 
 
 def test_approved_action_pins_set_the_alignment_target(tmp_path: Path) -> None:

@@ -10,6 +10,7 @@ from typing import Any, cast
 import pytest
 from deps_fixtures import build_graph, instance, repository
 
+from repomod.audit import RegistrySources
 from repomod.cmd import common, deps
 from repomod.dependencies import enrich
 from repomod.dependencies.model import Ecosystem, SourceKind
@@ -72,6 +73,59 @@ def test_fetches_latest_versions_and_vulnerabilities(tmp_path: Path) -> None:
     assert serde["vulns"] == [{"id": "OSV-serde"}]
     assert serde["fetched_at"] == 1000.0
     assert "pkg:generic/rust@1.90.0" not in document["results"]
+
+
+def test_enrichment_uses_upstream_releases_and_configured_registry_for_private_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from repomod import audit
+
+    built = build_graph(tmp_path, [repository("acme/tool", (
+        instance(Ecosystem.CARGO, "cc", "1.9.0"),
+        instance(Ecosystem.NPM, "private-tool", "1.0.0"),
+    ))])
+    calls: list[tuple[str, str | None]] = []
+
+    def cargo(name: str, index: str | None = None) -> str:
+        calls.append((name, index))
+        return "1.11.1" if index is None else "1.10.0"
+
+    def npm(name: str, registry: str | None = None) -> str | None:
+        calls.append((name, registry))
+        return "2.0.0" if registry is not None else None
+
+    monkeypatch.setitem(audit._LATEST_FETCHERS, "crates", cargo)
+    monkeypatch.setitem(audit._LATEST_FETCHERS, "npm", npm)
+    monkeypatch.setattr(audit, "_latest_npm", npm)
+    sources = RegistrySources("https://mirror.test/crates/", "https://mirror.test/npm/", None)
+    report = enrich.enrich(
+        built, cache_path=tmp_path / "cache.json", now=1000.0, sources=sources, osv_fetcher=_osv,
+    )
+    assert report.cache.results["pkg:cargo/cc@1.9.0"]["latest"] == "1.11.1"
+    assert report.cache.results["pkg:cargo/cc@1.9.0"]["latest_source"] == "public"
+    assert report.cache.results["pkg:npm/private-tool@1.0.0"]["latest"] == "2.0.0"
+    assert report.cache.results["pkg:npm/private-tool@1.0.0"]["latest_source"] == sources.npm
+    assert set(calls) == {
+        ("cc", None), ("private-tool", None), ("private-tool", sources.npm),
+    }
+
+
+def test_enrichment_refreshes_legacy_mirror_targets_even_when_cache_is_fresh(tmp_path: Path) -> None:
+    built = _fixture_graph(tmp_path)
+    cache_path = tmp_path / "cache.json"
+    enrich.enrich(built, cache_path=cache_path, now=1000.0, latest_fetcher=_latest, osv_fetcher=_osv)
+    document = json.loads(cache_path.read_text(encoding="utf-8"))
+    for entry in document["results"].values():
+        entry.pop("upstream_checked", None)
+    cache_path.write_text(json.dumps(document), encoding="utf-8")
+    offline = enrich.enrich(built, cache_path=cache_path, offline=True, now=1001.0)
+    assert offline.fetched == 0
+    report = enrich.enrich(
+        built, cache_path=cache_path, now=1001.0,
+        latest_fetcher=lambda *_args: "9.9.9", osv_fetcher=_osv,
+    )
+    assert report.fetched == 4
+    assert all(entry["latest"] == "9.9.9" for entry in report.cache.results.values())
 
 
 def test_fresh_cache_is_not_refetched(tmp_path: Path) -> None:

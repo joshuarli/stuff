@@ -220,7 +220,7 @@ def owned(graph: Graph, found: Iterable[Declaration]) -> tuple[Declaration, ...]
 def gap(ecosystem: Ecosystem, current: str, latest: str) -> Gap | None:
     have = release(ecosystem, current)
     want = release(ecosystem, latest)
-    if have is None or want is None or have >= want:
+    if have is None or want is None or _release_key(ecosystem, current) >= _release_key(ecosystem, latest):
         return None
     width = max(len(have), len(want), 3)
     have = have + (0,) * (width - len(have))
@@ -260,13 +260,16 @@ def release(ecosystem: Ecosystem, version: str) -> tuple[int, ...] | None:
 def outdated(
     found: Iterable[Declaration], enrichment: Mapping[str, Mapping[str, object]]
 ) -> tuple[Outdated, ...]:
+    found = tuple(found)
+    targets = _latest_releases(found, enrichment)
     behind: dict[tuple[Ecosystem, str], dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     latest_of: dict[tuple[Ecosystem, str], str] = {}
     components: dict[tuple[Ecosystem, str], Component] = {}
     for declaration in found:
-        latest = _latest(enrichment, declaration.instance)
-        if latest is None:
+        target = targets.get((declaration.component.ecosystem, declaration.component.name))
+        if target is None:
             continue
+        latest = target[0]
         if gap(declaration.component.ecosystem, declaration.version, latest) is None:
             continue
         key = (declaration.component.ecosystem, declaration.component.name)
@@ -378,9 +381,10 @@ def splits(
     *,
     pins: Mapping[str, str],
 ) -> tuple[Split, ...]:
+    found = tuple(found)
+    targets = _latest_releases(found, enrichment)
     versions: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     components: dict[str, Component] = {}
-    latest_of: dict[str, str] = {}
     for declaration in found:
         if declaration.component.ecosystem in _UNALIGNED_ECOSYSTEMS:
             continue
@@ -398,9 +402,6 @@ def splits(
                 declaration.component.display_name.split("?", 1)[0],
             )
         versions[purl][declaration.version].add(declaration.repository)
-        latest = _latest(enrichment, declaration.instance)
-        if latest is not None:
-            latest_of[purl] = latest
     rows = []
     for purl, by_version in versions.items():
         component = components[purl]
@@ -413,9 +414,8 @@ def splits(
         repositories = {repository for found in by_version.values() for repository in found}
         if len(by_version) < 2 or len(repositories) < 2:
             continue
-        latest = latest_of.get(purl)
-        target, basis = (
-            (latest, TargetBasis.LATEST) if latest is not None else _fallback_target(component, uses)
+        target, basis = targets.get(
+            (component.ecosystem, component.name), _fallback_target(component, uses)
         )
         rows.append(Split(component, target, basis, uses))
     return tuple(
@@ -437,7 +437,7 @@ def drift(split_rows: Iterable[Split], outdated_rows: Iterable[Outdated]) -> tup
             behind[(row.component.ecosystem, row.component.name)].update(use.repositories)
     remaining = []
     for row in split_rows:
-        if row.basis is not TargetBasis.LATEST:
+        if row.basis not in {TargetBasis.LATEST, TargetBasis.NEWEST_IN_USE}:
             remaining.append(row)
             continue
         moved = behind[(row.component.ecosystem, row.component.name)]
@@ -545,6 +545,63 @@ def _latest(enrichment: Mapping[str, Mapping[str, object]], instance: Instance) 
     return latest if isinstance(latest, str) else None
 
 
+def _release_key(ecosystem: Ecosystem, version: str) -> tuple[tuple[int, ...], int, tuple[tuple[int, int, str], ...]]:
+    parsed = release(ecosystem, version)
+    if parsed is None:
+        return (), 0, ()
+    while len(parsed) > 1 and parsed[-1] == 0:
+        parsed = parsed[:-1]
+    if ecosystem is Ecosystem.PYPI:
+        value = Version(version)
+        parsed = (value.epoch, *parsed)
+        stage = (
+            -1 if value.dev is not None and value.pre is None and value.post is None
+            else int(value.pre is None)
+        )
+        local = tuple(
+            (1, int(part), "") if part.isdigit() else (0, 0, part)
+            for part in (value.local or "").split(".")
+        )
+        return parsed, stage, (
+            (1, 0, value.pre[0] if value.pre else ""),
+            (0, value.pre[1] if value.pre else 0, ""),
+            (0, value.post if value.post is not None else -1, ""),
+            (int(value.dev is None), value.dev or 0, ""),
+            (int(value.local is not None), 0, ""),
+            *local,
+        )
+    base = version.split("@", 1)[0].split("+", 1)[0]
+    _, separator, prerelease = base.partition("-")
+    parts = prerelease.split(".")
+    identifiers = tuple(
+        (0, int(part), "") if part.isdigit() else (1, 0, part)
+        for part in parts
+        if part
+    )
+    return parsed, int(not separator), identifiers
+
+
+def _latest_releases(
+    found: tuple[Declaration, ...], enrichment: Mapping[str, Mapping[str, object]]
+) -> dict[tuple[Ecosystem, str], tuple[str, TargetBasis]]:
+    candidates: dict[tuple[Ecosystem, str], set[str]] = defaultdict(set)
+    published: dict[tuple[Ecosystem, str], set[str]] = defaultdict(set)
+    for declaration in found:
+        ecosystem = declaration.component.ecosystem
+        key = ecosystem, declaration.component.name
+        candidates[key].add(declaration.version)
+        latest = _latest(enrichment, declaration.instance)
+        if latest is not None:
+            candidates[key].add(latest)
+            published[key].add(latest)
+    targets = {}
+    for key, releases in published.items():
+        newest = max(candidates[key], key=lambda version: (_release_key(key[0], version), version))
+        basis = TargetBasis.LATEST if newest in releases else TargetBasis.NEWEST_IN_USE
+        targets[key] = newest, basis
+    return targets
+
+
 def _advisories(entry: Mapping[str, object] | None) -> tuple[str, ...]:
     vulns = entry.get("vulns") if entry is not None else None
     if not isinstance(vulns, list):
@@ -561,15 +618,13 @@ def _advisories(entry: Mapping[str, object] | None) -> tuple[str, ...]:
 def _fallback_target(
     component: Component, uses: tuple[VersionUse, ...]
 ) -> tuple[str, TargetBasis]:
-    if component.ecosystem is Ecosystem.DOCKER:
-        floating = {"latest", "edge", "master", "main", "stable", "current"}
-        pinned = [use for use in uses if use.version.split("@", 1)[0] not in floating]
-        pool = pinned or list(uses)
-        common = max(pool, key=lambda use: (len(use.repositories), use.version))
-        return common.version, TargetBasis.MOST_COMMON
     comparable = [use for use in uses if release(component.ecosystem, use.version) is not None]
     if comparable:
-        return comparable[0].version, TargetBasis.NEWEST_IN_USE
+        newest = max(
+            comparable,
+            key=lambda use: (_release_key(component.ecosystem, use.version), len(use.repositories), use.version),
+        )
+        return newest.version, TargetBasis.NEWEST_IN_USE
     common = max(uses, key=lambda use: (len(use.repositories), use.version))
     return common.version, TargetBasis.MOST_COMMON
 
@@ -602,7 +657,7 @@ def _uses(component: Component, versions: Mapping[str, set[str]]) -> tuple[Versi
         VersionUse(version, _sorted(repositories))
         for version, repositories in sorted(
             versions.items(),
-            key=lambda item: release(component.ecosystem, item[0]) or (),
+            key=lambda item: _release_key(component.ecosystem, item[0]),
             reverse=True,
         )
     )

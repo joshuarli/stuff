@@ -124,10 +124,12 @@ def enrich(
             refresh
             or item.purl not in cache.results
             or not is_fresh(cache.results[item.purl], current)
+            or cache.results[item.purl].get("upstream_checked") is not True
         )
     ]
     registry = sources if sources is not None else registry_sources()
     latest_map: dict[tuple[str, str], str | None] = {}
+    latest_sources: dict[tuple[str, str], str] = {}
     vulns_map: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     errors: tuple[str, ...] = ()
     if pending:
@@ -144,8 +146,25 @@ def enrich(
             cache={},
             now=current,
             fetcher=latest_fetcher,
-            sources=registry,
         )
+        latest_sources = {
+            key: _source_for(RegistrySources(None, None, None), key[0]) for key in latest_map
+        }
+        missing = [
+            item for key, item in latest_items.items()
+            if latest_map.get(key) is None and _source_for(registry, item.ecosystem) != latest_sources.get(key)
+        ]
+        if missing and latest_fetcher is None:
+            configured = resolve_latest(
+                missing,
+                offline=False,
+                refresh=True,
+                cache={},
+                now=current,
+                sources=registry,
+            )
+            latest_map.update(configured)
+            latest_sources.update({key: _source_for(registry, key[0]) for key in configured})
         try:
             vulns_map = resolve_vulns(
                 [LockedDependency(item.ecosystem, item.name, item.version, True) for item in pending],
@@ -160,7 +179,8 @@ def enrich(
             continue
         results[item.purl] = {
             "latest": latest_map.get((item.ecosystem, item.name)),
-            "latest_source": _source_for(registry, item.ecosystem),
+            "latest_source": latest_sources.get((item.ecosystem, item.name)),
+            "upstream_checked": True,
             "vulns": vulns_map.get((item.ecosystem, item.name, item.version), []),
             "fetched_at": current,
         }
