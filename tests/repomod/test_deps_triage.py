@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from repomod.dependencies import insights, triage
-from repomod.dependencies.insights import Gap
 from repomod.dependencies.model import Component, Ecosystem
 from repomod.dependencies.triage import ActionKind
 
@@ -26,7 +25,6 @@ def _vulnerable(
 
 def _outdated(
     name: str,
-    gap: Gap,
     repositories: tuple[str, ...],
     *,
     ecosystem: Ecosystem = Ecosystem.CARGO,
@@ -34,7 +32,6 @@ def _outdated(
     return insights.Outdated(
         _component(name, ecosystem),
         "9.0.0",
-        gap,
         (insights.VersionUse("1.0.0", repositories),),
     )
 
@@ -121,11 +118,11 @@ def test_vulnerable_only_through_the_lockfile_points_at_the_lockfile() -> None:
     assert found[0].change == "1.0.0 → 2.0.0"
 
 
-def test_minor_and_patch_upgrades_collapse_into_one_command() -> None:
+def test_upgrades_collapse_into_one_command() -> None:
     found = _actions(
         outdated=(
-            _outdated("a", Gap.MINOR, ("acme/one",)),
-            _outdated("b", Gap.PATCH, ("acme/one", "acme/two")),
+            _outdated("a", ("acme/one",)),
+            _outdated("b", ("acme/one", "acme/two")),
         )
     )
     assert len(found) == 1
@@ -134,27 +131,28 @@ def test_minor_and_patch_upgrades_collapse_into_one_command() -> None:
     assert found[0].command == "uv run repomod fix --rule audit-upgrades"
 
 
-def test_pinned_python_tools_are_one_action_not_breaking_upgrades() -> None:
+def test_pinned_python_tools_are_one_action_apart_from_upgrades() -> None:
     found = _actions(
         outdated=(
-            _outdated("ruff", Gap.BREAKING, ("acme/one",), ecosystem=Ecosystem.PYPI),
-            _outdated("ty", Gap.BREAKING, ("acme/two",), ecosystem=Ecosystem.PYPI),
-            _outdated("ruff", Gap.BREAKING, ("acme/crate",)),
+            _outdated("ruff", ("acme/one",), ecosystem=Ecosystem.PYPI),
+            _outdated("ty", ("acme/two",), ecosystem=Ecosystem.PYPI),
+            _outdated("ruff", ("acme/crate",)),
         )
     )
     assert [(action.kind, action.subject) for action in found] == [
-        (ActionKind.BREAKING, "ruff"),
         (ActionKind.TOOLING, "ruff, ty"),
+        (ActionKind.ROUTINE, "1 upgrade"),
     ]
-    assert found[1].command == "uv run repomod fix --rule python-standard"
+    assert found[1].repositories == ("acme/crate",)
+    assert found[0].command == "uv run repomod fix --rule python-standard"
 
 
 def test_actions_rank_by_urgency_then_repositories_fixed() -> None:
     found = _actions(
         vulnerable=(_vulnerable("vuln", "1.0.0", "2.0.0", direct=("acme/one",)),),
         outdated=(
-            _outdated("narrow", Gap.BREAKING, ("acme/one",)),
-            _outdated("wide", Gap.BREAKING, ("acme/one", "acme/two")),
+            _outdated("narrow", ("acme/one",)),
+            _outdated("wide", ("acme/one", "acme/two")),
         ),
         unreadable=("acme/gone",),
         missing_locks=("acme/one",),
@@ -163,6 +161,5 @@ def test_actions_rank_by_urgency_then_repositories_fixed() -> None:
         (ActionKind.SECURITY, "vuln"),
         (ActionKind.UNREADABLE, "Unreadable checkouts"),
         (ActionKind.LOCKFILE, "Missing lockfiles"),
-        (ActionKind.BREAKING, "wide"),
-        (ActionKind.BREAKING, "narrow"),
+        (ActionKind.ROUTINE, "2 upgrades"),
     ]

@@ -24,16 +24,6 @@ _LOCAL_SOURCES = frozenset({SourceKind.PATH, SourceKind.WORKSPACE})
 _UNALIGNED_ECOSYSTEMS = frozenset({Ecosystem.APK})
 
 
-class Gap(Enum):
-    BREAKING = "breaking"
-    MINOR = "minor"
-    PATCH = "patch"
-
-    @property
-    def rank(self) -> int:
-        return {Gap.BREAKING: 0, Gap.MINOR: 1, Gap.PATCH: 2}[self]
-
-
 @dataclass(frozen=True, slots=True)
 class Declaration:
     repository: str
@@ -53,7 +43,6 @@ class VersionUse:
 class Outdated:
     component: Component
     latest: str
-    gap: Gap
     uses: tuple[VersionUse, ...]
 
     @property
@@ -156,7 +145,6 @@ class Scorecard:
     repository: str
     vulnerable: int
     behind: int
-    breaking: int
     off_target: int
     mixed_roles: tuple[str, ...]
     off_preferred: tuple[str, ...]
@@ -166,7 +154,6 @@ class Scorecard:
     def rank(self) -> tuple[int, ...]:
         return (
             -self.vulnerable,
-            -self.breaking,
             -self.behind,
             -self.off_target,
             -len(self.mixed_roles) - len(self.off_preferred),
@@ -217,20 +204,10 @@ def owned(graph: Graph, found: Iterable[Declaration]) -> tuple[Declaration, ...]
     return tuple(declaration for declaration in found if declaration.repository not in upstream)
 
 
-def gap(ecosystem: Ecosystem, current: str, latest: str) -> Gap | None:
-    have = release(ecosystem, current)
-    want = release(ecosystem, latest)
-    if have is None or want is None or _release_key(ecosystem, current) >= _release_key(ecosystem, latest):
-        return None
-    width = max(len(have), len(want), 3)
-    have = have + (0,) * (width - len(have))
-    want = want + (0,) * (width - len(want))
-    significant = next((index for index, part in enumerate(have) if part), len(have) - 1)
-    if have[: significant + 1] != want[: significant + 1]:
-        return Gap.BREAKING
-    if have[: significant + 2] != want[: significant + 2]:
-        return Gap.MINOR
-    return Gap.PATCH
+def is_behind(ecosystem: Ecosystem, current: str, latest: str) -> bool:
+    if release(ecosystem, current) is None or release(ecosystem, latest) is None:
+        return False
+    return _release_key(ecosystem, current) < _release_key(ecosystem, latest)
 
 
 def release(ecosystem: Ecosystem, version: str) -> tuple[int, ...] | None:
@@ -270,23 +247,17 @@ def outdated(
         if target is None:
             continue
         latest = target[0]
-        if gap(declaration.component.ecosystem, declaration.version, latest) is None:
+        if not is_behind(declaration.component.ecosystem, declaration.version, latest):
             continue
         key = (declaration.component.ecosystem, declaration.component.name)
         components.setdefault(key, declaration.component)
         latest_of[key] = latest
         behind[key][declaration.version].add(declaration.repository)
-    rows = []
-    for key, versions in behind.items():
-        component = components[key]
-        worst = min(
-            (cast(Gap, gap(component.ecosystem, version, latest_of[key])) for version in versions),
-            key=lambda item: item.rank,
-        )
-        rows.append(Outdated(component, latest_of[key], worst, _uses(component, versions)))
-    return tuple(
-        sorted(rows, key=lambda row: (row.gap.rank, -row.repositories, row.component.name.casefold()))
-    )
+    rows = [
+        Outdated(components[key], latest_of[key], _uses(components[key], versions))
+        for key, versions in behind.items()
+    ]
+    return tuple(sorted(rows, key=lambda row: (-row.repositories, row.component.name.casefold())))
 
 
 def vulnerable(
@@ -499,14 +470,10 @@ def scorecards(
         for repository in {*row.direct_in, *row.transitive_in}:
             vulnerable_count[repository] += 1
     behind: dict[str, int] = defaultdict(int)
-    breaking: dict[str, int] = defaultdict(int)
     for row in outdated_rows:
         for use in row.uses:
-            severity = gap(row.component.ecosystem, use.version, row.latest)
             for repository in use.repositories:
                 behind[repository] += 1
-                if severity is Gap.BREAKING:
-                    breaking[repository] += 1
     off_target: dict[str, int] = defaultdict(int)
     for row in split_rows:
         for repository in set(row.off_target):
@@ -528,7 +495,6 @@ def scorecards(
             repository,
             vulnerable_count[repository],
             behind[repository],
-            breaking[repository],
             off_target[repository],
             tuple(sorted(mixed[repository])),
             tuple(sorted(off_preferred[repository])),

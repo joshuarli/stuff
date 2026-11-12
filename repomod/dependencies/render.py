@@ -51,8 +51,7 @@ _STATUS_TONES = {
 _CLEAN_TIER = "Clean"
 _TIERS = (
     ("Vulnerable", "Security issues first"),
-    ("Breaking upgrades", "No known vulnerabilities, but breaking upgrades are waiting"),
-    ("Maintenance", "Routine upgrades, version drift, or role conflicts"),
+    ("Maintenance", "Upgrades, version drift, or role conflicts"),
 )
 _BLOAT_ROWS = 150
 _CONSUMER_ROWS = 20
@@ -60,7 +59,6 @@ _KIND_LABELS = {
     ActionKind.SECURITY: ("Security", Tone.BAD),
     ActionKind.UNREADABLE: ("Unreadable", Tone.BAD),
     ActionKind.LOCKFILE: ("Lockfile", Tone.WARN),
-    ActionKind.BREAKING: ("Breaking", Tone.WARN),
     ActionKind.TOOLING: ("Tooling", Tone.NEUTRAL),
     ActionKind.ROUTINE: ("Routine", Tone.NEUTRAL),
 }
@@ -320,8 +318,6 @@ def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
     security = _of_kind(site, ActionKind.SECURITY)
     blocked = sum(1 for action in security if action.blocked)
     affected = len({name for action in security for name in action.repositories})
-    breaking = sum(1 for row in site.outdated if row.gap is insights.Gap.BREAKING)
-    routine = len(site.outdated) - breaking
     locks = _of_kind(site, ActionKind.LOCKFILE)
     missing = len(locks[0].repositories) if locks else 0
     contested = _contested_roles(site)
@@ -335,11 +331,11 @@ def _overview_tiles(site: _Site) -> tuple[Tile, ...]:
             Tone.BAD if security else None,
         ),
         Tile(
-            str(breaking) if checked else "—",
-            "Breaking upgrades",
-            f"plus {routine} minor and patch" if checked else "not checked",
+            str(len(site.outdated)) if checked else "—",
+            "Upgrades",
+            "direct dependencies behind" if checked else "not checked",
             "outdated.html",
-            Tone.WARN if breaking else None,
+            None,
         ),
         Tile(
             str(missing),
@@ -502,7 +498,6 @@ def _overview(site: _Site) -> str:
         body.append(_work_panel(site))
         body.extend(_security_groups(security))
         body.append(_command_group(site))
-        body.append(_plan_group(site))
     exposed = sum(1 for count in _fork_exposure(site).values() if count)
     if exposed:
         body.append(
@@ -517,8 +512,7 @@ def _overview(site: _Site) -> str:
 def _work_parts(card: insights.Scorecard) -> tuple[Segment, ...]:
     return (
         Segment("Vulnerable", card.vulnerable, Mark.BAD),
-        Segment("Breaking", card.breaking, Mark.WARN),
-        Segment("Minor and patch", card.behind - card.breaking, Mark.GHOST),
+        Segment("Upgrades", card.behind, Mark.GHOST),
     )
 
 
@@ -526,7 +520,7 @@ def _work_total(card: insights.Scorecard) -> int:
     return sum(part.value for part in _work_parts(card))
 
 
-_WORK_LEGEND = (("Vulnerable", Mark.BAD), ("Breaking", Mark.WARN), ("Minor and patch", Mark.GHOST))
+_WORK_LEGEND = (("Vulnerable", Mark.BAD), ("Upgrades", Mark.GHOST))
 
 
 def _work_panel(site: _Site) -> str:
@@ -635,35 +629,9 @@ def _command_card(action: triage.Action) -> str:
     )
 
 
-def _plan_group(site: _Site) -> str:
-    actions = _of_kind(site, ActionKind.BREAKING)
-    if not actions:
-        return ""
-    scale = max(len(action.repositories) for action in actions)
-    bars = [
-        Bar(
-            _package_link(action.purl, "", action.subject) if action.purl is not None else _e(action.subject),
-            (Segment("Repositories", len(action.repositories), Mark.WARN),),
-            note=_e(action.change),
-            tip=", ".join(_short_repository(name) for name in action.repositories),
-        )
-        for action in actions
-    ]
-    return ui.group(
-        "Plan",
-        '<div class="ui-panel"><div class="ui-panel-body">'
-        + ui.scope(ui.bar_list(bars, scale, "Breaking upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
-        + "</div></div>",
-        count=len(actions),
-        note="Breaking upgrades by repositories affected. These usually need a manifest edit.",
-    )
-
-
 def _tier(card: insights.Scorecard) -> str:
     if card.vulnerable:
         return "Vulnerable"
-    if card.breaking:
-        return "Breaking upgrades"
     if any(card.rank):
         return "Maintenance"
     return _CLEAN_TIER
@@ -748,68 +716,39 @@ def _outdated(site: _Site) -> str:
     body.append(_ecosystem_upgrades_panel(site))
     body.append(
         ui.notice(
-            f'Apply minor and patch upgrades with <span class="mono">{triage.ROUTINE_COMMAND}</span>, which '
+            f'Apply upgrades with <span class="mono">{triage.ROUTINE_COMMAND}</span>, which '
             "opens one pull request per repository."
         )
     )
     scale = max(row.repositories for row in site.outdated)
-    for gap, note in (
-        (insights.Gap.BREAKING, "Changes the leftmost nonzero version part. Usually needs a manifest edit."),
-        (insights.Gap.MINOR, "Compatible new features"),
-        (insights.Gap.PATCH, "Compatible fixes"),
-    ):
-        rows = sorted(
-            (row for row in site.outdated if row.gap is gap),
-            key=lambda row: (-row.repositories, row.component.name.casefold()),
+    bars = [_upgrade_bar(row) for row in site.outdated]
+    listing = ui.scope(ui.bar_list(bars, scale, "Upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
+    body.append(
+        ui.group(
+            "Upgrades",
+            f'<div class="ui-panel"><div class="ui-panel-body">{listing}</div></div>',
+            count=len(site.outdated),
+            note="Direct dependencies by repositories affected",
+            group_id="upgrades",
         )
-        if not rows:
-            continue
-        bars = [_upgrade_bar(row) for row in rows]
-        listing = ui.scope(ui.bar_list(bars, scale, f"{gap.value} upgrades"), limit=_PREVIEW_ROWS, total=len(bars))
-        title = f"{gap.value.capitalize()} upgrades"
-        body.append(
-            ui.group(
-                title,
-                f'<div class="ui-panel"><div class="ui-panel-body">{listing}</div></div>',
-                count=len(rows),
-                note=note,
-                group_id=gap.value,
-            )
-        )
+    )
     return "\n".join(body)
 
 
 def _ecosystem_upgrades_panel(site: _Site) -> str:
-    counts: dict[Ecosystem, Counter[insights.Gap]] = defaultdict(Counter)
-    for row in site.outdated:
-        counts[row.component.ecosystem][row.gap] += 1
-    ordered = sorted(counts.items(), key=lambda item: (-sum(item[1].values()), item[0].value))
-    scale = max(sum(value.values()) for _ecosystem, value in ordered)
-    bars = [
-        Bar(
-            _e(ecosystem.value),
-            (
-                Segment("Breaking", value[insights.Gap.BREAKING], Mark.WARN),
-                Segment("Minor", value[insights.Gap.MINOR], Mark.ACCENT),
-                Segment("Patch", value[insights.Gap.PATCH], Mark.GHOST),
-            ),
-        )
-        for ecosystem, value in ordered
-    ]
-    return ui.panel(
-        "By ecosystem",
-        ui.legend((("Breaking", Mark.WARN), ("Minor", Mark.ACCENT), ("Patch", Mark.GHOST)))
-        + ui.bar_list(bars, scale, "Upgrades by ecosystem"),
-    )
+    counts = Counter(row.component.ecosystem for row in site.outdated)
+    ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0].value))
+    scale = max(counts.values())
+    bars = [Bar(_e(ecosystem.value), (Segment("Upgrades", count, Mark.ACCENT),)) for ecosystem, count in ordered]
+    return ui.panel("By ecosystem", ui.bar_list(bars, scale, "Upgrades by ecosystem"))
 
 
 def _upgrade_bar(row: insights.Outdated) -> Bar:
     versions = ", ".join(use.version for use in row.uses)
     names = sorted(_short_repository(name) for use in row.uses for name in use.repositories)
-    mark = {insights.Gap.BREAKING: Mark.WARN, insights.Gap.MINOR: Mark.ACCENT, insights.Gap.PATCH: Mark.GHOST}[row.gap]
     return Bar(
         _package_link(row.component.purl, "", row.component.display_name),
-        (Segment("Repositories", row.repositories, mark),),
+        (Segment("Repositories", row.repositories, Mark.ACCENT),),
         note=f"{_e(versions)} → {_e(row.latest)}",
         tip=", ".join(names),
     )
@@ -1173,17 +1112,14 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
         for row in site.vulnerable
         if name in row.direct_in or name in row.transitive_in
     ]
-    breaking: list[Line] = []
-    routine: list[Line] = []
+    upgrades: list[Line] = []
     behind: set[str] = set()
     for row in site.outdated:
         for use in row.uses:
             if name not in use.repositories:
                 continue
             behind.add(row.component.purl)
-            severity = insights.gap(row.component.ecosystem, use.version, row.latest)
-            target = breaking if severity is insights.Gap.BREAKING else routine
-            target.append(
+            upgrades.append(
                 Line(
                     _package_link(row.component.purl, prefix, row.component.display_name),
                     f"{_e(use.version)} → {_e(row.latest)}",
@@ -1211,8 +1147,7 @@ def _repository_todo(site: _Site, name: str) -> list[tuple[str, Tone, list[Line]
         (title, tone, lines)
         for title, tone, lines in (
             ("Security", Tone.BAD, security),
-            ("Breaking upgrades", Tone.WARN, breaking),
-            ("Minor and patch upgrades", Tone.NEUTRAL, routine),
+            ("Upgrades", Tone.NEUTRAL, upgrades),
             ("Version drift", Tone.NEUTRAL, drift),
             ("Role conflicts", Tone.NEUTRAL, roles),
             ("Coverage", Tone.WARN, coverage),
@@ -1330,8 +1265,7 @@ def _repository_status_panel(site: _Site, name: str) -> str:
 def _repository_card(card: insights.Scorecard, scale: int) -> str:
     extras = [
         (card.vulnerable, "vulnerable"),
-        (card.breaking, "breaking"),
-        (card.behind - card.breaking, "minor or patch"),
+        (card.behind, "behind"),
     ]
     summary = " · ".join(f"{count} {label}" for count, label in extras if count)
     roles = len({*card.mixed_roles, *card.off_preferred})
@@ -1640,7 +1574,6 @@ def _repository(site: _Site, name: str) -> str:
                         "#todo",
                         Tone.BAD if card.vulnerable else None,
                     ),
-                    Tile(str(card.breaking), "Breaking", "upgrades", "#todo", Tone.WARN if card.breaking else None),
                     Tile(str(card.behind), "Behind", "direct dependencies", "#todo"),
                     Tile(str(card.off_target), "Off target", "version drift", "#todo"),
                 )

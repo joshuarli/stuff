@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 from repomod.dependencies import insights
-from repomod.dependencies.insights import Gap
 from repomod.dependencies.model import Component, Ecosystem
 
 _ADVISORIES_SHOWN = 2
@@ -18,7 +17,6 @@ class ActionKind(Enum):
     SECURITY = "security"
     UNREADABLE = "unreadable"
     LOCKFILE = "lockfile"
-    BREAKING = "breaking"
     TOOLING = "tooling"
     ROUTINE = "routine"
 
@@ -55,13 +53,8 @@ def actions(
     }
     found = [
         *_security(vulnerable, forks),
-        *_upgrades(
-            [row for row in outdated if row.gap is Gap.BREAKING and not is_tool[row.component.purl]],
-        ),
         *_tooling([row for row in outdated if is_tool[row.component.purl]]),
-        *_routine(
-            [row for row in outdated if row.gap is not Gap.BREAKING and not is_tool[row.component.purl]]
-        ),
+        *_routine([row for row in outdated if not is_tool[row.component.purl]]),
     ]
     if unreadable:
         found.append(
@@ -163,19 +156,6 @@ def _upgrade_target(
     return latest
 
 
-def _upgrades(rows: Sequence[insights.Outdated]) -> Iterable[Action]:
-    for row in rows:
-        yield Action(
-            ActionKind.BREAKING,
-            row.component.display_name,
-            row.component.purl,
-            f"{_versions(row)} → {row.latest}",
-            f"Breaking upgrade in {row.component.ecosystem.value}",
-            _repositories([row]),
-            "Edit the requirement and migrate",
-        )
-
-
 def _tooling(rows: Sequence[insights.Outdated]) -> Iterable[Action]:
     if rows:
         yield Action(
@@ -194,18 +174,14 @@ def _routine(rows: Sequence[insights.Outdated]) -> Iterable[Action]:
     if rows:
         yield Action(
             ActionKind.ROUTINE,
-            f"{len(rows)} minor and patch upgrades",
+            f"{len(rows)} upgrade" if len(rows) == 1 else f"{len(rows)} upgrades",
             None,
             "",
-            "Compatible updates, applied one pull request per repository",
+            "Applied one pull request per repository",
             _repositories(rows),
             "Run the fixer, which opens pull requests",
             ROUTINE_COMMAND,
         )
-
-
-def _versions(row: insights.Outdated) -> str:
-    return ", ".join(use.version for use in row.uses)
 
 
 def _repositories(rows: Iterable[insights.Outdated]) -> tuple[str, ...]:

@@ -38,12 +38,11 @@ Overview.
 
 - **To do** (`index.html`) starts with open work per repository, then groups each change once:
   **Fix now** for vulnerable packages with a clean upgrade, **Decide** for those without one,
-  **Clear in one pass** for lockfiles, pinned Python tools, and all minor and patch upgrades, and
-  **Plan** for breaking upgrades by repositories affected. Forks are left out. `triage.py` builds
-  this list.
-- **Repositories** groups repositories with work to do as Vulnerable, Breaking upgrades, or
-  Maintenance, with bars on one scale. Clean repositories are a count. Forks appear only when
-  they carry vulnerable versions. With `--status`, a Status group comes first: one card for each
+  and **Clear in one pass** for lockfiles, pinned Python tools, and all upgrades. Forks are left
+  out. `triage.py` builds this list.
+- **Repositories** groups repositories with work to do as Vulnerable or Maintenance, with bars
+  on one scale. Clean repositories are a count. Forks appear only when they carry vulnerable
+  versions. With `--status`, a Status group comes first: one card for each
   repository, forks included, with whatever `repomod status` flags (CI and workflows, releases,
   upstreams, pull request conflicts, and local checkout state), most failures first. A pulsing dot
   marks CI or a workflow that was running when the page was rendered.
@@ -68,9 +67,9 @@ Overview.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest
   release counts as a clean upgrade only when it is newer than the vulnerable version and has no
   advisories of its own. Forks with vulnerable versions sit in a collapsed panel.
-- **Upgrades** (`outdated.html`) charts upgrades by ecosystem, then groups them as breaking,
-  minor, and patch, with bars for repositories affected. A breaking upgrade changes the leftmost
-  nonzero version component. Needs `repomod deps enrich`.
+- **Upgrades** (`outdated.html`) charts upgrades by ecosystem, then lists them with bars for
+  repositories affected. Upgrades are not classified by version component, because packages do not
+  reliably follow semver. Needs `repomod deps enrich`.
 - **Alignment** groups version drift by ecosystem, leaving out repositories that an upgrade to
   the latest release already moves. Those appear on Upgrades. Each card draws the versions from
   oldest to newest, with the target in green, and names the repositories to move.

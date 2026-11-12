@@ -8,7 +8,6 @@ from deps_fixtures import build_graph, instance, project, repository
 
 from repomod import dependency_roles
 from repomod.dependencies import insights
-from repomod.dependencies.insights import Gap
 from repomod.dependencies.model import (
     Component,
     Ecosystem,
@@ -63,25 +62,20 @@ def _cargo(name: str, version: str, source_kind: SourceKind = SourceKind.REGISTR
 @pytest.mark.parametrize(
     ("current", "latest", "expected"),
     [
-        ("0.22.1", "0.23.1", Gap.BREAKING),
-        ("1.4.0", "2.0.0", Gap.BREAKING),
-        ("0.0.91", "0.0.95", Gap.BREAKING),
-        ("1.4.0", "1.5.0", Gap.MINOR),
-        ("0.2.2", "0.2.3", Gap.MINOR),
-        ("1.4.0", "1.4.2", Gap.PATCH),
-        ("1.4.2", "1.4.2", None),
-        ("1.5.0", "1.4.2", None),
-        ("git-main", "1.0.0", None),
-        ("3.0.0-next.9", "3.0.0-next.57", Gap.PATCH),
-        ("3.0.0-next.57", "3.0.0-next.9", None),
-        ("3.0.0-next.57", "3.0.0", Gap.PATCH),
-        ("3.0.0", "3.0.0-next.57", None),
+        ("0.0.99", "0.0.101", True),
+        ("0.4.0", "0.5.0", True),
+        ("1.4.0", "1.4.2", True),
+        ("1.4.2", "1.4.2", False),
+        ("1.5.0", "1.4.2", False),
+        ("git-main", "1.0.0", False),
+        ("3.0.0-next.9", "3.0.0-next.57", True),
+        ("3.0.0-next.57", "3.0.0-next.9", False),
+        ("3.0.0-next.57", "3.0.0", True),
+        ("3.0.0", "3.0.0-next.57", False),
     ],
 )
-def test_upgrade_gap_follows_the_leftmost_nonzero_component(
-    current: str, latest: str, expected: Gap | None
-) -> None:
-    assert insights.gap(Ecosystem.CARGO, current, latest) is expected
+def test_is_behind_compares_release_order(current: str, latest: str, expected: bool) -> None:
+    assert insights.is_behind(Ecosystem.CARGO, current, latest) is expected
 
 
 @pytest.mark.parametrize(
@@ -98,11 +92,11 @@ def test_upgrade_gap_follows_the_leftmost_nonzero_component(
     ],
 )
 def test_python_upgrade_comparison_respects_release_order(older: str, newer: str) -> None:
-    assert insights.gap(Ecosystem.PYPI, older, newer) is not None
-    assert insights.gap(Ecosystem.PYPI, newer, older) is None
+    assert insights.is_behind(Ecosystem.PYPI, older, newer)
+    assert not insights.is_behind(Ecosystem.PYPI, newer, older)
 
 
-def test_outdated_ranks_breaking_upgrades_first_and_skips_current(tmp_path: Path) -> None:
+def test_outdated_ranks_by_repositories_and_skips_current(tmp_path: Path) -> None:
     graph = build_graph(
         tmp_path,
         [
@@ -116,9 +110,9 @@ def test_outdated_ranks_breaking_upgrades_first_and_skips_current(tmp_path: Path
         "pkg:cargo/serde@1.0.200": {"latest": "1.0.200"},
     }
     rows = insights.outdated(insights.declarations(graph), enrichment)
-    assert [(row.component.name, row.gap, row.repositories) for row in rows] == [
-        ("base64", Gap.BREAKING, 1),
-        ("log", Gap.MINOR, 2),
+    assert [(row.component.name, row.repositories) for row in rows] == [
+        ("log", 2),
+        ("base64", 1),
     ]
 
 
@@ -415,7 +409,7 @@ def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) ->
     assert exposed.vulnerable == 1
     assert exposed.heaviest is not None
     assert exposed.heaviest.component.name == "hyper"
-    assert (stale.behind, stale.breaking, stale.off_target) == (1, 1, 1)
+    assert (stale.behind, stale.off_target) == (1, 1)
     assert stale.off_preferred == ("cli",)
     assert (calm.vulnerable, calm.behind, calm.off_target, calm.heaviest) == (0, 0, 0, None)
 
@@ -623,7 +617,7 @@ def _split(basis: insights.TargetBasis, target: str, uses: tuple[insights.Versio
 
 def _behind(*uses: insights.VersionUse) -> insights.Outdated:
     return insights.Outdated(
-        Component("pkg:cargo/zstd", Ecosystem.CARGO, "zstd", "zstd"), "1.2.0", Gap.MINOR, uses
+        Component("pkg:cargo/zstd", Ecosystem.CARGO, "zstd", "zstd"), "1.2.0", uses
     )
 
 
