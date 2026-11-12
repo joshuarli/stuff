@@ -655,10 +655,12 @@ def test_verifier_checks_the_linker_trace() -> None:
     artifact = STATIC_FIXTURES / "static-x86_64.elf"
 
     good = run_verifier("--trace", STATIC_FIXTURES / "trace-good.txt", artifact)
+    compiler_rt = run_verifier("--trace", STATIC_FIXTURES / "trace-compiler-rt.txt", artifact)
     bad = run_verifier("--trace", STATIC_FIXTURES / "trace-bad.txt", artifact)
     glibc = run_verifier("--trace", STATIC_FIXTURES / "trace-glibc.txt", artifact)
 
     assert good.returncode == 0
+    assert compiler_rt.returncode == 0
     assert bad.returncode == 1
     assert "non-builder path" in bad.stderr
     assert glibc.returncode == 1

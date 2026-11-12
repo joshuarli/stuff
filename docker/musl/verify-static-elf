@@ -18,7 +18,7 @@ DT_STRSZ = 10
 DT_SONAME = 14
 SHT_NOBITS = 8
 GCC_COMMENT_PREFIX = b"GCC:"
-TRACE_REQUIRED = ("/usr/lib/libc.a", "crtbegin.o")
+TRACE_REQUIRED = ("/usr/lib/libc.a", "crtbegin")
 TRACE_FORBIDDEN = (
     ".rustup/",
     "/rustlib/",
