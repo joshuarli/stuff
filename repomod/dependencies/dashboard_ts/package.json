@@ -13,9 +13,8 @@
     "typecheck": "tsrs --noEmit"
   },
   "devDependencies": {
-    "@laputa-systems/ui-dashboard": "0.9.0",
-    "oxlint": "1.92.0",
-    "oxlint-tsgolint": "7.0.2005",
-    "tsrs": "0.22.0-ts7.1.0-beta"
+    "@laputa-systems/ui-dashboard": "0.9.1",
+    "oxlint": "1.93.0",
+    "tsrs": "0.25.0-ts7.1.0-beta"
   }
 }
