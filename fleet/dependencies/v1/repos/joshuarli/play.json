@@ -3347,10 +3347,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.16.4",
+   "resolved_version": "1.16.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/smallvec@1.16.4#"
+   "to": "pkg:cargo/smallvec@1.16.5#"
   },
   {
    "condition": null,
@@ -3941,10 +3941,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.16.4",
+   "resolved_version": "1.16.5",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/smallvec@1.16.4#"
+   "to": "pkg:cargo/smallvec@1.16.5#"
   },
   {
    "condition": null,
@@ -5138,7 +5138,7 @@
   },
   {
    "condition": null,
-   "constraint": "1.16.4",
+   "constraint": "1.16.5",
    "evidence": [
     {
      "locator": "dependencies.smallvec",
@@ -5153,10 +5153,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.16.4",
+   "resolved_version": "1.16.5",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/smallvec@1.16.4#"
+   "to": "pkg:cargo/smallvec@1.16.5#"
   },
   {
    "condition": null,
@@ -5568,7 +5568,7 @@
   },
   {
    "condition": null,
-   "constraint": "1.16.4",
+   "constraint": "1.16.5",
    "evidence": [
     {
      "locator": "dependencies.smallvec",
@@ -5583,10 +5583,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.16.4",
+   "resolved_version": "1.16.5",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/smallvec@1.16.4#"
+   "to": "pkg:cargo/smallvec@1.16.5#"
   },
   {
    "condition": null,
@@ -6173,7 +6173,7 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "d401000bfa7baee561e86ad218600fc4eeddf8ca",
+   "blob": "d70c949fb6d09f95bd8477ec3153ae9c53a07cf3",
    "path": "Cargo.lock"
   },
   {
@@ -6249,7 +6249,7 @@
    "path": "vendor/ruopus/Cargo.toml"
   },
   {
-   "blob": "69312bf104a7201df26ae94dde8696f0459c2f80",
+   "blob": "ee2796d6a3795889272912f3b1c7b1fa10896663",
    "path": "vendor/symphonia/Cargo.toml"
   },
   {
@@ -6345,7 +6345,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "6b591b08090543a495c4c74053eb33ca53ce68c394d0b16ffa6a9442e01f4ea0",
+ "inputs_fingerprint": "69974337fc8089ab31a7f00de7b9a1512a811fff18760976993faecf27ed1a95",
  "instances": [
   {
    "commit": null,
@@ -7678,13 +7678,13 @@
    "component": "pkg:cargo/smallvec",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/smallvec@1.16.4#",
-   "purl": "pkg:cargo/smallvec@1.16.4",
+   "id": "pkg:cargo/smallvec@1.16.5#",
+   "purl": "pkg:cargo/smallvec@1.16.5",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.16.4"
+   "version": "1.16.5"
   },
   {
    "commit": null,

@@ -1627,6 +1627,12 @@
    "purl": "pkg:npm/%40rolldown/binding-openharmony-arm64"
   },
   {
+   "display_name": "@rolldown/binding-wasm32-wasi",
+   "ecosystem": "npm",
+   "name": "@rolldown/binding-wasm32-wasi",
+   "purl": "pkg:npm/%40rolldown/binding-wasm32-wasi"
+  },
+  {
    "display_name": "@rolldown/binding-win32-arm64-msvc",
    "ecosystem": "npm",
    "name": "@rolldown/binding-win32-arm64-msvc",
@@ -2737,10 +2743,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.7.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
+   "to": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
   },
   {
    "condition": null,
@@ -2842,7 +2848,7 @@
   },
   {
    "condition": null,
-   "constraint": "1.7.0",
+   "constraint": "1.8.0",
    "evidence": [
     {
      "locator": "importers[cloudflare].devDependencies.'@cloudflare/vitest-plugin'",
@@ -2853,10 +2859,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "1.7.0",
+   "resolved_version": "1.8.0",
    "scope": "dev",
    "source_kind": "registry",
-   "to": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))"
+   "to": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))"
   },
   {
    "condition": null,
@@ -5107,24 +5113,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=h12tiny-client-normalize,version=0.7.0].dependencies[0]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-client-normalize@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.5.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/http@1.5.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=h12tiny-client-normalize,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -5143,47 +5131,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[0]",
+     "locator": "package[name=h12tiny-client-normalize,version=0.9.0].dependencies[0]",
      "path": "agent/Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.7.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/h12tiny-client-normalize@0.7.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[1]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.7.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/h12tiny-tls-system@0.7.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[2]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "from": "pkg:cargo/h12tiny-client-normalize@0.9.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -5197,54 +5149,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[4]",
-     "path": "agent/Cargo.lock"
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[0]",
+     "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.4.0",
+   "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/rustls-graviola@0.4.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[5]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.103.16",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-webpki@0.103.16#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-client-sync,version=0.7.0].dependencies[3]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.23.46",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls@0.23.46#"
+   "to": "pkg:cargo/h12tiny-client-normalize@0.9.0#"
   },
   {
    "condition": null,
@@ -5252,7 +5168,7 @@
    "evidence": [
     {
      "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[0]",
-     "path": "Cargo.lock"
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
@@ -5287,8 +5203,44 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.9.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/h12tiny-tls-system@0.9.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/http@1.5.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[2]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
@@ -5323,8 +5275,44 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[4]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-graviola@0.4.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.103.16",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-webpki@0.103.16#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[5]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
@@ -5359,101 +5347,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[0]",
+     "locator": "package[name=h12tiny-client-sync,version=0.9.0].dependencies[3]",
      "path": "agent/Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.23.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/base64@0.23.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[1]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/openssl-probe@0.2.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[3]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.8.5",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-native-certs@0.8.5#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[4]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.7.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-platform-verifier@0.7.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[5]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.103.16",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-webpki@0.103.16#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=h12tiny-tls-system,version=0.7.0].dependencies[2]",
-     "path": "agent/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/h12tiny-tls-system@0.7.0#",
+   "from": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -5469,6 +5367,24 @@
     {
      "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[0]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.23.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/base64@0.23.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[0]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
@@ -5503,8 +5419,44 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/openssl-probe@0.2.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[2]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.1.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-hash@2.1.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[2]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
@@ -5539,8 +5491,44 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[4]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-native-certs@0.8.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[5]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.7.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-platform-verifier@0.7.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[5]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
@@ -5575,8 +5563,44 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[6]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.103.16",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-webpki@0.103.16#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[3]",
      "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.23.46",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls@0.23.46#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=h12tiny-tls-system,version=0.9.0].dependencies[3]",
+     "path": "agent/Cargo.lock"
     }
    ],
    "from": "pkg:cargo/h12tiny-tls-system@0.9.0#",
@@ -11929,11 +11953,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.cjs-module-lexer",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.cjs-module-lexer",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11947,11 +11971,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.esbuild",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.esbuild",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -11965,29 +11989,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.miniflare",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261110.0-beta",
+   "resolved_version": "5.20261110.1-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.vitest",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.vitest",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -12001,29 +12025,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.wrangler",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.wrangler",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "4.160.0",
+   "resolved_version": "4.160.1",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)"
+   "to": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['@cloudflare/vitest-plugin@1.7.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.zod",
+     "locator": "snapshots['@cloudflare/vitest-plugin@1.8.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))'].dependencies.zod",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "from": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -12091,6 +12115,42 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "snapshots['@emnapi/core@2.0.0-beta.2'].dependencies.'@emnapi/wasi-threads'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40emnapi/core@2.0.0-beta.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40emnapi/wasi-threads@2.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@emnapi/core@2.0.0-beta.2'].dependencies.tslib",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40emnapi/core@2.0.0-beta.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.9.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/tslib@2.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "snapshots['@emnapi/runtime@1.11.3'].dependencies.tslib",
      "path": "pnpm-lock.yaml"
     }
@@ -12109,11 +12169,47 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "snapshots['@emnapi/runtime@2.0.0-beta.2'].dependencies.tslib",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40emnapi/runtime@2.0.0-beta.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.9.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/tslib@2.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "snapshots['@emnapi/wasi-threads@1.2.3'].dependencies.tslib",
      "path": "pnpm-lock.yaml"
     }
    ],
    "from": "pkg:npm/%40emnapi/wasi-threads@1.2.3#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.9.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/tslib@2.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@emnapi/wasi-threads@2.2.0'].dependencies.tslib",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40emnapi/wasi-threads@2.2.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -12499,6 +12595,60 @@
    "scope": "optional",
    "source_kind": "registry",
    "to": "pkg:npm/solid-js@2.0.0-rc.20#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)'].dependencies.'@emnapi/core'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.0-beta.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40emnapi/core@2.0.0-beta.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)'].dependencies.'@emnapi/runtime'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.0-beta.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40emnapi/runtime@2.0.0-beta.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)'].dependencies.'@tybys/wasm-util'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.10.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40tybys/wasm-util@0.10.4#"
   },
   {
    "condition": null,
@@ -12895,6 +13045,60 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:npm/supports-color@10.2.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@rolldown/binding-wasm32-wasi@1.2.19'].dependencies.'@emnapi/core'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.0-beta.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40emnapi/core@2.0.0-beta.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@rolldown/binding-wasm32-wasi@1.2.19'].dependencies.'@emnapi/runtime'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.0-beta.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40emnapi/runtime@2.0.0-beta.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['@rolldown/binding-wasm32-wasi@1.2.19'].dependencies.'@napi-rs/wasm-runtime'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)"
   },
   {
    "condition": null,
@@ -14539,6 +14743,114 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.8.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40cspotcode/source-map-support@0.8.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.sharp",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.35.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/sharp@0.35.5#(@types/node@26.6.6)"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.undici",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "7.30.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/undici@7.30.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.workerd",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.20261110.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/workerd@1.20261110.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.ws",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "8.21.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/ws@8.21.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots['miniflare@5.20261110.1-beta(@types/node@26.6.6)'].dependencies.youch",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "4.1.0-beta.10",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:npm/youch@4.1.0-beta.10#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "snapshots[oxlint-tsgolint@7.0.2006].optionalDependencies.'@oxlint-tsgolint/darwin-arm64'",
      "path": "pnpm-lock.yaml"
     }
@@ -15331,11 +15643,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].dependencies.'@oxc-project/types'",
+     "locator": "snapshots[rolldown@1.2.19].dependencies.'@oxc-project/types'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -15349,281 +15661,299 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-android-arm-eabi'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-android-arm-eabi'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-android-arm64'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-android-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-android-arm64@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-android-arm64@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-darwin-arm64'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-darwin-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-darwin-x64'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-darwin-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-freebsd-x64'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-freebsd-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-arm-gnueabihf'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-arm-gnueabihf'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-arm64-gnu'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-arm64-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-arm64-musl'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-arm64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-ppc64-gnu'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-ppc64-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-s390x-gnu'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-s390x-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-x64-gnu'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-x64-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-linux-x64-musl'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-linux-x64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-openharmony-arm64'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-openharmony-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-win32-arm64-msvc'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-wasm32-wasi'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].optionalDependencies.'@rolldown/binding-win32-x64-msvc'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-win32-arm64-msvc'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.18#"
+   "to": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.19#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[rolldown@1.2.18].dependencies.'@rolldown/pluginutils'",
+     "locator": "snapshots[rolldown@1.2.19].optionalDependencies.'@rolldown/binding-win32-x64-msvc'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/rolldown@1.2.18#",
+   "from": "pkg:npm/rolldown@1.2.19#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.19",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.19#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots[rolldown@1.2.19].dependencies.'@rolldown/pluginutils'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/rolldown@1.2.19#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -16545,10 +16875,10 @@
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "1.2.18",
+   "resolved_version": "1.2.19",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/rolldown@1.2.18#"
+   "to": "pkg:npm/rolldown@1.2.19#"
   },
   {
    "condition": null,
@@ -17041,11 +17371,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/kv-asset-handler'",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/kv-asset-handler'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17059,11 +17389,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/unenv-preset'",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cloudflare/unenv-preset'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17077,11 +17407,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.'@cloudflare/workers-types'",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.'@cloudflare/workers-types'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17095,11 +17425,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.'@cspotcode/source-map-support'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17113,11 +17443,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.blake3-wasm",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.blake3-wasm",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17131,11 +17461,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.esbuild",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.esbuild",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17149,11 +17479,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.fsevents",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].optionalDependencies.fsevents",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17167,29 +17497,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.miniflare",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.miniflare",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "5.20261110.0-beta",
+   "resolved_version": "5.20261110.1-beta",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:npm/miniflare@5.20261110.0-beta#(@types/node@26.6.6)"
+   "to": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.path-to-regexp",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.path-to-regexp",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17203,11 +17533,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.unenv",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.unenv",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17221,11 +17551,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots['wrangler@4.160.0(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.workerd",
+     "locator": "snapshots['wrangler@4.160.1(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)'].dependencies.workerd",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "from": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -17387,7 +17717,7 @@
    "path": "Makefile"
   },
   {
-   "blob": "5892cf30fb9214f75b8223f05e42314679b04992",
+   "blob": "ca4c8f386a7d05a3524f4d00543bc62800e0fe58",
    "path": "agent/Cargo.lock"
   },
   {
@@ -17399,7 +17729,7 @@
    "path": "agent/build/Dockerfile"
   },
   {
-   "blob": "ae072cd57f9bc08c2e51815cf0e76fcf70936fc8",
+   "blob": "db42cd36c8eb025beb82a85c82c540b5331a5327",
    "path": "cloudflare/package.json"
   },
   {
@@ -17423,7 +17753,7 @@
    "path": "packages/stats-producer/Cargo.toml"
   },
   {
-   "blob": "53bb6627400bacc932e9239a20dd98d598969ddb",
+   "blob": "2fd9ab209c811677d6c437e7bbb928e19dd2f2f7",
    "path": "pnpm-lock.yaml"
   },
   {
@@ -17431,7 +17761,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "bd0b76cea691e782adf4cc71f9a067e174faebf302a9d81e457358a64033e81c",
+ "inputs_fingerprint": "ff9334d234acd9ebad90f330674b5dde46515a543237ab7fae834497fc09a27f",
  "instances": [
   {
    "commit": null,
@@ -17893,19 +18223,6 @@
    "component": "pkg:cargo/h12tiny-client-normalize",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/h12tiny-client-normalize@0.7.0#",
-   "purl": "pkg:cargo/h12tiny-client-normalize@0.7.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.7.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/h12tiny-client-normalize",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/h12tiny-client-normalize@0.9.0#",
    "purl": "pkg:cargo/h12tiny-client-normalize@0.9.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -17919,19 +18236,6 @@
    "component": "pkg:cargo/h12tiny-client-sync?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
-   "purl": "pkg:cargo/h12tiny-client-sync@0.7.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
-   "registry_url": "https://crates.17166969.xyz/current/registry/",
-   "repository_url": "https://crates.17166969.xyz/current/registry/",
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.7.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/h12tiny-client-sync?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
-   "context": "",
-   "first_party": false,
    "id": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "purl": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
    "registry_url": "https://crates.17166969.xyz/current/registry/",
@@ -17939,19 +18243,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/h12tiny-tls-system",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/h12tiny-tls-system@0.7.0#",
-   "purl": "pkg:cargo/h12tiny-tls-system@0.7.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.7.0"
   },
   {
    "commit": null,
@@ -19700,26 +19991,26 @@
    "component": "pkg:npm/%40cloudflare/vitest-plugin",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#",
-   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0",
+   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#",
+   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.7.0"
+   "version": "1.8.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40cloudflare/vitest-plugin",
    "context": "(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
    "first_party": false,
-   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
-   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.7.0",
+   "id": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)(vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))",
+   "purl": "pkg:npm/%40cloudflare/vitest-plugin@1.8.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.7.0"
+   "version": "1.8.0"
   },
   {
    "commit": null,
@@ -19892,6 +20183,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:npm/%40emnapi/core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40emnapi/core@2.0.0-beta.2#",
+   "purl": "pkg:npm/%40emnapi/core@2.0.0-beta.2",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.0.0-beta.2"
+  },
+  {
+   "commit": null,
    "component": "pkg:npm/%40emnapi/runtime",
    "context": "",
    "first_party": false,
@@ -19905,6 +20209,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:npm/%40emnapi/runtime",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40emnapi/runtime@2.0.0-beta.2#",
+   "purl": "pkg:npm/%40emnapi/runtime@2.0.0-beta.2",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.0.0-beta.2"
+  },
+  {
+   "commit": null,
    "component": "pkg:npm/%40emnapi/wasi-threads",
    "context": "",
    "first_party": false,
@@ -19915,6 +20232,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.2.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40emnapi/wasi-threads",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40emnapi/wasi-threads@2.2.0#",
+   "purl": "pkg:npm/%40emnapi/wasi-threads@2.2.0",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.2.0"
   },
   {
    "commit": null,
@@ -20701,6 +21031,32 @@
    "component": "pkg:npm/%40napi-rs/wasm-runtime",
    "context": "",
    "first_party": false,
+   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#",
+   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40napi-rs/wasm-runtime",
+   "context": "(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)",
+   "first_party": false,
+   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6#(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)",
+   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.6",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40napi-rs/wasm-runtime",
+   "context": "",
+   "first_party": false,
    "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#",
    "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7",
    "registry_url": "https://npm.17166969.xyz/current/",
@@ -21312,195 +21668,208 @@
    "component": "pkg:npm/%40rolldown/binding-android-arm-eabi",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-android-arm-eabi@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-android-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-android-arm64@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-android-arm64@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-android-arm64@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-android-arm64@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-darwin-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-darwin-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-freebsd-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-arm64-gnu",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-arm64-musl",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-s390x-gnu",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-x64-gnu",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-linux-x64-musl",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-openharmony-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40rolldown/binding-wasm32-wasi",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-wasm32-wasi@1.2.19",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-win32-arm64-msvc",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40rolldown/binding-win32-x64-msvc",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.18#",
-   "purl": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.18",
+   "id": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.19#",
+   "purl": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
@@ -22414,6 +22783,32 @@
   },
   {
    "commit": null,
+   "component": "pkg:npm/miniflare",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/miniflare@5.20261110.1-beta#",
+   "purl": "pkg:npm/miniflare@5.20261110.1-beta",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "5.20261110.1-beta"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/miniflare",
+   "context": "(@types/node@26.6.6)",
+   "first_party": false,
+   "id": "pkg:npm/miniflare@5.20261110.1-beta#(@types/node@26.6.6)",
+   "purl": "pkg:npm/miniflare@5.20261110.1-beta",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "5.20261110.1-beta"
+  },
+  {
+   "commit": null,
    "component": "pkg:npm/nanoid",
    "context": "",
    "first_party": false,
@@ -22586,13 +22981,13 @@
    "component": "pkg:npm/rolldown",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/rolldown@1.2.18#",
-   "purl": "pkg:npm/rolldown@1.2.18",
+   "id": "pkg:npm/rolldown@1.2.19#",
+   "purl": "pkg:npm/rolldown@1.2.19",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "1.2.18"
+   "version": "1.2.19"
   },
   {
    "commit": null,
@@ -22963,26 +23358,26 @@
    "component": "pkg:npm/wrangler",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/wrangler@4.160.0#",
-   "purl": "pkg:npm/wrangler@4.160.0",
+   "id": "pkg:npm/wrangler@4.160.1#",
+   "purl": "pkg:npm/wrangler@4.160.1",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "4.160.0"
+   "version": "4.160.1"
   },
   {
    "commit": null,
    "component": "pkg:npm/wrangler",
    "context": "(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
    "first_party": false,
-   "id": "pkg:npm/wrangler@4.160.0#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
-   "purl": "pkg:npm/wrangler@4.160.0",
+   "id": "pkg:npm/wrangler@4.160.1#(@cloudflare/workers-types@5.20261110.1)(@types/node@26.6.6)",
+   "purl": "pkg:npm/wrangler@4.160.1",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "4.160.0"
+   "version": "4.160.1"
   },
   {
    "commit": null,

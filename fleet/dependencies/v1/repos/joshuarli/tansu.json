@@ -6177,11 +6177,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=fs4,version=0.13.1].dependencies[0]",
+     "locator": "package[name=fs4,version=1.1.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/fs4@0.13.1#",
+   "from": "pkg:cargo/fs4@1.1.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -6195,18 +6195,18 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=fs4,version=0.13.1].dependencies[1]",
+     "locator": "package[name=fs4,version=1.1.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/fs4@0.13.1#",
+   "from": "pkg:cargo/fs4@1.1.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.59.0",
+   "resolved_version": "0.61.2",
    "scope": "runtime",
    "source_kind": "registry",
-   "to": "pkg:cargo/windows-sys@0.59.0#"
+   "to": "pkg:cargo/windows-sys@0.61.2#"
   },
   {
    "condition": null,
@@ -7190,6 +7190,24 @@
     }
    ],
    "from": "pkg:cargo/itertools@0.14.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.19.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/either@1.19.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=itertools,version=0.15.0].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/itertools@0.15.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -9183,11 +9201,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=lru,version=0.18.5].dependencies[0]",
+     "locator": "package[name=lru,version=0.19.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/lru@0.18.5#",
+   "from": "pkg:cargo/lru@0.19.0#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -13467,24 +13485,6 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=windows-sys,version=0.59.0].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/windows-sys@0.59.0#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.52.6",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/windows-targets@0.52.6#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
      "locator": "package[name=windows-sys,version=0.61.2].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -17382,7 +17382,7 @@
   },
   {
    "condition": "feature:mmap",
-   "constraint": "0.13.1",
+   "constraint": "1.1.0",
    "evidence": [
     {
      "locator": "dependencies.fs4",
@@ -17397,14 +17397,14 @@
    "optional": true,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.13.1",
+   "resolved_version": "1.1.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/fs4@0.13.1#"
+   "to": "pkg:cargo/fs4@1.1.0#"
   },
   {
    "condition": null,
-   "constraint": "0.14.0",
+   "constraint": "0.15.0",
    "evidence": [
     {
      "locator": "dependencies.itertools",
@@ -17419,10 +17419,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.14.0",
+   "resolved_version": "0.15.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/itertools@0.14.0#"
+   "to": "pkg:cargo/itertools@0.15.0#"
   },
   {
    "condition": null,
@@ -17470,7 +17470,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.18.2",
+   "constraint": "0.19.0",
    "evidence": [
     {
      "locator": "dependencies.lru",
@@ -17485,10 +17485,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.18.5",
+   "resolved_version": "0.19.0",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/lru@0.18.5#"
+   "to": "pkg:cargo/lru@0.19.0#"
   },
   {
    "condition": "feature:lz4-compression",
@@ -17580,7 +17580,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.1.13",
+   "constraint": "0.2.1",
    "evidence": [
     {
      "locator": "dependencies.oneshot",
@@ -17595,10 +17595,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.1.13",
+   "resolved_version": "0.2.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/oneshot@0.1.13#"
+   "to": "pkg:cargo/oneshot@0.2.1#"
   },
   {
    "condition": null,
@@ -18011,7 +18011,7 @@
    "path": ".node-version"
   },
   {
-   "blob": "aaf86f80b2cc11e9179d8ca466f2ff350bfec0f6",
+   "blob": "cf307dab019089bf99e2f881f26c96154f4791ba",
    "path": "Cargo.lock"
   },
   {
@@ -18071,11 +18071,11 @@
    "path": "rust-toolchain.toml"
   },
   {
-   "blob": "fe9ae97a0d918f21f25ff0515221d60588b1e21c",
+   "blob": "01197db14c6c4c5f718aa897ee1d3079b087b230",
    "path": "vendor/tantivy/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "3c00862ca9b143db7c54fe9f9a31213a4f2f07264de404bde50d643f64f2b853",
+ "inputs_fingerprint": "6185280c3d27243fc21bd32bb269dcc0cf746d5600caefd52aba77e826aed3ce",
  "instances": [
   {
    "commit": null,
@@ -18966,13 +18966,13 @@
    "component": "pkg:cargo/fs4",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/fs4@0.13.1#",
-   "purl": "pkg:cargo/fs4@0.13.1",
+   "id": "pkg:cargo/fs4@1.1.0#",
+   "purl": "pkg:cargo/fs4@1.1.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.13.1"
+   "version": "1.1.0"
   },
   {
    "commit": null,
@@ -19337,6 +19337,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.14.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/itertools",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/itertools@0.15.0#",
+   "purl": "pkg:cargo/itertools@0.15.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.15.0"
   },
   {
    "commit": null,
@@ -19798,13 +19811,13 @@
    "component": "pkg:cargo/lru",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/lru@0.18.5#",
-   "purl": "pkg:cargo/lru@0.18.5",
+   "id": "pkg:cargo/lru@0.19.0#",
+   "purl": "pkg:cargo/lru@0.19.0",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.18.5"
+   "version": "0.19.0"
   },
   {
    "commit": null,
@@ -20045,13 +20058,13 @@
    "component": "pkg:cargo/oneshot",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/oneshot@0.1.13#",
-   "purl": "pkg:cargo/oneshot@0.1.13",
+   "id": "pkg:cargo/oneshot@0.2.1#",
+   "purl": "pkg:cargo/oneshot@0.2.1",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "0.1.13"
+   "version": "0.2.1"
   },
   {
    "commit": null,
@@ -21469,19 +21482,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.52.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/windows-sys",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/windows-sys@0.59.0#",
-   "purl": "pkg:cargo/windows-sys@0.59.0",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.59.0"
   },
   {
    "commit": null,
