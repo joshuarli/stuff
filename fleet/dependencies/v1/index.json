@@ -87,8 +87,8 @@
    "state": "partial"
   },
   "laputa-systems/e": {
-   "commit": "7889bba8aa639efc6bb334b8864bc1b76ff16150",
-   "inputs_fingerprint": "75d9cb7222b16b0212a353bd4acd1120a0265ef5b29058b002c628cfdc00db67",
+   "commit": "0ac023b26e60a22385013f514f295ed6d59fc453",
+   "inputs_fingerprint": "1a1a6c6b147f4068d89e3707aba4b46622ea37c1fb229299dd1994c2622c5200",
    "state": "partial"
   },
   "laputa-systems/fastermod": {

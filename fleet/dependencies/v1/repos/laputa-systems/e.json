@@ -121,6 +121,12 @@
    "purl": "pkg:cargo/laputa-ptytest"
   },
   {
+   "display_name": "laputa-rustix",
+   "ecosystem": "cargo",
+   "name": "laputa-rustix",
+   "purl": "pkg:cargo/laputa-rustix?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F"
+  },
+  {
    "display_name": "lexopt",
    "ecosystem": "cargo",
    "name": "lexopt",
@@ -191,12 +197,6 @@
    "ecosystem": "cargo",
    "name": "rustc-hash",
    "purl": "pkg:cargo/rustc-hash"
-  },
-  {
-   "display_name": "rustix",
-   "ecosystem": "cargo",
-   "name": "rustix",
-   "purl": "pkg:cargo/rustix"
   },
   {
    "display_name": "rustybench",
@@ -360,6 +360,50 @@
   },
   {
    "condition": null,
+   "constraint": "=1.1.6",
+   "evidence": [
+    {
+     "locator": "dependencies.rustix",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=e,version=0.1.13].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.2",
+   "evidence": [
+    {
+     "locator": "dependencies.libc",
+     "path": "Cargo.toml"
+    },
+    {
+     "locator": "package[name=e,version=0.1.13].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.2.191",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
    "constraint": "1",
    "evidence": [
     {
@@ -367,7 +411,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=e,version=0.1.13].dependencies[2]",
+     "locator": "package[name=e,version=0.1.13].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -389,7 +433,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=e,version=0.1.13].dependencies[3]",
+     "locator": "package[name=e,version=0.1.13].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -411,7 +455,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=e,version=0.1.13].dependencies[4]",
+     "locator": "package[name=e,version=0.1.13].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -426,28 +470,6 @@
   },
   {
    "condition": null,
-   "constraint": "=1.1.4",
-   "evidence": [
-    {
-     "locator": "dependencies.rustix",
-     "path": "Cargo.toml"
-    },
-    {
-     "locator": "package[name=e,version=0.1.13].dependencies[5]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": ".:cargo",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.1.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustix@1.1.4#"
-  },
-  {
-   "condition": null,
    "constraint": "0.5",
    "evidence": [
     {
@@ -455,7 +477,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=e,version=0.1.13].dependencies[6]",
+     "locator": "package[name=e,version=0.1.13].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -1103,6 +1125,78 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=laputa-rustix,version=1.1.6].dependencies[0]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.13.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bitflags@2.13.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-rustix,version=1.1.6].dependencies[1]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.3.14",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/errno@0.3.14#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-rustix,version=1.1.6].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.191",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=laputa-rustix,version=1.1.6].dependencies[3]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.12.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/linux-raw-sys@0.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=proc-macro2,version=1.0.107].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -1187,96 +1281,6 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/rand_core@0.10.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[0]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustix@1.1.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.13.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/bitflags@2.13.2#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[1]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustix@1.1.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.3.14",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/errno@0.3.14#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[2]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustix@1.1.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.2.191",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/libc@0.2.191#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[3]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustix@1.1.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.12.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/linux-raw-sys@0.12.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustix,version=1.1.4].dependencies[4]",
-     "path": "Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustix@1.1.4#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.61.2",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/windows-sys@0.61.2#"
   },
   {
    "condition": null,
@@ -1581,11 +1585,11 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "e0261f36d94ef1e3e487d0b99b997f45115a5177",
+   "blob": "d7fbef30254e3ce2c806c18a7a48bba3f448cc31",
    "path": "Cargo.lock"
   },
   {
-   "blob": "f593273ab21c5465dbf2dac3544f116486a09726",
+   "blob": "d1027c9a804dbc6da1f80a193e95ad89fdbb67d6",
    "path": "Cargo.toml"
   },
   {
@@ -1601,7 +1605,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "75d9cb7222b16b0212a353bd4acd1120a0265ef5b29058b002c628cfdc00db67",
+ "inputs_fingerprint": "1a1a6c6b147f4068d89e3707aba4b46622ea37c1fb229299dd1994c2622c5200",
  "instances": [
   {
    "commit": null,
@@ -1865,6 +1869,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/laputa-rustix?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "purl": "pkg:cargo/laputa-rustix@1.1.6?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
+   "registry_url": "https://crates.17166969.xyz/current/registry/",
+   "repository_url": "https://crates.17166969.xyz/current/registry/",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.1.6"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/lexopt",
    "context": "",
    "first_party": false,
@@ -2018,19 +2035,6 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.1.3"
-  },
-  {
-   "commit": null,
-   "component": "pkg:cargo/rustix",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rustix@1.1.4#",
-   "purl": "pkg:cargo/rustix@1.1.4",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "1.1.4"
   },
   {
    "commit": null,
@@ -2284,6 +2288,12 @@
   {
    "kind": "dynamic_value",
    "locator": "dependencies.laputa-hi-lite",
+   "message": "named registry 'stuff-native' cannot be resolved statically",
+   "path": "Cargo.toml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "dependencies.rustix",
    "message": "named registry 'stuff-native' cannot be resolved statically",
    "path": "Cargo.toml"
   },
