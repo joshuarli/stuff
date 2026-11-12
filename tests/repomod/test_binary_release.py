@@ -533,6 +533,19 @@ def test_standard_rule_rejects_glibc_targets(tmp_path: Path) -> None:
     assert any("glibc" in finding.message for finding in findings)
 
 
+def test_standard_rule_ignores_glibc_triples_in_the_static_verifier(tmp_path: Path) -> None:
+    targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-musl", "x86_64-unknown-linux-musl"]
+    repository = Repository(RepoId("acme", "demo"), ("tool",))
+    write_workflow(tmp_path, standard_workflow(targets))
+    without = _binary_release_standard_findings(tmp_path, repository)
+    step = "\n".join(static_elf.render_workflow_step(6, image_mode=False))
+    assert "x86_64-linux-gnu" in step
+
+    write_workflow(tmp_path, standard_workflow(targets).rstrip("\n") + "\n" + step + "\n")
+
+    assert _binary_release_standard_findings(tmp_path, repository) == without
+
+
 def test_standard_rule_requires_ish_format(tmp_path: Path) -> None:
     write_workflow(tmp_path, binary_workflow("cargo build --release"))
     repository = Repository(RepoId("acme", "demo"), ("tool",))

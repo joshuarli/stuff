@@ -427,6 +427,7 @@ def _standard_scope(tags: set[str]) -> str:
 def _standard_target_findings(
     repository: Repository, path: str, source: str, scope: str
 ) -> list[Finding]:
+    source = _without_static_smoke(source)
     lowered = source.casefold()
     markers = sorted({marker for marker in _FORBIDDEN_TARGET_MARKERS if marker in lowered})
     if markers:
@@ -605,6 +606,17 @@ def _step_end(lines: list[str], start: int, end: int, indentation: int) -> int:
         ):
             return index
     return end
+
+
+def _without_static_smoke(source: str) -> str:
+    """The workflow without the shared verifier step, whose script names glibc triples it rejects."""
+    smoke = _STATIC_SMOKE_STEP.search(source)
+    if smoke is None:
+        return source
+    lines = source.splitlines()
+    start = source.count("\n", 0, smoke.start())
+    end = _step_end(lines, start, len(lines), len(smoke.group("indent")))
+    return "\n".join(lines[:start] + lines[end:])
 
 
 def _static_smoke_valid(source: str, image_mode: bool) -> bool:
