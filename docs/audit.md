@@ -66,8 +66,9 @@ and `deps enrich --refresh` control the separate enrichment cache.
   the role's preferred option as the replacement, or the matching `laputa-*`
   fork when the preferred option has one. Today that bans clap (use lexopt),
   criterion (rustybench), proptest (quickcheck), tokio, async-std, and the
-  upstream smol crates (smolith), and hyper, h2, and the mainstream HTTP
-  clients (h12tiny). `fastrand` is not banned because common crates such as
+  upstream smol crates (smolith), hyper, h2, and the mainstream HTTP
+  clients (h12tiny), and zip (rawzip, maintained as the
+  [laputa-systems/rawzip](https://github.com/laputa-systems/rawzip) fork). `fastrand` is not banned because common crates such as
   `tempfile` depend on it, and the `futures-core` and `futures-io` traits
   remain the interop layer.
   Repositories tagged `fork` keep upstream's dependency choices and are not
