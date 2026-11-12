@@ -210,3 +210,10 @@ FLEET_OUT ?= .work/fleet
 
 fleet-ingest: ## Ingest fleet lists into local per-registry sites, no R2 (FLEET_OUT= CARGO_LIST= NPM_LIST= PYPI_LIST=)
 	deploy/fleet-ingest.sh $(FLEET_OUT) $(if $(CARGO_LIST),--cargo $(CARGO_LIST)) $(if $(NPM_LIST),--npm $(NPM_LIST)) $(if $(PYPI_LIST),--pypi $(PYPI_LIST))
+
+.PHONY: clean
+clean:
+	rm -rf .venv
+	find . -path './.git' -prune -o -path './.work' -prune -o -name __pycache__ -type d -prune -exec rm -rf {} +
+	find . -path './.git' -prune -o -path './.work' -prune -o -name node_modules -type d -prune -exec rm -rf {} +
+	find . -path './.git' -prune -o -path './.work' -prune -o -name target -type d -prune -exec rm -rf {} +

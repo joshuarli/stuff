@@ -98,9 +98,10 @@ _RULE_PRIORITY = {
     "gha-syntax": 4,
     "generated-artifacts": 5,
     "make-lint-target": 6,
-    "language-tags": 7,
-    "rust-project": 8,
-    "registry-sources": 9,
+    "make-clean-target": 7,
+    "language-tags": 8,
+    "rust-project": 9,
+    "registry-sources": 10,
 }
 
 

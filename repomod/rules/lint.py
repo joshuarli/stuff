@@ -354,6 +354,214 @@ def _make_lint_target_findings(root: Path, repository: Repository) -> list[Findi
     return _linter_findings(repository, relative, _language_sources(root), recipe)
 
 
+_CLEAN_FIND_PRUNE = "find . -path './.git' -prune -o -path './.work' -prune -o"
+
+
+def _clean_requirements(languages: set[str]) -> list[tuple[str, tuple[str, ...], tuple[str, ...]]]:
+    requirements: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = []
+    if {"javascript", "typescript"} & languages:
+        requirements.append(
+            (
+                "all node_modules directories",
+                ("node_modules",),
+                ("rm", "find"),
+            )
+        )
+    if "python" in languages:
+        requirements.append(("the root .venv directory", (".venv",), ("rm", "find")))
+        requirements.append(("all __pycache__ directories", ("__pycache__",), ("rm", "find")))
+    if "rust" in languages:
+        requirements.append(("Rust build artifacts", ("target", "cargo clean"), ("rm", "find", "cargo")))
+    if "swift" in languages:
+        requirements.append(("Swift build artifacts", (".build",), ("rm", "find")))
+    if "zig" in languages:
+        requirements.append(("Zig cache directories", (".zig-cache",), ("rm", "find")))
+        requirements.append(("Zig output directories", ("zig-out",), ("rm", "find")))
+    return requirements
+
+
+def _clean_recipe_lines(languages: set[str]) -> list[str]:
+    lines: list[str] = []
+    if "python" in languages:
+        lines.append("\trm -rf .venv")
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name __pycache__ -type d -prune -exec rm -rf {{}} +")
+    if {"javascript", "typescript"} & languages:
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name node_modules -type d -prune -exec rm -rf {{}} +")
+    if "rust" in languages:
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name target -type d -prune -exec rm -rf {{}} +")
+    if "swift" in languages:
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name .build -type d -prune -exec rm -rf {{}} +")
+    if "zig" in languages:
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name .zig-cache -type d -prune -exec rm -rf {{}} +")
+        lines.append(f"\t{_CLEAN_FIND_PRUNE} -name zig-out -type d -prune -exec rm -rf {{}} +")
+    if not lines:
+        lines.append("\t@:")
+    return lines
+
+
+def _clean_target_block(languages: set[str]) -> str:
+    return "\n".join([".PHONY: clean", "clean:", *_clean_recipe_lines(languages)]) + "\n"
+
+
+def _clean_recipe_text(source: str) -> str | None:
+    recipes, _ = _makefile_parts(source)
+    if "clean" not in recipes:
+        return None
+    return "\n".join(chunk for chunk in recipes["clean"] if chunk)
+
+
+def _missing_clean_requirements(languages: set[str], recipe: str) -> list[str]:
+    missing: list[str] = []
+    lowered = recipe.lower()
+    for label, tokens, actions in _clean_requirements(languages):
+        if not any(token.lower() in lowered for token in tokens):
+            missing.append(label)
+            continue
+        if not any(action in lowered for action in actions):
+            missing.append(label)
+    return missing
+
+
+def _make_clean_target_findings(root: Path, repository: Repository) -> list[Finding]:
+    languages = _language_sources(root)
+    makefile = _root_makefile(root)
+    if makefile is None:
+        return [
+            violation(
+                repository,
+                "make-clean-target",
+                "Makefile",
+                "add a root Makefile with a clean target that removes language-specific build artifacts",
+                fixable=True,
+            )
+        ]
+    relative = makefile.relative_to(root).as_posix()
+    if makefile.is_symlink():
+        return [
+            operational(
+                repository,
+                "make-clean-target",
+                relative,
+                "root makefile is a symlink and was not inspected",
+            )
+        ]
+    try:
+        source = makefile.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [
+            operational(
+                repository,
+                "make-clean-target",
+                relative,
+                f"cannot read root Makefile: {error}",
+            )
+        ]
+    targets = _declared_make_targets(makefile)
+    has_clean = "clean" in targets if targets is not None else re.search(r"(?m)^clean\s*:", source) is not None
+    if not has_clean:
+        return [
+            violation(
+                repository,
+                "make-clean-target",
+                relative,
+                "root Makefile does not define a clean target",
+                fixable=True,
+            )
+        ]
+    recipe = _clean_recipe_text(source)
+    if recipe is None:
+        return [
+            violation(
+                repository,
+                "make-clean-target",
+                relative,
+                "clean target recipe could not be determined",
+            )
+        ]
+    missing = _missing_clean_requirements(languages, recipe)
+    if not missing:
+        return []
+    return [
+        violation(
+            repository,
+            "make-clean-target",
+            relative,
+            "clean target must remove " + ", ".join(missing),
+            fixable=True,
+        )
+    ]
+
+
+def _make_clean_target_fix(root: Path, repository: Repository) -> dict[str, str]:
+    languages = _language_sources(root)
+    makefile = _root_makefile(root)
+    block = _clean_target_block(languages)
+    if makefile is None:
+        return {"Makefile": block}
+    relative = makefile.relative_to(root).as_posix()
+    try:
+        source = makefile.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise GitError(f"cannot read root Makefile: {error}") from error
+    targets = _declared_make_targets(makefile)
+    has_clean = "clean" in targets if targets is not None else re.search(r"(?m)^clean\s*:", source) is not None
+    if not has_clean:
+        new_source = source
+        if new_source and not new_source.endswith("\n"):
+            new_source += "\n"
+        if new_source:
+            new_source += "\n"
+        new_source += block
+        return {relative: new_source}
+    # replace existing clean rule block
+    lines = source.splitlines(keepends=True)
+    start = None
+    end = len(lines)
+    for index, line in enumerate(lines):
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue
+        match = _TARGET.match(line.rstrip("\r\n"))
+        if match is None:
+            continue
+        names = [part for part in match.group(1).split() if "%" not in part and "$" not in part]
+        if "clean" in names:
+            start = index
+            j = index + 1
+            while j < len(lines):
+                nxt = lines[j]
+                if nxt.startswith(("\t", " ")) or nxt.strip() == "":
+                    # recipe lines or blank within recipe - keep consuming while indented
+                    if nxt.strip() == "" and j + 1 < len(lines) and not lines[j + 1].startswith(
+                        ("\t", " ")
+                    ):
+                        end = j
+                        break
+                    j += 1
+                    continue
+                end = j
+                break
+            else:
+                end = j
+            break
+    if start is None:
+        raise GitError("clean target could not be located for replacement")
+    replacement = [line + "\n" for line in _clean_recipe_lines(languages)]
+    new_lines = lines[: start + 1] + replacement + lines[end:]
+    # ensure .PHONY includes clean
+    joined = "".join(new_lines)
+    if re.search(r"(?m)^\.PHONY\s*:.*\bclean\b", joined) is None:
+        # try to extend existing .PHONY or add
+        if re.search(r"(?m)^\.PHONY\s*:", joined):
+            joined = re.sub(r"(?m)^\.PHONY\s*:", ".PHONY: clean", joined, count=1)
+            # but that would drop others - better to append clean
+            joined = "".join(new_lines)
+            joined = re.sub(r"(?m)^(\.PHONY\s*:.*)$", lambda m: m.group(1).rstrip() + " clean", joined, count=1)
+        else:
+            joined = ".PHONY: clean\n" + joined
+    return {relative: joined}
+
+
 def lint_rules() -> tuple[Rule, ...]:
     return (
         Rule(
@@ -374,5 +582,14 @@ def lint_rules() -> tuple[Rule, ...]:
             None,
             None,
             (),
+        ),
+        Rule(
+            "make-clean-target",
+            "Require a root Makefile clean target that removes language-specific build artifacts",
+            TagPredicate(),
+            _make_clean_target_findings,
+            _make_clean_target_fix,
+            "chore(repomod): add make clean target",
+            ("Makefile", "makefile", "GNUmakefile"),
         ),
     )

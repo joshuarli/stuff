@@ -156,7 +156,12 @@ stays a per-repository human choice, so a missing Makefile or a missing target i
 manual: add the target running the repository's linters as a non-mutating check.
 `make-lint-target` rejects `--fix` in the lint recipe. Linter versions ride the existing
 pins: the `rust-toolchain` nightly for clippy, `fleet/policy/python-tools.toml` for ruff, and
-`fleet/policy/typescript-tools.toml` for oxlint.
+`fleet/policy/typescript-tools.toml` for oxlint. `make-clean-target` requires a root
+`Makefile` with a `clean` target that removes language-specific build artifacts: the root
+`.venv` and all `__pycache__` directories for Python, all `node_modules` directories for
+JavaScript and TypeScript, Rust `target` directories, Swift `.build` directories, and Zig
+`.zig-cache` and `zig-out` directories. Its fixer adds the target or composes the
+language-specific cleanup recipe.
 
 Catalog-backed fixes preserve action subpaths, refuse major changes and downgrades, and do not
 treat an unlabeled SHA as approval. The bounded checker is not a complete implementation of

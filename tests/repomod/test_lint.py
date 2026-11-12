@@ -223,11 +223,77 @@ def test_lint_target_follows_prerequisites(tmp_path: Path) -> None:
 def test_lint_rules_are_registered_and_blacklistable() -> None:
     rule_ids = {rule.id for rule in rules()}
 
-    assert {"gha-lint-workflow", "make-lint-target"} <= rule_ids
+    assert {"gha-lint-workflow", "make-lint-target", "make-clean-target"} <= rule_ids
 
     ignored = Repository(
         RepoId("acme", "demo"),
         ("tool",),
-        ignored_rules=frozenset({"gha-lint-workflow", "make-lint-target"}),
+        ignored_rules=frozenset({"gha-lint-workflow", "make-lint-target", "make-clean-target"}),
     )
     validate_ignored_rules((ignored,))
+
+
+def test_missing_makefile_needs_a_clean_target(tmp_path: Path) -> None:
+    from repomod.rules.lint import _make_clean_target_findings, _make_clean_target_fix
+
+    findings = _make_clean_target_findings(tmp_path, repository("tool"))
+
+    assert [(item.rule, item.file, item.fixable) for item in findings] == [
+        ("make-clean-target", "Makefile", True)
+    ]
+    plan = _make_clean_target_fix(tmp_path, repository("tool"))
+    assert set(plan) == {"Makefile"}
+    apply_plan(tmp_path, plan)
+    assert _make_clean_target_findings(tmp_path, repository("tool")) == []
+
+
+def test_makefile_without_clean_target_is_fixable(tmp_path: Path) -> None:
+    from repomod.rules.lint import _make_clean_target_findings, _make_clean_target_fix
+
+    (tmp_path / "Makefile").write_text(".PHONY: lint\nlint:\n\t@echo ok\n", encoding="utf-8")
+
+    findings = _make_clean_target_findings(tmp_path, repository("tool"))
+
+    assert len(findings) == 1
+    assert findings[0].fixable is True
+    plan = _make_clean_target_fix(tmp_path, repository("tool"))
+    apply_plan(tmp_path, plan)
+    assert _make_clean_target_findings(tmp_path, repository("tool")) == []
+    source = (tmp_path / "Makefile").read_text(encoding="utf-8")
+    assert "clean:" in source
+
+
+def test_python_clean_target_must_remove_venv_and_pycache(tmp_path: Path) -> None:
+    from repomod.rules.lint import _make_clean_target_findings
+
+    (tmp_path / "demo.py").write_text("def run(): pass\n", encoding="utf-8")
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: clean\nclean:\n\trm -rf build\n", encoding="utf-8"
+    )
+
+    findings = _make_clean_target_findings(tmp_path, repository("tool"))
+
+    assert len(findings) == 1
+    assert findings[0].fixable is True
+    assert ".venv" in findings[0].message or "__pycache__" in findings[0].message
+
+
+def test_javascript_clean_target_must_remove_node_modules(tmp_path: Path) -> None:
+    from repomod.rules.lint import _make_clean_target_findings, _make_clean_target_fix
+
+    (tmp_path / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
+    src = tmp_path / "src" / "index.ts"
+    src.parent.mkdir()
+    src.write_text("export {};\n", encoding="utf-8")
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: clean\nclean:\n\trm -rf dist\n", encoding="utf-8"
+    )
+
+    findings = _make_clean_target_findings(tmp_path, repository("tool", "typescript"))
+
+    assert len(findings) == 1
+    assert "node_modules" in findings[0].message
+    plan = _make_clean_target_fix(tmp_path, repository("tool", "typescript"))
+    apply_plan(tmp_path, plan)
+    assert "node_modules" in (tmp_path / "Makefile").read_text(encoding="utf-8")
+    assert _make_clean_target_findings(tmp_path, repository("tool", "typescript")) == []
