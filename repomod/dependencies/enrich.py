@@ -13,18 +13,20 @@ from repomod.audit import (
     CrateRecord,
     LockedDependency,
     MirrorCatalogError,
+    PackageSize,
     RegistryRateLimitedError,
     RegistrySources,
     VulnerabilityLookupError,
     read_mirror_catalog,
     resolve_crates,
     resolve_latest,
+    resolve_sizes,
     resolve_source_urls,
     resolve_vulns,
 )
 from repomod.catalog import atomic_write
 from repomod.dependencies.graph import Graph
-from repomod.dependencies.model import Ecosystem, RepositoryData
+from repomod.dependencies.model import Ecosystem, RepositoryData, SourceKind
 from repomod.io import cache_file
 
 CACHE_NAME = "deps-enrichment.json"
@@ -32,6 +34,7 @@ MAX_AGE_SECONDS = 86400
 _CHECKED = frozenset({Ecosystem.CARGO, Ecosystem.PYPI, Ecosystem.NPM, Ecosystem.GOLANG})
 _SOURCED = frozenset({"crates", "pypi", "npm"})
 _MIRRORED = (Ecosystem.CARGO, Ecosystem.NPM, Ecosystem.PYPI)
+_SIZED = frozenset({"crates", "pypi", "npm"})
 _ECOSYSTEMS = {
     Ecosystem.CARGO: "crates",
     Ecosystem.PYPI: "pypi",
@@ -66,6 +69,7 @@ class EnrichReport:
     vulnerable: int
     total: int
     sources_fetched: int
+    sizes_fetched: int = 0
     errors: tuple[str, ...] = ()
 
 
@@ -76,6 +80,7 @@ class _Item:
     ecosystem: str
     name: str
     version: str
+    registry: bool = False
 
 
 def load_cache(path: Path | None = None) -> Enrichment:
@@ -142,6 +147,49 @@ def _mirror_dict(catalogs: Mapping[Ecosystem, MirrorCatalog]) -> dict[str, objec
     }
 
 
+def cached_size(entry: Mapping[str, object] | None) -> PackageSize | None:
+    """Return the registry size cached on a result entry; None when no lookup has been recorded."""
+    value = entry.get("size") if entry is not None else None
+    if not isinstance(value, dict):
+        return None
+    size, kind = value.get("bytes"), value.get("kind")
+    if not isinstance(kind, str) or isinstance(size, bool) or not isinstance(size, (int, type(None))):
+        return None
+    files, platform = value.get("files"), value.get("platform")
+    return PackageSize(
+        size,
+        kind,
+        files if isinstance(files, int) and not isinstance(files, bool) else None,
+        platform if isinstance(platform, str) else None,
+        _names(value.get("os")),
+        _names(value.get("cpu")),
+        _names(value.get("libc")),
+    )
+
+
+def _names(value: object) -> tuple[str, ...] | None:
+    return tuple(item for item in value if isinstance(item, str)) if isinstance(value, list) else None
+
+
+def _size_dict(size: PackageSize) -> dict[str, object]:
+    return {
+        "bytes": size.bytes,
+        "kind": size.kind,
+        **({"files": size.files} if size.files is not None else {}),
+        **({"platform": size.platform} if size.platform is not None else {}),
+        **{
+            name: list(value)
+            for name, value in (("os", size.os), ("cpu", size.cpu), ("libc", size.libc))
+            if value is not None
+        },
+    }
+
+
+def _needs_size(item: _Item, entry: Mapping[str, object] | None) -> bool:
+    size = entry.get("size") if entry is not None else None
+    return not isinstance(size, dict) or (item.ecosystem == "npm" and "os" not in size)
+
+
 def is_fresh(entry: Mapping[str, object], now: float) -> bool:
     if entry.get("vuln_error") or not isinstance(entry.get("vulns"), list):
         return False
@@ -173,6 +221,7 @@ def enrich(
     sources: RegistrySources | None = None,
     source_fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
     mirror_fetcher: Callable[[str], Mapping[str, tuple[str, ...]]] | None = None,
+    size_fetcher: Callable[[str, str, str], PackageSize | None] | None = None,
 ) -> EnrichReport:
     current = time.time() if now is None else now
     cache = load_cache(cache_path)
@@ -199,6 +248,14 @@ def enrich(
         and item.ecosystem in _SOURCED
         and (refresh or item.component not in source_urls)
     }
+    unsized = [
+        item
+        for item in items
+        if not offline
+        and (size_fetcher is not None or latest_fetcher is None)
+        and item.registry
+        and (refresh or _needs_size(item, cache.results.get(item.purl)))
+    ]
     crate_names = {
         *(item.name for item in pending if item.ecosystem == "crates" and latest_fetcher is None),
         *(name for ecosystem, name in unsourced.values() if ecosystem == "crates" and source_fetcher is None),
@@ -283,6 +340,7 @@ def enrich(
             "upstream_checked": True,
             "vulns": vulns_map.get((item.ecosystem, item.name, item.version), []),
             "fetched_at": current,
+            **({"size": results[item.purl]["size"]} if "size" in results.get(item.purl, {}) else {}),
         }
     found: dict[tuple[str, str], tuple[str, ...]] = {
         ("crates", name): record.urls if record is not None else () for name, record in crates.items()
@@ -297,6 +355,17 @@ def enrich(
     if unresolved_sources:
         lookup_errors.append(f"{unresolved_sources} package source lookups failed; run enrich again")
     source_urls.update(fetched_sources)
+    sizes = resolve_sizes(
+        {(item.ecosystem, item.name, item.version) for item in unsized}, fetcher=size_fetcher
+    ) if unsized else {}
+    fetched_sizes = 0
+    for item in unsized:
+        size = sizes.get((item.ecosystem, item.name, item.version))
+        if size is not None:
+            results[item.purl] = {**results.get(item.purl, {}), "size": _size_dict(size)}
+            fetched_sizes += 1
+    if len(unsized) > fetched_sizes:
+        lookup_errors.append(f"{len(unsized) - fetched_sizes} package size lookups failed; run enrich again")
     fetched_at = current if pending and vuln_error is None else cache.fetched_at
     mirror = dict(cache.mirror)
     fetched_mirror = False
@@ -310,7 +379,7 @@ def enrich(
                 fetched_mirror = True
             except MirrorCatalogError as error:
                 lookup_errors.append(str(error))
-    if pending or fetched_sources or fetched_mirror:
+    if pending or fetched_sources or fetched_mirror or fetched_sizes:
         _write(
             cache.path,
             {
@@ -354,6 +423,7 @@ def enrich(
         vulnerable,
         total,
         len(fetched_sources),
+        fetched_sizes,
         errors,
     )
 
@@ -381,9 +451,12 @@ def _items(graph: Graph, selected: set[str] | None) -> tuple[_Item, ...]:
             if instance.version is None:
                 continue
             ecosystem = _ECOSYSTEMS[component.ecosystem]
+            registry = (
+                ecosystem in _SIZED and instance.source_kind is SourceKind.REGISTRY and not instance.first_party
+            )
             items.setdefault(
                 instance.purl,
-                _Item(instance.purl, component.purl, ecosystem, component.name, instance.version),
+                _Item(instance.purl, component.purl, ecosystem, component.name, instance.version, registry),
             )
     return tuple(sorted(items.values(), key=lambda item: item.purl))
 
@@ -427,7 +500,7 @@ def summary_text(report: EnrichReport) -> str:
     summary = (
         f"{report.checked} checked, {report.stale} stale, "
         f"{report.not_checked} not checked, {report.vulnerable} vulnerable "
-        f"of {report.total} instances; fetched {report.fetched} entries "
-        f"and {report.sources_fetched} source URLs to {report.cache.path}"
+        f"of {report.total} instances; fetched {report.fetched} entries, "
+        f"{report.sources_fetched} source URLs and {report.sizes_fetched} package sizes to {report.cache.path}"
     )
     return summary + ("; " + "; ".join(report.errors) if report.errors else "")

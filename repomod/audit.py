@@ -1286,6 +1286,7 @@ _CRATES_BACKOFF = 2.0
 _CRATES_BACKOFF_MAX = 60.0
 _CRATES_PATIENCE = 1800.0
 _RATE_LIMITED = frozenset({429, 503})
+_NO_CRATE: dict[str, Any] = {}
 
 
 class RegistryRateLimitedError(RuntimeError):
@@ -1348,6 +1349,14 @@ def _retry_after(value: str | None) -> float | None:
 
 
 def _crates_fetch(url: str) -> dict[str, Any] | None:
+    return _crates_request(url, None)
+
+
+def _crates_published(url: str) -> dict[str, Any] | None:
+    return _crates_request(url, _NO_CRATE)
+
+
+def _crates_request(url: str, missing: dict[str, Any] | None) -> dict[str, Any] | None:
     request = urllib.request.Request(
         url, headers={"User-Agent": "repomod", "Accept": "application/json"}
     )
@@ -1357,25 +1366,27 @@ def _crates_fetch(url: str) -> dict[str, Any] | None:
     except urllib.error.HTTPError as error:
         if error.code in _RATE_LIMITED:
             raise _ThrottledError(_retry_after(error.headers.get("Retry-After"))) from error
-        return None
+        return missing if error.code == 404 else None
     except (OSError, UnicodeError, json.JSONDecodeError):
         return None
     return data if isinstance(data, dict) else None
 
 
-def _crates_document(url: str) -> dict[str, Any] | None:
+def _crates_document(
+    url: str, fetch: Callable[[str], dict[str, Any] | None] | None = None
+) -> dict[str, Any] | None:
     """Fetch a crates.io API document, paced and retried through rate limits.
 
     crates.io allows one request per second from crawlers. Throttled requests wait for
     Retry-After, or back off exponentially, and raise RegistryRateLimitedError only after
-    waiting longer than _CRATES_PATIENCE in total.
+    waiting longer than _CRATES_PATIENCE in total. `fetch` replaces the request.
     """
     waited = 0.0
     backoff = _CRATES_BACKOFF
     while True:
         _CRATES_PACER.wait()
         try:
-            return _crates_fetch(url)
+            return (fetch or _crates_fetch)(url)
         except _ThrottledError as throttled:
             if throttled.retry_after is not None:
                 pause = max(throttled.retry_after, _CRATES_INTERVAL)
@@ -1526,6 +1537,183 @@ def resolve_source_urls(
             except SourceLookupError:
                 continue
     return resolved
+
+
+@dataclass(frozen=True, slots=True)
+class PackageSize:
+    """A registry-reported size. `bytes` is None when the registry reports none for the version.
+
+    `kind` is what the bytes measure: `unpacked` (npm installed size), `crate` (compressed .crate),
+    `wheel` or `sdist` (a PyPI download). `platform` names the wheel chosen. `os`, `cpu` and `libc` are
+    an npm version's allowed-platform lists (empty means unrestricted) and None for other registries.
+    """
+
+    bytes: int | None
+    kind: str
+    files: int | None = None
+    platform: str | None = None
+    os: tuple[str, ...] | None = None
+    cpu: tuple[str, ...] | None = None
+    libc: tuple[str, ...] | None = None
+
+
+_PYPI_WHEEL_PLATFORMS = ("macos-arm64", "linux-x86_64", "linux-aarch64", "any")
+
+
+def _positive_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
+def _strings(value: object) -> tuple[str, ...]:
+    if isinstance(value, str):
+        return (value,)
+    return tuple(item for item in value if isinstance(item, str)) if isinstance(value, list) else ()
+
+
+def npm_size(document: dict[str, Any], version: str) -> PackageSize:
+    """Read `dist.unpackedSize` and the `os`, `cpu` and `libc` lists from a version manifest,
+    or from `versions[version]` of a packument."""
+    versions = document.get("versions")
+    if isinstance(versions, dict):
+        document = versions.get(version) if isinstance(versions.get(version), dict) else {}
+    dist = document.get("dist")
+    dist = dist if isinstance(dist, dict) else {}
+    return PackageSize(
+        _positive_int(dist.get("unpackedSize")),
+        "unpacked",
+        _positive_int(dist.get("fileCount")),
+        None,
+        _strings(document.get("os")),
+        _strings(document.get("cpu")),
+        _strings(document.get("libc")),
+    )
+
+
+def crate_size(versions: Iterable[Any], version: str) -> PackageSize:
+    """Read `crate_size` for one version from the crates.io `versions` list."""
+    for entry in versions:
+        if isinstance(entry, dict) and entry.get("num") == version:
+            return PackageSize(_positive_int(entry.get("crate_size")), "crate")
+    return PackageSize(None, "crate")
+
+
+def _wheel_platform(filename: str) -> str | None:
+    tags = filename.removesuffix(".whl").rsplit("-", 1)[-1].split(".")
+    for tag in tags:
+        if tag.startswith("macosx_") and tag.endswith(("_arm64", "_universal2")):
+            return "macos-arm64"
+    for tag in tags:
+        if tag.startswith(("manylinux", "musllinux", "linux")) and tag.endswith("_x86_64"):
+            return "linux-x86_64"
+    for tag in tags:
+        if tag.startswith(("manylinux", "musllinux", "linux")) and tag.endswith("_aarch64"):
+            return "linux-aarch64"
+    return "any" if tags == ["any"] else None
+
+
+def pypi_size(document: dict[str, Any]) -> PackageSize:
+    """Pick one file of a release: a macOS arm64 wheel, else Linux x86_64, else Linux aarch64,
+    else a pure wheel, else the sdist. Ties go to the filename that sorts first."""
+    urls = document.get("urls")
+    files = [entry for entry in urls if isinstance(entry, dict)] if isinstance(urls, list) else []
+    wheels: dict[str, list[tuple[str, int]]] = {}
+    sdists: list[tuple[str, int]] = []
+    for entry in files:
+        name, size = entry.get("filename"), _positive_int(entry.get("size"))
+        if not isinstance(name, str) or size is None:
+            continue
+        if entry.get("packagetype") == "bdist_wheel" and name.endswith(".whl"):
+            platform = _wheel_platform(name)
+            if platform is not None:
+                wheels.setdefault(platform, []).append((name, size))
+        elif entry.get("packagetype") == "sdist":
+            sdists.append((name, size))
+    for platform in _PYPI_WHEEL_PLATFORMS:
+        if platform in wheels:
+            return PackageSize(min(wheels[platform])[1], "wheel", platform=platform)
+    if sdists:
+        return PackageSize(min(sdists)[1], "sdist")
+    return PackageSize(None, "wheel")
+
+
+def _size_npm(name: str, version: str) -> PackageSize:
+    url = f"https://registry.npmjs.org/{urllib.parse.quote(name, safe='@')}/{urllib.parse.quote(version, safe='')}"
+    document = _published_document(url)
+    return npm_size(document, version) if document is not None else npm_size({}, version)
+
+
+def _size_pypi(name: str, version: str) -> PackageSize:
+    url = f"https://pypi.org/pypi/{urllib.parse.quote(name, safe='')}/{urllib.parse.quote(version, safe='')}/json"
+    document = _published_document(url)
+    return pypi_size(document) if document is not None else PackageSize(None, "wheel")
+
+
+def _sizes_crates(name: str, versions: Iterable[str]) -> dict[str, PackageSize]:
+    document = _crates_document(
+        f"{_CRATES_API}/{urllib.parse.quote(name, safe='')}/versions", _crates_published
+    )
+    if document is None:
+        raise SourceLookupError(f"crates.io versions of {name} could not be read")
+    listed = document.get("versions")
+    entries = listed if isinstance(listed, list) else []
+    return {version: crate_size(entries, version) for version in versions}
+
+
+def resolve_sizes(
+    packages: Iterable[tuple[str, str, str]],
+    *,
+    fetcher: Callable[[str, str, str], PackageSize | None] | None = None,
+) -> dict[tuple[str, str, str], PackageSize]:
+    """Return the public registry size of each (ecosystem, name, version) for npm, PyPI and crates.
+
+    A package or version the registry does not publish maps to a size with no bytes. Lookups that
+    fail are omitted so a later run retries them, as are those left when crates.io keeps rate limiting.
+    Crates go through the shared crates.io client, one request per crate for all its versions.
+    """
+    jobs: list[tuple[tuple[tuple[str, str, str], ...], Callable[[], dict[str, PackageSize]]]] = []
+    crates: dict[str, list[str]] = {}
+    for key in sorted(set(packages)):
+        ecosystem, name, version = key
+        if fetcher is not None:
+            jobs.append(((key,), lambda key=key: _fetched(fetcher, key)))
+        elif ecosystem == "crates":
+            crates.setdefault(name, []).append(version)
+        elif ecosystem == "npm":
+            jobs.append(((key,), lambda name=name, version=version: {version: _size_npm(name, version)}))
+        elif ecosystem == "pypi":
+            jobs.append(((key,), lambda name=name, version=version: {version: _size_pypi(name, version)}))
+    for name, versions in crates.items():
+        keys = tuple(("crates", name, version) for version in versions)
+        jobs.append((keys, lambda name=name, versions=versions: _sizes_crates(name, versions)))
+    resolved: dict[tuple[str, str, str], PackageSize] = {}
+    if not jobs:
+        return resolved
+    with ThreadPoolExecutor(max_workers=min(8, len(jobs)), thread_name_prefix="repomod-size") as pool:
+        futures = {pool.submit(job): keys for keys, job in jobs}
+        for future in as_completed(futures):
+            keys = futures[future]
+            if future.cancelled():
+                continue
+            try:
+                found = future.result()
+            except SourceLookupError:
+                continue
+            except RegistryRateLimitedError:
+                pool.shutdown(wait=False, cancel_futures=True)
+                continue
+            for key in keys:
+                if key[2] in found:
+                    resolved[key] = found[key[2]]
+    return resolved
+
+
+def _fetched(
+    fetcher: Callable[[str, str, str], PackageSize | None], key: tuple[str, str, str]
+) -> dict[str, PackageSize]:
+    size = fetcher(*key)
+    if size is None:
+        raise SourceLookupError(f"{key[0]} size of {key[1]} could not be read")
+    return {key[2]: size}
 
 
 _LATEST_FETCHERS: dict[str, Callable[[str], str | None]] = {

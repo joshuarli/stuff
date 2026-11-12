@@ -43,7 +43,7 @@ deps: ## Sync, snapshot, and serve the fleet dependency dashboard ([PORT=8765] [
 
 dashboard-ts: ## Type-check, lint, and rebuild the dashboard scripts; fail if the committed output is stale
 	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile && $(PNPM) run check && $(PNPM) run build
-	@git diff --exit-code -- repomod/dependencies/assets/app.js repomod/dependencies/assets/search.js
+	@git diff --exit-code -- repomod/dependencies/assets/app.js repomod/dependencies/assets/search.js repomod/dependencies/assets/weight.js
 
 bench: ## Measure dependency dashboard render phases, cold and warm ([RUNS=3])
 	@uv run python bench/deps_perf.py phases --mode both --runs $(RUNS)

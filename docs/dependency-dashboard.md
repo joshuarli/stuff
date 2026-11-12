@@ -95,6 +95,43 @@ Overview.
 - **Bloat** charts direct dependencies whose removal would drop lockfile packages, split into
   those only it brings in and those shared. Lockfiles list every platform's packages, so counts
   are upper bounds.
+- **Weight** (`weight.html`) shows which owned repositories carry the most third-party code, so you
+  can choose where to slim and which dependency to drop. It sits under Review beside Bloat because
+  it answers the same question in bytes. One bar per repository, on one scale, largest first, with
+  the value in text at the bar's end. A repository with no packages for the current selection has no
+  bar: one muted line under the chart names them, and the table view still lists every repository.
+  Each repository opens its heaviest packages: name, version, size, registry, and whether it is
+  direct or transitive. A direct dependency can be removed; a transitive one leaves only with what
+  brings it in. A package counts once per repository however many lockfiles, targets, or projects
+  list its version, and packages the World page classifies as yours are left out. Sizes come from
+  `deps enrich`, and the page says so when none are cached.
+  The sizes are not one unit, and the page states each measure: npm unpacked (installed) size,
+  the compressed Cargo `.crate` archive, and a PyPI wheel download (macOS arm64, else Linux, else
+  pure Python) or the sdist when there is no wheel. Go and other ecosystems report no size and
+  count as size unknown. One filter row above the chart scopes everything below it:
+  - **Languages**: TypeScript/JavaScript (npm), Rust (Cargo), Python (PyPI), Go, and Other, all on
+    by default. Go and Other only add to the size-unknown counts.
+  - **npm platform**: macOS arm64 (default), Linux x64 (musl), Linux arm64 (musl), or All platforms
+    (upper bound). Lockfiles list every platform's optional binaries, such as esbuild's, which npm
+    never installs on a given target. A package is left out for a platform when every edge reaching
+    it is optional and its `os`, `cpu`, or `libc` lists, cached by `deps enrich`, exclude the
+    platform under npm's rules: each list names the allowed values, and `!x` forbids `x`; `libc` is
+    checked only on Linux. A package with any non-optional edge always counts, and platforms do not
+    affect other ecosystems. All platforms counts everything, so it is an upper bound.
+  - **Include dev dependencies**, off by default. A package is dev-only when no direct dependency
+    with a non-dev scope reaches it. The scopes treated as dev are `dev`, `test`, `build`, and `ci`.
+    Lockfiles record the transitive edges of a dev tool as `runtime`, so the page follows
+    transitive edges from each direct dependency instead of reading the scope of the edge into a
+    package. A package reached from both kinds of dependency counts as runtime. The inventory uses
+    `dev` for npm and PyPI dev groups, and `dev` and `build` for Cargo.
+
+  Python precomputes totals for every platform and scope, and the browser only switches between
+  them, recomputing totals, bar lengths, order, the collapsed line, and package lists. The choice
+  is written to the URL hash: `weight.html#lang=npm` opens TypeScript/JavaScript only,
+  `#lang=npm&platform=linux-x64-musl&dev=1` adds a platform and dev dependencies, and
+  `#repo=joshuarli/pi-build` opens that repository's row. Without JavaScript the page shows the
+  default: every language, macOS arm64, no dev dependencies. A table view repeats the numbers.
+  Each repository page links its per-language totals, for that default, to this page.
 - **Coverage** has one card per fixable issue kind with the action and the repositories. Its
   **Source risk** group lists every git source, unpinned action, floating image, missing lock,
   unpinned artifact, and vendored tree, with the repositories that use it. Known limits, such as
@@ -165,9 +202,9 @@ mistyped `--output` cannot delete unrelated files.
 ## Source and verification
 
 The browser scripts are TypeScript under `repomod/dependencies/dashboard_ts/` and compile to
-`assets/app.js` and `assets/search.js` with `tsrs` (TypeScript 7.1). `make dashboard-ts` verifies a
-frozen pnpm install, type-checks, lints with Oxlint, rebuilds, and fails if the committed
-JavaScript is stale. The renderer copies the pinned library's base `styles.css` and `tokens.css`
+`assets/app.js`, `assets/search.js`, and `assets/weight.js` (loaded only by the Weight page) with
+`tsrs` (TypeScript 7.1). `make dashboard-ts` verifies a frozen pnpm install, type-checks, lints
+with Oxlint, rebuilds, and fails if the committed JavaScript is stale. The renderer copies the pinned library's base `styles.css` and `tokens.css`
 and the `layout.css` and `data.css` family sheets from the installed package in `node_modules`, so
 rendering needs `pnpm install --frozen-lockfile` once and fails with that instruction otherwise.
 `make deps` syncs the checkouts and re-snapshots the inventory (committing any changes) before

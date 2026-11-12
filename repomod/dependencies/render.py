@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 from packaging.version import InvalidVersion, Version
 
 from repomod import dependency_roles, paths
-from repomod.dependencies import analysis, enrich, insights, migrations, triage, ui, world
+from repomod.dependencies import analysis, enrich, insights, migrations, triage, ui, weight, weight_view, world
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
 from repomod.dependencies.model import (
@@ -94,6 +94,7 @@ class _Site:
     status: Mapping[str, Sequence[StatusItem]] | None
     hidden: frozenset[str]
     world: world.World
+    package_weight: tuple[weight.Repository, ...]
 
 
 def render(
@@ -133,6 +134,7 @@ def render(
             ("alignment", "Alignment", _alignment),
             ("choices", "Choices", _choices),
             ("bloat", "Bloat", _bloat),
+            ("weight", "Weight", _weight),
             ("packages", "Packages", _packages),
             ("changes", "Changes", _changes),
             ("coverage", "Coverage", _coverage),
@@ -196,6 +198,8 @@ def _site(
     )
     drift = insights.drift(splits, upgradable)
     roles = insights.role_uses(dependency_roles.load_roles(), mine)
+    owned_names = [name for name in graph.repositories if name not in forks]
+    world_value = world.build(graph, owned_names, cache.sources, cache.mirror)
     return _Site(
         graph,
         inventory,
@@ -223,7 +227,8 @@ def _site(
         _triage(graph, vulnerable, outdated, forks),
         status,
         hidden,
-        world.build(graph, [name for name in graph.repositories if name not in forks], cache.sources, cache.mirror),
+        world_value,
+        weight.build(graph, owned_names, cache.results, world_value),
     )
 
 
@@ -274,6 +279,7 @@ def _navigation(site: _Site) -> tuple[NavGroup, ...]:
                 NavLink("alignment", "Alignment", len(site.drift)),
                 NavLink("choices", "Choices", len(_contested_roles(site))),
                 NavLink("bloat", "Bloat"),
+                NavLink("weight", "Weight"),
             ),
         ),
         NavGroup(
@@ -291,7 +297,7 @@ def _write_page(path: Path, content: str) -> Path:
 
 def _write_assets(output: Path, site: _Site) -> None:
     (output / "assets" / "ui-dashboard").mkdir(parents=True)
-    for name in ("app.css", "app.js"):
+    for name in ("app.css", "app.js", "weight.js"):
         shutil.copyfile(ASSETS / name, output / "assets" / name)
     for sheet in UI_SHEETS:
         shutil.copyfile(UI_DASHBOARD / sheet, output / "assets" / "ui-dashboard" / Path(sheet).name)
@@ -884,6 +890,13 @@ def _bloat(site: _Site) -> str:
         )
     )
     return "\n".join(body)
+
+
+def _weight(site: _Site) -> str:
+    return (
+        weight_view.page(site.package_weight, lambda purl, text: _package_link(purl, "", text))
+        + '\n<script src="assets/weight.js"></script>'
+    )
 
 
 def _weight_bar(row: insights.Weight) -> Bar:
@@ -1632,6 +1645,9 @@ def _repository(site: _Site, name: str) -> str:
         )
     body.append(_repository_status_panel(site, name))
     body.append(_todo_panel(site, name))
+    held = next((row for row in site.package_weight if row.repository == name), None)
+    if held is not None and held.total([language.key for language in weight.LANGUAGES]).packages:
+        body.append(weight_view.repository_panel(held, "../../../"))
     if not data.edges:
         body.append(
             '<p class="zero">complete: zero dependencies</p>'

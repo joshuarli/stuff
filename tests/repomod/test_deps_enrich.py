@@ -103,6 +103,9 @@ def test_enrichment_uses_upstream_releases_and_configured_registry_for_private_p
     monkeypatch.setattr(enrich, "resolve_crates", crates)
     monkeypatch.setattr(enrich, "read_mirror_catalog", lambda _url: {})
     monkeypatch.setattr(enrich, "resolve_source_urls", lambda packages, **_: dict.fromkeys(packages, ()))
+    monkeypatch.setattr(
+        enrich, "resolve_sizes", lambda packages, **_: {key: audit.PackageSize(None, "unpacked") for key in packages}
+    )
     monkeypatch.setattr(audit, "_latest_crates", cargo)
     monkeypatch.setitem(audit._LATEST_FETCHERS, "npm", npm)
     monkeypatch.setattr(audit, "_latest_npm", npm)
@@ -384,5 +387,6 @@ def test_enrich_cli_reports_failed_checks_and_operational_exit(
         "OSV request failed",
         "crates.io returned no data for 1 crates; run enrich again",
         "3 package source lookups failed; run enrich again",
+        "3 package size lookups failed; run enrich again",
         *(f"{audit.mirror_catalog_url(url)} could not be read" for url in configured if url is not None),
     ]

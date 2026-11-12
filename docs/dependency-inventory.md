@@ -95,7 +95,7 @@ uv run repomod deps diff --from HEAD~1 --to HEAD --json
 
 Query latest versions and OSV for resolved Cargo, PyPI, npm, and Go components. Results are
 written to `io.cache_file("deps-enrichment.json")`, outside the repository, as
-`{fetched_at, results: {purl: {latest, latest_source, upstream_checked, vulns, fetched_at}}}`.
+`{fetched_at, results: {purl: {latest, latest_source, upstream_checked, vulns, fetched_at, size?}}}`.
 Latest versions come from public upstream registries, with configured registries used when the
 package is unavailable upstream. `latest_source` identifies the registry used. Existing entries
 without `upstream_checked: true` are refreshed on the next online enrichment. Entries older than
@@ -113,6 +113,27 @@ again only with `--refresh`. A package the public registry does not publish, suc
 a private registry, is cached with no URLs. The World page reads these URLs to find each
 package's owner.
 
+Enrichment also caches the registry size of each Cargo, npm, and PyPI version a repository
+resolves from a registry, as `size: {bytes, kind, files?, platform?}` on that version's result
+entry. Git, path, workspace, and first-party instances, and other ecosystems, get none. `kind`
+says what `bytes` measures:
+
+| Ecosystem | `kind` | Source |
+| --- | --- | --- |
+| npm | `unpacked` | `dist.unpackedSize` of the version, with `dist.fileCount` as `files`, and the version's `os`, `cpu`, and `libc` lists, always written, empty when the version has no restriction |
+| Cargo | `crate` | `crate_size`, the compressed `.crate` archive, from crates.io's versions list |
+| PyPI | `wheel` or `sdist` | one file of the release: a macOS arm64 wheel, else a Linux x86_64 wheel, else Linux aarch64, else a pure `any` wheel, else the sdist; `platform` names the wheel (`macos-arm64`, `linux-x86_64`, `linux-aarch64`, `any`) and ties go to the filename that sorts first |
+
+A version the registry lists with no size, or does not publish, is cached with `bytes: null` and
+is not asked again. A failed lookup is not cached, counts as an unresolved lookup, and is retried.
+Sizes of published versions do not change, so they are fetched once and again only with
+`--refresh`; the 24-hour advisory refresh keeps them. A cache written before sizes existed needs no
+migration: its entries simply lack `size`, and the next online enrich fetches only the sizes. An
+npm size written before the platform lists existed lacks `os`, so the next enrich fetches that
+version's document again and no other registry's.
+Crates are read through the shared crates.io client, one request per crate for all its versions;
+npm and PyPI use one request per version. The Weight page reads these sizes.
+
 Every enrich run also reads the stuff catalog (`<origin>/current/catalog.json`) behind each
 registry in `fleet/registries.toml` and caches each package's served versions under `mirror`. A
 catalog that cannot be read keeps its previous copy.
@@ -124,7 +145,7 @@ gives up after 30 minutes of waiting on one request. Enrich reads latest version
 URLs for crates in batches of 50 per request.
 
 Enrich exits 2 when any lookup is still unresolved: an OSV failure, crates.io data that never
-arrived, a failed source lookup, or an unreadable stuff catalog. Unresolved packages are not
+arrived, a failed source or size lookup, or an unreadable stuff catalog. Unresolved packages are not
 written as checked, so the next run retries them.
 
 Enrichment never adds edges and never changes package identities.
