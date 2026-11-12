@@ -24,6 +24,7 @@ _RUNNER_DECLARATION = re.compile(
     r"(?:^|[\s{,])(?:runs-on|os|macos|ubuntu|runner)\s*:"
 )
 _LIST_ITEM = re.compile(r"^\s*-\s+(?P<value>.*?)\s*$")
+_AMD64 = "linux/amd64"
 
 
 def _code_portion(line: str) -> str:
@@ -46,7 +47,7 @@ def _macos_accepted(match: re.Match[str]) -> bool:
     return str(match.group("version")) == "latest"
 
 
-def _macos_repaired(match: re.Match[str]) -> str:
+def _macos_repaired(match: re.Match[str], _amd64: bool) -> str:
     if _macos_accepted(match):
         return str(match.group(0))
     return f"macos-latest{match.group('suffix')}"
@@ -56,12 +57,37 @@ def _ubuntu_accepted(match: re.Match[str]) -> bool:
     return str(match.group("version")) == "26.04"
 
 
-def _ubuntu_repaired(match: re.Match[str]) -> str:
+def _ubuntu_repaired(match: re.Match[str], amd64: bool) -> str:
     if _ubuntu_accepted(match):
         return str(match.group(0))
-    if match.group("arm") is not None or str(match.group("version")) == "latest":
+    if match.group("arm") is not None or (str(match.group("version")) == "latest" and not amd64):
         return _UBUNTU_ARM_RUNNER
     return _UBUNTU_X86_RUNNER
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def _block(lines: list[str], index: int) -> list[str]:
+    """The list item a runner line opens, or else the job whose body holds it."""
+    line = lines[index]
+    if line.lstrip().startswith("- "):
+        start, floor = index, _indent(line)
+    else:
+        start = next(
+            (row for row in range(index - 1, -1, -1) if lines[row].strip() and _indent(lines[row]) < _indent(line)),
+            index,
+        )
+        floor = _indent(lines[start])
+    end = start + 1
+    while end < len(lines) and (not lines[end].strip() or _indent(lines[end]) > floor):
+        end += 1
+    return lines[start:end]
+
+
+def _runs_amd64(lines: list[str], index: int) -> bool:
+    return any(_AMD64 in _code_portion(line) for line in _block(lines, index))
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,7 +99,7 @@ class RunnerPolicy:
     pattern: re.Pattern[str]
     guidance: str
     accepted: Callable[[re.Match[str]], bool]
-    repaired: Callable[[re.Match[str]], str]
+    repaired: Callable[[re.Match[str], bool], str]
 
     def findings(self, root: Path, repository: Repository) -> list[Finding]:
         sources, problems = read_workflow_sources(root, repository)
@@ -121,17 +147,18 @@ class RunnerPolicy:
         return plan
 
     def _repair_source(self, source: str) -> str:
+        """Rewrite runner labels, keeping x86 for a job or matrix entry that runs linux/amd64 images."""
+        rows = source.splitlines(keepends=True)
+        bodies = [row.rstrip("\r\n") for row in rows]
         lines = []
-        for line in source.splitlines(keepends=True):
-            body = line.rstrip("\r\n")
+        for index, line in enumerate(rows):
+            body = bodies[index]
             ending = line[len(body) :]
             code, marker, comment = body.partition("#")
-            repaired = (
-                self.pattern.sub(self.repaired, code)
-                if _runner_line(self.pattern, code)
-                else code
-            )
-            lines.append(repaired + marker + comment + ending)
+            if _runner_line(self.pattern, code):
+                amd64 = _runs_amd64(bodies, index)
+                code = self.pattern.sub(lambda match, amd64=amd64: self.repaired(match, amd64), code)
+            lines.append(code + marker + comment + ending)
         return "".join(lines)
 
 

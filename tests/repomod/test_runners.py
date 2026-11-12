@@ -201,3 +201,32 @@ def test_symlinked_workflow_reports_an_operational_finding(tmp_path: Path) -> No
 
     assert len(current) == 1
     assert current[0].kind == "operational"
+
+
+def test_ubuntu_latest_stays_x86_for_jobs_that_run_amd64_images(tmp_path: Path) -> None:
+    workflow(
+        tmp_path,
+        "jobs:\n"
+        "  check:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - run: docker build --platform linux/amd64 .\n"
+        "  lint:\n"
+        "    runs-on: ubuntu-latest\n"
+        "  release:\n"
+        "    runs-on: ${{ matrix.runner }}\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        include:\n"
+        "          - runner: ubuntu-latest\n"
+        "            docker_platform: linux/amd64\n"
+        "          - runner: ubuntu-latest\n"
+        "            docker_platform: linux/arm64\n",
+    )
+
+    repaired = _UBUNTU_POLICY.fix(tmp_path, repository())[".github/workflows/ci.yml"]
+
+    assert repaired.splitlines()[2] == "    runs-on: ubuntu-26.04"
+    assert repaired.splitlines()[6] == "    runs-on: ubuntu-26.04-arm"
+    assert repaired.splitlines()[12] == "          - runner: ubuntu-26.04"
+    assert repaired.splitlines()[14] == "          - runner: ubuntu-26.04-arm"

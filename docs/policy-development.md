@@ -97,7 +97,9 @@ matching `macos-latest` label, preserving larger-runner suffixes such as `-large
 Intel labels have no latest alias, so they stay unchanged. `gha-ubuntu` requires
 `ubuntu-26.04` or `ubuntu-26.04-arm`; `ubuntu-latest` is banned so a job never silently moves
 between Ubuntu releases. Its fixer rewrites `ubuntu-latest` and ARM labels to
-`ubuntu-26.04-arm`, and older x86 labels to `ubuntu-26.04` for jobs that need x86.
+`ubuntu-26.04-arm`, and older x86 labels to `ubuntu-26.04` for jobs that need x86. A
+`ubuntu-latest` job or matrix entry that mentions `linux/amd64` also needs x86 and gets
+`ubuntu-26.04`, because an ARM runner cannot execute those images.
 `gha-syntax` skips forks and validates other GitHub Actions files offline with Pinact's default profile and the
 explicit `fleet/policy/actions.toml` catalog. Its fixer returns a catalog-backed Pinact plan from a disposable
 worktree; repomod keeps validation and repository writes.
