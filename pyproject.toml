@@ -22,9 +22,10 @@ wheel-exclude = ["repomod/dependencies/dashboard_ts/node_modules"]
 
 [dependency-groups]
 dev = [
-    "ty>=0.0.84",
+    "ty==0.0.99",
     "pytest>=9.1.1",
-    "ruff>=0.15",
+    "ruff==0.17.4",
+    "uv==0.13.7",
     "joshuarli-pytest-parallel>=0.3.0",
 ]
 

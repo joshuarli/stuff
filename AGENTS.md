@@ -68,8 +68,11 @@ Run everything from the repository root.
 - Keep fixtures while parity consumers use them, including the executable examples in `crates/mycrates/README.md`.
 - Keep `crates/h12tiny-*` sources byte-identical to imported upstream `dcdf4f2`; change upstream before updating the import.
 - The registries must stay buildable when their own package registries are unavailable: Cargo, npm,
-  and PyPI dependencies of the registry crates resolve from upstream, not from stuff. The stuff
-  repository is not in repomod's catalog, so repomod's `registry-sources` rule does not apply here.
+  and PyPI dependencies of the registry crates resolve from upstream, not from stuff. The catalog
+  exempts stuff from repomod's `registry-sources` rule for this reason.
+- repomod manages stuff like any other catalogued repository. It reads the canonical checkout under
+  `~/repos`, so develop in a separate clone; `fix` publishes only from an unchanged canonical
+  checkout.
 - repomod reads the catalogs the registries publish (`<origin>/current/catalog.json`); change the
   catalog schema and its repomod reader together.
 - Stuff files use Apache-2.0; imported crates retain their license fields.

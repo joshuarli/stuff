@@ -1,4 +1,4 @@
-.PHONY: help lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -9,7 +9,11 @@ build: ## Build the full workspace
 test: test-mycrates repomod-test ## Run the full workspace test suite
 	cargo test --workspace
 
-lint: clippy repomod-lint ## Lint the Rust workspace and repomod
+lint: clippy repomod-lint ts-lint ## Lint the Rust workspace, repomod, and the TypeScript projects
+
+ts-lint: ## Lint and type-check the Worker and dashboard TypeScript (install each project's pnpm dependencies first)
+	pnpm --dir crates/stuff-worker run lint
+	pnpm --dir $(DASHBOARD_TS) run check
 
 repomod-test: ## Run the repomod tests
 	@uv run --group dev --quiet pytest
@@ -28,7 +32,7 @@ deps: ## Render and serve the fleet dependency dashboard ([PORT=8765] [PRIVATE=1
 	@exec srv -p $(PORT) .work/dependencies/dashboard
 
 dashboard-ts: ## Type-check, lint, and rebuild the dashboard scripts; fail if the committed output is stale
-	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile && $(PNPM) run check && $(PNPM) run lint && $(PNPM) run build
+	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile && $(PNPM) run check && $(PNPM) run build
 	@git diff --exit-code -- repomod/dependencies/assets/app.js repomod/dependencies/assets/search.js
 
 bench: ## Measure dependency dashboard render phases, cold and warm ([RUNS=3])
