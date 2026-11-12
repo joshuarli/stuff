@@ -133,41 +133,6 @@ def test_vulnerable_separates_declared_from_locked_repositories(tmp_path: Path) 
     assert row.latest == "1.2.0"
 
 
-def test_weight_counts_packages_only_one_direct_dependency_brings_in(tmp_path: Path) -> None:
-    heavy = _cargo("heavy", "1.0.0")
-    light = _cargo("light", "1.0.0")
-    shared = _cargo("shared", "1.0.0")
-    own_a = _cargo("own-a", "1.0.0")
-    own_b = _cargo("own-b", "1.0.0")
-    deep = _cargo("deep", "1.0.0")
-    graph = build_graph(
-        tmp_path,
-        [
-            _app(
-                "acme/app",
-                [heavy, light],
-                (
-                    (heavy, shared),
-                    (heavy, own_a),
-                    (own_a, own_b),
-                    (own_b, deep),
-                    (light, shared),
-                ),
-            )
-        ],
-    )
-    rows = {row.component.name: row for row in insights.weights(graph, insights.declarations(graph))}
-    assert (rows["heavy"].pulls, rows["heavy"].sole) == (4, 3)
-    assert (rows["light"].pulls, rows["light"].sole) == (1, 0)
-
-
-def test_weight_does_not_count_other_direct_dependencies(tmp_path: Path) -> None:
-    outer = _cargo("outer", "1.0.0")
-    inner = _cargo("inner", "1.0.0")
-    graph = build_graph(tmp_path, [_app("acme/app", [outer, inner], ((outer, inner),))])
-    assert insights.weights(graph, insights.declarations(graph)) == ()
-
-
 def test_splits_need_two_repositories_and_skip_local_and_alpine(tmp_path: Path) -> None:
     graph = build_graph(
         tmp_path,
@@ -402,16 +367,13 @@ def test_scorecards_rank_repositories_by_what_needs_attention(tmp_path: Path) ->
         insights.vulnerable(graph, found, enrichment),
         insights.splits(found, enrichment, pins={}),
         insights.role_uses(roles, found),
-        insights.weights(graph, found),
     )
     assert [card.repository for card in cards] == ["acme/exposed", "acme/stale", "acme/calm"]
     exposed, stale, calm = cards
     assert exposed.vulnerable == 1
-    assert exposed.heaviest is not None
-    assert exposed.heaviest.component.name == "hyper"
     assert (stale.behind, stale.off_target) == (1, 1)
     assert stale.off_preferred == ("cli",)
-    assert (calm.vulnerable, calm.behind, calm.off_target, calm.heaviest) == (0, 0, 0, None)
+    assert (calm.vulnerable, calm.behind, calm.off_target) == (0, 0, 0)
 
 
 def test_split_target_prefers_comparable_versions_then_the_most_common_ref(tmp_path: Path) -> None:

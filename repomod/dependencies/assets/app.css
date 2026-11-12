@@ -202,3 +202,5 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
   #search-results { right: auto; left: 0; width: 100%; }
   .page-search { position: relative; }
 }
+.weight-static { cursor: default; }
+.weight-static:hover { background: transparent; }

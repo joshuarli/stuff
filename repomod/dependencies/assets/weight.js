@@ -133,6 +133,46 @@
             return [formatBytes(sum.bytes), String(sum.packages)];
         return [String(sum.packages), "no size"];
     }
+    const ZERO = { bytes: 0, packages: 0, unknown: 0 };
+    function plural(count, word) {
+        return count + " " + word + (count === 1 ? "" : "s");
+    }
+    function depNote(frees, shared) {
+        const count = plural(frees.packages, "package") + " only via it";
+        if (shared.packages === 0)
+            return count;
+        const amount = shared.bytes > 0 ? formatBytes(shared.bytes) : plural(shared.packages, "package");
+        return count + " · " + amount + " shared";
+    }
+    function depTip(label, repo, frees, shared) {
+        return label + " in " + repo + ": removing it frees " + valueText(frees) + ", " + depNote(frees, shared);
+    }
+    function compareText(left, right) {
+        const a = left.toLowerCase();
+        const b = right.toLowerCase();
+        return a < b ? -1 : a > b ? 1 : 0;
+    }
+    function depOrder(deps, view) {
+        const key = variantKey(view);
+        return deps
+            .filter((dep) => view.langs.includes(dep.lang) && (dep.frees[key] ?? ZERO).packages > 0)
+            .map((dep) => ({ dep, frees: dep.frees[key] ?? ZERO, shared: dep.shared[key] ?? ZERO }))
+            .sort((left, right) => {
+            if (left.frees.bytes !== right.frees.bytes)
+                return right.frees.bytes - left.frees.bytes;
+            if (left.frees.packages !== right.frees.packages)
+                return right.frees.packages - left.frees.packages;
+            if (left.shared.bytes !== right.shared.bytes)
+                return right.shared.bytes - left.shared.bytes;
+            return compareText(left.dep.name, right.dep.name) || compareText(left.dep.repo, right.dep.repo);
+        })
+            .map((entry) => entry.dep.id);
+    }
+    function depCount(shown, total) {
+        if (total === 0)
+            return "No direct dependency in the selection brings in third-party packages.";
+        return shown < total ? "Top " + shown + " of " + total + " direct dependencies." : total + " direct dependencies.";
+    }
     const handle = {
         LANGS,
         formatBytes,
@@ -145,6 +185,10 @@
         tipText,
         emptyText,
         cellText,
+        depNote,
+        depTip,
+        depOrder,
+        depCount,
     };
     window.depsWeight = handle;
     const found = document.querySelector("[data-weight]");
@@ -185,6 +229,44 @@
     for (const element of root.querySelectorAll("[data-weight-table-row]")) {
         tableRows.set(element.getAttribute("data-repo") ?? "", element);
     }
+    function totals(element, prefix) {
+        const found = {};
+        for (const platform of PLATFORMS) {
+            for (const scope of ["run", "dev"]) {
+                const [bytes, packages, unknown] = (element.getAttribute(prefix + platform + "-" + scope) ?? "0,0,0")
+                    .split(",")
+                    .map(Number);
+                found[platform + "-" + scope] = { bytes: bytes ?? 0, packages: packages ?? 0, unknown: unknown ?? 0 };
+            }
+        }
+        return found;
+    }
+    function readDeps(container) {
+        const found = new Map();
+        if (container === null)
+            return found;
+        for (const element of container.querySelectorAll("[data-dep]")) {
+            const lang = element.getAttribute("data-lang") ?? "";
+            if (!isLang(lang))
+                continue;
+            const id = String(found.size);
+            const dep = {
+                id,
+                lang,
+                name: element.getAttribute("data-name") ?? "",
+                repo: element.getAttribute("data-repo") ?? "",
+                frees: totals(element, "data-f-"),
+                shared: totals(element, "data-s-"),
+            };
+            found.set(id, [dep, element]);
+        }
+        return found;
+    }
+    const depList = root.querySelector("[data-dep-list]");
+    const depCaption = root.querySelector("[data-dep-count]");
+    const depLimit = number(root, "data-dep-limit");
+    const fleetDeps = readDeps(depList);
+    const repoDeps = Array.from(root.querySelectorAll("[data-deps]")).map((body) => ({ body, deps: readDeps(body) }));
     const langToggles = Array.from(root.querySelectorAll("[data-lang-toggle]"));
     const platformToggles = Array.from(root.querySelectorAll("[data-platform-toggle]"));
     const devToggle = root.querySelector("[data-dev-toggle]");
@@ -257,6 +339,70 @@
         if (unknown !== null)
             unknown.textContent = String(sum.unknown);
     }
+    function renderDeps() {
+        const key = variantKey(view);
+        const sorted = depOrder(Array.from(fleetDeps.values(), ([dep]) => dep), view);
+        const visible = new Set(sorted.slice(0, depLimit > 0 ? depLimit : sorted.length));
+        const scale = Math.max(0, ...Array.from(visible, (id) => {
+            const dep = fleetDeps.get(id)?.[0];
+            return dep === undefined ? 0 : (dep.frees[key] ?? ZERO).bytes + (dep.shared[key] ?? ZERO).bytes;
+        }));
+        for (const id of sorted) {
+            const entry = fleetDeps.get(id);
+            if (entry !== undefined)
+                depList?.appendChild(entry[1]);
+        }
+        for (const [id, [dep, element]] of fleetDeps) {
+            element.hidden = !visible.has(id);
+            if (element.hidden)
+                continue;
+            const frees = dep.frees[key] ?? ZERO;
+            const shared = dep.shared[key] ?? ZERO;
+            const drawn = frees.bytes + shared.bytes;
+            element.querySelector("[data-tip]")?.setAttribute("data-tip", depTip(element.getAttribute("data-label") ?? "", element.getAttribute("data-repo") ?? "", frees, shared));
+            const fill = element.querySelector("[data-fill]");
+            if (fill !== null) {
+                fill.style.setProperty("--r", (scale > 0 ? drawn / scale : 0).toFixed(4));
+                fill.hidden = drawn === 0;
+            }
+            for (const [selector, value] of [["[data-frees]", frees.bytes], ["[data-shared]", shared.bytes]]) {
+                const segment = element.querySelector(selector);
+                if (segment === null)
+                    continue;
+                segment.style.flexGrow = String(value);
+                segment.hidden = value === 0;
+            }
+            const value = element.querySelector("[data-value]");
+            if (value !== null) {
+                value.textContent = valueText(frees);
+                value.classList.toggle("weight-none", frees.bytes === 0);
+            }
+            const note = element.querySelector("[data-dep-note]");
+            if (note !== null)
+                note.textContent = depNote(frees, shared);
+        }
+        if (depCaption !== null)
+            depCaption.textContent = depCount(visible.size, sorted.length);
+        for (const { body, deps } of repoDeps) {
+            const order = depOrder(Array.from(deps.values(), ([dep]) => dep), view);
+            const shown = new Set(order.slice(0, limit > 0 ? limit : order.length));
+            for (const id of order) {
+                const entry = deps.get(id);
+                if (entry !== undefined)
+                    body.appendChild(entry[1]);
+            }
+            for (const [id, [dep, element]] of deps) {
+                element.hidden = !shown.has(id);
+                const frees = dep.frees[key] ?? ZERO;
+                const text = element.querySelector("[data-frees-text]");
+                if (text !== null)
+                    text.textContent = valueText(frees);
+                const note = element.querySelector("[data-dep-note]");
+                if (note !== null)
+                    note.textContent = depNote(frees, dep.shared[key] ?? ZERO);
+            }
+        }
+    }
     function render() {
         const selected = view.langs;
         for (const toggle of langToggles) {
@@ -289,6 +435,7 @@
             if (tableRow !== undefined)
                 tableBody?.appendChild(tableRow);
         }
+        renderDeps();
         if (emptyLine !== null) {
             const text = emptyText(rows, view, names);
             emptyLine.textContent = text;

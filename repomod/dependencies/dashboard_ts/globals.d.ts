@@ -19,6 +19,15 @@ interface WeightRepo {
   totals: Record<string, Record<WeightLang, WeightTotals>>;
 }
 
+interface WeightDep {
+  id: string;
+  lang: WeightLang;
+  name: string;
+  repo: string;
+  frees: Record<string, WeightTotals>;
+  shared: Record<string, WeightTotals>;
+}
+
 interface WeightView {
   langs: WeightLang[];
   platform: WeightPlatform;
@@ -38,6 +47,10 @@ interface DepsWeight {
   tipText(row: WeightRepo, view: WeightView): string;
   emptyText(rows: readonly WeightRepo[], view: WeightView, names: number): string;
   cellText(lang: WeightLang, sum: WeightTotals): [string, string];
+  depNote(frees: WeightTotals, shared: WeightTotals): string;
+  depTip(label: string, repo: string, frees: WeightTotals, shared: WeightTotals): string;
+  depOrder(deps: readonly WeightDep[], view: WeightView): string[];
+  depCount(shown: number, total: number): string;
 }
 
 interface Window {

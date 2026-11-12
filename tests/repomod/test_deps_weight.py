@@ -349,7 +349,8 @@ def test_weight_page_embeds_per_language_data_and_toggles(tmp_path: Path, cache_
 
     assert 'data-page="weight"' in page
     assert '<a href="weight.html" aria-current="page">Weight</a>' in page
-    assert '<a href="weight.html">Weight</a>' in (tmp_path / "dashboard" / "bloat.html").read_text(encoding="utf-8")
+    assert '<a href="weight.html">Weight</a>' in (tmp_path / "dashboard" / "index.html").read_text(encoding="utf-8")
+    assert not (tmp_path / "dashboard" / "bloat.html").exists()
     for key in ("npm", "cargo", "pypi", "go", "other"):
         assert f'data-lang-toggle="{key}"' in page
         assert f'data-lang-show="{key}"' in page
@@ -419,7 +420,7 @@ def test_weight_page_states_the_measure_of_each_language(tmp_path: Path, cache_p
 
 def test_weight_page_lists_heaviest_packages_with_role_and_a_table_view(tmp_path: Path, cache_path: Path) -> None:
     page = (_render(tmp_path).output / "weight.html").read_text(encoding="utf-8")
-    tool = page.split('data-repo="joshuarli/tool"')[1].split("</li>")[0]
+    tool = page.split('id="repo-joshuarli/tool"')[1].split("</details>")[0]
 
     assert tool.index(">react<") < tool.index(">loose-envify<")
     assert 'data-lang="npm" data-bytes="3000"' in tool
@@ -466,6 +467,98 @@ def test_repository_page_links_its_totals_to_the_weight_page(tmp_path: Path, cac
     assert "Dependency weight" not in fork
 
 
+def _removal_fixture(tmp_path: Path) -> weight.Repository:
+    def crate(name: str) -> Any:
+        return instance(Ecosystem.CARGO, name, "1.0.0")
+
+    found = {name: crate(name) for name in ("heavy", "light", "shared", "deep-a", "deep-b", "deep-c", "inner", "tool")}
+    edges = (
+        _edge(".:cargo", found["heavy"].id, direct=True),
+        _edge(".:cargo", found["light"].id, direct=True),
+        _edge(".:cargo", found["inner"].id, direct=True),
+        _edge(".:cargo", found["tool"].id, scope=Scope.DEV, direct=True),
+        _edge(found["heavy"].id, found["shared"].id),
+        _edge(found["heavy"].id, found["deep-a"].id),
+        _edge(found["deep-a"].id, found["deep-b"].id),
+        _edge(found["deep-b"].id, found["deep-c"].id),
+        _edge(found["heavy"].id, found["inner"].id),
+        _edge(found["light"].id, found["shared"].id),
+        _edge(found["tool"].id, found["deep-c"].id),
+    )
+    repo = repository("joshuarli/app", tuple(found.values()), projects=(project(".", Ecosystem.CARGO),), edges=edges)
+    built = build_graph(tmp_path, [repo])
+    sizes = {"heavy": 1000, "light": 10, "shared": 200, "deep-a": 300, "deep-b": 400, "deep-c": 50, "inner": 5,
+             "tool": 7}
+    results = {item.purl: _size(sizes[name], "crate") for name, item in found.items()}
+    value = world.build(built, ["joshuarli/app"], {}, {})
+    return weight.build(built, ["joshuarli/app"], results, value)[0]
+
+
+def _removal(row: weight.Repository, variant: weight.Variant = weight.DEFAULT_VARIANT) -> dict[str, tuple[int, int]]:
+    return {
+        item.package.name: (item.frees[variant].bytes, item.shared[variant].bytes)
+        for item in row.dependencies
+        if item.counts(variant)
+    }
+
+
+def test_removing_a_direct_dependency_frees_what_only_it_brings_in(tmp_path: Path) -> None:
+    removal = _removal(_removal_fixture(tmp_path))
+
+    assert removal["heavy"] == (1000 + 300 + 400 + 50, 200)
+    assert removal["light"] == (10, 200)
+
+
+def test_a_package_declared_directly_is_not_freed_by_removing_another(tmp_path: Path) -> None:
+    removal = _removal(_removal_fixture(tmp_path))
+
+    assert removal["inner"] == (5, 0)
+    assert removal["heavy"][0] == 1750
+
+
+def test_dev_dependencies_hold_packages_only_when_dev_is_counted(tmp_path: Path) -> None:
+    row = _removal_fixture(tmp_path)
+    with_dev = _removal(row, (weight.DEFAULT_PLATFORM, True))
+
+    assert "tool" not in _removal(row)
+    assert with_dev["tool"] == (7, 50)
+    assert with_dev["heavy"] == (1000 + 300 + 400, 200 + 50)
+    assert next(item for item in row.dependencies if item.package.name == "tool").package.dev_only
+
+
+def test_optional_platform_packages_leave_what_a_dependency_frees(tmp_path: Path) -> None:
+    row = _platform_fixture(tmp_path)
+    app = next(item for item in row.dependencies if item.package.name == "app")
+
+    assert app.frees[("darwin-arm64", False)].packages < app.frees[("all", False)].packages
+    assert app.shared[("darwin-arm64", False)].packages == 0
+    assert app.shared[("darwin-arm64", True)].packages > 0
+
+
+def test_weight_page_ranks_direct_dependencies_by_what_removing_them_frees(
+    tmp_path: Path, cache_path: Path
+) -> None:
+    page = (_render(tmp_path).output / "weight.html").read_text(encoding="utf-8")
+    panel = page.split("<h2>By dependency</h2>")[1].split("<h2>")[0]
+
+    assert panel.index(">react@18.0.0<") < panel.index(">serde@1.0.0<")
+    assert 'data-dep-limit="30"' in page
+    assert "Frees" in panel
+    assert "Shared" in panel
+    assert re.search(r'data-label="react@18\.0\.0".*?data-value[^>]*>3\.0 kB<', panel, re.DOTALL)
+    assert '<a href="#repo=joshuarli/tool">joshuarli/tool</a>' in panel
+    assert 'data-f-darwin-arm64-run="3000,1,0"' in panel
+    assert "1 package only via it" in panel
+    devonly = re.search(r'<li class="weight-row" data-dep data-label="pretty@1\.0\.0"[^>]*>', panel)
+    assert devonly is not None
+    assert devonly.group().endswith(" hidden>")
+    assert 'ui-badge-neutral">dev</span>' in panel.split('data-label="pretty@1.0.0"')[1].split("</li>")[0]
+    tool = page.split('id="repo-joshuarli/tool"')[1].split("</details>")[0]
+    assert "Removing it frees" in tool
+    assert tool.index(">react@18.0.0<") < tool.index(">serde@1.0.0<")
+    assert "<h2>Duplicate versions</h2>" in page
+
+
 def _node(cases: dict[str, Any]) -> dict[str, Any]:
     script = """
 const vm = require('node:vm'), fs = require('node:fs');
@@ -481,6 +574,10 @@ out.tips = c.tips.map((t) => w.tipText(t.row, t.view));
 out.text = c.sums.map((s) => [w.valueText(s), w.noteText(s)]);
 out.empty = c.empties.map((e) => w.emptyText(e.rows, e.view, e.names));
 out.cells = c.cells.map((e) => w.cellText(e.lang, e.sum));
+out.depNotes = (c.depNotes || []).map((d) => w.depNote(d.frees, d.shared));
+out.depTips = (c.depTips || []).map((d) => w.depTip(d.label, d.repo, d.frees, d.shared));
+out.depOrders = (c.depOrders || []).map((d) => w.depOrder(d.deps, d.view));
+out.depCounts = (c.depCounts || []).map((d) => w.depCount(d[0], d[1]));
 process.stdout.write(JSON.stringify(out));
 """
     done = subprocess.run(
@@ -648,3 +745,72 @@ def test_browser_filter_logic_matches_the_python_model() -> None:
     assert out["cells"] == [
         list(weight_view.cell_text(lang != "go", weight.Total(*s))) for lang in ("npm", "go") for s in sums
     ]
+
+
+def _dep_model(dep: dict[str, Any]) -> weight.Dependency:
+    def totals(field: str) -> dict[weight.Variant, weight.Total]:
+        found = dict.fromkeys(weight.VARIANTS, weight.Total(0, 0, 0))
+        for key, value in dep[field].items():
+            platform, _, scope = key.rpartition("-")
+            found[(platform, scope == "dev")] = weight.Total(**value)
+        return found
+
+    package = weight.Package(dep["lang"], Ecosystem.NPM, f"pkg:npm/{dep['name']}", dep["name"], "1.0.0", 0, None, True)
+    return weight.Dependency(dep["repo"], package, totals("frees"), totals("shared"))
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_browser_dependency_logic_matches_the_python_model() -> None:
+    def t(bytes_: int, packages: int, unknown: int = 0) -> dict[str, int]:
+        return {"bytes": bytes_, "packages": packages, "unknown": unknown}
+
+    def dep(ident: str, lang: str, name: str, repo: str, **variants: tuple[Any, Any]) -> dict[str, Any]:
+        return {
+            "id": ident, "lang": lang, "name": name, "repo": repo,
+            "frees": {key.replace("_", "-"): value[0] for key, value in variants.items()},
+            "shared": {key.replace("_", "-"): value[1] for key, value in variants.items()},
+        }
+
+    run, dev = "darwin_arm64_run", "darwin_arm64_dev"
+    deps = [
+        dep("0", "npm", "esbuild", "a/x", **{run: (t(9000, 3), t(0, 0)), dev: (t(9000, 3), t(10, 1))}),
+        dep("1", "cargo", "serde", "b/y", **{run: (t(9000, 1), t(0, 0))}),
+        dep("2", "cargo", "Serde", "a/y", **{run: (t(9000, 1), t(0, 0))}),
+        dep("3", "go", "mod", "a/x", **{run: (t(0, 4, 4), t(0, 2, 2))}),
+        dep("4", "npm", "vitest", "a/x", **{dev: (t(500, 20), t(300, 4))}),
+        dep("5", "npm", "zod", "c/z", **{run: (t(9000, 3), t(5, 1))}),
+    ]
+    views = [_view(LANGS), _view(["npm"]), _view(LANGS, dev=True), _view(["go"]), _view(["pypi"])]
+    pairs = [(t(0, 1), t(0, 0)), (t(1500, 2), t(0, 3, 3)), (t(0, 2, 2), t(999_500, 1)), (t(10, 1), t(20, 2))]
+    cases: dict[str, Any] = {
+        "bytes": [], "hashes": [], "views": [], "orders": [], "tips": [], "sums": [], "empties": [], "cells": [],
+        "depNotes": [{"frees": f, "shared": s} for f, s in pairs],
+        "depTips": [{"label": "esbuild@0.25.0", "repo": "a/x", "frees": f, "shared": s} for f, s in pairs],
+        "depOrders": [{"deps": deps, "view": view} for view in views],
+        "depCounts": [[0, 0], [3, 3], [30, 412]],
+    }
+
+    out = _node(cases)
+
+    def total(value: dict[str, int]) -> weight.Total:
+        return weight.Total(**value)
+
+    assert out["depNotes"] == [weight_view.dependency_note(total(f), total(s)) for f, s in pairs]
+    assert out["depNotes"][1] == "2 packages only via it · 3 packages shared"
+    models = [_dep_model(item) for item in deps]
+    assert out["depTips"] == [
+        weight_view.dependency_tip(replace(models[0], frees=dict.fromkeys(weight.VARIANTS, total(f)),
+                                           shared=dict.fromkeys(weight.VARIANTS, total(s)),
+                                           package=replace(models[0].package, version="0.25.0")))
+        for f, s in pairs
+    ]
+    assert out["depOrders"] == [
+        [str(models.index(item)) for item in weight_view.dependency_order(models, view["langs"],
+                                                                           (view["platform"], view["dev"]))]
+        for view in views
+    ]
+    assert out["depOrders"][0] == ["5", "0", "2", "1", "3"]
+    assert out["depOrders"][2] == ["0", "4"]
+    assert out["depOrders"][4] == []
+    assert out["depCounts"] == [weight_view._dependency_count(*pair) for pair in cases["depCounts"]]
+

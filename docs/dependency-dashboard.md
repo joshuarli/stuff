@@ -92,17 +92,18 @@ Overview.
 - **Choices** shows roles where a repository must change, with one adoption bar per option and
   the repositories to move. Compliant repositories, accepted exceptions, and settled roles are
   not listed.
-- **Bloat** charts direct dependencies whose removal would drop lockfile packages, split into
-  those only it brings in and those shared. Lockfiles list every platform's packages, so counts
-  are upper bounds.
 - **Weight** (`weight.html`) shows which owned repositories carry the most third-party code, so you
-  can choose where to slim and which dependency to drop. It sits under Review beside Bloat because
-  it answers the same question in bytes. One bar per repository, on one scale, largest first, with
-  the value in text at the bar's end. A repository with no packages for the current selection has no
-  bar: one muted line under the chart names them, and the table view still lists every repository.
-  Each repository opens its heaviest packages: name, version, size, registry, and whether it is
-  direct or transitive. A direct dependency can be removed; a transitive one leaves only with what
-  brings it in. A package counts once per repository however many lockfiles, targets, or projects
+  can choose where to slim and which dependency to drop. **By repository** draws one bar per
+  repository, on one scale, largest first, with the value in text at the bar's end. A repository with
+  no packages for the current selection has no bar: one muted line under the chart names them, and
+  the table view still lists every repository. Each repository opens its direct dependencies by what
+  removing one frees, then its heaviest packages: name, version, size, registry, and whether it is
+  direct or transitive. **By dependency** ranks direct dependencies across repositories by the same
+  measure, the top 30 shown. Removing a direct dependency frees it and the packages only it reaches;
+  packages another counted direct dependency also reaches are drawn as shared, and a package that is
+  itself declared directly is never freed by removing another. Your own direct packages hold what
+  they reach. Each repository keeps its 12 largest dependencies per language and filter
+  combination. **Duplicate versions** lists repositories that build two versions of one package. A package counts once per repository however many lockfiles, targets, or projects
   list its version, and packages the World page classifies as yours are left out. Sizes come from
   `deps enrich`, and the page says so when none are cached.
   The sizes are not one unit, and the page states each measure: npm unpacked (installed) size,
@@ -161,7 +162,7 @@ any other option of the role is off preferred, and repositories that declare non
 counted. `ban` maps an option to `exact` or `prefix`; the audit fails
 repositories that depend on a banned option's crates (see [audit](audit.md)).
 
-Repositories tagged `fork` keep upstream's dependency choices. Outdated, Bloat, Alignment,
+Repositories tagged `fork` keep upstream's dependency choices. Outdated, Alignment,
 Choices, and To do leave them out; Security and Repositories list them separately with
 their vulnerable versions. A package may belong to one option per role. Only direct
 declarations count. `repomod deps report` lists the repositories that mix options.

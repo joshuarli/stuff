@@ -60,16 +60,6 @@ class Vulnerable:
     transitive_in: tuple[str, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class Weight:
-    repository: str
-    component: Component
-    version: str
-    scopes: frozenset[Scope]
-    pulls: int
-    sole: int
-
-
 class TargetBasis(Enum):
     APPROVED_PIN = "approved pin"
     LATEST = "latest"
@@ -148,7 +138,6 @@ class Scorecard:
     off_target: int
     mixed_roles: tuple[str, ...]
     off_preferred: tuple[str, ...]
-    heaviest: Weight | None
 
     @property
     def rank(self) -> tuple[int, ...]:
@@ -305,47 +294,6 @@ def vulnerable(
     )
 
 
-def weights(graph: Graph, found: Iterable[Declaration]) -> tuple[Weight, ...]:
-    roots: dict[str, list[Declaration]] = defaultdict(list)
-    for declaration in found:
-        roots[declaration.repository].append(declaration)
-    rows: list[Weight] = []
-    for repository, declared in roots.items():
-        children: dict[str, set[str]] = defaultdict(set)
-        for edge in graph.repositories[repository].edges:
-            if edge.relation is Relation.TRANSITIVE:
-                children[edge.from_id].add(edge.to_id)
-        reach = {
-            declaration.instance.id: _closure(declaration.instance.id, children)
-            for declaration in declared
-        }
-        holders: dict[str, int] = defaultdict(int)
-        for closure in reach.values():
-            for node in closure:
-                holders[node] += 1
-        root_ids = set(reach)
-        for declaration in declared:
-            closure = reach[declaration.instance.id] - root_ids
-            if not closure:
-                continue
-            rows.append(
-                Weight(
-                    repository,
-                    declaration.component,
-                    declaration.version,
-                    declaration.scopes,
-                    len(closure),
-                    sum(1 for node in closure if holders[node] == 1),
-                )
-            )
-    return tuple(
-        sorted(
-            rows,
-            key=lambda row: (-row.sole, -row.pulls, row.repository.casefold(), row.component.name),
-        )
-    )
-
-
 def splits(
     found: Iterable[Declaration],
     enrichment: Mapping[str, Mapping[str, object]],
@@ -463,7 +411,6 @@ def scorecards(
     vulnerable_rows: Iterable[Vulnerable],
     split_rows: Iterable[Split],
     role_rows: Iterable[RoleUse],
-    weight_rows: Iterable[Weight],
 ) -> tuple[Scorecard, ...]:
     vulnerable_count: dict[str, int] = defaultdict(int)
     for row in vulnerable_rows:
@@ -485,11 +432,6 @@ def scorecards(
             mixed[repository].append(use.role.name)
         for repository in use.off_preferred:
             off_preferred[repository].append(use.role.name)
-    heaviest: dict[str, Weight] = {}
-    for row in weight_rows:
-        current = heaviest.get(row.repository)
-        if current is None or row.sole > current.sole:
-            heaviest[row.repository] = row
     cards = [
         Scorecard(
             repository,
@@ -498,7 +440,6 @@ def scorecards(
             off_target[repository],
             tuple(sorted(mixed[repository])),
             tuple(sorted(off_preferred[repository])),
-            heaviest.get(repository),
         )
         for repository in repositories
     ]
@@ -604,18 +545,6 @@ def _purl_digest(purl: str) -> str | None:
         if key == "digest":
             return urllib.parse.unquote(value) if value else None
     return None
-
-
-def _closure(start: str, children: Mapping[str, set[str]]) -> set[str]:
-    seen: set[str] = set()
-    stack = list(children.get(start, ()))
-    while stack:
-        node = stack.pop()
-        if node in seen or node == start:
-            continue
-        seen.add(node)
-        stack.extend(children.get(node, ()))
-    return seen
 
 
 def _uses(component: Component, versions: Mapping[str, set[str]]) -> tuple[VersionUse, ...]:

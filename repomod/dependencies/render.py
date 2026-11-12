@@ -24,7 +24,6 @@ from repomod.dependencies.model import (
     Instance,
     Issue,
     RepositoryData,
-    Scope,
     SourceKind,
 )
 from repomod.dependencies.triage import ActionKind
@@ -53,7 +52,6 @@ _TIERS = (
     ("Vulnerable", "Security issues first"),
     ("Maintenance", "Upgrades, version drift, or role conflicts"),
 )
-_BLOAT_ROWS = 150
 _CONSUMER_ROWS = 20
 _KIND_LABELS = {
     ActionKind.SECURITY: ("Security", Tone.BAD),
@@ -85,7 +83,6 @@ class _Site:
     outdated: tuple[insights.Outdated, ...]
     migrations: tuple[tuple[migrations.Migration, insights.Outdated], ...]
     vulnerable: tuple[insights.Vulnerable, ...]
-    weights: tuple[insights.Weight, ...]
     drift: tuple[insights.Split, ...]
     roles: tuple[insights.RoleUse, ...]
     scorecards: tuple[insights.Scorecard, ...]
@@ -133,7 +130,6 @@ def render(
             ("outdated", "Upgrades", _outdated),
             ("alignment", "Alignment", _alignment),
             ("choices", "Choices", _choices),
-            ("bloat", "Bloat", _bloat),
             ("weight", "Weight", _weight),
             ("packages", "Packages", _packages),
             ("changes", "Changes", _changes),
@@ -192,7 +188,6 @@ def _site(
     outdated = insights.outdated(mine, results)
     migration_rows, upgradable = migrations.split(outdated)
     vulnerable = insights.vulnerable(graph, declared, results)
-    weights = insights.weights(graph, mine)
     splits = insights.splits(
         mine, results, pins={name: pin.sha for name, pin in actions_rule.load_pins().items()}
     )
@@ -212,7 +207,6 @@ def _site(
         upgradable,
         migration_rows,
         vulnerable,
-        weights,
         drift,
         roles,
         insights.scorecards(
@@ -221,7 +215,6 @@ def _site(
             vulnerable,
             drift,
             roles,
-            weights,
         ),
         forks,
         _triage(graph, vulnerable, outdated, forks),
@@ -278,7 +271,6 @@ def _navigation(site: _Site) -> tuple[NavGroup, ...]:
                 NavLink("outdated", "Upgrades", len(site.outdated)),
                 NavLink("alignment", "Alignment", len(site.drift)),
                 NavLink("choices", "Choices", len(_contested_roles(site))),
-                NavLink("bloat", "Bloat"),
                 NavLink("weight", "Weight"),
             ),
         ),
@@ -841,73 +833,35 @@ def _lane_label(version: str) -> str:
     return version
 
 
-def _bloat(site: _Site) -> str:
-    rows = [row for row in site.weights if row.sole > 0][:_BLOAT_ROWS]
-    scale = max((row.pulls for row in rows), default=0)
-    bars = [_weight_bar(row) for row in rows]
-    body = [
-        ui.page_header(
-            "Bloat",
-            "Lockfile packages each direct dependency brings in. Lockfiles list every "
-            "platform's packages, so counts are upper bounds.",
-        ),
-        ui.panel(
-            "Heaviest dependencies",
-            ui.legend(
-                (("Only via it", Mark.ACCENT), ("Shared", Mark.GHOST)),
-                "Sorted by packages only it brings in. Removing it drops those.",
-            )
-            + ui.scope(
-                ui.bar_list(bars, scale, "Heaviest dependencies"),
-                search="Filter dependencies",
-                limit=_LIST_ROWS,
-                total=len(bars),
-            )
-            if rows
-            else '<p class="zero">no direct dependency brings in lockfile packages</p>',
-        ),
-    ]
+def _weight(site: _Site) -> str:
+    return (
+        weight_view.page(
+            site.package_weight, lambda purl, text: _package_link(purl, "", text), _duplicate_panel(site)
+        )
+        + '\n<script src="assets/weight.js"></script>'
+    )
+
+
+def _duplicate_panel(site: _Site) -> str:
     duplicates = sorted(
         ((name, found) for name, data in site.graph.repositories.items() if (found := _duplicates(site, data))),
         key=lambda item: (-len(item[1]), item[0].casefold()),
     )
     widest = max((len(found) for _name, found in duplicates), default=0)
-    body.append(
-        ui.collapsed_panel(
-            "Duplicate versions",
-            ui.scope(
-                ui.bar_list(
-                    [_duplicate_bar(site, name, found) for name, found in duplicates],
-                    widest,
-                    "Duplicate versions",
-                ),
-                limit=_LIST_ROWS,
-                total=len(duplicates),
-            )
-            if duplicates
-            else '<p class="zero">no repository carries two versions of one package</p>',
-            meta="Both versions are built",
+    return ui.collapsed_panel(
+        "Duplicate versions",
+        ui.scope(
+            ui.bar_list(
+                [_duplicate_bar(site, name, found) for name, found in duplicates],
+                widest,
+                "Duplicate versions",
+            ),
+            limit=_LIST_ROWS,
+            total=len(duplicates),
         )
-    )
-    return "\n".join(body)
-
-
-def _weight(site: _Site) -> str:
-    return (
-        weight_view.page(site.package_weight, lambda purl, text: _package_link(purl, "", text))
-        + '\n<script src="assets/weight.js"></script>'
-    )
-
-
-def _weight_bar(row: insights.Weight) -> Bar:
-    dev = " " + ui.badge("dev") if row.scopes == {Scope.DEV} else ""
-    return Bar(
-        f"{_package_link(row.component.purl, '', f'{row.component.display_name}@{row.version}')}{dev}",
-        (
-            Segment("Only via it", row.sole, Mark.ACCENT),
-            Segment("Shared", row.pulls - row.sole, Mark.GHOST),
-        ),
-        note=_e(_short_repository(row.repository)),
+        if duplicates
+        else '<p class="zero">no repository carries two versions of one package</p>',
+        meta="Both versions are built",
     )
 
 

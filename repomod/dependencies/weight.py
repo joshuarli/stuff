@@ -88,10 +88,28 @@ class Total:
 
 
 @dataclass(frozen=True, slots=True)
+class Dependency:
+    """A direct dependency and what removing it would drop, per variant.
+
+    `frees` covers the dependency itself and the packages only it brings in; `shared` covers
+    packages it brings in that another counted direct dependency also reaches.
+    """
+
+    repository: str
+    package: Package
+    frees: Mapping[Variant, Total]
+    shared: Mapping[Variant, Total]
+
+    def counts(self, variant: Variant) -> bool:
+        return self.frees[variant].packages > 0
+
+
+@dataclass(frozen=True, slots=True)
 class Repository:
     repository: str
     totals: Mapping[Variant, Mapping[str, Total]]
     heaviest: tuple[Package, ...]
+    dependencies: tuple[Dependency, ...] = ()
 
     def total(self, languages: Iterable[str], variant: Variant = DEFAULT_VARIANT) -> Total:
         found = [self.totals[variant][key] for key in languages]
@@ -148,6 +166,12 @@ def npm_allows(platform: Platform, size: PackageSize | None) -> bool:
     )
 
 
+def dependency_rank(dependency: Dependency, variant: Variant) -> tuple[int, int, int, str, str]:
+    frees, shared = dependency.frees[variant], dependency.shared[variant]
+    package = dependency.package
+    return (-frees.bytes, -frees.packages, -shared.bytes, package.name.casefold(), dependency.repository.casefold())
+
+
 def build(
     graph: Graph,
     repositories: Iterable[str],
@@ -162,6 +186,11 @@ def build(
     DEV_SCOPES, following transitive edges, which lockfiles record as runtime. A package is left
     out for a platform when every edge reaching it is optional and its npm os, cpu or libc lists
     exclude that platform; the all-platforms variant counts everything.
+
+    Each direct dependency frees itself and the packages only it reaches among the counted direct
+    dependencies of the variant; packages another one also reaches are shared. A package that is
+    itself declared directly is never freed by removing something else. Your own direct packages
+    hold what they reach but are not listed.
     """
     yours = {package.component.purl for package in value.packages if package.origin is Origin.YOURS}
     rows = []
@@ -184,7 +213,7 @@ def build(
         for instance in data.instances:
             if instance.component in components and instance.component not in yours:
                 groups.setdefault((instance.component, instance.version), []).append(instance)
-        packages = []
+        packages: dict[tuple[str, str | None], Package] = {}
         for (purl, version), members in groups.items():
             component = components[purl]
             found = [
@@ -194,7 +223,7 @@ def build(
             described = sized or next((size for size in found if size.os is not None), None)
             edges = [optional for instance in members for optional in incoming.get(instance.id, ())]
             optional_only = bool(edges) and all(edges)
-            packages.append(
+            packages[(purl, version)] = (
                 Package(
                     language_key(component.ecosystem),
                     component.ecosystem,
@@ -213,8 +242,86 @@ def build(
                     ),
                 )
             )
-        rows.append(_repository(name, tuple(packages)))
+        dependencies = _dependencies(name, data.edges, by_id, direct, packages)
+        rows.append(_repository(name, tuple(packages.values()), dependencies))
     return tuple(rows)
+
+
+type _Key = tuple[str, str | None]
+
+
+def _dependencies(
+    repository: str,
+    edges: Iterable[Edge],
+    by_id: Mapping[str, Instance],
+    direct: set[str],
+    packages: Mapping[_Key, Package],
+) -> tuple[Dependency, ...]:
+    def key(instance_id: str) -> _Key:
+        instance = by_id[instance_id]
+        return (instance.component, instance.version)
+
+    children: dict[_Key, set[_Key]] = {}
+    for edge in edges:
+        if edge.from_id in by_id and edge.to_id in by_id:
+            children.setdefault(key(edge.from_id), set()).add(key(edge.to_id))
+    roots = {key(instance_id) for instance_id in direct}
+    reach = {root: _closure(root, children) - (roots - {root}) for root in roots}
+    rows: dict[_Key, Dependency] = {}
+    frees: dict[_Key, dict[Variant, Total]] = {root: {} for root in roots if root in packages}
+    shared: dict[_Key, dict[Variant, Total]] = {root: {} for root in frees}
+    for variant in VARIANTS:
+        holding = {
+            root: [packages[member] for member in reached if member in packages and packages[member].counts(variant)]
+            for root, reached in reach.items()
+            if root not in packages or packages[root].counts(variant)
+        }
+        holders: dict[int, int] = {}
+        for members in holding.values():
+            for package in members:
+                holders[id(package)] = holders.get(id(package), 0) + 1
+        for root in frees:
+            members = holding.get(root, [])
+            frees[root][variant] = _total([package for package in members if holders[id(package)] == 1])
+            shared[root][variant] = _total([package for package in members if holders[id(package)] > 1])
+    for root in frees:
+        rows[root] = Dependency(repository, packages[root], frees[root], shared[root])
+    kept: dict[_Key, Dependency] = {}
+    for variant in VARIANTS:
+        for language in LANGUAGES:
+            ranked = sorted(
+                (
+                    dependency
+                    for dependency in rows.values()
+                    if dependency.package.language == language.key and dependency.counts(variant)
+                ),
+                key=lambda dependency: dependency_rank(dependency, variant),
+            )
+            kept.update(
+                ((dependency.package.purl, dependency.package.version), dependency)
+                for dependency in ranked[:TOP_PER_LANGUAGE]
+            )
+    return tuple(sorted(kept.values(), key=lambda dependency: dependency_rank(dependency, DEFAULT_VARIANT)))
+
+
+def _closure(start: _Key, children: Mapping[_Key, set[_Key]]) -> set[_Key]:
+    reached = {start}
+    pending = [start]
+    while pending:
+        for target in children.get(pending.pop(), ()):
+            if target not in reached:
+                reached.add(target)
+                pending.append(target)
+    return reached
+
+
+def _total(members: Iterable[Package]) -> Total:
+    found = list(members)
+    return Total(
+        sum(package.bytes or 0 for package in found),
+        len(found),
+        sum(1 for package in found if package.bytes is None),
+    )
 
 
 def _reach(
@@ -241,7 +348,7 @@ def _reach(
     return reached
 
 
-def _repository(name: str, packages: tuple[Package, ...]) -> Repository:
+def _repository(name: str, packages: tuple[Package, ...], dependencies: tuple[Dependency, ...]) -> Repository:
     totals: dict[Variant, dict[str, Total]] = {}
     chosen: dict[int, Package] = {}
     for variant in VARIANTS:
@@ -261,4 +368,4 @@ def _repository(name: str, packages: tuple[Package, ...]) -> Repository:
     heaviest = sorted(
         chosen.values(), key=lambda package: (-(package.bytes or 0), package.name.casefold(), package.version or "")
     )
-    return Repository(name, totals, tuple(heaviest))
+    return Repository(name, totals, tuple(heaviest), dependencies)

@@ -12,6 +12,7 @@ from repomod.dependencies.weight import (
     PLATFORMS,
     TOP_PER_LANGUAGE,
     VARIANTS,
+    Dependency,
     Package,
     Repository,
     Total,
@@ -20,6 +21,7 @@ from repomod.dependencies.weight import (
 type PackageLink = Callable[[str, str], str]
 
 EMPTY_NAMES = 12
+DEPENDENCY_ROWS = 30
 
 
 def hash_for(repository: str) -> str:
@@ -76,6 +78,40 @@ def empty_text(
     return f"{count}: {shown}{more}."
 
 
+def dependency_note(frees: Total, shared: Total) -> str:
+    count = f"{frees.packages} package{'' if frees.packages == 1 else 's'} only via it"
+    if shared.packages == 0:
+        return count
+    amount = (
+        weight.format_bytes(shared.bytes)
+        if shared.bytes > 0
+        else f"{shared.packages} package{'' if shared.packages == 1 else 's'}"
+    )
+    return f"{count} · {amount} shared"
+
+
+def dependency_tip(dependency: Dependency, variant: weight.Variant = DEFAULT_VARIANT) -> str:
+    frees, shared = dependency.frees[variant], dependency.shared[variant]
+    return (
+        f"{_label(dependency)} in {dependency.repository}: removing it frees {value_text(frees)}, "
+        f"{dependency_note(frees, shared)}"
+    )
+
+
+def dependency_order(
+    dependencies: Sequence[Dependency], keys: Sequence[str], variant: weight.Variant = DEFAULT_VARIANT
+) -> list[Dependency]:
+    return sorted(
+        (item for item in dependencies if item.package.language in keys and item.counts(variant)),
+        key=lambda item: weight.dependency_rank(item, variant),
+    )
+
+
+def _label(dependency: Dependency) -> str:
+    package = dependency.package
+    return package.name if package.version is None else f"{package.name}@{package.version}"
+
+
 def cell_text(sized: bool, total: Total) -> tuple[str, str]:
     if total.packages == 0:
         return "—", ""
@@ -84,12 +120,12 @@ def cell_text(sized: bool, total: Total) -> tuple[str, str]:
     return str(total.packages), "no size"
 
 
-def page(rows: Sequence[Repository], link: PackageLink) -> str:
+def page(rows: Sequence[Repository], link: PackageLink, extra: str = "") -> str:
     header = ui.page_header(
         "Weight",
-        "How much third-party code each repository carries, and which packages to drop first. "
-        "A direct dependency can be removed; a transitive package leaves only with whatever brings it in "
-        '(<a href="bloat.html">Bloat</a> shows that). Your own packages are left out.',
+        "How much third-party code each repository carries, and which direct dependencies to drop to shed it. "
+        "Removing a direct dependency frees it and whatever only it brings in; what another dependency also "
+        "brings in stays. Your own packages are left out.",
     )
     if not rows:
         return header + ui.empty_state("No repositories", "No owned repository in this view has an inventory.")
@@ -111,18 +147,112 @@ def page(rows: Sequence[Repository], link: PackageLink) -> str:
     body.append(_filters())
     body.append(
         ui.panel(
-            "Third-party weight by repository",
+            "By repository",
             f'<ul class="weight-list" data-weight-list aria-label="Third-party weight by repository">'
             f"{''.join(_row(row, scale, link) for row in ordered)}</ul>"
             f'<p class="weight-empty" data-empty-line{"" if empty_text(ordered, everything) else " hidden"}>'
             f"{_e(empty_text(ordered, everything))}</p>",
         )
     )
+    body.append(_dependency_panel(ordered, link))
+    body.append(extra)
     body.append(ui.collapsed_panel("Table view", _table(ordered), meta="The same numbers", flush=True))
     return (
-        f'<div class="weight" data-weight data-limit="{TOP_PER_LANGUAGE}" data-names="{EMPTY_NAMES}">'
+        f'<div class="weight" data-weight data-limit="{TOP_PER_LANGUAGE}" data-names="{EMPTY_NAMES}"'
+        f' data-dep-limit="{DEPENDENCY_ROWS}">'
         + "\n".join(body)
         + "</div>"
+    )
+
+
+def _dependency_panel(rows: Sequence[Repository], link: PackageLink) -> str:
+    everything = [language.key for language in LANGUAGES]
+    pooled = [dependency for row in rows for dependency in row.dependencies]
+    ordered = dependency_order(pooled, everything)
+    unlisted = [dependency for dependency in pooled if not dependency.counts(DEFAULT_VARIANT)]
+    shown = {id(dependency) for dependency in ordered[:DEPENDENCY_ROWS]}
+    scale = max(
+        (item.frees[DEFAULT_VARIANT].bytes + item.shared[DEFAULT_VARIANT].bytes for item in ordered), default=0
+    )
+    items = "".join(_dependency_row(item, id(item) in shown, scale, link) for item in [*ordered, *unlisted])
+    return ui.panel(
+        "By dependency",
+        ui.legend(
+            (("Frees", ui.Mark.ACCENT), ("Shared", ui.Mark.GHOST)),
+            "Direct dependencies in every repository, by what removing one frees.",
+        )
+        + f'<p class="weight-count" data-dep-count>{_e(_dependency_count(len(shown), len(ordered)))}</p>'
+        + f'<ul class="weight-list" data-dep-list aria-label="Direct dependencies by what removing them frees">'
+        f"{items}</ul>",
+    )
+
+
+def _dependency_count(shown: int, total: int) -> str:
+    if total == 0:
+        return "No direct dependency in the selection brings in third-party packages."
+    return f"Top {shown} of {total} direct dependencies." if shown < total else f"{total} direct dependencies."
+
+
+def _dependency_attributes(dependency: Dependency) -> str:
+    parts = [f' data-lang="{dependency.package.language}" data-name="{_e(dependency.package.name)}"'
+             f' data-repo="{_e(dependency.repository)}"']
+    for variant in VARIANTS:
+        key = variant_key(variant)
+        frees, shared = dependency.frees[variant], dependency.shared[variant]
+        parts.append(f' data-f-{key}="{frees.bytes},{frees.packages},{frees.unknown}"')
+        parts.append(f' data-s-{key}="{shared.bytes},{shared.packages},{shared.unknown}"')
+    return "".join(parts)
+
+
+def _dependency_name(dependency: Dependency, link: PackageLink) -> str:
+    dev = " " + ui.badge("dev") if dependency.package.dev_only else ""
+    return link(dependency.package.purl, _label(dependency)) + dev
+
+
+def _dependency_row(dependency: Dependency, visible: bool, scale: int, link: PackageLink) -> str:
+    frees, shared = dependency.frees[DEFAULT_VARIANT], dependency.shared[DEFAULT_VARIANT]
+    drawn = frees.bytes + shared.bytes
+    ratio = drawn / scale if scale > 0 else 0.0
+    repository = dependency.repository
+    return (
+        f'<li class="weight-row" data-dep data-label="{_e(_label(dependency))}"'
+        f"{_dependency_attributes(dependency)}"
+        f'{"" if visible else " hidden"}>'
+        f'<div class="weight-summary weight-static" data-tip="{_e(dependency_tip(dependency))}">'
+        f'<span class="weight-name"><span class="weight-repo">{_dependency_name(dependency, link)}</span>'
+        f'<span class="weight-note"><a href="#{hash_for(repository)}">{_e(repository)}</a> · '
+        f'<span data-dep-note>{_e(dependency_note(frees, shared))}</span></span></span>'
+        f'<span class="weight-bar"><span class="fill fill-bar" data-fill style="--r:{ratio:.4f}"'
+        f'{"" if drawn else " hidden"} aria-hidden="true">'
+        f'<span class="seg mark-accent" data-frees style="flex-grow:{frees.bytes}"'
+        f'{"" if frees.bytes else " hidden"}></span>'
+        f'<span class="seg mark-ghost" data-shared style="flex-grow:{shared.bytes}"{"" if shared.bytes else " hidden"}>'
+        "</span></span>"
+        f'<span class="weight-value{"" if frees.bytes else " weight-none"}" data-value>{_e(value_text(frees))}</span>'
+        "</span></div></li>"
+    )
+
+
+def _repository_dependencies(row: Repository, link: PackageLink) -> str:
+    if not row.dependencies:
+        return ""
+    ordered = dependency_order(row.dependencies, [language.key for language in LANGUAGES])
+    shown = {id(item) for item in ordered[:TOP_PER_LANGUAGE]}
+    rest = [item for item in row.dependencies if not item.counts(DEFAULT_VARIANT)]
+    lines = "".join(
+        f'<tr data-dep{_dependency_attributes(item)}{"" if id(item) in shown else " hidden"}>'
+        f"<td>{_dependency_name(item, link)}</td>"
+        f'<td class="numeric" data-frees-text>{_e(value_text(item.frees[DEFAULT_VARIANT]))}</td>'
+        f'<td data-dep-note>{_e(dependency_note(item.frees[DEFAULT_VARIANT], item.shared[DEFAULT_VARIANT]))}</td></tr>'
+        for item in [*ordered, *rest]
+    )
+    return (
+        '<div class="ui-data-table-scroll" tabindex="0" role="region" '
+        f'aria-label="Direct dependencies to drop in {_e(row.repository)}">'
+        '<table class="ui-data-table weight-packages">'
+        '<thead><tr><th scope="col">Direct dependency</th><th scope="col" class="numeric">Removing it frees</th>'
+        '<th scope="col">Brings in</th></tr></thead>'
+        f"<tbody data-deps>{lines}</tbody></table></div>"
     )
 
 
@@ -192,7 +322,7 @@ def _row(row: Repository, scale: int, link: PackageLink) -> str:
         '<span class="seg mark-accent"></span></span>'
         f'<span class="weight-value{"" if total.bytes else " weight-none"}" data-value>{_e(value_text(total))}</span>'
         "</span></summary>"
-        f'<div class="weight-body">{_packages(row, total, link)}'
+        f'<div class="weight-body">{_repository_dependencies(row, link)}{_packages(row, total, link)}'
         f'<p class="weight-open"><a href="repos/{_e(row.repository)}/index.html">Open {_e(row.repository)}</a></p>'
         "</div></details></li>"
     )
