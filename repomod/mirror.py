@@ -8,6 +8,7 @@ does not serve yet.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import time
@@ -38,6 +39,7 @@ _UPSTREAM_REGISTRIES: dict[Ecosystem, frozenset[str | None]] = {
     Ecosystem.NPM: frozenset({None, audit_upgrades.UPSTREAM_NPM_REGISTRY, "https://registry.npmjs.org"}),
     Ecosystem.PYPI: frozenset({None, audit_upgrades.UPSTREAM_PYTHON_INDEX, "https://pypi.org/simple/"}),
 }
+_PRUNED = frozenset({".git", ".work", ".venv", "node_modules", "target", "__pycache__"})
 _SERVED_TIMEOUT_SECONDS = 300.0
 _SERVED_POLL_SECONDS = 15.0
 
@@ -219,14 +221,14 @@ def _mirrored_ecosystems(root: Path, repository: Repository, policy: RegistryPol
 
 
 def _lockfiles_in(tree: Path, ecosystems: frozenset[Ecosystem]) -> list[Path]:
+    """Every lockfile in the tree, since CI may build nested fixtures against the same registry."""
+    names = {name for name, ecosystem in _LOCKFILE_ECOSYSTEM.items() if ecosystem in ecosystems}
     found = []
-    for name, ecosystem in _LOCKFILE_ECOSYSTEM.items():
-        if ecosystem not in ecosystems:
-            continue
+    for directory, subdirectories, files in os.walk(tree):
+        subdirectories[:] = sorted(name for name in subdirectories if name not in _PRUNED)
+        base = Path(directory)
         found.extend(
-            path
-            for path in [tree / name, *sorted(tree.glob(f"*/{name}"))]
-            if path.is_file() and not path.is_symlink()
+            base / name for name in sorted(files) if name in names and not (base / name).is_symlink()
         )
     return found
 

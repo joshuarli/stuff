@@ -490,3 +490,19 @@ packages:
         Package(Ecosystem.NPM, "not-windows", "1.0.0"),
         Package(Ecosystem.NPM, "@pnpm/exe.darwin-arm64", "12.18.0"),
     }
+
+
+def test_nested_fixture_lockfiles_are_mirrored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _checkout(tmp_path)
+    fixture = root / "scenarios" / "e2e" / "source"
+    fixture.mkdir(parents=True)
+    (fixture / "Cargo.lock").write_text(CARGO_LOCK.format(rustybench="0.3.0", checksum="dd"), encoding="utf-8")
+    (root / "target" / "package").mkdir(parents=True)
+    (root / "target" / "package" / "Cargo.lock").write_text(
+        CARGO_LOCK.format(rustybench="0.1.0", checksum="ee"), encoding="utf-8"
+    )
+    repository = _repository()
+    _upstream_relock(monkeypatch, [])
+    plan = mirror.plan(_catalog(tmp_path, repository), [repository], POLICY, _served(), tmp_path / "scratch")
+    assert Package(Ecosystem.CARGO, "rustybench", "0.3.0") in plan.missing
+    assert Package(Ecosystem.CARGO, "rustybench", "0.1.0") not in plan.missing
