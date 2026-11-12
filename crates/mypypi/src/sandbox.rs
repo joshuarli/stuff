@@ -275,6 +275,31 @@ fn bwrap_arguments(boundary: &Boundary, home: Option<&Path>) -> Result<Vec<Strin
     Ok(args)
 }
 
+/// Every symbolic link a path resolves through, so a chain such as a virtual
+/// environment interpreter linked to a versionless toolchain alias still
+/// resolves inside the boundary.
+fn link_hops(path: &Path) -> Vec<PathBuf> {
+    const MAX_LINKS: usize = 40;
+    let mut hops = Vec::new();
+    let mut current = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    'resolve: while hops.len() < MAX_LINKS {
+        let mut prefix = PathBuf::new();
+        for component in current.components() {
+            prefix.push(component);
+            let Ok(target) = std::fs::read_link(&prefix) else {
+                continue;
+            };
+            let rest = current.strip_prefix(&prefix).map(Path::to_path_buf).unwrap_or_default();
+            let resolved = prefix.parent().map_or_else(|| target.clone(), |parent| parent.join(&target));
+            hops.push(prefix);
+            current = if rest.as_os_str().is_empty() { resolved } else { resolved.join(rest) };
+            continue 'resolve;
+        }
+        break;
+    }
+    hops
+}
+
 fn publisher_home() -> Option<PathBuf> {
     std::env::var_os("HOME")
         .map(PathBuf::from)
@@ -403,6 +428,11 @@ pub fn confine(
     }
     confined.readable.push(canonical(&program));
     confined.readable.push(program.clone());
+    let hops: Vec<PathBuf> = link_hops(&program)
+        .into_iter()
+        .filter(|hop| !confined.writable.iter().any(|root| hop.starts_with(root)))
+        .collect();
+    confined.readable.extend(hops);
     let home = publisher_home();
     refuse_home_exposure(&confined, home.as_deref()).map_err(with_stage)?;
     let mut argv = wrap(&tool, &confined, env, home.as_deref()).map_err(with_stage)?;
@@ -633,6 +663,35 @@ mod tests {
         );
         assert!(result.success(), "{result:?}");
         assert_eq!(result.stdout.trim(), "[]");
+    }
+
+    #[test]
+    fn a_program_reached_through_links_outside_the_grants_still_runs() {
+        if !boundary_is_usable() {
+            return;
+        }
+        let probe = probe();
+        let links = tempfile::tempdir().unwrap();
+        let links = links.path().canonicalize().unwrap();
+        let toolchain = links.join("toolchain");
+        std::fs::create_dir(&toolchain).unwrap();
+        std::os::unix::fs::symlink(&probe.interpreter.executable, toolchain.join("python")).unwrap();
+        let alias = links.join("alias");
+        std::os::unix::fs::symlink(&toolchain, &alias).unwrap();
+        let venv_python = probe.scratch().join("python");
+        std::os::unix::fs::symlink(alias.join("python"), &venv_python).unwrap();
+        let boundary = Boundary {
+            writable: vec![probe.scratch()],
+            readable: probe.interpreter.roots.clone(),
+            network: Network::Offline,
+        };
+        let command = vec![venv_python.display().to_string(), "-I".to_string(), "-c".to_string(), "print('ran')".to_string()];
+
+        let confined = confine(&command, &probe.env, &boundary, Stage::Validation).unwrap();
+        let result = run_capture(&confined, Some(&probe.scratch()), &probe.env, None, 60).unwrap();
+
+        assert!(result.success(), "{result:?}");
+        assert_eq!(result.stdout.trim(), "ran");
     }
 
     #[test]

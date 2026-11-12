@@ -153,8 +153,9 @@ unavailable (...)` (exit 1, `Dependency`) and no package code runs. There is no
 opt-out. A grant that would contain the publisher's home is refused as a
 configuration error (exit 2). Linux needs unprivileged user namespaces. In a
 container, allow them with `--security-opt seccomp=unconfined --security-opt
-systempaths=unconfined`; `deploy/test-linux.sh` and
-`deploy/mypypi-container.sh` pass both, and `deploy/mypypi-linux.Dockerfile`
+apparmor=unconfined --security-opt systempaths=unconfined` (Docker's default
+AppArmor profile denies the mounts `bwrap` makes); `deploy/test-linux.sh` and
+`deploy/mypypi-container.sh` pass all three, and `deploy/mypypi-linux.Dockerfile`
 installs `bubblewrap`. On Ubuntu 24.04 and later, `kernel.apparmor_restrict_unprivileged_userns=0`
 is also required; CI sets it.
 
