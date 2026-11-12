@@ -30,21 +30,27 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
   from `sources.lock.json`
 - [x] `repomod topics apply`
 
+## Releases
+
+| Repository | First shared-format release | Consumers moved |
+| --- | --- | --- |
+| git-build | `release-1fb0febb17073cf3fdd712c575aa1eb3a5404f91` | ssh-build, usr |
+| ssh-build | `release-88b04033…` | usr; budgets re-measured (xz + 15%) |
+| pi-build | `release-a17c28f2…` | usr |
+| ffmpeg-build | `release-ac29c7720327f7dee4ed4677ce8421673fcc3563` | play #6, usr |
+| python-build | `release-6f7c0d46e2eda7f66c705022f1950034045f74d0` (proves Alpine 3.24.2) | pi-build #2, usr #2 |
+| cmake-build | qualified at `281e9cd8`, released | none pin it |
+| node-build | building (#9 fixed `TARGET` leaking into gyp sub-makes; #10 sets jobs per core) | usr #3 waits for it |
+| chromium-build | none | Helium in usr waits for it |
+
 ## Needs owner
 
-- First release dispatch per repository; nothing has been released in the new format.
-- After those releases, bump the consumers that pin old assets: pi-build's python pins in
-  `bootstrap.lock.json`/`sources.lock.json` (python-build), play's Linux Dockerfile and
-  `ffmpeg-sdk.lock.json` (ffmpeg-build), ssh-build's `git-build.lock.json` and
-  `scripts/fetch-git-build.sh` (git-build: `git-<version>-<triple>.tar.xz`, `tar -xJf`).
-- `usr/tools/sync/pi_release.py` and the `dl` installers read the old pi-build, node-build, and
-  ssh-build tags and asset names.
-- Old release evidence (cmake qualification and memory baselines) no longer matches; the next
-  qualify run re-measures.
-- Re-measure `release-budgets.json` ceilings on the first xz builds (node, ssh, cmake).
-- python-build's and node-build's Linux builders moved from Alpine edge to the approved 3.24.2
-  image; only a full Linux build proves them.
+- chromium-build: hosted macOS runners have 56 GiB free against the 80 GiB build and have never
+  completed a smoke build; a release needs a local or self-hosted build.
+- node-build: after the first release, merge usr #3 and re-measure `release-budgets.json` on the
+  xz sizes.
 
 ## Status
 
-Closed: every local deliverable landed. Open items are the owner list above.
+Every local deliverable landed and six of eight repositories released in the shared format; node-build
+and chromium-build remain as listed above.
