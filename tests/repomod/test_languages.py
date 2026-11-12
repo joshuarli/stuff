@@ -145,6 +145,21 @@ def _write(path: Path, text: str = "") -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def test_python_package_at_the_declared_flat_module_root_is_detected(tmp_path: Path) -> None:
+    flat = tmp_path / "flat"
+    _write(
+        flat / "pyproject.toml",
+        '[project]\nname = "fleet-tool"\n\n[tool.uv.build-backend]\nmodule-root = ""\n',
+    )
+    _write(flat / "fleet_tool" / "cli.py")
+    undeclared = tmp_path / "undeclared"
+    _write(undeclared / "pyproject.toml", '[project]\nname = "fleet-tool"\n')
+    _write(undeclared / "fleet_tool" / "cli.py")
+
+    assert "python" in _language_sources(flat)
+    assert "python" not in _language_sources(undeclared)
+
+
 def test_python_source_under_nested_pyproject_manifests_is_not_detected(tmp_path: Path) -> None:
     _write(tmp_path / "services" / "api" / "pyproject.toml", "[project]\n")
     _write(tmp_path / "services" / "api" / "src" / "api" / "app.py")

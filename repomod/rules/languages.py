@@ -378,8 +378,33 @@ _PYTHON_MANAGED_PATTERNS = (
 )
 
 
+def _declared_package_patterns(root: Path) -> tuple[str, ...]:
+    path = root / "pyproject.toml"
+    if not _regular_file(path):
+        return ()
+    document, _ = read_toml(path)
+    project = document.get("project") if document is not None else None
+    name = project.get("name") if isinstance(project, dict) else None
+    if not isinstance(name, str) or not name:
+        return ()
+    tool = document.get("tool") if document is not None else None
+    uv = tool.get("uv") if isinstance(tool, dict) else None
+    backend = uv.get("build-backend") if isinstance(uv, dict) else None
+    settings = backend if isinstance(backend, dict) else {}
+    module_root = settings.get("module-root", "src")
+    module = settings.get("module-name", name.replace("-", "_").replace(".", "_"))
+    if not isinstance(module_root, str) or not isinstance(module, str) or not module:
+        return ()
+    base = "/".join(part for part in (module_root.strip("/"), module) if part)
+    return (f"{glob.escape(base)}/*.py",)
+
+
 def _python_source_present_uncached(root: Path, managed_roots: bool) -> bool:
-    patterns = _PYTHON_BUILD_PATTERNS + (_PYTHON_MANAGED_PATTERNS if managed_roots else ())
+    patterns = (
+        _PYTHON_BUILD_PATTERNS
+        + (_PYTHON_MANAGED_PATTERNS if managed_roots else ())
+        + _declared_package_patterns(root)
+    )
     for pattern in sorted(patterns):
         for candidate_name in glob.glob(str(root / pattern)):
             candidate = Path(candidate_name)
