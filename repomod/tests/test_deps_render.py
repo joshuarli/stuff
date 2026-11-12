@@ -120,7 +120,10 @@ def test_render_escapes_hostile_names_and_paths(tmp_path: Path) -> None:
     packages = (result.output / "packages.html").read_text(encoding="utf-8")
     coverage = (result.output / "coverage.html").read_text(encoding="utf-8")
     hostile = (result.output / "repos/acme/hostile/index.html").read_text(encoding="utf-8")
+    world_page = (result.output / "world.html").read_text(encoding="utf-8")
     assert "<script>alert(1)</script>" not in index
+    assert "<script>alert(1)</script>" not in world_page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in world_page
     assert "<script>alert(1)</script>" not in packages
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in packages
     assert "&lt;script&gt;alert(2)&lt;/script&gt;" in hostile
@@ -190,7 +193,7 @@ def test_zero_dependencies_render_differently_from_unknown(tmp_path: Path) -> No
 def test_missing_registry_data_is_not_reported_as_zero_findings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, {}))
+    monkeypatch.setattr(render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, {}, {}))
     result = _render(tmp_path)
     index = (result.output / "index.html").read_text(encoding="utf-8")
     assert "not checked yet" in index
@@ -280,7 +283,7 @@ def test_fork_repositories_are_listed_apart_from_owned_ones(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     vulnerable = {"pkg:cargo/clap@4.0.0": {"vulns": [{"id": "RUSTSEC-1"}]}}
-    cache = render.enrich.Enrichment(tmp_path / "cache", 1.0, vulnerable)
+    cache = render.enrich.Enrichment(tmp_path / "cache", 1.0, vulnerable, {})
     monkeypatch.setattr(render.enrich, "load_cache", lambda: cache)
     repositories = []
     for name, tags in (("acme/mine", ("tool",)), ("acme/upstream", ("fork", "tool"))):
@@ -853,7 +856,7 @@ def test_first_failed_osv_check_renders_not_checked(
     inventory, built = _fixture(tmp_path)
     results = {instance.purl: {"vuln_error": "OSV request failed"} for instance in built.instances.values()}
     monkeypatch.setattr(
-        render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, results)
+        render.enrich, "load_cache", lambda: render.enrich.Enrichment(tmp_path / "cache", None, results, {})
     )
     result = render.render(inventory, built, tmp_path / "dashboard")
     packages = (result.output / "packages.html").read_text()

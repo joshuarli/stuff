@@ -26,6 +26,7 @@ class Mark(Enum):
     OK = "ok"
     WARN = "warn"
     BAD = "bad"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +90,39 @@ class NavGroup:
     label: str
     links: Sequence[NavLink]
     heading: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class Rect:
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+@dataclass(frozen=True, slots=True)
+class Cell:
+    label: str
+    value: int
+    href: str
+    tip: str
+    classes: str
+
+
+@dataclass(frozen=True, slots=True)
+class Block:
+    label: str
+    tip: str
+    children: Sequence[Cell | Block]
+
+    @property
+    def value(self) -> int:
+        return sum(child.value for child in self.children)
+
+
+_TREEMAP_CHAR = 6.2
+_TREEMAP_HEADING = 16.0
+_TREEMAP_SUBHEADING = 13.0
 
 
 def escape(value: object) -> str:
@@ -397,3 +431,91 @@ def _nav_link(link: NavLink, prefix: str, active: str) -> str:
     current = ' aria-current="page"' if link.page == active else ""
     count = f'<span class="nav-count">{link.count}</span>' if link.count is not None and link.count > 0 else ""
     return f'<a href="{prefix}{link.page}.html"{current}>{escape(link.label)}{count}</a>'
+
+
+def squarify(values: Sequence[float], box: Rect) -> list[Rect]:
+    """Lay out positive values, largest first, as rectangles tiling `box` in input order."""
+    if any(value <= 0 for value in values):
+        raise ValueError("treemap values must be positive")
+    total = sum(values)
+    if not values or box.w <= 0 or box.h <= 0:
+        return [Rect(box.x, box.y, 0.0, 0.0) for _ in values]
+    scale = box.w * box.h / total
+    areas = [value * scale for value in values]
+    rects: list[Rect] = []
+    x, y, w, h = box.x, box.y, box.w, box.h
+    start = 0
+    while start < len(areas):
+        side = min(w, h)
+        end = start + 1
+        while end < len(areas) and _worst(areas[start : end + 1], side) <= _worst(areas[start:end], side):
+            end += 1
+        row = areas[start:end]
+        span = sum(row)
+        if w >= h:
+            width = span / h
+            offset = y
+            for area in row:
+                rects.append(Rect(x, offset, width, area / width))
+                offset += area / width
+            x, w = x + width, max(0.0, w - width)
+        else:
+            height = span / w
+            offset = x
+            for area in row:
+                rects.append(Rect(offset, y, area / height, height))
+                offset += area / height
+            y, h = y + height, max(0.0, h - height)
+        start = end
+    return rects
+
+
+def treemap(blocks: Sequence[Block], width: int, height: int, label: str) -> str:
+    body = "".join(_treemap_node(node, rect, 0) for node, rect in _treemap_layout(blocks, Rect(0, 0, width, height)))
+    return (
+        f'<svg class="treemap" viewBox="0 0 {width} {height}" role="img" aria-label="{escape(label)}">'
+        '<defs><pattern id="tm-hatch" width="6" height="6" patternUnits="userSpaceOnUse" '
+        'patternTransform="rotate(45)"><rect class="tm-hatch-bg" width="6" height="6"/>'
+        '<line class="tm-hatch-line" x1="0" y1="0" x2="0" y2="6"/></pattern></defs>'
+        f"{body}</svg>"
+    )
+
+
+def _worst(row: Sequence[float], side: float) -> float:
+    total = sum(row)
+    return max(max(row) * side * side / (total * total), total * total / (side * side * min(row)))
+
+
+def _treemap_layout(nodes: Sequence[Cell | Block], box: Rect) -> list[tuple[Cell | Block, Rect]]:
+    ordered = sorted((node for node in nodes if node.value > 0), key=lambda node: -node.value)
+    return list(zip(ordered, squarify([node.value for node in ordered], box), strict=True))
+
+
+def _treemap_node(node: Cell | Block, rect: Rect, depth: int) -> str:
+    frame = f'x="{rect.x:.1f}" y="{rect.y:.1f}" width="{rect.w:.1f}" height="{rect.h:.1f}"'
+    if isinstance(node, Cell):
+        text = (
+            f'<text x="{rect.x + 3:.1f}" y="{rect.y + 12:.1f}">{escape(node.label)}</text>'
+            if rect.w >= len(node.label) * _TREEMAP_CHAR + 6 and rect.h >= 15
+            else ""
+        )
+        return (
+            f'<a href="{escape(node.href)}" data-tip="{escape(node.tip)}">'
+            f'<rect class="tm-cell {escape(node.classes)}" {frame}/>{text}</a>'
+        )
+    heading = _TREEMAP_HEADING if depth == 0 else _TREEMAP_SUBHEADING
+    labelled = rect.w >= len(node.label) * _TREEMAP_CHAR + 8 and rect.h >= heading * 3
+    top = heading if labelled else 0.0
+    inset = 1.0
+    inner = Rect(rect.x + inset, rect.y + top + inset, max(0.0, rect.w - 2 * inset), max(0.0, rect.h - top - 2 * inset))
+    title = (
+        f'<text class="tm-heading-{depth}" x="{rect.x + 4:.1f}" y="{rect.y + heading - 4:.1f}">'
+        f"{escape(node.label)}</text>"
+        if labelled
+        else ""
+    )
+    children = "".join(_treemap_node(child, place, depth + 1) for child, place in _treemap_layout(node.children, inner))
+    return (
+        f'<g data-tip="{escape(node.tip)}"><rect class="tm-block tm-block-{depth}" {frame}/>'
+        f"{title}{children}</g>"
+    )

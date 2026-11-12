@@ -103,6 +103,13 @@ uv run repomod deps enrich
 uv run repomod deps enrich --offline --json
 ```
 
+Enrichment also caches the repository and homepage URLs that public crates.io, npm, and PyPI list
+for each package, under `sources`, keyed by package URL. They are fetched once per package and
+again only with `--refresh`. A failed lookup is retried on the next run. A crate missing from
+crates.io, such as one published only to a private registry, is cached with no URLs. crates.io
+lookups are sent in batches of 50, one second apart, as its crawler policy asks. The World page
+reads these URLs to find each package's owner.
+
 Enrichment never adds edges and never changes package identities.
 An OSV transport, response, or classification failure exits 2 and records an error in JSON output.
 Failed refreshes preserve previous advisories and their check timestamps, marking them stale.

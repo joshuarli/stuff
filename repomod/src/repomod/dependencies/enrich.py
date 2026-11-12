@@ -13,6 +13,7 @@ from repomod.audit import (
     RegistrySources,
     VulnerabilityLookupError,
     resolve_latest,
+    resolve_source_urls,
     resolve_vulns,
 )
 from repomod.catalog import atomic_write
@@ -23,6 +24,7 @@ from repomod.io import cache_file
 CACHE_NAME = "deps-enrichment.json"
 MAX_AGE_SECONDS = 86400
 _CHECKED = frozenset({Ecosystem.CARGO, Ecosystem.PYPI, Ecosystem.NPM, Ecosystem.GOLANG})
+_SOURCED = frozenset({"crates", "pypi", "npm"})
 _ECOSYSTEMS = {
     Ecosystem.CARGO: "crates",
     Ecosystem.PYPI: "pypi",
@@ -36,6 +38,7 @@ class Enrichment:
     path: Path
     fetched_at: float | None
     results: Mapping[str, Mapping[str, object]]
+    sources: Mapping[str, tuple[str, ...]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,12 +50,14 @@ class EnrichReport:
     not_checked: int
     vulnerable: int
     total: int
+    sources_fetched: int
     errors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class _Item:
     purl: str
+    component: str
     ecosystem: str
     name: str
     version: str
@@ -63,22 +68,29 @@ def load_cache(path: Path | None = None) -> Enrichment:
     try:
         document = json.loads(target.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
-        return Enrichment(target, None, {})
+        return Enrichment(target, None, {}, {})
     if not isinstance(document, dict):
-        return Enrichment(target, None, {})
+        return Enrichment(target, None, {}, {})
     fetched_at = document.get("fetched_at")
     raw_results = document.get("results")
     if not isinstance(raw_results, dict):
-        return Enrichment(target, None, {})
+        return Enrichment(target, None, {}, {})
     results: dict[str, Mapping[str, object]] = {
         purl: cast(Mapping[str, object], entry)
         for purl, entry in raw_results.items()
         if isinstance(purl, str) and isinstance(entry, dict)
     }
+    raw_sources = document.get("sources")
+    sources = {
+        purl: tuple(url for url in urls if isinstance(url, str))
+        for purl, urls in (raw_sources.items() if isinstance(raw_sources, dict) else ())
+        if isinstance(purl, str) and isinstance(urls, list)
+    }
     return Enrichment(
         target,
         float(fetched_at) if isinstance(fetched_at, (int, float)) and not isinstance(fetched_at, bool) else None,
         results,
+        sources,
     )
 
 
@@ -111,6 +123,7 @@ def enrich(
     latest_fetcher: Callable[[str, str], str | None] | None = None,
     osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
     sources: RegistrySources | None = None,
+    source_fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
 ) -> EnrichReport:
     current = time.time() if now is None else now
     cache = load_cache(cache_path)
@@ -184,9 +197,30 @@ def enrich(
             "vulns": vulns_map.get((item.ecosystem, item.name, item.version), []),
             "fetched_at": current,
         }
+    source_urls = dict(cache.sources)
+    unsourced = {
+        item.component: (item.ecosystem, item.name)
+        for item in items
+        if not offline
+        and (source_fetcher is not None or latest_fetcher is None)
+        and item.ecosystem in _SOURCED
+        and (refresh or item.component not in source_urls)
+    }
+    found = resolve_source_urls(list(set(unsourced.values())), fetcher=source_fetcher) if unsourced else {}
+    fetched_sources = {
+        component: found[key] for component, key in unsourced.items() if key in found
+    }
+    source_urls.update(fetched_sources)
     fetched_at = current if pending and not errors else cache.fetched_at
-    if pending:
-        _write(cache.path, {"fetched_at": fetched_at, "results": results})
+    if pending or fetched_sources:
+        _write(
+            cache.path,
+            {
+                "fetched_at": fetched_at,
+                "results": results,
+                "sources": {component: list(urls) for component, urls in sorted(source_urls.items())},
+            },
+        )
     checked = stale = not_checked = vulnerable = 0
     total = 0
     for data in _selected_data(graph, selected):
@@ -212,13 +246,14 @@ def enrich(
                 if isinstance(vulns, list) and vulns:
                     vulnerable += 1
     return EnrichReport(
-        Enrichment(cache.path, fetched_at, results),
+        Enrichment(cache.path, fetched_at, results, source_urls),
         len(pending),
         checked,
         stale,
         not_checked,
         vulnerable,
         total,
+        len(fetched_sources),
         errors,
     )
 
@@ -248,7 +283,7 @@ def _items(graph: Graph, selected: set[str] | None) -> tuple[_Item, ...]:
             ecosystem = _ECOSYSTEMS[component.ecosystem]
             items.setdefault(
                 instance.purl,
-                _Item(instance.purl, ecosystem, component.name, instance.version),
+                _Item(instance.purl, component.purl, ecosystem, component.name, instance.version),
             )
     return tuple(sorted(items.values(), key=lambda item: item.purl))
 
@@ -293,6 +328,6 @@ def summary_text(report: EnrichReport) -> str:
         f"{report.checked} checked, {report.stale} stale, "
         f"{report.not_checked} not checked, {report.vulnerable} vulnerable "
         f"of {report.total} instances; fetched {report.fetched} entries "
-        f"to {report.cache.path}"
+        f"and {report.sources_fetched} source URLs to {report.cache.path}"
     )
     return summary + ("; " + "; ".join(report.errors) if report.errors else "")

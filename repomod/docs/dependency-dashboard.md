@@ -33,7 +33,8 @@ tokens.
 
 The sidebar groups pages by the work they support. A page shows something only when it tells
 you what to change or decide. Everything else is a counter or is left out. Package pages are the
-one lookup surface, reached through search.
+one lookup surface, reached through search. World is the one orientation page and sits alone under
+Overview.
 
 - **To do** (`index.html`) starts with open work per repository, then groups each change once:
   **Fix now** for vulnerable packages with a clean upgrade, **Decide** for those without one,
@@ -46,6 +47,17 @@ one lookup surface, reached through search.
   repository, forks included, with whatever `repomod status` flags (CI and workflows, releases,
   upstreams, pull request conflicts, and local checkout state), most failures first. A pulsing dot
   marks CI or a workflow that was running when the page was rendered.
+- **World** (`world.html`) shows every package that owned repositories reach, split into yours,
+  third-party, and owner unknown. Forks are left out. Yours means a package built inside one of
+  your repositories, a package `graph.is_first_party` recognizes, or one whose source repository
+  belongs to a catalog owner (`joshuarli`, `laputa-systems`). Owners come from Git and download
+  URLs, Go module paths, image names, toolchain names, and the repository and homepage URLs that
+  `deps enrich` caches for Cargo, npm, and PyPI packages. A package with none of these stays
+  owner unknown rather than being guessed. Bars compare ownership by package and by package
+  use. A treemap groups packages by ecosystem and owner, with area proportional to repositories
+  reached, lighter cells for transitive-only packages, and a red outline for vulnerable ones. Each cell
+  opens the package. Reach buckets and an owner list, with direct and transitive-only counts,
+  repeat the charted values as text.
 - **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
   including coverage issues with a link to the file, and the repository's status with `--status`.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest

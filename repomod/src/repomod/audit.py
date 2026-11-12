@@ -1268,6 +1268,108 @@ def _latest_go(module: str) -> str | None:
     return _non_empty_str(document.get("Version"))
 
 
+class SourceLookupError(RuntimeError):
+    pass
+
+
+def _url_candidates(*values: object) -> tuple[str, ...]:
+    found: list[str] = []
+    for value in values:
+        url = value.get("url") if isinstance(value, dict) else value
+        if isinstance(url, str) and url.strip() and url.strip() not in found:
+            found.append(url.strip())
+    return tuple(found)
+
+
+_CRATES_BATCH = 50
+
+
+def _source_crates(names: list[str]) -> dict[str, tuple[str, ...]]:
+    found: dict[str, tuple[str, ...]] = {}
+    for start in range(0, len(names), _CRATES_BATCH):
+        if start:
+            time.sleep(1)
+        batch = names[start : start + _CRATES_BATCH]
+        query = urllib.parse.urlencode(
+            [("per_page", str(_CRATES_BATCH)), *(("ids[]", name) for name in batch)]
+        )
+        document = _registry_document(
+            f"https://crates.io/api/v1/crates?{query}", {"Accept": "application/json"}
+        )
+        crates = document.get("crates") if document is not None else None
+        if not isinstance(crates, list):
+            continue
+        listed = {
+            _normalize_rust_name(str(crate.get("id", ""))): crate
+            for crate in crates
+            if isinstance(crate, dict)
+        }
+        for name in batch:
+            crate = listed.get(_normalize_rust_name(name))
+            found[name] = (
+                _url_candidates(crate.get("repository"), crate.get("homepage")) if crate is not None else ()
+            )
+    return found
+
+
+def _source_npm(name: str) -> tuple[str, ...]:
+    document = _registry_document(
+        f"https://registry.npmjs.org/{urllib.parse.quote(name, safe='@')}/latest"
+    )
+    if document is None:
+        raise SourceLookupError(f"npm has no record for {name}")
+    return _url_candidates(document.get("repository"), document.get("homepage"))
+
+
+def _source_pypi(name: str) -> tuple[str, ...]:
+    document = _registry_document(f"https://pypi.org/pypi/{urllib.parse.quote(name, safe='')}/json")
+    info = document.get("info") if document is not None else None
+    if not isinstance(info, dict):
+        raise SourceLookupError(f"PyPI has no record for {name}")
+    project_urls = info.get("project_urls")
+    links = list(project_urls.values()) if isinstance(project_urls, dict) else []
+    return _url_candidates(*links, info.get("home_page"))
+
+
+_SOURCE_FETCHERS: dict[str, Callable[[str], tuple[str, ...]]] = {
+    "npm": _source_npm,
+    "pypi": _source_pypi,
+}
+
+
+def resolve_source_urls(
+    packages: list[tuple[str, str]],
+    *,
+    fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
+) -> dict[tuple[str, str], tuple[str, ...]]:
+    """Return the public registry's repository and homepage URLs for each package.
+
+    Packages whose lookup fails are omitted so a later run retries them; a package
+    the registry lists no URLs for, or does not publish, maps to an empty tuple.
+    crates.io allows one request per second, so crates are fetched in paced batches.
+    """
+    resolved: dict[tuple[str, str], tuple[str, ...]] = {}
+    lookups: dict[tuple[str, str], Callable[[], tuple[str, ...]]] = {}
+    if fetcher is None:
+        crates = sorted({name for ecosystem, name in packages if ecosystem == "crates"})
+        resolved.update({("crates", name): urls for name, urls in _source_crates(crates).items()})
+    for ecosystem, name in packages:
+        if fetcher is not None:
+            lookups[(ecosystem, name)] = lambda ecosystem=ecosystem, name=name: fetcher(ecosystem, name)
+        elif (impl := _SOURCE_FETCHERS.get(ecosystem)) is not None:
+            lookups[(ecosystem, name)] = lambda impl=impl, name=name: impl(name)
+    if not lookups:
+        return resolved
+    with ThreadPoolExecutor(max_workers=min(8, len(lookups)), thread_name_prefix="repomod-source") as pool:
+        futures = {pool.submit(lookup): key for key, lookup in lookups.items()}
+        for future in as_completed(futures):
+            try:
+                resolved[futures[future]] = future.result()
+            except SourceLookupError:
+                continue
+    return resolved
+
+
 _LATEST_FETCHERS: dict[str, Callable[[str], str | None]] = {
     "pypi": _latest_pypi,
     "npm": _latest_npm,

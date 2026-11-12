@@ -4,7 +4,7 @@ import json
 import shutil
 import time
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 from packaging.version import InvalidVersion, Version
 
 from repomod import dependency_roles
-from repomod.dependencies import analysis, enrich, insights, triage, ui
+from repomod.dependencies import analysis, enrich, insights, triage, ui, world
 from repomod.dependencies import diff as diff_module
 from repomod.dependencies.graph import Graph, Inventory
 from repomod.dependencies.model import (
@@ -28,7 +28,7 @@ from repomod.dependencies.model import (
     SourceKind,
 )
 from repomod.dependencies.triage import ActionKind
-from repomod.dependencies.ui import Bar, Column, Line, Mark, NavGroup, NavLink, Segment, Stop, Tile, Tone
+from repomod.dependencies.ui import Bar, Block, Cell, Column, Line, Mark, NavGroup, NavLink, Segment, Stop, Tile, Tone
 from repomod.dependencies.ui import escape as _e
 from repomod.rules import actions as actions_rule
 from repomod.rules.python_standard import PYTHON_TOOL_NAMES
@@ -93,6 +93,7 @@ class _Site:
     actions: tuple[triage.Action, ...]
     status: Mapping[str, Sequence[StatusItem]] | None
     hidden: frozenset[str]
+    world: world.World
 
 
 def render(
@@ -126,6 +127,7 @@ def render(
         for page, title, body in (
             ("index", "To do", _overview),
             ("repositories", "Repositories", _repositories),
+            ("world", "World", _world),
             ("security", "Security", _security),
             ("outdated", "Upgrades", _outdated),
             ("alignment", "Alignment", _alignment),
@@ -219,6 +221,7 @@ def _site(
         _triage(graph, vulnerable, outdated, forks),
         status,
         hidden,
+        world.build(graph, [name for name in graph.repositories if name not in forks], cache.sources),
     )
 
 
@@ -260,6 +263,7 @@ def _navigation(site: _Site) -> tuple[NavGroup, ...]:
             ),
             heading=False,
         ),
+        NavGroup("Overview", (NavLink("world", "World"),)),
         NavGroup(
             "Review",
             (
@@ -1814,3 +1818,253 @@ def _value(value: object) -> int:
         item = cast(Mapping[str, Any], value).get("value", 0)
         return item if isinstance(item, int) else 0
     return value if isinstance(value, int) else 0
+
+
+_ORIGIN_MARKS = {
+    world.Origin.YOURS: Mark.ACCENT,
+    world.Origin.THIRD_PARTY: Mark.GHOST,
+    world.Origin.UNKNOWN: Mark.UNKNOWN,
+}
+_ORIGIN_LABELS = {
+    world.Origin.YOURS: "Yours",
+    world.Origin.THIRD_PARTY: "Third-party",
+    world.Origin.UNKNOWN: "Owner unknown",
+}
+_REACH_BUCKETS = ((1, 1), (2, 2), (3, 5), (6, 10), (11, 20), (21, None))
+_TREEMAP_SIZE = (1200, 760)
+
+
+def _world(site: _Site) -> str:
+    value = site.world
+    packages = value.packages
+    forks = len(site.forks)
+    header = ui.page_header(
+        "World",
+        f"Every package your {len(value.repositories)} repositories reach, by who maintains it. "
+        + (f"{forks} forks are left out. " if forks else "")
+        + f"Yours means {', '.join(sorted(world.display_owner(owner) for owner in value.owners))}.",
+    )
+    if not packages:
+        return header + ui.empty_state("No packages", "No repository in this view declares a dependency.")
+    origins = Counter(package.origin for package in packages)
+    direct = sum(1 for package in packages if package.direct)
+    in_repo = sum(1 for package in packages if package.in_repo)
+    third_owners = {package.owner for package in packages if package.origin is world.Origin.THIRD_PARTY}
+    tiles = (
+        Tile(
+            str(len(packages)),
+            "Packages",
+            f"{direct} declared directly · {len(packages) - direct} transitive only",
+            "#map",
+        ),
+        Tile(
+            str(origins[world.Origin.YOURS]),
+            "Yours",
+            f"{_percent(origins[world.Origin.YOURS], len(packages))} · {in_repo} built in your repositories",
+            "#yours",
+        ),
+        Tile(
+            str(origins[world.Origin.THIRD_PARTY]),
+            "Third-party",
+            f"{_percent(origins[world.Origin.THIRD_PARTY], len(packages))} · {len(third_owners)} owners",
+            "#owners",
+        ),
+        Tile(
+            str(origins[world.Origin.UNKNOWN]),
+            "Owner unknown",
+            f"{_percent(origins[world.Origin.UNKNOWN], len(packages))} · no source URL"
+            if site.cache.sources
+            else "run deps enrich to find owners",
+            "#owners",
+        ),
+    )
+    body = [header, ui.status_strip(tiles)]
+    if not site.cache.sources:
+        body.append(
+            ui.notice(
+                'Owners of registry packages are not looked up yet. Run '
+                '<span class="mono">uv run repomod deps enrich</span>, then render again.'
+            )
+        )
+    body.extend(
+        (
+            _ownership_panel(packages),
+            _world_map(site),
+            _yours_panel(packages),
+            _reach_panel(value),
+            _owners_panel(value),
+        )
+    )
+    return "\n".join(body)
+
+
+def _percent(part: int, total: int) -> str:
+    return f"{round(100 * part / total)}%" if total else "0%"
+
+
+def _origin_parts(packages: Sequence[world.Package], weight: Callable[[world.Package], int]) -> tuple[Segment, ...]:
+    totals = Counter[world.Origin]()
+    for package in packages:
+        totals[package.origin] += weight(package)
+    return tuple(Segment(_ORIGIN_LABELS[origin], totals[origin], _ORIGIN_MARKS[origin]) for origin in world.Origin)
+
+
+def _origin_legend(caption: str = "") -> str:
+    return ui.legend([(_ORIGIN_LABELS[origin], _ORIGIN_MARKS[origin]) for origin in world.Origin], caption)
+
+
+def _ownership_panel(packages: Sequence[world.Package]) -> str:
+    def uses(package: world.Package) -> int:
+        return len(package.repositories)
+
+    def one(_: world.Package) -> int:
+        return 1
+
+    totals = [
+        Bar("Packages", _origin_parts(packages, one), note="each package counted once"),
+        Bar(
+            "Package uses",
+            _origin_parts(packages, uses),
+            note="each package counted once per repository that reaches it",
+        ),
+    ]
+    by_ecosystem: dict[Ecosystem, list[world.Package]] = defaultdict(list)
+    for package in packages:
+        by_ecosystem[package.component.ecosystem].append(package)
+    ecosystems = [
+        Bar(_e(ecosystem.value), _origin_parts(rows, one))
+        for ecosystem, rows in sorted(by_ecosystem.items(), key=lambda item: (-len(item[1]), item[0].value))
+    ]
+    body = (
+        _origin_legend()
+        + ui.bar_list(totals, max(sum(part.value for part in bar.parts) for bar in totals), "Ownership")
+        + '<p class="change-group">Packages by ecosystem</p>'
+        + ui.bar_list(ecosystems, max(len(rows) for rows in by_ecosystem.values()), "Ownership by ecosystem")
+    )
+    return ui.panel("How much is yours", body)
+
+
+def _world_map(site: _Site) -> str:
+    vulnerable = {row.component.purl for row in site.vulnerable}
+    by_ecosystem: dict[Ecosystem, dict[str | None, list[world.Package]]] = defaultdict(lambda: defaultdict(list))
+    for package in site.world.packages:
+        by_ecosystem[package.component.ecosystem][package.owner].append(package)
+    blocks = []
+    for ecosystem, owners in by_ecosystem.items():
+        count = sum(len(rows) for rows in owners.values())
+        children = []
+        for owner, rows in owners.items():
+            name = world.display_owner(owner)
+            cells = [
+                Cell(
+                    package.component.display_name,
+                    len(package.repositories),
+                    f"packages.html#pkg={package.component.purl}",
+                    f"{package.component.display_name} · {name} · {len(package.repositories)} "
+                    f"{'repository' if len(package.repositories) == 1 else 'repositories'} · "
+                    f"{'direct' if package.direct else 'transitive'}"
+                    + (" · vulnerable" if package.component.purl in vulnerable else ""),
+                    " ".join(
+                        (
+                            f"tm-{package.origin.name.casefold().replace('_', '-')}",
+                            "tm-direct" if package.direct else "tm-transitive",
+                            *(("tm-vulnerable",) if package.component.purl in vulnerable else ()),
+                        )
+                    ),
+                )
+                for package in rows
+            ]
+            children.append(Block(name, f"{name} · {len(rows)} packages", cells))
+        blocks.append(Block(f"{ecosystem.value} · {count}", f"{ecosystem.value} · {count} packages", children))
+    width, height = _TREEMAP_SIZE
+    legend = ui.legend(
+        [
+            ("Yours, direct", Mark.ACCENT),
+            ("Third-party, direct", Mark.GHOST),
+            ("Owner unknown", Mark.UNKNOWN),
+            ("Vulnerable", Mark.BAD),
+        ],
+        "Area is repositories reached. Lighter cells are transitive only. Select a cell to open the package.",
+    )
+    chart = ui.treemap(blocks, width, height, f"{len(site.world.packages)} packages by ecosystem and owner")
+    return ui.panel("Map", legend + f'<div class="treemap-frame">{chart}</div>', panel_id="map")
+
+
+def _yours_panel(packages: Sequence[world.Package]) -> str:
+    reused = [package for package in packages if package.origin is world.Origin.YOURS and not package.in_repo]
+    built = sum(1 for package in packages if package.in_repo)
+    meta = f"{built} more are built inside your repositories"
+    if not reused:
+        empty = '<p class="zero">no repository consumes a package you publish</p>'
+        return ui.panel("Your packages", empty, meta=meta, panel_id="yours")
+    bars = [
+        Bar(
+            f'<a href="packages.html#pkg={_e(package.component.purl)}">{_e(package.component.display_name)}</a>',
+            (Segment("Repositories", len(package.repositories), Mark.ACCENT),),
+            note=_e(f"{package.component.ecosystem.value} · {world.display_owner(package.owner)}"),
+            tip=", ".join(package.repositories),
+        )
+        for package in reused
+    ]
+    listing = ui.scope(
+        ui.bar_list(bars, max(len(package.repositories) for package in reused), "Your packages"),
+        search="Filter your packages",
+        limit=_LIST_ROWS,
+        total=len(bars),
+    )
+    return ui.panel(f"Your packages your repositories use · {len(reused)}", listing, meta=meta, panel_id="yours")
+
+
+def _reach_panel(value: world.World) -> str:
+    bars = []
+    for low, high in _REACH_BUCKETS:
+        if low > len(value.repositories):
+            break
+        top = len(value.repositories) if high is None else min(high, len(value.repositories))
+        rows = [package for package in value.packages if low <= len(package.repositories) <= top]
+        label = str(low) if low == top else f"{low} to {top}"
+        bars.append(Bar(f"{label} {'repository' if top == 1 else 'repositories'}", _origin_parts(rows, lambda _: 1)))
+    scale = max((sum(part.value for part in bar.parts) for bar in bars), default=0)
+    return ui.panel(
+        "Reach",
+        _origin_legend("Packages by how many of your repositories reach them")
+        + ui.bar_list(bars, scale, "Packages by reach"),
+    )
+
+
+def _owners_panel(value: world.World) -> str:
+    packages = value.packages
+    grouped: dict[str, list[world.Package]] = defaultdict(list)
+    for package in packages:
+        if package.owner is not None:
+            grouped[package.owner].append(package)
+    rows = sorted(grouped.items(), key=lambda item: (-len(item[1]), item[0]))
+    bars = []
+    for owner, owned in rows:
+        reached = {repository for package in owned for repository in package.repositories}
+        direct = sum(1 for package in owned if package.direct)
+        ecosystems = sorted({package.component.ecosystem.value for package in owned})
+        yours = owner in value.owners
+        bars.append(
+            Bar(
+                _e(world.display_owner(owner)) + (" " + ui.badge("yours") if yours else ""),
+                (
+                    Segment("Direct", direct, Mark.ACCENT),
+                    Segment("Transitive only", len(owned) - direct, Mark.GHOST),
+                ),
+                note=_e(f"{len(reached)} repositories · {', '.join(ecosystems)}"),
+            )
+        )
+    unknown = sum(1 for package in packages if package.owner is None)
+    listing = ui.scope(
+        ui.bar_list(bars, max((len(owned) for _, owned in rows), default=0), "Owners"),
+        search="Filter owners",
+        limit=_LIST_ROWS,
+        total=len(bars),
+    )
+    return ui.panel(
+        f"Owners · {len(rows)}",
+        ui.legend([("Direct", Mark.ACCENT), ("Transitive only", Mark.GHOST)], "Packages per owner") + listing,
+        meta=f"{unknown} packages have no known owner",
+        panel_id="owners",
+    )

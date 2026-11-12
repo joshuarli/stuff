@@ -80,6 +80,7 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .mark-ok { --mark: var(--ui-ok); }
 .mark-warn { --mark: var(--ui-warn); }
 .mark-bad { --mark: var(--ui-bad); }
+.mark-unknown { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-viz-ghost) 45%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
 .track { padding: var(--ui-space-xs) 0; }
 .fill { display: flex; gap: 2px; min-width: 2px; }
 .seg { position: relative; flex: 1 1 0; min-width: 2px; background: var(--mark); }
@@ -111,6 +112,26 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .lines li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--ui-space-sm); }
 .line-detail { flex-basis: 100%; color: var(--ui-muted); font-size: var(--ui-fs-meta); }
 .tip { position: fixed; z-index: var(--ui-z-modal); max-width: 340px; padding: var(--ui-space-xs) var(--ui-space-sm); border-radius: var(--ui-radius-md); background: var(--ui-text); color: var(--ui-surface); font-size: var(--ui-fs-meta); line-height: 1.35; pointer-events: none; overflow-wrap: anywhere; }
+
+.treemap-frame { margin-top: var(--ui-space-sm); overflow: hidden; border-radius: var(--ui-radius-md); }
+.treemap { display: block; width: 100%; height: auto; font-family: var(--ui-font); }
+.treemap text { pointer-events: none; fill: var(--ui-text); font-size: 11px; }
+.treemap .tm-heading-0 { font-size: 12px; font-weight: var(--ui-weight-semibold); }
+.treemap .tm-heading-1 { fill: var(--ui-text-2); font-size: 10px; }
+.tm-block { fill: var(--ui-surface); stroke: var(--ui-line-strong); stroke-width: 1; }
+.tm-block-1 { fill: none; stroke: var(--ui-line); }
+.tm-cell { stroke: var(--ui-surface); stroke-width: 1; }
+.tm-yours.tm-direct { fill: var(--ui-accent); }
+.tm-yours.tm-direct + text { fill: var(--ui-surface); }
+.tm-yours.tm-transitive { fill: color-mix(in srgb, var(--ui-accent) 40%, var(--ui-surface)); }
+.tm-third-party.tm-direct { fill: color-mix(in srgb, var(--ui-viz-ghost) 70%, var(--ui-surface)); }
+.tm-third-party.tm-transitive { fill: color-mix(in srgb, var(--ui-viz-ghost) 30%, var(--ui-surface)); }
+.tm-unknown { fill: url(#tm-hatch); }
+.tm-hatch-bg { fill: var(--ui-surface); }
+.tm-hatch-line { stroke: color-mix(in srgb, var(--ui-viz-ghost) 55%, var(--ui-surface)); stroke-width: 3; }
+.tm-cell.tm-vulnerable { stroke: var(--ui-bad); stroke-width: 2; }
+.treemap a:hover .tm-cell { opacity: .75; }
+.treemap a:focus-visible .tm-cell { stroke: var(--ui-text); stroke-width: 2; }
 
 .package { display: none; flex-direction: column; gap: var(--ui-space-lg); }
 .package.active { display: flex; }

@@ -180,6 +180,7 @@ def _enrich_dict(value: EnrichReport) -> dict[str, object]:
         "not_checked": value.not_checked,
         "vulnerable": value.vulnerable,
         "total": value.total,
+        "sources_fetched": value.sources_fetched,
         "cache": str(value.cache.path),
         "fetched_at": value.cache.fetched_at,
         "results": value.cache.results,
