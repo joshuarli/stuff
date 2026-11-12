@@ -19,7 +19,7 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 
 - **Area:** Build
 - **Where:** `fleet/policy/musl-toolchain.toml:80`, `docker/musl/Dockerfile:7`
-- **Problem:** The existing handoff records a lock/builder pin of `llvm-musl-23.1.5-4c2254e` with an image digest still built from `23.1.0-rc2`, so an image-mode builder would retain the old toolchain. It also records that image mode has no users and the local token lacks `write:packages`. The pins and credentials were not reverified by this review; retain the ticket until the pins and a published digest show completion. RPMD-85 tracks the wider musl rollout.
+- **Problem:** The lock and `docker/musl/Dockerfile` pin LLVM `23.1.5` / `4c2254e`. The published index `ghcr.io/joshuarli/musl-toolchain@sha256:b024a1f888fb845e0a9c4f140d08448832ed1735f5202fd3eefd0ce4b2a41021` still records `LLVM_VERSION=23.1.0-rc2` and `LLVM_RELEASE_SHA=6eb5fb9` in its amd64 image history, so an image-mode builder would retain the old toolchain. A 2026-11-11 recheck found no `write:packages` scope on the `gh` token (`repo`, `read:org`, `gist`, `admin:public_key` only), and the docker credential for `ghcr.io` is rejected with `403 invalid token`. Code search found no consumers of that image. RPMD-85 tracks the wider musl rollout.
 - **Recommendation:** Reverify the pins and consumers in `repomod`, build/test the canonical image for `linux/amd64` and `linux/arm64`, publish its multi-arch manifest, and update the locked digest there.
 - **Fix with:** none
 - **Effort:** S
@@ -28,7 +28,7 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 
 - **Area:** Performance
 - **Where:** `crates/stuff/src/publish/r2/sync.rs:161-165`, `crates/stuff/src/publish/r2/sync.rs:200-205`, `crates/stuff/src/publish/cargo/run.rs`, `crates/h12tiny-client-sync/src/lib.rs:130`, `crates/h12tiny-client-sync/src/lib.rs:1017-1022`
-- **Problem:** Every index file gets a new generation-prefixed key, and upload planning compares complete keys, so unchanged index bytes require new R2 objects. Work scales with registry size rather than only the changed crate. The HTTP client opens a new connection per dispatch and requests `Connection: close`. Earlier timing/object-count measurements were not rerun and are omitted from this current source-backed assessment. Imported h12tiny sources must remain byte-identical to upstream.
+- **Problem:** Every index file gets a new generation-prefixed key, and upload planning compares complete keys, so unchanged index bytes require new R2 objects. Work scales with registry size rather than only the changed crate. The HTTP client opens a new connection per dispatch and requests `Connection: close`. A 2026-11-11 pass reconfirmed that mechanism from `plan` in `sync.rs` and did not migrate storage: there is no representative retained registry here, and the draft still requires object counts, R2 operations, and cold/warm publication time before a format change. Imported h12tiny sources must remain byte-identical to upstream.
 - **Recommendation:** Evaluate sharing immutable index bytes while preserving generation-local lookup, rollback, and legacy readers. Measure object counts and end-to-end publication cost before adopting a new storage format. Any client pooling change belongs upstream. The RFC defines the decision and required evidence.
 - **Fix with:** architect
 - **Effort:** M
@@ -38,7 +38,7 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 
 - **Area:** Operability
 - **Where:** `fleet/policy/musl-toolchain.toml:132`, `repomod/cmd/musl.py:91`, `docs/policy-development.md:282`
-- **Problem:** The closed musl implementation work left owner-run canaries, shared-image consumer migration, and some environment qualification unresolved. Those external outcomes were not rechecked in this repository review, so completion must not be inferred from the presence of the lock and image recipe. This carries forward existing deferred work rather than asserting a new fleet defect. The draft below preserves the recovery pointers and owner deferrals from the removed campaign record.
+- **Problem:** The closed musl implementation work left owner-run canaries, shared-image consumer migration, and some environment qualification unresolved. A 2026-11-11 recheck, recorded in the draft, found the published image still on LLVM 23.1.0-rc2, no image-mode consumers, `tm` main not compiling, the recorded `python-build` musl builds and smokes green with only a duplicate release tag failing publish, and tansu pull request 11 merged. Chromium and Node proofs stay deferred. Completion must not be inferred from the lock and image recipe.
 - **Recommendation:** Recheck the named external outcomes before deciding what remains. Agree on the conventional-consumer migration scope, then follow the publication and canary gate in the policy guide. Keep owner-deferred Chromium/Node work and scheduling out of the run unless explicitly reopened. Delete this item after the remaining scope is completed or deliberately declined and its durable decisions are recorded.
 - **Fix with:** `none`
 - **Effort:** M (days)

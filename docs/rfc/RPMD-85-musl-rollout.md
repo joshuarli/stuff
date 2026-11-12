@@ -26,13 +26,13 @@ mode, and each application's runtime behavior before widening a conventional Rus
 The verifier defect tracked in RPMD-77 must be resolved or independently accounted for before
 its directory result is trusted as the release gate.
 
-Recheck these unresolved outcomes before acting:
+Rechecked 2026-11-11. These outcomes are still unresolved:
 
-- The `tm` canary and its prerequisites. The prior record points to musl PR #13 and CI PR #14, with the macOS test `every_effective_binding_from_a_second_session_leaves_the_first_session_alone` blocking qualification. Confirm their present status; do not assume the old failure persists.
-- Conventional Rust consumer migration to the approved shared image. Confirm the `srv`, `tm`, and `fdu` canaries and the required image-mode linker traces before broader migration.
-- The qualification result for `python-build` release run `41334317681`. The record did not contain its terminal outcome.
-- Zig/`zzz` runtime and libc-input qualification. Static verification is separate from its host-dependent runtime smoke, which requires a real `/sys/power` environment.
-- Whether the recorded diverged tansu PR #11 still needs any action.
+- The `tm` canary. Pull requests [#13](https://github.com/laputa-systems/tm/pull/13) and [#14](https://github.com/laputa-systems/tm/pull/14) are merged; neither is a musl migration (#13 applies repomod fixes, #14 installs the tmux reference before tests). The old macOS session test was not reached. Current `main` CI run [43127791466](https://github.com/laputa-systems/tm/actions/runs/43127791466) fails to compile `tm` on macOS and arm64 (`usize: From<NonZero<u16>>`, 73 errors), and the lint workflow fails. Do not treat `tm` as qualified.
+- Conventional Rust consumer migration to the approved shared image. Code search found no `ghcr.io/joshuarli/musl-toolchain` consumers. `srv` and `fdu` main CI is green, and `tm` does not compile. Confirm image-mode linker traces before any migration. Publishing the LLVM 23.1.5 image is [STUF-58](../../TODO.md). The local `gh` token has no `write:packages` scope, and the saved `ghcr.io` docker credential is rejected.
+- `python-build` release run [41334317681](https://github.com/laputa-systems/python-build/actions/runs/41334317681). Both musl builds and both Linux smokes succeeded, as did the macOS build and smoke. The run failed because GitHub release tag `20261101` already existed. That build was qualified; it was not a new publication.
+- Zig/`zzz` runtime and libc-input qualification. Static verification is separate from its host-dependent runtime smoke, which requires a real `/sys/power` environment. This recheck did not run it.
+- tansu pull request [#11](https://github.com/joshuarli/tansu/pull/11) is merged. It needs no further action.
 
 Chromium and Node heavy proofs, and Chromium's manual adapter-lock work, were omitted at the
 owner's request. Preserve that deferral unless the owner explicitly reopens it. Refresh stays
