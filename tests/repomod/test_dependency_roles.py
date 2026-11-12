@@ -57,7 +57,7 @@ def test_invalid_bans_are_rejected(ban: object, preferred: str | None, message: 
 def test_curated_bans_keep_the_fleet_policy() -> None:
     roles = load_roles()
     for name in ("clap", "clap_builder", "tokio", "criterion-plot", "proptest", "hyper-util",
-                 "reqwest", "smol-hyper", "async-std", "futures-lite", "polling"):
+                 "reqwest", "smol-hyper", "async-std", "futures-lite", "polling", "atty"):
         assert find_ban(roles, Ecosystem.CARGO, name) is not None, name
     for name in ("lexopt", "laputa-smol", "parking_lot", "quickcheck", "rustybench", "h12tiny",
                  "laputa-hyper-futures-lite", "fastrand"):

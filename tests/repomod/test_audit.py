@@ -120,6 +120,10 @@ def test_banned_rust_messages_name_the_replacement() -> None:
         _banned_rust_message("proptest-derive", transitive=False)
         == "remove proptest-derive; use quickcheck instead"
     )
+    assert (
+        _banned_rust_message("atty", transitive=False)
+        == "remove atty; use std::io::IsTerminal instead"
+    )
     assert _banned_rust_message("url", transitive=False) == "remove bloated dependency url"
     assert _banned_rust_message("dotenv", transitive=False) == "remove bloated dependency dotenv"
     assert (

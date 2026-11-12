@@ -256,6 +256,17 @@ preferred = "crossterm"
 crossterm = ["crossterm"]
 termion = ["termion"]
 
+[is-terminal]
+ecosystem = "cargo"
+preferred = "std::io::IsTerminal"
+
+[is-terminal.options]
+"std::io::IsTerminal" = []
+atty = ["atty"]
+
+[is-terminal.ban]
+atty = "exact"
+
 [file-walking]
 ecosystem = "cargo"
 preferred = "walkdir"
