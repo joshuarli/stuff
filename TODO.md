@@ -15,15 +15,6 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 - **Effort:** M
 - **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
-### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
-
-- **Area:** Build
-- **Where:** `fleet/policy/musl-toolchain.toml:80`, `docker/musl/Dockerfile:7`
-- **Problem:** The lock and `docker/musl/Dockerfile` pin LLVM `23.1.5` / `4c2254e`. The published index `ghcr.io/joshuarli/musl-toolchain@sha256:b024a1f888fb845e0a9c4f140d08448832ed1735f5202fd3eefd0ce4b2a41021` still records `LLVM_VERSION=23.1.0-rc2` and `LLVM_RELEASE_SHA=6eb5fb9` in its amd64 image history, so an image-mode builder would retain the old toolchain. A 2026-11-11 recheck found no `write:packages` scope on the `gh` token (`repo`, `read:org`, `gist`, `admin:public_key` only), and the docker credential for `ghcr.io` is rejected with `403 invalid token`. Code search found no consumers of that image. RPMD-85 tracks the wider musl rollout.
-- **Recommendation:** Reverify the pins and consumers in `repomod`, build/test the canonical image for `linux/amd64` and `linux/arm64`, publish its multi-arch manifest, and update the locked digest there.
-- **Fix with:** none
-- **Effort:** S
-
 ### STUF-62 · P3 · A one-crate publish rewrites unchanged index files under a new generation
 
 - **Area:** Performance
@@ -38,7 +29,7 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 
 - **Area:** Operability
 - **Where:** `fleet/policy/musl-toolchain.toml:132`, `repomod/cmd/musl.py:91`, `docs/policy-development.md:282`
-- **Problem:** The closed musl implementation work left owner-run canaries, shared-image consumer migration, and some environment qualification unresolved. A 2026-11-11 recheck, recorded in the draft, found the published image still on LLVM 23.1.0-rc2, no image-mode consumers, `tm` main not compiling, the recorded `python-build` musl builds and smokes green with only a duplicate release tag failing publish, and tansu pull request 11 merged. Chromium and Node proofs stay deferred. Completion must not be inferred from the lock and image recipe.
+- **Problem:** The closed musl implementation work left owner-run canaries, shared-image consumer migration, and some environment qualification unresolved. The published index is `ghcr.io/joshuarli/musl-toolchain@sha256:a9802a6f0658ad344fd6b2577891194019ab86de1a4d494e32c9bbec820e863e`. A 2026-11-11 recheck, recorded in the draft, found no image-mode consumers, `tm` main not compiling, the recorded `python-build` musl builds and smokes green with only a duplicate release tag failing publish, and tansu pull request 11 merged. Chromium and Node proofs stay deferred. Completion must not be inferred from the lock and image recipe.
 - **Recommendation:** Recheck the named external outcomes before deciding what remains. Agree on the conventional-consumer migration scope, then follow the publication and canary gate in the policy guide. Keep owner-deferred Chromium/Node work and scheduling out of the run unless explicitly reopened. Delete this item after the remaining scope is completed or deliberately declined and its durable decisions are recorded.
 - **Fix with:** `none`
 - **Effort:** M (days)
