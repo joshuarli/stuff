@@ -5,7 +5,6 @@ use crate::models::{Target, ValidatedArtifact, canonicalize_name};
 use crate::platforms::{current_platform, target_python_version};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-use std::io::Read;
 
 #[derive(Debug, Clone)]
 pub struct IndexArtifact {
@@ -43,10 +42,8 @@ fn publication_error(detail: impl Into<String>, artifact: Option<&ValidatedArtif
     e
 }
 
-fn read_member_bytes(archive: &mut zip::ZipArchive<std::fs::File>, name: &str) -> Result<Vec<u8>> {
-    let mut buf = Vec::new();
-    archive.by_name(name).map_err(|e| publication_error(format!("could not read wheel metadata: {e}"), None))?.read_to_end(&mut buf).map_err(|e| publication_error(format!("could not read wheel metadata: {e}"), None))?;
-    Ok(buf)
+fn read_member_bytes(archive: &crate::wheel_zip::Archive, name: &str) -> Result<Vec<u8>> {
+    archive.read(name).map_err(|e| publication_error(format!("could not read wheel metadata: {e}"), None))
 }
 
 fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
@@ -81,13 +78,8 @@ fn parse_headers(bytes: &[u8]) -> BTreeMap<String, Vec<String>> {
 
 pub fn wheel_metadata(artifact: &ValidatedArtifact) -> Result<(Option<String>, Vec<u8>)> {
     let fail = |d: String| publication_error(d, Some(artifact));
-    let file = std::fs::File::open(&artifact.path).map_err(|_| fail("could not read wheel metadata".to_string()))?;
-    let mut wheel = zip::ZipArchive::new(file).map_err(|_| fail("could not read wheel metadata".to_string()))?;
-    let mut members: Vec<String> = Vec::new();
-    for i in 0..wheel.len() {
-        let f = wheel.by_index(i).map_err(|_| fail("could not read wheel metadata".to_string()))?;
-        members.push(f.name().map_err(|e| fail(format!("could not read wheel metadata: {e}")))?.into_owned());
-    }
+    let wheel = crate::wheel_zip::Archive::open(&artifact.path).map_err(|_| fail("could not read wheel metadata".to_string()))?;
+    let members: Vec<String> = wheel.names().map(str::to_string).collect();
     let res = {
         let mut seen = std::collections::BTreeSet::new();
         members.iter().any(|n| !seen.insert(n.clone()))
@@ -106,13 +98,9 @@ pub fn wheel_metadata(artifact: &ValidatedArtifact) -> Result<(Option<String>, V
         if bad {
             return Err(fail("wheel contains an archive path that escapes its root".to_string()));
         }
-        let f = wheel.by_index(members.iter().position(|n| n == member).unwrap())
-            .map_err(|_| fail("could not read wheel metadata".to_string()))?;
-        if let Some(mode) = f.unix_mode() {
-            let file_type = mode & 0o170000;
-            if file_type != 0 && file_type != 0o100000 && file_type != 0o040000 {
-                return Err(fail("wheel contains a non-regular archive member".to_string()));
-            }
+        let file_type = wheel.mode(member).map_err(|_| fail("could not read wheel metadata".to_string()))? & 0o170000;
+        if file_type != 0 && file_type != 0o100000 && file_type != 0o040000 {
+            return Err(fail("wheel contains a non-regular archive member".to_string()));
         }
     }
     let metadata_members: Vec<String> =
@@ -120,7 +108,7 @@ pub fn wheel_metadata(artifact: &ValidatedArtifact) -> Result<(Option<String>, V
     if metadata_members.len() != 1 {
         return Err(fail("wheel must contain exactly one dist-info/METADATA".to_string()));
     }
-    let metadata = read_member_bytes(&mut wheel, &metadata_members[0]).map_err(|_| fail("could not read wheel metadata".to_string()))?;
+    let metadata = read_member_bytes(&wheel, &metadata_members[0]).map_err(|_| fail("could not read wheel metadata".to_string()))?;
     let parsed = parse_headers(&metadata);
     let names = parsed.get("name").cloned().unwrap_or_default();
     let versions = parsed.get("version").cloned().unwrap_or_default();
@@ -353,25 +341,17 @@ pub fn render_project_page(artifacts: &[IndexArtifact]) -> Vec<u8> {
 mod tests {
     use super::*;
     use crate::models::WheelIdentity;
-    use std::io::Write as _;
     use std::path::Path;
 
     fn make_artifact(dir: &Path, filename: &str, metadata: &[u8]) -> ValidatedArtifact {
         let identity = WheelIdentity::parse(filename).unwrap();
         let path = dir.join(filename);
-        {
-            let file = std::fs::File::create(&path).unwrap();
-            let mut archive = zip::ZipWriter::new(file);
-            let options = zip::write::SimpleFileOptions::default();
-            let dist_info = format!(
-                "{}-{}.dist-info/METADATA",
-                identity.package.name.replace('-', "_"),
-                identity.package.version
-            );
-            archive.start_file(&dist_info, options).unwrap();
-            archive.write_all(metadata).unwrap();
-            archive.finish().unwrap();
-        }
+        let dist_info = format!(
+            "{}-{}.dist-info/METADATA",
+            identity.package.name.replace('-', "_"),
+            identity.package.version
+        );
+        crate::wheel_zip::testing::write_files(&path, &[(dist_info.as_str(), metadata)]);
         let bytes = std::fs::read(&path).unwrap();
         let mut h = Sha256::new();
         h.update(&bytes);

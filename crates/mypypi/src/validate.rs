@@ -6,7 +6,6 @@ use crate::platforms::{current_platform, native_architectures_from_bytes, target
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
 use sha2::{Digest, Sha384, Sha512, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -214,13 +213,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     let identity = WheelIdentity::parse(&filename).map_err(|e| failure(None, target, format!("invalid wheel {filename}: {}", e.detail)))?;
     let package = identity.package.clone();
     let fail = |d: String| failure(Some(&package), target, format!("invalid wheel {filename}: {d}"));
-    let file = std::fs::File::open(path).map_err(|e| fail(e.to_string()))?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| fail(e.to_string()))?;
-    let mut names: Vec<String> = Vec::new();
-    for i in 0..archive.len() {
-        let f = archive.by_index(i).map_err(|e| fail(e.to_string()))?;
-        names.push(f.name().map_err(|e| fail(e.to_string()))?.into_owned());
-    }
+    let archive = crate::wheel_zip::Archive::open(path).map_err(|e| fail(e.to_string()))?;
+    let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
         let mut seen = BTreeSet::new();
         names.iter().any(|n| !seen.insert(n.clone()))
@@ -238,12 +232,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         if bad {
             return Err(fail("wheel contains an unsafe archive path".to_string()));
         }
-        let f = archive.by_index(names.iter().position(|n| n == name).unwrap()).map_err(|e| fail(e.to_string()))?;
-        if let Some(mode) = f.unix_mode() {
-            // symlink bit 0o120000
-            if mode & 0o170000 == 0o120000 {
-                return Err(fail("wheel contains a symbolic link".to_string()));
-            }
+        if archive.mode(name).map_err(|e| fail(e.to_string()))? & 0o170000 == 0o120000 {
+            return Err(fail("wheel contains a symbolic link".to_string()));
         }
     }
     let dist_infos: BTreeSet<String> = names
@@ -265,11 +255,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
     if !(name_set.contains(metadata_path.as_str()) && name_set.contains(wheel_path.as_str()) && name_set.contains(record_path.as_str())) {
         return Err(fail("wheel requires METADATA, WHEEL, and RECORD".to_string()));
     }
-    let mut read_member = |name: &str| -> Result<Vec<u8>> {
-        let mut buf = Vec::new();
-        archive.by_name(name).map_err(|e| fail(e.to_string()))?.read_to_end(&mut buf).map_err(|e| fail(e.to_string()))?;
-        Ok(buf)
-    };
+    let read_member = |name: &str| -> Result<Vec<u8>> { archive.read(name).map_err(|e| fail(e.to_string())) };
     let metadata_bytes = read_member(&metadata_path)?;
     let wheel_bytes = read_member(&wheel_path)?;
     let metadata = parse_headers(&metadata_bytes);
@@ -370,8 +356,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         if !sep || !matches!(algorithm, "sha256" | "sha384" | "sha512") {
             return Err(fail(format!("wheel RECORD has an invalid hash for {name}")));
         }
-        let mut hasher_bytes = Vec::new();
-        archive.by_name(name).map_err(|e| fail(format!("wheel RECORD has an invalid hash for {name}: {e}")))?.read_to_end(&mut hasher_bytes).map_err(|e| fail(format!("wheel RECORD has an invalid hash for {name}: {e}")))?;
+        let hasher_bytes =
+            archive.read(name).map_err(|e| fail(format!("wheel RECORD has an invalid hash for {name}: {e}")))?;
         let computed = match algorithm {
             "sha256" => {
                 let mut h = Sha256::new();
@@ -393,8 +379,7 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         if computed != *expected_digest {
             return Err(fail(format!("wheel RECORD hash does not match {name}")));
         }
-        let info = archive.by_name(name).map_err(|e| fail(e.to_string()))?;
-        if info.size().to_string() != *size_value {
+        if archive.size(name).map_err(|e| fail(e.to_string()))?.to_string() != *size_value {
             return Err(fail(format!("wheel RECORD size does not match {name}")));
         }
     }
@@ -412,20 +397,8 @@ fn metadata_from_wheel(path: &Path, target: &Target, linux_repair_policy: &str) 
         if name.ends_with('/') || *name == format!("{dist_info}/RECORD") {
             continue;
         }
-        let mut head = [0u8; 4096];
-        let n = {
-            let mut m = archive.by_name(name).map_err(|e| fail(e.to_string()))?;
-            let mut total = 0;
-            while total < head.len() {
-                let r = m.read(&mut head[total..]).map_err(|e| fail(e.to_string()))?;
-                if r == 0 {
-                    break;
-                }
-                total += r;
-            }
-            total
-        };
-        let arches = native_architectures_from_bytes(&head[..n]).map_err(|e| fail(format!("native artifact: {e}")))?;
+        let head = archive.read_prefix(name, 4096).map_err(|e| fail(e.to_string()))?;
+        let arches = native_architectures_from_bytes(&head).map_err(|e| fail(format!("native artifact: {e}")))?;
         if !arches.is_empty() {
             for a in &arches {
                 native_architectures.insert(a.clone());
@@ -846,6 +819,23 @@ mod tests {
     }
 
     #[test]
+    fn rejects_a_wheel_with_a_symbolic_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("pkg-1.0-py3-none-any.whl");
+        crate::wheel_zip::testing::write_archive(
+            &path,
+            &[
+                ("pkg-1.0.dist-info/METADATA", b"Name: pkg\n", 0o100644),
+                ("pkg/escape", b"/etc/passwd", 0o120777),
+            ],
+        );
+
+        let err = inspect_wheel(&path, &target(), "manylinux_2_28").unwrap_err();
+
+        assert!(err.detail.contains("wheel contains a symbolic link"), "{}", err.detail);
+    }
+
+    #[test]
     fn accepts_noncanonical_metadata_name() {
         // Upstream wheels keep the project's original capitalization in
         // METADATA's Name field (e.g. Pygments); identity comparison must
@@ -866,19 +856,14 @@ mod tests {
             record_row("pkg-1.0.dist-info/WHEEL", wheel),
             "pkg-1.0.dist-info/RECORD"
         );
-        {
-            let file = std::fs::File::create(&path).unwrap();
-            let mut zip = zip::ZipWriter::new(file);
-            let opts = zip::write::SimpleFileOptions::default();
-            zip.start_file("pkg-1.0.dist-info/METADATA", opts).unwrap();
-            use std::io::Write;
-            zip.write_all(metadata).unwrap();
-            zip.start_file("pkg-1.0.dist-info/WHEEL", opts).unwrap();
-            zip.write_all(wheel).unwrap();
-            zip.start_file("pkg-1.0.dist-info/RECORD", opts).unwrap();
-            zip.write_all(record.as_bytes()).unwrap();
-            zip.finish().unwrap();
-        }
+        crate::wheel_zip::testing::write_files(
+            &path,
+            &[
+                ("pkg-1.0.dist-info/METADATA", metadata),
+                ("pkg-1.0.dist-info/WHEEL", wheel),
+                ("pkg-1.0.dist-info/RECORD", record.as_bytes()),
+            ],
+        );
         let meta = inspect_wheel(&path, &target(), "manylinux_2_28").unwrap();
         assert_eq!(meta.identity.package.name, "pkg");
     }

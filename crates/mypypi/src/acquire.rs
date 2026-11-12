@@ -456,19 +456,17 @@ fn validate_wheel_architectures_at(
             target: Some(target.clone()),
         }));
     }
-    let file = std::fs::File::open(path).map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
-    let names = safe_member_names(&mut archive, filename).map_err(ArchError::Integrity)?;
+    let archive = crate::wheel_zip::Archive::open(path)
+        .map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
+    let names = safe_member_names(&archive, filename).map_err(ArchError::Integrity)?;
     for name in &names {
         if name.ends_with('/') {
             continue;
         }
         let is_native_hint = is_native_member_name(name);
-        let mut content = Vec::new();
-        {
-            let member = archive.by_name(name).map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
-            member.take(1024 * 1024).read_to_end(&mut content).map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
-        }
+        let content = archive
+            .read_prefix(name, 1024 * 1024)
+            .map_err(|e| ArchError::Integrity(format!("invalid or incompatible wheel {filename}: {e}")))?;
         if !is_native_hint && content.starts_with(b"#!") {
             continue;
         }
@@ -522,14 +520,10 @@ fn is_native_member_name(name: &str) -> bool {
 }
 
 fn safe_member_names(
-    archive: &mut zip::ZipArchive<std::fs::File>,
+    archive: &crate::wheel_zip::Archive,
     filename: &str,
 ) -> std::result::Result<Vec<String>, String> {
-    let mut names = Vec::new();
-    for i in 0..archive.len() {
-        let file = archive.by_index(i).map_err(|e| format!("invalid or incompatible wheel {filename}: {e}"))?;
-        names.push(file.name().map_err(|e| format!("invalid or incompatible wheel {filename}: {e}"))?.into_owned());
-    }
+    let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
         let mut seen = BTreeSet::new();
         names.iter().any(|n| !seen.insert(n.clone()))
@@ -622,9 +616,9 @@ pub fn validate_wheel_metadata_at(
     if identity.package != *package {
         return Err(integ(format!("wheel filename {filename} does not match {package}")));
     }
-    let file = std::fs::File::open(path).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?;
-    let names = safe_member_names(&mut archive, &filename).map_err(integ)?;
+    let archive =
+        crate::wheel_zip::Archive::open(path).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?;
+    let names = safe_member_names(&archive, &filename).map_err(integ)?;
     let name_set: BTreeSet<&str> = names.iter().map(|s| s.as_str()).collect();
     let dist_infos: BTreeSet<&str> = name_set
         .iter()
@@ -644,10 +638,8 @@ pub fn validate_wheel_metadata_at(
     if !(name_set.contains(metadata_path.as_str()) && name_set.contains(wheel_path.as_str()) && name_set.contains(record_path.as_str())) {
         return Err(integ("wheel requires METADATA, WHEEL, and RECORD".to_string()));
     }
-    let mut read_member = |name: &str| -> std::result::Result<Vec<u8>, CompatibilityRejection> {
-        let mut buf = Vec::new();
-        archive.by_name(name).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?.read_to_end(&mut buf).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))?;
-        Ok(buf)
+    let read_member = |name: &str| -> std::result::Result<Vec<u8>, CompatibilityRejection> {
+        archive.read(name).map_err(|e| integ(format!("invalid wheel metadata in {filename}: {e}")))
     };
     let metadata_bytes = read_member(&metadata_path)?;
     let wheel_bytes = read_member(&wheel_path)?;
@@ -1071,21 +1063,20 @@ mod tests {
         // normalized; identity comparison must normalize, not reject.
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("pkg-1.0-py3-none-any.whl");
-        {
-            let file = std::fs::File::create(&path).unwrap();
-            let mut zip = zip::ZipWriter::new(file);
-            let opts = zip::write::SimpleFileOptions::default();
-            zip.start_file("pkg-1.0.dist-info/METADATA", opts).unwrap();
-            use std::io::Write;
-            zip.write_all(b"Metadata-Version: 2.1\nName: Pkg\nVersion: 1.0\nRequires-Python: >=3.9\n")
-                .unwrap();
-            zip.start_file("pkg-1.0.dist-info/WHEEL", opts).unwrap();
-            zip.write_all(b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-                .unwrap();
-            zip.start_file("pkg-1.0.dist-info/RECORD", opts).unwrap();
-            zip.write_all(b"").unwrap();
-            zip.finish().unwrap();
-        }
+        crate::wheel_zip::testing::write_files(
+            &path,
+            &[
+                (
+                    "pkg-1.0.dist-info/METADATA",
+                    b"Metadata-Version: 2.1\nName: Pkg\nVersion: 1.0\nRequires-Python: >=3.9\n",
+                ),
+                (
+                    "pkg-1.0.dist-info/WHEEL",
+                    b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+                ),
+                ("pkg-1.0.dist-info/RECORD", b""),
+            ],
+        );
         let pkg = PackageVersion::parse("pkg", "1.0").unwrap();
         let t = Target::new("3.15", "macos-arm64").unwrap();
         let id = validate_wheel_metadata(&path, &pkg, &t, "manylinux_2_28", true).unwrap();

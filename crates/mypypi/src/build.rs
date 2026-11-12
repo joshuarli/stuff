@@ -134,29 +134,15 @@ fn safe_member(name: &str) -> bool {
 pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<String>> {
     let ignored: std::collections::BTreeSet<&str> = ignored_paths.iter().map(|s| s.as_str()).collect();
     // zip sdist?
-    let is_zip = zip::ZipArchive::new(std::fs::File::open(sdist).map_err(|e| {
+    std::fs::File::open(sdist).map_err(|e| {
         Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
-    })?)
-    .is_ok();
+    })?;
+    let zip_archive = crate::wheel_zip::Archive::open(sdist).ok();
     let mut extensions: BTreeMap<String, bool> = BTreeMap::new();
     let mut native_payloads: BTreeMap<String, bool> = BTreeMap::new();
     let mut setup_py: Vec<u8> = Vec::new();
-    if is_zip {
-        let file = std::fs::File::open(sdist).map_err(|e| {
-            Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
-        })?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| {
-            Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
-        })?;
-        let mut names = Vec::new();
-        for i in 0..archive.len() {
-            let f = archive.by_index(i).map_err(|e| {
-                Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
-            })?;
-            names.push(f.name().map_err(|e| {
-                Error::build(format!("cannot inspect source archive {sdist}: {e}", sdist = sdist.display()), Stage::Build)
-            })?.into_owned());
-        }
+    if let Some(archive) = zip_archive {
+        let names: Vec<String> = archive.names().map(str::to_string).collect();
         let res = {
             let mut seen = std::collections::BTreeSet::new();
             names.iter().any(|n| !seen.insert(n.clone()))
@@ -179,8 +165,8 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
                 continue;
             }
             if name.ends_with("/setup.py") {
-                let mut buf = Vec::new();
-                archive.by_name(name).map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?.read_to_end(&mut buf).map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?;
+                let buf =
+                    archive.read(name).map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?;
                 setup_py.extend_from_slice(&buf);
             }
             if let Some(ext) = Path::new(name).extension().and_then(|e| e.to_str()) {
@@ -189,8 +175,9 @@ pub fn likely_binary(sdist: &Path, ignored_paths: &[String]) -> Result<Option<St
                     extensions.insert(dot, true);
                 }
             }
-            let mut content = Vec::new();
-            archive.by_name(name).map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?.take(1024 * 1024).read_to_end(&mut content).map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?;
+            let content = archive
+                .read_prefix(name, 1024 * 1024)
+                .map_err(|e| Error::build(format!("cannot inspect source archive: {e}"), Stage::Build))?;
             if !native_architectures_from_bytes(&content).map_err(|e| {
                 Error::integrity(format!("malformed native header in {name}: {e}"), Stage::Build)
             })?.is_empty()
@@ -281,21 +268,10 @@ fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
 }
 
 pub fn produced_binary(wheel: &Path) -> Result<bool> {
-    let file = std::fs::File::open(wheel).map_err(|e| {
+    let archive = crate::wheel_zip::Archive::open(wheel).map_err(|e| {
         Error::build(format!("cannot inspect built wheel {wheel}: {e}", wheel = wheel.display()), Stage::Build)
     })?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| {
-        Error::build(format!("cannot inspect built wheel {wheel}: {e}", wheel = wheel.display()), Stage::Build)
-    })?;
-    let mut names = Vec::new();
-    for i in 0..archive.len() {
-        let f = archive.by_index(i).map_err(|e| {
-            Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build)
-        })?;
-        names.push(f.name().map_err(|e| {
-            Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build)
-        })?.into_owned());
-    }
+    let names: Vec<String> = archive.names().map(str::to_string).collect();
     let res = {
         let mut seen = std::collections::BTreeSet::new();
         names.iter().any(|n| !seen.insert(n.clone()))
@@ -311,8 +287,9 @@ pub fn produced_binary(wheel: &Path) -> Result<bool> {
         if name.ends_with('/') {
             continue;
         }
-        let mut content = Vec::new();
-        archive.by_name(name).map_err(|e| Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build))?.take(1024 * 1024).read_to_end(&mut content).map_err(|e| Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build))?;
+        let content = archive
+            .read_prefix(name, 1024 * 1024)
+            .map_err(|e| Error::build(format!("cannot inspect built wheel: {e}"), Stage::Build))?;
         if BINARY_SUFFIXES.iter().any(|s| name.ends_with(s)) || name.contains(".so.") {
             return Ok(true);
         }
@@ -1080,10 +1057,8 @@ mod tests {
         } else {
             assert!(name.contains("-macosx_15_0_"), "{name}");
         }
-        let mut archive = zip::ZipArchive::new(std::fs::File::open(&wheel).unwrap()).unwrap();
-        let members: Vec<String> = (0..archive.len())
-            .map(|index| archive.by_index(index).unwrap().name().unwrap().into_owned())
-            .collect();
+        let archive = crate::wheel_zip::Archive::open(&wheel).unwrap();
+        let members: Vec<String> = archive.names().map(str::to_string).collect();
         assert!(members.iter().any(|member| member.starts_with("native_probe.cpython-315")), "{members:?}");
         assert!(members.iter().any(|member| member.starts_with("native_probe_cpp.cpython-315")), "{members:?}");
     }

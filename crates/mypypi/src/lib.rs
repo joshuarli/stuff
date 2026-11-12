@@ -17,6 +17,7 @@ pub mod publish;
 pub mod store;
 pub mod validate;
 pub mod wheel_metadata;
+mod wheel_zip;
 
 pub(crate) fn lower_hex(bytes: impl AsRef<[u8]>) -> String {
     use std::fmt::Write as _;

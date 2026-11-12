@@ -745,20 +745,12 @@ mod tests {
     fn make_validated(dir: &Path, filename: &str, metadata: &[u8], targets: Vec<Target>) -> ValidatedArtifact {
         let identity = WheelIdentity::parse(filename).unwrap();
         let path = dir.join(format!("src-{filename}"));
-        {
-            let file = std::fs::File::create(&path).unwrap();
-            let mut archive = zip::ZipWriter::new(file);
-            let options = zip::write::SimpleFileOptions::default();
-            let dist_info = format!(
-                "{}-{}.dist-info/METADATA",
-                identity.package.name.replace('-', "_"),
-                identity.package.version
-            );
-            archive.start_file(&dist_info, options).unwrap();
-            use std::io::Write as _;
-            archive.write_all(metadata).unwrap();
-            archive.finish().unwrap();
-        }
+        let dist_info = format!(
+            "{}-{}.dist-info/METADATA",
+            identity.package.name.replace('-', "_"),
+            identity.package.version
+        );
+        crate::wheel_zip::testing::write_files(&path, &[(dist_info.as_str(), metadata)]);
         let bytes = std::fs::read(&path).unwrap();
         let mut h = Sha256::new();
         h.update(&bytes);
