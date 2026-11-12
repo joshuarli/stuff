@@ -110,8 +110,15 @@ fn inspect_archive(archive_path: &str, expected: Option<(&str, &str)>) -> Result
         if normalized.starts_with('/') || normalized.split('/').any(|p| p.is_empty() || p == "." || p == "..") {
             return Err(Error::Input(format!("package archive entry has an unsafe path: {normalized}")));
         }
-        if !seen.insert(normalized.clone()) {
-            return Err(Error::Input(format!("package archive contains duplicate entry {normalized}")));
+        let duplicate = !seen.insert(normalized.clone());
+        if duplicate {
+            let replaces_regular_file = entry_type == '-'
+                && normalized != "package/package.json"
+                && entries.iter().any(|e| e.path == normalized && e.entry_type == '-');
+            if !replaces_regular_file {
+                return Err(Error::Input(format!("package archive contains duplicate entry {normalized}")));
+            }
+            entries.retain(|e| e.path != normalized);
         }
         if normalized == "package" && entry_type != 'd' {
             return Err(Error::Input("package archive root must be a directory".to_string()));
@@ -273,6 +280,18 @@ mod tests {
         let inspected = inspect_package_archive(&path, "@types/node", "24.19.2").unwrap();
         let paths: Vec<&str> = inspected.entries.iter().map(|e| e.path.as_str()).collect();
         assert_eq!(paths, ["package/package.json", "package/index.d.ts"]);
+    }
+
+    #[test]
+    fn a_repeated_regular_file_replaces_the_earlier_entry_like_npm() {
+        let manifest = br#"{"name":"agent-base","version":"7.1.4"}"#;
+        let (_dir, path) = make_raw_tarball(&[("package/package.json", manifest), ("package/./dist/index.js", b"a"), ("package/dist/index.js", b"b")]);
+        let inspected = inspect_package_archive(&path, "agent-base", "7.1.4").unwrap();
+        let paths: Vec<&str> = inspected.entries.iter().map(|e| e.path.as_str()).collect();
+        assert_eq!(paths, ["package/package.json", "package/dist/index.js"]);
+
+        let (_dir, path) = make_raw_tarball(&[("package/package.json", manifest), ("package/./package.json", manifest)]);
+        assert!(format!("{}", inspect_package_archive(&path, "agent-base", "7.1.4").unwrap_err()).contains("duplicate entry"));
     }
 
     #[test]
