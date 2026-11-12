@@ -30,6 +30,7 @@ RUNS ?= 3
 DASHBOARD_TS := repomod/dependencies/dashboard_ts
 
 deps: ## Render and serve the fleet dependency dashboard ([PORT=8765] [PRIVATE=1])
+	@pnpm --dir $(DASHBOARD_TS) install --frozen-lockfile
 	@uv run repomod deps render --status $(if $(filter 1,$(PRIVATE)),--include-private)
 	@exec srv -p $(PORT) .work/dependencies/dashboard
 
