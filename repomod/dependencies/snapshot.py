@@ -26,6 +26,7 @@ from repomod.dependencies.model import (
     Issue,
     Project,
     RepositoryData,
+    RepositoryState,
     redact_url,
     redact_urls,
 )
@@ -197,14 +198,7 @@ def snapshot(
 ) -> Snapshot:
     inspections = _inspect_all(catalog, repositories, workers)
     data = tuple(inspection.data for inspection in inspections)
-    entries = {
-        inspection.data.repository: IndexEntry(
-            commit=inspection.commit,
-            inputs_fingerprint=inspection.data.inputs_fingerprint,
-            state=inspection.data.state,
-        )
-        for inspection in inspections
-    }
+    entries = _entries(inventory, inspections)
     written: list[Path] = []
     for item in data:
         path = repository_file(inventory, item.repository)
@@ -227,14 +221,7 @@ def check(
 ) -> Check:
     inspections = _inspect_all(catalog, repositories, workers)
     data = tuple(inspection.data for inspection in inspections)
-    entries = {
-        inspection.data.repository: IndexEntry(
-            commit=inspection.commit,
-            inputs_fingerprint=inspection.data.inputs_fingerprint,
-            state=inspection.data.state,
-        )
-        for inspection in inspections
-    }
+    entries = _entries(inventory, inspections)
     drifted: list[Path] = []
     for item in data:
         path = repository_file(inventory, item.repository)
@@ -246,6 +233,50 @@ def check(
     if not filtered:
         drifted.extend(_unselected_files(inventory, set(entries)))
     return Check(data, entries, tuple(drifted))
+
+
+def _entries(inventory: Path, inspections: Sequence[RepositoryInspection]) -> dict[str, IndexEntry]:
+    """Index entries that keep a repository's recorded commit while its inputs and state are unchanged.
+
+    Committing the inventory into a catalogued repository moves that repository's commit without
+    changing its inputs, so recording the new commit would never reach a fixed point.
+    """
+    previous = _recorded_entries(inventory)
+    entries: dict[str, IndexEntry] = {}
+    for inspection in inspections:
+        data = inspection.data
+        recorded = previous.get(data.repository)
+        unchanged = (
+            recorded is not None
+            and recorded.commit is not None
+            and recorded.inputs_fingerprint == data.inputs_fingerprint
+            and recorded.state is data.state
+        )
+        entries[data.repository] = IndexEntry(
+            commit=recorded.commit if unchanged else inspection.commit,
+            inputs_fingerprint=data.inputs_fingerprint,
+            state=data.state,
+        )
+    return entries
+
+
+def _recorded_entries(inventory: Path) -> dict[str, IndexEntry]:
+    try:
+        source = json.loads((inventory / "index.json").read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
+        return {}
+    repositories = source.get("repositories") if isinstance(source, dict) else None
+    if not isinstance(repositories, dict):
+        return {}
+    recorded: dict[str, IndexEntry] = {}
+    for name, entry in repositories.items():
+        if not isinstance(entry, dict):
+            continue
+        commit, fingerprint, state = entry.get("commit"), entry.get("inputs_fingerprint"), entry.get("state")
+        if not isinstance(fingerprint, str) or state not in {item.value for item in RepositoryState}:
+            continue
+        recorded[name] = IndexEntry(commit if isinstance(commit, str) else None, fingerprint, RepositoryState(state))
+    return recorded
 
 
 def repository_file(inventory: Path, repository: str) -> Path:

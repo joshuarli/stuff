@@ -419,29 +419,32 @@ def test_unchanged_files_are_not_rewritten(tmp_path: Path, git_environment: None
     assert _inventory_files(inventory) == content
 
 
-def test_application_commit_changes_only_the_index(
+def test_application_commits_reach_a_fixed_point_until_inputs_change(
     tmp_path: Path, git_environment: None
 ) -> None:
     path = _checkout(tmp_path, "tool", {"Cargo.toml": "[package]\n", "README.md": "a\n"})
     catalog = _one_repo(tmp_path)
     inventory = tmp_path / "inventory"
     snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
-    repository_file = inventory / "repos" / "acme" / "tool.json"
-    before = (repository_file.stat().st_ino, repository_file.stat().st_mtime_ns)
-    old_index = json.loads((inventory / "index.json").read_text(encoding="utf-8"))
-    head = _commit_app_change(path)
+    first_index = (inventory / "index.json").read_text(encoding="utf-8")
+    recorded = json.loads(first_index)["repositories"]["acme/tool"]["commit"]
+    _commit_app_change(path)
 
-    result = snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
+    unchanged = snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
 
-    assert result.written == (inventory / "index.json",)
-    assert (repository_file.stat().st_ino, repository_file.stat().st_mtime_ns) == before
+    assert unchanged.written == ()
+    assert (inventory / "index.json").read_text(encoding="utf-8") == first_index
+    assert check(catalog, catalog.repositories, inventory=inventory, filtered=False).drifted == ()
+
+    (path / "Cargo.toml").write_text('[package]\nname = "tool"\n', encoding="utf-8")
+    git("commit", "-am", "manifest change", cwd=path)
+    head = git("rev-parse", "HEAD", cwd=path)
+    git("update-ref", "refs/remotes/origin/main", head, cwd=path)
+
+    snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
+
     index = json.loads((inventory / "index.json").read_text(encoding="utf-8"))
-    assert index["repositories"]["acme/tool"]["commit"] == head
-    assert index["repositories"]["acme/tool"]["state"] == old_index["repositories"]["acme/tool"]["state"]
-    assert (
-        index["repositories"]["acme/tool"]["inputs_fingerprint"]
-        == old_index["repositories"]["acme/tool"]["inputs_fingerprint"]
-    )
+    assert index["repositories"]["acme/tool"]["commit"] == head != recorded
 
 
 def test_filtered_snapshot_preserves_other_repositories(
@@ -514,11 +517,14 @@ def test_check_reports_drift_and_writes_nothing(
     inventory = tmp_path / "inventory"
     snapshot(catalog, catalog.repositories, inventory=inventory, filtered=False)
     before = _stats(inventory)
-    _commit_app_change(path)
+    (path / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+    git("add", "-A", cwd=path)
+    git("commit", "-m", "add a manifest", cwd=path)
+    git("update-ref", "refs/remotes/origin/main", git("rev-parse", "HEAD", cwd=path), cwd=path)
 
     result = check(catalog, catalog.repositories, inventory=inventory, filtered=False)
 
-    assert result.drifted == (inventory / "index.json",)
+    assert result.drifted == (inventory / "repos" / "acme" / "tool.json", inventory / "index.json")
     assert _stats(inventory) == before
 
     monkeypatch.setattr(deps, "_inventory", lambda: inventory)

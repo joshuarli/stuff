@@ -26,7 +26,10 @@ reserve stderr for diagnostics.
 ### `deps snapshot`
 
 Read the selected checkouts and write `fleet/dependencies/v1/`. A repository file is rewritten
-only when its bytes change; an application-only commit changes only `index.json`. An unfiltered
+only when its bytes change. `index.json` records the commit each repository's inputs were read
+at, and keeps it while the inputs and state stay the same, so an application-only commit changes
+nothing. This lets stuff, which holds the inventory, reach a fixed point: committing a snapshot
+does not change stuff's inputs, so the next snapshot is unchanged. An unfiltered
 snapshot deletes files for repositories that are no longer selected. A `--repo` or `--tag`
 snapshot is incremental: it touches only the selected files and their `index.json` entries.
 
