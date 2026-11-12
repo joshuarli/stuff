@@ -210,6 +210,10 @@ def test_mirror_publishes_upgrade_targets_missing_on_stuff_and_clears_stale_late
             f"crates:{CARGO}:rustybench:0.4.0": {"version": "0.4.0", "fetched_at": 1e12},
             "crates:rustybench:0.4.0": {"version": "0.5.0", "fetched_at": 1e12},
         }
+        cache["npm_releases"] = {
+            f"{NPM}:left-pad": {"releases": {}, "fetched_at": 1e12},
+            "public:left-pad": {"releases": {}, "fetched_at": 1e12},
+        }
     stuff = Stuff(_served())
     report = mirror.mirror(
         _catalog(tmp_path, repository),
@@ -235,6 +239,7 @@ def test_mirror_publishes_upgrade_targets_missing_on_stuff_and_clears_stale_late
     assert 'rustybench = "0.4"' in (root / "Cargo.toml").read_text()
     with audit.audit_cache() as cache:
         assert list(cache["latest"]) == ["crates:rustybench:0.4.0"]
+        assert list(cache["npm_releases"]) == ["public:left-pad"]
 
 
 def test_mirror_does_nothing_when_stuff_serves_everything(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

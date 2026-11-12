@@ -1555,14 +1555,26 @@ def _latest_cache_key(ecosystem: str, source: str, name: str, locked: str) -> st
 
 
 def forget_latest(sources: Iterable[str]) -> int:
-    """Drop cached latest versions resolved from these registries; return how many were dropped."""
-    prefixes = tuple(f"{ecosystem}:{source}:" for source in sources for ecosystem in ("crates", "npm", "pypi"))
+    """Drop cached latest versions and npm release lists resolved from these registries.
+
+    Returns how many entries were dropped.
+    """
+    sources = tuple(sources)
+    sections = {
+        "latest": tuple(f"{ecosystem}:{source}:" for source in sources for ecosystem in ("crates", "npm", "pypi")),
+        "npm_releases": tuple(f"{source}:" for source in sources),
+    }
+    dropped = 0
     with audit_cache() as cache:
-        entries = cache["latest"]
-        stale = [key for key in entries if key.startswith(prefixes)]
-        for key in stale:
-            del entries[key]
-    return len(stale)
+        for section, prefixes in sections.items():
+            entries = cache.get(section)
+            if not isinstance(entries, dict):
+                continue
+            stale = [key for key in entries if key.startswith(prefixes)]
+            for key in stale:
+                del entries[key]
+            dropped += len(stale)
+    return dropped
 
 
 def _mirror_fetcher(
