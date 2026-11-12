@@ -4,7 +4,7 @@ Infrastructure for every repository I maintain:
 
 - **Registries:** four package registries with one publisher, for Cargo, npm, Python wheels, and
   OCI images. The rest of this README covers them.
-- **[repomod](repomod/README.md):** manages the repository fleet in `repomod/catalog.toml`. It syncs
+- **[repomod](docs/fleet.md):** manages the repository fleet in `fleet/catalog.toml`. It syncs
   checkouts, checks policy and opens pull requests for fixes, releases binaries, and keeps a
   dependency inventory with a dashboard (`make deps`) that shows what the fleet depends on, who
   owns it, and how much of it these registries mirror.

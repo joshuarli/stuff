@@ -14,7 +14,7 @@ Upgrade what each repository already depends on:
 
 - Direct dependencies, including major versions, and the lockfiles behind them.
 - Known vulnerabilities that an upgrade of an existing dependency clears.
-- Approved pins in `actions.toml`, `python-tools.toml`, `typescript-tools.toml`, and `musl-toolchain.toml`.
+- Approved pins in `fleet/policy/actions.toml`, `fleet/policy/python-tools.toml`, `fleet/policy/typescript-tools.toml`, and `fleet/policy/musl-toolchain.toml`.
 - Red CI on the default branch, whatever caused it.
 
 Leave these alone, and do not file tickets for them:
@@ -23,7 +23,7 @@ Leave these alone, and do not file tickets for them:
 - Dependency upgrades in repositories tagged `fork`, which keep upstream's choices. Repair red CI in a fork only when the fix stays out of upstream's code.
 - Porting. Do not replace a dependency, add one, or act on `audit-banned`, `audit-registry`, or the dashboard's Choices page.
 - The pinned Rust nightly. Do not run the `rust-toolchain` fixer.
-- Catalog tags, `ignore` entries, and `dependency-roles.toml`.
+- Catalog tags, `ignore` entries, and `fleet/dependency-roles.toml`.
 
 ## Use judgment in each repository
 

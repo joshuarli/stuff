@@ -1,25 +1,29 @@
 # AGENTS.md
 
-stuff holds the infrastructure for every repository its owner maintains. It has two parts:
+stuff holds the infrastructure for every repository its owner maintains:
 
-- **Registries:** four static registries share one Rust serving platform and the `stuff` publisher.
-  The Python 3.11 standard-library `mycrates` package remains an archive/maintenance tool and
-  publication parity oracle.
-- **repomod** (`repomod/`): a Python 3.15 tool that manages the repository fleet in
-  `repomod/catalog.toml`: sync, policy checks and fixes, releases, and the dependency inventory and
-  dashboard. Work there follows [repomod/AGENTS.md](repomod/AGENTS.md), and its commands run from
-  `repomod/`.
+- **Registries** (`crates/`, `deploy/`): four static registries share one Rust serving platform
+  and the `stuff` publisher. The Python 3.11 standard-library `mycrates` package remains an
+  archive/maintenance tool and publication parity oracle.
+- **Fleet** (`repomod/`, `fleet/`, `docker/musl/`): repomod, a Python 3.15 tool, manages the
+  repositories in `fleet/catalog.toml`. It syncs checkouts, checks policy and opens pull requests
+  for fixes, releases binaries, and keeps the dependency inventory in `fleet/dependencies/` with its
+  dashboard. `fleet/policy/` holds its policy data and `docker/musl/` the fleet's musl toolchain
+  image.
 
 ## Commands
 
-- Build/test/lint: `cargo build --workspace`, `cargo test --workspace`, `cargo clippy --locked --all-targets -- -D warnings`.
+Run everything from the repository root.
+
+- Build/test/lint: `make build`, `make test` (Rust workspace, mycrates, and repomod), `make lint` (clippy, ruff, ty).
 - Rust toolchain: `rust-toolchain.toml`; Worker package/tool pins: `crates/stuff-worker/package.json` and `Cargo.lock`.
 - Python oracle: `make test-mycrates` (needs Cargo for the native publication proof).
+- repomod: `uv sync`, then `uv run repomod --help`; `make repomod-test`, `make repomod-lint`. Set `TMPDIR` to `.work/tmp` for commands that create scratch data.
+- Fleet dashboard: `make deps` renders and serves it; `make dashboard-ts` rebuilds its scripts after changing `repomod/dependencies/dashboard_ts/`; `make bench` measures the render.
 - Search: `make test-search`; after changing `crates/stuff-catalog/web/`, run `make search-bundle` and commit `assets/search.js` (install Worker dependencies first).
 - Worker: `make worker-test`, `make worker-check`; build instructions are in its README below.
 - Offline maintenance: `make test-r2`, `make test-publish-lock`; `make test-r2-live` accesses real R2 and is opt-in.
 - Ecosystem integration: `deploy/ecosystem-smoke.sh` needs the pinned package managers, CPython, native repair tools, and network. Use `TMPDIR="$PWD/.work/tmp"` for campaign commands.
-- repomod: `make repomod-test`, `make repomod-lint`; `make deps` serves the fleet dependency dashboard.
 - OCI checks: `make test-oci-conformance`, `make test-oci-conformance-push`, `make test-oci-pull`, `make test-oci-push`, `make test-oci-publish`, `make oci-bench`.
 
 ## Topic map
@@ -40,10 +44,18 @@ stuff holds the infrastructure for every repository its owner maintains. It has 
 | Catalog rendering and search | `crates/stuff-catalog/src/`, `crates/stuff-catalog/web/` |
 | URL and Cargo shard parsing | `crates/stuff-url/src/lib.rs`, `crates/stuff-cargo-shard/src/lib.rs` |
 | Maintenance helpers and offline fakes | `deploy/`; commands in `Makefile` |
-| Fleet sync, policy, fixes, and releases | [repomod/AGENTS.md](repomod/AGENTS.md) and its topic map |
-| Registry policy the fleet must follow | `repomod/registries.toml`; [repomod/docs/audit.md](repomod/docs/audit.md) |
-| Fleet dependency inventory, owners, and mirror coverage | [repomod/docs/dependency-inventory.md](repomod/docs/dependency-inventory.md), [repomod/docs/dependency-dashboard.md](repomod/docs/dependency-dashboard.md) |
-| Deferred fixes and draft designs | [TODO.md](TODO.md) and its linked RFCs, for both parts |
+| Using repomod: catalog, sync, lint, fix, release | [docs/fleet.md](docs/fleet.md) |
+| repomod architecture, sync, repair, and state ownership | [docs/fleet-design.md](docs/fleet-design.md) |
+| Catalog tags and visibility | [docs/tagging.md](docs/tagging.md) |
+| Rules, fixers, and musl publication | [docs/policy-development.md](docs/policy-development.md) |
+| Dependency policy checks and the registry policy the fleet follows | [docs/audit.md](docs/audit.md); `fleet/registries.toml` |
+| Tracked dependency model and extraction | [docs/dependency-inventory.md](docs/dependency-inventory.md) |
+| Dependency dashboard, owners, mirror coverage, browser checks, benchmarks | [docs/dependency-dashboard.md](docs/dependency-dashboard.md) |
+| Repository layout used by repomod | `repomod/paths.py` |
+| Checkout removal contract | [docs/rfc/RPMD-74-checkout-removal.md](docs/rfc/RPMD-74-checkout-removal.md) |
+| Remaining musl rollout decisions | [docs/rfc/RPMD-85-musl-rollout.md](docs/rfc/RPMD-85-musl-rollout.md) |
+| Campaign records | [docs/campaigns/](docs/campaigns/) |
+| Deferred fixes and draft designs | [TODO.md](TODO.md) and its linked RFCs in `docs/rfc/` |
 
 ## Invariants
 
@@ -61,3 +73,15 @@ stuff holds the infrastructure for every repository its owner maintains. It has 
 - repomod reads the catalogs the registries publish (`<origin>/current/catalog.json`); change the
   catalog schema and its repomod reader together.
 - Stuff files use Apache-2.0; imported crates retain their license fields.
+
+## Fleet constraints
+
+- Run `uv run repomod sync` before fleet work, so canonical checkouts reflect their remotes.
+- `fleet/catalog.toml` is curated user data. Read it before catalog work and preserve its comments and repository selection.
+- Do not run `fix` against the live catalog while changing repomod. Tests use local Git repositories and fake GitHub responses; use copied catalogs for mutation tests.
+- Canonical checkouts are user data. Never reset, stash, clean, switch, or discard changes in them.
+- Sync may fetch and only fast-forward clean checkouts on their default branch. Fixers use detached worktrees and publish only from an unchanged canonical checkout.
+- Remote-write commands are `topics apply`, `push`, `fix`, `merge`, and `release`; `fix` pushes branches and opens pull requests. `pins refresh` writes local approved pins.
+- Keep Git subprocesses, GitHub operations, synchronization, and policy checks in their owning modules under `repomod/`. Resolve repository files through `repomod/paths.py`.
+- Keep rules read-only and fixers as explicit, validated file plans. Do not add databases, background workers, or generic workflow frameworks.
+- Keep pull-request publication in the fix flow. Do not add rollout tracking, patch storage, or per-fixer clone directories.

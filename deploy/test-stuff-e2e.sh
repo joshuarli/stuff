@@ -99,7 +99,7 @@ grep -q "listening on" "$PYPI_SERVER_LOG" || fail "stuff-server for pypi did not
 PYPI_VENV="$WORK/pypi-venv"
 uv venv -q --python 3.15 "$PYPI_VENV" || fail "uv venv failed"
 VIRTUAL_ENV="$PYPI_VENV" uv pip install -q --python 3.15 --index-url "http://127.0.0.1:$PYPI_PORT/simple/" --only-binary :all: "six==1.16.0" || fail "uv pip install from stuff-server failed"
-VIRTUAL_ENV="$PYPI_VENV" uv run -q --python 3.15 python -c "import six; assert six.__version__ == '1.16.0', six.__version__" || fail "installed six did not import cleanly"
+VIRTUAL_ENV="$PYPI_VENV" uv run -q --no-project --python 3.15 python -c "import six; assert six.__version__ == '1.16.0', six.__version__" || fail "installed six did not import cleanly"
 echo "ok: pypi publish, pull, serve, and uv install"
 
 # 3. NPM: publish tarball with stuff, pull with r2-pull.py, serve, install with npm

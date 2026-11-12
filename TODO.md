@@ -1,7 +1,7 @@
 Prefix: STUF
 Next: 74
 
-New tickets use STUF. RPMD tickets were filed in repomod before it moved into `repomod/`; they keep their IDs.
+New tickets use STUF. RPMD tickets were filed in repomod before it moved into stuff; they keep their IDs.
 
 Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b0278e8ae071`. Priorities are reviewer-assigned. Executed probes used local fixtures; source-only conclusions and unavailable runtime checks are identified below. The checked-in Worker configuration leaves network push disabled, so the push findings describe the optional capability, not observed production incidents.
 
@@ -18,7 +18,7 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 ### STUF-58 · P3 · Publish the LLVM 23.1.5 canonical musl image and its digest
 
 - **Area:** Build
-- **Where:** `repomod/musl-toolchain.toml:210`, `repomod/docker/musl/Dockerfile:7`
+- **Where:** `fleet/policy/musl-toolchain.toml:80`, `docker/musl/Dockerfile:7`
 - **Problem:** The existing handoff records a lock/builder pin of `llvm-musl-23.1.5-4c2254e` with an image digest still built from `23.1.0-rc2`, so an image-mode builder would retain the old toolchain. It also records that image mode has no users and the local token lacks `write:packages`. The pins and credentials were not reverified by this review; retain the ticket until the pins and a published digest show completion. RPMD-85 tracks the wider musl rollout.
 - **Recommendation:** Reverify the pins and consumers in `repomod`, build/test the canonical image for `linux/amd64` and `linux/arm64`, publish its multi-arch manifest, and update the locked digest there.
 - **Fix with:** none
@@ -47,9 +47,9 @@ Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b
 ### RPMD-85 · P3 · Reconcile the remaining musl rollout and environment qualification
 
 - **Area:** Operability
-- **Where:** `repomod/musl-toolchain.toml:132`, `repomod/src/repomod/cmd/musl.py:91`, `repomod/docs/policy-development.md:282`
+- **Where:** `fleet/policy/musl-toolchain.toml:132`, `repomod/cmd/musl.py:91`, `docs/policy-development.md:282`
 - **Problem:** The closed musl implementation work left owner-run canaries, shared-image consumer migration, and some environment qualification unresolved. Those external outcomes were not rechecked in this repository review, so completion must not be inferred from the presence of the lock and image recipe. This carries forward existing deferred work rather than asserting a new fleet defect. The draft below preserves the recovery pointers and owner deferrals from the removed campaign record.
 - **Recommendation:** Recheck the named external outcomes before deciding what remains. Agree on the conventional-consumer migration scope, then follow the publication and canary gate in the policy guide. Keep owner-deferred Chromium/Node work and scheduling out of the run unless explicitly reopened. Delete this item after the remaining scope is completed or deliberately declined and its durable decisions are recorded.
 - **Fix with:** `none`
 - **Effort:** M (days)
-- **Design:** [Musl rollout scope and qualification](repomod/docs/rfc/RPMD-85-musl-rollout.md)
+- **Design:** [Musl rollout scope and qualification](docs/rfc/RPMD-85-musl-rollout.md)

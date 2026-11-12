@@ -1,4 +1,4 @@
-.PHONY: help repomod-test repomod-lint deps deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -9,14 +9,33 @@ build: ## Build the full workspace
 test: test-mycrates repomod-test ## Run the full workspace test suite
 	cargo test --workspace
 
+lint: clippy repomod-lint ## Lint the Rust workspace and repomod
+
 repomod-test: ## Run the repomod tests
-	$(MAKE) -C repomod test
+	@uv run --group dev --quiet pytest
 
 repomod-lint: ## Lint and type-check repomod
-	$(MAKE) -C repomod lint
+	@uv run --group dev --quiet ruff check repomod tests/repomod bench
+	@uv run --group dev --quiet ty check
+
+PORT ?= 8765
+PNPM ?= pnpm dlx pnpm@12.18.0
+RUNS ?= 3
+DASHBOARD_TS := repomod/dependencies/dashboard_ts
 
 deps: ## Render and serve the fleet dependency dashboard ([PORT=8765] [PRIVATE=1])
-	$(MAKE) -C repomod deps
+	@uv run repomod deps render --status $(if $(filter 1,$(PRIVATE)),--include-private)
+	@exec srv -p $(PORT) .work/dependencies/dashboard
+
+dashboard-ts: ## Type-check, lint, and rebuild the dashboard scripts; fail if the committed output is stale
+	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile && $(PNPM) run check && $(PNPM) run lint && $(PNPM) run build
+	@git diff --exit-code -- repomod/dependencies/assets/app.js repomod/dependencies/assets/search.js
+
+bench: ## Measure dependency dashboard render phases, cold and warm ([RUNS=3])
+	@uv run python bench/deps_perf.py phases --mode both --runs $(RUNS)
+
+bench-cli: ## Measure the real deps render command, cold and warm ([RUNS=3])
+	@uv run python bench/deps_perf.py workflow --mode both --runs $(RUNS)
 
 test-mycrates: ## Run the mycrates Python tests (needs cargo for the publish proof)
 	cd crates/mycrates && python3 -m unittest discover -t . -s tests
