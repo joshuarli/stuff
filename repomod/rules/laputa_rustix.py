@@ -314,7 +314,7 @@ def _refresh_locks(root: Path, manifests: list[str], plan: dict[str, str]) -> No
             project = work if directory == "." else work / directory
             environment = {**os.environ, "CARGO_TERM_COLOR": "never"}
             result = subprocess.run(
-                ["cargo", "metadata", "--format-version", "1", "--no-color"],
+                ["cargo", "metadata", "--format-version", "1", "--color", "never"],
                 cwd=project,
                 env=environment,
                 capture_output=True,
