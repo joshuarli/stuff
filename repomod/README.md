@@ -174,7 +174,7 @@ For a local server, `make deps` renders with live status and serves the dashboar
 See [dependency inventory](docs/dependency-inventory.md) for the data layout, coverage kinds,
 update flow, and limits. Open `.work/dependencies/dashboard/index.html` in your browser;
 see [dependency dashboard](docs/dependency-dashboard.md). The repo-local
-[`upgrade-the-world`](.agents/skills/upgrade-the-world/SKILL.md) skill upgrades every public,
+[`upgrade-the-world`](../.agents/skills/upgrade-the-world/SKILL.md) skill upgrades every public,
 non-fork repository and loops until CI is green.
 
 ## Push
