@@ -436,3 +436,31 @@ def test_a_failed_upstream_relock_still_mirrors_the_current_lockfiles(
     plan = mirror.plan(_catalog(tmp_path, repository), [repository], POLICY, served, tmp_path / "scratch")
     assert plan.failures == ["acme/demo: upstream relock failed: cannot preserve Cargo manifest layout: Cargo.toml"]
     assert plan.missing == {Package(Ecosystem.CARGO, "rustybench", "0.4.0")}
+
+
+def test_pnpm_packages_for_platforms_stuff_does_not_mirror_are_skipped() -> None:
+    text = """lockfileVersion: '9.0'
+packages:
+  '@pnpm/exe.android-arm64@12.18.0':
+    resolution: {integrity: sha512-a}
+    cpu: [arm64]
+    os: [android]
+  '@pnpm/exe.linux-s390x@12.18.0':
+    resolution: {integrity: sha512-b}
+    cpu: [s390x]
+    os: [linux]
+  not-windows@1.0.0:
+    resolution: {integrity: sha512-c}
+    os: ['!win32']
+  only-not-unix@1.0.0:
+    resolution: {integrity: sha512-d}
+    os: ['!darwin', '!linux']
+  '@pnpm/exe.darwin-arm64@12.18.0':
+    resolution: {integrity: sha512-e}
+    cpu: [arm64]
+    os: [darwin]
+"""
+    assert mirror.parse_pnpm_lock(text, (NPM,)) == {
+        Package(Ecosystem.NPM, "not-windows", "1.0.0"),
+        Package(Ecosystem.NPM, "@pnpm/exe.darwin-arm64", "12.18.0"),
+    }

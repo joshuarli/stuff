@@ -32,6 +32,7 @@ from repomod.types import Catalog, Repository
 
 _CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 _LOCKFILE_ECOSYSTEM = {"Cargo.lock": Ecosystem.CARGO, "pnpm-lock.yaml": Ecosystem.NPM, "uv.lock": Ecosystem.PYPI}
+_NPM_PLATFORMS = {"os": frozenset({"darwin", "linux"}), "cpu": frozenset({"x64", "arm64"})}
 _SERVED_TIMEOUT_SECONDS = 300.0
 _SERVED_POLL_SECONDS = 15.0
 
@@ -107,8 +108,20 @@ def parse_uv_lock(text: str) -> frozenset[Package]:
     return frozenset(found)
 
 
+def _npm_targeted(os: object, cpu: object) -> bool:
+    """Whether stuff's npm mirror, which serves only macOS and Linux on x64 and arm64, hosts the package."""
+    for values, served in ((os, _NPM_PLATFORMS["os"]), (cpu, _NPM_PLATFORMS["cpu"])):
+        if not isinstance(values, list) or not values:
+            continue
+        allowed = {value for value in values if isinstance(value, str) and not value.startswith("!")}
+        denied = {value[1:] for value in values if isinstance(value, str) and value.startswith("!")}
+        if (allowed and allowed.isdisjoint(served)) or (not allowed and served <= denied):
+            return False
+    return True
+
+
 def parse_pnpm_lock(text: str, registries: Iterable[str]) -> frozenset[Package]:
-    """Return registry packages; tarballs count only when they come from one of registries."""
+    """Return registry packages stuff mirrors; tarballs count only when they come from one of registries."""
     try:
         documents = list(YAML(typ="safe", pure=True).load_all(text))
     except YAMLError as error:
@@ -129,6 +142,8 @@ def parse_pnpm_lock(text: str, registries: Iterable[str]) -> frozenset[Package]:
             continue
         tarball = resolution.get("tarball")
         if tarball is not None and not (isinstance(tarball, str) and tarball.startswith(prefixes)):
+            continue
+        if not _npm_targeted(raw.get("os"), raw.get("cpu")):
             continue
         found.add(Package(Ecosystem.NPM, name, version))
     return frozenset(found)
