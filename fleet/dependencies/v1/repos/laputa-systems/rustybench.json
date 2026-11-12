@@ -801,7 +801,7 @@
    "path": "Cargo.lock"
   },
   {
-   "blob": "6b4a887bbf624a442c6ab8ffcd651b458f7c8ce9",
+   "blob": "b877c5aacf5143181d69fbd6399ee62cad77e419",
    "path": "Cargo.toml"
   },
   {
@@ -821,7 +821,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "f4ab82c7fa07669cacdd20610e93c26a3d7576908c670cc89775840f3720e15d",
+ "inputs_fingerprint": "9e180790c8ed53452a697ac9541344be09b784c62b639177d606160af8a405b9",
  "instances": [
   {
    "commit": null,

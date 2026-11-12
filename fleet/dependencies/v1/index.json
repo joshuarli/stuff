@@ -162,8 +162,8 @@
    "state": "partial"
   },
   "laputa-systems/rustybench": {
-   "commit": "a5a1ddeb82639bd486fc1e06cccaccc66767f625",
-   "inputs_fingerprint": "f4ab82c7fa07669cacdd20610e93c26a3d7576908c670cc89775840f3720e15d",
+   "commit": "585d28d392401e0e3821e43a4c7d5eb226dc97f4",
+   "inputs_fingerprint": "9e180790c8ed53452a697ac9541344be09b784c62b639177d606160af8a405b9",
    "state": "partial"
   },
   "laputa-systems/smolith": {
