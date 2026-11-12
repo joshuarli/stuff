@@ -27,6 +27,7 @@ _CRATES_IO_SOURCE_IDS = frozenset(
     }
 )
 _PRUNED_DIRECTORIES = frozenset({".git", ".venv", ".work", "node_modules", "target"})
+_UNSCANNED_DIRECTORIES = _PRUNED_DIRECTORIES | {"vendor"}
 _LISTED_NAMES = 5
 _UV_ENVIRONMENTS = ("sys_platform == 'darwin'", "sys_platform == 'linux'")
 _ALLOWED_PATHS = (
@@ -127,7 +128,7 @@ def _walk(root: Path) -> dict[str, list[Path]]:
     excluded = workspace_excluded(root)
     found: dict[str, list[Path]] = {}
     for directory, names, files in os.walk(root):
-        names[:] = sorted(name for name in names if name not in _PRUNED_DIRECTORIES)
+        names[:] = sorted(name for name in names if name not in _UNSCANNED_DIRECTORIES)
         base = Path(directory)
         relative = PurePosixPath(base.relative_to(root).as_posix())
         if relative.parts and is_workspace_excluded(excluded, relative):

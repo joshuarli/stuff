@@ -135,8 +135,8 @@ cmake-build = ["build", "python"]
 rustix = ["fork", "library", "rust"]
 buildlib = ["library", "python"]
 [overrides."laputa-systems/chromium-build"]
-ignore = ["mdtool:R005"]
-ignore_reason = "The macos-native README names Chromium source paths that live in the Chromium checkout."
+ignore = ["mdtool:R005", "no-formatters"]
+ignore_reason = "The macos-native README names Chromium source paths that live in the Chromium checkout. scripts/build-rust-toolchain.sh builds LLVM's clang-format into the Rust toolchain archive because Crubit formats its generated headers with it; the script only checks its version and never formats repository code."
 
 #[overrides."laputa-systems/ntpd-rs"]
 #ignore = ["rust-toolchain"]

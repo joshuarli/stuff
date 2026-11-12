@@ -110,8 +110,8 @@ publishing job must run the shared `Write release notes` step from
 `repomod/rules/release_notes.py` before `gh release create`, and the command must pass
 `--notes-file "$RUNNER_TEMP/release-notes.md"`.
 
-`registry-sources` skips repositories tagged `fork`, whose upstream manifests and lockfiles stay
-outside local policy.
+`registry-sources` skips repositories tagged `fork` and `vendor/` directories, whose upstream
+manifests and lockfiles stay outside local policy.
 
 ## Rule selection
 

@@ -259,6 +259,11 @@ def test_fork_repositories_and_repositories_without_lockfiles_are_skipped(tmp_pa
     assert messages(tmp_path) == []
 
 
+def test_vendored_trees_are_skipped(tmp_path: Path) -> None:
+    write(tmp_path, "vendor/upstream/Cargo.lock", cargo_lock(("serde", CRATES_IO)))
+    assert messages(tmp_path) == []
+
+
 def test_rule_is_disabled_until_policy_enforces(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     write(tmp_path, "Cargo.lock", cargo_lock(("serde", CRATES_IO)))
     policy_file = tmp_path / "registries.toml"
