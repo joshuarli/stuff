@@ -118,7 +118,7 @@ lock = "config/packages.amd64.lock"
 
 [adapters."laputa-systems/node-build"]
 kind = "node-build"
-workflow = ".github/workflows/build.yml"
+workflow = ".github/workflows/release.yml"
 
 [adapters."laputa-systems/git-build"]
 kind = "git-build"

@@ -75,7 +75,13 @@ def test_language_tag_lint_matches_detected_source_against_catalog_tags(tmp_path
     fixture = Path(__file__).parent / "fixtures" / "binary_release" / "laputa-systems_srv"
     shutil.copytree(fixture, recognized)
 
-    assert _language_tag_findings(recognized, repository("tool")) == []
+    assert _language_tag_findings(recognized, repository("tool", "rust")) == []
+    assert [
+        finding.message for finding in _language_tag_findings(recognized, repository("tool"))
+    ] == ["Rust source is present but the catalog has no rust tag"]
+    assert [
+        finding.message for finding in _language_tag_findings(recognized, repository("tool", "rust", "zig"))
+    ] == ["Zig tag is present but no matching source was detected"]
 
     nested_build = tmp_path / "nested-build"
     fixture = Path(__file__).parent / "fixtures" / "languages" / "python_build"
@@ -334,3 +340,13 @@ def test_consistency_and_language_lints_are_registered() -> None:
     rule_ids = {rule.id for rule in rules()}
 
     assert {"mdtool", "generated-artifacts", "language-tags", "workflow-make-targets"} <= rule_ids
+
+
+def test_language_tag_lint_detects_zig_built_by_a_root_makefile(tmp_path: Path) -> None:
+    (tmp_path / "Makefile").write_text("build:\n\tzig build-exe zzz.zig\n", encoding="utf-8")
+    (tmp_path / "zzz.zig").write_text("pub fn main() void {}\n", encoding="utf-8")
+
+    assert [
+        finding.message for finding in _language_tag_findings(tmp_path, repository("tool", "linux"))
+    ] == ["Zig source is present but the catalog has no zig tag"]
+    assert _language_tag_findings(tmp_path, repository("tool", "linux", "zig")) == []

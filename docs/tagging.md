@@ -87,7 +87,9 @@ and curated tags. It reports ambiguous workflows for review, except in repositor
 `extension` or `build`, which publish plugin archives or build archives rather than native tools.
 A workflow in those repositories that does establish the binary contract still requires the
 `tool` role and allows only `fork`, platform, and language tags beside it, so `extension` or
-`build` on such a repository is reported. The
+`build` on such a repository is reported. A `build` repository without `tool` whose workflow
+publishes `.tar.xz` archives and `.manifest.json` manifests follows the
+[build repository contract](build-repos.md) instead and is not reported as a tool release. The
 `binary-release-standard` rule checks the target matrix and ish format for non-fork
 tools. The `linux-musl-toolchain` rule checks every musl builder against
 `fleet/policy/musl-toolchain.toml`: the Alpine base digest, exact direct package versions, checksummed

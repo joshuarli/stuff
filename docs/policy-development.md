@@ -50,6 +50,15 @@ prerelease target contract (portable and single-OS target sets plus forbidden gl
 markers). Publishing checks require the matching catalog opt-in tag. Update these
 policy files when changing approved release rules.
 
+`build-make-targets`, `build-locks`, and `build-release-standard` apply to public repositories
+tagged `build` and check the [build repository contract](build-repos.md). `build-make-targets`
+requires the root Makefile to define `build`, `verify`, `lint`, and `clean`. `build-locks` requires a
+valid `sources.lock.json` and validates `release-budgets.json` and `bootstrap.lock.json` when they
+exist. `build-release-standard` requires `.github/workflows/release.yml` to be dispatch-only with a
+default-branch preflight, a `release-${{ github.sha }}` tag, the shared release-notes step, a
+`gh release create` with `--prerelease`, `--verify-tag`, `--target "$GITHUB_SHA"` and the notes file,
+a `sha256sum -c` check of `SHA256SUMS`, and `.tar.xz` archives with `.manifest.json` manifests.
+
 `binary-release-static` checks public tool prereleases that publish Linux ELF files, including fork
 workflows. It skips private repositories and tools tagged `macos`. Its release-job smoke runs
 after artifact download and before packaging. The ELF checks live once in

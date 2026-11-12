@@ -5,9 +5,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-from repomod.catalog import LANGUAGE_TAGS, LOCKFILE_IGNORE_PREFIX, PLATFORM_TAGS
+from repomod.catalog import LANGUAGE_TAGS, LOCKFILE_IGNORE_PREFIX
 from repomod.io import read_json_object, read_toml, safe_relative
-from repomod.rules.binary_release import has_binary_release_contract
 from repomod.run_cache import cached
 from repomod.types import Finding, Repository, Rule, TagPredicate
 from repomod.types import violation as _violation
@@ -577,10 +576,9 @@ def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> 
     ):
         observed.add("cpp")
     zig_manifest = root / "build.zig"
-    if (
-        zig_manifest.is_file()
-        and not zig_manifest.is_symlink()
-        and _source_present(root, ("*.zig", "src/*.zig", "src/*/*.zig"), frozenset({".zig"}))
+    zig_built = zig_manifest.is_file() and not zig_manifest.is_symlink()
+    if (zig_built or (native_manifest and not managed)) and _source_present(
+        root, ("*.zig", "src/*.zig", "src/*/*.zig"), frozenset({".zig"})
     ):
         observed.add("zig")
     if not managed and _source_present(
@@ -603,14 +601,7 @@ def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
 
 def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
     tags = set(repository.tags)
-    if (
-        "tool" in tags
-        and tags <= {"tool", "fork"} | PLATFORM_TAGS | LANGUAGE_TAGS
-        and has_binary_release_contract(root, repository)
-    ):
-        return []
     detected = _language_sources(root, nested_manifests="fork" not in tags)
-    tags = set(repository.tags)
     missing = detected - tags
     unobserved = (tags & LANGUAGE_TAGS) - detected
     findings = [

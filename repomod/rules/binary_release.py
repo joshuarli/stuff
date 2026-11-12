@@ -65,6 +65,8 @@ _NOTES_STEP = re.compile(
 )
 _PRERELEASE_FLAG = re.compile(r"(?<!\S)--prerelease\b")
 _JOB_KEY = re.compile(r"^  ([A-Za-z0-9_-]+):\s*$")
+_BUILD_ARCHIVE = re.compile(r"\.tar\.xz\b")
+_BUILD_MANIFEST = re.compile(r"\.manifest\.json\b")
 
 
 def _read_workflows(
@@ -324,9 +326,25 @@ def _release_kind(root: Path, source: str) -> str:
     return "ambiguous"
 
 
+def build_release_assets(source: str) -> tuple[bool, bool]:
+    return _BUILD_ARCHIVE.search(source) is not None, _BUILD_MANIFEST.search(source) is not None
+
+
+def _build_repository_release(repository: Repository | None, source: str) -> bool:
+    return (
+        repository is not None
+        and "build" in repository.tags
+        and "tool" not in repository.tags
+        and all(build_release_assets(source))
+    )
+
+
 def has_binary_release_contract(root: Path, repository: Repository | None = None) -> bool:
     workflows, _ = _read_workflows(root, repository)
-    return any(_release_kind(root, source) == "binary" for _, source in workflows)
+    return any(
+        _release_kind(root, source) == "binary" and not _build_repository_release(repository, source)
+        for _, source in workflows
+    )
 
 
 def _binary_release_findings(root: Path, repository: Repository) -> list[Finding]:
@@ -353,6 +371,8 @@ def _binary_release_findings(root: Path, repository: Repository) -> list[Finding
                     severity="warning",
                 )
             )
+            continue
+        if _build_repository_release(repository, source):
             continue
         tags = set(repository.tags)
         if "tool" not in tags:
