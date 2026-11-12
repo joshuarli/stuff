@@ -68,7 +68,7 @@ Run everything from the repository root.
 - Keep npm lifecycle scripts disabled during acquisition and validation; retain native-target execution checks for wheels.
 - Preserve published generation readability; format contracts belong in the owning registry docs.
 - Keep fixtures while parity consumers use them, including the executable examples in `crates/mycrates/README.md`.
-- Keep `crates/h12tiny-*` sources byte-identical to imported upstream `dcdf4f2`; change upstream before updating the import.
+- Keep `crates/h12tiny-*` sources byte-identical to the imported `dcdf4f2` (the h12tiny roll-up preserves that history under `laputa-systems/smolith`); change upstream before updating the import.
 - The registries must stay buildable when their own package registries are unavailable: Cargo, npm,
   and PyPI dependencies of the registry crates resolve from upstream, not from stuff. The catalog
   exempts stuff from repomod's `registry-sources` rule for this reason.
