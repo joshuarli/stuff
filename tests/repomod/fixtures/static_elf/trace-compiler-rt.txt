@@ -1,2 +1,2 @@
 /usr/lib/libc.a
-/usr/lib/clang/22/lib/x86_64-unknown-linux-musl/clang_rt.crtbegin.o
+/usr/lib/clang/22/lib/linux/clang_rt.crtbegin-x86_64.o
