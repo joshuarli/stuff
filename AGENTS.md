@@ -1,7 +1,14 @@
 # AGENTS.md
 
-Four static registries share one Rust serving platform and the `stuff` publisher.
-The Python 3.11 standard-library `mycrates` package remains an archive/maintenance tool and publication parity oracle.
+stuff holds the infrastructure for every repository its owner maintains. It has two parts:
+
+- **Registries:** four static registries share one Rust serving platform and the `stuff` publisher.
+  The Python 3.11 standard-library `mycrates` package remains an archive/maintenance tool and
+  publication parity oracle.
+- **repomod** (`repomod/`): a Python 3.15 tool that manages the repository fleet in
+  `repomod/catalog.toml`: sync, policy checks and fixes, releases, and the dependency inventory and
+  dashboard. Work there follows [repomod/AGENTS.md](repomod/AGENTS.md), and its commands run from
+  `repomod/`.
 
 ## Commands
 
@@ -12,6 +19,7 @@ The Python 3.11 standard-library `mycrates` package remains an archive/maintenan
 - Worker: `make worker-test`, `make worker-check`; build instructions are in its README below.
 - Offline maintenance: `make test-r2`, `make test-publish-lock`; `make test-r2-live` accesses real R2 and is opt-in.
 - Ecosystem integration: `deploy/ecosystem-smoke.sh` needs the pinned package managers, CPython, native repair tools, and network. Use `TMPDIR="$PWD/.work/tmp"` for campaign commands.
+- repomod: `make repomod-test`, `make repomod-lint`; `make deps` serves the fleet dependency dashboard.
 - OCI checks: `make test-oci-conformance`, `make test-oci-conformance-push`, `make test-oci-pull`, `make test-oci-push`, `make test-oci-publish`, `make oci-bench`.
 
 ## Topic map
@@ -32,7 +40,10 @@ The Python 3.11 standard-library `mycrates` package remains an archive/maintenan
 | Catalog rendering and search | `crates/stuff-catalog/src/`, `crates/stuff-catalog/web/` |
 | URL and Cargo shard parsing | `crates/stuff-url/src/lib.rs`, `crates/stuff-cargo-shard/src/lib.rs` |
 | Maintenance helpers and offline fakes | `deploy/`; commands in `Makefile` |
-| Deferred fixes and draft designs | [TODO.md](TODO.md) and its linked RFCs |
+| Fleet sync, policy, fixes, and releases | [repomod/AGENTS.md](repomod/AGENTS.md) and its topic map |
+| Registry policy the fleet must follow | `repomod/registries.toml`; [repomod/docs/audit.md](repomod/docs/audit.md) |
+| Fleet dependency inventory, owners, and mirror coverage | [repomod/docs/dependency-inventory.md](repomod/docs/dependency-inventory.md), [repomod/docs/dependency-dashboard.md](repomod/docs/dependency-dashboard.md) |
+| Deferred fixes and draft designs | [TODO.md](TODO.md) and its linked RFCs, for both parts |
 
 ## Invariants
 
@@ -44,4 +55,9 @@ The Python 3.11 standard-library `mycrates` package remains an archive/maintenan
 - Preserve published generation readability; format contracts belong in the owning registry docs.
 - Keep fixtures while parity consumers use them, including the executable examples in `crates/mycrates/README.md`.
 - Keep `crates/h12tiny-*` sources byte-identical to imported upstream `dcdf4f2`; change upstream before updating the import.
+- The registries must stay buildable when their own package registries are unavailable: Cargo, npm,
+  and PyPI dependencies of the registry crates resolve from upstream, not from stuff. The stuff
+  repository is not in repomod's catalog, so repomod's `registry-sources` rule does not apply here.
+- repomod reads the catalogs the registries publish (`<origin>/current/catalog.json`); change the
+  catalog schema and its repomod reader together.
 - Stuff files use Apache-2.0; imported crates retain their license fields.

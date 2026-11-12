@@ -1,6 +1,8 @@
 # Working in repomod
 
-repomod manages canonical local repositories from `catalog.toml`.
+repomod manages canonical local repositories from `catalog.toml`. It lives in `repomod/` inside
+the stuff repository; run every command below from `repomod/`. The repository root
+[AGENTS.md](../AGENTS.md) covers the registries.
 
 | Topic | Guide |
 | --- | --- |
@@ -10,7 +12,7 @@ repomod manages canonical local repositories from `catalog.toml`.
 | Dependency policy checks | [Audit](docs/audit.md) |
 | Tracked dependency model and extraction | [Inventory](docs/dependency-inventory.md) |
 | Dashboard, browser checks, and benchmarks | [Dashboard](docs/dependency-dashboard.md) |
-| Deferred fixes | [TODO](TODO.md) |
+| Deferred fixes | [TODO](../TODO.md) |
 | Checkout removal contract | [Draft design](docs/rfc/RPMD-74-checkout-removal.md) |
 | Remaining musl rollout decisions | [Draft rollout](docs/rfc/RPMD-85-musl-rollout.md) |
 

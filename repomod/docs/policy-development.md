@@ -304,7 +304,7 @@ Record the published reference and index digest in `[image]` of `musl-toolchain.
 Run `uv run repomod pins refresh --check --only musl` and the image-mode policy fixtures.
 Qualify the `srv`, `tm`, and `fdu` canaries on both Linux architectures: verify asset checksums,
 run the shared ELF verifier, and execute each repository's runtime smoke command on its target.
-Current verifier defects are tracked in [TODO.md](../TODO.md); a green directory scan alone is
+Current verifier defects are tracked in [TODO.md](../../TODO.md); a green directory scan alone is
 not sufficient qualification while that defect is open.
 
 Migrate a conventional Rust builder to `[image].reference@[image].digest`, remove duplicated

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Upgrade the world
 
-Invoking this skill approves the whole run. Open pull requests, merge green ones, refresh pins, and publish mirror updates without asking. Stop before starting only if the repomod working tree has uncommitted changes, because `fix` runs the working tree's rules against the live catalog.
+Invoking this skill approves the whole run. Open pull requests, merge green ones, refresh pins, and publish mirror updates without asking. Stop before starting only if `repomod/` has uncommitted changes, because `fix` runs the working tree's rules against the live catalog.
 
 ## Scope
 
@@ -33,7 +33,7 @@ Skip an upgrade when the repository has a real reason to stay put. Examples are 
 
 ## Run the loop
 
-Repeat these steps until the exit condition holds. Run them from the repomod checkout.
+Repeat these steps until the exit condition holds. Run them from `repomod/` in the stuff checkout.
 
 ### 1. Survey
 
@@ -54,7 +54,7 @@ Skip this step after the first round.
 
 1. Run `uv run repomod pins refresh`.
 2. If a pinned version is missing from a registry that repositories use, publish it with the `stuff-registries` skill and verify the index carries it.
-3. If a pin file changed, run `make test`, then commit and push the change in repomod before running `fix`.
+3. If a pin file changed, run `make test` in `repomod/`, then commit and push the change before running `fix`.
 
 ### 3. Run the fixers
 
@@ -80,7 +80,7 @@ Start one subagent per repository that has manual upgrades, a failed fixer, or r
 - Do not write `TODO.md`. Report each blocker to the parent with its evidence.
 - Stop after three rounds without progress, and report what was tried.
 
-If the same workflow failure appears in several lanes, run the matching `fix --rule` once. If the cure needs a repomod rule change, file a ticket in repomod's `TODO.md` and do not change repomod during the run.
+If the same workflow failure appears in several lanes, run the matching `fix --rule` once. If the cure needs a repomod rule change, file a ticket in the stuff root `TODO.md` and do not change repomod during the run.
 
 ### 5. Merge and wait
 
@@ -114,6 +114,6 @@ Commit tickets on an `upgrade-the-world/todos` branch in a worktree, open a pull
 
 ## Finish
 
-1. Run `uv run repomod deps snapshot`, then commit and push the inventory in repomod.
+1. Run `uv run repomod deps snapshot`, then commit and push the inventory.
 2. Run `uv run repomod deps enrich --refresh` so `make deps` shows the result.
 3. Report per repository: merged, skipped with the reason, and tickets filed. List anything published to a registry. List what is still outdated and why.

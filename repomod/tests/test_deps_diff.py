@@ -52,6 +52,23 @@ def test_added_and_removed_instances(tmp_path: Path, git_environment: None) -> N
     assert [item.purl for item in removed.repositories[0].removed] == [foo.purl]
 
 
+def test_inventory_in_a_subdirectory_of_the_repository(tmp_path: Path, git_environment: None) -> None:
+    monorepo = tmp_path / "monorepo"
+    _init(monorepo)
+    root = monorepo / "repomod"
+    foo = instance(Ecosystem.CARGO, "foo", "1.0.0")
+    bar = instance(Ecosystem.CARGO, "bar", "2.0.0")
+    _inventory(root, [repository("acme/tool", (foo,))])
+    first = _commit(monorepo, "first")
+    _inventory(root, [repository("acme/tool", (foo, bar))])
+    second = _commit(monorepo, "second")
+
+    value = diff_inventory(root, root / "data/dependencies/v1", from_rev=first, to_rev=second)
+
+    assert value.baseline
+    assert [item.purl for item in value.repositories[0].added] == [bar.purl]
+
+
 def test_upgrade_downgrade_pep440_and_changed(
     tmp_path: Path, git_environment: None
 ) -> None:

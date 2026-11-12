@@ -1,6 +1,13 @@
 # stuff
 
-Four package registries with one publisher: Cargo, npm, Python wheels, and OCI images.
+Infrastructure for every repository I maintain:
+
+- **Registries:** four package registries with one publisher, for Cargo, npm, Python wheels, and
+  OCI images. The rest of this README covers them.
+- **[repomod](repomod/README.md):** manages the repository fleet in `repomod/catalog.toml`. It syncs
+  checkouts, checks policy and opens pull requests for fixes, releases binaries, and keeps a
+  dependency inventory with a dashboard (`make deps`) that shows what the fleet depends on, who
+  owns it, and how much of it these registries mirror.
 `stuff` publishes immutable generations, serves a searchable catalog, and supports rollback to retained generations. Package resolution and installation use the ecosystem tools: Cargo, npm/pnpm, uv/CPython, and oras.
 
 ## Install

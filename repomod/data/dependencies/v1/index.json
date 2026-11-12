@@ -51,11 +51,6 @@
    "inputs_fingerprint": "27eb49e833bd3eaca7329576d90d3cb6b1bcb224c0481bafbef3ba3ca6d4890f",
    "state": "partial"
   },
-  "joshuarli/stuff": {
-   "commit": "b5db332b8f1c5b1b7ab0bacf078e81917c951347",
-   "inputs_fingerprint": "9c0cc94e2f562efa1d165b4b98f960fc0f8c4c5c2f4677abb351cdf9904402a8",
-   "state": "partial"
-  },
   "joshuarli/syncthing": {
    "commit": "39ee63372266319cd069a019ede3d5b02ea5ade8",
    "inputs_fingerprint": "f64461a4e808b524ce41d439d5193c1b70e88018ec6bf9a1bd6be7266096d393",

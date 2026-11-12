@@ -8,7 +8,7 @@ Use Python 3.15, [`uv`](https://docs.astral.sh/uv/), and Git. Install `gh` and a
 `gh auth login`. Keep `pinact` on `PATH` for GitHub Actions checks and fixes, and provide the
 read-only documentation auditor at `~/.local/bin/mdtool`.
 
-From this checkout:
+From `repomod/` in the stuff checkout:
 
 ```sh
 uv sync

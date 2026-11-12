@@ -1,13 +1,13 @@
 # Backlog: fleet dependencies on stuff
 
 Goal: every non-fork catalogued repository resolves Cargo, npm/pnpm, and Python packages only
-from `stuff` (~/d/stuff), and repomod enforces it.
+from stuff (the registries in `crates/`), and repomod enforces it.
 
 ## Decisions
 
 - Scope is package registries only (crates.io, registry.npmjs.org, pypi.org). Toolchain
   downloads, apk, base images, and GitHub Actions are out of scope for now.
-- ~/d/stuff may be changed to remove the blockers below.
+- The registry crates may be changed to remove the blockers below.
 - Git sources are warnings, not errors; path and `link:` workspace members inside a repository
   stay allowed.
 - The repomod rule lands last, after the fleet is migrated, so `status` stays at 0.
@@ -16,7 +16,7 @@ from `stuff` (~/d/stuff), and repomod enforces it.
   depends on it, keeps its sibling-path dependency through a catalog exception; a git dependency
   only warns. Its other dependencies still move to stuff.
 
-## Phase A: stuff blockers (worktrees in ~/d/stuff, local only)
+## Phase A: stuff blockers (local worktrees only)
 
 - [x] mycrates: 926 crates ingested and published locally; 20 of 26 lockfiles pass `cargo fetch --locked` unchanged (merged to stuff main, unpushed)
 - [x] mynpm: 370 hosted versions plus 107 metadata-only stubs; standard tarball path served; six pnpm projects install with default settings and an unchanged lock

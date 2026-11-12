@@ -112,7 +112,7 @@ def _validate_revision(root: Path, revision: str) -> None:
 
 def _show(root: Path, revision: str, relative: str) -> str | None:
     result = run_git(
-        ["show", f"{revision}:{_INVENTORY_PREFIX}/{relative}"], cwd=root, check=False
+        ["show", f"{revision}:./{_INVENTORY_PREFIX}/{relative}"], cwd=root, check=False
     )
     if result.returncode != 0:
         return None
