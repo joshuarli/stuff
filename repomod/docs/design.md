@@ -107,9 +107,10 @@ See [dependency inventory](dependency-inventory.md).
 
 ## Repair and writes
 
-Fix requires a clean checkout attached to the default branch. Fixers run serially in a dedicated
-branch per repository, with repositories processed in parallel. Each fixer uses a disposable
-worktree at the current branch tip and can change only its declared paths. Before a local commit,
+Fix requires a clean, attached canonical checkout and a local default-branch ref matching
+GitHub's observed tip. The canonical checkout may stay on another branch. Fixers run serially
+on a dedicated fix branch based on the local default branch, with repositories processed in
+parallel. Each fixer uses a disposable worktree and can change only its declared paths. Before a local commit,
 validation must pass, the fixer must leave no fixable findings for its rule, and it must introduce
 no policy errors. Every successful fixer gets its own commit on a new local
 `repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix` pushes
@@ -138,8 +139,8 @@ the run to `actions`, `python`, `typescript`, or `musl` so one domain's upstream
 drift does not block another. `--check` fetches and compares every selected file, prints the
 paths that would change, writes nothing, and exits 1 on drift. A fetch or parse failure
 writes no file and exits 2. The command stages refreshed content in a disposable directory
-and validates it before any file is replaced, so a failed run leaves the approved pins
-untouched.
+and validates it before any file is replaced, so a failed fetch or validation leaves approved
+pins untouched. Each final file replacement is atomic; the set of pin files is not one transaction.
 
 `musl-toolchain.toml` is the approved source for musl Linux builds. It records the upstream
 musl release, the `stable` Alpine channel with its index and per-architecture

@@ -3,17 +3,25 @@
 repomod keeps a deterministic, read-only inventory of the dependency inputs in every
 catalogued repository. The inventory is tracked in `data/dependencies/v1/`, so `git show`,
 code review, `deps diff`, and the dashboard work
-without a database, a background worker, or a network connection.
+without a database or a background worker. The stored data and generated pages work offline.
+The `why`, `report`, and `render` CLI handlers consult cached GitHub visibility and may contact
+GitHub. `render --status` also collects live status; `enrich` contacts registries and OSV.
+`snapshot`, `check`, and `diff` do not fetch network data.
 
 `snapshot` and `check` read each checkout's `refs/remotes/origin/HEAD` tree through Git
 plumbing. They never read the working tree and never fetch. An ignored or untracked lock file
 therefore cannot change the inventory. `check` regenerates the same bytes in memory and never
-writes.
+writes. Git tree and blob reads disable lazy fetches, so a missing object becomes a coverage
+failure. Extraction never executes managed-repository code, package managers, build scripts,
+Swift or Zig manifests, or commands such as `cargo metadata` and `go mod graph`. Static
+uncertainty becomes a coverage issue instead of an execution fallback or a guessed edge.
 
 ## Commands
 
 All commands accept `--repo` and `--tag` where noted. `--repo` and `--tag` select the same
-catalog entries as `lint` and `status`.
+catalog entries as `lint` and `status`. Exit 0 means success; exit 1 means drift, strict coverage
+failure, or no `why` path. Operational errors exit 2. JSON modes write JSON to stdout and
+reserve stderr for diagnostics.
 
 ### `deps snapshot`
 
@@ -96,8 +104,9 @@ Enrichment never adds edges and never changes package identities.
 
 ### `deps render`
 
-Write the static dashboard under `.work/dependencies/dashboard/` by default. It reads the
-inventory and the enrichment cache only. See [the dashboard guide](dependency-dashboard.md).
+Write the static dashboard under `.work/dependencies/dashboard/` by default. Generation reads
+the inventory and enrichment cache and consults GitHub visibility. `--status` adds live status.
+See [the dashboard guide](dependency-dashboard.md).
 
 ```sh
 uv run repomod deps render
@@ -139,10 +148,33 @@ from the report, so lint and the inventory share one exemption.
   `unsupported_format`, `dynamic_value`, `symlink_skipped`, `submodule`, `vendored_unknown`,
   and `non_utf8`.
 
-The inventory never records absolute paths, timestamps, commands, credentials, `.npmrc` auth
-lines, `_authToken`, `.netrc` contents, environment values, or `GITHUB_TOKEN`-style
-expressions. Userinfo is stripped from every URL; download and registry URLs drop their query
-strings and fragments. A secret-bearing URL is recorded redacted, never skipped.
+The tracked inventory includes structured metadata from private managed repositories: names,
+versions, source identities, relative evidence paths, and locators. Reporting visibility is a
+separate contract described in [tagging](tagging.md). Repository code remains private: never
+store file contents, excerpts, script bodies, or command lines, and never copy private source
+files into fixtures. Use synthetic inputs or public examples.
+
+The output contract excludes absolute paths, timestamps, credentials, `.npmrc` auth lines,
+`_authToken`, `.netrc` contents, environment values, and `GITHUB_TOKEN`-style expressions.
+Strip userinfo from every URL and queries and fragments from download and registry URLs.
+Record useful sanitized source information instead of skipping the dependency. Open redaction
+and visibility defects are tracked in [TODO.md](../TODO.md).
+
+### Identity and resolution
+
+Configured mirrors of public registries map to public package identities while retaining the
+observed registry URL. Native and distinct registries retain source qualifiers. Action subpaths
+and Docker registry qualifiers are identity fields; collapsing them loses dependencies.
+Evidence locators are structured key paths or line references, never source excerpts.
+First-party links require positive evidence as defined in [tagging](tagging.md), never a
+similar package name.
+
+Edge resolution distinguishes `resolved`, `conditional`, `declared_only`, `unknown`, and
+`unsupported`. A declared dependency whose target cannot be resolved stays visible as an
+unresolved declaration, rather than disappearing or gaining a guessed version. The model in
+`src/repomod/dependencies/model.py` owns the format; there is no separate JSON Schema authority.
+Serialization sorts records deterministically. Snapshot replacement is atomic per file, not
+one transaction across the whole inventory.
 
 ## Layering
 
@@ -168,20 +200,36 @@ generic workflow framework to support it.
 4. Commit code and data together. A data-only commit is `chore(deps): ...`; an adapter change
    that replaces data is one coherent commit with both.
 5. Run the full test suite and, for adapter or model changes, the opt-in fleet test with
-   `REPOMOD_FLEET=1`.
+   `REPOMOD_FLEET=1`. That opt-in check compares audit coverage, parser errors, repeated runs,
+   worker counts, and checkout HEAD/status preservation. It needs the actual canonical fleet.
 
 Source reads must stay EOL-independent: the inventory records blob IDs and content, so Git
 line-ending conversion cannot change a fingerprint.
 
 ## Budgets and residual limits
 
-- Inventory size: at most 15 MB total and 1.5 MB per repository file. The current fleet is about
-  12 MB with an 864 KB largest file.
-- `deps snapshot` over the fleet: at most 15 seconds of CPU. Worker output is byte-identical.
-- Dashboard output: at most 10 MB.
-- Detection-only formats from D12 (`meson.build`, Conan recipes, `vcpkg.json`, `.pc`, `flake.nix`,
-  Makefiles, Gradle, Maven, and `Gemfile`) remain `unsupported_format` forever; they are recorded,
-  not guessed.
+These are acceptance targets, not current measurements. Measure representative fleet data
+before claiming a target is met. Visibility and live-status network time are separate from
+the original render target.
+
+| Workflow or artifact | Target |
+| --- | --- |
+| Tracked inventory | 15 MB total; 1.5 MB per repository |
+| Fleet snapshot CPU; fleet check | 15 seconds each |
+| `deps why serde`; `deps report --json` | 2 seconds each |
+| Inventory-to-dashboard render, without live status | 10 seconds |
+| Dashboard bytes; initial overview render | 10 MB; 1.5 seconds |
+| Full test suite; one dependency test file | 30 seconds; 10 seconds |
+| CLI help imports | Neither `ruamel` nor `packaging` |
+
+- Detection-only formats (`meson.build`, Conan recipes, `vcpkg.json`, `.pc`, `flake.nix`,
+  Makefiles, Gradle, Maven, and `Gemfile`) produce `unsupported_format`. Add a parser when a
+  concrete managed consumer justifies it; never execute the file to discover dependencies.
+- JavaScript lock parsing supports pnpm v9 and npm package-lock v3. Yarn and Bun locks are
+  detected as unsupported. Swift manifests use a static scan and Zig uses a literal ZON subset.
+- Go dependency edges come from `go.mod`. `go.sum` and `go.work` are fingerprinted but add no
+  edges, and `go.mod` exclusions are not modeled. Free-form vendored metadata such as
+  `README.chromium` is not parsed.
 - Local workspace and path packages are `pkg:generic` first-party instances, not registry
   packages. The audit rules still see their own notions; the inventory is a superset where the
   audit drops a second locked version.
@@ -198,6 +246,11 @@ line-ending conversion cannot change a fingerprint.
   still do.
 - The dashboard caps consumers at 20 per package and transitive expansion at 8 per direct edge
   for size. Use `why`, `report --json`, or `diff --json` for complete data.
+
+The inventory supplements the audit rather than replacing its collectors or upgrade decisions.
+Curated roles provide deterministic comparisons. A hosted service, history ledger, speculative
+functional-overlap inference, extra network enrichment, and CycloneDX export need a concrete
+consumer before they become part of this subsystem.
 
 See [the dependency audit](audit.md) for the policy rules that consume related lock data, and
 [the dashboard guide](dependency-dashboard.md) for the generated site.

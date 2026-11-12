@@ -129,8 +129,8 @@ tracked outputs stay manual findings.
 
 Keep `pinact` on `PATH` when running repomod checks and fixes. `gha-syntax` runs
 `pinact lint --profile=default --format=json --catalog actions.toml` on workflow and action
-metadata files. The other GitHub Actions fixers use the same Pinact validation command on their
-planned changes. The catalog path is explicit; repomod's `actions.toml` owns approval policy, and
+metadata files. The other GitHub Actions fixers validate their planned changes with
+`pinact lint --profile=correctness --format=json --catalog actions.toml`. The catalog path is explicit; repomod's `actions.toml` owns approval policy, and
 catalog-backed linting and fixing make no network requests.
 The former `gha-pin` and `gha-version` rule IDs are consolidated into `gha-syntax`.
 
@@ -183,6 +183,9 @@ drift). A failing fetch or malformed source exits 2 and writes nothing.
 
 Alpine edge is not approved. Edge keeps only the newest revision of each package, so exact
 pins against it break whenever a package is rebuilt. Builders use the stable channel.
+The shared contract pins base digests, direct APK versions, and toolchain archive checksums.
+It does not guarantee the complete transitive APK closure or offline installation. Bespoke
+builders retain their own closure and qualification machinery.
 
 The loader rejects a lock whose version is not `1`, whose only channel is not `stable`, whose
 digests are not `sha256:` values with 64 lowercase hex characters, whose
@@ -276,6 +279,44 @@ present, pinned Alpine mode is the only accepted form: a musl builder must use a
 Alpine base, not an unpublished canonical reference. The fixer never switches a builder to
 image mode; that migration is an owner-run step after publication.
 
+### Publication and migration
+
+Refresh stays manual; do not recreate a scheduled refresh without an owner request.
+Review pin changes, rebuild and publish the image, qualify canaries, then update consumer digests.
+The local platform-manifest digest printed by `repomod musl build` is not the published
+multi-architecture index digest.
+
+After refreshing pins, synchronize the Dockerfile's `ARG` defaults, direct APK pins, and
+`docker/musl/rust-toolchain.toml` with `musl-toolchain.toml`. Complete at least one local
+`repomod musl build`; it validates the image definition against the lock. Stop if that build
+fails, and use the same validated sources for publication. Choose a registry reference and
+tag, then publish the multi-architecture image with Docker Buildx:
+
+```sh
+uv run repomod musl build --platform linux/amd64 --output .work/musl-amd64
+REPOMOD_IMAGE=ghcr.io/OWNER/musl-toolchain:VERSION
+docker buildx build --platform linux/amd64,linux/arm64 --push \
+  -t "$REPOMOD_IMAGE" -f docker/musl/Dockerfile docker/musl
+docker buildx imagetools inspect "$REPOMOD_IMAGE"
+```
+
+Record the published reference and index digest in `[image]` of `musl-toolchain.toml`.
+Run `uv run repomod pins refresh --check --only musl` and the image-mode policy fixtures.
+Qualify the `srv`, `tm`, and `fdu` canaries on both Linux architectures: verify asset checksums,
+run the shared ELF verifier, and execute each repository's runtime smoke command on its target.
+Current verifier defects are tracked in [TODO.md](../TODO.md); a green directory scan alone is
+not sufficient qualification while that defect is open.
+
+Migrate a conventional Rust builder to `[image].reference@[image].digest`, remove duplicated
+toolchain setup, and have its release workflow supply the required linker trace. Recheck the
+canaries before broader migration. Bespoke Python, Chromium, Node, Git, and Zig adapters retain
+their own build systems; policy coverage does not require moving them to the shared Rust image.
+Run their heavy qualification on an appropriate Linux host and confirm commands against their
+current documentation. The unresolved rollout scope is in the
+[draft musl rollout](rfc/RPMD-85-musl-rollout.md).
+
+## Other policy rules
+
 `github-protection` requires zero approving reviews on protected branches so owner-only
 automation never waits on reviews. It also reports required GitHub Actions status checks that no workflow produces, expanding job
 `name:` templates over `strategy.matrix` (including `include` and `exclude`) and falling back to
@@ -325,15 +366,8 @@ Nested package manifests are inspected, and a pnpm workspace coordinator without
 source or configuration is checked as a package authority rather than a TypeScript package.
 The package check script can call Oxlint and the type checker directly or invoke their scripts.
 
-`rust-deps` notes the fleet's minimal Rust stack. Libraries emit via `log`;
-binaries initialize with `env_logger`. Use `tracing` only when spans are needed,
-and then as `tracing = { default-features = false, features = ["std"] }`
-(no `attributes`/`instrument` unless a span is proven). Prefer `miniserde`
-for simple JSON; reach for `serde` + `serde_json` only for `flatten`,
-`untagged`, borrowed data, or precision `miniserde` cannot express.
-Applications use `anyhow`; libraries use `thiserror`. Parametrize with
-`rstest`; keep `proptest` for property-based tests and migrate `test-case`
-to `rstest` when touched.
+Rust dependency choices and bans are owned by `dependency-roles.toml` and the
+[audit rules](audit.md), not an additional `rust-deps` rule.
 
 `rust-collections` bans `std::collections::BTreeMap` and `std::collections::BTreeSet` in
 first-party Rust source. It reports every usage with its file, line, and column. Use a hash

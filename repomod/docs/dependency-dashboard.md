@@ -1,14 +1,16 @@
 # Dependency dashboard
 
-`repomod deps render` writes a static, offline dashboard. It reads the tracked inventory and
-the local enrichment cache only; it never opens a socket unless `--status` asks for live repository
-status. It does read each repository's GitHub visibility, cached for an hour. The default output
+`repomod deps render` writes a static dashboard that works offline once generated. Generation
+reads the inventory and enrichment cache, and consults GitHub visibility, cached for an hour.
+`--status` also fetches live repository status. The default output
 is `.work/dependencies/dashboard/`, which is disposable and not tracked.
 
 ```sh
 uv run repomod deps render
-open file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html
+open .work/dependencies/dashboard/index.html
 ```
+
+The `open` command is for macOS; on Linux, open that file in your browser.
 
 For a local server, `make deps` renders the dashboard with `--status` and serves it at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
@@ -137,8 +139,9 @@ rendering needs `pnpm install --frozen-lockfile` once and fails with that instru
 
 ## Budgets and verification
 
-The site must stay under 10 MB. The current fleet is 62 pages and about 6.7 MB. The overview
-renders in tens of milliseconds from `file://`.
+The output budget is 10 MB. The initial overview-render target is 1.5 seconds.
+Measure the generated fleet and the browser load when validating these targets; old fleet
+sizes and timings are not current guarantees.
 
 The browser checks use agent-browser at 1440×900 and 390×844. They verify no console errors, no
 horizontal page overflow, search for `serde`, the `#pkg=pkg:cargo/serde` route, and a back link
@@ -150,7 +153,7 @@ overflow.
 
 `make deps` is `uv run repomod deps render --status` followed by `srv`. The render is the part
 that varies: it reads the tracked inventory, collects live repository status, and writes the
-dashboard. `bench/deps_perf.py` measures it without touching user caches.
+dashboard. `bench/deps_perf.py` separates warm-cache behavior from an isolated cold run.
 
 ```sh
 make bench              # phase breakdown, cold and warm, 3 runs each

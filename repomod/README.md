@@ -48,6 +48,10 @@ uv run repomod sync --dry-run
 uv run repomod sync
 ```
 
+Sync also removes archived checkouts when its removal guard passes, then marks their catalog
+entries `IGNORE`. The guard has known gaps for unpublished branches, linked worktrees, and hidden
+untracked files; review the removal tickets in [TODO.md](TODO.md) before using this path or `gc`.
+
 Tag edits need a separate publish step: `sync` only manages checkouts and never
 touches GitHub topics. Preview the difference with `topics diff`, then publish
 the catalog tag set with `topics apply`:
@@ -59,9 +63,10 @@ uv run repomod topics apply --repo joshuarli/mypypi
 
 When a repository leaves the catalog (for example after a rename), its old
 checkout stays on disk. Preview the leftovers with `gc --dry-run`, then remove
-them with `gc`. `gc` only removes clean checkouts and empty directories. It
-skips checkouts with uncommitted changes, unpushed commits, or an unverified
-layout, as well as stray files and symlinks, unless you pass `--force`:
+them with `gc`. Without `--force`, the current guard rejects reported uncommitted changes,
+a detached HEAD, an unverified upstream, commits ahead on the checked-out branch, and stashes.
+`--force` overrides these state checks and permits stray-file removal, but symlinks and
+unverified checkout paths are still refused:
 
 ```sh
 uv run repomod gc --dry-run
@@ -134,8 +139,8 @@ uv run repomod pins refresh --only musl
 `docker/musl/Dockerfile` builds the shared musl toolchain image. `repomod musl build`
 validates its build arguments and package pins against `musl-toolchain.toml`, builds one
 platform with the lock's values, and writes a local OCI layout. It prints the layout's
-manifest digest and has no push path. Publishing is an owner-run step: build with `--push`,
-record the index digest in `[image]`, then run `pins refresh --check`.
+manifest digest and has no push path. Publishing uses Docker Buildx separately; see
+[publication and migration](docs/policy-development.md#publication-and-migration).
 
 ```sh
 uv run repomod musl build --platform linux/amd64 --output .work/oci/musl
@@ -147,8 +152,9 @@ uv run repomod musl build --platform linux/amd64 --output .work/oci/musl
 dependency inputs in `data/dependencies/v1`. It records projects, package instances, edges, and
 typed coverage issues for Cargo, uv, pnpm/npm, Go, Swift, Zig, GitHub Actions, containers,
 toolchains, submodules, CMake, Wrangler, and vendored trees. `snapshot`, `enrich`, and `render`
-write; the other commands read the inventory only. Only `enrich` uses the network, and it writes
-a local cache.
+write; the other commands do not change the tracked inventory. `enrich` queries registries and
+OSV and writes a local cache. `why`, `report`, and `render` also consult GitHub visibility, which
+may use the network; `render --status` adds live repository status.
 
 ```sh
 uv run repomod deps snapshot
@@ -160,14 +166,13 @@ uv run repomod deps enrich
 uv run repomod deps render
 ```
 
-For a local server, `make deps` renders the dashboard and serves it at
+Install the dashboard's pinned CSS package once with `pnpm install --frozen-lockfile`.
+For a local server, `make deps` renders with live status and serves the dashboard at
 `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
-The dashboard scripts are TypeScript; run `make dashboard-ts` after editing them.
 
 See [dependency inventory](docs/dependency-inventory.md) for the data layout, coverage kinds,
-update flow, and limits. Open the generated dashboard with
-`file:///Users/josh/d/repomod/.work/dependencies/dashboard/index.html`; see
-[dependency dashboard](docs/dependency-dashboard.md). The repo-local
+update flow, and limits. Open `.work/dependencies/dashboard/index.html` in your browser;
+see [dependency dashboard](docs/dependency-dashboard.md). The repo-local
 [`upgrade-the-world`](.agents/skills/upgrade-the-world/SKILL.md) skill upgrades every public,
 non-fork repository and loops until CI is green.
 
@@ -194,6 +199,18 @@ requests are found. Use `--repo`/`--tag` to select repositories.
 ```sh
 uv run repomod merge --dry-run
 uv run repomod merge
+```
+
+## Release
+
+`repomod release` dispatches a recognized release or prerelease workflow on each selected
+repository's default branch and polls its run. It reuses a matching existing run and skips
+repositories without a recognized workflow. A published `release-<sha>` already at the observed
+head is reported as present. This command writes to GitHub and may publish release artifacts.
+Use `--repo` or `--tag` to select repositories:
+
+```sh
+uv run repomod release --repo acme/tool
 ```
 
 ## Dependency upgrades

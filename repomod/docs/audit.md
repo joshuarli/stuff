@@ -41,8 +41,9 @@ packument and are cached with the rest. `audit-upgrades` also skips `uv`,
 `ruff`, and `ty`, whose versions are set by `python-tools.toml` and bumped
 only through `pins refresh`.
 Results are cached under `XDG_CACHE_HOME/repomod/audit.json` for 24 hours.
-Upstream fork comparisons are cached under `XDG_CACHE_HOME/repomod/upstream.json`
-for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
+The current `lint` audit interface has no `--offline` or `--refresh` option.
+`status --offline` and `status --refresh` control status caches; `deps enrich --offline`
+and `deps enrich --refresh` control the separate enrichment cache.
 
 ## Rules
 
@@ -80,31 +81,25 @@ for one hour. `--offline` uses only cached data. `--refresh` ignores the cache.
   example a `bench/` harness depending on its parent library via
   `path = ".."`) is exempt: it exercises the working copy and has no registry
   alternative.
-- `audit-outdated`: a locked direct dependency is older than the latest stable
-  release in its registry.
+- `audit-upgrades`: a locked direct dependency is older than an installable stable
+  release in its configured registry. See the fixability limits below.
 - `audit-vuln`: a locked dependency has a known OSV vulnerability.
-- `audit-upstream`: a fork is behind its upstream parent. The finding names the
-  parent, its branch, and how many commits behind (and ahead, when diverged) the
-  fork is. Unresolvable comparisons are operational findings.
+
+`audit-outdated` and `audit-upstream` are not registered lint rules. Use `audit-upgrades`
+for direct dependency upgrades and `status` for fork comparisons.
 
 Catalog `[overrides."OWNER/REPO"]` entries with `ignore = ["audit-*"]` skip
 selected audit rules per repository.
 
 ## Fixes
 
-The fixer runs native upgraders in clean checkouts when the tool is
+The `audit-upgrades` fixer runs native upgraders in a disposable copy when the tool is
 available: `uv lock --upgrade`, per-project `pnpm update --latest`,
 `cargo update`, and `go get -u ./...` followed by `go mod tidy`. It reports
-what it ran and what failed. Dirty checkouts are skipped. Version bumps that
-need manifest edits, such as Rust major upgrades constrained by `Cargo.toml`,
-remain manual.
+what it ran and what failed. Dirty checkouts are skipped.
 
-The `audit-upgrades` rule rolls the same upgrades into the standard autofix
-flow: one commit per repository, with pull requests through `fix`.
-
-```sh
-uv run repomod fix --rule audit-upgrades
-```
+The standard fix flow commits a validated plan and opens a pull request. It leaves the
+canonical checkout unchanged.
 
 The rule reports only outdated direct dependencies as fixable findings, so
 `lint` surfaces upgrade debt. A finding is manual, not fixable,
