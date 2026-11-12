@@ -328,8 +328,14 @@ toolchain setup, and have its release workflow supply the required linker trace.
 canaries before broader migration. Bespoke Python, Chromium, Node, Git, and Zig adapters retain
 their own build systems; policy coverage does not require moving them to the shared Rust image.
 Run their heavy qualification on an appropriate Linux host and confirm commands against their
-current documentation. The unresolved rollout scope is in the
-[draft musl rollout](rfc/RPMD-85-musl-rollout.md).
+current documentation.
+
+On 2026-11-12 the owner declined migrating conventional Rust builders to the shared image. No
+repository consumed it, and each builder keeps its own musl toolchain under the
+`linux-musl-toolchain` rule and the static ELF verifier. The image and the procedure above remain
+for a future migration, which starts again from the canary gate. python-build and node-build
+qualify their musl builds in their release workflows on the pinned Alpine 3.24.2 image; Chromium's
+Linux builds stay local and Zig runtime proofs stay with `zzz`.
 
 ## Other policy rules
 

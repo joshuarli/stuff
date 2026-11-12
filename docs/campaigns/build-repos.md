@@ -41,12 +41,12 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
 | python-build | `release-6f7c0d46e2eda7f66c705022f1950034045f74d0` (proves Alpine 3.24.2) | pi-build #2, usr #2 |
 | cmake-build | qualified at `281e9cd8`, released | none pin it |
 | node-build | building (#9 fixed `TARGET` leaking into gyp sub-makes; #10 sets jobs per core) | usr #3 waits for it |
-| chromium-build | none | Helium in usr waits for it |
+| chromium-build | none | nothing consumes the macOS release; usr's Helium installs local `helium-*` releases |
 
 ## Needs owner
 
 - chromium-build: hosted macOS runners have 56 GiB free against the 80 GiB build and have never
-  completed a smoke build; a release needs a local or self-hosted build.
+  completed a smoke build. Nothing consumes the macOS release, so it waits until one does.
 - node-build: after the first release, merge usr #3 and re-measure `release-budgets.json` on the
   xz sizes.
 

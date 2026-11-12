@@ -55,7 +55,6 @@ Run everything from the repository root.
 | Dependency dashboard, owners, mirror coverage, browser checks, benchmarks | [docs/dependency-dashboard.md](docs/dependency-dashboard.md) |
 | Repository layout used by repomod | `repomod/paths.py` |
 | Checkout removal contract | [docs/rfc/RPMD-74-checkout-removal.md](docs/rfc/RPMD-74-checkout-removal.md) |
-| Remaining musl rollout decisions | [docs/rfc/RPMD-85-musl-rollout.md](docs/rfc/RPMD-85-musl-rollout.md) |
 | Campaign records | [docs/campaigns/](docs/campaigns/) |
 | Deferred fixes | [TODO.md](TODO.md) |
 | Draft designs | [STUF-45](docs/rfc/STUF-45-python-execution.md), [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md) |
