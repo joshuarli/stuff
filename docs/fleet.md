@@ -220,3 +220,25 @@ The `audit-upgrades` rule reports locked direct dependencies that lag their regi
 `repomod fix --rule audit-upgrades` puts the upgrades up as pull requests.
 Upgrades that need manifest edits stay manual. See [dependency audit](audit.md)
 for rule behavior.
+
+The stuff registries serve only versions that some lockfile asked for, so a new upstream release
+is invisible to `audit-upgrades` until it is mirrored. `repomod deps mirror` closes that loop: it
+relocks each selected repository against crates.io, npm, and PyPI in a disposable copy, compares
+the current and upgraded lockfiles and the approved Python tool pins with the stuff catalogs, and
+publishes what is missing through `stuff publish cargo --lockfile`, `stuff publish npm --lockfile`,
+and `stuff publish pypi`. It then waits until the catalogs list the new versions and drops the
+cached latest versions it resolved from stuff. Only ecosystems a repository resolves from stuff
+are mirrored, and private repositories, forks, and repositories that ignore `audit-upgrades` are
+skipped. `--dry-run` lists what is missing without publishing. The command writes to the stuff
+R2 buckets, so the `stuff` CLI on `PATH` must be able to publish
+(see [publishing](PUBLISHING.md)).
+
+`repomod fix` runs the mirror first whenever `audit-upgrades` or `python-standard` is among its
+fixers, so one command upgrades to the newest upstream releases. A mirror failure is reported and
+makes the command exit 1, but the fixers still run against what stuff serves. Pass `--no-mirror`
+to skip it.
+
+```sh
+uv run repomod deps mirror --dry-run
+uv run repomod fix --rule audit-upgrades
+```

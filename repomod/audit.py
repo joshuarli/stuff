@@ -16,7 +16,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -1552,6 +1552,17 @@ def _latest_cache_key(ecosystem: str, source: str, name: str, locked: str) -> st
     if source == "public":
         return f"{ecosystem}:{name.casefold()}:{locked}"
     return f"{ecosystem}:{source}:{name.casefold()}:{locked}"
+
+
+def forget_latest(sources: Iterable[str]) -> int:
+    """Drop cached latest versions resolved from these registries; return how many were dropped."""
+    prefixes = tuple(f"{ecosystem}:{source}:" for source in sources for ecosystem in ("crates", "npm", "pypi"))
+    with audit_cache() as cache:
+        entries = cache["latest"]
+        stale = [key for key in entries if key.startswith(prefixes)]
+        for key in stale:
+            del entries[key]
+    return len(stale)
 
 
 def _mirror_fetcher(

@@ -105,7 +105,8 @@ available: `uv lock --upgrade`, per-project `pnpm update --latest`,
 what it ran and what failed. Dirty checkouts are skipped.
 
 The standard fix flow commits a validated plan and opens a pull request. It leaves the
-canonical checkout unchanged.
+canonical checkout unchanged. Before it, `fix` publishes the upgrade targets stuff does not serve
+yet; see [dependency upgrades](fleet.md#dependency-upgrades).
 
 The rule reports only outdated direct dependencies as fixable findings, so
 `lint` surfaces upgrade debt. A finding is manual, not fixable,

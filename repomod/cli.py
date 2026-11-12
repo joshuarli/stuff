@@ -58,6 +58,11 @@ def _parser() -> argparse.ArgumentParser:
     _filters(fix)
     fix.add_argument("--rule", action="append", default=[])
     fix.add_argument("--workers", type=int, default=4)
+    fix.add_argument(
+        "--no-mirror",
+        action="store_true",
+        help="skip publishing missing upgrade targets to stuff before audit-upgrades and python-standard",
+    )
 
     sync = commands.add_parser("sync", help="clone or safely fast-forward catalogued checkouts")
     sync.add_argument("--dry-run", action="store_true")
@@ -186,6 +191,19 @@ def _parser() -> argparse.ArgumentParser:
     enrich.add_argument("--refresh", action="store_true")
     enrich.add_argument("--offline", action="store_true")
     enrich.add_argument("--json", action="store_true")
+    mirror = deps_commands.add_parser(
+        "mirror",
+        help="publish to stuff the versions the fleet locks or can upgrade to",
+        description=(
+            "relock each selected repository against crates.io, npm, and PyPI in a disposable "
+            "copy, then publish through stuff every version its current or upgraded lockfiles "
+            "need that stuff does not serve; skips private repositories, forks, and "
+            "repositories that ignore audit-upgrades"
+        ),
+    )
+    _filters(mirror)
+    mirror.add_argument("--workers", type=int, default=8)
+    mirror.add_argument("--dry-run", action="store_true", help="list what is missing without publishing")
     render = deps_commands.add_parser(
         "render",
         help="write the static dashboard under .work/dependencies/dashboard",

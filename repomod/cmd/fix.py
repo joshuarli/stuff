@@ -9,9 +9,26 @@ from repomod import catalog as catalog_module
 from repomod import fix as fix_engine
 from repomod import git, github, policy
 from repomod.sync import sync_repositories
-from repomod.types import Repository
+from repomod.types import Catalog, Repository
 
 from . import common
+
+MIRRORED_FIXERS = frozenset({"audit-upgrades", "python-standard"})
+
+
+def _mirror_first(catalog: Catalog, repositories: tuple[Repository, ...], workers: int) -> bool:
+    from repomod import mirror
+    from repomod.cmd.deps import print_mirror_report
+
+    report = mirror.mirror(
+        catalog,
+        repositories,
+        dry_run=False,
+        workers=workers,
+        on_plan=lambda selected: print("\n".join(f"mirror: {line}" for line in mirror.summary(selected)), flush=True),
+    )
+    print_mirror_report(report)
+    return bool(report.failures or report.unserved)
 
 
 def _fix(args: argparse.Namespace) -> int:
@@ -43,6 +60,9 @@ def _fix(args: argparse.Namespace) -> int:
         sync_failed |= result.failed
     remotes = github.remote_metadata(repositories)
     outcomes: list[fix_engine.FixOutcome] = []
+    mirror_failed = False
+    if not args.no_mirror and any(rule.id in MIRRORED_FIXERS for rule in fixers):
+        mirror_failed = _mirror_first(catalog, sync_targets, args.workers)
     eligible = [
         repository
         for repository in repositories
@@ -93,7 +113,7 @@ def _fix(args: argparse.Namespace) -> int:
             )
             outcomes.append(fix_engine.FixOutcome(str(repository.id), failures=[("metadata", message)]))
     outcomes.sort(key=lambda item: item.repository.casefold())
-    failed = False
+    failed = mirror_failed
     for outcome in outcomes:
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []

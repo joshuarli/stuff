@@ -11,6 +11,7 @@ from repomod.cmd import common
 from repomod.dependencies.model import RepositoryData, RepositoryState
 
 if TYPE_CHECKING:
+    from repomod import mirror as mirror_module
     from repomod.dependencies.enrich import EnrichReport
     from repomod.dependencies.graph import Graph, WhyPath, WhyResult
     from repomod.types import Catalog, Repository, StatusItem
@@ -91,6 +92,8 @@ def _deps(args: argparse.Namespace) -> int:
         if result.drifted:
             return 1
         return _strict(result.repositories, args.strict)
+    if args.operation == "mirror":
+        return _mirror(catalog, common.with_visibility(repositories), dry_run=args.dry_run, workers=args.workers)
     loaded = graph.load_inventory(inventory)
     built = graph.build_graph(loaded, catalog)
     if args.operation == "enrich":
@@ -153,6 +156,29 @@ def _deps(args: argparse.Namespace) -> int:
         for line in analysis.report_text(value):
             print(line)
     return 0
+
+
+def _mirror(catalog: Catalog, repositories: Sequence[Repository], *, dry_run: bool, workers: int) -> int:
+    from repomod import mirror
+
+    report = mirror.mirror(
+        catalog,
+        repositories,
+        dry_run=dry_run,
+        workers=workers,
+        on_plan=lambda selected: print("\n".join(mirror.summary(selected)), flush=True),
+    )
+    print_mirror_report(report)
+    return 1 if report.failures or report.unserved else 0
+
+
+def print_mirror_report(report: mirror_module.Report) -> None:
+    if report.published:
+        print(f"published {len(report.published)} versions to stuff")
+    for package in sorted(report.unserved):
+        print(f"not served after publishing: {package.label}", file=sys.stderr)
+    for failure in report.failures:
+        print(f"failed {failure}", file=sys.stderr)
 
 
 def _repository_status(

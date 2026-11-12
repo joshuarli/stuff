@@ -941,7 +941,7 @@ def test_fix_cli_reports_failed_outcomes_as_nonzero(
             )
         },
     )
-    args = argparse.Namespace(repo=[], tag=[], rule=[], workers=1)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], workers=1, no_mirror=True)
 
     monkeypatch.setattr(
         "repomod.fix.fix_repository",
@@ -1478,7 +1478,7 @@ def test_fix_groups_outcome_lines_by_repository(
             branch="repomod/fix/abc",
         ),
     )
-    args = argparse.Namespace(repo=[], tag=[], rule=[], workers=1, push=False)
+    args = argparse.Namespace(repo=[], tag=[], rule=[], workers=1, push=False, no_mirror=True)
 
     assert _fix(args) == 1
     captured = capsys.readouterr()
@@ -1536,7 +1536,7 @@ def test_fix_syncs_selected_repositories_before_fixing(
     )
     monkeypatch.setattr("repomod.fix.fix_repository", fake_fix)
 
-    assert _fix(argparse.Namespace(repo=[], tag=[], rule=[], workers=1)) == 0
+    assert _fix(argparse.Namespace(repo=[], tag=[], rule=[], workers=1, no_mirror=True)) == 0
     assert observed["head"] == remote_head
     assert "sync updated" in capsys.readouterr().err
 

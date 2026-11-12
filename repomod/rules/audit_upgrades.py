@@ -646,34 +646,78 @@ def _upgrade_cargo_manifests(root: Path, upgrades: dict[str, str]) -> None:
             manifest.write_text(rendered, encoding="utf-8")
 
 
-def _fix(root: Path, repository: Repository) -> dict[str, str]:
+UPSTREAM_NPM_REGISTRY = "https://registry.npmjs.org/"
+UPSTREAM_PYTHON_INDEX = "https://pypi.org/simple"
+
+
+def _upstream_task(task: UpgradeTask) -> UpgradeTask:
+    if task.tool == "uv":
+        return UpgradeTask(task.directory, [*task.argv, "--default-index", UPSTREAM_PYTHON_INDEX], task.tool)
+    if task.tool == "pnpm":
+        return UpgradeTask(task.directory, [*task.argv, f"--registry={UPSTREAM_NPM_REGISTRY}"], task.tool)
+    return task
+
+
+def _drop_cargo_source_replacement(work: Path) -> None:
+    path = work / ".cargo" / "config.toml"
+    if not path.is_file() or path.is_symlink():
+        return
+    document = tomlkit.parse(path.read_text(encoding="utf-8"))
+    if "source" in document:
+        del document["source"]
+        path.write_text(tomlkit.dumps(document), encoding="utf-8")
+
+
+def upgrade_in_sandbox(root: Path, repository: Repository, work: Path, *, upstream: bool) -> bool:
+    """Copy root to work and run the native upgraders there.
+
+    With upstream, Cargo, uv, and pnpm resolve from crates.io, PyPI, and npm instead of the
+    repository's configured registries, and Go is left alone. Returns False when the repository
+    has nothing to upgrade.
+    """
     tasks = _upgrade_tasks(root, repository)
+    if upstream:
+        tasks = [task for task in tasks if task.tool != "go"]
     if not tasks:
-        raise RuntimeError("nothing to upgrade")
+        return False
     missing = sorted({task.tool for task in tasks if shutil.which(task.tool) is None})
     if missing:
         raise RuntimeError(
             f"{' and '.join(missing)} {'is' if len(missing) == 1 else 'are'} "
             "required to upgrade dependencies and was not found"
         )
+    work.parent.mkdir(parents=True, exist_ok=True)
+    _copy_tree(root, work)
+    _copy_siblings(root, work)
+    if upstream:
+        _drop_cargo_source_replacement(work)
+    if any(task.tool == "cargo" for task in tasks):
+        cargo_upgrades: dict[str, str] = {}
+        with audit_cache() as audit_data:
+            _outdated_findings(
+                root,
+                repository,
+                audit_data,
+                time.time(),
+                None,
+                None if upstream else _configured_sources(root),
+                cargo_upgrades,
+            )
+        _upgrade_cargo_manifests(work, cargo_upgrades)
+    cache_dir = work.parent.parent / "cache"
+    cache_dir.mkdir(exist_ok=True)
+    for task in tasks:
+        relative = task.directory.relative_to(root)
+        rebased = UpgradeTask(work / relative.as_posix(), task.argv, task.tool)
+        _run_upgrade_task(_upstream_task(rebased) if upstream else rebased, cache_dir)
+    return True
+
+
+def _fix(root: Path, repository: Repository) -> dict[str, str]:
     with tempfile.TemporaryDirectory(prefix="repomod-audit-upgrades-") as temporary:
         work = Path(temporary) / "sandbox" / root.name
-        work.parent.mkdir(parents=True)
-        _copy_tree(root, work)
-        _copy_siblings(root, work)
-        cargo_upgrades: dict[str, str] = {}
-        if any(task.tool == "cargo" for task in tasks):
-            with audit_cache() as audit_data:
-                _outdated_findings(
-                    root, repository, audit_data, time.time(), None, _configured_sources(root), cargo_upgrades
-                )
-            _upgrade_cargo_manifests(work, cargo_upgrades)
-        cache_dir = Path(temporary) / "cache"
-        cache_dir.mkdir()
-        for task in tasks:
-            relative = task.directory.relative_to(root)
-            rebased = UpgradeTask(work / relative.as_posix(), task.argv, task.tool)
-            _run_upgrade_task(rebased, cache_dir)
+        if not upgrade_in_sandbox(root, repository, work, upstream=False):
+            raise RuntimeError("nothing to upgrade")
         return _changed_plan(root, work)
 
 
