@@ -1,0 +1,266 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Literal, override
+
+type Severity = Literal["error", "warning", "info"]
+type CiState = Literal[
+    "passed",
+    "failed",
+    "pending",
+    "cancelled",
+    "skipped",
+    "neutral",
+    "none",
+    "unknown",
+    "stale",
+]
+type FixPlan = dict[str, str]
+
+
+@dataclass(frozen=True, order=True, slots=True)
+class RepoId:
+    owner: str
+    name: str
+
+    @classmethod
+    def parse(cls, value: str) -> RepoId:
+        parts = value.split("/")
+        if len(parts) != 2:
+            raise ValueError(f"expected OWNER/REPO, got {value!r}")
+        return cls(parts[0], parts[1])
+
+    @override
+    def __str__(self) -> str:
+        return f"{self.owner}/{self.name}"
+
+
+@dataclass(frozen=True, slots=True)
+class Repository:
+    id: RepoId
+    tags: tuple[str, ...]
+    autofix: bool = True
+    autofix_reason: str | None = None
+    ignored_rules: frozenset[str] = frozenset()
+    ignore_reason: str | None = None
+    private: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class Catalog:
+    path: Path
+    root: Path
+    personal_owner: str
+    repositories: tuple[Repository, ...]
+    pending: tuple[RepoId, ...] = ()
+    ignored: tuple[Repository, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Finding:
+    repository: str
+    rule: str
+    file: str | None
+    message: str
+    severity: Severity = "error"
+    fixable: bool = False
+    kind: Literal["violation", "operational"] = "violation"
+    line: int | None = None
+    column: int | None = None
+    code: str | None = None
+
+
+def violation(
+    repository: Repository,
+    rule: str,
+    path: str | None,
+    message: str,
+    *,
+    fixable: bool = False,
+    severity: Severity = "error",
+    line: int | None = None,
+    column: int | None = None,
+    code: str | None = None,
+) -> Finding:
+    return Finding(
+        str(repository.id),
+        rule,
+        path,
+        message,
+        severity=severity,
+        fixable=fixable,
+        kind="violation",
+        line=line,
+        column=column,
+        code=code,
+    )
+
+
+def operational(
+    repository: Repository,
+    rule: str,
+    path: str | None,
+    message: str,
+    *,
+    fixable: bool = False,
+    line: int | None = None,
+    column: int | None = None,
+    code: str | None = None,
+) -> Finding:
+    return Finding(
+        str(repository.id),
+        rule,
+        path,
+        message,
+        fixable=fixable,
+        kind="operational",
+        line=line,
+        column=column,
+        code=code,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class TagPredicate:
+    all_of: frozenset[str] = frozenset()
+    any_of: frozenset[str] = frozenset()
+
+    def matches(self, tags: Iterable[str]) -> bool:
+        values = set(tags)
+        return self.all_of <= values and (not self.any_of or bool(self.any_of & values))
+
+    def describe(self) -> str:
+        parts = []
+        if self.all_of:
+            parts.append("all " + ",".join(sorted(self.all_of)))
+        if self.any_of:
+            parts.append("any " + ",".join(sorted(self.any_of)))
+        return "; ".join(parts) or "all"
+
+
+@dataclass(frozen=True, slots=True)
+class Rule:
+    id: str
+    description: str
+    applies_to: TagPredicate
+    check: Callable[[Path, Repository], list[Finding]]
+    fix: Callable[[Path, Repository], FixPlan] | None
+    commit_message: str | None
+    allowed_paths: tuple[str, ...]
+    validate: Callable[[Path, Repository, tuple[str, ...]], list[str]] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class GitStatus:
+    repository: str
+    path: Path
+    present: bool
+    valid: bool
+    branch: str | None
+    detached: bool
+    staged: int
+    unstaged: int
+    untracked: int
+    ahead: int | None
+    behind: int | None
+    upstream: str | None
+    origin_valid: bool
+    error: str | None = None
+
+    @property
+    def dirty(self) -> bool:
+        return bool(self.staged or self.unstaged or self.untracked)
+
+
+@dataclass(frozen=True, slots=True)
+class RemoteRepository:
+    repository: str
+    default_branch: str | None
+    sha: str | None
+    archived: bool | None
+    error: str | None = None
+    parent: str | None = None
+    parent_branch: str | None = None
+    parent_sha: str | None = None
+    private: bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CheckResult:
+    name: str
+    state: str
+    url: str | None
+    source: str | None = None
+    updated_at: str | None = None
+    check_suite_id: str | None = None
+    workflow_run_id: str | None = None
+    run_attempt: int | None = None
+    workflow_name: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowStatus:
+    name: str
+    state: CiState
+    url: str | None = None
+    path: str | None = None
+
+
+class StatusArea(Enum):
+    LOCAL = "local"
+    CI = "CI"
+    WORKFLOWS = "workflows"
+    PULL_REQUESTS = "PRs"
+    UPSTREAM = "upstream"
+    RELEASE = "release"
+
+
+class StatusLevel(Enum):
+    OK = "32"
+    ATTENTION = "33"
+    FAILING = "31"
+    MUTED = "90"
+
+
+@dataclass(frozen=True, slots=True)
+class StatusItem:
+    area: StatusArea
+    label: str
+    level: StatusLevel
+    url: str | None = None
+    running: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class OpenPullRequest:
+    number: int
+    url: str
+    mergeable: str
+    merge_state: str
+    title: str = ""
+    draft: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class RepomodPullRequest:
+    number: int
+    url: str
+    branch: str
+    head_sha: str
+    draft: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class CiResult:
+    repository: str
+    default_branch: str | None
+    sha: str | None
+    state: CiState
+    checks: tuple[CheckResult, ...]
+    cached: bool = False
+    age_seconds: int | None = None
+    error: str | None = None
+    workflows: tuple[WorkflowStatus, ...] | None = None

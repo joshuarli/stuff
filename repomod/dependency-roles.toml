@@ -1,0 +1,357 @@
+[http]
+ecosystem = "cargo"
+preferred = "h12tiny"
+
+[http.options]
+h12tiny = [
+  "h12tiny",
+  "h12tiny-client",
+  "h12tiny-client-sync",
+  "h12tiny-core",
+  "h12tiny-server",
+  "h12tiny-tls-system",
+  "h12tiny-util",
+  "h12tiny-web",
+  "laputa-h2-futures-lite",
+  "laputa-hyper-futures-lite",
+  "laputa-fastwebsockets-futures-lite",
+]
+hyper = ["hyper", "hyper-util", "hyper-rustls", "smol-hyper"]
+h2 = ["h2"]
+reqwest = ["reqwest"]
+ureq = ["ureq"]
+surf = ["surf"]
+isahc = ["isahc"]
+attohttpc = ["attohttpc"]
+curl = ["curl"]
+awc = ["awc"]
+tiny-http = ["tiny_http"]
+
+[http.ban]
+hyper = "prefix"
+h2 = "prefix"
+reqwest = "prefix"
+ureq = "prefix"
+surf = "prefix"
+isahc = "prefix"
+attohttpc = "prefix"
+curl = "prefix"
+awc = "prefix"
+tiny-http = "prefix"
+
+[cli-arguments]
+ecosystem = "cargo"
+preferred = "lexopt"
+
+[cli-arguments.options]
+lexopt = ["lexopt"]
+clap = ["clap", "clap_complete", "clap_mangen"]
+pico-args = ["pico-args"]
+argh = ["argh"]
+bpaf = ["bpaf"]
+
+[cli-arguments.ban]
+clap = "prefix"
+
+[benchmark]
+ecosystem = "cargo"
+preferred = "rustybench"
+
+[benchmark.options]
+rustybench = ["rustybench"]
+criterion = ["criterion", "criterion-cycles-per-byte"]
+divan = ["divan"]
+
+[benchmark.ban]
+criterion = "prefix"
+
+[async-runtime]
+ecosystem = "cargo"
+preferred = "smolith"
+
+[async-runtime.options]
+smolith = [
+  "laputa-smol",
+  "laputa-smol-macros",
+  "laputa-async-broadcast",
+  "laputa-async-channel",
+  "laputa-async-dup",
+  "laputa-async-executor",
+  "laputa-async-fs",
+  "laputa-async-io",
+  "laputa-async-lock",
+  "laputa-async-net",
+  "laputa-async-process",
+  "laputa-async-signal",
+  "laputa-async-task",
+  "laputa-atomic-waker",
+  "laputa-blocking",
+  "laputa-concurrent-queue",
+  "laputa-easy-parallel",
+  "laputa-event-listener",
+  "laputa-event-listener-strategy",
+  "laputa-futures-lite",
+  "laputa-parking",
+  "laputa-piper",
+  "laputa-polling",
+  "laputa-waker-fn",
+]
+smol = [
+  "smol",
+  "smol-macros",
+  "async-broadcast",
+  "async-channel",
+  "async-dup",
+  "async-executor",
+  "async-fs",
+  "async-io",
+  "async-lock",
+  "async-net",
+  "async-process",
+  "async-signal",
+  "async-task",
+  "atomic-waker",
+  "blocking",
+  "concurrent-queue",
+  "easy-parallel",
+  "event-listener",
+  "event-listener-strategy",
+  "futures-lite",
+  "parking",
+  "piper",
+  "polling",
+  "waker-fn",
+]
+tokio = ["tokio", "tokio-util"]
+async-std = ["async-std"]
+
+[async-runtime.ban]
+tokio = "prefix"
+smol = "exact"
+async-std = "exact"
+
+[serialization]
+ecosystem = "cargo"
+preferred = "deser"
+
+[serialization.options]
+deser = ["deser", "deser-json", "deser-toml", "deser-yaml", "deser-value"]
+serde = ["serde", "serde_json", "serde_derive", "serde_core", "serde-saphyr", "serde-pickle"]
+miniserde = ["miniserde"]
+nanoserde = ["nanoserde"]
+
+[serialization.exceptions]
+"joshuarli/soulseek-rs" = "serde_json and schemars are dev-dependencies: the OpenRPC test derives JSON Schema for docs/openrpc.json with schemars, and deser has no schema generator."
+
+[regex]
+ecosystem = "cargo"
+preferred = "regex-lite"
+
+[regex.options]
+regex = ["regex", "regex-automata", "regex-syntax"]
+regex-lite = ["regex-lite"]
+regex-bites = ["regex-bites"]
+fancy-regex = ["fancy-regex"]
+
+[regex.exceptions]
+"joshuarli/obsidian-ferrisearch" = "The tokenizer and highlighter split on Unicode general categories (\\p{P}, \\p{Z}, \\p{S}) and search folds non-ASCII case, which regex-lite does not support."
+"joshuarli/tansu" = "tansu-search tokenizes and highlights on Unicode general categories (\\p{P}, \\p{Z}, \\p{S}) with case-insensitive matching, which regex-lite does not support."
+"laputa-systems/python-build" = "The _re_rs accelerator for CPython's re module needs regex::bytes and regex-syntax's parser, and exists for regex's performance."
+
+[logging]
+ecosystem = "cargo"
+preferred = "log"
+
+[logging.options]
+log = ["log", "env_logger"]
+tracing = ["tracing", "tracing-subscriber", "tracing-tree"]
+
+[datetime]
+ecosystem = "cargo"
+preferred = "jiff"
+
+[datetime.options]
+jiff = ["jiff"]
+chrono = ["chrono"]
+time = ["time"]
+
+[fast-hash]
+ecosystem = "cargo"
+preferred = "rustc-hash"
+
+[fast-hash.options]
+rustc-hash = ["rustc-hash"]
+foldhash = ["foldhash"]
+ahash = ["ahash"]
+fxhash = ["fxhash"]
+
+[random]
+ecosystem = "cargo"
+preferred = "laputa-fastrand"
+
+[random.options]
+laputa-fastrand = ["laputa-fastrand", "laputa-fastrand-contrib"]
+fastrand = ["fastrand"]
+rand = ["rand"]
+
+[property-testing]
+ecosystem = "cargo"
+preferred = "quickcheck"
+
+[property-testing.options]
+proptest = ["proptest"]
+quickcheck = ["quickcheck", "quickcheck_macros"]
+
+[property-testing.ban]
+proptest = "prefix"
+
+[signals]
+ecosystem = "cargo"
+preferred = "signal-hook"
+
+[signals.options]
+ctrlc = ["ctrlc"]
+signal-hook = ["signal-hook", "signal-hook-registry"]
+
+[system-calls]
+ecosystem = "cargo"
+preferred = "rustix"
+complements = ["libc"]
+
+[system-calls.options]
+libc = ["libc"]
+rustix = ["rustix"]
+nix = ["nix"]
+
+[tls]
+ecosystem = "cargo"
+preferred = "rustls"
+
+[tls.options]
+rustls = ["rustls", "rustls-webpki", "rustls-pki-types"]
+openssl = ["openssl", "openssl-sys", "native-tls"]
+
+[crypto-backend]
+ecosystem = "cargo"
+preferred = "graviola"
+
+[crypto-backend.options]
+graviola = ["graviola", "rustls-graviola"]
+ring = ["ring", "rustls-ring"]
+aws-lc-rs = ["aws-lc-rs", "rustls-aws-lc-rs"]
+
+[base-encoding]
+ecosystem = "cargo"
+preferred = "base64"
+
+[base-encoding.options]
+base64 = ["base64"]
+data-encoding = ["data-encoding"]
+
+[terminal]
+ecosystem = "cargo"
+preferred = "crossterm"
+
+[terminal.options]
+crossterm = ["crossterm"]
+termion = ["termion"]
+
+[file-walking]
+ecosystem = "cargo"
+preferred = "walkdir"
+
+[file-walking.options]
+walkdir = ["walkdir"]
+ignore = ["ignore"]
+
+[python-type-checker]
+ecosystem = "pypi"
+preferred = "ty"
+
+[python-type-checker.options]
+ty = ["ty"]
+mypy = ["mypy", "mypy-extensions"]
+pyright = ["pyright"]
+
+[python-linter]
+ecosystem = "pypi"
+preferred = "ruff"
+
+[python-linter.options]
+ruff = ["ruff"]
+flake8 = ["flake8"]
+black = ["black"]
+pylint = ["pylint"]
+
+[js-linter]
+ecosystem = "npm"
+preferred = "oxlint"
+
+[js-linter.options]
+oxlint = ["oxlint", "oxlint-tsgolint"]
+eslint = ["eslint"]
+biome = ["@biomejs/biome"]
+
+[js-test-runner]
+ecosystem = "npm"
+preferred = "vitest"
+
+[js-test-runner.options]
+vitest = ["vitest"]
+jest = ["jest"]
+mocha = ["mocha"]
+
+[js-bundler]
+ecosystem = "npm"
+preferred = "vite"
+
+[js-bundler.options]
+vite = ["vite"]
+esbuild = ["esbuild"]
+webpack = ["webpack"]
+rollup = ["rollup"]
+rolldown = ["rolldown"]
+
+[ts-compiler]
+ecosystem = "npm"
+preferred = "tsrs"
+
+[ts-compiler.options]
+tsrs = ["tsrs"]
+typescript = ["typescript"]
+
+[base-image]
+ecosystem = "docker"
+preferred = "alpine"
+
+[base-image.options]
+alpine = ["alpine"]
+debian = ["debian", "library/debian"]
+ubuntu = ["ubuntu"]
+archlinux = ["archlinux"]
+python = ["python"]
+
+[nix-installer]
+ecosystem = "github"
+preferred = "cachix"
+
+[nix-installer.options]
+cachix = ["cachix/install-nix-action"]
+determinate = ["determinatesystems/nix-installer-action"]
+
+[python-http]
+ecosystem = "pypi"
+preferred = "stdlib"
+
+[python-http.options]
+stdlib = []
+httpx = ["httpx", "httpx2", "httpcore", "httpcore2", "h2", "h11"]
+requests = ["requests"]
+urllib3 = ["urllib3"]
+aiohttp = ["aiohttp"]
+websockets = ["websockets"]
+truststore = ["truststore", "wassima"]
+
+[python-http.exceptions]
+"joshuarli/shadowdriver" = "grab's crawler client needs HTTP/2 with h2-first ALPN, an async bounded connection pool shared across workers, and streaming size-bounded reads, none of which urllib provides; truststore makes it trust macOS keychain roots as the Rust client's rustls-native-certs does."
+"laputa-systems/python-build" = "wassima is an optional dependency of the vendored RTLS TLS backend under backend/vendor/rtls; the build never installs it."

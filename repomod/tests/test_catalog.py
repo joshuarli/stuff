@@ -1,0 +1,423 @@
+from __future__ import annotations
+
+import shutil
+from pathlib import Path
+
+import pytest
+
+from repomod.catalog import (
+    CatalogError,
+    add_repository,
+    find_repository,
+    load_catalog,
+    repository_path,
+)
+
+CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog.toml"
+
+
+def catalog_text(
+    repos: str, *, workspace: str = 'root = "~/repos"\npersonal_owner = "joshuarli"'
+) -> str:
+    return f'version = 1\n\n[workspace]\n{workspace}\n\n{repos}\n'
+
+
+def write_catalog(path: Path, repos: str, **kwargs: str) -> Path:
+    path.write_text(catalog_text(repos, **kwargs), encoding="utf-8")
+    return path
+
+
+def test_user_catalog_loads_without_rewriting_and_defaults_the_workspace_root(
+    tmp_path: Path,
+) -> None:
+    before = CATALOG_PATH.read_bytes()
+    catalog = load_catalog(CATALOG_PATH, {"HOME": str(tmp_path)})
+    after = CATALOG_PATH.read_bytes()
+
+    assert before == after
+    assert catalog.root == tmp_path / "repos"
+    assert len(catalog.repositories) > 0
+
+
+def test_catalog_tags_are_loaded_per_repository(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        """[repos."laputa-systems"]
+srv = ["tool"]
+
+[repos."joshuarli"]
+tansu = ["app", "javascript", "rust", "shell", "typescript"]
+shadowdriver = ["javascript", "library", "rust", "tool", "typescript"]
+discover = ["app", "typescript"]
+toolbox = ["tool", "python"]
+pytest-parallel = ["library", "pypi", "python"]""",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert set(find_repository(catalog, "laputa-systems/srv").tags) == {"tool"}
+    assert set(find_repository(catalog, "joshuarli/tansu").tags) == {
+        "app",
+        "javascript",
+        "rust",
+        "shell",
+        "typescript",
+    }
+    assert set(find_repository(catalog, "joshuarli/shadowdriver").tags) == {
+        "javascript",
+        "library",
+        "rust",
+        "tool",
+        "typescript",
+    }
+    assert set(find_repository(catalog, "joshuarli/discover").tags) == {"app", "typescript"}
+    assert set(find_repository(catalog, "joshuarli/toolbox").tags) == {"tool", "python"}
+    assert set(find_repository(catalog, "joshuarli/pytest-parallel").tags) == {
+        "library",
+        "pypi",
+        "python",
+    }
+
+
+def test_repomod_root_overrides_catalog_root(tmp_path: Path) -> None:
+    catalog = load_catalog(
+        CATALOG_PATH,
+        {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")},
+    )
+
+    assert catalog.root == tmp_path / "fleet"
+
+
+def test_canonical_paths_flatten_personal_owner_and_keep_org_owner(
+    tmp_path: Path,
+) -> None:
+    catalog = load_catalog(
+        CATALOG_PATH,
+        {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "fleet")},
+    )
+
+    assert repository_path(catalog, find_repository(catalog, "joshuarli/ish")) == (
+        tmp_path / "fleet" / "ish"
+    )
+    assert repository_path(catalog, find_repository(catalog, "laputa-systems/srv")) == (
+        tmp_path / "fleet" / "laputa-systems" / "srv"
+    )
+
+
+def test_bare_name_lookup_rejects_fd_ambiguity(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."alpha"]\ndemo = ["tool"]\n[repos."beta"]\ndemo = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    with pytest.raises(CatalogError, match="ambiguous"):
+        find_repository(catalog, "demo")
+
+
+def test_language_tags_require_a_semantic_role_and_support_multilanguage_repos(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."joshuarli"]\ntansu = ["app", "rust", "typescript"]\n'
+        'shadowdriver = ["library", "tool", "rust", "typescript"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    assert set(find_repository(catalog, "tansu").tags) == {"app", "rust", "typescript"}
+    assert set(find_repository(catalog, "shadowdriver").tags) == {"library", "tool", "rust", "typescript"}
+    path.write_text(catalog_text('[repos."joshuarli"]\ninvalid = ["rust", "typescript"]'), encoding="utf-8")
+    with pytest.raises(CatalogError, match="primary tag"):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def test_sync_reports_all_missing_primary_tags_before_fetching(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from repomod.cli import main
+    from repomod.cmd import common
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos.alpha]\nfirst = ["fork"]\nvalid = ["tool"]\n'
+        'ignored = ["IGNORE", "rust"]\npending = []\n'
+        '[repos.beta]\nsecond = ["rust"]',
+    )
+    monkeypatch.setattr(common, "_catalog_path", lambda: path)
+
+    assert main(["sync"]) == 2
+    captured = capsys.readouterr()
+    assert "alpha/first must have at least one primary tag" in captured.err
+    assert "beta/second must have at least one primary tag" in captured.err
+    assert "Fetching" not in captured.err
+    assert captured.out == ""
+
+
+def test_cloudflare_is_a_primary_tag_and_can_filter_repositories(tmp_path: Path) -> None:
+    from repomod.cmd.common import _tags
+    from repomod.policy import filter_repositories
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos.joshuarli]\nstats = ["cloudflare", "rust", "typescript"]\nother = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    selected = filter_repositories(catalog.repositories, tags=_tags(["cloudflare"]))
+    assert [str(repository.id) for repository in selected] == ["joshuarli/stats"]
+
+
+def test_repository_name_casing_is_preserved(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml", '[repos."joshuarli"]\nSingleFile = ["extension"]'
+    )
+
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert catalog.repositories[0].id.name == "SingleFile"
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        (
+            'version = 4\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            '[repos.joshuarli]\na = ["tool"]'
+        ),
+        (
+            'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            '[repos.joshuarli]\na = ["rust"]'
+        ),
+        (
+            'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            '[repos.joshuarli]\na = ["tool", "tool"]'
+        ),
+        (
+            'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            '[repos.joshuarli]\na = "tool"'
+        ),
+        (
+            'version = 1\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+            '[repos."../bad"]\na = ["tool"]'
+        ),
+    ],
+)
+def test_invalid_catalog_contracts_are_rejected(tmp_path: Path, contents: str) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(contents, encoding="utf-8")
+
+    with pytest.raises(CatalogError):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def versioned_catalog(version: int, override: str) -> str:
+    return (
+        f'version = {version}\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n'
+        f'[repos.joshuarli]\na = ["tool"]\n[overrides."joshuarli/a"]\n{override}\n'
+    )
+
+
+def test_ignored_rules_carry_a_trimmed_reason(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, 'ignore = ["make-lint-target"]\nignore_reason = "  vendored build  "'),
+        encoding="utf-8",
+    )
+
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+
+    assert repository.ignored_rules == {"make-lint-target"}
+    assert repository.ignore_reason == "vendored build"
+
+
+@pytest.mark.parametrize(
+    ("version", "override", "message"),
+    [
+        (3, 'ignore = ["make-lint-target"]', "ignore_reason"),
+        (3, 'ignore = ["make-lint-target"]\nignore_reason = "  "', "ignore_reason"),
+        (3, 'ignore = ["make-lint-target"]\nignore_reason = 3', "ignore_reason"),
+        (3, 'autofix = false\nreason = "x"\nignore_reason = "y"', "without ignore"),
+        (2, 'ignore = ["make-lint-target"]\nignore_reason = "y"', "unknown keys"),
+    ],
+)
+def test_ignored_rules_require_a_reason(
+    tmp_path: Path, version: int, override: str, message: str
+) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(versioned_catalog(version, override), encoding="utf-8")
+
+    with pytest.raises(CatalogError, match=message):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def test_duplicate_owner_and_repository_casing_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        catalog_text(
+            '[repos."joshuarli"]\na = ["tool"]\n[repos."JOSHUARLI"]\nb = ["tool"]'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(CatalogError, match="duplicate owner"):
+        load_catalog(path, {"HOME": str(tmp_path)})
+    path.write_text(
+        catalog_text(
+            '[repos."joshuarli"]\nTool = ["tool"]\ntool = ["library"]'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(CatalogError, match="duplicate repository"):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def test_repository_path_rejects_symlink_components(tmp_path: Path) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml", '[repos."joshuarli"]\nish = ["tool"]'
+    )
+    root = tmp_path / "repos"
+    root.mkdir()
+    (root / "ish").symlink_to(tmp_path, target_is_directory=True)
+    catalog = load_catalog(
+        path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(root)}
+    )
+
+    with pytest.raises(CatalogError, match="symlink"):
+        repository_path(catalog, catalog.repositories[0])
+
+
+def test_macos_path_collision_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = write_catalog(
+        tmp_path / "catalog.toml", '[repos."joshuarli"]\nish = ["tool"]'
+    )
+    root = tmp_path / "repos"
+    root.mkdir()
+    (root / "ISH").mkdir()
+    monkeypatch.setattr("repomod.catalog.sys.platform", "darwin")
+    with pytest.raises(CatalogError, match="collides ignoring case"):
+        load_catalog(path, {"HOME": str(tmp_path), "REPOMOD_ROOT": str(root)})
+
+
+def test_add_repository_is_idempotent_and_preserves_catalog_comments(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "catalog.toml"
+    shutil.copyfile(CATALOG_PATH, path)
+    before = path.read_text(encoding="utf-8")
+    catalog = load_catalog(
+        path,
+        {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "repos")},
+    )
+
+    assert add_repository(catalog, "new-owner", "new-tool", ["tool"])
+    updated = path.read_text(encoding="utf-8")
+    assert '#[overrides."laputa-systems/ntpd-rs"]' in updated
+    assert 'root = "~/repos"' in updated
+    assert '[repos."new-owner"]\nnew-tool = ["tool"]' in updated
+
+    updated_catalog = load_catalog(
+        path,
+        {"HOME": str(tmp_path), "REPOMOD_ROOT": str(tmp_path / "repos")},
+    )
+    assert not add_repository(updated_catalog, "new-owner", "new-tool", ["tool"])
+    assert path.read_text(encoding="utf-8") == updated
+    assert updated != before
+
+
+def test_remove_repository_marks_entry_ignored_and_preserves_rest(
+    tmp_path: Path,
+) -> None:
+    from repomod.catalog import remove_repository
+
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."acme"]\n# keep-comment = ["tool"]\ntool = ["tool"]\ntoolbox = ["tool"]\n'
+        '[repos."other"]\ntool = ["tool"]',
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert remove_repository(catalog, "acme", "tool")
+
+    updated = path.read_text(encoding="utf-8")
+    assert 'tool = ["IGNORE", "tool"]' in updated
+    assert "toolbox = [\"tool\"]" in updated
+    assert '[repos."other"]\ntool = ["tool"]' in updated
+    assert "# keep-comment" in updated
+    reloaded = load_catalog(path, {"HOME": str(tmp_path)})
+    assert {str(repo.id) for repo in reloaded.repositories} == {"acme/toolbox", "other/tool"}
+
+    assert not remove_repository(reloaded, "acme", "tool")
+    assert path.read_text(encoding="utf-8") == updated
+
+
+def test_remove_repository_returns_false_for_unknown_entries(tmp_path: Path) -> None:
+    from repomod.catalog import remove_repository
+
+    path = write_catalog(tmp_path / "catalog.toml", '[repos."acme"]\ntool = ["tool"]')
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    before = path.read_text(encoding="utf-8")
+
+    assert not remove_repository(catalog, "acme", "missing")
+    assert not remove_repository(catalog, "unknown", "tool")
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_dependency_ignores_are_validated_and_kept(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(
+            3,
+            'ignore = ["audit-upgrades:crates:getrandom", "audit-upgrades:npm:@types/node"]\n'
+            'ignore_reason = "tantivy needs getrandom 0.3"',
+        ),
+        encoding="utf-8",
+    )
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+    assert repository.ignored_rules == {
+        "audit-upgrades:crates:getrandom",
+        "audit-upgrades:npm:@types/node",
+    }
+
+
+def test_banned_ignores_are_validated_and_kept(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(
+            3,
+            'ignore = ["audit-banned:transitive:tokio-macros", "audit-banned:direct:tokio"]\n'
+            'ignore_reason = "the crate integrates with Tokio"',
+        ),
+        encoding="utf-8",
+    )
+    repository = find_repository(load_catalog(path, {"HOME": str(tmp_path)}), "a")
+    assert repository.ignored_rules == {
+        "audit-banned:transitive:tokio-macros",
+        "audit-banned:direct:tokio",
+    }
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "audit-banned:tokio",
+        "audit-banned:transitive:",
+        "audit-banned:transitive:a b",
+        "audit-banned:direct:",
+        "audit-banned:direct:a b",
+    ],
+)
+def test_malformed_banned_ignores_are_rejected(tmp_path: Path, code: str) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, f'ignore = ["{code}"]\nignore_reason = "y"'), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="banned"):
+        load_catalog(path, {"HOME": str(tmp_path)})
+
+
+@pytest.mark.parametrize("code", ["audit-upgrades:getrandom", "audit-upgrades:swift:x", "audit-upgrades:crates:"])
+def test_malformed_dependency_ignores_are_rejected(tmp_path: Path, code: str) -> None:
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        versioned_catalog(3, f'ignore = ["{code}"]\nignore_reason = "y"'), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError, match="dependency ignore"):
+        load_catalog(path, {"HOME": str(tmp_path)})

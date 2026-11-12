@@ -1,0 +1,263 @@
+from __future__ import annotations
+
+SCRIPT = r'''#!/usr/bin/env python3
+import argparse
+import os
+import struct
+import sys
+from pathlib import Path
+
+MACHINES = {62: "x86_64", 183: "aarch64"}
+ELFCLASS64 = 2
+ELFDATA2LSB = 1
+PT_LOAD = 1
+PT_DYNAMIC = 2
+PT_INTERP = 3
+DT_NULL = 0
+DT_NEEDED = 1
+DT_STRTAB = 5
+DT_STRSZ = 10
+DT_SONAME = 14
+SHT_NOBITS = 8
+GCC_COMMENT_PREFIX = b"GCC:"
+TRACE_REQUIRED = ("/usr/lib/libc.a", "crtbegin.o")
+TRACE_FORBIDDEN = (
+    ".rustup/",
+    "/rustlib/",
+    "/self-contained/",
+    "x86_64-linux-gnu",
+    "aarch64-linux-gnu",
+    "libc.so",
+)
+
+
+class NotElfError(ValueError):
+    pass
+
+
+def fail(message):
+    print(f"verify-static-elf: {message}", file=sys.stderr)
+    return 1
+
+
+def read_elf(path):
+    data = path.read_bytes()
+    if data[:4] != b"\x7fELF":
+        return None
+    if len(data) < 64:
+        raise ValueError("ELF header is truncated")
+    if data[4] != ELFCLASS64 or data[5] != ELFDATA2LSB:
+        raise ValueError("not a little-endian ELF64 file")
+    machine = struct.unpack_from("<H", data, 18)[0]
+    if machine not in MACHINES:
+        raise ValueError(f"unsupported ELF machine {machine}")
+    program_offset = struct.unpack_from("<Q", data, 32)[0]
+    entry_size = struct.unpack_from("<H", data, 54)[0]
+    entries = struct.unpack_from("<H", data, 56)[0]
+    headers = []
+    if entries:
+        if entry_size < 56:
+            raise ValueError("program header table is truncated")
+        for index in range(entries):
+            offset = program_offset + index * entry_size
+            if offset + 56 > len(data):
+                raise ValueError("program header table is truncated")
+            kind = struct.unpack_from("<I", data, offset)[0]
+            file_offset, virtual_address = struct.unpack_from("<QQ", data, offset + 8)
+            file_size = struct.unpack_from("<Q", data, offset + 32)[0]
+            headers.append((kind, file_offset, virtual_address, file_size))
+    return machine, data, headers
+
+
+def dynamic_entries(data, offset, size):
+    end = min(len(data), offset + size)
+    entries = []
+    while offset + 16 <= end:
+        tag, value = struct.unpack_from("<qQ", data, offset)
+        if tag == DT_NULL:
+            break
+        entries.append((tag, value))
+        offset += 16
+    return entries
+
+
+def virtual_to_file_offset(headers, address):
+    for kind, file_offset, virtual_address, file_size in headers:
+        if kind == PT_LOAD and virtual_address <= address < virtual_address + file_size:
+            return file_offset + address - virtual_address
+    raise ValueError("dynamic string table is outside every loadable segment")
+
+
+def dynamic_strings(data, headers, entries):
+    values = dict(reversed(entries))
+    if DT_STRTAB not in values:
+        return [], [], b""
+    start = virtual_to_file_offset(headers, values[DT_STRTAB])
+    table = data[start : start + values.get(DT_STRSZ, 0)]
+
+    def name(index):
+        if index >= len(table):
+            raise ValueError("dynamic string index is outside the string table")
+        return table[index:].split(b"\0", 1)[0].decode("utf-8", errors="replace")
+
+    needed = [name(value) for tag, value in entries if tag == DT_NEEDED]
+    sonames = [name(value) for tag, value in entries if tag == DT_SONAME]
+    return needed, sonames, table
+
+
+def forbidden_library(name):
+    if name.startswith("libgcc_s"):
+        return "libgcc_s"
+    if name == "libc.so.6" or name.startswith("ld-linux"):
+        return "glibc"
+    return None
+
+
+def gcc_comments(data):
+    section_offset = struct.unpack_from("<Q", data, 40)[0]
+    entry_size = struct.unpack_from("<H", data, 58)[0]
+    count = struct.unpack_from("<H", data, 60)[0]
+    names_index = struct.unpack_from("<H", data, 62)[0]
+    if not section_offset or not count:
+        return []
+    if entry_size < 64 or section_offset + count * entry_size > len(data):
+        raise ValueError("section header table is truncated")
+    sections = [
+        struct.unpack_from("<IIQQQQ", data, section_offset + index * entry_size)
+        for index in range(count)
+    ]
+    if names_index >= count:
+        raise ValueError("section name table index is out of range")
+    names_offset, names_size = sections[names_index][4], sections[names_index][5]
+    names = data[names_offset : names_offset + names_size]
+    found = []
+    for name_index, kind, _flags, _address, offset, size in sections:
+        if kind == SHT_NOBITS or names[name_index:].split(b"\0", 1)[0] != b".comment":
+            continue
+        for entry in data[offset : offset + size].split(b"\0"):
+            if entry.startswith(GCC_COMMENT_PREFIX):
+                found.append(entry.decode("utf-8", errors="replace"))
+    return found
+
+
+def check_elf(path):
+    parsed = read_elf(path)
+    if parsed is None:
+        raise NotElfError("not an ELF file")
+    machine, data, headers = parsed
+    dynamic = []
+    for kind, offset, _address, size in headers:
+        if kind == PT_DYNAMIC:
+            dynamic = dynamic_entries(data, offset, size)
+    needed, sonames, table = dynamic_strings(data, headers, dynamic)
+    for name in needed:
+        reason = forbidden_library(name)
+        if reason is not None:
+            raise ValueError(f"has a {reason} runtime dependency: DT_NEEDED {name}")
+    for name in sonames:
+        if name.startswith("libgcc_s"):
+            raise ValueError(f"bundles a libgcc_s library: SONAME {name}")
+    for entry in table.split(b"\0"):
+        if entry.startswith(b"GLIBC_"):
+            raise ValueError(f"requires glibc symbol version {entry.decode()}")
+    if any(kind == PT_INTERP for kind, _offset, _address, _size in headers):
+        raise ValueError("has a dynamic ELF interpreter")
+    if needed:
+        raise ValueError("has a dynamic library dependency")
+    comments = gcc_comments(data)
+    if comments:
+        raise ValueError("links GCC-built objects: .comment contains " + "; ".join(comments))
+    return machine
+
+
+def trace_failure(trace):
+    try:
+        source = trace.read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        return f"cannot read linker trace {trace}: {error}"
+    for marker in TRACE_FORBIDDEN:
+        if marker in source:
+            return f"linker trace contains a non-builder path: {marker}"
+    for marker in TRACE_REQUIRED:
+        if marker not in source:
+            return f"linker trace does not name {marker}"
+    return None
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="verify-static-elf", allow_abbrev=False)
+    parser.add_argument("--trace", type=Path)
+    parser.add_argument("artifacts", nargs="+", type=Path)
+    args = parser.parse_args()
+    explicit = []
+    scanned = []
+    for artifact in args.artifacts:
+        if artifact.is_symlink():
+            return fail(f"symlink is not followed: {artifact}")
+        if not artifact.exists():
+            return fail(f"artifact does not exist: {artifact}")
+        if artifact.is_dir():
+            for directory, names, filenames in os.walk(artifact, followlinks=False):
+                current = Path(directory)
+                names[:] = [name for name in names if not (current / name).is_symlink()]
+                for name in filenames:
+                    path = current / name
+                    if path.is_file() and not path.is_symlink():
+                        scanned.append(path)
+        else:
+            explicit.append(artifact)
+    machines = set()
+    verified = 0
+    for path in explicit:
+        try:
+            machines.add(check_elf(path))
+            verified += 1
+        except (OSError, ValueError, struct.error) as error:
+            return fail(f"{path}: {error}")
+    for path in scanned:
+        try:
+            machine = check_elf(path)
+        except NotElfError:
+            continue
+        except (OSError, ValueError, struct.error) as error:
+            return fail(f"{path}: {error}")
+        machines.add(machine)
+        verified += 1
+    if any(artifact.is_dir() for artifact in args.artifacts):
+        missing = sorted(set(MACHINES.values()) - set(MACHINES[machine] for machine in machines))
+        if missing:
+            return fail("expected at least one artifact for " + ", ".join(missing))
+    if not machines:
+        return fail("no static ELF artifacts found")
+    if args.trace is not None:
+        error = trace_failure(args.trace)
+        if error is not None:
+            return fail(error)
+    print(f"verified {verified} ELF artifacts")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+'''
+
+SCRIPT_BODY = SCRIPT.split("\n", 1)[1]
+STATIC_SMOKE_NAME = "Verify Linux ELF artifacts are fully static"
+
+
+def render_script() -> str:
+    return SCRIPT
+
+
+def render_workflow_step(indentation: int, image_mode: bool) -> list[str]:
+    prefix = " " * indentation
+    child = prefix + "  "
+    script = child + "  "
+    invocation = f"{script}python3 -"
+    if image_mode:
+        invocation += ' --trace "$RUNNER_TEMP/linker-trace"'
+    invocation += " dist <<'PY'"
+    lines = [f"{prefix}- name: {STATIC_SMOKE_NAME}", f"{child}run: |", f"{script}set -euo pipefail", invocation]
+    lines.extend(f"{script}{line}" if line else "" for line in SCRIPT_BODY.splitlines())
+    lines.append(f"{script}PY")
+    return lines

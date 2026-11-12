@@ -1,0 +1,135 @@
+# Dependency audit
+
+The audit rules report stale dependencies, known vulnerabilities, and registry
+policy bans. They trust lockfiles as the source of truth for installed versions.
+Swift is out of scope and is not audited.
+
+`audit-upgrades` is the fixable rule for stale direct dependencies. The
+`audit-lock`, `audit-banned`, `audit-registry`, and `audit-vuln` rules are
+manual. `audit-vuln` and `audit-upgrades` query registries over the network.
+
+```sh
+uv run repomod fix --rule audit-upgrades
+```
+
+## Sources
+
+- Python: direct dependencies from `pyproject.toml` resolved through `uv.lock`.
+- TypeScript: direct dependencies from `package.json` (root and immediate
+  subdirectories) resolved through their `pnpm-lock.yaml` files. Transitive
+  JavaScript dependencies from all `pnpm-lock.yaml` packages are included for
+  vulnerability checks.
+- Rust: direct dependencies from `Cargo.toml` resolved through `Cargo.lock`.
+- Go: requirements from `go.mod`.
+- Swift is out of scope and is not audited.
+
+Latest stable versions come from the registries each repository configures: the
+Cargo sparse source in `.cargo/config.toml`, `registry=` in `.npmrc`, and the
+default `[[tool.uv.index]]` in `pyproject.toml` or `[[index]]` in `uv.toml`.
+Repositories without an override use public crates.io, npm, and PyPI. Go uses
+`proxy.golang.org`. A release that the configured registry does not carry is not
+reported until it is available there, so upgrade findings match what the
+repository can install. Crate release metadata for MSRV and exact-pin checks
+comes from the same Cargo source. Vulnerabilities come from the free OSV API
+with no authentication.
+Vulnerability checks include every distinct locked version in Cargo, uv, and pnpm lockfiles.
+Direct-upgrade selection remains separate. Lockfile parse failures are operational findings in
+both `audit-lock` and `audit-vuln`, causing `lint` to exit 2.
+Failed or malformed OSV responses also produce operational findings. They preserve cached advisories
+without advancing their check timestamps. Responses must cover every query before cache updates commit.
+For npm, "latest" is the newest stable release the repository's pnpm can
+install: versions younger than `minimumReleaseAge` (minutes, from
+`pnpm-workspace.yaml`, then `.npmrc` `minimum-release-age`, default 1440 as in
+pnpm 11+) are ignored unless `minimumReleaseAgeExclude` admits them (bare name,
+`name@version`, `name@v1 || v2`, `*` patterns). Publish times come from the
+packument and are cached with the rest. `audit-upgrades` also skips `uv`,
+`ruff`, and `ty`, whose versions are set by `python-tools.toml` and bumped
+only through `pins refresh`.
+Results are cached under `XDG_CACHE_HOME/repomod/audit.json` for 24 hours.
+The current `lint` audit interface has no `--offline` or `--refresh` option.
+`status --offline` and `status --refresh` control status caches; `deps enrich --offline`
+and `deps enrich --refresh` control the separate enrichment cache.
+
+## Rules
+
+- `audit-lock`: a required lockfile is missing or unreadable. Python requires
+  `uv.lock`. TypeScript requires `pnpm-lock.yaml`.
+- `audit-banned`: a bloated or legacy dependency is present. Python must not
+  use `requirements*.txt`. JavaScript must not use yarn: `yarn.lock`,
+  `.yarnrc`, `.yarnrc.yml`, `.yarnrc.yaml`, `.yarn/`, and
+  `packageManager: yarn@*` are banned because pnpm is the only package
+  manager. Rust must not depend on `dotenv` or `url`, including transitive
+  `dotenv-*` and `url-*` crates via `Cargo.lock`. Neither has a replacement;
+  remove them. Every other Rust ban comes from the `ban` tables in
+  `dependency-roles.toml`: an option marked `prefix` bans its crates and any
+  `NAME-*` crate, `exact` bans only the listed names, and the finding names
+  the role's preferred option as the replacement, or the matching `laputa-*`
+  fork when the preferred option has one. Today that bans clap (use lexopt),
+  criterion (rustybench), proptest (quickcheck), tokio, async-std, and the
+  upstream smol crates (smolith), and hyper, h2, and the mainstream HTTP
+  clients (h12tiny). `fastrand` is not banned because common crates such as
+  `tempfile` depend on it, and the `futures-core` and `futures-io` traits
+  remain the interop layer.
+  Repositories tagged `fork` keep upstream's dependency choices and are not
+  checked for banned crates; their lockfiles and vulnerabilities still are.
+  A repository with a target-specific transitive crate that is never compiled
+  can exempt that crate with `audit-banned:transitive:NAME`; direct
+  dependencies remain banned unless exempted with `audit-banned:direct:NAME`.
+- `audit-registry`: a dependency bypasses a package registry. Filesystem
+  dependencies are errors and git URL dependencies are warnings. Rust `path`
+  dependencies without a `version` are banned; `version` plus `path` workspace
+  members are allowed. Python `tool.uv.sources` with `path` is banned; `git`
+  sources warn. JavaScript `file:`, `link:`, `portal:`, `workspace:`, and
+  relative specs are banned; git and GitHub specs warn. Go `replace`
+  directives pointing at the filesystem are banned.
+  A `path` dependency that resolves to the repository's own root package (for
+  example a `bench/` harness depending on its parent library via
+  `path = ".."`) is exempt: it exercises the working copy and has no registry
+  alternative.
+- `audit-upgrades`: a locked direct dependency is older than an installable stable
+  release in its configured registry. See the fixability limits below.
+- `audit-vuln`: a locked dependency has a known OSV vulnerability.
+
+`audit-outdated` and `audit-upstream` are not registered lint rules. Use `audit-upgrades`
+for direct dependency upgrades and `status` for fork comparisons.
+
+Catalog `[overrides."OWNER/REPO"]` entries with `ignore = ["audit-*"]` skip
+selected audit rules per repository.
+
+## Fixes
+
+The `audit-upgrades` fixer runs native upgraders in a disposable copy when the tool is
+available: `uv lock --upgrade`, per-project `pnpm update --latest`,
+`cargo update`, and `go get -u ./...` followed by `go mod tidy`. It reports
+what it ran and what failed. Dirty checkouts are skipped.
+
+The standard fix flow commits a validated plan and opens a pull request. It leaves the
+canonical checkout unchanged.
+
+The rule reports only outdated direct dependencies as fixable findings, so
+`lint` surfaces upgrade debt. A finding is manual, not fixable,
+when the upgrader cannot reach the latest version:
+
+- a Python specifier excludes it (`==`, `<`, `~=`, ...);
+- a Cargo requirement excludes it and is not a simple caret requirement (for example an exact pin or range);
+- a Cargo release depends on a crate the repository pins with an exact `=`
+  version that conflicts, named in the message (for example `wasm-bindgen-test` needing
+  `wasm-bindgen =0.2.130` while the repository pins `=0.2.129`);
+- a Cargo release's `rust-version` exceeds the lowest `rust-version` declared
+  by the workspace members, so `cargo update` keeps the older release; the
+  message names the Rust versions.
+
+Crate release metadata comes from the configured Cargo source and is cached
+with the rest. For simple Cargo caret requirements, the fixer updates the
+manifest requirement and lockfile, including workspace and renamed dependencies.
+Such updates can require API changes, so the resulting pull request needs review and tests.
+If the manifest's layout cannot be preserved, the fixer fails and leaves it for manual editing.
+Vulnerability, ban, and lockfile findings stay manual because the upgraders
+cannot fix them deterministically. A repository
+can opt out with `ignore = ["audit-upgrades"]` in its catalog override.
+
+A deliberate pin can be exempted alone with
+`ignore = ["audit-upgrades:ECOSYSTEM:NAME"]` (ecosystem `pypi`, `npm`,
+`crates`, or `go`; for example `audit-upgrades:crates:getrandom`). Like every
+ignore it needs the repository's `ignore_reason`, and only `audit-upgrades`
+honors it.

@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  package:
+    name: Package ${{ matrix.package }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: x86_64-linux-musl
+            arch: x86_64
+            elf_machine: Advanced Micro Devices X86-64
+            os: linux
+            target: x86_64-unknown-linux-musl
+            runner: ubuntu-24.04
+          - package: aarch64-linux-musl
+            arch: aarch64
+            elf_machine: AArch64
+            os: linux
+            target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+          - package: aarch64-apple-darwin
+            arch: aarch64
+            os: darwin
+            target: aarch64-apple-darwin
+            runner: macos-26
+    runs-on: ${{ matrix.runner }}
+    env:
+      CFLAGS_x86_64_unknown_linux_musl: --target=x86_64-unknown-linux-musl
+      CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_RUSTFLAGS: -C target-feature=+crt-static -C link-arg=--defsym=__isoc23_sscanf=sscanf -C link-arg=--defsym=__isoc23_strtol=strtol
+      CFLAGS_aarch64_unknown_linux_musl: --target=aarch64-unknown-linux-musl
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS: -C target-feature=+crt-static -C link-arg=--defsym=__isoc23_sscanf=sscanf -C link-arg=--defsym=__isoc23_strtol=strtol
+      CFLAGS_aarch64_apple_darwin: -mcpu=apple-m1
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS: -C target-cpu=apple-m1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+
+      - name: Install pinned Rust toolchain
+        run: |
+          toolchain="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
+          test -n "$toolchain"
+          rustup toolchain install "$toolchain" --profile minimal --component rust-src --component llvm-tools
+          rustup default "$toolchain"
+          rustup toolchain list | awk '{print $1}' | while read -r installed; do
+            case "$installed" in
+              "$toolchain"|"$toolchain"-*) ;;
+              *) rustup toolchain uninstall "$installed" || true ;;
+            esac
+          done
+          rustup toolchain list
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build optimized binary
+        if: matrix.os == 'linux'
+        run: cargo dev dist --target ${{ matrix.target }} --docker always --ci
+
+      - name: Build optimized Darwin binaries
+        if: matrix.os == 'darwin'
+        run: cargo dev dist --target ${{ matrix.target }} --docker never --ci
+
+      - name: Test
+        if: matrix.os == 'linux'
+        run: cargo dev test linux --ci --target ${{ matrix.target }}
+
+      - name: Test Darwin target
+        if: matrix.os == 'darwin'
+        run: cargo dev test macos --ci --target ${{ matrix.target }}
+
+      - name: Smoke-test product binaries
+        run: cargo dev release smoke --target ${{ matrix.target }}
+
+      - name: Package product binaries
+        env:
+          RELEASE_TAG: release-${{ github.sha }}
+        run: cargo dev release package --target ${{ matrix.target }}
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xsh-${{ matrix.package }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Create pre-release
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: |
+          toolchain="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
+          test -n "$toolchain"
+          rustup toolchain install "$toolchain" --profile minimal
+          rustup default "$toolchain"
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Validate published artifact set
+        env:
+          RELEASE_TAG: release-${{ github.sha }}
+        run: cargo dev release validate
+      - name: Package core scripts
+        env:
+          RELEASE_TAG: release-${{ github.sha }}
+        run: cargo dev release core
+
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: release-${{ github.sha }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TAG"

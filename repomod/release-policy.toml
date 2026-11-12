@@ -1,0 +1,23 @@
+[cargo]
+version_fields = ["package.version", "workspace.package.version"]
+required_fields = ["name", "version", "license", "repository", "readme"]
+bump_command = "run the version-controlled Cargo release bump script after its dry run"
+bump_scripts = ["tools/bump_minor_release.sh", "scripts/bump_minor_release.sh"]
+bump_requirements = ["cargo owner", "cargo search", "cargo publish", "--dry-run", "git commit", "git tag"]
+
+[pypi]
+version_field = "project.version"
+build_backend = "uv_build"
+bump_command = "uv version --bump patch"
+
+[npm]
+version_field = "package.json version"
+lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]
+bump_command = "use the package manager selected by packageManager or its lockfile"
+
+[binary]
+portable_targets = ["aarch64-apple-darwin", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl"]
+macos_targets = ["aarch64-apple-darwin"]
+linux_arches = ["x86_64", "aarch64"]
+linux_musl_suffix = "-linux-musl"
+forbidden_target_markers = ["unknown-linux-gnu", "gnueabi"]

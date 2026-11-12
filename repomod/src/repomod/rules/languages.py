@@ -1,0 +1,687 @@
+from __future__ import annotations
+
+import glob
+import os
+from pathlib import Path
+from typing import Any
+
+from repomod.catalog import LANGUAGE_TAGS, LOCKFILE_IGNORE_PREFIX, PLATFORM_TAGS
+from repomod.io import read_json_object, read_toml, safe_relative
+from repomod.rules.binary_release import has_binary_release_contract
+from repomod.run_cache import cached
+from repomod.types import Finding, Repository, Rule, TagPredicate
+from repomod.types import violation as _violation
+
+_LOCKFILES = {
+    "package-lock.json": "npm",
+    "npm-shrinkwrap.json": "npm",
+    "pnpm-lock.yaml": "pnpm",
+    "yarn.lock": "yarn",
+    "bun.lock": "bun",
+    "bun.lockb": "bun",
+}
+_IGNORED_PACKAGES = {".git", ".work", "node_modules", "vendor", "dist", "build", ".venv"}
+_IGNORED_SOURCE_PARTS = {
+    ".git",
+    ".venv",
+    ".work",
+    "__pycache__",
+    "dist",
+    "fixtures",
+    "generated",
+    "node_modules",
+    "target",
+    "tests",
+    "third_party",
+    "vendor",
+}
+_MANIFEST_SEARCH_DEPTH = 4
+_LANGUAGE_NAMES = {
+    "c": "C",
+    "cpp": "C++",
+    "go": "Go",
+    "javascript": "JavaScript",
+    "python": "Python",
+    "rust": "Rust",
+    "shell": "shell",
+    "swift": "Swift",
+    "typescript": "TypeScript",
+    "xsh": "XSH",
+    "zig": "Zig",
+}
+
+
+def _finding(repository: Repository, rule: str, path: str | None, message: str) -> Finding:
+    return _violation(repository, rule, path, message)
+
+
+def _manifest_paths_uncached(root: Path, name: str) -> list[Path]:
+    found = []
+    pending = [(root, 0)]
+    while pending:
+        directory, depth = pending.pop()
+        try:
+            entries = sorted(os.scandir(directory), key=lambda entry: entry.name.casefold())
+        except OSError:
+            continue
+        for entry in entries:
+            if entry.name == name and (entry.is_file(follow_symlinks=False) or entry.is_symlink()):
+                found.append(Path(entry.path))
+            elif (
+                depth < _MANIFEST_SEARCH_DEPTH
+                and entry.name not in _IGNORED_SOURCE_PARTS
+                and entry.is_dir(follow_symlinks=False)
+            ):
+                pending.append((Path(entry.path), depth + 1))
+    return sorted(found, key=lambda path: path.relative_to(root).as_posix().casefold())
+
+
+def _manifest_paths(root: Path, name: str) -> list[Path]:
+    return cached(("manifest_paths", root, name), lambda: _manifest_paths_uncached(root, name))
+
+
+def _manifest_bases(root: Path, name: str) -> tuple[str, ...]:
+    bases = (
+        path.parent.relative_to(root).as_posix()
+        for path in _manifest_paths(root, name)
+        if not path.is_symlink() and safe_relative(root, path) is not None
+    )
+    return tuple("" if base == "." else base for base in bases)
+
+
+def _cargo_candidates(root: Path) -> list[Path]:
+    return _manifest_paths(root, "Cargo.toml")
+
+
+def _safe_manifest(root: Path, path: Path) -> bool:
+    if any(part in {".git", ".work", "node_modules", "vendor", "dist", ".venv", "target"}
+        for part in path.relative_to(root).parts
+    ):
+        return False
+    return path.is_file() and safe_relative(root, path) is not None
+
+
+def _rust_manifests_uncached(
+    root: Path,
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any], Path]], list[tuple[str, str]]]:
+    candidates = _cargo_candidates(root)
+    documents: dict[Path, dict[str, Any]] = {}
+    problems: list[tuple[str, str]] = []
+    for path in candidates:
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            problems.append((relative, "Cargo manifest is a symlink and is not followed"))
+            continue
+        if not _safe_manifest(root, path):
+            continue
+        document, error = read_toml(path)
+        if document is None:
+            problems.append((relative, f"Cargo manifest is unreadable: {error}"))
+            continue
+        documents[path] = document
+    workspaces = {
+        path: document
+        for path, document in documents.items()
+        if isinstance(document.get("workspace"), dict)
+    }
+    for workspace_path, document in tuple(workspaces.items()):
+        workspace = document["workspace"]
+        members = workspace.get("members", [])
+        if not isinstance(members, list):
+            problems.append(
+                (workspace_path.relative_to(root).as_posix(), "workspace.members must be an array")
+            )
+            continue
+        for pattern in members:
+            if not isinstance(pattern, str):
+                problems.append(
+                    (workspace_path.relative_to(root).as_posix(), "workspace.members contains a non-string path")
+                )
+                continue
+            for member_name in glob.glob(str(workspace_path.parent / pattern / "Cargo.toml")):
+                member = Path(member_name)
+                if not _safe_manifest(root, member) or member in documents:
+                    continue
+                member_document, error = read_toml(member)
+                if member_document is None:
+                    problems.append(
+                        (member.relative_to(root).as_posix(), f"Cargo manifest is unreadable: {error}")
+                    )
+                else:
+                    documents[member] = member_document
+    manifests = []
+    for path, document in documents.items():
+        parents = [
+            workspace_path
+            for workspace_path in workspaces
+            if path == workspace_path or workspace_path.parent in path.parents
+        ]
+        workspace_path = max(parents, key=lambda item: len(item.parts)) if parents else path
+        manifests.append((path, document, workspaces.get(workspace_path, document), workspace_path.parent))
+    manifests.sort(key=lambda item: item[0].relative_to(root).as_posix().casefold())
+    return manifests, sorted(problems)
+
+
+def _rust_manifests(
+    root: Path,
+) -> tuple[list[tuple[Path, dict[str, Any], dict[str, Any], Path]], list[tuple[str, str]]]:
+    return cached(("rust_manifests", root), lambda: _rust_manifests_uncached(root))
+
+
+def _rust_tool_configs(root: Path, repository: Repository) -> list[Finding]:
+    findings = []
+    for name in ("rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"):
+        config = root / name
+        if not config.exists() and not config.is_symlink():
+            continue
+        if config.is_symlink():
+            findings.append(_finding(repository, "rust-project", name, "Rust tool configuration is a symlink"))
+            continue
+        document, error = read_toml(config)
+        if document is None:
+            message = f"Rust tool configuration is invalid TOML: {error}"
+            findings.append(_finding(repository, "rust-project", name, message))
+    return findings
+
+
+def _rust_binary_target(path: Path, manifest: dict[str, Any]) -> bool:
+    package_root = path.parent
+    if (package_root / "src" / "main.rs").is_file():
+        return True
+    src_bin = package_root / "src" / "bin"
+    if not src_bin.is_symlink() and src_bin.is_dir() and any(
+        child.is_file() and not child.is_symlink() and child.suffix == ".rs" for child in src_bin.iterdir()
+    ):
+        return True
+    targets = manifest.get("bin", [])
+    if isinstance(targets, list):
+        for target in targets:
+            if not isinstance(target, dict):
+                continue
+            path_value = target.get("path")
+            if isinstance(path_value, str):
+                try:
+                    if (package_root / path_value).resolve().is_relative_to((package_root / "src").resolve()):
+                        return True
+                except OSError:
+                    continue
+    return False
+
+
+def _rust_findings(root: Path, repository: Repository) -> list[Finding]:
+    manifests, problems = _rust_manifests(root)
+    findings = [_finding(repository, "rust-project", path, message) for path, message in problems]
+    if not manifests:
+        if "rust" in repository.tags:
+            findings.append(_finding(repository, "rust-project", None, "rust language tag has no Cargo.toml"))
+        return findings
+    lock_roots: set[Path] = set()
+    for path, document, workspace_document, workspace_root in manifests:
+        package = document.get("package")
+        if not isinstance(package, dict):
+            continue
+        workspace = workspace_document.get("workspace")
+        workspace_package = workspace.get("package", {}) if isinstance(workspace, dict) else {}
+        workspace_package = workspace_package if isinstance(workspace_package, dict) else {}
+        workspace_lints = workspace.get("lints") if isinstance(workspace, dict) else None
+        relative = path.relative_to(root).as_posix()
+        edition = package.get("edition")
+        if edition == {"workspace": True}:
+            if not isinstance(workspace_package.get("edition"), (str, int)):
+                findings.append(
+                    _finding(repository, "rust-project", relative, "edition.workspace = true has no workspace edition")
+                )
+        elif edition is None:
+            findings.append(
+                _finding(
+                    repository,
+                    "rust-project",
+                    relative,
+                    "declare package.edition or inherit workspace.package.edition",
+                )
+            )
+        findings.extend(
+            _finding(
+                repository,
+                "rust-project",
+                relative,
+                f"{field}.workspace = true has no workspace.package.{field}",
+            )
+            for field in ("rust-version", "license", "repository", "readme", "version", "publish")
+            if package.get(field) == {"workspace": True} and field not in workspace_package
+        )
+        package_lints = document.get("lints")
+        if (
+            isinstance(package_lints, dict)
+            and package_lints.get("workspace") is True
+            and not isinstance(workspace_lints, dict)
+        ):
+            findings.append(
+                _finding(repository, "rust-project", relative, "lints.workspace = true has no workspace.lints")
+            )
+        if _rust_binary_target(path, document):
+            lock_roots.add(workspace_root)
+    for lock_root in sorted(lock_roots | {root}):
+        lockfile = lock_root / "Cargo.lock"
+        lock_name = lockfile.relative_to(root).as_posix()
+        if lockfile.is_symlink():
+            findings.append(
+                _finding(repository, "rust-project", lock_name, "Cargo.lock is a symlink and is not followed")
+            )
+        elif lockfile.is_file():
+            _, error = read_toml(lockfile)
+            if error is not None:
+                findings.append(
+                    _finding(repository, "rust-project", lock_name, f"Cargo.lock is invalid TOML: {error}")
+                )
+        elif lock_root in lock_roots and (
+            f"{LOCKFILE_IGNORE_PREFIX}{lock_root.relative_to(root).as_posix()}" not in repository.ignored_rules
+        ):
+            findings.append(
+                _finding(repository, "rust-project", lock_name, "commit Cargo.lock for the Rust executable")
+            )
+    findings.extend(_rust_tool_configs(root, repository))
+    return findings
+
+
+def _js_manifests_uncached(root: Path) -> list[Path]:
+    return [
+        path for path in _manifest_paths(root, "package.json")
+        if not path.is_symlink()
+        and not any(part in _IGNORED_PACKAGES for part in path.relative_to(root).parts)
+        and safe_relative(root, path) is not None
+    ]
+
+
+def _js_manifests(root: Path) -> list[Path]:
+    return cached(("js_manifests", root), lambda: _js_manifests_uncached(root))
+
+
+def _javascript_findings(root: Path, repository: Repository) -> list[Finding]:
+    manifests = _js_manifests(root)
+    findings = []
+    if not manifests:
+        if set(repository.tags) & {"javascript", "typescript"}:
+            findings.append(
+                _finding(repository, "javascript-project", None, "JavaScript or TypeScript tag has no package.json")
+            )
+        return findings
+    root_package = None
+    for path in manifests:
+        relative = path.relative_to(root).as_posix()
+        package, error = read_json_object(path)
+        if package is None:
+            findings.append(
+                _finding(repository, "javascript-project", relative, f"package manifest is invalid JSON: {error}")
+            )
+            continue
+        if path == root / "package.json":
+            root_package = package
+        for name in ("tsconfig.json",):
+            config = path.parent / name
+            if config.is_symlink():
+                relative_config = config.relative_to(root).as_posix()
+                findings.append(
+                    _finding(repository, "javascript-project", relative_config, "TypeScript configuration is a symlink")
+                )
+            elif config.is_file():
+                _, config_error = read_json_object(config, allow_jsonc=True)
+                if config_error is not None:
+                    relative_config = config.relative_to(root).as_posix()
+                    findings.append(
+                        _finding(
+                            repository,
+                            "javascript-project",
+                            relative_config,
+                            f"TypeScript configuration is invalid JSON: {config_error}",
+                        )
+                    )
+    locks = [name for name in _LOCKFILES if (root / name).is_file() or (root / name).is_symlink()]
+    managers = {_LOCKFILES[name] for name in locks}
+    if len(locks) > 1:
+        lock_names = ", ".join(sorted(locks))
+        findings.append(
+            _finding(
+                repository,
+                "javascript-project",
+                None,
+                "multiple package-manager lockfiles are present: " + lock_names,
+            )
+        )
+    if isinstance(root_package, dict):
+        manager = root_package.get("packageManager")
+        if isinstance(manager, str) and len(managers) == 1 and manager.split("@", 1)[0] not in managers:
+            lock_manager = next(iter(managers))
+            message = f"packageManager {manager} conflicts with lockfile manager {lock_manager}"
+            findings.append(_finding(repository, "javascript-project", "package.json", message))
+        elif isinstance(manager, str) and not managers:
+            message = f"packageManager {manager} is declared without a matching lockfile"
+            findings.append(_finding(repository, "javascript-project", "package.json", message))
+    return findings
+
+
+_PYTHON_BUILD_PATTERNS = ("*.py", "build/*.py", "buildsys/*.py")
+_PYTHON_MANAGED_PATTERNS = (
+    "src/*.py",
+    "src/*/*.py",
+    "src/*/*/*.py",
+    "python/*.py",
+    "python/*/*.py",
+    "scripts/*.py",
+    "scripts/*/*.py",
+    "tools/*.py",
+    "tools/*/*.py",
+    ".github/scripts/*.py",
+    ".github/scripts/*/*.py",
+    "packages/*/src/*.py",
+    "packages/*/src/*/*.py",
+)
+
+
+def _python_source_present_uncached(root: Path, managed_roots: bool) -> bool:
+    patterns = _PYTHON_BUILD_PATTERNS + (_PYTHON_MANAGED_PATTERNS if managed_roots else ())
+    for pattern in sorted(patterns):
+        for candidate_name in glob.glob(str(root / pattern)):
+            candidate = Path(candidate_name)
+            if not _safe_manifest(root, candidate) or any(
+                part in _IGNORED_SOURCE_PARTS for part in candidate.relative_to(root).parts
+            ):
+                continue
+            try:
+                return candidate.is_file()
+            except OSError:
+                continue
+    return False
+
+
+def _python_source_present(root: Path, *, managed_roots: bool = True) -> bool:
+    return cached(
+        ("python_source_present", root, managed_roots),
+        lambda: _python_source_present_uncached(root, managed_roots),
+    )
+
+
+def _source_present(root: Path, patterns: tuple[str, ...], suffixes: frozenset[str]) -> bool:
+    for pattern in patterns:
+        for candidate in root.glob(pattern):
+            if not candidate.is_file() or candidate.is_symlink() or candidate.suffix.casefold() not in suffixes:
+                continue
+            if candidate.suffix.casefold() == ".go" and candidate.name.endswith("_test.go"):
+                continue
+            relative = candidate.relative_to(root)
+            if any(part in _IGNORED_SOURCE_PARTS for part in relative.parts):
+                continue
+            current = root
+            safe = True
+            for part in relative.parts:
+                current = current / part
+                if current.is_symlink():
+                    safe = False
+                    break
+            if not safe:
+                continue
+            try:
+                if candidate.resolve().is_relative_to(root.resolve()):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def _shallow_source_patterns(
+    directories: tuple[str, ...], suffixes: tuple[str, ...], base: str = ""
+) -> tuple[str, ...]:
+    prefix = f"{base}/" if base else ""
+    patterns = [f"{prefix}*.{suffix}" for suffix in suffixes]
+    for directory in directories:
+        patterns.extend(
+            f"{prefix}{directory}/{'/'.join('*' for _ in range(depth))}.{suffix}"
+            for depth in range(1, 4)
+            for suffix in suffixes
+        )
+    return tuple(patterns)
+
+
+def _rust_source_present(root: Path, *, nested_manifests: bool = True) -> bool:
+    manifests, _ = _rust_manifests(root)
+    for path, _, _, workspace_root in manifests:
+        if not nested_manifests and workspace_root != root:
+            continue
+        package = path.parent.relative_to(root).as_posix()
+        prefix = "" if package == "." else package + "/"
+        patterns = tuple(
+            prefix + pattern
+            for pattern in (
+                "src/*.rs",
+                "src/*/*.rs",
+                "src/bin/*.rs",
+                "src/bin/*/*.rs",
+            )
+        )
+        if _source_present(root, patterns, frozenset({".rs"})):
+            return True
+    return False
+
+
+def _javascript_project_bases(root: Path) -> tuple[str, ...]:
+    manifests = _js_manifests(root) + [
+        path
+        for path in _manifest_paths(root, "tsconfig.json")
+        if not path.is_symlink()
+        and not any(part in _IGNORED_PACKAGES for part in path.relative_to(root).parts)
+        and safe_relative(root, path) is not None
+    ]
+    return tuple(
+        sorted({"" if path.parent == root else path.parent.relative_to(root).as_posix() for path in manifests})
+    )
+
+
+def _regular_file(path: Path) -> bool:
+    return path.is_file() and not path.is_symlink()
+
+
+def _language_sources_uncached(root: Path, *, nested_manifests: bool = True) -> set[str]:
+    observed = set()
+    javascript_bases = tuple(
+        base for base in _javascript_project_bases(root) if nested_manifests or base == ""
+    )
+    go_bases = _manifest_bases(root, "go.mod") if nested_manifests else (
+        ("",) if _regular_file(root / "go.mod") else ()
+    )
+    managed = set()
+    if javascript_bases:
+        managed.add("javascript")
+        directories = ("src", "web", "app", "packages", "extensions", "ts")
+        javascript_patterns = tuple(
+            pattern
+            for base in javascript_bases
+            for pattern in _shallow_source_patterns(directories, ("js", "jsx", "mjs", "cjs"), base)
+        )
+        typescript_patterns = tuple(
+            pattern
+            for base in javascript_bases
+            for pattern in _shallow_source_patterns(directories, ("ts", "tsx", "mts", "cts"), base)
+        )
+        if _source_present(root, javascript_patterns, frozenset({".js", ".jsx", ".mjs", ".cjs"})):
+            observed.add("javascript")
+        if _source_present(root, typescript_patterns, frozenset({".ts", ".tsx", ".mts", ".cts"})):
+            observed.add("typescript")
+    if any(nested_manifests or workspace_root == root for *_, workspace_root in _rust_manifests(root)[0]):
+        managed.add("rust")
+    if _rust_source_present(root, nested_manifests=nested_manifests):
+        observed.add("rust")
+    if go_bases:
+        managed.add("go")
+    go_patterns = tuple(
+        f"{glob.escape(base)}/{pattern}" if base else pattern
+        for base in go_bases
+        for pattern in ("*.go", "cmd/*/*.go", "cmd/*/*/*.go", "internal/*/*.go", "pkg/*/*.go")
+    )
+    if _source_present(root, go_patterns, frozenset({".go"})):
+        observed.add("go")
+    managed.update(
+        language
+        for language, manifest in (("swift", "Package.swift"), ("zig", "build.zig"), ("python", "pyproject.toml"))
+        if _regular_file(root / manifest)
+    )
+    if _python_source_present(root, managed_roots="python" in managed or not managed):
+        observed.add("python")
+    swift_manifest = root / "Package.swift"
+    if (
+        swift_manifest.is_file()
+        and not swift_manifest.is_symlink()
+        and _source_present(root, ("Sources/*/*.swift", "Sources/*/*/*.swift"), frozenset({".swift"}))
+    ):
+        observed.add("swift")
+    native_manifest = any(
+        (root / name).is_file() and not (root / name).is_symlink()
+        for name in ("CMakeLists.txt", "Makefile", "meson.build")
+    )
+    c_sources = ("src/*.c", "src/*/*.c", "lib/*.c", "*.c")
+    cpp_sources = (
+        "src/*.cc", "src/*.cpp", "src/*.cxx", "src/*/*.cc", "src/*/*.cpp", "src/*/*.cxx",
+        "include/*.hh", "include/*.hpp", "include/*.hxx", "lib/*.cc", "lib/*.cpp",
+        "*.cc", "*.cpp", "*.cxx",
+    )
+    if native_manifest and not managed and _source_present(root, c_sources, frozenset({".c"})):
+        observed.add("c")
+    if native_manifest and not managed and _source_present(
+        root,
+        cpp_sources,
+        frozenset({".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"}),
+    ):
+        observed.add("cpp")
+    zig_manifest = root / "build.zig"
+    if (
+        zig_manifest.is_file()
+        and not zig_manifest.is_symlink()
+        and _source_present(root, ("*.zig", "src/*.zig", "src/*/*.zig"), frozenset({".zig"}))
+    ):
+        observed.add("zig")
+    if not managed and _source_present(
+        root,
+        ("*.sh", "*.bash", "scripts/*.sh", "scripts/*/*.sh", "bin/*.sh", "src/*.sh"),
+        frozenset({".bash", ".sh"}),
+    ):
+        observed.add("shell")
+    if _source_present(root, ("*.xsh", "src/*.xsh", "src/*/*.xsh", "scripts/*.xsh", "bin/*.xsh"), frozenset({".xsh"})):
+        observed.add("xsh")
+    return observed
+
+
+def _language_sources(root: Path, *, nested_manifests: bool = True) -> set[str]:
+    return cached(
+        ("language_sources", root, nested_manifests),
+        lambda: _language_sources_uncached(root, nested_manifests=nested_manifests),
+    )
+
+
+def _language_tag_findings(root: Path, repository: Repository) -> list[Finding]:
+    tags = set(repository.tags)
+    if (
+        "tool" in tags
+        and tags <= {"tool", "fork"} | PLATFORM_TAGS | LANGUAGE_TAGS
+        and has_binary_release_contract(root, repository)
+    ):
+        return []
+    detected = _language_sources(root, nested_manifests="fork" not in tags)
+    tags = set(repository.tags)
+    missing = detected - tags
+    unobserved = (tags & LANGUAGE_TAGS) - detected
+    findings = [
+        _violation(
+            repository,
+            "language-tags",
+            None,
+            f"{_LANGUAGE_NAMES[language]} source is present but the catalog has no {language} tag",
+            severity="warning",
+        )
+        for language in sorted(missing & LANGUAGE_TAGS)
+    ]
+    findings.extend(
+        _violation(
+            repository,
+            "language-tags",
+            None,
+            f"{_LANGUAGE_NAMES[language]} tag is present but no matching source was detected",
+            severity="warning",
+        )
+        for language in sorted(unobserved)
+    )
+    return findings
+
+
+def _python_findings(root: Path, repository: Repository) -> list[Finding]:
+    path = root / "pyproject.toml"
+    if path.is_symlink():
+        return [_finding(repository, "python-project", path.name, "pyproject.toml is a symlink and is not followed")]
+    if not path.is_file():
+        if "python" in repository.tags and not _python_source_present(root):
+            return [_finding(repository, "python-project", None, "python language tag has no pyproject.toml")]
+        return []
+    document, error = read_toml(path)
+    if document is None:
+        return [_finding(repository, "python-project", path.name, f"pyproject.toml is invalid TOML: {error}")]
+    project = document.get("project")
+    uv_lock = root / "uv.lock"
+    findings = []
+    if uv_lock.is_symlink():
+        findings.append(_finding(repository, "python-project", "uv.lock", "uv.lock is a symlink and is not followed"))
+    elif uv_lock.is_file():
+        lock, lock_error = read_toml(uv_lock)
+        if lock is None:
+            findings.append(_finding(repository, "python-project", "uv.lock", f"uv.lock is invalid TOML: {lock_error}"))
+        elif isinstance(project, dict):
+            project_python = project.get("requires-python")
+            lock_python = lock.get("requires-python")
+            if isinstance(project_python, str) and isinstance(lock_python, str) and project_python != lock_python:
+                findings.append(
+                    _finding(
+                        repository,
+                        "python-project",
+                        "uv.lock",
+                        "uv.lock requires-python differs from project.requires-python; run uv lock",
+                    )
+                )
+    return findings
+
+
+def language_rules() -> tuple[Rule, ...]:
+    return (
+        Rule(
+            "language-tags",
+            "Check catalog language tags against detected first-party source",
+            TagPredicate(),
+            _language_tag_findings,
+            None,
+            None,
+            (),
+        ),
+        Rule(
+            "rust-project",
+            "Check Cargo manifests, workspace inheritance, Rust tool config, and binary lockfiles",
+            TagPredicate(),
+            _rust_findings,
+            None,
+            None,
+            (),
+        ),
+        Rule(
+            "javascript-project",
+            "Check JavaScript and TypeScript package-manager metadata and configuration",
+            TagPredicate(),
+            _javascript_findings,
+            None,
+            None,
+            (),
+        ),
+        Rule(
+            "python-project",
+            "Check Python metadata and uv lock coherence",
+            TagPredicate(),
+            _python_findings,
+            None,
+            None,
+            (),
+        ),
+    )

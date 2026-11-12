@@ -1,0 +1,657 @@
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import tomllib
+from dataclasses import dataclass
+from functools import cache
+from pathlib import Path, PurePosixPath
+from typing import Any
+from urllib.parse import unquote, urlsplit
+
+from repomod.catalog import GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX
+from repomod.io import read_toml
+from repomod.rules.workspace import is_workspace_excluded, workspace_excluded
+from repomod.types import Finding, Repository, Rule, Severity, TagPredicate, violation
+
+RULE_ID = "registry-sources"
+_CRATES_IO_SOURCE_IDS = frozenset(
+    {
+        "registry+https://github.com/rust-lang/crates.io-index",
+        "sparse+https://index.crates.io/",
+    }
+)
+_PRUNED_DIRECTORIES = frozenset({".git", ".venv", ".work", "node_modules", "target"})
+_LISTED_NAMES = 5
+_UV_ENVIRONMENTS = ("sys_platform == 'darwin'", "sys_platform == 'linux'")
+_ALLOWED_PATHS = (
+    ".cargo/config.toml",
+    ".npmrc",
+    "*/.npmrc",
+    "pyproject.toml",
+    "*/pyproject.toml",
+    "uv.lock",
+    "*/uv.lock",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class RegistryPolicy:
+    enforce: bool
+    cargo_source: str
+    cargo_native: str
+    npm_registry: str
+    python_index: str
+    npm_allowed: tuple[str, ...]
+
+
+def registry_policy_file() -> Path:
+    return Path(__file__).resolve().parents[3] / "registries.toml"
+
+
+def _table(
+    document: dict[str, Any], name: str, keys: tuple[str, ...], scheme: str
+) -> dict[str, str]:
+    table = document.get(name)
+    if not isinstance(table, dict) or set(table) != set(keys):
+        raise ValueError(f"registries.toml [{name}] must contain only {', '.join(keys)}")
+    values = {}
+    for key in keys:
+        value = table[key]
+        if not isinstance(value, str) or not value.startswith(scheme) or not value.endswith("/"):
+            raise ValueError(f"registries.toml {name}.{key} must be a {scheme} URL ending in /")
+        values[key] = value
+    return values
+
+
+def parse_registry_policy(source: str) -> RegistryPolicy:
+    try:
+        document = tomllib.loads(source)
+    except tomllib.TOMLDecodeError as error:
+        raise ValueError(f"registries.toml is invalid TOML: {error}") from error
+    if set(document) != {"enforce", "cargo", "npm", "python"}:
+        raise ValueError("registries.toml must contain only enforce, [cargo], [npm], and [python]")
+    enforce = document["enforce"]
+    if not isinstance(enforce, bool):
+        raise ValueError("registries.toml enforce must be a boolean")
+    cargo = _table(document, "cargo", ("source", "native"), "sparse+https://")
+    npm = document.get("npm")
+    if not isinstance(npm, dict) or set(npm) != {"registry", "allowed"}:
+        raise ValueError("registries.toml [npm] must contain only registry and allowed")
+    registry = npm["registry"]
+    allowed = npm["allowed"]
+    if not isinstance(registry, str) or not registry.startswith("https://") or not registry.endswith("/"):
+        raise ValueError("registries.toml npm.registry must be a https:// URL ending in /")
+    if not isinstance(allowed, list) or any(
+        not isinstance(url, str) or not url.startswith("https://") or not url.endswith("/")
+        for url in allowed
+    ) or len(allowed) != len(set(allowed)):
+        raise ValueError("registries.toml npm.allowed must contain unique https:// URLs ending in /")
+    python = _table(document, "python", ("index",), "https://")
+    return RegistryPolicy(
+        enforce,
+        cargo["source"],
+        cargo["native"],
+        registry,
+        python["index"],
+        tuple(allowed),
+    )
+
+
+def load_registry_policy(path: Path | None = None) -> RegistryPolicy:
+    target = registry_policy_file() if path is None else path
+    if target.is_symlink():
+        raise ValueError(f"registry policy is a symlink: {target}")
+    try:
+        source = target.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise ValueError(f"cannot read registry policy at {target}: {error}") from error
+    return parse_registry_policy(source)
+
+
+@cache
+def _default_policy() -> RegistryPolicy:
+    return load_registry_policy()
+
+
+def _relative(root: Path, path: Path) -> str:
+    return path.relative_to(root).as_posix()
+
+
+def _walk(root: Path) -> dict[str, list[Path]]:
+    excluded = workspace_excluded(root)
+    found: dict[str, list[Path]] = {}
+    for directory, names, files in os.walk(root):
+        names[:] = sorted(name for name in names if name not in _PRUNED_DIRECTORIES)
+        base = Path(directory)
+        relative = PurePosixPath(base.relative_to(root).as_posix())
+        if relative.parts and is_workspace_excluded(excluded, relative):
+            names[:] = []
+            continue
+        for name in files:
+            found.setdefault(name, []).append(base / name)
+    return found
+
+
+def _chain(root: Path, directory: Path) -> list[Path]:
+    chain: list[Path] = [directory]
+    while chain[-1] != root:
+        chain.append(chain[-1].parent)
+    return chain
+
+
+def _outside_repository(root: Path, base: Path, target: str) -> bool:
+    if target.startswith("/") or re.match(r"[A-Za-z]:", target):
+        return True
+    resolved = os.path.normpath(base / target)
+    return not (resolved == str(root) or resolved.startswith(str(root) + os.sep))
+
+
+class _Report:
+    def __init__(self, repository: Repository, root: Path) -> None:
+        self.repository = repository
+        self.root = root
+        self.findings: dict[Finding, None] = {}
+
+    def add(
+        self,
+        path: Path,
+        message: str,
+        *,
+        fixable: bool = False,
+        severity: Severity = "error",
+    ) -> None:
+        finding = violation(
+            self.repository,
+            RULE_ID,
+            _relative(self.root, path),
+            message,
+            fixable=fixable,
+            severity=severity,
+        )
+        self.findings[finding] = None
+
+    def git_source(self, path: Path, ecosystem: str, name: str, source: str) -> None:
+        if f"{GIT_SOURCE_IGNORE_PREFIX}{name}" in self.repository.ignored_rules:
+            return
+        self.add(
+            path,
+            f"{ecosystem} package {name} resolves from git source {source}; publish it to stuff "
+            f"or add {GIT_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason "
+            "to silence this warning",
+            severity="warning",
+        )
+
+    def outside_repository(self, path: Path, name: str, message: str) -> None:
+        if f"{LOCAL_SOURCE_IGNORE_PREFIX}{name}" in self.repository.ignored_rules:
+            return
+        self.add(
+            path,
+            f"{message}; depend on a published stuff package instead or add "
+            f"{LOCAL_SOURCE_IGNORE_PREFIX}{name} to the catalog ignore with an ignore_reason",
+        )
+
+    def unapproved(
+        self,
+        path: Path,
+        ecosystem: str,
+        source: str,
+        names: list[str],
+        approved: str,
+        hint: str,
+        *,
+        fixable: bool = False,
+    ) -> None:
+        listed = ", ".join(sorted(names)[:_LISTED_NAMES])
+        more = "" if len(names) <= _LISTED_NAMES else f" and {len(names) - _LISTED_NAMES} more"
+        self.add(
+            path,
+            f"{len(names)} {ecosystem} package(s) resolve from {source} ({listed}{more}) instead "
+            f"of {approved}; {hint}",
+            fixable=fixable,
+        )
+
+
+def _cargo_config(report: _Report, policy: RegistryPolicy, directory: Path) -> None:
+    reasons: list[str] = []
+    for candidate in _chain(report.root, directory):
+        path = candidate / ".cargo" / "config.toml"
+        if not path.is_file():
+            continue
+        document, error = read_toml(path)
+        if document is None:
+            reasons.append(f"{_relative(report.root, path)} is unreadable: {error}")
+            continue
+        sources = document.get("source")
+        sources = sources if isinstance(sources, dict) else {}
+        crates_io = sources.get("crates-io")
+        replacement = crates_io.get("replace-with") if isinstance(crates_io, dict) else None
+        target = sources.get(replacement) if isinstance(replacement, str) else None
+        if isinstance(target, dict) and target.get("registry") == policy.cargo_source:
+            return
+        reasons.append(
+            f"{_relative(report.root, path)} does not replace crates-io with {policy.cargo_source}"
+        )
+    fix = (
+        f'[source.crates-io] replace-with = "stuff" and [source.stuff] registry = '
+        f'"{policy.cargo_source}"'
+    )
+    detail = "; ".join(reasons) if reasons else "no .cargo/config.toml found"
+    report.add(directory / ".cargo" / "config.toml", f"{detail}; set {fix}", fixable=True)
+
+
+def _cargo_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
+    document, error = read_toml(lock)
+    if document is None:
+        raise ValueError(f"cannot read {_relative(report.root, lock)}: {error}")
+    other: dict[str, list[str]] = {}
+    approved = {policy.cargo_source, policy.cargo_native}
+    for package in document.get("package", []):
+        source = package.get("source")
+        name = str(package.get("name"))
+        if source is None or source in _CRATES_IO_SOURCE_IDS or source in approved:
+            continue
+        if str(source).startswith("git+"):
+            report.git_source(lock, "cargo", name, str(source).split("#")[0])
+        else:
+            other.setdefault(str(source), []).append(name)
+    for source, names in other.items():
+        report.unapproved(
+            lock,
+            "cargo",
+            source,
+            names,
+            "crates.io (replaced by stuff)",
+            "remove the alternate registry or move the crates to stuff",
+        )
+
+
+def _npmrc_entries_from(text: str) -> list[tuple[str, str]]:
+    entries = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped[0] in "#;" or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        entries.append((key.strip(), value.strip()))
+    return entries
+
+
+def _npmrc_entries(path: Path) -> list[tuple[str, str]]:
+    return _npmrc_entries_from(path.read_text(encoding="utf-8"))
+
+
+def _npm_config(report: _Report, policy: RegistryPolicy, directory: Path) -> None:
+    satisfied = False
+    for candidate in _chain(report.root, directory):
+        npmrc = candidate / ".npmrc"
+        if npmrc.is_file():
+            for key, value in _npmrc_entries(npmrc):
+                if key == "registry" and value in (policy.npm_registry, *policy.npm_allowed):
+                    satisfied = True
+                elif key == "registry" or key.endswith(":registry"):
+                    report.add(
+                        npmrc,
+                        f"{key}={value} is not the stuff registry; keep only "
+                        f"registry={policy.npm_registry}",
+                    )
+        workspace = candidate / "pnpm-workspace.yaml"
+        if workspace.is_file():
+            for line in workspace.read_text(encoding="utf-8").splitlines():
+                if re.match(r"(registry|registries)\s*:", line):
+                    report.add(
+                        workspace,
+                        "pnpm-workspace.yaml overrides the registry; remove it and set "
+                        f"registry={policy.npm_registry} in .npmrc",
+                    )
+    if not satisfied:
+        report.add(
+            directory / ".npmrc",
+            f"no .npmrc sets the stuff registry; add registry={policy.npm_registry}",
+            fixable=True,
+        )
+
+
+def _is_git_url(url: str) -> bool:
+    return url.startswith(("git+", "git:", "github:")) or re.match(
+        r"https://(codeload\.)?github\.com/", url
+    ) is not None
+
+
+def _approved_npm_url(url: str, policy: RegistryPolicy) -> bool:
+    try:
+        path = unquote(urlsplit(url).path)
+    except ValueError:
+        return False
+    return not any(part in {".", ".."} for part in path.split("/")) and url.startswith(
+        (policy.npm_registry, *policy.npm_allowed)
+    )
+
+
+def _package_name(key: str) -> str:
+    name = key.strip().strip("'\"").lstrip("/").split("(")[0]
+    at = name.rfind("@")
+    return name[:at] if at > 0 else name
+
+
+def _pnpm_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
+    other: dict[str, list[str]] = {}
+    section = ""
+    importer = ""
+    package = ""
+    for line in lock.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith(" "):
+            section = line.rstrip(":")
+            continue
+        key = re.match(r"  (\S.*):\s*$", line)
+        if key and section == "importers":
+            importer = key.group(1).strip("'\"")
+        elif key and section in {"packages", "snapshots"}:
+            package = _package_name(key.group(1))
+        for match in re.finditer(r"\b(?:version|specifier): (?:link|file):(\S+)", line):
+            base = lock.parent / importer
+            target = match.group(1).strip("'\"")
+            if _outside_repository(report.root, base, target):
+                report.add(
+                    lock,
+                    f"importer {importer or '.'} links {target} outside the repository; "
+                    "depend on a published stuff package instead",
+                )
+        tarball = re.search(r"\btarball: ([^,}\s]+)", line)
+        if tarball is None:
+            if re.search(r"\btype: git\b|\brepo: ", line) and section == "packages":
+                report.git_source(lock, "npm", package, "a git repository")
+            continue
+        url = tarball.group(1).strip("'\"")
+        if url.startswith("file:") or _approved_npm_url(url, policy):
+            continue
+        if _is_git_url(url):
+            report.git_source(lock, "npm", package, url)
+        else:
+            other.setdefault(url.split("/")[2] if "://" in url else url, []).append(package)
+    for host, names in other.items():
+        report.unapproved(
+            lock,
+            "npm",
+            host,
+            sorted(set(names)),
+            policy.npm_registry,
+            f"set registry={policy.npm_registry} in .npmrc and reinstall",
+        )
+
+
+def _package_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
+    try:
+        document = json.loads(lock.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise ValueError(f"cannot read {_relative(report.root, lock)}: {error}") from error
+    packages = document.get("packages")
+    if not isinstance(packages, dict):
+        raise ValueError(f"{_relative(report.root, lock)} predates lockfileVersion 2")
+    other: dict[str, list[str]] = {}
+    for key, entry in packages.items():
+        if not key or not isinstance(entry, dict):
+            continue
+        name = entry.get("name") or key.rsplit("node_modules/", 1)[-1]
+        resolved = entry.get("resolved")
+        if entry.get("link") is True:
+            if isinstance(resolved, str) and _outside_repository(report.root, lock.parent, resolved):
+                report.outside_repository(
+                    lock, str(name), f"{name} links {resolved} outside the repository"
+                )
+            continue
+        if not isinstance(resolved, str) or resolved.startswith("file:") or _approved_npm_url(resolved, policy):
+            continue
+        if _is_git_url(resolved):
+            report.git_source(lock, "npm", name, resolved)
+        else:
+            host = resolved.split("/")[2] if "://" in resolved else resolved
+            other.setdefault(host, []).append(name)
+    for host, names in other.items():
+        report.unapproved(
+            lock,
+            "npm",
+            host,
+            sorted(set(names)),
+            policy.npm_registry,
+            f"set registry={policy.npm_registry} in .npmrc and reinstall",
+        )
+
+
+def _uv_index_satisfied(indexes: object, policy: RegistryPolicy) -> bool:
+    return isinstance(indexes, list) and any(
+        isinstance(index, dict) and index.get("default") is True and index.get("url") == policy.python_index
+        for index in indexes
+    )
+
+
+def _python_config(report: _Report, policy: RegistryPolicy, directory: Path) -> None:
+    for candidate in _chain(report.root, directory):
+        uv_toml = candidate / "uv.toml"
+        pyproject = candidate / "pyproject.toml"
+        if uv_toml.is_file():
+            document, _ = read_toml(uv_toml)
+            if document is not None and _uv_index_satisfied(document.get("index"), policy):
+                return
+        if pyproject.is_file():
+            document, _ = read_toml(pyproject)
+            tool = document.get("tool") if document is not None else None
+            uv = tool.get("uv") if isinstance(tool, dict) else None
+            if isinstance(uv, dict) and _uv_index_satisfied(uv.get("index"), policy):
+                return
+    target = "uv.toml" if (directory / "uv.toml").is_file() else "pyproject.toml"
+    report.add(
+        directory / target,
+        f'no default index points at stuff; add [[tool.uv.index]] url = "{policy.python_index}" '
+        "default = true (or [[index]] in uv.toml)",
+        fixable=target == "pyproject.toml",
+    )
+
+
+def _uv_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
+    document, error = read_toml(lock)
+    if document is None:
+        raise ValueError(f"cannot read {_relative(report.root, lock)}: {error}")
+    other: dict[str, list[str]] = {}
+    for package in document.get("package", []):
+        source = package.get("source")
+        name = str(package.get("name"))
+        if not isinstance(source, dict):
+            continue
+        if "registry" in source:
+            if source["registry"] != policy.python_index:
+                other.setdefault(str(source["registry"]), []).append(name)
+        elif "git" in source:
+            report.git_source(lock, "python", name, str(source["git"]).split("#")[0])
+        elif any(kind in source for kind in ("editable", "virtual", "directory", "path")):
+            kind = next(kind for kind in ("editable", "virtual", "directory", "path") if kind in source)
+            target = str(source[kind])
+            if _outside_repository(report.root, lock.parent, target):
+                report.outside_repository(
+                    lock,
+                    name,
+                    f"python package {name} resolves from {target} outside the repository",
+                )
+        else:
+            other.setdefault(", ".join(sorted(map(str, source))), []).append(name)
+    for source, names in other.items():
+        report.unapproved(
+            lock,
+            "python",
+            source,
+            names,
+            policy.python_index,
+            f"set the default index to {policy.python_index} and run uv lock",
+            fixable=True,
+        )
+
+
+def registry_source_findings(
+    root: Path, repository: Repository, policy: RegistryPolicy
+) -> list[Finding]:
+    if "fork" in repository.tags:
+        return []
+    report = _Report(repository, root)
+    files = _walk(root)
+    for lock in files.get("Cargo.lock", []):
+        _cargo_config(report, policy, lock.parent)
+        _cargo_lock(report, policy, lock)
+    npm_directories = {path.parent for name in ("pnpm-lock.yaml", "package-lock.json") for path in files.get(name, [])}
+    if (root / "package.json").is_file():
+        npm_directories.add(root)
+    for directory in sorted(npm_directories):
+        _npm_config(report, policy, directory)
+    for lock in files.get("pnpm-lock.yaml", []):
+        _pnpm_lock(report, policy, lock)
+    for lock in files.get("package-lock.json", []):
+        _package_lock(report, policy, lock)
+    python_directories = {path.parent for path in files.get("uv.lock", [])}
+    if (root / "pyproject.toml").is_file():
+        python_directories.add(root)
+    for directory in sorted(python_directories):
+        _python_config(report, policy, directory)
+    for lock in files.get("uv.lock", []):
+        _uv_lock(report, policy, lock)
+    return sorted(report.findings, key=lambda item: (item.file or "", item.message))
+
+
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def _with_cargo_source(text: str, policy: RegistryPolicy) -> str:
+    if "source" in tomllib.loads(text):
+        raise RuntimeError(
+            ".cargo/config.toml already defines [source]; point crates-io at "
+            f"{policy.cargo_source} by hand"
+        )
+    block = (
+        f'[source.crates-io]\nreplace-with = "stuff"\n\n'
+        f'[source.stuff]\nregistry = "{policy.cargo_source}"\n'
+    )
+    return f"{text.rstrip()}\n\n{block}" if text.strip() else block
+
+
+def _with_npm_registry(path: str, text: str, policy: RegistryPolicy) -> str:
+    for key, value in _npmrc_entries_from(text):
+        if key == "registry" or key.endswith(":registry"):
+            raise RuntimeError(f"{path} sets {key}={value}; replace it with registry={policy.npm_registry}")
+    separator = "" if not text or text.endswith("\n") else "\n"
+    return f"{text}{separator}registry={policy.npm_registry}\n"
+
+
+def _with_uv_index(path: str, text: str, policy: RegistryPolicy) -> str:
+    document = tomllib.loads(text)
+    tool = document.get("tool")
+    uv = tool.get("uv") if isinstance(tool, dict) else None
+    uv = uv if isinstance(uv, dict) else {}
+    if "index" in uv:
+        raise RuntimeError(f"{path} already defines tool.uv.index; make the stuff index default by hand")
+    environments = ", ".join(f'"{item}"' for item in _UV_ENVIRONMENTS)
+    updated = text.rstrip("\n") + "\n"
+    if "environments" not in uv:
+        line = f"environments = [{environments}]\n"
+        header = re.search(r"^\[tool\.uv\][ \t]*\n", updated, flags=re.MULTILINE)
+        if header is not None:
+            updated = updated[: header.end()] + line + updated[header.end() :]
+        else:
+            updated += f"\n[tool.uv]\n{line}"
+    updated += f'\n[[tool.uv.index]]\nurl = "{policy.python_index}"\ndefault = true\n'
+    index = tomllib.loads(updated)["tool"]["uv"]["index"]
+    if index != [{"url": policy.python_index, "default": True}]:
+        raise RuntimeError(f"{path} could not be edited safely; add the stuff index by hand")
+    return updated
+
+
+def _relock(root: Path, directories: list[str], plan: dict[str, str]) -> None:
+    if shutil.which("uv") is None:
+        raise RuntimeError("uv is required to relock uv.lock and was not found")
+    with tempfile.TemporaryDirectory(prefix="repomod-registry-sources-") as temporary:
+        work = Path(temporary) / "project"
+        shutil.copytree(
+            root,
+            work,
+            symlinks=True,
+            ignore=lambda _directory, names: {
+                name for name in names if name in _PRUNED_DIRECTORIES
+            },
+        )
+        for relative, text in plan.items():
+            target = work / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+        environment = os.environ | {"UV_CACHE_DIR": str(Path(temporary) / "cache")}
+        for directory in directories:
+            project = work / directory
+            result = subprocess.run(
+                ["uv", "lock"],
+                cwd=project,
+                env=environment,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=600,
+                check=False,
+            )
+            if result.returncode != 0:
+                detail = result.stderr.strip() or result.stdout.strip()
+                raise RuntimeError(f"uv lock failed in {directory}: {detail}")
+            lock = (project / "uv.lock").relative_to(work).as_posix()
+            plan[lock] = (project / "uv.lock").read_text(encoding="utf-8")
+
+
+def registry_source_plan(
+    root: Path, repository: Repository, policy: RegistryPolicy, *, relock: bool = True
+) -> dict[str, str]:
+    plan: dict[str, str] = {}
+    python_directories: set[str] = set()
+    for finding in registry_source_findings(root, repository, policy):
+        if not finding.fixable or finding.file is None:
+            continue
+        path = PurePosixPath(finding.file)
+        if path.name == "config.toml":
+            plan[".cargo/config.toml"] = _with_cargo_source(
+                _read_text(root / ".cargo" / "config.toml"), policy
+            )
+        elif path.name == ".npmrc":
+            plan[finding.file] = _with_npm_registry(
+                finding.file, _read_text(root / finding.file), policy
+            )
+        elif path.name == "pyproject.toml":
+            plan[finding.file] = _with_uv_index(finding.file, (root / finding.file).read_text(encoding="utf-8"), policy)
+            python_directories.add(path.parent.as_posix())
+        elif path.name == "uv.lock":
+            python_directories.add(path.parent.as_posix())
+    if relock and python_directories:
+        _relock(root, sorted(python_directories), plan)
+    return plan
+
+
+def _fix(root: Path, repository: Repository) -> dict[str, str]:
+    return registry_source_plan(root, repository, _default_policy())
+
+
+def _check(root: Path, repository: Repository) -> list[Finding]:
+    policy = _default_policy()
+    if not policy.enforce:
+        return []
+    return registry_source_findings(root, repository, policy)
+
+
+def registry_sources_rules() -> tuple[Rule, ...]:
+    return (
+        Rule(
+            RULE_ID,
+            "Require dependencies to resolve only from the private stuff registry",
+            TagPredicate(),
+            _check,
+            _fix,
+            "chore(repomod): resolve dependencies from stuff",
+            _ALLOWED_PATHS,
+        ),
+    )

@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "nursery": "off",
+    "pedantic": "off",
+    "perf": "off",
+    "restriction": "off",
+    "style": "off",
+    "suspicious": "off"
+  },
+  "env": { "browser": true, "builtin": true },
+  "options": { "denyWarnings": true },
+  "ignorePatterns": ["src/repomod/dependencies/assets/*.js"],
+  "plugins": ["typescript"]
+}

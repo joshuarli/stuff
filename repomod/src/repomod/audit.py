@@ -1,0 +1,2570 @@
+from __future__ import annotations
+
+import contextlib
+import email.utils
+import fnmatch
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from collections.abc import Callable, Generator
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any, cast
+
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
+
+from repomod.catalog import (
+    GIT_SOURCE_IGNORE_PREFIX,
+    LOCAL_SOURCE_IGNORE_PREFIX,
+    Catalog,
+    atomic_write,
+    parse_banned_direct_ignore,
+    parse_banned_transitive_ignore,
+    repository_path,
+)
+from repomod.dependencies.model import Ecosystem
+from repomod.dependency_roles import Ban, find_ban, load_roles
+from repomod.git import GitError, status
+from repomod.github import UpstreamStatus
+from repomod.io import cache_file, read_toml, safe_relative
+from repomod.run_cache import cached
+from repomod.types import Finding, Repository, Severity
+from repomod.types import operational as _operational
+from repomod.types import violation as _violation
+
+CACHE_TTL_SECONDS = 86400
+DEFAULT_MINIMUM_RELEASE_AGE_MINUTES = 1440
+_OSV_URL = "https://api.osv.dev/v1/querybatch"
+_OSV_BATCH_SIZE = 100
+_NETWORK_TIMEOUT = 30
+
+_BLOATED_RUST = ("dotenv", "url")
+_IGNORED_DIRS = frozenset(
+    {
+        ".git",
+        ".work",
+        ".venv",
+        "__pycache__",
+        "node_modules",
+        "target",
+        "dist",
+        "build",
+        "vendor",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class RegistrySources:
+    cargo: str | None
+    npm: str | None
+    python: str | None
+
+
+_JS_FILESYSTEM_PREFIXES = (
+    "file:",
+    "link:",
+    "portal:",
+    "workspace:",
+    "github:",
+    "gitlab:",
+    "bitbucket:",
+    "git+",
+    "git:",
+    "ssh:",
+    "http:",
+    "https:",
+)
+
+
+def _finding(
+    repository: Repository,
+    rule: str,
+    path: str | None,
+    message: str,
+    *,
+    operational: bool = False,
+    severity: Severity = "error",
+) -> Finding:
+    if operational:
+        return _operational(repository, rule, path, message)
+    return _violation(repository, rule, path, message, severity=severity)
+
+
+def _normalize_python_name(value: str) -> str:
+    return re.sub(r"[-_.]+", "-", value).casefold()
+
+
+def _normalize_rust_name(value: str) -> str:
+    return value.replace("_", "-").casefold()
+
+
+def _rust_role_ban(name: str) -> Ban | None:
+    return find_ban(load_roles(), Ecosystem.CARGO, name)
+
+
+def _is_bloated_rust(name: str) -> bool:
+    normalized = _normalize_rust_name(name)
+    return any(
+        normalized == bloated or normalized.startswith(f"{bloated}-") for bloated in _BLOATED_RUST
+    )
+
+
+def _is_banned_rust(name: str) -> bool:
+    return _is_bloated_rust(name) or _rust_role_ban(name) is not None
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    cleaned = version.strip().removeprefix("v").removeprefix("V")
+    cleaned = cleaned.split("+", 1)[0].split("-", 1)[0]
+    parts: list[int] = []
+    for piece in re.split(r"[.]", cleaned):
+        match = re.match(r"([0-9]+)", piece)
+        if match is None:
+            break
+        parts.append(int(match.group(1)))
+    return tuple(parts) if parts else (0,)
+
+
+def _is_outdated(locked: str, latest: str) -> bool:
+    if locked.strip() == latest.strip():
+        return False
+    left = locked.strip().removeprefix("v").removeprefix("V")
+    right = latest.strip().removeprefix("v").removeprefix("V")
+    if left == right:
+        return False
+    return _version_key(locked) < _version_key(latest)
+
+
+def _is_prerelease(version: str) -> bool:
+    if "-" in version:
+        return True
+    return (
+        re.search(
+            r"(?:[._]|\d)(?:a|alpha|b|beta|c|rc|pre|preview|dev)\d*$",
+            version,
+            re.IGNORECASE,
+        )
+        is not None
+    )
+
+
+def _pep508_name(spec: str) -> str | None:
+    text = spec.strip()
+    if not text or text.startswith("#"):
+        return None
+    direct = re.split(r"\s*;\s*", text, maxsplit=1)[0]
+    if "@" in direct and re.match(r"^[A-Za-z0-9_.-]+\s*[<>=!~]", direct) is None:
+        name, _, _url = direct.partition("@")
+        name = name.strip()
+        return _normalize_python_name(name) if name else None
+    match = re.match(r"^\s*([A-Za-z0-9_.-]+)", direct)
+    return _normalize_python_name(match.group(1)) if match else None
+
+
+def _pep508_is_filesystem(spec: str) -> bool:
+    text = spec.strip()
+    if "@" not in text:
+        return False
+    _, _, url = text.partition("@")
+    url = url.strip().split(";")[0].strip().strip("\"'")
+    lowered = url.casefold()
+    prefixes = ("file:", "git+", "./", "../", "/", "ssh:", "http:", "https:")
+    return lowered.startswith(prefixes) or "://" in lowered
+
+
+_VCS_URL_PREFIXES = ("git+", "hg+", "svn+", "bzr+", "git:")
+
+
+def _pep508_is_git_url(spec: str) -> bool:
+    if "@" not in spec:
+        return False
+    url = spec.partition("@")[2].strip().split(";")[0].strip().strip("\"'")
+    return url.casefold().startswith(_VCS_URL_PREFIXES)
+
+
+_JS_GIT_PREFIXES = ("github:", "gitlab:", "bitbucket:", "git+", "git:", "ssh:")
+
+
+def _js_spec_is_git(spec: str) -> bool:
+    value = spec.strip().casefold()
+    if value.startswith(_JS_GIT_PREFIXES):
+        return True
+    if "://" not in value:
+        return False
+    scheme, _, remainder = value.partition("://")
+    return scheme in {"git", "ssh"} or remainder.split("?", 1)[0].split("#", 1)[0].endswith(".git")
+
+
+def _js_spec_is_filesystem(spec: str) -> bool:
+    value = spec.strip()
+    if value.casefold().startswith(_JS_FILESYSTEM_PREFIXES):
+        return True
+    if value.startswith(("./", "../", "/", "~/", ".")):
+        return True
+    return re.match(r"^[A-Za-z]:[\\/]", value) is not None
+
+
+def _is_relative_js_dependency(root: Path, project: Path, spec: str) -> bool:
+    value = spec.strip()
+    lowered = value.casefold()
+    for prefix in ("workspace:", "portal:", "link:"):
+        if lowered.startswith(prefix):
+            target = value[len(prefix) :].strip()
+            if not target or target == "*" or target.startswith(("^", "~")):
+                return True
+            candidate: Path | None = None
+            try:
+                if target.startswith(("./", "../", "/", "~/")):
+                    candidate = project / target
+                elif re.match(r"^[A-Za-z]:[\\/]", target) is not None:
+                    return False
+            except (OSError, ValueError):
+                return False
+            if candidate is None:
+                return True
+            try:
+                resolved = Path(os.path.normpath(candidate))
+                root_norm = Path(os.path.normpath(root))
+                is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+            except ValueError:
+                return False
+            if not is_inside:
+                return False
+            try:
+                manifest = resolved / "package.json"
+                if resolved.is_file():
+                    return True
+                return manifest.is_file() and not manifest.is_symlink()
+            except OSError:
+                return False
+    if lowered.startswith("file:"):
+        target = value[5:].strip()
+        try:
+            candidate_path = project / target if target else project
+            resolved = Path(os.path.normpath(candidate_path))
+            root_norm = Path(os.path.normpath(root))
+            is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+        except ValueError:
+            return False
+        if not is_inside:
+            return False
+        try:
+            if resolved.is_file():
+                return True
+            manifest = resolved / "package.json"
+            return manifest.is_file() and not manifest.is_symlink()
+        except OSError:
+            return False
+    if value.startswith(("./", "../", "/", "~/", ".")) or re.match(
+        r"^[A-Za-z]:[\\/]", value
+    ) is not None:
+        try:
+            candidate_path = project / value
+            resolved = Path(os.path.normpath(candidate_path))
+            root_norm = Path(os.path.normpath(root))
+            is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+        except ValueError:
+            return False
+        if not is_inside:
+            return False
+        try:
+            if resolved.is_file():
+                return True
+            manifest = resolved / "package.json"
+            return manifest.is_file() and not manifest.is_symlink()
+        except OSError:
+            return False
+    return False
+
+
+def _read_json(path: Path) -> tuple[Any | None, str | None]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), None
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        return None, str(error)
+
+
+def _iter_python_files(root: Path, name: str) -> list[Path]:
+    found: list[Path] = []
+    for directory, child_names, filenames in os.walk(root, followlinks=False):
+        current = Path(directory)
+        child_names[:] = sorted(
+            child
+            for child in child_names
+            if child not in _IGNORED_DIRS and not (current / child).is_symlink()
+        )
+        if name in filenames:
+            candidate = current / name
+            if not candidate.is_symlink():
+                found.append(candidate)
+    return sorted(found)
+
+
+@dataclass(frozen=True, slots=True)
+class RustDependency:
+    name: str
+    manifest: str
+    has_path: bool
+    has_git: bool
+    has_version: bool = False
+    path_value: str | None = None
+    git_value: str | None = None
+    version_req: str | None = None
+    registry: str | None = None
+
+
+def _parse_cargo_version(value: str) -> tuple[int, ...]:
+    cleaned = value.strip().removeprefix("v").removeprefix("V")
+    cleaned = cleaned.split("+", 1)[0].split("-", 1)[0]
+    parts: list[int] = []
+    for piece in re.split(r"[.]", cleaned):
+        match = re.match(r"([0-9]+)", piece)
+        if match is None:
+            break
+        parts.append(int(match.group(1)))
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def _cargo_req_satisfies(req: str | None, version: str) -> bool:
+    if req is None:
+        return True
+    text = req.strip()
+    if not text or text == "*":
+        return True
+    try:
+        candidate = _parse_cargo_version(version)
+    except (ValueError, IndexError):
+        return True
+    for alternative in text.split("||"):
+        alternative = alternative.strip()
+        if not alternative:
+            continue
+        satisfied = True
+        for conjunct in alternative.split(","):
+            part = conjunct.strip()
+            if not part or part == "*":
+                continue
+            operator: str | None = None
+            remainder = part
+            for prefix in ("===", "==", ">=", "<=", "!=", "~=", "~", "^", "=", ">", "<"):
+                if part.startswith(prefix):
+                    operator = prefix
+                    remainder = part[len(prefix) :].strip()
+                    break
+            if operator is None:
+                operator = "^"
+            else:
+                if operator == "===":
+                    operator = "="
+            if not remainder or remainder == "*":
+                continue
+            try:
+                baseline = _parse_cargo_version(remainder)
+            except (ValueError, IndexError):
+                continue
+            if operator == "=":
+                if candidate != baseline:
+                    satisfied = False
+                    break
+            elif operator == "!=":
+                if candidate == baseline:
+                    satisfied = False
+                    break
+            elif operator == ">":
+                if not candidate > baseline:
+                    satisfied = False
+                    break
+            elif operator == ">=":
+                if not candidate >= baseline:
+                    satisfied = False
+                    break
+            elif operator == "<":
+                if not candidate < baseline:
+                    satisfied = False
+                    break
+            elif operator == "<=":
+                if not candidate <= baseline:
+                    satisfied = False
+                    break
+            elif operator in ("~=", "~"):
+                major, minor, _patch = baseline
+                if major > 0:
+                    upper = (major + 1, 0, 0)
+                elif minor > 0:
+                    upper = (0, minor + 1, 0)
+                else:
+                    upper = (0, 0, baseline[2] + 1)
+                if not (candidate >= baseline and candidate < upper):
+                    satisfied = False
+                    break
+            else:
+                major, minor, patch = baseline
+                if major > 0:
+                    upper = (major + 1, 0, 0)
+                elif minor > 0:
+                    upper = (0, minor + 1, 0)
+                elif patch > 0:
+                    upper = (0, 0, patch + 1)
+                else:
+                    upper = (0, 0, 1)
+                if not (candidate >= baseline and candidate < upper):
+                    satisfied = False
+                    break
+        if satisfied:
+            return True
+    return False
+
+
+def _cargo_manifests(root: Path) -> list[Path]:
+    patterns = (
+        "Cargo.toml",
+        "*/Cargo.toml",
+        "crates/*/Cargo.toml",
+        "packages/*/Cargo.toml",
+    )
+    found: set[Path] = set()
+    for pattern in patterns:
+        for match in root.glob(pattern):
+            is_candidate = match.is_file() and not match.is_symlink()
+            if is_candidate and safe_relative(root, match) is not None:
+                found.add(match)
+    for manifest in sorted(found):
+        document, _ = read_toml(manifest)
+        if not isinstance(document, dict):
+            continue
+        workspace = document.get("workspace")
+        if not isinstance(workspace, dict):
+            continue
+        members = workspace.get("members", [])
+        if not isinstance(members, list):
+            continue
+        for member in members:
+            if not isinstance(member, str):
+                continue
+            for candidate in workspace_parent_candidates(manifest, member):
+                is_candidate = candidate.is_file() and not candidate.is_symlink()
+                is_new = candidate not in found
+                is_safe = safe_relative(root, candidate) is not None
+                if is_candidate and is_new and is_safe:
+                    found.add(candidate)
+    return sorted(found)
+
+
+def workspace_parent_candidates(manifest: Path, member: str) -> list[Path]:
+    return list(manifest.parent.glob(f"{member}/Cargo.toml"))
+
+
+def _rust_manifest_dependencies(
+    document: dict[str, Any],
+    relative: str,
+    *,
+    workspace_resolver: Callable[[str], tuple[dict[str, Any] | str, Path | None] | None]
+    | None = None,
+) -> list[RustDependency]:
+    tables: list[dict[str, Any]] = []
+    for key in ("dependencies", "dev-dependencies", "build-dependencies"):
+        value = document.get(key)
+        if isinstance(value, dict):
+            tables.append(value)
+    targets = document.get("target")
+    if isinstance(targets, dict):
+        for target in targets.values():
+            if not isinstance(target, dict):
+                continue
+            for key in ("dependencies", "dev-dependencies", "build-dependencies"):
+                value = target.get(key)
+                if isinstance(value, dict):
+                    tables.append(value)
+    dependencies: list[RustDependency] = []
+    for table in tables:
+        for name, spec in table.items():
+            if name == "package":
+                continue
+            if isinstance(spec, dict):
+                if spec.get("workspace") is True and workspace_resolver is not None:
+                    resolved = workspace_resolver(name)
+                    if resolved is not None:
+                        workspace_spec, workspace_dir = resolved
+                        if isinstance(workspace_spec, str):
+                            dependencies.append(
+                                RustDependency(
+                                    name, relative, False, False, True, version_req=workspace_spec
+                                )
+                            )
+                            continue
+                        real = workspace_spec.get("package", name)
+                        real_name = real if isinstance(real, str) else name
+                        has_path = "path" in spec or "path" in workspace_spec
+                        has_git = "git" in spec or "git" in workspace_spec
+                        has_version = "version" in spec or "version" in workspace_spec
+                        raw_path = spec.get("path", workspace_spec.get("path"))
+                        raw_git = spec.get("git", workspace_spec.get("git"))
+                        raw_version = spec.get("version", workspace_spec.get("version"))
+                        path_value = raw_path if isinstance(raw_path, str) else None
+                        git_value = raw_git if isinstance(raw_git, str) else None
+                        version_req = raw_version if isinstance(raw_version, str) else None
+                        if (
+                            path_value is not None
+                            and workspace_dir is not None
+                            and not os.path.isabs(path_value)
+                        ):
+                            try:
+                                absolute = os.path.normpath(
+                                    os.path.join(str(workspace_dir), path_value)
+                                )
+                                manifest_parent = os.path.normpath(
+                                    str(Path(relative).parent)
+                                )
+                                if manifest_parent == ".":
+                                    manifest_parent = ""
+                                rel = os.path.relpath(absolute, start=".")
+                                if manifest_parent:
+                                    rel = os.path.relpath(absolute, start=manifest_parent)
+                                path_value = rel
+                            except (OSError, ValueError):
+                                pass
+                        dependencies.append(
+                            RustDependency(
+                                name=real_name,
+                                manifest=relative,
+                                has_path=has_path,
+                                has_git=has_git,
+                                has_version=has_version,
+                                path_value=path_value,
+                                git_value=git_value,
+                                version_req=version_req,
+                                registry=(workspace_spec.get("registry")
+                                          if isinstance(workspace_spec.get("registry"), str) else None),
+                            )
+                        )
+                        continue
+                real = spec.get("package", name)
+                real_name = real if isinstance(real, str) else name
+                raw_path = spec.get("path")
+                raw_git = spec.get("git")
+                raw_version = spec.get("version")
+                dependencies.append(
+                    RustDependency(
+                        name=real_name,
+                        manifest=relative,
+                        has_path="path" in spec,
+                        has_git="git" in spec,
+                        has_version="version" in spec,
+                        path_value=raw_path if isinstance(raw_path, str) else None,
+                        git_value=raw_git if isinstance(raw_git, str) else None,
+                        version_req=raw_version if isinstance(raw_version, str) else None,
+                        registry=spec.get("registry") if isinstance(spec.get("registry"), str) else None,
+                    )
+                )
+            elif isinstance(spec, str):
+                dependencies.append(
+                    RustDependency(name, relative, False, False, True, version_req=spec)
+                )
+    return dependencies
+
+
+def _rust_direct_dependencies(root: Path) -> tuple[list[RustDependency], list[str]]:
+    manifests = _cargo_manifests(root)
+    documents: dict[Path, dict[str, Any]] = {}
+    problems: list[str] = []
+    for manifest in manifests:
+        relative = manifest.relative_to(root).as_posix()
+        document, error = read_toml(manifest)
+        if document is None:
+            problems.append(f"{relative}: {error}")
+            continue
+        documents[manifest] = document
+    workspace_tables: dict[Path, dict[str, Any]] = {}
+    for manifest, document in documents.items():
+        workspace = document.get("workspace")
+        if not isinstance(workspace, dict):
+            continue
+        dependencies = workspace.get("dependencies")
+        if isinstance(dependencies, dict):
+            workspace_tables[manifest.parent] = dependencies
+
+    def make_resolver(
+        manifest: Path,
+    ) -> Callable[[str], tuple[dict[str, Any] | str, Path | None] | None]:
+        def resolve(
+            dep_key: str,
+        ) -> tuple[dict[str, Any] | str, Path | None] | None:
+            current = manifest.parent
+            root_norm = Path(os.path.normpath(root))
+            while True:
+                table = workspace_tables.get(current)
+                if table is not None and dep_key in table:
+                    spec = table[dep_key]
+                    if isinstance(spec, (dict, str)):
+                        return spec, current
+                if current == root_norm:
+                    break
+                try:
+                    if not current.is_relative_to(root_norm):
+                        break
+                except ValueError:
+                    break
+                parent = current.parent
+                if parent == current:
+                    break
+                current = parent
+            return None
+
+        return resolve
+
+    dependencies: list[RustDependency] = []
+    for manifest in manifests:
+        document = documents.get(manifest)
+        if document is None:
+            continue
+        relative = manifest.relative_to(root).as_posix()
+        dependencies.extend(
+            _rust_manifest_dependencies(
+                document, relative, workspace_resolver=make_resolver(manifest)
+            )
+        )
+    return dependencies, problems
+
+
+def _locked_versions(lock: Path, normalize: Callable[[str], str]) -> tuple[dict[str, str], str | None]:
+    versions, error = _locked_all_versions(lock, normalize)
+    return {name: values[0] for name, values in versions.items() if values}, error
+
+
+def _locked_all_versions(
+    lock: Path, normalize: Callable[[str], str]
+) -> tuple[dict[str, list[str]], str | None]:
+    if not lock.is_file() or lock.is_symlink():
+        return {}, None
+    document, error = read_toml(lock)
+    if document is None:
+        return {}, error
+    locked: dict[str, list[str]] = {}
+    packages = document.get("package")
+    if isinstance(packages, list):
+        for package in packages:
+            if not isinstance(package, dict):
+                continue
+            name = package.get("name")
+            version = package.get("version")
+            if isinstance(name, str) and isinstance(version, str):
+                locked.setdefault(normalize(name), []).append(version)
+    return locked, None
+
+
+def _cargo_locked_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return _locked_all_versions(root / "Cargo.lock", _normalize_rust_name)
+
+
+def _cargo_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
+    return _locked_versions(root / "Cargo.lock", _normalize_rust_name)
+
+
+def _uv_locked_versions(root: Path) -> tuple[dict[str, str], str | None]:
+    return _locked_versions(root / "uv.lock", _normalize_python_name)
+
+
+def _uv_locked_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return _locked_all_versions(root / "uv.lock", _normalize_python_name)
+
+
+def _python_direct_specs(root: Path) -> tuple[list[str], dict[str, Any] | None, str | None]:
+    manifest = root / "pyproject.toml"
+    if not manifest.is_file() or manifest.is_symlink():
+        return [], None, None
+    document, error = read_toml(manifest)
+    if document is None:
+        return [], None, error
+    specs: list[str] = []
+    project = document.get("project")
+    if isinstance(project, dict):
+        dependencies = project.get("dependencies")
+        if isinstance(dependencies, list):
+            specs.extend(item for item in dependencies if isinstance(item, str))
+        optional = project.get("optional-dependencies")
+        if isinstance(optional, dict):
+            for values in optional.values():
+                if isinstance(values, list):
+                    specs.extend(item for item in values if isinstance(item, str))
+    groups = document.get("dependency-groups")
+    if isinstance(groups, dict):
+        for values in groups.values():
+            if isinstance(values, list):
+                specs.extend(item for item in values if isinstance(item, str))
+    return specs, document, None
+
+
+def _js_direct_dependencies(root: Path) -> dict[str, str]:
+    manifest = root / "package.json"
+    if not manifest.is_file() or manifest.is_symlink():
+        return {}
+    package, _ = _read_json(manifest)
+    if not isinstance(package, dict):
+        return {}
+    sections = ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies")
+    return {
+        name: spec
+        for section in sections
+        if isinstance(package.get(section), dict)
+        for name, spec in package.get(section).items()
+        if isinstance(name, str) and isinstance(spec, str)
+    }
+
+
+def _js_project_roots(root: Path) -> list[Path]:
+    projects: list[Path] = []
+    manifest = root / "package.json"
+    if manifest.is_file() and not manifest.is_symlink():
+        projects.append(root)
+    try:
+        children = sorted(root.iterdir(), key=lambda item: item.name)
+    except OSError:
+        return projects
+    for child in children:
+        if child.is_symlink() or not child.is_dir() or child.name in _IGNORED_DIRS:
+            continue
+        nested = child / "package.json"
+        is_manifest = nested.is_file() and not nested.is_symlink()
+        if is_manifest and safe_relative(root, nested) is not None:
+            projects.append(child)
+    return projects
+
+
+def _read_text_if_regular(path: Path) -> str | None:
+    if not path.is_file() or path.is_symlink():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return None
+
+
+def _read_pnpm_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    lock = root / "pnpm-lock.yaml"
+    if not lock.is_file() or lock.is_symlink():
+        return {}, None
+    try:
+        source = lock.read_text(encoding="utf-8")
+        documents = list(YAML(typ="safe").load_all(source))
+    except (OSError, UnicodeError, YAMLError) as error:
+        return {}, str(error)
+    if not documents or any(not isinstance(document, dict) for document in documents):
+        return {}, "lockfile must contain mappings"
+    versions: dict[str, list[str]] = {}
+    for document in documents:
+        for section in ("packages", "snapshots"):
+            entries = document.get(section, {})
+            if not isinstance(entries, dict):
+                return {}, f"{section} must be a mapping"
+            for key in entries:
+                if not isinstance(key, str):
+                    return {}, f"{section} keys must be package references"
+                name, separator, version = key.split("(", 1)[0].rpartition("@")
+                if not separator or not name or re.fullmatch(r"[0-9][^()\s]*", version) is None:
+                    continue
+                values = versions.setdefault(name, [])
+                if version not in values:
+                    values.append(version)
+    return versions, None
+
+
+def _pnpm_all_versions(root: Path) -> tuple[dict[str, list[str]], str | None]:
+    return cached(("audit_pnpm_versions", root), lambda: _read_pnpm_all_versions(root))
+
+
+def _pnpm_locked_versions(root: Path) -> dict[str, str]:
+    source = _read_text_if_regular(root / "pnpm-lock.yaml")
+    if source is None:
+        return {}
+    locked: dict[str, str] = {}
+    in_importers = False
+    active = False
+    current: str | None = None
+    for line in source.splitlines():
+        if line == "importers:":
+            in_importers = True
+            active = False
+            current = None
+            continue
+        if line in {"packages:", "snapshots:", "settings:"}:
+            in_importers = False
+            active = False
+            current = None
+            continue
+        if not in_importers:
+            continue
+        section = re.match(r"^    ([^ :]+):\s*$", line)
+        if section is not None:
+            active = section.group(1) in {
+                "dependencies",
+                "devDependencies",
+                "optionalDependencies",
+                "peerDependencies",
+            }
+            current = None
+            continue
+        package_match = re.match(r"^      (.+):\s*$", line)
+        if package_match is not None and active:
+            raw_name = package_match.group(1).strip().strip("\"'")
+            current = raw_name if isinstance(raw_name, str) else None
+            continue
+        version_match = re.match(r"^        version:\s*(.+?)\s*$", line)
+        if version_match is not None and current is not None and active:
+            raw = version_match.group(1).strip().strip("\"'")
+            assert isinstance(raw, str)
+            base = re.split(r"[()]", raw, maxsplit=1)[0].strip()
+            full = re.match(r"(\d+\.\d+\.\d+[^()\s]*)", base)
+            simple = re.match(r"(\d+\.[0-9]+(?:\.[0-9]+)?)", base)
+            if full is not None:
+                locked.setdefault(current, full.group(1))
+            elif simple is not None:
+                locked.setdefault(current, simple.group(1))
+    if locked:
+        return locked
+    versions, _ = _pnpm_all_versions(root)
+    return {name: values[0] for name, values in versions.items()}
+
+
+@dataclass(frozen=True, slots=True)
+class ReleasePolicy:
+    minimum_age_minutes: int
+    exempt: tuple[str, ...] = ()
+
+    def exempts(self, name: str, version: str) -> bool:
+        for entry in self.exempt:
+            package, separator, versions = entry.rpartition("@")
+            if not separator or not package:
+                package, versions = entry, ""
+            if not fnmatch.fnmatchcase(name, package):
+                continue
+            if not versions:
+                return True
+            if version in {item.strip() for item in versions.split("||")}:
+                return True
+        return False
+
+
+def _unquote(value: str) -> str:
+    return value.strip().strip("\"'")
+
+
+def _pnpm_workspace_policy(source: str) -> tuple[int | None, tuple[str, ...]]:
+    minimum_age: int | None = None
+    exempt: list[str] = []
+    in_exempt = False
+    for line in source.splitlines():
+        if in_exempt:
+            item = re.match(r"^\s+-\s+(.+?)\s*$", line)
+            if item is not None:
+                exempt.append(_unquote(item.group(1)))
+                continue
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            in_exempt = False
+        age = re.match(r"^minimumReleaseAge:\s*(.*?)\s*(?:#.*)?$", line)
+        if age is not None:
+            minimum_age = _parse_minutes(age.group(1), "minimumReleaseAge")
+        elif re.match(r"^minimumReleaseAgeExclude:\s*$", line):
+            in_exempt = True
+    return minimum_age, tuple(exempt)
+
+
+def _npmrc_minimum_age(source: str) -> int | None:
+    for line in source.splitlines():
+        match = re.match(r"^\s*minimum-release-age\s*=\s*(.*?)\s*$", line)
+        if match is not None:
+            return _parse_minutes(match.group(1), "minimum-release-age")
+    return None
+
+
+def _parse_minutes(value: str, setting: str) -> int:
+    text = _unquote(value)
+    if re.fullmatch(r"[0-9]+", text) is None:
+        raise ValueError(f"{setting} must be a whole number of minutes, got {value!r}")
+    return int(text)
+
+
+def _js_release_policy(root: Path, project: Path) -> ReleasePolicy:
+    directories = [project] if project == root else [project, root]
+    workspace_age: int | None = None
+    exempt: tuple[str, ...] = ()
+    for directory in directories:
+        source = _read_text_if_regular(directory / "pnpm-workspace.yaml")
+        if source is not None:
+            workspace_age, exempt = _pnpm_workspace_policy(source)
+            break
+    npmrc_age: int | None = None
+    for directory in directories:
+        source = _read_text_if_regular(directory / ".npmrc")
+        if source is not None:
+            npmrc_age = _npmrc_minimum_age(source)
+            if npmrc_age is not None:
+                break
+    minimum_age = next(
+        (age for age in (workspace_age, npmrc_age) if age is not None),
+        DEFAULT_MINIMUM_RELEASE_AGE_MINUTES,
+    )
+    return ReleasePolicy(minimum_age, exempt)
+
+
+def _go_requirements(root: Path) -> tuple[dict[str, str], dict[str, bool]]:
+    source = _read_text_if_regular(root / "go.mod")
+    if source is None:
+        return {}, {}
+    locked: dict[str, str] = {}
+    direct: dict[str, bool] = {}
+    in_require = False
+    for line in source.splitlines():
+        code = line.split("//", 1)[0].strip()
+        if not code:
+            continue
+        if code.startswith("require ("):
+            in_require = True
+            continue
+        if in_require and code == ")":
+            in_require = False
+            continue
+        match = re.match(r"^require\s+(\S+)\s+(\S+)", code)
+        if match is not None:
+            locked[match.group(1)] = match.group(2)
+            direct[match.group(1)] = "// indirect" not in line
+            continue
+        if in_require:
+            parts = code.split()
+            if len(parts) >= 2:
+                locked[parts[0]] = parts[1]
+                direct[parts[0]] = "// indirect" not in line
+    return locked, direct
+
+
+def _go_replace_filesystem(root: Path) -> list[str]:
+    source = _read_text_if_regular(root / "go.mod")
+    if source is None:
+        return []
+    offenders: list[str] = []
+    for line in source.splitlines():
+        code = line.split("//", 1)[0]
+        if "=>" not in code:
+            continue
+        _, _, target = code.partition("=>")
+        fields = target.strip().split()
+        if not fields:
+            continue
+        candidate = fields[0].strip().strip("\"'")
+        if candidate.startswith(("./", "../", "/")) or candidate in {".", ".."}:
+            offenders.append(line.strip())
+    return offenders
+
+
+def _audit_cache_path() -> Path:
+    return cache_file("audit.json")
+
+
+def _read_cache(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _write_cache(path: Path, data: dict[str, Any]) -> None:
+    atomic_write(path, json.dumps(data, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+_AUDIT_CACHE_LOCK = threading.Lock()
+
+
+@contextlib.contextmanager
+def audit_cache() -> Generator[dict[str, Any]]:
+    with _AUDIT_CACHE_LOCK:
+        cache = _read_cache(_audit_cache_path())
+        if not isinstance(cache.get("latest"), dict):
+            cache["latest"] = {}
+        if not isinstance(cache.get("osv"), dict):
+            cache["osv"] = {}
+        yield cache
+        with contextlib.suppress(OSError):
+            _write_cache(_audit_cache_path(), cache)
+
+
+def _cache_fresh(fetched_at: Any, now: float) -> bool:
+    if not isinstance(fetched_at, (int, float)) or isinstance(fetched_at, bool):
+        return False
+    if not math.isfinite(float(fetched_at)):
+        return False
+    return now - float(fetched_at) < CACHE_TTL_SECONDS
+
+
+def _http_json(url: str, headers: dict[str, str] | None = None) -> Any | None:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "repomod", **(headers or {})}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+
+
+def _http_text(url: str, headers: dict[str, str] | None = None) -> str | None:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "repomod", **(headers or {})}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            return str(response.read().decode("utf-8"))
+    except (OSError, UnicodeError):
+        return None
+
+
+def _non_empty_str(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _registry_document(url: str, headers: dict[str, str] | None = None) -> dict[str, Any] | None:
+    data = _http_json(url, headers)
+    return data if isinstance(data, dict) else None
+
+
+def _latest_pypi(name: str, index: str | None = None) -> str | None:
+    if index is None:
+        encoded = urllib.parse.quote(name, safe="")
+        document = _registry_document(f"https://pypi.org/pypi/{encoded}/json")
+        if document is None:
+            return None
+        info = document.get("info")
+        if not isinstance(info, dict):
+            return None
+        return _non_empty_str(info.get("version"))
+    normalized = _normalize_python_name(name)
+    text = _http_text(f"{index.rstrip('/')}/{normalized}/")
+    if text is None:
+        return None
+    versions = _pypi_simple_versions(text, normalized)
+    if not versions:
+        return None
+    stable = [version for version in versions if not _is_prerelease(version)]
+    return max(stable or versions, key=_version_key)
+
+
+def _pypi_simple_versions(text: str, normalized: str) -> set[str]:
+    versions: set[str] = set()
+    for filename in re.findall(r"<a\s[^>]*>([^<]+)</a>", text, re.IGNORECASE):
+        stem = filename.strip()
+        for suffix in (".tar.gz", ".tar.bz2", ".tar.xz", ".zip", ".whl", ".tgz"):
+            if stem.lower().endswith(suffix):
+                stem = stem[: -len(suffix)]
+                break
+        match = re.match(r"^(.+?)-(\d[^-]*)", stem)
+        if match is None or _normalize_python_name(match.group(1)) != normalized:
+            continue
+        versions.add(match.group(2))
+    return versions
+
+
+def _npm_latest(document: dict[str, Any]) -> str | None:
+    tags = document.get("dist-tags")
+    latest = _non_empty_str(tags.get("latest")) if isinstance(tags, dict) else None
+    if latest is not None:
+        return latest
+    versions = document.get("versions")
+    if not isinstance(versions, dict) or not versions:
+        return None
+    names = [name for name in versions if isinstance(name, str)]
+    stable = [name for name in names if not _is_prerelease(name)]
+    return max(stable or names, key=_version_key)
+
+
+def _latest_npm(name: str, registry: str | None = None) -> str | None:
+    encoded = urllib.parse.quote(name, safe="@")
+    if registry is None:
+        document = _registry_document(f"https://registry.npmjs.org/{encoded}/latest")
+        if document is None:
+            return None
+        return _non_empty_str(document.get("version"))
+    document = _registry_document(f"{registry.rstrip('/')}/{encoded}")
+    if document is None:
+        return None
+    return _npm_latest(document)
+
+
+def _cargo_index_path(name: str) -> str:
+    normalized = name.casefold()
+    if len(normalized) == 1:
+        return f"1/{normalized}"
+    if len(normalized) == 2:
+        return f"2/{normalized}"
+    if len(normalized) == 3:
+        return f"3/{normalized[0]}/{normalized}"
+    return f"{normalized[:2]}/{normalized[2:4]}/{normalized}"
+
+
+def _cargo_index_records(name: str, index: str) -> list[dict[str, Any]] | None:
+    base = index.removeprefix("sparse+")
+    text = _http_text(f"{base.rstrip('/')}/{_cargo_index_path(name)}")
+    if text is None:
+        return None
+    records: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(record, dict) and isinstance(record.get("vers"), str):
+            records.append(record)
+    return records or None
+
+
+def _latest_crates(name: str, index: str | None = None) -> str | None:
+    if index is not None:
+        records = _cargo_index_records(name, index)
+        if records is None:
+            return None
+        normalized = _normalize_rust_name(name)
+        records = [
+            record
+            for record in records
+            if _normalize_rust_name(str(record.get("name", ""))) == normalized
+        ]
+        if not records:
+            return None
+        available = [record for record in records if not record.get("yanked")]
+        stable = [record for record in available if not _is_prerelease(record["vers"])]
+        candidates = stable or available
+        if not candidates:
+            return None
+        newest = max(candidates, key=lambda record: _version_key(str(record.get("vers"))))
+        version = newest.get("vers")
+        return version if isinstance(version, str) else None
+    document = _crates_document(f"{_CRATES_API}/{urllib.parse.quote(name, safe='')}")
+    if document is None:
+        return None
+    crate = document.get("crate")
+    if not isinstance(crate, dict):
+        return None
+    for key in ("max_stable_version", "max_version"):
+        version = _non_empty_str(crate.get(key))
+        if version is not None:
+            return version
+    return None
+
+
+def _fetch_crate_release(
+    name: str, version: str, index: str | None = None
+) -> dict[str, Any] | None:
+    if index is not None:
+        records = _cargo_index_records(name, index)
+        if records is None:
+            return None
+        normalized = _normalize_rust_name(name)
+        for record in records:
+            if (
+                _normalize_rust_name(str(record.get("name", ""))) != normalized
+                or record.get("vers") != version
+            ):
+                continue
+            entries = record.get("deps")
+            if not isinstance(entries, list):
+                return None
+            requirements = [
+                [entry.get("package") or entry["name"], entry["req"]]
+                for entry in entries
+                if isinstance(entry, dict)
+                and entry.get("kind") in {"normal", "build"}
+                and not entry.get("optional")
+                and isinstance(entry.get("name"), str)
+                and isinstance(entry.get("req"), str)
+            ]
+            return {
+                "rust_version": _non_empty_str(record.get("rust_version")),
+                "requirements": requirements,
+            }
+        return None
+    base = f"{_CRATES_API}/{urllib.parse.quote(name, safe='')}/{urllib.parse.quote(version, safe='')}"
+    try:
+        release = _crates_document(base)
+        dependencies = _crates_document(f"{base}/dependencies")
+    except RegistryRateLimitedError:
+        return None
+    if release is None or dependencies is None:
+        return None
+    detail = release.get("version")
+    entries = dependencies.get("dependencies")
+    if not isinstance(detail, dict) or not isinstance(entries, list):
+        return None
+    requirements = [
+        [entry["crate_id"], entry["req"]]
+        for entry in entries
+        if isinstance(entry, dict)
+        and entry.get("kind") in {"normal", "build"}
+        and not entry.get("optional")
+        and isinstance(entry.get("crate_id"), str)
+        and isinstance(entry.get("req"), str)
+    ]
+    return {"rust_version": _non_empty_str(detail.get("rust_version")), "requirements": requirements}
+
+
+def _crate_release(
+    name: str,
+    version: str,
+    *,
+    cache: dict[str, Any],
+    now: float,
+    cargo_source: str | None = None,
+) -> dict[str, Any] | None:
+    entries = cache.get("crate_releases")
+    if not isinstance(entries, dict):
+        entries = {}
+        cache["crate_releases"] = entries
+    source = cargo_source or "public"
+    key = f"{source}:{name.casefold()}:{version}"
+    entry = entries.get(key)
+    if (
+        isinstance(entry, dict)
+        and isinstance(entry.get("release"), dict)
+        and _cache_fresh(entry.get("fetched_at"), now)
+    ):
+        return entry["release"]
+    release = _fetch_crate_release(name, version, cargo_source)
+    if release is not None:
+        entries[key] = {"release": release, "fetched_at": now}
+    return release
+
+
+def _escape_go_module(path: str) -> str:
+    return "".join(
+        f"!{character.lower()}" if character.isupper() else character for character in path
+    )
+
+
+def _latest_go(module: str) -> str | None:
+    encoded = "/".join(
+        urllib.parse.quote(part, safe="") for part in _escape_go_module(module).split("/")
+    )
+    document = _registry_document(f"https://proxy.golang.org/{encoded}/@latest")
+    if document is None:
+        return None
+    return _non_empty_str(document.get("Version"))
+
+
+class SourceLookupError(RuntimeError):
+    pass
+
+
+def _url_candidates(*values: object) -> tuple[str, ...]:
+    found: list[str] = []
+    for value in values:
+        url = value.get("url") if isinstance(value, dict) else value
+        if isinstance(url, str) and url.strip() and url.strip() not in found:
+            found.append(url.strip())
+    return tuple(found)
+
+
+_CRATES_API = "https://crates.io/api/v1/crates"
+_CRATES_BATCH = 50
+_CRATES_INTERVAL = 1.0
+_CRATES_BACKOFF = 2.0
+_CRATES_BACKOFF_MAX = 60.0
+_CRATES_PATIENCE = 1800.0
+_RATE_LIMITED = frozenset({429, 503})
+
+
+class RegistryRateLimitedError(RuntimeError):
+    pass
+
+
+class _ThrottledError(Exception):
+    def __init__(self, retry_after: float | None) -> None:
+        super().__init__("throttled")
+        self.retry_after = retry_after
+
+
+class _Pacer:
+    """Serializes requests to one host at a fixed minimum interval, across threads."""
+
+    def __init__(
+        self,
+        interval: float,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self._interval = interval
+        self._clock = clock
+        self._sleep = sleep
+        self._lock = threading.Lock()
+        self._next = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            delay = self._next - self._clock()
+            if delay > 0:
+                self._sleep(delay)
+            self._next = self._clock() + self._interval
+
+    def hold(self, seconds: float) -> None:
+        with self._lock:
+            self._next = max(self._next, self._clock() + seconds)
+
+
+_CRATES_PACER = _Pacer(_CRATES_INTERVAL)
+
+
+@dataclass(frozen=True, slots=True)
+class CrateRecord:
+    latest: str | None
+    urls: tuple[str, ...]
+
+
+def _retry_after(value: str | None) -> float | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if text.isdigit():
+        return float(text)
+    try:
+        moment = email.utils.parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, moment.timestamp() - time.time())
+
+
+def _crates_fetch(url: str) -> dict[str, Any] | None:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "repomod", "Accept": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        if error.code in _RATE_LIMITED:
+            raise _ThrottledError(_retry_after(error.headers.get("Retry-After"))) from error
+        return None
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _crates_document(url: str) -> dict[str, Any] | None:
+    """Fetch a crates.io API document, paced and retried through rate limits.
+
+    crates.io allows one request per second from crawlers. Throttled requests wait for
+    Retry-After, or back off exponentially, and raise RegistryRateLimitedError only after
+    waiting longer than _CRATES_PATIENCE in total.
+    """
+    waited = 0.0
+    backoff = _CRATES_BACKOFF
+    while True:
+        _CRATES_PACER.wait()
+        try:
+            return _crates_fetch(url)
+        except _ThrottledError as throttled:
+            if throttled.retry_after is not None:
+                pause = max(throttled.retry_after, _CRATES_INTERVAL)
+            else:
+                pause = backoff
+                backoff = min(backoff * 2, _CRATES_BACKOFF_MAX)
+            if waited + pause > _CRATES_PATIENCE:
+                raise RegistryRateLimitedError(
+                    f"crates.io kept rate limiting requests after {waited:.0f}s of backoff"
+                ) from None
+            waited += pause
+            print(f"crates.io is rate limiting; retrying in {pause:.0f}s", file=sys.stderr, flush=True)
+            _CRATES_PACER.hold(pause)
+
+
+def resolve_crates(names: list[str]) -> dict[str, CrateRecord | None]:
+    """Read public crates.io records in batches.
+
+    None means crates.io does not publish the crate. Names in a batch that failed for a
+    reason other than rate limiting are omitted so a later run retries them.
+    Raises RegistryRateLimitedError when crates.io keeps throttling past the backoff budget.
+    """
+    found: dict[str, CrateRecord | None] = {}
+    unique = sorted(set(names))
+    for start in range(0, len(unique), _CRATES_BATCH):
+        batch = unique[start : start + _CRATES_BATCH]
+        query = urllib.parse.urlencode(
+            [("per_page", str(_CRATES_BATCH)), *(("ids[]", name) for name in batch)]
+        )
+        document = _crates_document(f"{_CRATES_API}?{query}")
+        crates = document.get("crates") if document is not None else None
+        if not isinstance(crates, list):
+            continue
+        listed = {
+            _normalize_rust_name(str(crate.get("id", ""))): crate
+            for crate in crates
+            if isinstance(crate, dict)
+        }
+        for name in batch:
+            crate = listed.get(_normalize_rust_name(name))
+            found[name] = (
+                CrateRecord(
+                    _non_empty_str(crate.get("max_stable_version")) or _non_empty_str(crate.get("max_version")),
+                    _url_candidates(crate.get("repository"), crate.get("homepage")),
+                )
+                if crate is not None
+                else None
+            )
+    return found
+
+
+def _published_document(url: str) -> dict[str, Any] | None:
+    """Return the document, or None when the registry does not publish the package."""
+    request = urllib.request.Request(url, headers={"User-Agent": "repomod"})
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise SourceLookupError(f"{url} returned HTTP {error.code}") from error
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise SourceLookupError(f"{url} could not be read") from error
+    if not isinstance(data, dict):
+        raise SourceLookupError(f"{url} returned malformed data")
+    return data
+
+
+def _source_npm(name: str) -> tuple[str, ...]:
+    document = _published_document(f"https://registry.npmjs.org/{urllib.parse.quote(name, safe='@')}/latest")
+    if document is None:
+        return ()
+    return _url_candidates(document.get("repository"), document.get("homepage"))
+
+
+def _source_pypi(name: str) -> tuple[str, ...]:
+    document = _published_document(f"https://pypi.org/pypi/{urllib.parse.quote(name, safe='')}/json")
+    if document is None:
+        return ()
+    info = document.get("info")
+    if not isinstance(info, dict):
+        raise SourceLookupError(f"PyPI returned malformed data for {name}")
+    project_urls = info.get("project_urls")
+    links = list(project_urls.values()) if isinstance(project_urls, dict) else []
+    return _url_candidates(*links, info.get("home_page"))
+
+
+class MirrorCatalogError(RuntimeError):
+    pass
+
+
+def mirror_catalog_url(registry_url: str) -> str:
+    parts = urllib.parse.urlsplit(registry_url.removeprefix("sparse+"))
+    return f"{parts.scheme}://{parts.netloc}/current/catalog.json"
+
+
+def read_mirror_catalog(registry_url: str) -> dict[str, tuple[str, ...]]:
+    """Return package name to served versions from the stuff catalog behind a registry URL."""
+    url = mirror_catalog_url(registry_url)
+    document = _registry_document(url)
+    packages = document.get("packages") if document is not None else None
+    if not isinstance(packages, list):
+        raise MirrorCatalogError(f"{url} could not be read")
+    served: dict[str, set[str]] = {}
+    for package in packages:
+        if not isinstance(package, dict) or not isinstance(package.get("name"), str):
+            continue
+        versions = package.get("versions")
+        served.setdefault(package["name"], set()).update(
+            version["version"]
+            for version in (versions if isinstance(versions, list) else [])
+            if isinstance(version, dict) and isinstance(version.get("version"), str)
+        )
+    return {name: tuple(sorted(versions)) for name, versions in served.items()}
+
+
+_SOURCE_FETCHERS: dict[str, Callable[[str], tuple[str, ...]]] = {
+    "npm": _source_npm,
+    "pypi": _source_pypi,
+}
+
+
+def resolve_source_urls(
+    packages: list[tuple[str, str]],
+    *,
+    fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
+) -> dict[tuple[str, str], tuple[str, ...]]:
+    """Return the public npm or PyPI repository and homepage URLs for each package.
+
+    Packages whose lookup fails are omitted so a later run retries them; a package
+    the registry does not publish or lists no URLs for maps to an empty tuple.
+    Crates use resolve_crates.
+    """
+    resolved: dict[tuple[str, str], tuple[str, ...]] = {}
+    lookups: dict[tuple[str, str], Callable[[], tuple[str, ...]]] = {}
+    for ecosystem, name in packages:
+        if fetcher is not None:
+            lookups[(ecosystem, name)] = lambda ecosystem=ecosystem, name=name: fetcher(ecosystem, name)
+        elif (impl := _SOURCE_FETCHERS.get(ecosystem)) is not None:
+            lookups[(ecosystem, name)] = lambda impl=impl, name=name: impl(name)
+    if not lookups:
+        return resolved
+    with ThreadPoolExecutor(max_workers=min(8, len(lookups)), thread_name_prefix="repomod-source") as pool:
+        futures = {pool.submit(lookup): key for key, lookup in lookups.items()}
+        for future in as_completed(futures):
+            try:
+                resolved[futures[future]] = future.result()
+            except SourceLookupError:
+                continue
+    return resolved
+
+
+_LATEST_FETCHERS: dict[str, Callable[[str], str | None]] = {
+    "pypi": _latest_pypi,
+    "npm": _latest_npm,
+    "crates": _latest_crates,
+    "go": _latest_go,
+}
+
+
+def _latest_source(ecosystem: str, sources: RegistrySources | None) -> str:
+    if sources is None:
+        return "public"
+    value = {
+        "crates": sources.cargo,
+        "npm": sources.npm,
+        "pypi": sources.python,
+        "go": "https://proxy.golang.org",
+    }.get(ecosystem)
+    return value or "public"
+
+
+def _latest_cache_key(ecosystem: str, source: str, name: str, locked: str) -> str:
+    if source == "public":
+        return f"{ecosystem}:{name.casefold()}:{locked}"
+    return f"{ecosystem}:{source}:{name.casefold()}:{locked}"
+
+
+def _mirror_fetcher(
+    ecosystem: str, sources: RegistrySources
+) -> Callable[[str], str | None] | None:
+    if ecosystem == "crates":
+        return lambda name: _latest_crates(name, sources.cargo)
+    if ecosystem == "npm":
+        return lambda name: _latest_npm(name, sources.npm)
+    if ecosystem == "pypi":
+        return lambda name: _latest_pypi(name, sources.python)
+    if ecosystem == "go":
+        return _latest_go
+    return None
+
+_OSV_ECOSYSTEMS = {
+    "pypi": "PyPI",
+    "npm": "npm",
+    "crates": "crates.io",
+    "go": "Go",
+}
+
+
+class VulnerabilityLookupError(RuntimeError):
+    pass
+
+
+def _validated_vulns(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+    result: list[dict[str, Any]] = []
+    for vuln in cast(list[object], value):
+        if not isinstance(vuln, dict):
+            raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+        row = cast(dict[str, Any], vuln)
+        if not isinstance(row.get("id"), str) or not row["id"]:
+            raise VulnerabilityLookupError("OSV returned malformed vulnerability data")
+        result.append(row)
+    return result
+
+
+def osv_query_batch(queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    results: list[list[dict[str, Any]]] = []
+    for offset in range(0, len(queries), _OSV_BATCH_SIZE):
+        batch = queries[offset : offset + _OSV_BATCH_SIZE]
+        try:
+            request = urllib.request.Request(
+                _OSV_URL,
+                data=json.dumps({"queries": batch}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "User-Agent": "repomod"},
+            )
+            with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise VulnerabilityLookupError("OSV request failed") from error
+        entries = payload.get("results") if isinstance(payload, dict) else None
+        if not isinstance(entries, list) or len(entries) != len(batch):
+            raise VulnerabilityLookupError("OSV returned an unexpected number of results")
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("next_page_token") or "error" in entry:
+                raise VulnerabilityLookupError("OSV returned an incomplete or malformed result")
+            results.append(_validated_vulns(entry.get("vulns", [])))
+    return results
+
+
+@dataclass(slots=True)
+class LockedDependency:
+    ecosystem: str
+    name: str
+    locked: str
+    direct: bool = True
+    release_policy: ReleasePolicy | None = None
+
+
+@dataclass(slots=True)
+class AuditOutcome:
+    repository: str
+    findings: list[Finding] = field(default_factory=list)
+    fixed: list[str] = field(default_factory=list)
+    fix_errors: list[str] = field(default_factory=list)
+
+
+def _has_ecosystem(tags: set[str], root: Path, manifest: str, *names: str) -> bool:
+    return bool(tags.intersection(names)) or (root / manifest).is_file()
+
+
+def _collect_locked(
+    root: Path, repository: Repository
+) -> tuple[list[LockedDependency], list[Finding]]:
+    tags = set(repository.tags)
+    locked: list[LockedDependency] = []
+    findings: list[Finding] = []
+    if _has_ecosystem(tags, root, "pyproject.toml", "python"):
+        specs, _document, error = _python_direct_specs(root)
+        if error is not None:
+            message = f"pyproject.toml is invalid TOML: {error}"
+            findings.append(_finding(repository, "audit-lock", "pyproject.toml", message, operational=True))
+        else:
+            names = {name for spec in specs if (name := _pep508_name(spec)) is not None}
+            versions, lock_error = _uv_locked_versions(root)
+            if lock_error is not None:
+                message = f"uv.lock is invalid TOML: {lock_error}"
+                findings.append(_finding(repository, "audit-lock", "uv.lock", message, operational=True))
+            locked.extend(
+                LockedDependency("pypi", name, versions[name], True)
+                for name in sorted(names)
+                if name in versions
+            )
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
+        seen_js: set[str] = set()
+        for project in _js_project_roots(root):
+            dependencies = _js_direct_dependencies(project)
+            _, lock_error = _pnpm_all_versions(project)
+            if lock_error is not None:
+                relative = (project / "pnpm-lock.yaml").relative_to(root).as_posix()
+                findings.append(_finding(repository, "audit-lock", relative,
+                                         f"pnpm lockfile is unreadable: {lock_error}", operational=True))
+            versions = _pnpm_locked_versions(project)
+            for name in sorted(dependencies):
+                if name.casefold() in seen_js:
+                    continue
+                seen_js.add(name.casefold())
+                version = versions.get(name)
+                if version is None:
+                    spec = dependencies[name].strip().removeprefix("v")
+                    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+[^ ]*", spec) is not None:
+                        version = spec
+                if version is not None:
+                    locked.append(
+                        LockedDependency(
+                            "npm", name, version, True, _js_release_policy(root, project)
+                        )
+                    )
+    if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
+        direct, problems = _rust_direct_dependencies(root)
+        for problem in problems:
+            head, _, _tail = problem.partition(":")
+            message = f"Cargo manifest is unreadable: {problem}"
+            findings.append(_finding(repository, "audit-lock", head, message, operational=True))
+        versions, lock_error = _cargo_locked_versions(root)
+        if lock_error is not None:
+            message = f"Cargo.lock is invalid TOML: {lock_error}"
+            findings.append(_finding(repository, "audit-lock", "Cargo.lock", message, operational=True))
+        all_versions, _ = _cargo_locked_all_versions(root)
+        seen: set[str] = set()
+        for dependency in direct:
+            if dependency.has_path and _is_relative_crate(
+                root, dependency.manifest, dependency.path_value
+            ):
+                continue
+            key = _normalize_rust_name(dependency.name)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates = all_versions.get(key, [])
+            if not candidates:
+                version = versions.get(key)
+                if version is None:
+                    continue
+                locked.append(LockedDependency("crates", dependency.name, version, True))
+                continue
+            version: str | None = None
+            if len(candidates) == 1:
+                version = candidates[0]
+            else:
+                for candidate in candidates:
+                    if _cargo_req_satisfies(dependency.version_req, candidate):
+                        version = candidate
+                        break
+                if version is None:
+                    version = candidates[0]
+            locked.append(LockedDependency("crates", dependency.name, version, True))
+    if _has_ecosystem(tags, root, "go.mod", "go"):
+        requirements, direct_map = _go_requirements(root)
+        locked.extend(
+            LockedDependency("go", name, requirements[name], direct_map.get(name, True))
+            for name in sorted(requirements)
+        )
+    return locked, findings
+
+
+def _collect_vuln_candidates(
+    root: Path, repository: Repository, direct_locked: list[LockedDependency]
+) -> list[LockedDependency]:
+    candidates = list(direct_locked)
+    seen = {(item.ecosystem, item.name.casefold(), item.locked) for item in candidates}
+    tags = set(repository.tags)
+    if _has_ecosystem(tags, root, "uv.lock", "python"):
+        versions, _ = _uv_locked_all_versions(root)
+        for name, version in ((name, version) for name, values in versions.items() for version in values):
+            key = ("pypi", name.casefold(), version)
+            if key not in seen:
+                seen.add(key)
+                candidates.append(LockedDependency("pypi", name, version, False))
+    if _has_ecosystem(tags, root, "Cargo.lock", "rust"):
+        versions, _ = _cargo_locked_all_versions(root)
+        local_names = _local_rust_package_names(root)
+        for name, version in ((name, version) for name, values in versions.items() for version in values):
+            if _normalize_rust_name(name) in local_names:
+                continue
+            key = ("crates", name.casefold(), version)
+            if key not in seen:
+                seen.add(key)
+                candidates.append(LockedDependency("crates", name, version, False))
+    if _has_ecosystem(tags, root, "go.mod", "go"):
+        requirements, _ = _go_requirements(root)
+        for name, version in requirements.items():
+            key = ("go", name.casefold(), version)
+            if key not in seen:
+                seen.add(key)
+                candidates.append(LockedDependency("go", name, version, False))
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
+        for project in _js_project_roots(root):
+            versions, _ = _pnpm_all_versions(project)
+            for name, version in ((name, version) for name, values in versions.items() for version in values):
+                key = ("npm", name.casefold(), version)
+                if key not in seen:
+                    seen.add(key)
+                    candidates.append(LockedDependency("npm", name, version, False))
+    return candidates
+
+
+def _source_kind(source: dict[Any, Any]) -> str:
+    return "filesystem" if "path" in source else "git"
+
+
+def _source_ignored(repository: Repository, name: str) -> bool:
+    return any(
+        f"{prefix}{name}" in repository.ignored_rules
+        for prefix in (GIT_SOURCE_IGNORE_PREFIX, LOCAL_SOURCE_IGNORE_PREFIX)
+    )
+
+
+def _banned_transitive_ignored(repository: Repository) -> set[str]:
+    return {
+        _normalize_rust_name(name)
+        for value in repository.ignored_rules
+        if (name := parse_banned_transitive_ignore(value)) is not None
+    }
+
+
+def _banned_direct_ignored(repository: Repository) -> set[str]:
+    return {
+        _normalize_rust_name(name)
+        for value in repository.ignored_rules
+        if (name := parse_banned_direct_ignore(value)) is not None
+    }
+
+
+def _banned_rust_message(name: str, *, transitive: bool, version: str | None = None) -> str:
+    detail = f"{name} {version}" if transitive and version is not None else name
+    ban = _rust_role_ban(name)
+    if ban is not None:
+        return f"remove {detail}; use {ban.replacement} instead"
+    if transitive and version is not None:
+        return f"remove bloated transitive {name} {version}"
+    return f"remove bloated dependency {name}"
+
+
+def _is_self_dependency(root: Path, manifest: str, path_value: str | None) -> bool:
+    if path_value is None:
+        return False
+    root_manifest = root / "Cargo.toml"
+    if not root_manifest.is_file() or root_manifest.is_symlink():
+        return False
+    document, _ = read_toml(root_manifest)
+    if not isinstance(document, dict) or not isinstance(document.get("package"), dict):
+        return False
+    parent = (root / manifest).parent
+    try:
+        return Path(os.path.normpath(parent / path_value)) == Path(os.path.normpath(root))
+    except (OSError, ValueError):
+        return False
+
+
+def _is_relative_crate(root: Path, manifest: str, path_value: str | None) -> bool:
+    if path_value is None:
+        return False
+    parent = (root / manifest).parent
+    try:
+        resolved = Path(os.path.normpath(parent / path_value))
+        root_norm = Path(os.path.normpath(root))
+    except (OSError, ValueError):
+        return False
+    try:
+        is_inside = resolved == root_norm or resolved.is_relative_to(root_norm)
+    except ValueError:
+        return False
+    if not is_inside:
+        return False
+    if resolved == root_norm:
+        return _is_self_dependency(root, manifest, path_value)
+    try:
+        candidate = resolved / "Cargo.toml"
+        return candidate.is_file() and not candidate.is_symlink()
+    except OSError:
+        return False
+
+
+def _local_rust_package_names(root: Path) -> set[str]:
+    names: set[str] = set()
+    for manifest in _cargo_manifests(root):
+        document, _ = read_toml(manifest)
+        if not isinstance(document, dict):
+            continue
+        package = document.get("package")
+        if not isinstance(package, dict):
+            continue
+        name = package.get("name")
+        if isinstance(name, str) and name:
+            names.add(_normalize_rust_name(name))
+    return names
+
+
+def _policy_findings(root: Path, repository: Repository) -> list[Finding]:
+    findings: list[Finding] = []
+    tags = set(repository.tags)
+    if _has_ecosystem(tags, root, "pyproject.toml", "python"):
+        lock = root / "uv.lock"
+        if not lock.is_file() or lock.is_symlink():
+            findings.append(_finding(repository, "audit-lock", "uv.lock", "uv.lock is required"))
+        for candidate in _iter_python_files(root, "requirements.txt"):
+            relative = safe_relative(root, candidate) or candidate.name
+            findings.append(_finding(repository, "audit-banned", relative, "remove requirements.txt"))
+        for candidate in sorted(root.glob("requirements*.txt")):
+            is_file = candidate.is_file() and not candidate.is_symlink()
+            is_safe = safe_relative(root, candidate) is not None
+            if is_file and is_safe:
+                relative = candidate.relative_to(root).as_posix()
+                if all(finding.file != relative for finding in findings):
+                    findings.append(_finding(repository, "audit-banned", relative, "remove requirements file"))
+        specs, document, _ = _python_direct_specs(root)
+        seen_specs: set[str] = set()
+        for spec in specs:
+            if not _pep508_is_filesystem(spec) or spec in seen_specs:
+                continue
+            seen_specs.add(spec)
+            name = _pep508_name(spec) or spec.strip()
+            if _source_ignored(repository, name):
+                continue
+            mechanism = spec.partition("@")[2].strip().split(";")[0].strip().strip("\"'")
+            message = (
+                f"dependency '{name}' uses {mechanism}; depend on the registry version instead"
+            )
+            severity: Severity = "warning" if _pep508_is_git_url(spec) else "error"
+            findings.append(
+                _finding(
+                    repository,
+                    "audit-registry",
+                    "pyproject.toml",
+                    message,
+                    severity=severity,
+                )
+            )
+        if isinstance(document, dict):
+            tool = document.get("tool")
+            sources: Any = None
+            if isinstance(tool, dict):
+                uv_section = tool.get("uv")
+                if isinstance(uv_section, dict):
+                    sources = uv_section.get("sources")
+            if isinstance(sources, dict):
+                for name, source in sorted(sources.items()):
+                    if isinstance(source, dict) and ("path" in source or "git" in source):
+                        if _source_ignored(repository, str(name)):
+                            continue
+                        kind = _source_kind(source)
+                        target = source.get("path", source.get("git"))
+                        detail = f' "{target}"' if isinstance(target, str) else ""
+                        message = (
+                            f"dependency '{name}' uses {kind} source{detail}; "
+                            "depend on the registry version instead"
+                        )
+                        severity = "warning" if kind == "git" else "error"
+                        findings.append(
+                            _finding(
+                                repository,
+                                "audit-registry",
+                                "pyproject.toml",
+                                message,
+                                severity=severity,
+                            )
+                        )
+    if _has_ecosystem(tags, root, "Cargo.toml", "rust"):
+        direct, _ = _rust_direct_dependencies(root)
+        for dependency in sorted(direct, key=lambda item: item.name.casefold()):
+            if _source_ignored(repository, dependency.name):
+                continue
+            if dependency.has_path and not dependency.has_version:
+                if _is_relative_crate(root, dependency.manifest, dependency.path_value):
+                    continue
+                detail = f' "{dependency.path_value}"' if dependency.path_value is not None else ""
+                message = (
+                    f"dependency '{dependency.name}' uses path{detail}; "
+                    "depend on the registry version instead"
+                )
+                findings.append(_finding(repository, "audit-registry", dependency.manifest, message))
+            elif dependency.has_git:
+                detail = f' "{dependency.git_value}"' if dependency.git_value is not None else ""
+                message = (
+                    f"dependency '{dependency.name}' uses git{detail}; "
+                    "depend on the registry version instead"
+                )
+                findings.append(
+                    _finding(
+                        repository,
+                        "audit-registry",
+                        dependency.manifest,
+                        message,
+                        severity="warning",
+                    )
+                )
+        seen_banned: set[str] = set()
+        ignored_direct = _banned_direct_ignored(repository)
+        for dependency in direct:
+            if dependency.has_path and not dependency.has_version:
+                continue
+            if dependency.has_path and _is_relative_crate(
+                root, dependency.manifest, dependency.path_value
+            ):
+                continue
+            normalized = _normalize_rust_name(dependency.name)
+            if normalized in ignored_direct:
+                seen_banned.add(normalized)
+                continue
+            if _is_banned_rust(dependency.name) and normalized not in seen_banned:
+                seen_banned.add(normalized)
+                message = _banned_rust_message(dependency.name, transitive=False)
+                findings.append(_finding(repository, "audit-banned", dependency.manifest, message))
+        versions, _ = _cargo_locked_versions(root)
+        local_names = _local_rust_package_names(root)
+        ignored_transitive = _banned_transitive_ignored(repository)
+        for normalized, version in sorted(versions.items()):
+            if normalized in local_names or normalized in ignored_transitive:
+                continue
+            if _is_banned_rust(normalized) and normalized not in seen_banned:
+                seen_banned.add(normalized)
+                message = _banned_rust_message(normalized, transitive=True, version=version)
+                findings.append(_finding(repository, "audit-banned", "Cargo.lock", message))
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
+        for project in _js_project_roots(root):
+            dependencies = _js_direct_dependencies(project)
+            relative_manifest = (project / "package.json").relative_to(root).as_posix()
+            for name in sorted(dependencies):
+                if _js_spec_is_filesystem(dependencies[name]):
+                    if _source_ignored(repository, name):
+                        continue
+                    if _is_relative_js_dependency(root, project, dependencies[name]):
+                        continue
+                    spec = dependencies[name].strip()
+                    message = (
+                        f"dependency '{name}' uses \"{spec}\"; depend on the registry version instead"
+                    )
+                    severity = "warning" if _js_spec_is_git(spec) else "error"
+                    findings.append(
+                        _finding(
+                            repository,
+                            "audit-registry",
+                            relative_manifest,
+                            message,
+                            severity=severity,
+                        )
+                    )
+            manifest, _ = _read_json(project / "package.json")
+            manager = manifest.get("packageManager") if isinstance(manifest, dict) else None
+            if isinstance(manager, str) and manager.split("@", 1)[0].strip().casefold() == "yarn":
+                message = f"remove yarn packageManager {manager}; pnpm is the package manager"
+                findings.append(_finding(repository, "audit-banned", relative_manifest, message))
+            if not (project / "pnpm-lock.yaml").is_file():
+                relative_lock = (project / "pnpm-lock.yaml").relative_to(root).as_posix()
+                findings.append(_finding(repository, "audit-lock", relative_lock, "pnpm-lock.yaml is required"))
+        yarn_seen: set[str] = set()
+        for directory in [root, *_js_project_roots(root)]:
+            for artifact in ("yarn.lock", ".yarnrc", ".yarnrc.yml", ".yarnrc.yaml"):
+                candidate = directory / artifact
+                if not candidate.is_file() or candidate.is_symlink():
+                    continue
+                relative = safe_relative(root, candidate)
+                if relative is None or relative in yarn_seen:
+                    continue
+                yarn_seen.add(relative)
+                message = f"remove {artifact}; pnpm is the only package manager"
+                findings.append(_finding(repository, "audit-banned", relative, message))
+            yarn_dir = directory / ".yarn"
+            if yarn_dir.is_dir() and not yarn_dir.is_symlink():
+                relative = safe_relative(root, yarn_dir)
+                if relative is not None and relative not in yarn_seen:
+                    yarn_seen.add(relative)
+                    message = "remove .yarn/; pnpm is the only package manager"
+                    findings.append(_finding(repository, "audit-banned", relative, message))
+    if _has_ecosystem(tags, root, "go.mod", "go"):
+        for line in _go_replace_filesystem(root):
+            message = f"remove filesystem replace {line}"
+            findings.append(_finding(repository, "audit-registry", "go.mod", message))
+    return findings
+
+
+def _fetch_npm_releases(name: str, registry: str | None = None) -> dict[str, Any] | None:
+    encoded = urllib.parse.quote(name, safe="@")
+    base = registry.rstrip("/") if registry is not None else "https://registry.npmjs.org"
+    document = _registry_document(f"{base}/{encoded}")
+    if document is None:
+        return None
+    times = document.get("time")
+    latest = _npm_latest(document)
+    if latest is None or not isinstance(times, dict):
+        return None
+    published: dict[str, float] = {}
+    for version, stamp in times.items():
+        if version in {"created", "modified"} or not isinstance(stamp, str):
+            continue
+        if _is_prerelease(version) and not _is_prerelease(latest):
+            continue
+        try:
+            published[version] = datetime.fromisoformat(stamp).timestamp()
+        except ValueError:
+            continue
+    return {"latest": latest, "published": published}
+
+
+def _newest_installable(
+    name: str, releases: dict[str, Any], policy: ReleasePolicy, now: float
+) -> str | None:
+    cutoff = now - policy.minimum_age_minutes * 60
+    ceiling = _version_key(releases["latest"])
+    eligible = [
+        version
+        for version, published in releases["published"].items()
+        if _version_key(version) <= ceiling
+        and (published <= cutoff or policy.exempts(name, version))
+    ]
+    if not eligible:
+        return None
+    published = releases["published"]
+    return max(eligible, key=lambda version: (_version_key(version), published[version]))
+
+
+def _resolve_npm_installable(
+    items: list[LockedDependency],
+    *,
+    offline: bool,
+    refresh: bool,
+    cache: dict[str, Any],
+    now: float,
+    registry: str | None = None,
+) -> dict[tuple[str, str], str | None]:
+    entries = cache.get("npm_releases")
+    if not isinstance(entries, dict):
+        entries = {}
+        cache["npm_releases"] = entries
+    source = registry or "public"
+    releases: dict[str, dict[str, Any] | None] = {}
+    missing: list[str] = []
+    for name in sorted({item.name for item in items}):
+        key = f"{source}:{name.casefold()}"
+        entry = entries.get(key)
+        usable = isinstance(entry, dict) and isinstance(entry.get("releases"), dict)
+        if usable and (offline or (not refresh and _cache_fresh(entry.get("fetched_at"), now))):
+            releases[name] = entry["releases"]
+        elif offline:
+            releases[name] = None
+        else:
+            missing.append(name)
+    if missing:
+        with ThreadPoolExecutor(
+            max_workers=min(8, len(missing)), thread_name_prefix="repomod-audit"
+        ) as pool:
+            futures = {
+                pool.submit(_fetch_npm_releases, name, registry): name for name in missing
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    fetched = future.result()
+                except Exception:
+                    fetched = None
+                releases[name] = fetched
+                if fetched is not None:
+                    entries[f"{source}:{name.casefold()}"] = {
+                        "releases": fetched,
+                        "fetched_at": now,
+                    }
+    resolved: dict[tuple[str, str], str | None] = {}
+    for item in items:
+        found = releases[item.name]
+        assert item.release_policy is not None
+        resolved[(item.ecosystem, item.name)] = (
+            None if found is None else _newest_installable(item.name, found, item.release_policy, now)
+        )
+    return resolved
+
+
+def resolve_latest(
+    locked: list[LockedDependency],
+    *,
+    offline: bool,
+    refresh: bool,
+    cache: dict[str, Any],
+    now: float,
+    fetcher: Callable[[str, str], str | None] | None = None,
+    sources: RegistrySources | None = None,
+) -> dict[tuple[str, str], str | None]:
+    latest_entries = cache.get("latest")
+    if not isinstance(latest_entries, dict):
+        latest_entries = {}
+        cache["latest"] = latest_entries
+    aged = [
+        item
+        for item in locked
+        if item.release_policy is not None and item.release_policy.minimum_age_minutes > 0
+    ]
+    resolved = _resolve_npm_installable(
+        aged,
+        offline=offline,
+        refresh=refresh,
+        cache=cache,
+        now=now,
+        registry=sources.npm if sources is not None else None,
+    ) if aged else {}
+    missing: list[LockedDependency] = []
+    for item in locked:
+        if (item.ecosystem, item.name) in resolved:
+            continue
+        if fetcher is not None:
+            resolved[(item.ecosystem, item.name)] = fetcher(item.ecosystem, item.name)
+            continue
+        source = _latest_source(item.ecosystem, sources)
+        key = _latest_cache_key(item.ecosystem, source, item.name, item.locked)
+        entry = latest_entries.get(key)
+        is_hit = (
+            isinstance(entry, dict)
+            and isinstance(entry.get("version"), str)
+            and not refresh
+            and _cache_fresh(entry.get("fetched_at"), now)
+        )
+        if is_hit:
+            assert isinstance(entry, dict)
+            version = entry.get("version")
+            assert isinstance(version, str)
+            resolved[(item.ecosystem, item.name)] = version
+        elif offline:
+            if isinstance(entry, dict) and isinstance(entry.get("version"), str):
+                resolved[(item.ecosystem, item.name)] = entry.get("version")
+            else:
+                resolved[(item.ecosystem, item.name)] = None
+        else:
+            missing.append(item)
+    if missing and fetcher is None and not offline:
+        grouped: dict[str, list[LockedDependency]] = {}
+        for item in missing:
+            grouped.setdefault(item.ecosystem, []).append(item)
+        workers = min(8, max(1, len(missing)))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="repomod-audit") as pool:
+            futures = {}
+            for ecosystem, items in grouped.items():
+                impl = (
+                    _LATEST_FETCHERS.get(ecosystem)
+                    if sources is None
+                    else _mirror_fetcher(ecosystem, sources)
+                )
+                if impl is None:
+                    for item in items:
+                        resolved[(item.ecosystem, item.name)] = None
+                    continue
+                for item in items:
+                    futures[pool.submit(impl, item.name)] = item
+            for future in as_completed(futures):
+                item = futures[future]
+                try:
+                    version = future.result()
+                except Exception:
+                    version = None
+                resolved[(item.ecosystem, item.name)] = version
+                source = _latest_source(item.ecosystem, sources)
+                key = _latest_cache_key(item.ecosystem, source, item.name, item.locked)
+                latest_entries[key] = {"version": version, "fetched_at": now}
+    return resolved
+
+
+def _informational_advisory(advisory: dict[str, Any]) -> bool:
+    affected = advisory.get("affected")
+    if not isinstance(affected, list) or not affected:
+        return False
+    return all(
+        isinstance(entry, dict)
+        and isinstance(entry.get("database_specific"), dict)
+        and bool(entry["database_specific"].get("informational"))
+        for entry in affected
+    )
+
+
+def _complete_rustsec_advisory(advisory: dict[str, Any]) -> dict[str, Any]:
+    advisory_id = advisory.get("id")
+    if not isinstance(advisory_id, str) or not advisory_id.startswith("RUSTSEC-") or "affected" in advisory:
+        return advisory
+    detail = _http_json(f"https://api.osv.dev/v1/vulns/{urllib.parse.quote(advisory_id, safe='')}")
+    if not isinstance(detail, dict) or detail.get("id") != advisory_id or not isinstance(detail.get("affected"), list):
+        raise VulnerabilityLookupError(f"could not classify OSV advisory {advisory_id}")
+    return detail
+
+
+def resolve_vulns(
+    candidates: list[LockedDependency],
+    *,
+    offline: bool,
+    refresh: bool,
+    cache: dict[str, Any],
+    now: float,
+    osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
+) -> dict[tuple[str, str, str], list[dict[str, Any]]]:
+    osv_entries = cache.get("osv")
+    if not isinstance(osv_entries, dict):
+        osv_entries = {}
+    resolved: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    queries: list[dict[str, Any]] = []
+    order: list[LockedDependency] = []
+    seen: set[tuple[str, str, str]] = set()
+    updates: dict[str, dict[str, Any]] = {}
+    for item in candidates:
+        ecosystem = _OSV_ECOSYSTEMS.get(item.ecosystem)
+        identity = (item.ecosystem, item.name, item.locked)
+        if ecosystem is None or identity in seen:
+            continue
+        seen.add(identity)
+        key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
+        entry = osv_entries.get(key)
+        if isinstance(entry, dict) and isinstance(entry.get("vulns"), list) and (
+            offline or (not refresh and _cache_fresh(entry.get("fetched_at"), now))
+        ):
+            resolved[identity] = _validated_vulns(entry["vulns"])
+        elif not offline:
+            queries.append(
+                {"package": {"name": item.name, "ecosystem": ecosystem}, "version": item.locked}
+            )
+            order.append(item)
+    if queries:
+        try:
+            batches = osv_fetcher(queries) if osv_fetcher is not None else osv_query_batch(queries)
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise VulnerabilityLookupError("OSV request failed") from error
+        if not isinstance(batches, list) or len(batches) != len(order):
+            raise VulnerabilityLookupError("OSV returned an unexpected number of results")
+        for item, raw in zip(order, batches, strict=True):
+            vulns = _validated_vulns(raw)
+            resolved[(item.ecosystem, item.name, item.locked)] = vulns
+            key = f"{item.ecosystem}:{item.name.casefold()}:{item.locked}"
+            updates[key] = {"vulns": vulns, "fetched_at": now}
+    for identity, advisories in resolved.items():
+        if not offline and osv_fetcher is None:
+            advisories = [_complete_rustsec_advisory(advisory) for advisory in advisories]
+            ecosystem, name, version = identity
+            cache_key = f"{ecosystem}:{name.casefold()}:{version}"
+            entry = updates.get(cache_key, osv_entries.get(cache_key))
+            if isinstance(entry, dict):
+                updates[cache_key] = {**entry, "vulns": advisories}
+        resolved[identity] = [advisory for advisory in advisories if not _informational_advisory(advisory)]
+    if updates:
+        osv_entries.update(updates)
+        cache["osv"] = osv_entries
+    return resolved
+
+
+def _audit_one(
+    catalog: Catalog,
+    repository: Repository,
+    *,
+    offline: bool,
+    refresh: bool,
+    cache: dict[str, Any],
+    now: float,
+    latest_fetcher: Callable[[str, str], str | None] | None = None,
+    osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
+    upstream: UpstreamStatus | None = None,
+) -> AuditOutcome:
+    outcome = AuditOutcome(str(repository.id))
+    try:
+        root = repository_path(catalog, repository)
+    except (OSError, ValueError) as error:
+        outcome.findings.append(
+            _finding(
+                repository, "audit-lock", None, f"cannot resolve canonical checkout: {error}", operational=True
+            )
+        )
+        return outcome
+    if not root.is_dir():
+        outcome.findings.append(
+            _finding(repository, "audit-lock", None, "checkout is missing", operational=True)
+        )
+        return outcome
+    ignored = repository.ignored_rules
+    outcome.findings.extend(
+        finding for finding in _policy_findings(root, repository) if finding.rule not in ignored
+    )
+    if (
+        upstream is not None
+        and upstream.parent is not None
+        and "audit-upstream" not in ignored
+    ):
+        if upstream.error is not None:
+            outcome.findings.append(
+                _finding(
+                    repository,
+                    "audit-upstream",
+                    None,
+                    f"could not compare with {upstream.parent}: {upstream.error}",
+                    operational=True,
+                )
+            )
+        elif isinstance(upstream.behind_by, int) and upstream.behind_by > 0:
+            branch = ""
+            if upstream.parent_branch is not None and upstream.parent_branch != "":
+                branch = f"@{upstream.parent_branch}"
+            ahead = ""
+            if isinstance(upstream.ahead_by, int) and upstream.ahead_by > 0:
+                ahead = f", {upstream.ahead_by} ahead"
+            outcome.findings.append(
+                _finding(
+                    repository,
+                    "audit-upstream",
+                    None,
+                    f"fork is {upstream.behind_by} commits behind {upstream.parent}{branch}{ahead}",
+                )
+            )
+    locked, lock_findings = _collect_locked(root, repository)
+    outcome.findings.extend(finding for finding in lock_findings if finding.rule not in ignored)
+    candidates = _collect_vuln_candidates(root, repository, locked)
+    if locked or candidates:
+        direct = [item for item in locked if item.direct]
+        latest = resolve_latest(
+            direct, offline=offline, refresh=refresh, cache=cache, now=now, fetcher=latest_fetcher
+        )
+        for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
+            newest = latest.get((item.ecosystem, item.name))
+            if newest is None:
+                continue
+            if _is_outdated(item.locked, newest) and "audit-outdated" not in ignored:
+                message = f"{item.ecosystem}:{item.name} {item.locked} is outdated; latest is {newest}"
+                outcome.findings.append(_finding(repository, "audit-outdated", None, message))
+        try:
+            vulns = resolve_vulns(
+                candidates, offline=offline, refresh=refresh, cache=cache, now=now, osv_fetcher=osv_fetcher
+            )
+        except VulnerabilityLookupError as error:
+            if "audit-vuln" not in ignored:
+                outcome.findings.append(_finding(repository, "audit-vuln", None, str(error), operational=True))
+            vulns = resolve_vulns(candidates, offline=True, refresh=False, cache=cache, now=now)
+        for item in sorted(
+            candidates, key=lambda entry: (entry.ecosystem, entry.name.casefold(), entry.locked)
+        ):
+            entries = vulns.get((item.ecosystem, item.name, item.locked), [])
+            for vuln in entries:
+                if "audit-vuln" in ignored:
+                    continue
+                vuln_id = vuln.get("id", "unknown")
+                summary = vuln.get("summary", "")
+                detail = f" {summary}" if isinstance(summary, str) and summary else ""
+                message = f"{item.ecosystem}:{item.name} {item.locked} has {vuln_id}{detail}"
+                outcome.findings.append(_finding(repository, "audit-vuln", None, message))
+    outcome.findings.sort(key=lambda finding: (finding.rule, finding.file or "", finding.message))
+    return outcome
+
+
+def audit_repositories(
+    catalog: Catalog,
+    repositories: tuple[Repository, ...] | None = None,
+    *,
+    offline: bool = False,
+    refresh: bool = False,
+    cache_path: Path | None = None,
+    now: float | None = None,
+    jobs: int = 4,
+    latest_fetcher: Callable[[str, str], str | None] | None = None,
+    osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
+    upstream_statuses: dict[str, UpstreamStatus] | None = None,
+) -> list[AuditOutcome]:
+    current_time = time.time() if now is None else now
+    path = cache_path or _audit_cache_path()
+    cache = _read_cache(path)
+    if not isinstance(cache.get("latest"), dict):
+        cache["latest"] = {}
+    if not isinstance(cache.get("osv"), dict):
+        cache["osv"] = {}
+    selected = list(repositories) if repositories is not None else list(catalog.repositories)
+    if jobs < 1:
+        raise ValueError("jobs must be at least one")
+    workers = min(max(jobs, 1), 16, max(1, len(selected)))
+    outcomes: list[AuditOutcome] = []
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="repomod-audit") as pool:
+        futures = {
+            pool.submit(
+                _audit_one,
+                catalog,
+                repository,
+                offline=offline,
+                refresh=refresh,
+                cache=cache,
+                now=current_time,
+                latest_fetcher=latest_fetcher,
+                osv_fetcher=osv_fetcher,
+                upstream=upstream_statuses.get(str(repository.id)) if upstream_statuses is not None else None,
+            ): repository
+            for repository in selected
+        }
+        for future in as_completed(futures):
+            repository = futures[future]
+            try:
+                outcomes.append(future.result())
+            except Exception as error:
+                outcomes.append(
+                    AuditOutcome(
+                        str(repository.id),
+                        findings=[
+                            _finding(
+                                repository,
+                                "audit-lock",
+                                None,
+                                f"audit could not complete: {error}",
+                                operational=True,
+                            )
+                        ],
+                    )
+                )
+    outcomes.sort(key=lambda item: item.repository.casefold())
+    if latest_fetcher is None and osv_fetcher is None and not offline:
+        with contextlib.suppress(OSError):
+            _write_cache(path, cache)
+    return outcomes
+
+
+@dataclass(slots=True)
+class UpgradeTask:
+    directory: Path
+    argv: list[str]
+    tool: str
+
+
+def _upgrade_tasks(root: Path, repository: Repository) -> list[UpgradeTask]:
+    tags = set(repository.tags)
+    tasks: list[UpgradeTask] = []
+    if ("python" in tags or (root / "pyproject.toml").is_file()) and (
+        root / "uv.lock"
+    ).is_file():
+        tasks.append(UpgradeTask(root, ["uv", "lock", "--upgrade"], "uv"))
+    if _has_ecosystem(tags, root, "package.json", "typescript", "javascript"):
+        tasks.extend(
+            UpgradeTask(project, ["pnpm", "update", "--latest"], "pnpm")
+            for project in _js_project_roots(root)
+            if (project / "pnpm-lock.yaml").is_file()
+        )
+    if ("rust" in tags or (root / "Cargo.toml").is_file()) and (root / "Cargo.toml").is_file():
+        tasks.append(UpgradeTask(root, ["cargo", "update"], "cargo"))
+    if ("go" in tags or (root / "go.mod").is_file()) and (root / "go.mod").is_file():
+        tasks.append(UpgradeTask(root, ["go", "get", "-u", "./..."], "go"))
+        tasks.append(UpgradeTask(root, ["go", "mod", "tidy"], "go"))
+    return tasks
+
+
+def _run_task(task: UpgradeTask, cache_dir: Path | None = None) -> None:
+    environment = os.environ.copy()
+    if task.tool == "uv" and cache_dir is not None:
+        environment["UV_CACHE_DIR"] = str(cache_dir)
+    try:
+        result = subprocess.run(
+            task.argv,
+            cwd=task.directory,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=600,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RuntimeError(f"{' '.join(task.argv)} failed: {error}") from error
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        suffix = detail or f"exited with status {result.returncode}"
+        raise RuntimeError(f"{' '.join(task.argv)} failed: {suffix}")
+
+
+def fix_repository(catalog: Catalog, repository: Repository) -> AuditOutcome:
+    outcome = AuditOutcome(str(repository.id))
+    try:
+        root = repository_path(catalog, repository)
+    except (OSError, ValueError) as error:
+        outcome.fix_errors.append(str(error))
+        return outcome
+    try:
+        current = status(root, repository.id)
+    except (GitError, OSError) as error:
+        outcome.fix_errors.append(str(error))
+        return outcome
+    if not current.present or not current.valid:
+        outcome.fix_errors.append(current.error or "checkout is unavailable")
+        return outcome
+    if current.dirty:
+        outcome.fix_errors.append("checkout is dirty")
+        return outcome
+    tasks = _upgrade_tasks(root, repository)
+    if not tasks:
+        outcome.fix_errors.append("nothing to upgrade")
+        return outcome
+    with tempfile.TemporaryDirectory(prefix="repomod-audit-") as temporary:
+        cache_dir = Path(temporary)
+        for task in tasks:
+            if shutil.which(task.tool) is None:
+                outcome.fix_errors.append(f"{task.tool} is required and was not found")
+                continue
+            try:
+                _run_task(task, cache_dir)
+            except RuntimeError as error:
+                outcome.fix_errors.append(str(error))
+            else:
+                outcome.fixed.append(" ".join(task.argv))
+    return outcome

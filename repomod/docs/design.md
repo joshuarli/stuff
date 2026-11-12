@@ -1,0 +1,169 @@
+# Design
+
+repomod uses one curated catalog, canonical local Git checkouts, read-only GitHub status, and
+explicit repair and topic writes. Git records source changes. repomod has no status database or
+repair ledger.
+
+## State and ownership
+
+`catalog.toml` owns repository identity, pending and ignored entries, policy tags, checkout root, autofix overrides, and
+per-repository ignored rule codes. Version 3 adds the `ignore` override for stable lint IDs and `mdtool:CODE` documentation findings,
+with a required non-empty `ignore_reason` string that `repomod lint` prints for selected repositories.
+`REPOMOD_ROOT` overrides the configured root for one process. The catalog does not record branch
+state or lint results.
+
+An empty tag array in `[repos."owner"]` marks a pending repository. Adding at least one primary
+tag makes it managed. The `IGNORE` tag excludes a repository from management and discovery.
+
+Personal-owner checkouts live directly under the root. Other owners use `OWNER/REPO`. The catalog
+rejects symlink path components. repomod checks that a checkout's origin matches its GitHub
+repository. New clones are staged beside their destination and moved into place after validation.
+
+`git.py` owns Git subprocesses and repository locks. `github.py` owns GitHub reads, CI cache,
+topics, and approved Action tag resolution. `sync.py` coordinates clones, fetches, safe
+fast-forwards, and archived-repository untracking. `clean.py` owns checkout removal guards and
+unreferenced-checkout collection. `catalog.py` owns catalog reads and edits. Command handlers live
+under `cmd/`, one module per subcommand; `cli.py` only parses arguments and dispatches.
+Policy rules live under `rules/`. See [policy development](policy-development.md).
+
+## Synchronization and status
+
+Sync reads current GitHub metadata for catalog entries. New clones are full-history, blobless
+partial clones: complete commit history so rebases and ancestry queries work, with file contents
+fetched on demand instead of up front. A checkout that is still shallow from an older clone is
+unshallowed during sync; if that fails the sync for that repository fails loudly rather than
+continuing on a shallow boundary. Sync skips fetch only when a clean checkout
+is attached to the default branch and its HEAD matches GitHub's reported branch tip. Otherwise it
+fetches that branch. It fast-forwards only a clean checkout on that branch when Git confirms the
+move is safe. Dirty, detached, non-default, ahead, and divergent checkouts keep their files and
+local commits. A fetch may update the matching remote-tracking ref. GitHub is the source of truth
+for archival: when GitHub reports a catalogued repository as archived, sync removes its local
+checkout instead of cloning or fetching it and adds `IGNORE` to its entry, preserving tags and overrides, so later
+runs stop tracking it. Removal and untracking require a verified checkout whose origin
+matches the catalogued repository and refuse dirty, detached, ahead, stashed, or otherwise
+unverifiable checkouts without deleting anything. It verifies retained refs against live remotes
+and refuses recovery refs or shared worktree storage. The same inspection protects unforced GC.
+Both paths recheck local identities and state before deletion. Non-cooperating writers can still
+race after that check. A checkout that cannot be safely removed stays tracked. See the
+[removal contract](rfc/RPMD-74-checkout-removal.md). Dry-run fetches GitHub metadata and inspects
+remote publication for archived checkouts but does not
+mutate checkouts; it reports what would be cloned, updated, removed, or untracked. For repositories that GitHub reports as forks of a parent, sync also
+ensures a conventional `upstream` remote pointing at the parent and fetches the parent's default
+branch, so fork-behind comparisons stay verifiable locally; a failing upstream fetch is reported
+in the result without failing the sync.
+
+Local status does not fetch. Ahead and behind counts compare the local branch with its last-fetched
+upstream, so they are not current remote state. Text output lists only repositories that need
+attention: local Git failures, non-passing CI or workflow states on the default branch, conflicting
+pull requests, forks behind upstream, and releases at least 10 commits behind the default branch.
+Passing repositories and passing workflow entries are omitted; `--json` still carries every
+selected repository. Online status checks CI for GitHub's current default-branch commit. The CI
+cache is keyed by repository and commit SHA and expires after five minutes. Offline status reads
+cached CI without network calls. Online status also reports how many commits the default branch is
+ahead of its latest published release (the last successful release) via a GitHub compare between
+the release commit and the default-branch tip. The release is the newest non-draft GitHub Release
+(stable or prerelease); a repository with no releases falls back to its newest version tag.
+Workflow states cover only runs on the default branch. The release cache is keyed by repository
+and default-branch commit SHA and expires after one hour. Offline status reads cached release
+comparisons. For repositories that GitHub reports as forks, online status also compares the fork
+default branch against its upstream parent and reports behind and ahead counts. The upstream cache
+is keyed by repository and fork commit SHA and expires after one hour. Offline status reads cached
+upstream comparisons. Online status also lists open pull requests with their mergeable and
+merge-state status; `--failed` includes repositories with conflicting PRs and forks behind their
+upstream. Offline status omits pull requests.
+
+`lint` and `status` accept `--checkout PATH`, valid only with exactly one `--repo`. It replaces the
+canonical checkout for that repository in policy rules, local Git state, and the TODO count, so a
+worktree can be verified before it is fast-forwarded. The path must contain no symlink components,
+be a Git work tree, and have an `origin` matching the catalogue, the same check sync applies. GitHub
+data still follows catalog identity, and no other command accepts the option.
+
+The local item also shows how old unpushed work is, derived only from Git data. When the branch is
+ahead of its last-fetched upstream it adds `oldest unpushed Nd`, the age of the oldest commit not in
+the upstream. When the checkout is on a non-default branch it adds `for Nd`, the time since HEAD's
+reflog last switched onto that branch (omitted if the reflog has no such entry). An age of seven days
+or more turns the item red and sets `stale_local_work` in `--json`, which also carries the raw
+`branch_checked_out_at` and `oldest_unpushed_commit_at` timestamps.
+
+## Dependency inventory
+
+`src/repomod/dependencies/` owns the tracked inventory at `data/dependencies/v1/`.
+`snapshot.py` reads each canonical checkout's `refs/remotes/origin/HEAD` tree through Git
+plumbing; `git_tree.py` reads trees and blobs; `discover.py` classifies recognized inputs;
+ecosystem adapters under `dependencies/adapters/` are frozen classes with `name`,
+`matches(path)`, and `extract(inputs)` that perform no I/O; `model.py` defines the closed scopes,
+sources, resolutions, coverage kinds, and states. `check` regenerates the same bytes in memory
+and never writes. `graph.py`, `analysis.py`, `diff.py`, `enrich.py`, and `render.py` are
+read-only consumers, except that `enrich` writes its local cache and `render` writes its output
+directory.
+
+The inventory records `{path, blob}` inputs and a fingerprint over their sorted list plus
+`PARSER_VERSION`. It never records absolute paths, timestamps, commands, credentials, auth
+tokens, environment values, or unredacted userinfo and download queries. The dashboard is
+static output under `.work/dependencies/dashboard/`; it is disposable and uses no fetch, CDN,
+framework, or chart library.
+
+`cmd/deps.py` imports `repomod.dependencies` inside its handler, so other commands do not load
+`ruamel.yaml` or `packaging`. Policy rules stay read-only, and fixers keep explicit, validated
+file plans. The inventory does not feed lint or fix decisions automatically; it informs people
+and agents. Do not add a database, a background worker, or a generic workflow framework for it.
+See [dependency inventory](dependency-inventory.md).
+
+## Repair and writes
+
+Fix requires a clean, attached canonical checkout and a local default-branch ref matching
+GitHub's observed tip. The canonical checkout may stay on another branch. Fixers run serially
+on a dedicated fix branch based on the local default branch, with repositories processed in
+parallel. Each fixer uses a disposable worktree and can change only its declared paths. Before a local commit,
+validation must pass, the fixer must leave no fixable findings for its rule, and it must introduce
+no policy errors. Every successful fixer gets its own commit on a new local
+`repomod/fix/<id>` branch; the canonical default branch remains untouched. `fix` pushes
+that branch and opens or reuses a pull request against the default branch. It enables GitHub
+auto-merge only when the repository allows it and the default branch requires status checks. The
+next fix run resumes its unmerged branch from the current default branch. Failed or interrupted
+work remains on its branch or in its worktree.
+A `repomod/fix/` branch that has diverged from the default branch blocks the next run unless
+GitHub reports its pull request merged, or `git cherry` finds every one of its commits already on
+the default branch, as happens after a squash or cherry-pick.
+
+Fix pull requests are identified by their `repomod/fix/<id>` head branch. `merge` lists open pull
+requests in selected repositories whose head branch matches that pattern and merges each with a
+rebase commit pinned to the listed head SHA, so a branch that moved after listing is rejected
+rather than merged unreviewed. Drafts are skipped and merge failures are reported per pull
+request. `merge --dry-run` lists the matches without writing.
+
+Push uses a normal fast-forward Git push and keeps local commits on failure. `push` pushes
+each selected checkout's current branch when it is ahead of its origin upstream and skips
+anything else with a reason. `topics apply`
+replaces GitHub topics with the catalog's complete tag set.
+
+`pins refresh` updates the local approved pins from their upstream sources: `actions.toml`,
+`python-tools.toml`, `typescript-tools.toml`, and `musl-toolchain.toml`. `--only` restricts
+the run to `actions`, `python`, `typescript`, or `musl` so one domain's upstream outage or
+drift does not block another. `--check` fetches and compares every selected file, prints the
+paths that would change, writes nothing, and exits 1 on drift. A fetch or parse failure
+writes no file and exits 2. The command stages refreshed content in a disposable directory
+and validates it before any file is replaced, so a failed fetch or validation leaves approved
+pins untouched. Each final file replacement is atomic; the set of pin files is not one transaction.
+
+`musl-toolchain.toml` is the approved source for musl Linux builds. It records the upstream
+musl release, the `stable` Alpine channel with its index and per-architecture
+manifest digests, exact direct package versions per architecture, the LLVM, mold,
+and rustup archives with SHA256 checksums, the bespoke builder adapters, and an optional
+published canonical image. The refresh reads only the musl release page, the Alpine
+`APKINDEX` files, and Docker image metadata; it preserves the manually owned toolchain
+versions and checksums. The stable channel approves one immutable patch, so the moving
+`alpine:<branch>` release is reported as an observation and never written. The owner reviews
+that observation, updates `image` and `index_digest`, and builds the image before a newer
+patch becomes approved. See [policy development](policy-development.md) for the checks the
+lock enforces. The `linux-musl-toolchain` rule enforces the lock across conventional
+builders, tansu, and the bespoke adapters; its fixer repairs only deterministic base-digest
+and package-version edits.
+
+`docker/musl/Dockerfile` is the canonical builder source. Its build arguments default to the
+lock's stable image, package versions, and toolchain archive pins, so a direct build without
+arguments uses approved values. `repomod musl build` validates the Dockerfile and its
+`rust-toolchain.toml` against the lock, builds one platform under `.work/`, and writes a local
+OCI layout with no push path. A published digest is recorded in `[image]`; a builder may then
+use that image by digest and keep its package setup in the image. Publishing and consumer
+migration stay owner-run.
