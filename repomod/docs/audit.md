@@ -123,6 +123,7 @@ Crate release metadata comes from the configured Cargo source and is cached
 with the rest. For simple Cargo caret requirements, the fixer updates the
 manifest requirement and lockfile, including workspace and renamed dependencies.
 Such updates can require API changes, so the resulting pull request needs review and tests.
+If the manifest's layout cannot be preserved, the fixer fails and leaves it for manual editing.
 Vulnerability, ban, and lockfile findings stay manual because the upgraders
 cannot fix them deterministically. A repository
 can opt out with `ignore = ["audit-upgrades"]` in its catalog override.

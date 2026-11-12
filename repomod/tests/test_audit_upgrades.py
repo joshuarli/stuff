@@ -23,6 +23,7 @@ from repomod.rules.audit_upgrades import (
     _copy_siblings,
     _fix,
     _outdated_findings,
+    _upgrade_cargo_manifests,
     audit_upgrade_rules,
 )
 from repomod.types import RepoId, Repository
@@ -490,6 +491,21 @@ def test_cargo_breaking_upgrade_updates_workspace_requirement(tmp_path: Path, mo
     plan = _fix(root, repository("tool", "rust"))
     assert 'version = "0.4"' in plan["Cargo.toml"]
     assert "member/Cargo.toml" not in plan
+
+
+def test_cargo_upgrade_rejects_manifest_layout_changes(tmp_path: Path) -> None:
+    root = repo_root(tmp_path)
+    manifest = root / "Cargo.toml"
+    content = (
+        '[dependencies]\nfoo = "0.3"\n'
+        '[[test]]\nname = "first"\n'
+        '[profile.release]\nlto = true\n'
+        '[[test]]\nname = "second"\n'
+    )
+    manifest.write_text(content, encoding="utf-8")
+    with pytest.raises(RuntimeError, match="cannot preserve Cargo manifest layout"):
+        _upgrade_cargo_manifests(root, {"foo": "0.4.0"})
+    assert manifest.read_text(encoding="utf-8") == content
 
 
 def test_multi_version_lock_attributes_direct_req(tmp_path: Path) -> None:

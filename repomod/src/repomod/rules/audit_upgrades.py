@@ -579,6 +579,7 @@ def _upgrade_cargo_manifests(root: Path, upgrades: dict[str, str]) -> None:
     for manifest in _cargo_manifests(root):
         content = manifest.read_text(encoding="utf-8")
         document = tomlkit.parse(content)
+        roundtrip = tomlkit.dumps(document)
         tables = [document]
         workspace = document.get("workspace")
         if isinstance(workspace, dict):
@@ -607,7 +608,9 @@ def _upgrade_cargo_manifests(root: Path, upgrades: dict[str, str]) -> None:
                     else:
                         dependencies[name] = updated
         rendered = tomlkit.dumps(document)
-        if rendered != content:
+        if rendered != roundtrip:
+            if roundtrip != content:
+                raise RuntimeError(f"cannot preserve Cargo manifest layout: {manifest.relative_to(root)}")
             manifest.write_text(rendered, encoding="utf-8")
 
 
