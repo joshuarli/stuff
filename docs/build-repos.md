@@ -83,4 +83,5 @@ gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --prerelease --verify-ta
 
 Linux archives are built in a musl builder that passes `linux-musl-toolchain`.
 
-Other workflows (lint, tests, qualification, benchmarks) may exist. `lint.yml` runs `make lint`.
+Other workflows (lint, tests, qualification, benchmarks) may exist. A workflow that mirrors a build
+input, such as a bootstrap toolchain, publishes outside this contract and never uses a `release-` tag. `lint.yml` runs `make lint`.
