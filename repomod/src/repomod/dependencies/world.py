@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import parse_qs, urlsplit
 
+from packaging.version import InvalidVersion, Version
+
 from repomod.dependencies import graph as graph_module
+from repomod.dependencies.enrich import MirrorCatalog
 from repomod.dependencies.graph import Graph
 from repomod.dependencies.model import Component, Ecosystem, Instance, Relation, SourceKind
 
@@ -34,6 +37,17 @@ class Origin(Enum):
     UNKNOWN = "owner unknown"
 
 
+class Mirror(Enum):
+    MIRRORED = "mirrored"
+    PARTIAL = "versions missing"
+    MISSING = "not mirrored"
+    NOT_SERVED = "not served"
+    UNCHECKED = "not checked"
+
+
+MIRRORABLE = frozenset({Ecosystem.CARGO, Ecosystem.NPM, Ecosystem.PYPI})
+
+
 @dataclass(frozen=True, slots=True)
 class Package:
     component: Component
@@ -42,6 +56,8 @@ class Package:
     in_repo: bool
     direct: bool
     repositories: tuple[str, ...]
+    mirror: Mirror
+    unmirrored_versions: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +65,7 @@ class World:
     packages: tuple[Package, ...]
     repositories: tuple[str, ...]
     owners: frozenset[str]
+    mirrors: Mapping[Ecosystem, MirrorCatalog]
 
 
 def source_owner(url: str) -> str | None:
@@ -78,8 +95,16 @@ def build(
     graph: Graph,
     repositories: Iterable[str],
     sources: Mapping[str, tuple[str, ...]],
+    mirrors: Mapping[Ecosystem, MirrorCatalog],
 ) -> World:
     selected = tuple(sorted(set(repositories), key=str.casefold))
+    served = {
+        ecosystem: {
+            graph_module.normalize_name(ecosystem, name): {_version_key(ecosystem, version) for version in versions}
+            for name, versions in catalog.packages.items()
+        }
+        for ecosystem, catalog in mirrors.items()
+    }
     yours = frozenset(f"github.com/{name.split('/', 1)[0].casefold()}" for name in graph.catalogued)
     reach: dict[str, set[str]] = defaultdict(set)
     instances: dict[str, list[Instance]] = defaultdict(list)
@@ -115,6 +140,7 @@ def build(
             origin = Origin.THIRD_PARTY
         else:
             origin = Origin.UNKNOWN
+        mirror, unmirrored = _mirror_state(component, instances[purl], purl in local, served)
         packages.append(
             Package(
                 component,
@@ -123,10 +149,40 @@ def build(
                 purl in local,
                 purl in direct,
                 tuple(sorted(found, key=str.casefold)),
+                mirror,
+                unmirrored,
             )
         )
     packages.sort(key=lambda package: (-len(package.repositories), package.component.purl.casefold()))
-    return World(tuple(packages), selected, yours)
+    return World(tuple(packages), selected, yours, mirrors)
+
+
+def _version_key(ecosystem: Ecosystem, version: str) -> str:
+    if ecosystem is Ecosystem.PYPI:
+        try:
+            return str(Version(version))
+        except InvalidVersion:
+            return version
+    return version
+
+
+def _mirror_state(
+    component: Component,
+    instances: Iterable[Instance],
+    local: bool,
+    served: Mapping[Ecosystem, Mapping[str, set[str]]],
+) -> tuple[Mirror, tuple[str, ...]]:
+    if local or component.ecosystem not in MIRRORABLE:
+        return Mirror.NOT_SERVED, ()
+    catalog = served.get(component.ecosystem)
+    if catalog is None:
+        return Mirror.UNCHECKED, ()
+    versions = catalog.get(graph_module.normalize_name(component.ecosystem, component.name))
+    used = sorted({instance.version for instance in instances if instance.version is not None})
+    if versions is None:
+        return Mirror.MISSING, tuple(used)
+    missing = tuple(version for version in used if _version_key(component.ecosystem, version) not in versions)
+    return (Mirror.PARTIAL if missing else Mirror.MIRRORED), missing
 
 
 def _owner(host: str, path: str) -> str | None:

@@ -13,6 +13,13 @@ def public_repositories(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def unpaced_crates_io(monkeypatch: pytest.MonkeyPatch) -> None:
+    from repomod import audit
+
+    monkeypatch.setattr(audit, "_CRATES_PACER", audit._Pacer(0.0))
+
+
 @pytest.fixture
 def git_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     global_config = tmp_path / "gitconfig"

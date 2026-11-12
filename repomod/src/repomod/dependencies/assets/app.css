@@ -132,6 +132,17 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .tm-cell.tm-vulnerable { stroke: var(--ui-bad); stroke-width: 2; }
 .treemap a:hover .tm-cell { opacity: .75; }
 .treemap a:focus-visible .tm-cell { stroke: var(--ui-text); stroke-width: 2; }
+.map-modes { display: flex; flex-wrap: wrap; gap: var(--ui-space-md); margin-bottom: var(--ui-space-sm); font-size: var(--ui-fs-meta); }
+.map-modes label { display: inline-flex; align-items: center; gap: var(--ui-space-xs); cursor: pointer; }
+.world-map .legend-mirror { display: none; }
+.world-map:has(#map-mirror:checked) .legend-ownership { display: none; }
+.world-map:has(#map-mirror:checked) .legend-mirror { display: block; }
+.world-map:has(#map-mirror:checked) .tm-cell + text { fill: var(--ui-text); }
+.world-map:has(#map-mirror:checked) .tm-cell { fill: url(#tm-hatch); }
+.world-map:has(#map-mirror:checked) .tm-cell.tm-m-mirrored { fill: var(--ui-accent); }
+.world-map:has(#map-mirror:checked) .tm-cell.tm-m-mirrored + text { fill: var(--ui-surface); }
+.world-map:has(#map-mirror:checked) .tm-cell.tm-m-partial { fill: var(--ui-warn); }
+.world-map:has(#map-mirror:checked) .tm-cell.tm-m-missing { fill: color-mix(in srgb, var(--ui-viz-ghost) 55%, var(--ui-surface)); }
 
 .package { display: none; flex-direction: column; gap: var(--ui-space-lg); }
 .package.active { display: flex; }

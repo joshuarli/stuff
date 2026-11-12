@@ -350,13 +350,13 @@ def build_graph(inventory: Inventory, catalog: Catalog | None = None) -> Graph:
             for instance in data.instances:
                 if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
                     names[Ecosystem.CARGO].add(
-                        _normalize_name(Ecosystem.CARGO, _component_name(components, instance))
+                        normalize_name(Ecosystem.CARGO, _component_name(components, instance))
                     )
         if "pypi" in effective_tags:
             for instance in data.instances:
                 if instance.source_kind in {SourceKind.WORKSPACE, SourceKind.PATH}:
                     names[Ecosystem.PYPI].add(
-                        _normalize_name(Ecosystem.PYPI, _component_name(components, instance))
+                        normalize_name(Ecosystem.PYPI, _component_name(components, instance))
                     )
     return Graph(
         repositories=inventory.repositories,
@@ -419,9 +419,9 @@ def matching_instances(graph: Graph, query: PackageQuery) -> tuple[str, ...]:
             continue
         if query.ecosystem is not None and component.ecosystem is not query.ecosystem:
             continue
-        if _normalize_name(component.ecosystem, component.name) != _normalize_name(
+        if normalize_name(component.ecosystem, component.name) != normalize_name(
             component.ecosystem, query.name
-        ) and _normalize_name(component.ecosystem, component.display_name) != _normalize_name(
+        ) and normalize_name(component.ecosystem, component.display_name) != normalize_name(
             component.ecosystem, query.name
         ):
             continue
@@ -431,7 +431,7 @@ def matching_instances(graph: Graph, query: PackageQuery) -> tuple[str, ...]:
     return tuple(sorted(set(matches)))
 
 
-def _normalize_name(ecosystem: Ecosystem, name: str) -> str:
+def normalize_name(ecosystem: Ecosystem, name: str) -> str:
     if ecosystem is Ecosystem.CARGO:
         return name.replace("_", "-").casefold()
     if ecosystem is Ecosystem.PYPI:
@@ -545,7 +545,7 @@ def is_first_party(graph: Graph, instance: Instance) -> bool:
         and _normalize_registry(instance.repository_url) in graph.native
     ):
         return True
-    return _normalize_name(component.ecosystem, component.name) in graph.first_party_names.get(
+    return normalize_name(component.ecosystem, component.name) in graph.first_party_names.get(
         component.ecosystem, frozenset()
     )
 

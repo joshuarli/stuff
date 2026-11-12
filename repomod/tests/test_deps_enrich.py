@@ -10,6 +10,7 @@ from typing import Any, cast
 import pytest
 from deps_fixtures import build_graph, instance, repository
 
+from repomod import audit
 from repomod.audit import RegistrySources
 from repomod.cmd import common, deps
 from repomod.dependencies import enrich
@@ -82,19 +83,27 @@ def test_enrichment_uses_upstream_releases_and_configured_registry_for_private_p
 
     built = build_graph(tmp_path, [repository("acme/tool", (
         instance(Ecosystem.CARGO, "cc", "1.9.0"),
+        instance(Ecosystem.CARGO, "private-crate", "0.1.0"),
         instance(Ecosystem.NPM, "private-tool", "1.0.0"),
     ))])
     calls: list[tuple[str, str | None]] = []
 
+    def crates(names: list[str]) -> dict[str, audit.CrateRecord | None]:
+        calls.extend((name, None) for name in names)
+        return {"cc": audit.CrateRecord("1.11.1", ("https://github.com/rust-lang/cc-rs",)), "private-crate": None}
+
     def cargo(name: str, index: str | None = None) -> str:
         calls.append((name, index))
-        return "1.11.1" if index is None else "1.10.0"
+        return "0.2.0"
 
     def npm(name: str, registry: str | None = None) -> str | None:
         calls.append((name, registry))
         return "2.0.0" if registry is not None else None
 
-    monkeypatch.setitem(audit._LATEST_FETCHERS, "crates", cargo)
+    monkeypatch.setattr(enrich, "resolve_crates", crates)
+    monkeypatch.setattr(enrich, "read_mirror_catalog", lambda _url: {})
+    monkeypatch.setattr(enrich, "resolve_source_urls", lambda packages, **_: dict.fromkeys(packages, ()))
+    monkeypatch.setattr(audit, "_latest_crates", cargo)
     monkeypatch.setitem(audit._LATEST_FETCHERS, "npm", npm)
     monkeypatch.setattr(audit, "_latest_npm", npm)
     sources = RegistrySources("https://mirror.test/crates/", "https://mirror.test/npm/", None)
@@ -103,10 +112,16 @@ def test_enrichment_uses_upstream_releases_and_configured_registry_for_private_p
     )
     assert report.cache.results["pkg:cargo/cc@1.9.0"]["latest"] == "1.11.1"
     assert report.cache.results["pkg:cargo/cc@1.9.0"]["latest_source"] == "public"
+    assert report.cache.results["pkg:cargo/private-crate@0.1.0"]["latest"] == "0.2.0"
+    assert report.cache.results["pkg:cargo/private-crate@0.1.0"]["latest_source"] == sources.cargo
+    assert report.cache.sources["pkg:cargo/cc"] == ("https://github.com/rust-lang/cc-rs",)
+    assert report.cache.sources["pkg:cargo/private-crate"] == ()
+    assert report.errors == ()
     assert report.cache.results["pkg:npm/private-tool@1.0.0"]["latest"] == "2.0.0"
     assert report.cache.results["pkg:npm/private-tool@1.0.0"]["latest_source"] == sources.npm
     assert set(calls) == {
-        ("cc", None), ("private-tool", None), ("private-tool", sources.npm),
+        ("cc", None), ("private-crate", None), ("private-crate", sources.cargo),
+        ("private-tool", None), ("private-tool", sources.npm),
     }
 
 
@@ -359,8 +374,15 @@ def test_enrich_cli_reports_failed_checks_and_operational_exit(
         raise OSError("offline")
 
     monkeypatch.setattr("repomod.audit.urllib.request.urlopen", fail)
+    configured = enrich.registry_sources()
+    configured = (configured.cargo, configured.npm, configured.python)
     assert deps._deps(argparse.Namespace(operation="enrich", offline=False, refresh=True, json=True)) == 2
     value = json.loads(capsys.readouterr().out)
     assert value["checked"] == 0
     assert value["not_checked"] == 5
-    assert value["errors"] == ["OSV request failed"]
+    assert value["errors"] == [
+        "OSV request failed",
+        "crates.io returned no data for 1 crates; run enrich again",
+        "3 package source lookups failed; run enrich again",
+        *(f"{audit.mirror_catalog_url(url)} could not be read" for url in configured if url is not None),
+    ]

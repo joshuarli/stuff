@@ -105,10 +105,23 @@ uv run repomod deps enrich --offline --json
 
 Enrichment also caches the repository and homepage URLs that public crates.io, npm, and PyPI list
 for each package, under `sources`, keyed by package URL. They are fetched once per package and
-again only with `--refresh`. A failed lookup is retried on the next run. A crate missing from
-crates.io, such as one published only to a private registry, is cached with no URLs. crates.io
-lookups are sent in batches of 50, one second apart, as its crawler policy asks. The World page
-reads these URLs to find each package's owner.
+again only with `--refresh`. A package the public registry does not publish, such as one only on
+a private registry, is cached with no URLs. The World page reads these URLs to find each
+package's owner.
+
+Every enrich run also reads the stuff catalog (`<origin>/current/catalog.json`) behind each
+registry in `registries.toml` and caches each package's served versions under `mirror`. A
+catalog that cannot be read keeps its previous copy.
+
+All crates.io API requests, including those from `audit`, go through one client that sends at
+most one request per second, as the crates.io crawler policy asks. When crates.io answers 429 or
+503, the client waits for `Retry-After`, or backs off from 2 seconds up to 60, and retries. It
+gives up after 30 minutes of waiting on one request. Enrich reads latest versions and source
+URLs for crates in batches of 50 per request.
+
+Enrich exits 2 when any lookup is still unresolved: an OSV failure, crates.io data that never
+arrived, a failed source lookup, or an unreadable stuff catalog. Unresolved packages are not
+written as checked, so the next run retries them.
 
 Enrichment never adds edges and never changes package identities.
 An OSV transport, response, or classification failure exits 2 and records an error in JSON output.

@@ -43,6 +43,7 @@ def repo_root(tmp_path: Path) -> Path:
 def offline_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("repomod.audit._http_json", lambda url, headers=None: None)
     monkeypatch.setattr("repomod.audit._http_text", lambda url, headers=None: None)
+    monkeypatch.setattr("repomod.audit._crates_fetch", lambda url: None)
 
 
 @pytest.fixture
@@ -733,7 +734,7 @@ def fake_crates(
 ) -> list[str]:
     calls: list[str] = []
 
-    def http_json(url: str, headers: dict[str, str] | None = None) -> object:
+    def crates_fetch(url: str) -> object:
         calls.append(url)
         prefix = "https://crates.io/api/v1/crates/"
         crate_version, _, tail = url.removeprefix(prefix).partition("/dependencies")
@@ -742,7 +743,7 @@ def fake_crates(
             return {"dependencies": document["dependencies"]}
         return {"version": document["version"]}
 
-    monkeypatch.setattr("repomod.audit._http_json", http_json)
+    monkeypatch.setattr("repomod.audit._crates_fetch", crates_fetch)
     return calls
 
 

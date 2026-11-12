@@ -9,9 +9,14 @@ from pathlib import Path
 from typing import Any, cast
 
 from repomod.audit import (
+    CrateRecord,
     LockedDependency,
+    MirrorCatalogError,
+    RegistryRateLimitedError,
     RegistrySources,
     VulnerabilityLookupError,
+    read_mirror_catalog,
+    resolve_crates,
     resolve_latest,
     resolve_source_urls,
     resolve_vulns,
@@ -25,6 +30,7 @@ CACHE_NAME = "deps-enrichment.json"
 MAX_AGE_SECONDS = 86400
 _CHECKED = frozenset({Ecosystem.CARGO, Ecosystem.PYPI, Ecosystem.NPM, Ecosystem.GOLANG})
 _SOURCED = frozenset({"crates", "pypi", "npm"})
+_MIRRORED = (Ecosystem.CARGO, Ecosystem.NPM, Ecosystem.PYPI)
 _ECOSYSTEMS = {
     Ecosystem.CARGO: "crates",
     Ecosystem.PYPI: "pypi",
@@ -34,11 +40,19 @@ _ECOSYSTEMS = {
 
 
 @dataclass(frozen=True, slots=True)
+class MirrorCatalog:
+    url: str
+    fetched_at: float
+    packages: Mapping[str, tuple[str, ...]]
+
+
+@dataclass(frozen=True, slots=True)
 class Enrichment:
     path: Path
     fetched_at: float | None
     results: Mapping[str, Mapping[str, object]]
     sources: Mapping[str, tuple[str, ...]]
+    mirror: Mapping[Ecosystem, MirrorCatalog]
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,13 +82,13 @@ def load_cache(path: Path | None = None) -> Enrichment:
     try:
         document = json.loads(target.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
-        return Enrichment(target, None, {}, {})
+        return Enrichment(target, None, {}, {}, {})
     if not isinstance(document, dict):
-        return Enrichment(target, None, {}, {})
+        return Enrichment(target, None, {}, {}, {})
     fetched_at = document.get("fetched_at")
     raw_results = document.get("results")
     if not isinstance(raw_results, dict):
-        return Enrichment(target, None, {}, {})
+        return Enrichment(target, None, {}, {}, {})
     results: dict[str, Mapping[str, object]] = {
         purl: cast(Mapping[str, object], entry)
         for purl, entry in raw_results.items()
@@ -91,7 +105,40 @@ def load_cache(path: Path | None = None) -> Enrichment:
         float(fetched_at) if isinstance(fetched_at, (int, float)) and not isinstance(fetched_at, bool) else None,
         results,
         sources,
+        _mirror(document.get("mirror")),
     )
+
+
+def _mirror(value: object) -> dict[Ecosystem, MirrorCatalog]:
+    catalogs: dict[Ecosystem, MirrorCatalog] = {}
+    for ecosystem in _MIRRORED:
+        entry = _table(value).get(ecosystem.value)
+        if not isinstance(entry, dict):
+            continue
+        url, fetched_at, packages = entry.get("url"), entry.get("fetched_at"), entry.get("packages")
+        if not isinstance(url, str) or not isinstance(fetched_at, (int, float)) or not isinstance(packages, dict):
+            continue
+        catalogs[ecosystem] = MirrorCatalog(
+            url,
+            float(fetched_at),
+            {
+                name: tuple(version for version in versions if isinstance(version, str))
+                for name, versions in packages.items()
+                if isinstance(name, str) and isinstance(versions, list)
+            },
+        )
+    return catalogs
+
+
+def _mirror_dict(catalogs: Mapping[Ecosystem, MirrorCatalog]) -> dict[str, object]:
+    return {
+        ecosystem.value: {
+            "url": catalog.url,
+            "fetched_at": catalog.fetched_at,
+            "packages": {name: list(versions) for name, versions in sorted(catalog.packages.items())},
+        }
+        for ecosystem, catalog in sorted(catalogs.items(), key=lambda item: item[0].value)
+    }
 
 
 def is_fresh(entry: Mapping[str, object], now: float) -> bool:
@@ -124,6 +171,7 @@ def enrich(
     osv_fetcher: Callable[[list[dict[str, Any]]], list[list[dict[str, Any]]]] | None = None,
     sources: RegistrySources | None = None,
     source_fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
+    mirror_fetcher: Callable[[str], Mapping[str, tuple[str, ...]]] | None = None,
 ) -> EnrichReport:
     current = time.time() if now is None else now
     cache = load_cache(cache_path)
@@ -141,10 +189,31 @@ def enrich(
         )
     ]
     registry = sources if sources is not None else registry_sources()
+    source_urls = dict(cache.sources)
+    unsourced = {
+        item.component: (item.ecosystem, item.name)
+        for item in items
+        if not offline
+        and (source_fetcher is not None or latest_fetcher is None)
+        and item.ecosystem in _SOURCED
+        and (refresh or item.component not in source_urls)
+    }
+    crate_names = {
+        *(item.name for item in pending if item.ecosystem == "crates" and latest_fetcher is None),
+        *(name for ecosystem, name in unsourced.values() if ecosystem == "crates" and source_fetcher is None),
+    }
+    lookup_errors: list[str] = []
+    crates: dict[str, CrateRecord | None] = {}
+    if crate_names:
+        try:
+            crates = resolve_crates(sorted(crate_names))
+        except RegistryRateLimitedError as error:
+            lookup_errors.append(str(error))
     latest_map: dict[tuple[str, str], str | None] = {}
     latest_sources: dict[tuple[str, str], str] = {}
     vulns_map: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
-    errors: tuple[str, ...] = ()
+    vuln_error: str | None = None
+    unresolved_latest: set[tuple[str, str]] = set()
     if pending:
         latest_items: dict[tuple[str, str], LockedDependency] = {}
         for item in pending:
@@ -152,17 +221,30 @@ def enrich(
             latest_items.setdefault(
                 key, LockedDependency(item.ecosystem, item.name, item.version, True)
             )
-        latest_map = resolve_latest(
-            list(latest_items.values()),
+        public = RegistrySources(None, None, None)
+        for key in list(latest_items):
+            if key[0] != "crates" or latest_fetcher is not None:
+                continue
+            del latest_items[key]
+            if key[1] not in crates:
+                unresolved_latest.add(key)
+                continue
+            record = crates[key[1]]
+            latest_map[key] = record.latest if record is not None else None
+            latest_sources[key] = _source_for(public, "crates")
+            if record is None and _source_for(registry, "crates") != _source_for(public, "crates"):
+                latest_items[key] = LockedDependency("crates", key[1], "", True)
+        upstream = [item for key, item in latest_items.items() if key not in latest_map]
+        found_latest = resolve_latest(
+            upstream,
             offline=False,
             refresh=True,
             cache={},
             now=current,
             fetcher=latest_fetcher,
         )
-        latest_sources = {
-            key: _source_for(RegistrySources(None, None, None), key[0]) for key in latest_map
-        }
+        latest_map.update(found_latest)
+        latest_sources.update({key: _source_for(public, key[0]) for key in found_latest})
         missing = [
             item for key, item in latest_items.items()
             if latest_map.get(key) is None and _source_for(registry, item.ecosystem) != latest_sources.get(key)
@@ -184,11 +266,15 @@ def enrich(
                 offline=False, refresh=True, cache={}, now=current, osv_fetcher=osv_fetcher,
             )
         except VulnerabilityLookupError as error:
-            errors = (str(error),)
+            vuln_error = str(error)
+    if unresolved_latest and not lookup_errors:
+        lookup_errors.append(f"crates.io returned no data for {len(unresolved_latest)} crates; run enrich again")
     results: dict[str, Mapping[str, object]] = dict(cache.results)
     for item in pending:
-        if errors:
-            results[item.purl] = {**results.get(item.purl, {}), "vuln_error": errors[0]}
+        if vuln_error is not None:
+            results[item.purl] = {**results.get(item.purl, {}), "vuln_error": vuln_error}
+            continue
+        if (item.ecosystem, item.name) in unresolved_latest:
             continue
         results[item.purl] = {
             "latest": latest_map.get((item.ecosystem, item.name)),
@@ -197,30 +283,43 @@ def enrich(
             "vulns": vulns_map.get((item.ecosystem, item.name, item.version), []),
             "fetched_at": current,
         }
-    source_urls = dict(cache.sources)
-    unsourced = {
-        item.component: (item.ecosystem, item.name)
-        for item in items
-        if not offline
-        and (source_fetcher is not None or latest_fetcher is None)
-        and item.ecosystem in _SOURCED
-        and (refresh or item.component not in source_urls)
+    found: dict[tuple[str, str], tuple[str, ...]] = {
+        ("crates", name): record.urls if record is not None else () for name, record in crates.items()
     }
-    found = resolve_source_urls(list(set(unsourced.values())), fetcher=source_fetcher) if unsourced else {}
+    others = [key for key in set(unsourced.values()) if key[0] != "crates" or source_fetcher is not None]
+    if others:
+        found.update(resolve_source_urls(others, fetcher=source_fetcher))
     fetched_sources = {
         component: found[key] for component, key in unsourced.items() if key in found
     }
+    unresolved_sources = len(unsourced) - len(fetched_sources)
+    if unresolved_sources:
+        lookup_errors.append(f"{unresolved_sources} package source lookups failed; run enrich again")
     source_urls.update(fetched_sources)
-    fetched_at = current if pending and not errors else cache.fetched_at
-    if pending or fetched_sources:
+    fetched_at = current if pending and vuln_error is None else cache.fetched_at
+    mirror = dict(cache.mirror)
+    fetched_mirror = False
+    if not offline and (mirror_fetcher is not None or latest_fetcher is None):
+        read = mirror_fetcher if mirror_fetcher is not None else read_mirror_catalog
+        for ecosystem, url in zip(_MIRRORED, (registry.cargo, registry.npm, registry.python), strict=True):
+            if url is None:
+                continue
+            try:
+                mirror[ecosystem] = MirrorCatalog(url, current, dict(read(url)))
+                fetched_mirror = True
+            except MirrorCatalogError as error:
+                lookup_errors.append(str(error))
+    if pending or fetched_sources or fetched_mirror:
         _write(
             cache.path,
             {
                 "fetched_at": fetched_at,
                 "results": results,
                 "sources": {component: list(urls) for component, urls in sorted(source_urls.items())},
+                "mirror": _mirror_dict(mirror),
             },
         )
+    errors = (*((vuln_error,) if vuln_error is not None else ()), *lookup_errors)
     checked = stale = not_checked = vulnerable = 0
     total = 0
     for data in _selected_data(graph, selected):
@@ -246,7 +345,7 @@ def enrich(
                 if isinstance(vulns, list) and vulns:
                     vulnerable += 1
     return EnrichReport(
-        Enrichment(cache.path, fetched_at, results, source_urls),
+        Enrichment(cache.path, fetched_at, results, source_urls, mirror),
         len(pending),
         checked,
         stale,

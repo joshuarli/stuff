@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import email.utils
 import fnmatch
 import json
 import math
@@ -8,9 +9,11 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Generator
@@ -1152,11 +1155,7 @@ def _latest_crates(name: str, index: str | None = None) -> str | None:
         newest = max(candidates, key=lambda record: _version_key(str(record.get("vers"))))
         version = newest.get("vers")
         return version if isinstance(version, str) else None
-    encoded = urllib.parse.quote(name, safe="")
-    document = _registry_document(
-        f"https://crates.io/api/v1/crates/{encoded}",
-        {"Accept": "application/json"},
-    )
+    document = _crates_document(f"{_CRATES_API}/{urllib.parse.quote(name, safe='')}")
     if document is None:
         return None
     crate = document.get("crate")
@@ -1200,13 +1199,12 @@ def _fetch_crate_release(
                 "requirements": requirements,
             }
         return None
-    base = (
-        f"https://crates.io/api/v1/crates/{urllib.parse.quote(name, safe='')}"
-        f"/{urllib.parse.quote(version, safe='')}"
-    )
-    headers = {"Accept": "application/json"}
-    release = _registry_document(base, headers)
-    dependencies = _registry_document(f"{base}/dependencies", headers)
+    base = f"{_CRATES_API}/{urllib.parse.quote(name, safe='')}/{urllib.parse.quote(version, safe='')}"
+    try:
+        release = _crates_document(base)
+        dependencies = _crates_document(f"{base}/dependencies")
+    except RegistryRateLimitedError:
+        return None
     if release is None or dependencies is None:
         return None
     detail = release.get("version")
@@ -1281,21 +1279,133 @@ def _url_candidates(*values: object) -> tuple[str, ...]:
     return tuple(found)
 
 
+_CRATES_API = "https://crates.io/api/v1/crates"
 _CRATES_BATCH = 50
+_CRATES_INTERVAL = 1.0
+_CRATES_BACKOFF = 2.0
+_CRATES_BACKOFF_MAX = 60.0
+_CRATES_PATIENCE = 1800.0
+_RATE_LIMITED = frozenset({429, 503})
 
 
-def _source_crates(names: list[str]) -> dict[str, tuple[str, ...]]:
-    found: dict[str, tuple[str, ...]] = {}
-    for start in range(0, len(names), _CRATES_BATCH):
-        if start:
-            time.sleep(1)
-        batch = names[start : start + _CRATES_BATCH]
+class RegistryRateLimitedError(RuntimeError):
+    pass
+
+
+class _ThrottledError(Exception):
+    def __init__(self, retry_after: float | None) -> None:
+        super().__init__("throttled")
+        self.retry_after = retry_after
+
+
+class _Pacer:
+    """Serializes requests to one host at a fixed minimum interval, across threads."""
+
+    def __init__(
+        self,
+        interval: float,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self._interval = interval
+        self._clock = clock
+        self._sleep = sleep
+        self._lock = threading.Lock()
+        self._next = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            delay = self._next - self._clock()
+            if delay > 0:
+                self._sleep(delay)
+            self._next = self._clock() + self._interval
+
+    def hold(self, seconds: float) -> None:
+        with self._lock:
+            self._next = max(self._next, self._clock() + seconds)
+
+
+_CRATES_PACER = _Pacer(_CRATES_INTERVAL)
+
+
+@dataclass(frozen=True, slots=True)
+class CrateRecord:
+    latest: str | None
+    urls: tuple[str, ...]
+
+
+def _retry_after(value: str | None) -> float | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if text.isdigit():
+        return float(text)
+    try:
+        moment = email.utils.parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, moment.timestamp() - time.time())
+
+
+def _crates_fetch(url: str) -> dict[str, Any] | None:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "repomod", "Accept": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        if error.code in _RATE_LIMITED:
+            raise _ThrottledError(_retry_after(error.headers.get("Retry-After"))) from error
+        return None
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _crates_document(url: str) -> dict[str, Any] | None:
+    """Fetch a crates.io API document, paced and retried through rate limits.
+
+    crates.io allows one request per second from crawlers. Throttled requests wait for
+    Retry-After, or back off exponentially, and raise RegistryRateLimitedError only after
+    waiting longer than _CRATES_PATIENCE in total.
+    """
+    waited = 0.0
+    backoff = _CRATES_BACKOFF
+    while True:
+        _CRATES_PACER.wait()
+        try:
+            return _crates_fetch(url)
+        except _ThrottledError as throttled:
+            if throttled.retry_after is not None:
+                pause = max(throttled.retry_after, _CRATES_INTERVAL)
+            else:
+                pause = backoff
+                backoff = min(backoff * 2, _CRATES_BACKOFF_MAX)
+            if waited + pause > _CRATES_PATIENCE:
+                raise RegistryRateLimitedError(
+                    f"crates.io kept rate limiting requests after {waited:.0f}s of backoff"
+                ) from None
+            waited += pause
+            print(f"crates.io is rate limiting; retrying in {pause:.0f}s", file=sys.stderr, flush=True)
+            _CRATES_PACER.hold(pause)
+
+
+def resolve_crates(names: list[str]) -> dict[str, CrateRecord | None]:
+    """Read public crates.io records in batches.
+
+    None means crates.io does not publish the crate. Names in a batch that failed for a
+    reason other than rate limiting are omitted so a later run retries them.
+    Raises RegistryRateLimitedError when crates.io keeps throttling past the backoff budget.
+    """
+    found: dict[str, CrateRecord | None] = {}
+    unique = sorted(set(names))
+    for start in range(0, len(unique), _CRATES_BATCH):
+        batch = unique[start : start + _CRATES_BATCH]
         query = urllib.parse.urlencode(
             [("per_page", str(_CRATES_BATCH)), *(("ids[]", name) for name in batch)]
         )
-        document = _registry_document(
-            f"https://crates.io/api/v1/crates?{query}", {"Accept": "application/json"}
-        )
+        document = _crates_document(f"{_CRATES_API}?{query}")
         crates = document.get("crates") if document is not None else None
         if not isinstance(crates, list):
             continue
@@ -1307,28 +1417,79 @@ def _source_crates(names: list[str]) -> dict[str, tuple[str, ...]]:
         for name in batch:
             crate = listed.get(_normalize_rust_name(name))
             found[name] = (
-                _url_candidates(crate.get("repository"), crate.get("homepage")) if crate is not None else ()
+                CrateRecord(
+                    _non_empty_str(crate.get("max_stable_version")) or _non_empty_str(crate.get("max_version")),
+                    _url_candidates(crate.get("repository"), crate.get("homepage")),
+                )
+                if crate is not None
+                else None
             )
     return found
 
 
+def _published_document(url: str) -> dict[str, Any] | None:
+    """Return the document, or None when the registry does not publish the package."""
+    request = urllib.request.Request(url, headers={"User-Agent": "repomod"})
+    try:
+        with urllib.request.urlopen(request, timeout=_NETWORK_TIMEOUT) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise SourceLookupError(f"{url} returned HTTP {error.code}") from error
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise SourceLookupError(f"{url} could not be read") from error
+    if not isinstance(data, dict):
+        raise SourceLookupError(f"{url} returned malformed data")
+    return data
+
+
 def _source_npm(name: str) -> tuple[str, ...]:
-    document = _registry_document(
-        f"https://registry.npmjs.org/{urllib.parse.quote(name, safe='@')}/latest"
-    )
+    document = _published_document(f"https://registry.npmjs.org/{urllib.parse.quote(name, safe='@')}/latest")
     if document is None:
-        raise SourceLookupError(f"npm has no record for {name}")
+        return ()
     return _url_candidates(document.get("repository"), document.get("homepage"))
 
 
 def _source_pypi(name: str) -> tuple[str, ...]:
-    document = _registry_document(f"https://pypi.org/pypi/{urllib.parse.quote(name, safe='')}/json")
-    info = document.get("info") if document is not None else None
+    document = _published_document(f"https://pypi.org/pypi/{urllib.parse.quote(name, safe='')}/json")
+    if document is None:
+        return ()
+    info = document.get("info")
     if not isinstance(info, dict):
-        raise SourceLookupError(f"PyPI has no record for {name}")
+        raise SourceLookupError(f"PyPI returned malformed data for {name}")
     project_urls = info.get("project_urls")
     links = list(project_urls.values()) if isinstance(project_urls, dict) else []
     return _url_candidates(*links, info.get("home_page"))
+
+
+class MirrorCatalogError(RuntimeError):
+    pass
+
+
+def mirror_catalog_url(registry_url: str) -> str:
+    parts = urllib.parse.urlsplit(registry_url.removeprefix("sparse+"))
+    return f"{parts.scheme}://{parts.netloc}/current/catalog.json"
+
+
+def read_mirror_catalog(registry_url: str) -> dict[str, tuple[str, ...]]:
+    """Return package name to served versions from the stuff catalog behind a registry URL."""
+    url = mirror_catalog_url(registry_url)
+    document = _registry_document(url)
+    packages = document.get("packages") if document is not None else None
+    if not isinstance(packages, list):
+        raise MirrorCatalogError(f"{url} could not be read")
+    served: dict[str, set[str]] = {}
+    for package in packages:
+        if not isinstance(package, dict) or not isinstance(package.get("name"), str):
+            continue
+        versions = package.get("versions")
+        served.setdefault(package["name"], set()).update(
+            version["version"]
+            for version in (versions if isinstance(versions, list) else [])
+            if isinstance(version, dict) and isinstance(version.get("version"), str)
+        )
+    return {name: tuple(sorted(versions)) for name, versions in served.items()}
 
 
 _SOURCE_FETCHERS: dict[str, Callable[[str], tuple[str, ...]]] = {
@@ -1342,17 +1503,14 @@ def resolve_source_urls(
     *,
     fetcher: Callable[[str, str], tuple[str, ...]] | None = None,
 ) -> dict[tuple[str, str], tuple[str, ...]]:
-    """Return the public registry's repository and homepage URLs for each package.
+    """Return the public npm or PyPI repository and homepage URLs for each package.
 
     Packages whose lookup fails are omitted so a later run retries them; a package
-    the registry lists no URLs for, or does not publish, maps to an empty tuple.
-    crates.io allows one request per second, so crates are fetched in paced batches.
+    the registry does not publish or lists no URLs for maps to an empty tuple.
+    Crates use resolve_crates.
     """
     resolved: dict[tuple[str, str], tuple[str, ...]] = {}
     lookups: dict[tuple[str, str], Callable[[], tuple[str, ...]]] = {}
-    if fetcher is None:
-        crates = sorted({name for ecosystem, name in packages if ecosystem == "crates"})
-        resolved.update({("crates", name): urls for name, urls in _source_crates(crates).items()})
     for ecosystem, name in packages:
         if fetcher is not None:
             lookups[(ecosystem, name)] = lambda ecosystem=ecosystem, name=name: fetcher(ecosystem, name)

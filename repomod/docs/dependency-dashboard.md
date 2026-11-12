@@ -54,10 +54,15 @@ Overview.
   URLs, Go module paths, image names, toolchain names, and the repository and homepage URLs that
   `deps enrich` caches for Cargo, npm, and PyPI packages. A package with none of these stays
   owner unknown rather than being guessed. Bars compare ownership by package and by package
-  use. A treemap groups packages by ecosystem and owner, with area proportional to repositories
-  reached, lighter cells for transitive-only packages, and a red outline for vulnerable ones. Each cell
-  opens the package. Reach buckets and an owner list, with direct and transitive-only counts,
-  repeat the charted values as text.
+  use. **Mirrored on stuff** compares the Cargo, npm, and PyPI packages in use with the stuff
+  catalogs behind `registries.toml`: on stuff when every version in use is served, versions
+  missing when some are not, and not on stuff otherwise. It lists the gaps by repositories
+  reached. Other ecosystems and packages built inside your repositories are not counted. A
+  treemap groups packages by ecosystem and owner, with area proportional to repositories reached.
+  It colors cells by ownership, with lighter cells for transitive-only packages and a red outline
+  for vulnerable ones, or, with the toggle, by mirror state. Each cell opens the package. Reach
+  buckets and an owner list, with direct and transitive-only counts, repeat the charted values as
+  text.
 - **Repository pages** (`repos/OWNER/REPO/index.html`) hold what to do in that repository,
   including coverage issues with a link to the file, and the repository's status with `--status`.
 - **Security** has one card per owned repository listing its vulnerable packages. A latest

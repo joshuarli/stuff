@@ -221,7 +221,7 @@ def _site(
         _triage(graph, vulnerable, outdated, forks),
         status,
         hidden,
-        world.build(graph, [name for name in graph.repositories if name not in forks], cache.sources),
+        world.build(graph, [name for name in graph.repositories if name not in forks], cache.sources, cache.mirror),
     )
 
 
@@ -1830,6 +1830,16 @@ _ORIGIN_LABELS = {
     world.Origin.THIRD_PARTY: "Third-party",
     world.Origin.UNKNOWN: "Owner unknown",
 }
+_MIRROR_MARKS = {
+    world.Mirror.MIRRORED: Mark.ACCENT,
+    world.Mirror.PARTIAL: Mark.WARN,
+    world.Mirror.MISSING: Mark.GHOST,
+}
+_MIRROR_LABELS = {
+    world.Mirror.MIRRORED: "On stuff",
+    world.Mirror.PARTIAL: "Versions missing",
+    world.Mirror.MISSING: "Not on stuff",
+}
 _REACH_BUCKETS = ((1, 1), (2, 2), (3, 5), (6, 10), (11, 20), (21, None))
 _TREEMAP_SIZE = (1200, 760)
 
@@ -1877,6 +1887,7 @@ def _world(site: _Site) -> str:
             else "run deps enrich to find owners",
             "#owners",
         ),
+        _mirror_tile(value),
     )
     body = [header, ui.status_strip(tiles)]
     if not site.cache.sources:
@@ -1889,6 +1900,7 @@ def _world(site: _Site) -> str:
     body.extend(
         (
             _ownership_panel(packages),
+            _mirror_panel(value),
             _world_map(site),
             _yours_panel(packages),
             _reach_panel(value),
@@ -1963,11 +1975,13 @@ def _world_map(site: _Site) -> str:
                     f"{package.component.display_name} · {name} · {len(package.repositories)} "
                     f"{'repository' if len(package.repositories) == 1 else 'repositories'} · "
                     f"{'direct' if package.direct else 'transitive'}"
-                    + (" · vulnerable" if package.component.purl in vulnerable else ""),
+                    + (" · vulnerable" if package.component.purl in vulnerable else "")
+                    + f" · {_mirror_tip(package)}",
                     " ".join(
                         (
                             f"tm-{package.origin.name.casefold().replace('_', '-')}",
                             "tm-direct" if package.direct else "tm-transitive",
+                            f"tm-m-{package.mirror.name.casefold().replace('_', '-')}",
                             *(("tm-vulnerable",) if package.component.purl in vulnerable else ()),
                         )
                     ),
@@ -1977,7 +1991,7 @@ def _world_map(site: _Site) -> str:
             children.append(Block(name, f"{name} · {len(rows)} packages", cells))
         blocks.append(Block(f"{ecosystem.value} · {count}", f"{ecosystem.value} · {count} packages", children))
     width, height = _TREEMAP_SIZE
-    legend = ui.legend(
+    ownership = ui.legend(
         [
             ("Yours, direct", Mark.ACCENT),
             ("Third-party, direct", Mark.GHOST),
@@ -1986,8 +2000,133 @@ def _world_map(site: _Site) -> str:
         ],
         "Area is repositories reached. Lighter cells are transitive only. Select a cell to open the package.",
     )
+    mirror = ui.legend(
+        [
+            *((_MIRROR_LABELS[state], _MIRROR_MARKS[state]) for state in _MIRROR_MARKS),
+            ("Not served or not checked", Mark.UNKNOWN),
+        ],
+        "Area is repositories reached. stuff serves Cargo, npm, and PyPI packages.",
+    )
+    modes = (
+        '<div class="map-modes" role="radiogroup" aria-label="Color the map by">'
+        '<label><input type="radio" name="map-mode" checked> Ownership</label>'
+        '<label><input type="radio" name="map-mode" id="map-mirror"> Mirrored on stuff</label></div>'
+    )
     chart = ui.treemap(blocks, width, height, f"{len(site.world.packages)} packages by ecosystem and owner")
-    return ui.panel("Map", legend + f'<div class="treemap-frame">{chart}</div>', panel_id="map")
+    body = (
+        f'<div class="world-map">{modes}<div class="legend-ownership">{ownership}</div>'
+        f'<div class="legend-mirror">{mirror}</div><div class="treemap-frame">{chart}</div></div>'
+    )
+    return ui.panel("Map", body, panel_id="map")
+
+
+def _mirrorable(packages: Sequence[world.Package]) -> list[world.Package]:
+    return [package for package in packages if package.mirror in _MIRROR_MARKS]
+
+
+def _mirror_tip(package: world.Package) -> str:
+    if package.mirror is world.Mirror.PARTIAL:
+        return f"stuff lacks {', '.join(package.unmirrored_versions)}"
+    if package.mirror is world.Mirror.MISSING:
+        return "not on stuff"
+    if package.mirror is world.Mirror.MIRRORED:
+        return "on stuff"
+    return f"stuff mirror {package.mirror.value}"
+
+
+def _mirror_tile(value: world.World) -> Tile:
+    eligible = _mirrorable(value.packages)
+    if not value.mirrors:
+        return Tile("—", "On stuff", "run deps enrich to read the stuff catalogs", "#mirror")
+    states = Counter(package.mirror for package in eligible)
+    partial = states[world.Mirror.PARTIAL]
+    return Tile(
+        str(states[world.Mirror.MIRRORED]),
+        "On stuff",
+        f"{_percent(states[world.Mirror.MIRRORED], len(eligible))} of {len(eligible)} Cargo, npm, and PyPI packages"
+        + (f" · {partial} missing versions" if partial else ""),
+        "#mirror",
+    )
+
+
+def _mirror_parts(packages: Sequence[world.Package], weight: Callable[[world.Package], int]) -> tuple[Segment, ...]:
+    totals = Counter[world.Mirror]()
+    for package in packages:
+        totals[package.mirror] += weight(package)
+    return tuple(Segment(_MIRROR_LABELS[state], totals[state], mark) for state, mark in _MIRROR_MARKS.items())
+
+
+def _mirror_panel(value: world.World) -> str:
+    if not value.mirrors:
+        return ui.panel(
+            "Mirrored on stuff",
+            '<p class="unknown">not checked: run <span class="mono">uv run repomod deps enrich</span></p>',
+            panel_id="mirror",
+            flush=True,
+        )
+    eligible = _mirrorable(value.packages)
+    if not eligible:
+        return ui.panel("Mirrored on stuff", '<p class="zero">no Cargo, npm, or PyPI packages</p>', panel_id="mirror")
+
+    def one(_: world.Package) -> int:
+        return 1
+
+    def uses(package: world.Package) -> int:
+        return len(package.repositories)
+
+    totals = [
+        Bar("Packages", _mirror_parts(eligible, one), note="each package counted once"),
+        Bar("Package uses", _mirror_parts(eligible, uses), note="once per repository that reaches it"),
+        *(
+            Bar(_ORIGIN_LABELS[origin], _mirror_parts(rows, one))
+            for origin in world.Origin
+            if (rows := [package for package in eligible if package.origin is origin])
+        ),
+        *(
+            Bar(_e(ecosystem.value), _mirror_parts(rows, one))
+            for ecosystem in sorted(world.MIRRORABLE, key=lambda item: item.value)
+            if (rows := [package for package in eligible if package.component.ecosystem is ecosystem])
+        ),
+    ]
+    gaps = [package for package in eligible if package.mirror is not world.Mirror.MIRRORED]
+    bars = [
+        Bar(
+            f'<a href="packages.html#pkg={_e(package.component.purl)}">{_e(package.component.display_name)}</a>'
+            + (" " + ui.badge("versions missing", Tone.WARN) if package.mirror is world.Mirror.PARTIAL else ""),
+            (Segment("Repositories", len(package.repositories), _MIRROR_MARKS[package.mirror]),),
+            note=_e(
+                f"{package.component.ecosystem.value} · {world.display_owner(package.owner)}"
+                + (
+                    f" · missing {', '.join(package.unmirrored_versions)}"
+                    if package.mirror is world.Mirror.PARTIAL
+                    else ""
+                )
+            ),
+            tip=", ".join(package.repositories),
+        )
+        for package in gaps
+    ]
+    checked = min(catalog.fetched_at for catalog in value.mirrors.values())
+    body = (
+        ui.legend([(_MIRROR_LABELS[state], mark) for state, mark in _MIRROR_MARKS.items()])
+        + ui.bar_list(totals, max(sum(part.value for part in bar.parts) for bar in totals), "Mirror coverage")
+    )
+    if bars:
+        body += (
+            f'<p class="change-group">Not fully on stuff · {len(bars)}, by repositories reached</p>'
+            + ui.scope(
+                ui.bar_list(bars, max(len(package.repositories) for package in gaps), "Packages not fully on stuff"),
+                search="Filter packages",
+                limit=_LIST_ROWS,
+                total=len(bars),
+            )
+        )
+    return ui.panel(
+        "Mirrored on stuff",
+        body,
+        meta=f"catalogs read {time.strftime('%Y-%m-%d %H:%M', time.gmtime(checked))} UTC",
+        panel_id="mirror",
+    )
 
 
 def _yours_panel(packages: Sequence[world.Package]) -> str:
