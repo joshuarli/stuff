@@ -159,8 +159,8 @@ ignore = ["audit-upgrades:crates:getrandom", "audit-banned:transitive:tokio"]
 ignore_reason = "tantivy needs getrandom 0.3; moving the direct dependency breaks the wasm build. Tokio is only reachable through wasm-bindgen's opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; wasm32-unknown-unknown builds never compile it."
 
 [overrides."laputa-systems/smolith"]
-ignore = ["audit-banned:transitive:tokio", "rust-project:lockfile:crates/laputa-h2-futures-lite"]
-ignore_reason = "Tokio is only reachable through wasm-bindgen-futures (via the wasm-bindgen-test dev dependency) under its opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; the wasm32-unknown-unknown test builds never compile it. The vendored h2 fork keeps upstream's own workspace, whose only executables are its fuzz, fixture, and Huffman-table development utilities."
+ignore = ["audit-banned:transitive:tokio", "rust-project:lockfile:crates/laputa-h2-futures-lite", "rust-project:lockfile:crates/laputa-h2-futures-lite/util/genfixture", "rust-project:lockfile:crates/laputa-h2-futures-lite/util/genhuff"]
+ignore_reason = "Tokio is only reachable through wasm-bindgen-futures (via the wasm-bindgen-test dev dependency) under its opt-in wasm_bindgen_unstable_tokio cfg for wasm32-unknown-emscripten; the wasm32-unknown-unknown test builds never compile it. The vendored h2 fork keeps upstream's own workspace, whose only executables are its fuzz, fixture, and Huffman-table development utilities. The genfixture and genhuff utility crates are sub-workspaces with their own manifests and admit the same call."
 
 [overrides."joshuarli/kache"]
 ignore = ["audit-banned:transitive:tokio"]
