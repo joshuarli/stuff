@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from repomod.dependencies import insights
 from repomod.dependencies.model import Ecosystem

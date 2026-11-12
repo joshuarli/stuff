@@ -603,7 +603,8 @@ def _command_group(site: _Site) -> str:
     actions = [
         action
         for action in site.actions
-        if action.kind in (ActionKind.UNREADABLE, ActionKind.LOCKFILE, ActionKind.TOOLING, ActionKind.MIGRATE, ActionKind.ROUTINE)
+        if action.kind
+        in (ActionKind.UNREADABLE, ActionKind.LOCKFILE, ActionKind.TOOLING, ActionKind.MIGRATE, ActionKind.ROUTINE)
     ]
     if not actions:
         return ""
@@ -748,7 +749,8 @@ def _migrations_panel(site: _Site) -> str:
         versions = ", ".join(use.version for use in row.uses)
         target = migration.target or "remove"
         change = f"{versions} → {target}"
-        foot = f"{_plural(row.repositories, 'repository', 'repositories')}: {_repository_names(sorted({name for use in row.uses for name in use.repositories}, key=str.casefold))}"
+        names = sorted({name for use in row.uses for name in use.repositories}, key=str.casefold)
+        foot = f"{_plural(row.repositories, 'repository', 'repositories')}: {_repository_names(names)}"
         command = (
             f'<div class="command-line"><code>{_e(migration.command)}</code>{ui.copy_button(migration.command)}</div>'
             if migration.command is not None
@@ -1911,7 +1913,7 @@ def _ecosystem_drilldowns(site: _Site, groups: Mapping[Ecosystem, Sequence[world
                         package.component.display_name,
                     ),
                     _e(_version_summary(instances.get(package.component.purl, ()))),
-                    _e(world.display_owner(package.owner) if package.owner else "unknown"),
+                    _e("unknown" if package.owner is None else world.display_owner(package.owner)),
                     _e(package.origin.value),
                     str(len(package.repositories)),
                     "yes" if package.direct else "",

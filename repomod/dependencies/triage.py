@@ -159,7 +159,7 @@ def _upgrade_target(
     return latest
 
 
-def _migrate(rows: list[tuple[migrations.Migration, insights.Outdated]]) -> Iterable[Action]:
+def _migrate(rows: Iterable[tuple[migrations.Migration, insights.Outdated]]) -> Iterable[Action]:
     grouped: dict[migrations.Migration, list[insights.Outdated]] = defaultdict(list)
     for migration, row in rows:
         grouped[migration].append(row)
