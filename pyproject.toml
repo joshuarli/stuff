@@ -26,7 +26,7 @@ dev = [
     "pytest>=9.1.1",
     "ruff==0.17.4",
     "uv==0.13.7",
-    "joshuarli-pytest-parallel>=0.3.0",
+    "joshuarli-pytest-parallel>=0.4.0",
 ]
 
 [tool.pytest.ini_options]

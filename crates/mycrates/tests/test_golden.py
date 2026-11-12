@@ -1,5 +1,4 @@
 import json
-import unittest
 
 from mycrates.config import Config
 from mycrates.store import Store
@@ -61,5 +60,3 @@ class PublishGoldenTest(ScratchTestCase):
             self.assertFalse(list(Store(state).blobs_dir.glob("*.crate")))
 
 
-if __name__ == "__main__":
-    unittest.main()

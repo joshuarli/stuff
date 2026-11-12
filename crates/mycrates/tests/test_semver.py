@@ -1,11 +1,11 @@
-import unittest
+from .support import AssertMixin
 
 from mycrates.errors import InputError
 from mycrates.requirements import canonical_requirement
 from mycrates.semver import Version, compare_text
 
 
-class VersionTest(unittest.TestCase):
+class VersionTest(AssertMixin):
     def test_precedence_follows_semver(self):
         ordered = ["0.9.0", "1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta", "1.0.0-beta.2",
                    "1.0.0-beta.11", "1.0.0-rc.1", "1.0.0", "1.0.1", "1.10.0", "2.0.0", "10.0.0"]
@@ -31,7 +31,7 @@ class VersionTest(unittest.TestCase):
         self.assertEqual(compare_text("b", "a"), 1)
 
 
-class RequirementTest(unittest.TestCase):
+class RequirementTest(AssertMixin):
     def same(self, a, b):
         self.assertEqual(canonical_requirement(a), canonical_requirement(b), (a, b))
 
@@ -63,5 +63,3 @@ class RequirementTest(unittest.TestCase):
                 canonical_requirement(text)
 
 
-if __name__ == "__main__":
-    unittest.main()

@@ -5,7 +5,6 @@ import socket
 import struct
 import threading
 import time
-import unittest
 
 from mycrates import wirejson
 from mycrates.cli import main as cli_main
@@ -35,8 +34,8 @@ class ServerCase(ScratchTestCase):
     auth_required = False
     overrides = {}
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.state, self.site = init_state(self.tmp)
         self.running = start_server(
             self.state, self.site, token=TOKEN, auth_required=self.auth_required, public_base_url="local", **self.overrides
@@ -360,8 +359,8 @@ class HardeningTest(ServerCase):
 class AdmissionTest(ServerCase):
     overrides = {"header_timeout": 5}
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.running.httpd.writes.limit = 2
         self.running.httpd.connections.limit = 6
 
@@ -495,5 +494,3 @@ class StartupTest(ScratchTestCase):
         self.assertEqual(http("PUT", f"http://{address}/api/v1/crates/new", payload, {"Authorization": "from-file"})[0], 200)
 
 
-if __name__ == "__main__":
-    unittest.main()

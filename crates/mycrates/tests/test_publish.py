@@ -2,7 +2,6 @@ import io
 import json
 import os
 import shutil
-import unittest
 
 from mycrates.errors import InputError, IntegrityError
 from mycrates.model import IndexEntry
@@ -25,8 +24,8 @@ def put_native(store, name, version, data, **fields):
 
 
 class GenerationTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.store = Store(self.tmp / "state")
         self.store.ensure_dirs()
         self.site = self.tmp / "site"
@@ -254,5 +253,3 @@ class UninitializedStateTest(ScratchTestCase):
         self.assertEqual(catalog["packages"], [])
 
 
-if __name__ == "__main__":
-    unittest.main()

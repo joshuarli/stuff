@@ -1,5 +1,4 @@
 import json
-import unittest
 
 from mycrates.crate_file import parse_packaged_manifest
 from mycrates.errors import InputError, IntegrityError
@@ -7,7 +6,7 @@ from mycrates.index import mirror_config_json, native_config_json, publish_to_in
 from mycrates.model import IndexEntry, PublishBody
 from mycrates.names import shard_for_name, validate_crate_name
 
-from .support import dependency, publish_metadata
+from .support import AssertMixin, dependency, publish_metadata
 
 CRATES_IO = "https://github.com/rust-lang/crates.io-index"
 
@@ -24,7 +23,7 @@ def line_of(published, manifest=None):
     return publish_to_index(published, manifest).index_line()
 
 
-class EntrySerializationTest(unittest.TestCase):
+class EntrySerializationTest(AssertMixin):
     def test_same_registry_dependencies_serialize_a_null_registry_and_crates_io_is_verbatim(self):
         line = line_of(body([dependency("bar", registry=None), dependency("itoa", registry=CRATES_IO)]))
         deps = json.loads(line)["deps"]
@@ -108,7 +107,7 @@ class EntrySerializationTest(unittest.TestCase):
                 validate_crate_name(name)
 
 
-class ReconcileTest(unittest.TestCase):
+class ReconcileTest(AssertMixin):
     def accepts(self, published, manifest):
         publish_to_index(published, manifest)
 
@@ -175,5 +174,3 @@ class ReconcileTest(unittest.TestCase):
         self.rejects(body(), other)
 
 
-if __name__ == "__main__":
-    unittest.main()

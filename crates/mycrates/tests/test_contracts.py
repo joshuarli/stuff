@@ -1,12 +1,11 @@
 import hashlib
 import json
 import os
-import unittest
 
 from mycrates.names import shard_for_name
 from mycrates.semver import Version
 
-from .support import GOLDEN, PACKAGE_ROOT, ScratchTestCase
+from .support import AssertMixin, GOLDEN, PACKAGE_ROOT, ScratchTestCase
 
 GENERATION = GOLDEN / "adopt-publish" / "expected-generation"
 KINDS = ["runtime", "peer", "build", "dev"]
@@ -44,7 +43,7 @@ def file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-class GoldenContractTest(unittest.TestCase):
+class GoldenContractTest(AssertMixin):
     def test_the_catalog_satisfies_the_reader_contract(self):
         catalog = parse_catalog((GENERATION / "catalog.json").read_text())
         by_name = {(p["name"], p["source"]): p for p in catalog["packages"]}
@@ -159,5 +158,3 @@ class GeneratedArtifactContractTest(ScratchTestCase):
         self.assertEqual(Publisher(Store(state), site, "https://crates.example.test").publish().is_noop, True)
 
 
-if __name__ == "__main__":
-    unittest.main()

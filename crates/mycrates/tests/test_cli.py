@@ -1,5 +1,4 @@
 import json
-import unittest
 
 from mycrates.config import Config
 
@@ -232,5 +231,3 @@ class DoctorAndVerifyTest(ScratchTestCase):
         self.assertIn("corrupted blob", err)
 
 
-if __name__ == "__main__":
-    unittest.main()

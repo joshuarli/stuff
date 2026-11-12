@@ -102,7 +102,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "joshuarli-pytest-parallel", specifier = ">=0.3.0" },
+    { name = "joshuarli-pytest-parallel", specifier = ">=0.4.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = "==0.17.4" },
     { name = "ty", specifier = "==0.0.101" },

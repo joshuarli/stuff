@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import unittest
 
 from mycrates.adopt import adopt_site
 from mycrates.errors import ConflictError, InputError, IntegrityError
@@ -12,8 +11,8 @@ from .support import GOLDEN, ScratchTestCase, init_state
 
 
 class AdoptTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.source = self.tmp / "published"
         shutil.copytree(GOLDEN / "adopt-publish" / "input-site", self.source, symlinks=True)
         self.generation = self.source / "generations" / "golden1"
@@ -100,5 +99,3 @@ class AdoptTest(ScratchTestCase):
         self.assertEqual(result.generation_id, expected)
 
 
-if __name__ == "__main__":
-    unittest.main()

@@ -1,16 +1,19 @@
+import contextlib
 import gzip
 import hashlib
 import io
 import json
+import re
 import struct
 import tarfile
 import tempfile
 import threading
-import unittest
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import pytest
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = Path(__file__).resolve().parent / "golden"
@@ -88,11 +91,87 @@ def http(method, url, data=None, headers=None):
             return error.code, dict(error.headers), error.read()
 
 
-class ScratchTestCase(unittest.TestCase):
-    def setUp(self):
+class AssertMixin:
+    @contextlib.contextmanager
+    def subTest(self, msg=None, **params):
+        yield
+
+    def assertEqual(self, first, second, msg=None):
+        assert first == second, msg
+
+    def assertNotEqual(self, first, second, msg=None):
+        assert first != second, msg
+
+    def assertTrue(self, expr, msg=None):
+        assert expr, msg
+
+    def assertFalse(self, expr, msg=None):
+        assert not expr, msg
+
+    def assertIsNone(self, expr, msg=None):
+        assert expr is None, msg
+
+    def assertIsNotNone(self, expr, msg=None):
+        assert expr is not None, msg
+
+    def assertIs(self, first, second, msg=None):
+        assert first is second, msg
+
+    def assertIn(self, member, container, msg=None):
+        assert member in container, msg
+
+    def assertNotIn(self, member, container, msg=None):
+        assert member not in container, msg
+
+    def assertGreaterEqual(self, a, b, msg=None):
+        assert a >= b, msg
+
+    def assertGreater(self, a, b, msg=None):
+        assert a > b, msg
+
+    def assertLessEqual(self, a, b, msg=None):
+        assert a <= b, msg
+
+    def assertLess(self, a, b, msg=None):
+        assert a < b, msg
+
+    def assertCountEqual(self, first, second, msg=None):
+        assert sorted(first) == sorted(second), msg
+
+    def assertRegex(self, text, pattern, msg=None):
+        assert re.search(pattern, text), msg or f"{pattern!r} not found in {text!r}"
+
+    def assertNotRegex(self, text, pattern, msg=None):
+        assert not re.search(pattern, text), msg or f"{pattern!r} unexpectedly found in {text!r}"
+
+    @contextlib.contextmanager
+    def assertRaises(self, exc):
+        with pytest.raises(exc) as info:
+            yield info
+        info.exception = info.value
+
+    @contextlib.contextmanager
+    def assertRaisesRegex(self, exc, pattern):
+        with pytest.raises(exc, match=pattern) as info:
+            yield info
+        info.exception = info.value
+
+    def fail(self, msg=None):
+        pytest.fail(msg or "")
+
+
+class ScratchTestCase(AssertMixin):
+    def setup_method(self, method=None):
         self._scratch = tempfile.TemporaryDirectory()
-        self.addCleanup(self._scratch.cleanup)
+        self._cleanups = [self._scratch.cleanup]
         self.tmp = Path(self._scratch.name)
+
+    def teardown_method(self, method=None):
+        while self._cleanups:
+            self._cleanups.pop()()
+
+    def addCleanup(self, func, *args, **kwargs):
+        self._cleanups.append(lambda: func(*args, **kwargs))
 
 
 class RunningServer:

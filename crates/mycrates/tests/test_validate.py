@@ -1,9 +1,9 @@
+import pytest
 import io
 import json
 import os
 import shutil
 import subprocess
-import unittest
 
 from mycrates.errors import InputError, IntegrityError, NetworkError
 from mycrates.lockfile import classify, parse_lockfile
@@ -38,10 +38,10 @@ def environment(home):
     return env
 
 
-@unittest.skipUnless(shutil.which("cargo"), "validate shells out to cargo")
+@pytest.mark.skipif(not (shutil.which("cargo")), reason="validate shells out to cargo")
 class ValidateTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.state, self.site = init_state(self.tmp)
         self.store = Store(self.state)
         self.running = start_server(self.state, self.site, public_base_url="local")
@@ -188,5 +188,3 @@ class ValidateTest(ScratchTestCase):
         self.assertEqual([classify(p) for p in parsed.packages], ["git", "alternate-registry"])
 
 
-if __name__ == "__main__":
-    unittest.main()

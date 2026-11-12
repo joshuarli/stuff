@@ -1,11 +1,10 @@
 import io
 import tarfile
-import unittest
 
 from mycrates.crate_file import ScanLimits, parse_packaged_manifest, scan_crate_staged
 from mycrates.errors import IntegrityError, LimitError
 
-from .support import build_archive, gzip_bytes, make_crate, sha256
+from .support import AssertMixin, build_archive, gzip_bytes, make_crate, sha256
 
 LIMITS = ScanLimits()
 
@@ -34,7 +33,7 @@ def file_info(path, size):
     return info
 
 
-class ScanTest(unittest.TestCase):
+class ScanTest(AssertMixin):
     def test_a_well_formed_crate_yields_its_checksum_and_manifest(self):
         data = make_crate("demo", "0.1.0")
         result = scan(data)
@@ -123,7 +122,7 @@ class ScanTest(unittest.TestCase):
                 scan(damaged)
 
 
-class PackagedManifestTest(unittest.TestCase):
+class PackagedManifestTest(AssertMixin):
     def test_sections_targets_kinds_and_renames_are_collected(self):
         parsed = parse_packaged_manifest(
             '[package]\nname = "p"\nversion = "1.0.0"\nlinks = "l"\nrust-version = "1.70"\n'
@@ -164,5 +163,3 @@ class PackagedManifestTest(unittest.TestCase):
                 parse_packaged_manifest(base + body)
 
 
-if __name__ == "__main__":
-    unittest.main()

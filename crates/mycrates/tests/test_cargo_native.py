@@ -1,16 +1,16 @@
+import pytest
 import json
 import os
 import shutil
 import subprocess
 import textwrap
 import threading
-import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from mycrates.config import Config
 from mycrates.store import Store
 
-from .support import ScratchTestCase, cli, make_crate, sha256, start_server
+from .support import AssertMixin, ScratchTestCase, cli, make_crate, sha256, start_server
 
 CARGO = shutil.which("cargo")
 MIRRORED = ("mirrordep", "1.0.0")
@@ -20,7 +20,7 @@ SOURCES = {
 }
 
 
-class FakeCratesIo:
+class FakeCratesIo(AssertMixin):
     def __init__(self):
         name, version = MIRRORED
         self.crate = make_crate(name, version, files={"src/lib.rs": b"pub fn two() -> u32 { 2 }\n"})
@@ -58,10 +58,10 @@ class FakeCratesIo:
         self.httpd.server_close()
 
 
-@unittest.skipUnless(CARGO, "cargo is not installed")
+@pytest.mark.skipif(not (CARGO), reason="cargo is not installed")
 class CargoNativeTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.upstream = FakeCratesIo()
         self.addCleanup(self.upstream.close)
         self.state, self.site = self.tmp / "state", self.tmp / "site"

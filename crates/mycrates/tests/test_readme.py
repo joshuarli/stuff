@@ -1,8 +1,8 @@
+import pytest
 import os
 import shutil
 import subprocess
 import textwrap
-import unittest
 
 from mycrates.config import Config
 
@@ -24,7 +24,7 @@ def verified_blocks(markdown):
     return blocks
 
 
-@unittest.skipUnless(shutil.which("cargo"), "validate shells out to cargo")
+@pytest.mark.skipif(not (shutil.which("cargo")), reason="validate shells out to cargo")
 class ReadmeTest(ScratchTestCase):
     def test_every_verified_command_in_the_readme_runs(self):
         blocks = verified_blocks((PACKAGE_ROOT / "README.md").read_text())
@@ -87,5 +87,3 @@ class ReadmeTest(ScratchTestCase):
         self.assertIsNotNone(server, "the README never runs `mycrates init`")
 
 
-if __name__ == "__main__":
-    unittest.main()

@@ -2,7 +2,6 @@ import io
 import os
 import threading
 import time
-import unittest
 
 from mycrates import wirejson
 from mycrates.errors import ConflictError, InputError, IntegrityError
@@ -22,8 +21,8 @@ def upstream(name="serde", vers="1.0.0", checksum="d" * 64):
 
 
 class BlobTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.store = Store(self.tmp / "state")
         self.store.ensure_dirs()
 
@@ -105,8 +104,8 @@ class BlobTest(ScratchTestCase):
 
 
 class RecordTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.store = Store(self.tmp / "state")
         self.store.ensure_dirs()
 
@@ -173,8 +172,8 @@ class LegacyMigrationTest(ScratchTestCase):
         'kind = "dev"\ntarget = "cfg(unix)"\npackage = "serde_json"\n'
     )
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.state = self.tmp / "state"
         self.store = Store(self.state)
         self.store.ensure_dirs()
@@ -223,5 +222,3 @@ class LegacyMigrationTest(ScratchTestCase):
         self.assertTrue(path.exists())
 
 
-if __name__ == "__main__":
-    unittest.main()

@@ -44,7 +44,7 @@ bench-cli: ## Measure the real deps render command, cold and warm ([RUNS=3])
 	@uv run python bench/deps_perf.py workflow --mode both --runs $(RUNS)
 
 test-mycrates: ## Run the mycrates Python tests (needs cargo for the publish proof)
-	cd crates/mycrates && python3 -m unittest discover -t . -s tests
+	cd crates/mycrates && uv run --group dev --project ../.. pytest tests
 
 test-stuff: ## Run the stuff crate tests
 	cargo test -p stuff

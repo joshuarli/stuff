@@ -1,6 +1,5 @@
 import threading
 import time
-import unittest
 
 from mycrates.acquire import fetch, plan
 from mycrates.config import Config
@@ -11,8 +10,8 @@ from .support import FakeUpstream, ScratchTestCase, cli, init_state, lockfile_te
 
 
 class AcquireTest(ScratchTestCase):
-    def setUp(self):
-        super().setUp()
+    def setup_method(self, method=None):
+        super().setup_method(method)
         self.upstream = FakeUpstream()
         self.addCleanup(self.upstream.close)
         self.state, self.site = init_state(self.tmp)
@@ -214,5 +213,3 @@ class AcquireTest(ScratchTestCase):
         self.assertIn(b"dl", client.get(base))
 
 
-if __name__ == "__main__":
-    unittest.main()
