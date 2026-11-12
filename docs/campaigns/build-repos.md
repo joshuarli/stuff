@@ -25,7 +25,9 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
 - [x] buildlib: laputa-buildlib 0.1.0 published to stuff PyPI, tagged v0.1.0
 - [x] per repository: all eight merged (node #6, cmake #2, ffmpeg #2, chromium #5, ssh #4, pi #1,
   git #6, python #10); `repomod lint --tag build` reports only python-build's existing git sources
-- [ ] cmake-, node-, python-, ffmpeg-, chromium-build adopt `laputa-buildlib`
+- [x] cmake-, node-, python-, ffmpeg-, chromium-build adopt `laputa-buildlib` (cmake #3, node #7,
+  python #11, ffmpeg #3, chromium #6); plain-python3 and container contexts load the pinned wheel
+  from `sources.lock.json`
 - [x] `repomod topics apply`
 
 ## Needs owner
@@ -37,10 +39,12 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
   `scripts/fetch-git-build.sh` (git-build: `git-<version>-<triple>.tar.xz`, `tar -xJf`).
 - `usr/tools/sync/pi_release.py` and the `dl` installers read the old pi-build, node-build, and
   ssh-build tags and asset names.
+- Old release evidence (cmake qualification and memory baselines) no longer matches; the next
+  qualify run re-measures.
 - Re-measure `release-budgets.json` ceilings on the first xz builds (node, ssh, cmake).
 - python-build's and node-build's Linux builders moved from Alpine edge to the approved 3.24.2
   image; only a full Linux build proves them.
 
 ## Status
 
-Every build repository follows the contract and repomod enforces it. Remaining: buildlib adoption.
+Closed: every local deliverable landed. Open items are the owner list above.
