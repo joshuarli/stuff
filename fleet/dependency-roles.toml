@@ -288,7 +288,7 @@ ecosystem = "npm"
 preferred = "oxlint"
 
 [js-linter.options]
-oxlint = ["oxlint", "oxlint-tsgolint"]
+oxlint = ["oxlint"]
 eslint = ["eslint"]
 biome = ["@biomejs/biome"]
 

@@ -49,7 +49,7 @@ _RELEASE_VERSION = re.compile(r"v?(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-
 _RANGE_VERSION = re.compile(
     r"(?P<operator>>=|>|<=|<|=|\^|~)?v?(?P<major>0|[1-9][0-9]*)"
     r"(?:\.(?P<minor>0|[1-9][0-9]*|x|\*))?"
-    r"(?:\.(?P<patch>0|[1-9][0-9]*|x|\*))?\Z",
+    r"(?:\.(?P<patch>0|[1-9][0-9]*|x|\*))?(?:-[0-9A-Za-z.-]+)?\Z",
     re.IGNORECASE,
 )
 _PNPM_PACKAGE_MANAGER_VERSION = re.compile(
@@ -61,7 +61,7 @@ _NODE_RELEASE_INDEX = "https://nodejs.org/dist/index.json"
 _APP_STACK = {
     "effect": 4,
 }
-_TOOLING_STACK = {"oxlint": 1, "oxlint-tsgolint": 1}
+_TYPE_AWARE_LINT = {"oxlint": (1, 92, 0), "tsrs": (0, 23, 0)}
 _FRONTEND_STACK = {
     "vite": 8,
     "solid-js": 2,
@@ -885,7 +885,7 @@ def _typecheck_command(command: str) -> bool:
         if not tokens:
             continue
         executable = 2 if len(tokens) > 2 and tokens[:2] == ("pnpm", "exec") else 0
-        if tokens[executable] in {"tsc", "tsrs"} and "--noEmit" in tokens[executable + 1:]:
+        if tokens[executable] == "tsrs" and "--noEmit" in tokens[executable + 1:]:
             return True
     return False
 
@@ -948,14 +948,23 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
     for manifest, package in _typescript_manifests(root, packages):
         relative = manifest.relative_to(root).as_posix()
         dependencies = _dependency_versions(package)
-        for name, minimum in _TOOLING_STACK.items():
+        for name, minimum in _TYPE_AWARE_LINT.items():
             version = dependencies.get(name)
+            floor = ".".join(str(part) for part in minimum)
             if version is None:
-                findings.append(_finding(repository, relative, f"declare {name} >= {minimum} as a package dependency"))
-            elif not _range_has_minimum(version, minimum):
+                findings.append(_finding(repository, relative, f"declare {name} >= {floor} as a package dependency"))
+            elif not _range_has_version_floor(version, minimum):
                 findings.append(
-                    _finding(repository, relative, f"{name} dependency {version} must have a lower bound of {minimum}")
+                    _finding(repository, relative, f"{name} dependency {version} must have a lower bound of {floor}")
                 )
+        if "oxlint-tsgolint" in dependencies:
+            findings.append(
+                _finding(
+                    repository,
+                    relative,
+                    "remove oxlint-tsgolint; Oxlint loads tsrs-lint from tsrs",
+                )
+            )
         if package.get("type") != "module":
             findings.append(_finding(repository, relative, "set package.json type to module for Node ESM"))
         scripts = package.get("scripts")
@@ -968,7 +977,7 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
                 _finding(
                     repository,
                     relative,
-                    "define typecheck with tsc or tsrs --noEmit as the authoritative type check",
+                    "define typecheck with tsrs --noEmit as the authoritative type check",
                 )
             )
         check = scripts.get("check")

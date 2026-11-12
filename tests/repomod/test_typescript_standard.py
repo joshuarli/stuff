@@ -28,8 +28,8 @@ def package_data(*, dependencies: dict[str, str] | None = None) -> dict[str, Any
     pins = load_typescript_tool_pins()
     versions = {
         "typescript": "^7.0.0",
-        "oxlint": "^1.0.0",
-        "oxlint-tsgolint": "^7.0.0",
+        "oxlint": "^1.92.0",
+        "tsrs": "0.25.0-ts7.1.0-beta",
         "vitest": "^5.0.0",
     }
     versions.update(dependencies or {})
@@ -41,7 +41,7 @@ def package_data(*, dependencies: dict[str, str] | None = None) -> dict[str, Any
         "engines": {"node": f">={pins.node}"},
         "scripts": {
             "lint": "oxlint src",
-            "typecheck": "tsc --noEmit",
+            "typecheck": "tsrs --noEmit",
             "test": "vitest run",
             "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
         },
@@ -115,13 +115,26 @@ def test_tsrs_is_accepted_as_typescript_compiler_and_tsconfig_is_not_a_command(t
     dependencies = package["devDependencies"]
     assert isinstance(dependencies, dict)
     dependencies.pop("typescript")
-    dependencies["tsrs"] = "0.20.1-ts7.1.0-beta"
+    dependencies["tsrs"] = "0.25.0-ts7.1.0-beta"
     scripts = package["scripts"]
     assert isinstance(scripts, dict)
     scripts["typecheck"] = "tsrs -p tsconfig.json --noEmit"
     scripts["check"] = "oxlint src && tsrs -p tsconfig.json --noEmit && vitest run"
     make_project(tmp_path, package)
     assert _typescript_stack_findings(tmp_path, repository("cloudflare", "typescript")) == []
+
+    scripts["typecheck"] = "tsc --noEmit"
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    assert any("tsrs --noEmit" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("cloudflare", "typescript")
+    ))
+    scripts["typecheck"] = "tsrs -p tsconfig.json --noEmit"
+    dependencies["oxlint-tsgolint"] = "^7.0.0"
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    assert any("oxlint-tsgolint" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("cloudflare", "typescript")
+    ))
+    dependencies.pop("oxlint-tsgolint")
 
     scripts["typecheck"] = "echo tsconfig.json --noEmit"
     scripts["check"] = "echo lint typecheck test"
@@ -146,6 +159,10 @@ def test_node_engine_range_must_include_the_approved_current_release() -> None:
     assert _range_has_version_floor(">=27 || >=26.12.1", (26, 12, 1))
     assert not _range_has_version_floor(">=26.12.0", (26, 12, 1))
     assert not _range_has_version_floor(">=26.12.1 || >=26.0.0", (26, 12, 1))
+    assert _range_has_version_floor("0.25.0-ts7.1.0-beta", (0, 23, 0))
+    assert _range_has_version_floor("^1.93.0", (1, 92, 0))
+    assert not _range_has_version_floor("0.20.1-ts7.1.0-beta", (0, 23, 0))
+    assert not _range_has_version_floor("^1.91.0", (1, 92, 0))
 
 
 def test_typescript_rule_checks_the_universal_pnpm_and_typescript_contract(tmp_path: Path) -> None:
@@ -206,6 +223,7 @@ def test_independent_package_roots_each_declare_typescript(tmp_path: Path) -> No
             package_dependencies = package["devDependencies"]
             assert isinstance(package_dependencies, dict)
             package_dependencies.pop("typescript")
+            package_dependencies.pop("tsrs")
         (package_root / "package.json").write_text(json.dumps(package), encoding="utf-8")
         (package_root / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n", encoding="utf-8")
         (package_root / "tsconfig.json").write_text(
