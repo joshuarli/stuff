@@ -22,6 +22,7 @@ use stuff::publish::pypi::project_settings;
 use stuff::publish::r2::pull::{self as r2_pull, PullOptions};
 use stuff::publish::r2::sync;
 use stuff::publish::r2::{Credentials, R2Client, UploadOptions};
+use stuff::publish::transaction::{read_record, write_record};
 use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_repository_json, Digest as OciDigest,
     RepositoryName,
@@ -480,12 +481,16 @@ fn republish_cargo_rerenders_the_live_publication_and_promotes_conditionally() {
     assert_eq!(seeded, live.generation_id);
 
     write_config(work.path(), "cargo", CARGO_FRESH);
+    let state = work.path().join("state/cargo");
+    fs::create_dir_all(&state).unwrap();
+    write_record(&state, "stale-generation").unwrap();
     let result = run(work.path(), &fake, &["republish", "cargo"]);
     assert_eq!(result.code, 0, "stdout={}\nstderr={}", result.stdout, result.stderr);
 
     let (oracle_id, oracle_site) = cargo_oracle(work.path(), &live_site, CARGO_FRESH);
     assert_ne!(oracle_id, live.generation_id);
     assert_eq!(current(&fake, CARGO_BUCKET), oracle_id);
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some(oracle_id.as_str()));
     compare_remote_generation(&fake, CARGO_BUCKET, &oracle_id, &oracle_site, &[]);
     assert!(
         promoted_conditionally(&fake, &oracle_id),
@@ -516,12 +521,16 @@ fn republish_npm_rerenders_the_live_publication_and_promotes_conditionally() {
     let live_id = seed_site(&fake, NPM_BUCKET, &live_site.join("mirror"), &[]);
 
     write_config(work.path(), "npm", NPM_FRESH);
+    let state = work.path().join("state/npm");
+    fs::create_dir_all(&state).unwrap();
+    write_record(&state, "stale-generation").unwrap();
     let result = run(work.path(), &fake, &["republish", "npm"]);
     assert_eq!(result.code, 0, "stdout={}\nstderr={}", result.stdout, result.stderr);
 
     let (oracle_id, oracle_mirror) = npm_oracle(work.path(), &fake);
     assert_ne!(oracle_id, live_id);
     assert_eq!(current(&fake, NPM_BUCKET), oracle_id);
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some(oracle_id.as_str()));
     compare_remote_generation(&fake, NPM_BUCKET, &oracle_id, &oracle_mirror, &[]);
     assert!(
         promoted_conditionally(&fake, &oracle_id),
@@ -552,12 +561,22 @@ fn republish_pypi_rerenders_the_live_publication_and_promotes_conditionally() {
     let live_id = seed_site(&fake, PYPI_BUCKET, &live_site, &[]);
 
     write_config(work.path(), "pypi", PYPI_FRESH);
+    let state = work.path().join("state/pypi");
+    fs::create_dir_all(&state).unwrap();
+    write_record(&state, "stale-generation").unwrap();
+    let requests = fake.requests().len();
+    let dry_run = run(work.path(), &fake, &["republish", "pypi", "--dry-run"]);
+    assert_eq!(dry_run.code, 0, "stdout={}\nstderr={}", dry_run.stdout, dry_run.stderr);
+    assert_eq!(mutation_count(&fake, requests), 0);
+    assert_eq!(current(&fake, PYPI_BUCKET), live_id);
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some("stale-generation"));
     let result = run(work.path(), &fake, &["republish", "pypi"]);
     assert_eq!(result.code, 0, "stdout={}\nstderr={}", result.stdout, result.stderr);
 
     let (oracle_id, oracle_site) = pypi_oracle(work.path(), &fake);
     assert_ne!(oracle_id, live_id);
     assert_eq!(current(&fake, PYPI_BUCKET), oracle_id);
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some(oracle_id.as_str()));
     compare_remote_generation(&fake, PYPI_BUCKET, &oracle_id, &oracle_site, &[]);
     assert!(
         promoted_conditionally(&fake, &oracle_id),
@@ -577,6 +596,29 @@ fn republish_pypi_rerenders_the_live_publication_and_promotes_conditionally() {
     assert_eq!(current(&fake, PYPI_BUCKET), oracle_id);
     assert_eq!(mutation_count(&fake, requests), 0, "the rerun mutated the bucket");
     assert_eq!(fake.put_conditions().len(), conditions, "the rerun promoted");
+}
+
+#[test]
+fn republish_pypi_preserves_a_competing_publication_and_the_local_record() {
+    let fake = FakeS3::start_retry();
+    let work = tempfile::tempdir().unwrap();
+    let live_site = build_pypi_live(work.path());
+    seed_site(&fake, PYPI_BUCKET, &live_site, &[]);
+    write_config(work.path(), "pypi", PYPI_FRESH);
+    let state = work.path().join("state/pypi");
+    fs::create_dir_all(&state).unwrap();
+    write_record(&state, "stale-generation").unwrap();
+    fake.reject_current(1, Some("competing-generation"));
+
+    let result = run(work.path(), &fake, &["republish", "pypi"]);
+
+    assert_eq!(result.code, 3, "stdout={}\nstderr={}", result.stdout, result.stderr);
+    assert!(result.stderr.contains("current changed during promotion"), "{}", result.stderr);
+    assert_eq!(current(&fake, PYPI_BUCKET), "competing-generation");
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some("stale-generation"));
+    let conditions = fake.put_conditions();
+    assert_eq!(conditions.len(), 1);
+    assert!(conditions[0].if_match.is_some());
 }
 
 #[test]
@@ -627,12 +669,16 @@ fn republish_oci_rerenders_the_live_publication_and_promotes_conditionally() {
     }
 
     write_config(work.path(), "oci", OCI_PUBLIC);
+    let state = work.path().join("state/oci/transaction");
+    fs::create_dir_all(&state).unwrap();
+    write_record(&state, "stale-generation").unwrap();
     let result = run(work.path(), &fake, &["republish", "oci"]);
     assert_eq!(result.code, 0, "stdout={}\nstderr={}", result.stdout, result.stderr);
 
     let (oracle_id, oracle_site) = oci_oracle(work.path(), &fake);
     assert_ne!(oracle_id, live_id);
     assert_eq!(current(&fake, OCI_BUCKET), oracle_id);
+    assert_eq!(read_record(&state).unwrap().as_deref(), Some(oracle_id.as_str()));
     compare_remote_generation(&fake, OCI_BUCKET, &oracle_id, &oracle_site, &["blobs/"]);
     assert!(
         promoted_conditionally(&fake, &oracle_id),

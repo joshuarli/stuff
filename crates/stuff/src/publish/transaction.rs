@@ -212,6 +212,11 @@ impl Pending {
         &self.snapshot
     }
 
+    pub(crate) fn against_live_generation(mut self) -> Self {
+        self.expected = self.marker.as_ref().map(|marker| marker.generation.clone());
+        self
+    }
+
     pub fn publish<F>(mut self, mut stage: F) -> Result<TransactionReport, PublishError>
     where
         F: FnMut(&Pending) -> Result<Staged, PublishError>,

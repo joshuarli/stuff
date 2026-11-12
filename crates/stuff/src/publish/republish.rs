@@ -70,7 +70,8 @@ fn cargo(
         transaction_state,
         snapshot_cache,
         options_for(allow_drops, options),
-    )?;
+    )?
+    .against_live_generation();
     build_cargo_site(pending.snapshot(), &config, &site_dir)?;
     let transaction = pending.stage_complete(site_dir)?;
     Ok(transaction.run()?.outcome())
@@ -214,7 +215,8 @@ fn npm(
         transaction_state,
         snapshot_cache,
         options_for(allow_drops, options),
-    )?;
+    )?
+    .against_live_generation();
     let mirror = site_dir.join("mirror");
     pull::pull(pending.client(), &bucket, &mirror, PullOptions::default())?;
     materialize_objects(&mirror.join("tarballs"), &work_state)?;
@@ -353,7 +355,8 @@ fn pypi(
         transaction_state,
         snapshot_cache,
         options_for(allow_drops, options),
-    )?;
+    )?
+    .against_live_generation();
     pull::pull(pending.client(), &bucket, &site, PullOptions::default())?;
     mypypi::publish::republish(&mypypi::publish::RepublishOptions {
         output: &site,
@@ -391,7 +394,8 @@ fn oci(
         work.transaction_state_dir.clone(),
         snapshot_cache,
         options_for(allow_drops, options),
-    )?;
+    )?
+    .against_live_generation();
     rebuild_oci_state(pending.client(), &config, &work)?;
     let state = myoci::state::State::new(work.state_dir.clone());
     myoci::publish::publish(&state, &work.site_dir, &config.oci.public_base_url)

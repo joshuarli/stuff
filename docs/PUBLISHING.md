@@ -164,6 +164,8 @@ Offline proofs: `make test-oci-pull`, `make test-oci-push`,
 
 A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
 
+Republish uses the observed live generation as its promotion base even when this machine's last promoted generation is older. If another publisher changes `current` during the operation, republish refuses the competing update; rerun it to render the new live generation.
+
 ```sh
 stuff republish cargo
 stuff republish npm
