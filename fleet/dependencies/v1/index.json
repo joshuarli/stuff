@@ -167,8 +167,8 @@
    "state": "partial"
   },
   "laputa-systems/smolith": {
-   "commit": "a1ecd6db683f68b51bf3a7e27954d455eae12aa9",
-   "inputs_fingerprint": "f6c52783b92c4aa295f10dcebafe5aade712c4b52c482d364ced45baad353fb1",
+   "commit": "c6e34f5ff3fdaa6118c61dcd95da1b9248047d82",
+   "inputs_fingerprint": "384045a7a0d068a750fad46f878e0c5cef8d23041b3bf95bf95c094ed04e2e8f",
    "state": "partial"
   },
   "laputa-systems/srv": {
