@@ -2287,7 +2287,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[1]",
+     "locator": "package[name=age,version=0.13.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -2309,7 +2309,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[0]",
+     "locator": "package[name=age,version=0.13.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -2331,7 +2331,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[3]",
+     "locator": "package[name=age,version=0.13.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -2353,7 +2353,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[4]",
+     "locator": "package[name=age,version=0.13.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -2375,7 +2375,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[5]",
+     "locator": "package[name=age,version=0.13.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -2397,7 +2397,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[6]",
+     "locator": "package[name=age,version=0.13.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
@@ -2419,7 +2419,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[7]",
+     "locator": "package[name=age,version=0.13.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
@@ -2441,7 +2441,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[8]",
+     "locator": "package[name=age,version=0.13.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
@@ -2463,7 +2463,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[9]",
+     "locator": "package[name=age,version=0.13.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
@@ -2485,7 +2485,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[10]",
+     "locator": "package[name=age,version=0.13.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
@@ -2507,7 +2507,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[11]",
+     "locator": "package[name=age,version=0.13.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
@@ -2529,7 +2529,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[12]",
+     "locator": "package[name=age,version=0.13.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
@@ -2551,7 +2551,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[14]",
+     "locator": "package[name=age,version=0.13.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
@@ -2573,7 +2573,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[13]",
+     "locator": "package[name=age,version=0.13.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
@@ -2595,7 +2595,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[15]",
+     "locator": "package[name=age,version=0.13.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
@@ -2617,7 +2617,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[16]",
+     "locator": "package[name=age,version=0.13.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
@@ -2639,7 +2639,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[17]",
+     "locator": "package[name=age,version=0.13.0].dependencies[17]",
      "path": "Cargo.lock"
     }
    ],
@@ -2661,7 +2661,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[18]",
+     "locator": "package[name=age,version=0.13.0].dependencies[18]",
      "path": "Cargo.lock"
     }
    ],
@@ -2683,7 +2683,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[19]",
+     "locator": "package[name=age,version=0.13.0].dependencies[19]",
      "path": "Cargo.lock"
     }
    ],
@@ -2705,7 +2705,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[20]",
+     "locator": "package[name=age,version=0.13.0].dependencies[20]",
      "path": "Cargo.lock"
     }
    ],
@@ -2727,7 +2727,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[21]",
+     "locator": "package[name=age,version=0.13.0].dependencies[21]",
      "path": "Cargo.lock"
     }
    ],
@@ -2749,7 +2749,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[22]",
+     "locator": "package[name=age,version=0.13.0].dependencies[22]",
      "path": "Cargo.lock"
     }
    ],
@@ -2771,7 +2771,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[23]",
+     "locator": "package[name=age,version=0.13.0].dependencies[23]",
      "path": "Cargo.lock"
     }
    ],
@@ -2793,7 +2793,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[24]",
+     "locator": "package[name=age,version=0.13.0].dependencies[24]",
      "path": "Cargo.lock"
     }
    ],
@@ -2815,7 +2815,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[25]",
+     "locator": "package[name=age,version=0.13.0].dependencies[25]",
      "path": "Cargo.lock"
     }
    ],
@@ -2837,7 +2837,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[26]",
+     "locator": "package[name=age,version=0.13.0].dependencies[26]",
      "path": "Cargo.lock"
     }
    ],
@@ -2859,7 +2859,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[27]",
+     "locator": "package[name=age,version=0.13.0].dependencies[27]",
      "path": "Cargo.lock"
     }
    ],
@@ -2881,7 +2881,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[28]",
+     "locator": "package[name=age,version=0.13.0].dependencies[28]",
      "path": "Cargo.lock"
     }
    ],
@@ -2903,7 +2903,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[29]",
+     "locator": "package[name=age,version=0.13.0].dependencies[29]",
      "path": "Cargo.lock"
     }
    ],
@@ -2925,7 +2925,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[30]",
+     "locator": "package[name=age,version=0.13.0].dependencies[30]",
      "path": "Cargo.lock"
     }
    ],
@@ -2947,7 +2947,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[31]",
+     "locator": "package[name=age,version=0.13.0].dependencies[31]",
      "path": "Cargo.lock"
     }
    ],
@@ -2961,6 +2961,28 @@
    "to": "pkg:cargo/rustybench@0.4.0#"
   },
   {
+   "condition": "feature:same-file",
+   "constraint": "1",
+   "evidence": [
+    {
+     "locator": "dependencies.same-file",
+     "path": "age/Cargo.toml"
+    },
+    {
+     "locator": "package[name=age,version=0.13.0].dependencies[32]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "age:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "1.0.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/same-file@1.0.6#"
+  },
+  {
    "condition": null,
    "constraint": "0.12",
    "evidence": [
@@ -2969,7 +2991,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[32]",
+     "locator": "package[name=age,version=0.13.0].dependencies[33]",
      "path": "Cargo.lock"
     }
    ],
@@ -2991,7 +3013,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[33]",
+     "locator": "package[name=age,version=0.13.0].dependencies[34]",
      "path": "Cargo.lock"
     }
    ],
@@ -3013,7 +3035,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[34]",
+     "locator": "package[name=age,version=0.13.0].dependencies[35]",
      "path": "Cargo.lock"
     }
    ],
@@ -3035,7 +3057,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[35]",
+     "locator": "package[name=age,version=0.13.0].dependencies[36]",
      "path": "Cargo.lock"
     }
    ],
@@ -3057,7 +3079,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[36]",
+     "locator": "package[name=age,version=0.13.0].dependencies[37]",
      "path": "Cargo.lock"
     }
    ],
@@ -3079,7 +3101,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[37]",
+     "locator": "package[name=age,version=0.13.0].dependencies[38]",
      "path": "Cargo.lock"
     }
    ],
@@ -3101,7 +3123,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[38]",
+     "locator": "package[name=age,version=0.13.0].dependencies[39]",
      "path": "Cargo.lock"
     }
    ],
@@ -3115,15 +3137,15 @@
    "to": "pkg:cargo/web-sys@0.3.107#"
   },
   {
-   "condition": "cfg(unix); feature:which",
+   "condition": "feature:which",
    "constraint": "8",
    "evidence": [
     {
-     "locator": "target.'cfg(unix)'.dependencies.which",
+     "locator": "dependencies.which",
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[39]",
+     "locator": "package[name=age,version=0.13.0].dependencies[40]",
      "path": "Cargo.lock"
     }
    ],
@@ -3145,7 +3167,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[40]",
+     "locator": "package[name=age,version=0.13.0].dependencies[41]",
      "path": "Cargo.lock"
     }
    ],
@@ -3167,7 +3189,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[41]",
+     "locator": "package[name=age,version=0.13.0].dependencies[42]",
      "path": "Cargo.lock"
     }
    ],
@@ -3189,7 +3211,7 @@
      "path": "age/Cargo.toml"
     },
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[2]",
+     "locator": "package[name=age,version=0.13.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -3243,7 +3265,7 @@
    "resolution": "resolved",
    "resolved_version": "0.12.1",
    "scope": "runtime",
-   "source_kind": "workspace",
+   "source_kind": "path",
    "to": "pkg:local/age@0.12.1#"
   },
   {
@@ -3309,7 +3331,7 @@
    "resolution": "resolved",
    "resolved_version": "0.12.1",
    "scope": "runtime",
-   "source_kind": "workspace",
+   "source_kind": "path",
    "to": "pkg:local/age@0.12.1#"
   },
   {
@@ -19960,7 +19982,7 @@
   },
   {
    "condition": null,
-   "constraint": "0.12.1",
+   "constraint": "0.13.0",
    "evidence": [
     {
      "locator": "dependencies.age",
@@ -19975,10 +19997,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.12.1",
+   "resolved_version": "0.13.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/age@0.12.1#"
+   "to": "pkg:local/age@0.13.0#"
   }
  ],
  "inputs": [
@@ -19987,15 +20009,15 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "f5fa8765539e0f37a2a5585fbd52af5777c60269",
+   "blob": "e06a8d644478605cb349fbacf1a6fca0976ab669",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "362e1a1a749897acf048225db3568b430aa21760",
+   "blob": "7d7f487519b6bb070be02d8db1a14d20e290929e",
    "path": "Cargo.lock"
   },
   {
-   "blob": "f34c4989ab929f441b3f95aff8e5248b715c5fbd",
+   "blob": "f9ebb4339117e5094efbad8a2cd091dff7dd71e1",
    "path": "Cargo.toml"
   },
   {
@@ -20003,7 +20025,7 @@
    "path": "Dockerfile"
   },
   {
-   "blob": "e6d248daa3e224f40135405b650c6e0833800d88",
+   "blob": "fcdc66c85e5dc1b804d9d9cb68be109b22544aaa",
    "path": "Makefile"
   },
   {
@@ -20015,7 +20037,7 @@
    "path": "age-plugin/Cargo.toml"
   },
   {
-   "blob": "6037fe80aed55f163ebe75354c073550da6fdd28",
+   "blob": "5195adf2650c3195a3e18d2c60e10deb99a6476a",
    "path": "age/Cargo.toml"
   },
   {
@@ -20043,7 +20065,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "e64ebf7de5ae2714455f015a0f3e5a200204f0ae2dd11057aff10091ac3ee40b",
+ "inputs_fingerprint": "d0b19a63bd8741779471dd438a906a81b07cd4f92e167fd559213a6d9757c5ca",
  "instances": [
   {
    "commit": null,
@@ -23473,9 +23495,22 @@
    "purl": "pkg:local/age@0.12.1",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "workspace",
+   "source_kind": "path",
    "vcs_url": null,
    "version": "0.12.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/age",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/age@0.13.0#",
+   "purl": "pkg:local/age@0.13.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.13.0"
   },
   {
    "commit": null,

@@ -282,6 +282,7 @@
  "schema": 1,
  "tags": [
   "linux",
-  "tool"
+  "tool",
+  "zig"
  ]
 }

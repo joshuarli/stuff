@@ -1724,6 +1724,7 @@
  "repository": "laputa-systems/gluon",
  "schema": 1,
  "tags": [
+  "rust",
   "tool"
  ]
 }

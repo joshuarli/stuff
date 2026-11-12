@@ -1,0 +1,2434 @@
+{
+ "components": [
+  {
+   "display_name": "sh.rustup.rs",
+   "ecosystem": "artifact",
+   "name": "sh.rustup.rs",
+   "purl": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs"
+  },
+  {
+   "display_name": "bitflags",
+   "ecosystem": "cargo",
+   "name": "bitflags",
+   "purl": "pkg:cargo/bitflags"
+  },
+  {
+   "display_name": "criterion",
+   "ecosystem": "cargo",
+   "name": "criterion",
+   "purl": "pkg:cargo/criterion"
+  },
+  {
+   "display_name": "errno",
+   "ecosystem": "cargo",
+   "name": "errno",
+   "purl": "pkg:cargo/errno"
+  },
+  {
+   "display_name": "flate2",
+   "ecosystem": "cargo",
+   "name": "flate2",
+   "purl": "pkg:cargo/flate2"
+  },
+  {
+   "display_name": "libc",
+   "ecosystem": "cargo",
+   "name": "libc",
+   "purl": "pkg:cargo/libc"
+  },
+  {
+   "display_name": "linux-raw-sys",
+   "ecosystem": "cargo",
+   "name": "linux-raw-sys",
+   "purl": "pkg:cargo/linux-raw-sys"
+  },
+  {
+   "display_name": "memoffset",
+   "ecosystem": "cargo",
+   "name": "memoffset",
+   "purl": "pkg:cargo/memoffset"
+  },
+  {
+   "display_name": "rustc-std-workspace-alloc",
+   "ecosystem": "cargo",
+   "name": "rustc-std-workspace-alloc",
+   "purl": "pkg:cargo/rustc-std-workspace-alloc"
+  },
+  {
+   "display_name": "rustc-std-workspace-core",
+   "ecosystem": "cargo",
+   "name": "rustc-std-workspace-core",
+   "purl": "pkg:cargo/rustc-std-workspace-core"
+  },
+  {
+   "display_name": "serial_test",
+   "ecosystem": "cargo",
+   "name": "serial_test",
+   "purl": "pkg:cargo/serial_test"
+  },
+  {
+   "display_name": "static_assertions",
+   "ecosystem": "cargo",
+   "name": "static_assertions",
+   "purl": "pkg:cargo/static_assertions"
+  },
+  {
+   "display_name": "tempfile",
+   "ecosystem": "cargo",
+   "name": "tempfile",
+   "purl": "pkg:cargo/tempfile"
+  },
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "vmactions/freebsd-vm",
+   "ecosystem": "github",
+   "name": "vmactions/freebsd-vm",
+   "purl": "pkg:github/vmactions/freebsd-vm"
+  },
+  {
+   "display_name": ".github/actions/install-rust",
+   "ecosystem": "local",
+   "name": ".github/actions/install-rust",
+   "purl": "pkg:local/.github/actions/install-rust"
+  },
+  {
+   "display_name": "laputa-rustix",
+   "ecosystem": "local",
+   "name": "laputa-rustix",
+   "purl": "pkg:local/laputa-rustix"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "2.9.2",
+   "evidence": [
+    {
+     "locator": "dependencies.bitflags",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bitflags#"
+  },
+  {
+   "condition": "cfg(all(criterion, not(any(target_os = \"emscripten\", target_os = \"wasi\"))))",
+   "constraint": "0.4",
+   "evidence": [
+    {
+     "locator": "target.'cfg(all(criterion, not(any(target_os = \"emscripten\", target_os = \"wasi\"))))'.dev-dependencies.criterion",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/criterion#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.3.10",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.libc_errno",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/errno#"
+  },
+  {
+   "condition": "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))); feature:libc_errno",
+   "constraint": "0.3.10",
+   "evidence": [
+    {
+     "locator": "target.'cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))'.dependencies.libc_errno",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/errno#"
+  },
+  {
+   "condition": "cfg(any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))))",
+   "constraint": "0.3.10",
+   "evidence": [
+    {
+     "locator": "target.'cfg(any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))))'.dependencies.libc_errno",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/errno#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.flate2",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/flate2#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.2.191",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.libc",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc#"
+  },
+  {
+   "condition": "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))); feature:libc",
+   "constraint": "0.2.191",
+   "evidence": [
+    {
+     "locator": "target.'cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))'.dependencies.libc",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc#"
+  },
+  {
+   "condition": "cfg(any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))))",
+   "constraint": "0.2.191",
+   "evidence": [
+    {
+     "locator": "target.'cfg(any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))))'.dependencies.libc",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc#"
+  },
+  {
+   "condition": "cfg(all(any(target_os = \"linux\", target_os = \"android\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
+   "constraint": "0.12",
+   "evidence": [
+    {
+     "locator": "target.'cfg(all(any(target_os = \"linux\", target_os = \"android\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))'.dependencies.linux-raw-sys",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/linux-raw-sys#"
+  },
+  {
+   "condition": "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))",
+   "constraint": "0.12",
+   "evidence": [
+    {
+     "locator": "target.'cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))'.dependencies.linux-raw-sys",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/linux-raw-sys#"
+  },
+  {
+   "condition": null,
+   "constraint": "0.9.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.memoffset",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/memoffset#"
+  },
+  {
+   "condition": "feature:rustc-std-workspace-alloc",
+   "constraint": "1.0.1",
+   "evidence": [
+    {
+     "locator": "dependencies.rustc-std-workspace-alloc",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-std-workspace-alloc#"
+  },
+  {
+   "condition": "feature:core",
+   "constraint": "1.0.1",
+   "evidence": [
+    {
+     "locator": "dependencies.core",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustc-std-workspace-core#"
+  },
+  {
+   "condition": null,
+   "constraint": "2.0.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.serial_test",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/serial_test#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.1.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.static_assertions",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/static_assertions#"
+  },
+  {
+   "condition": null,
+   "constraint": "3.5.0",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.tempfile",
+     "path": "Cargo.toml"
+    }
+   ],
+   "from": ".:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:cargo/tempfile#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.test_vmactions.steps[2].run",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "url",
+   "to": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[3].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test_use_libc.steps[3].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test_rustix_use_experimental_asm.steps[3].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.listenfd.steps[5].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.async-io.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.memfd-rs.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-timerfd.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.procfs.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-atomicwrites.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.io-uring.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.tempfile.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.fd-lock.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std-ext.steps[4].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rustfmt.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.check_no_default_features.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.check_nightly.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.check_tier3.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test_use_libc.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.test_rustix_use_experimental_asm.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.listenfd.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.listenfd.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.listenfd.steps[3].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.async-io.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.async-io.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cargo.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cargo.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.memfd-rs.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.memfd-rs.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-timerfd.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-timerfd.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.procfs.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.procfs.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-atomicwrites.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.rust-atomicwrites.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.io-uring.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.io-uring.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.tempfile.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.tempfile.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.fd-lock.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.fd-lock.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.wasmtime.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.wasmtime.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.nameless.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.nameless.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std-ext.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.cap-std-ext.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.dbus-rs.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.dbus-rs.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.mustang.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.mustang.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.std.steps[0].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.std.steps[2].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6",
+   "evidence": [
+    {
+     "locator": "jobs.test_vmactions.steps[0].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v6",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1",
+   "evidence": [
+    {
+     "locator": "jobs.test_vmactions.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/vmactions/freebsd-vm@v1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.rustfmt.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.check_no_default_features.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.check_nightly.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.check_tier3.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.test_use_libc.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.test_rustix_use_experimental_asm.steps[1].uses",
+     "path": ".github/workflows/main.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.listenfd.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.async-io.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.cap-std.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.cargo.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.memfd-rs.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.rust-timerfd.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.procfs.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.rust-atomicwrites.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.io-uring.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.tempfile.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.fd-lock.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.wasmtime.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.nameless.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.cap-std-ext.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.dbus-rs.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.mustang.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.std.steps[1].uses",
+     "path": ".github/workflows/test-users.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/install-rust#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rustix",
+     "path": "test-crates/use-default/Cargo.toml"
+    }
+   ],
+   "from": "test-crates/use-default:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:local/laputa-rustix@1.1.6#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rustix",
+     "path": "test-crates/use-libc-auxv/Cargo.toml"
+    }
+   ],
+   "from": "test-crates/use-libc-auxv:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:local/laputa-rustix@1.1.6#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "dependencies.rustix",
+     "path": "test-crates/use-libc/Cargo.toml"
+    }
+   ],
+   "from": "test-crates/use-libc:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.1.6",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:local/laputa-rustix@1.1.6#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "53c5e5417d6fc9c3ba1f8266a3acd954e4a5aac6",
+   "path": ".github/workflows/main.yml"
+  },
+  {
+   "blob": "c13b1d69c6af581707187acc252c17f0e17425fa",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "blob": "d45463942663d4ba99377a25b34d445ab740b687",
+   "path": "Cargo.toml"
+  },
+  {
+   "blob": "ab2cc817d387a08587d6b75adacfd0a9da3722c1",
+   "path": "Makefile"
+  },
+  {
+   "blob": "53372af4630e353f2fefe9c40d096029e222f0b9",
+   "path": "test-crates/use-default/Cargo.toml"
+  },
+  {
+   "blob": "9dd15f903ab61e4a65a9bb73bc8acbaedf18b006",
+   "path": "test-crates/use-libc-auxv/Cargo.toml"
+  },
+  {
+   "blob": "43d0600fecef0d5e5b5375ad62a864528008c383",
+   "path": "test-crates/use-libc/Cargo.toml"
+  }
+ ],
+ "inputs_fingerprint": "bcf666f280e3f26647f59408afe5e8021ae593e28706c84362d9d7e90cb864fc",
+ "instances": [
+  {
+   "commit": null,
+   "component": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#",
+   "purl": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/bitflags",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/bitflags#",
+   "purl": "pkg:cargo/bitflags",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/criterion",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/criterion#",
+   "purl": "pkg:cargo/criterion",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/errno",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/errno#",
+   "purl": "pkg:cargo/errno",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/flate2",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/flate2#",
+   "purl": "pkg:cargo/flate2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/libc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/libc#",
+   "purl": "pkg:cargo/libc",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/linux-raw-sys",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/linux-raw-sys#",
+   "purl": "pkg:cargo/linux-raw-sys",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/memoffset",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/memoffset#",
+   "purl": "pkg:cargo/memoffset",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustc-std-workspace-alloc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-std-workspace-alloc#",
+   "purl": "pkg:cargo/rustc-std-workspace-alloc",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustc-std-workspace-core",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustc-std-workspace-core#",
+   "purl": "pkg:cargo/rustc-std-workspace-core",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/serial_test",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/serial_test#",
+   "purl": "pkg:cargo/serial_test",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/static_assertions",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/static_assertions#",
+   "purl": "pkg:cargo/static_assertions",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/tempfile",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/tempfile#",
+   "purl": "pkg:cargo/tempfile",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@v4#",
+   "purl": "pkg:github/actions/cache@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v4#",
+   "purl": "pkg:github/actions/checkout@v4",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@v6#",
+   "purl": "pkg:github/actions/checkout@v6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "v6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:github/vmactions/freebsd-vm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/vmactions/freebsd-vm@v1#",
+   "purl": "pkg:github/vmactions/freebsd-vm@v1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/vmactions/freebsd-vm",
+   "version": "v1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/.github/actions/install-rust",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/.github/actions/install-rust#",
+   "purl": "pkg:local/.github/actions/install-rust",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-rustix",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-rustix@1.1.6#",
+   "purl": "pkg:local/laputa-rustix@1.1.6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "1.1.6"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.test.steps[6].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/main.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.test_rustix_use_experimental_asm.steps[6].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/main.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.test_use_libc.steps[6].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/main.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.async-io.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.cap-std-ext.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.cap-std.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.fd-lock.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.io-uring.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.listenfd.steps[8].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.memfd-rs.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.procfs.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.rust-atomicwrites.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.rust-timerfd.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "dynamic_value",
+   "locator": "jobs.tempfile.steps[7].run",
+   "message": "artifact URL 'https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz' is not literal",
+   "path": ".github/workflows/test-users.yml"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at Cargo.lock",
+   "path": "Cargo.lock"
+  },
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at test-crates/use-default/Cargo.lock",
+   "path": "test-crates/use-default/Cargo.lock"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at test-crates/use-libc-auxv/Cargo.lock",
+   "path": "test-crates/use-libc-auxv/Cargo.lock"
+  },
+  {
+   "kind": "missing_lock",
+   "locator": null,
+   "message": "no lockfile at test-crates/use-libc/Cargo.lock",
+   "path": "test-crates/use-libc/Cargo.lock"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "cargo",
+   "id": ".:cargo"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:repo"
+  },
+  {
+   "directory": "test-crates/use-default",
+   "ecosystem": "cargo",
+   "id": "test-crates/use-default:cargo"
+  },
+  {
+   "directory": "test-crates/use-libc-auxv",
+   "ecosystem": "cargo",
+   "id": "test-crates/use-libc-auxv:cargo"
+  },
+  {
+   "directory": "test-crates/use-libc",
+   "ecosystem": "cargo",
+   "id": "test-crates/use-libc:cargo"
+  }
+ ],
+ "repository": "laputa-systems/rustix",
+ "schema": 1,
+ "tags": [
+  "fork",
+  "library",
+  "rust"
+ ]
+}

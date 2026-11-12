@@ -19,10 +19,46 @@
    "purl": "pkg:github/actions/upload-artifact"
   },
   {
+   "display_name": "astral-sh/setup-uv",
+   "ecosystem": "github",
+   "name": "astral-sh/setup-uv",
+   "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
    "display_name": ".github/actions/native-setup",
    "ecosystem": "local",
    "name": ".github/actions/native-setup",
    "purl": "pkg:local/.github/actions/native-setup"
+  },
+  {
+   "display_name": "cmake-build",
+   "ecosystem": "local",
+   "name": "cmake-build",
+   "purl": "pkg:local/cmake-build"
+  },
+  {
+   "display_name": "laputa-buildlib",
+   "ecosystem": "pypi",
+   "name": "laputa-buildlib",
+   "purl": "pkg:pypi/laputa-buildlib"
+  },
+  {
+   "display_name": "ruff",
+   "ecosystem": "pypi",
+   "name": "ruff",
+   "purl": "pkg:pypi/ruff"
+  },
+  {
+   "display_name": "ty",
+   "ecosystem": "pypi",
+   "name": "ty",
+   "purl": "pkg:pypi/ty"
+  },
+  {
+   "display_name": "uv",
+   "ecosystem": "pypi",
+   "name": "uv",
+   "purl": "pkg:pypi/uv"
   },
   {
    "display_name": "FixtureMath",
@@ -38,6 +74,94 @@
   }
  ],
  "edges": [
+  {
+   "condition": null,
+   "constraint": "==0.1.0",
+   "evidence": [
+    {
+     "locator": "project.dependencies[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=cmake-build,version=0.0.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/laputa-buildlib@0.1.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.17.4",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=cmake-build,version=0.0.0].dev-dependencies.dev[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.17.4",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ruff@0.17.4#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.0.101",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=cmake-build,version=0.0.0].dev-dependencies.dev[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.0.101",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ty@0.0.101#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.13.7",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=cmake-build,version=0.0.0].dev-dependencies.dev[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.13.7",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uv@0.13.7#"
+  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -63,6 +187,24 @@
     {
      "locator": "jobs.controller.steps[0].uses",
      "path": ".github/workflows/controller.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
     }
    ],
    "from": ".:repo",
@@ -115,7 +257,7 @@
    "constraint": "v7.0.1",
    "evidence": [
     {
-     "locator": "jobs.prerelease.steps[0].uses",
+     "locator": "jobs.release.steps[1].uses",
      "path": ".github/workflows/release.yml"
     }
    ],
@@ -235,6 +377,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
    "condition": null,
@@ -391,6 +551,10 @@
    "path": ".github/workflows/controller.yml"
   },
   {
+   "blob": "dd30fcaa4477704402703586ea40fbe5e1959efe",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
    "blob": "25ac380a22eff785abc9a6eadfc152af0c5ab7f8",
    "path": ".github/workflows/memory-baseline.yml"
   },
@@ -399,7 +563,7 @@
    "path": ".github/workflows/qualify.yml"
   },
   {
-   "blob": "2f312ced76c32d62c78d426684d9a66c7c43aed1",
+   "blob": "54b5d70b3f7f426fc530282d6cd6de014a49d2f8",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -407,8 +571,16 @@
    "path": ".github/workflows/reproduce-arm.yml"
   },
   {
+   "blob": "77eeac150a1c1f452446ff34f28beb3aa09b3df4",
+   "path": "Makefile"
+  },
+  {
    "blob": "1c90be585cf462b5e8a958a9dd7a9ac2aa8a6a76",
    "path": "docker/builder.Dockerfile"
+  },
+  {
+   "blob": "37fa4cf8e8411a7db5cbe9b72b8936acb9be3da7",
+   "path": "pyproject.toml"
   },
   {
    "blob": "b6faa5a157f5d3810a74a96fc3c3ea2067e1a9cc",
@@ -421,9 +593,13 @@
   {
    "blob": "48fcdd8afab7ce9c806c250f76eb2917fd28466a",
    "path": "tests/acceptance/network/internet/CMakeLists.txt"
+  },
+  {
+   "blob": "d1612100b74511396c305d2dc66fd44c21c6d384",
+   "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "3eaaa3ae77cc7c087d1767e0256dda3dd52de52de3cda69d7555180e2e2b0181",
+ "inputs_fingerprint": "c19c2e24f85c142d4d2751a987493e55a2d140c7fccbb56bc63b15443bdc47f6",
  "instances": [
   {
    "commit": null,
@@ -465,6 +641,19 @@
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
   },
   {
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "component": "pkg:github/astral-sh/setup-uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/astral-sh/setup-uv",
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+  },
+  {
    "commit": null,
    "component": "pkg:local/.github/actions/native-setup",
    "context": "",
@@ -476,6 +665,71 @@
    "source_kind": "path",
    "vcs_url": null,
    "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/cmake-build",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/cmake-build@0.0.0#",
+   "purl": "pkg:local/cmake-build@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/laputa-buildlib",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/laputa-buildlib@0.1.0#",
+   "purl": "pkg:pypi/laputa-buildlib@0.1.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ruff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ty@0.0.101#",
+   "purl": "pkg:pypi/ty@0.0.101",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.0.101"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.7"
   },
   {
    "commit": null,
@@ -506,6 +760,12 @@
  ],
  "issues": [
   {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  },
+  {
    "kind": "dynamic_value",
    "locator": "L4",
    "message": "locked_source URL is not literal",
@@ -513,6 +773,11 @@
   }
  ],
  "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "pypi",
+   "id": ".:pypi"
+  },
   {
    "directory": ".",
    "ecosystem": "generic",
@@ -542,6 +807,7 @@
  "repository": "laputa-systems/cmake-build",
  "schema": 1,
  "tags": [
-  "build"
+  "build",
+  "python"
  ]
 }

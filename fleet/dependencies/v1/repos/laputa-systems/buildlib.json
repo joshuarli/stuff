@@ -1,0 +1,498 @@
+{
+ "components": [
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "astral-sh/setup-uv",
+   "ecosystem": "github",
+   "name": "astral-sh/setup-uv",
+   "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
+   "display_name": "laputa-buildlib",
+   "ecosystem": "local",
+   "name": "laputa-buildlib",
+   "purl": "pkg:local/laputa-buildlib"
+  },
+  {
+   "display_name": "iniconfig",
+   "ecosystem": "pypi",
+   "name": "iniconfig",
+   "purl": "pkg:pypi/iniconfig"
+  },
+  {
+   "display_name": "packaging",
+   "ecosystem": "pypi",
+   "name": "packaging",
+   "purl": "pkg:pypi/packaging"
+  },
+  {
+   "display_name": "pluggy",
+   "ecosystem": "pypi",
+   "name": "pluggy",
+   "purl": "pkg:pypi/pluggy"
+  },
+  {
+   "display_name": "pygments",
+   "ecosystem": "pypi",
+   "name": "pygments",
+   "purl": "pkg:pypi/pygments"
+  },
+  {
+   "display_name": "pytest",
+   "ecosystem": "pypi",
+   "name": "pytest",
+   "purl": "pkg:pypi/pytest"
+  },
+  {
+   "display_name": "ruff",
+   "ecosystem": "pypi",
+   "name": "ruff",
+   "purl": "pkg:pypi/ruff"
+  },
+  {
+   "display_name": "ty",
+   "ecosystem": "pypi",
+   "name": "ty",
+   "purl": "pkg:pypi/ty"
+  },
+  {
+   "display_name": "uv",
+   "ecosystem": "pypi",
+   "name": "uv",
+   "purl": "pkg:pypi/uv"
+  }
+ ],
+ "edges": [
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==9.2.0",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=laputa-buildlib,version=0.1.0].dev-dependencies.dev[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "9.2.0",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pytest@9.2.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.17.4",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=laputa-buildlib,version=0.1.0].dev-dependencies.dev[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.17.4",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ruff@0.17.4#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.0.101",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=laputa-buildlib,version=0.1.0].dev-dependencies.dev[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.0.101",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ty@0.0.101#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.13.7",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[3]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=laputa-buildlib,version=0.1.0].dev-dependencies.dev[3]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.13.7",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uv@0.13.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[0].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.test.steps[1].uses",
+     "path": ".github/workflows/test.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.3.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/iniconfig@2.3.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "26.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/packaging@26.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.7.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pluggy@1.7.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=pytest,version=9.2.0].dependencies[3]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": "pkg:pypi/pytest@9.2.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.21.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/pygments@2.21.0#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "d5bb9a53d68589348c6b4d9b7eb7edfe49a8bda4",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "06028b8ae41822f35b0b88820c22b874c57bf395",
+   "path": ".github/workflows/test.yml"
+  },
+  {
+   "blob": "4d57557c3e4ae4ed09797f4f833e365f5f54b583",
+   "path": "Makefile"
+  },
+  {
+   "blob": "fd19f76b48beff31cdecd74a9035e2d6fa8a032b",
+   "path": "pyproject.toml"
+  },
+  {
+   "blob": "9c4124e36de775b677e82b503f7458cb19adbde5",
+   "path": "uv.lock"
+  }
+ ],
+ "inputs_fingerprint": "2eda378de0d2c6df04f6038b0c0bce9fc6e112763057677b7d012c5b663a59ac",
+ "instances": [
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "component": "pkg:github/astral-sh/setup-uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/astral-sh/setup-uv",
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-buildlib",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-buildlib@0.1.0#",
+   "purl": "pkg:local/laputa-buildlib@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/iniconfig",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/iniconfig@2.3.1#",
+   "purl": "pkg:pypi/iniconfig@2.3.1",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.3.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/packaging",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/packaging@26.3#",
+   "purl": "pkg:pypi/packaging@26.3",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "26.3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pluggy",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pluggy@1.7.0#",
+   "purl": "pkg:pypi/pluggy@1.7.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.7.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pygments",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pygments@2.21.0#",
+   "purl": "pkg:pypi/pygments@2.21.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.21.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/pytest",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/pytest@9.2.0#",
+   "purl": "pkg:pypi/pytest@9.2.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "9.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ruff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ty@0.0.101#",
+   "purl": "pkg:pypi/ty@0.0.101",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.0.101"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.7"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "pypi",
+   "id": ".:pypi"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:repo"
+  }
+ ],
+ "repository": "laputa-systems/buildlib",
+ "schema": 1,
+ "tags": [
+  "library",
+  "python"
+ ]
+}

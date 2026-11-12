@@ -22687,6 +22687,7 @@
  "schema": 1,
  "tags": [
   "app",
+  "cloudflare",
   "typescript"
  ]
 }

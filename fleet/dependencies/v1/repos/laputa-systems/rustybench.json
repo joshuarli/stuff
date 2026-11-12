@@ -173,7 +173,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[1]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
@@ -195,7 +195,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[0]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -217,7 +217,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[2]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
@@ -239,7 +239,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[3]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -261,7 +261,7 @@
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[4]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
@@ -276,14 +276,14 @@
   },
   {
    "condition": null,
-   "constraint": "=0.5.0",
+   "constraint": "=0.6.0",
    "evidence": [
     {
      "locator": "dependencies.rustybench-macros",
      "path": "Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench,version=0.5.0].dependencies[5]",
+     "locator": "package[name=rustybench,version=0.6.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
@@ -291,10 +291,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.5.0",
+   "resolved_version": "0.6.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:local/rustybench-macros@0.5.0#"
+   "to": "pkg:local/rustybench-macros@0.6.0#"
   },
   {
    "condition": null,
@@ -539,7 +539,7 @@
      "path": "macros/Cargo.toml"
     },
     {
-     "locator": "package[name=rustybench-macros,version=0.5.0].dependencies[0]",
+     "locator": "package[name=rustybench-macros,version=0.6.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
@@ -797,11 +797,11 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "29cd5871129a682ce3786941aba872a1731ed47b",
+   "blob": "65c05a3d70224cc930f15cb7da8b60987bf3a614",
    "path": "Cargo.lock"
   },
   {
-   "blob": "b877c5aacf5143181d69fbd6399ee62cad77e419",
+   "blob": "c0b25c79009ed1cad2cecdbe6d12b6ffa98f37b8",
    "path": "Cargo.toml"
   },
   {
@@ -813,7 +813,7 @@
    "path": "Makefile"
   },
   {
-   "blob": "9b63e1e398c671ebd320a0f4ba93166b5e0f62ec",
+   "blob": "7b9ece2172a36d7036b64462b3f01780fe9cd4f7",
    "path": "macros/Cargo.toml"
   },
   {
@@ -821,7 +821,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "9e180790c8ed53452a697ac9541344be09b784c62b639177d606160af8a405b9",
+ "inputs_fingerprint": "38515a5e1bb470a3568512ed699d70acc8cb2948e7398daa7ef0446ed912635a",
  "instances": [
   {
    "commit": null,
@@ -1140,26 +1140,26 @@
    "component": "pkg:local/rustybench-macros",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustybench-macros@0.5.0#",
-   "purl": "pkg:local/rustybench-macros@0.5.0",
+   "id": "pkg:local/rustybench-macros@0.6.0#",
+   "purl": "pkg:local/rustybench-macros@0.6.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.5.0"
+   "version": "0.6.0"
   },
   {
    "commit": null,
    "component": "pkg:local/rustybench",
    "context": "",
    "first_party": true,
-   "id": "pkg:local/rustybench@0.5.0#",
-   "purl": "pkg:local/rustybench@0.5.0",
+   "id": "pkg:local/rustybench@0.6.0#",
+   "purl": "pkg:local/rustybench@0.6.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "workspace",
    "vcs_url": null,
-   "version": "0.5.0"
+   "version": "0.6.0"
   },
   {
    "commit": null,

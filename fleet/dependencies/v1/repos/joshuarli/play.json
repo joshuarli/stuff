@@ -475,6 +475,12 @@
    "purl": "pkg:cargo/pkg-config"
   },
   {
+   "display_name": "portable-atomic",
+   "ecosystem": "cargo",
+   "name": "portable-atomic",
+   "purl": "pkg:cargo/portable-atomic"
+  },
+  {
    "display_name": "primal-check",
    "ecosystem": "cargo",
    "name": "primal-check",
@@ -545,6 +551,18 @@
    "ecosystem": "cargo",
    "name": "rustix",
    "purl": "pkg:cargo/rustix"
+  },
+  {
+   "display_name": "rusty_alloc",
+   "ecosystem": "cargo",
+   "name": "rusty_alloc",
+   "purl": "pkg:cargo/rusty_alloc"
+  },
+  {
+   "display_name": "rusty_alloc-api",
+   "ecosystem": "cargo",
+   "name": "rusty_alloc-api",
+   "purl": "pkg:cargo/rusty_alloc-api"
   },
   {
    "display_name": "scoped-tls",
@@ -679,6 +697,60 @@
    "purl": "pkg:cargo/windows-sys"
   },
   {
+   "display_name": "windows-targets",
+   "ecosystem": "cargo",
+   "name": "windows-targets",
+   "purl": "pkg:cargo/windows-targets"
+  },
+  {
+   "display_name": "windows_aarch64_gnullvm",
+   "ecosystem": "cargo",
+   "name": "windows_aarch64_gnullvm",
+   "purl": "pkg:cargo/windows_aarch64_gnullvm"
+  },
+  {
+   "display_name": "windows_aarch64_msvc",
+   "ecosystem": "cargo",
+   "name": "windows_aarch64_msvc",
+   "purl": "pkg:cargo/windows_aarch64_msvc"
+  },
+  {
+   "display_name": "windows_i686_gnu",
+   "ecosystem": "cargo",
+   "name": "windows_i686_gnu",
+   "purl": "pkg:cargo/windows_i686_gnu"
+  },
+  {
+   "display_name": "windows_i686_gnullvm",
+   "ecosystem": "cargo",
+   "name": "windows_i686_gnullvm",
+   "purl": "pkg:cargo/windows_i686_gnullvm"
+  },
+  {
+   "display_name": "windows_i686_msvc",
+   "ecosystem": "cargo",
+   "name": "windows_i686_msvc",
+   "purl": "pkg:cargo/windows_i686_msvc"
+  },
+  {
+   "display_name": "windows_x86_64_gnu",
+   "ecosystem": "cargo",
+   "name": "windows_x86_64_gnu",
+   "purl": "pkg:cargo/windows_x86_64_gnu"
+  },
+  {
+   "display_name": "windows_x86_64_gnullvm",
+   "ecosystem": "cargo",
+   "name": "windows_x86_64_gnullvm",
+   "purl": "pkg:cargo/windows_x86_64_gnullvm"
+  },
+  {
+   "display_name": "windows_x86_64_msvc",
+   "ecosystem": "cargo",
+   "name": "windows_x86_64_msvc",
+   "purl": "pkg:cargo/windows_x86_64_msvc"
+  },
+  {
    "display_name": "alpine",
    "ecosystem": "docker",
    "name": "alpine",
@@ -791,6 +863,12 @@
    "ecosystem": "local",
    "name": "ruopus",
    "purl": "pkg:local/ruopus"
+  },
+  {
+   "display_name": "rusty_aac",
+   "ecosystem": "local",
+   "name": "rusty_aac",
+   "purl": "pkg:local/rusty_aac"
   },
   {
    "display_name": "symphonia",
@@ -1348,6 +1426,28 @@
   },
   {
    "condition": null,
+   "constraint": "=2.0.1",
+   "evidence": [
+    {
+     "locator": "dependencies.rusty_aac",
+     "path": "crates/player-audio/Cargo.toml"
+    },
+    {
+     "locator": "package[name=player-audio,version=0.1.0].dependencies[2]",
+     "path": "Cargo.lock"
+    }
+   ],
+   "from": "crates/player-audio:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.0.1",
+   "scope": "runtime",
+   "source_kind": "path",
+   "to": "pkg:local/rusty_aac@2.0.1#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
@@ -1355,7 +1455,7 @@
      "path": "crates/player-audio/Cargo.toml"
     },
     {
-     "locator": "package[name=player-audio,version=0.1.0].dependencies[2]",
+     "locator": "package[name=player-audio,version=0.1.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
@@ -3663,6 +3763,78 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=rusty_alloc-api,version=2.2.6].dependencies[0]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rusty_alloc-api@2.2.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.2.6",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rusty_alloc@2.2.6#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rusty_alloc,version=2.2.6].dependencies[0]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rusty_alloc@2.2.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.186",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.186#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rusty_alloc,version=2.2.6].dependencies[1]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rusty_alloc@2.2.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.15.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/portable-atomic@1.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rusty_alloc,version=2.2.6].dependencies[2]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rusty_alloc@2.2.6#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.60.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows-sys@0.60.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=signal-hook-mio,version=0.2.5].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -4221,6 +4393,24 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=windows-sys,version=0.60.2].dependencies[0]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-sys@0.60.2#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows-targets@0.53.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=windows-sys,version=0.61.2].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -4233,6 +4423,168 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/windows-link@0.2.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[0]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows-link@0.2.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[1]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_aarch64_gnullvm@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[2]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_aarch64_msvc@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[3]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_i686_gnu@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[4]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_i686_gnullvm@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[5]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_i686_msvc@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[6]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_x86_64_gnu@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[7]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_x86_64_gnullvm@0.53.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=windows-targets,version=0.53.5].dependencies[8]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/windows-targets@0.53.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.53.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/windows_x86_64_msvc@0.53.1#"
   },
   {
    "condition": "feature:libm",
@@ -4269,6 +4621,28 @@
    "scope": "runtime",
    "source_kind": "vendored",
    "to": "pkg:cargo/spectrograms#"
+  },
+  {
+   "condition": null,
+   "constraint": "=2.2.6",
+   "evidence": [
+    {
+     "locator": "dev-dependencies.rusty_alloc-api",
+     "path": "vendor/rusty-aac/Cargo.toml"
+    },
+    {
+     "locator": "package[name=rusty_aac,version=2.0.1].dependencies[0]",
+     "path": "vendor/rusty-aac/Cargo.lock"
+    }
+   ],
+   "from": "vendor/rusty-aac:cargo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "2.2.6",
+   "scope": "dev",
+   "source_kind": "vendored",
+   "to": "pkg:cargo/rusty_alloc-api@2.2.6#"
   },
   {
    "condition": null,
@@ -6173,7 +6547,7 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "d70c949fb6d09f95bd8477ec3153ae9c53a07cf3",
+   "blob": "b77f6cb07c0a7daac99160db8ea8b3eacaf8e1a5",
    "path": "Cargo.lock"
   },
   {
@@ -6189,7 +6563,7 @@
    "path": "crates/player-app/Cargo.toml"
   },
   {
-   "blob": "26e532f924f1359d96f6fb0939761e9caeb0c27d",
+   "blob": "13e6d6e44f8007ba916bf208b6e282bccd2efb44",
    "path": "crates/player-audio/Cargo.toml"
   },
   {
@@ -6247,6 +6621,14 @@
   {
    "blob": "f78e9a4b5f53f57c77efc7fda8b43393786658e0",
    "path": "vendor/ruopus/Cargo.toml"
+  },
+  {
+   "blob": "7384d071aec72150daae5adb0245b37b79d6f6d8",
+   "path": "vendor/rusty-aac/Cargo.lock"
+  },
+  {
+   "blob": "fd7183dfe13ed9f5911c0a21a48ac9d84ad28f59",
+   "path": "vendor/rusty-aac/Cargo.toml"
   },
   {
    "blob": "ee2796d6a3795889272912f3b1c7b1fa10896663",
@@ -6345,7 +6727,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "1ac20a015862be11382bc7809b2bb2fbb25af7c40e9adfcbd1fad456662dcba4",
+ "inputs_fingerprint": "bb26c792ee18ef7e87f987640812768d4731dddaa9690f098c8fae9fcca5c4d4",
  "instances": [
   {
    "commit": null,
@@ -7197,6 +7579,19 @@
    "component": "pkg:cargo/libc",
    "context": "",
    "first_party": false,
+   "id": "pkg:cargo/libc@0.2.186#",
+   "purl": "pkg:cargo/libc@0.2.186",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.186"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/libc",
+   "context": "",
+   "first_party": false,
    "id": "pkg:cargo/libc@0.2.191#",
    "purl": "pkg:cargo/libc@0.2.191",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -7415,6 +7810,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/portable-atomic",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/portable-atomic@1.15.0#",
+   "purl": "pkg:cargo/portable-atomic@1.15.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.15.0"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/primal-check",
    "context": "",
    "first_party": false,
@@ -7581,6 +7989,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.1.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rusty_alloc-api",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rusty_alloc-api@2.2.6#",
+   "purl": "pkg:cargo/rusty_alloc-api@2.2.6",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.2.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rusty_alloc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rusty_alloc@2.2.6#",
+   "purl": "pkg:cargo/rusty_alloc@2.2.6",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "2.2.6"
   },
   {
    "commit": null,
@@ -7873,6 +8307,19 @@
    "component": "pkg:cargo/windows-sys",
    "context": "",
    "first_party": false,
+   "id": "pkg:cargo/windows-sys@0.60.2#",
+   "purl": "pkg:cargo/windows-sys@0.60.2",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.60.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows-sys",
+   "context": "",
+   "first_party": false,
    "id": "pkg:cargo/windows-sys@0.61.2#",
    "purl": "pkg:cargo/windows-sys@0.61.2",
    "registry_url": "https://github.com/rust-lang/crates.io-index",
@@ -7880,6 +8327,123 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.61.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows-targets",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows-targets@0.53.5#",
+   "purl": "pkg:cargo/windows-targets@0.53.5",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.5"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_aarch64_gnullvm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_aarch64_gnullvm@0.53.1#",
+   "purl": "pkg:cargo/windows_aarch64_gnullvm@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_aarch64_msvc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_aarch64_msvc@0.53.1#",
+   "purl": "pkg:cargo/windows_aarch64_msvc@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_i686_gnu",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_i686_gnu@0.53.1#",
+   "purl": "pkg:cargo/windows_i686_gnu@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_i686_gnullvm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_i686_gnullvm@0.53.1#",
+   "purl": "pkg:cargo/windows_i686_gnullvm@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_i686_msvc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_i686_msvc@0.53.1#",
+   "purl": "pkg:cargo/windows_i686_msvc@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_x86_64_gnu",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_x86_64_gnu@0.53.1#",
+   "purl": "pkg:cargo/windows_x86_64_gnu@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_x86_64_gnullvm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_x86_64_gnullvm@0.53.1#",
+   "purl": "pkg:cargo/windows_x86_64_gnullvm@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/windows_x86_64_msvc",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/windows_x86_64_msvc@0.53.1#",
+   "purl": "pkg:cargo/windows_x86_64_msvc@0.53.1",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.53.1"
   },
   {
    "commit": null,
@@ -8127,6 +8691,19 @@
    "source_kind": "path",
    "vcs_url": null,
    "version": "0.1.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rusty_aac",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rusty_aac@2.0.1#",
+   "purl": "pkg:local/rusty_aac@2.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "2.0.1"
   },
   {
    "commit": null,
@@ -8522,6 +9099,11 @@
    "directory": "vendor/ruopus",
    "ecosystem": "cargo",
    "id": "vendor/ruopus:cargo"
+  },
+  {
+   "directory": "vendor/rusty-aac",
+   "ecosystem": "cargo",
+   "id": "vendor/rusty-aac:cargo"
   },
   {
    "directory": "vendor/symphonia/symphonia-bundle-flac",

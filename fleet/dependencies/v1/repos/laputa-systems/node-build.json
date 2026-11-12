@@ -1,0 +1,660 @@
+{
+ "components": [
+  {
+   "display_name": "actions/cache",
+   "ecosystem": "github",
+   "name": "actions/cache",
+   "purl": "pkg:github/actions/cache"
+  },
+  {
+   "display_name": "actions/checkout",
+   "ecosystem": "github",
+   "name": "actions/checkout",
+   "purl": "pkg:github/actions/checkout"
+  },
+  {
+   "display_name": "actions/download-artifact",
+   "ecosystem": "github",
+   "name": "actions/download-artifact",
+   "purl": "pkg:github/actions/download-artifact"
+  },
+  {
+   "display_name": "actions/setup-python",
+   "ecosystem": "github",
+   "name": "actions/setup-python",
+   "purl": "pkg:github/actions/setup-python"
+  },
+  {
+   "display_name": "actions/upload-artifact",
+   "ecosystem": "github",
+   "name": "actions/upload-artifact",
+   "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": "astral-sh/setup-uv",
+   "ecosystem": "github",
+   "name": "astral-sh/setup-uv",
+   "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
+   "display_name": "node-build",
+   "ecosystem": "local",
+   "name": "node-build",
+   "purl": "pkg:local/node-build"
+  },
+  {
+   "display_name": "laputa-buildlib",
+   "ecosystem": "pypi",
+   "name": "laputa-buildlib",
+   "purl": "pkg:pypi/laputa-buildlib"
+  },
+  {
+   "display_name": "ruff",
+   "ecosystem": "pypi",
+   "name": "ruff",
+   "purl": "pkg:pypi/ruff"
+  },
+  {
+   "display_name": "ty",
+   "ecosystem": "pypi",
+   "name": "ty",
+   "purl": "pkg:pypi/ty"
+  },
+  {
+   "display_name": "uv",
+   "ecosystem": "pypi",
+   "name": "uv",
+   "purl": "pkg:pypi/uv"
+  }
+ ],
+ "edges": [
+  {
+   "condition": null,
+   "constraint": "==0.1.0",
+   "evidence": [
+    {
+     "locator": "project.dependencies[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=node-build,version=0.1.0].dependencies[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "0.1.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:pypi/laputa-buildlib@0.1.0#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.17.4",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[0]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=node-build,version=0.1.0].dev-dependencies.dev[0]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.17.4",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ruff@0.17.4#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.0.101",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[1]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=node-build,version=0.1.0].dev-dependencies.dev[1]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.0.101",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/ty@0.0.101#"
+  },
+  {
+   "condition": "group == 'dev'",
+   "constraint": "==0.13.7",
+   "evidence": [
+    {
+     "locator": "dependency-groups.dev[2]",
+     "path": "pyproject.toml"
+    },
+    {
+     "locator": "package[name=node-build,version=0.1.0].dev-dependencies.dev[2]",
+     "path": "uv.lock"
+    }
+   ],
+   "from": ".:pypi",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.13.7",
+   "scope": "dev",
+   "source_kind": "registry",
+   "to": "pkg:pypi/uv@0.13.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[3].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.controller-test.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.assemble.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.smoke.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.assemble.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.smoke.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.controller-test.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.assemble.steps[2].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.smoke.steps[2].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[6].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[7].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.assemble.steps[4].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  }
+ ],
+ "inputs": [
+  {
+   "blob": "d5bb9a53d68589348c6b4d9b7eb7edfe49a8bda4",
+   "path": ".github/workflows/lint.yml"
+  },
+  {
+   "blob": "f0821d09ae492283fb0ce7a3aeaf660ca148eb17",
+   "path": ".github/workflows/release.yml"
+  },
+  {
+   "blob": "f6308e02709a5c9b3956e972969754cfce959e69",
+   "path": "Makefile"
+  },
+  {
+   "blob": "7419ee6beec0c981b5b3d3c3f2c7bd2f7b4290d5",
+   "path": "pyproject.toml"
+  },
+  {
+   "blob": "8fff0260f3b65ccad5e4a23c9da80360ca7fcdc4",
+   "path": "uv.lock"
+  }
+ ],
+ "inputs_fingerprint": "206505c83dbe3e6d2e8ee5da520951c29afff42cc287dbcb36e6cace1b75be7d",
+ "instances": [
+  {
+   "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "component": "pkg:github/actions/cache",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#",
+   "purl": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/cache",
+   "version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9"
+  },
+  {
+   "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "component": "pkg:github/actions/checkout",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#",
+   "purl": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/checkout",
+   "version": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  {
+   "commit": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "component": "pkg:github/actions/download-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#",
+   "purl": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/download-artifact",
+   "version": "9000827ccba6bdab643e8b6fd33ac0654aef8333"
+  },
+  {
+   "commit": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "component": "pkg:github/actions/setup-python",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#",
+   "purl": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/setup-python",
+   "version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+  },
+  {
+   "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "component": "pkg:github/actions/upload-artifact",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#",
+   "purl": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/actions/upload-artifact",
+   "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "component": "pkg:github/astral-sh/setup-uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#",
+   "purl": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "git",
+   "vcs_url": "https://github.com/astral-sh/setup-uv",
+   "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/node-build",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/node-build@0.1.0#",
+   "purl": "pkg:local/node-build@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/laputa-buildlib",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/laputa-buildlib@0.1.0#",
+   "purl": "pkg:pypi/laputa-buildlib@0.1.0",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ruff",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ruff@0.17.4#",
+   "purl": "pkg:pypi/ruff@0.17.4",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.17.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/ty",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/ty@0.0.101#",
+   "purl": "pkg:pypi/ty@0.0.101",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.0.101"
+  },
+  {
+   "commit": null,
+   "component": "pkg:pypi/uv",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:pypi/uv@0.13.7#",
+   "purl": "pkg:pypi/uv@0.13.7",
+   "registry_url": "https://pypi.17166969.xyz/current/simple/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.7"
+  }
+ ],
+ "issues": [
+  {
+   "kind": "unsupported_format",
+   "locator": null,
+   "message": "no parser for Makefile",
+   "path": "Makefile"
+  }
+ ],
+ "projects": [
+  {
+   "directory": ".",
+   "ecosystem": "pypi",
+   "id": ".:pypi"
+  },
+  {
+   "directory": ".",
+   "ecosystem": "generic",
+   "id": ".:repo"
+  }
+ ],
+ "repository": "laputa-systems/node-build",
+ "schema": 1,
+ "tags": [
+  "build",
+  "python"
+ ]
+}
