@@ -12,8 +12,10 @@ open .work/dependencies/dashboard/index.html
 
 The `open` command is for macOS; on Linux, open that file in your browser.
 
-For a local server, `make deps` renders the dashboard with `--status` and serves it at
-`http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another port.
+For a local server, `make deps` syncs the checkouts, re-snapshots the tracked inventory
+(committing any changes under `fleet/dependencies/v1/`), renders the dashboard with live status,
+and serves it at `http://127.0.0.1:8765` with `srv`; use `make deps PORT=9000` for another
+port.
 
 Private repositories are left out of every page, count, and change list by default. Repositories
 says how many are hidden. Use `make deps PRIVATE=1`, or `deps render --include-private`, to include
@@ -158,7 +160,8 @@ frozen pnpm install, type-checks, lints with Oxlint, rebuilds, and fails if the 
 JavaScript is stale. The renderer copies the pinned library's base `styles.css` and `tokens.css`
 and the `layout.css` and `data.css` family sheets from the installed package in `node_modules`, so
 rendering needs `pnpm install --frozen-lockfile` once and fails with that instruction otherwise.
-`make deps` only renders and serves; it does not run Node.
+`make deps` syncs the checkouts and re-snapshots the inventory (committing any changes) before
+it renders; it does not run Node.
 
 ## Budgets and verification
 
@@ -174,7 +177,8 @@ overflow.
 
 ## Measuring the render
 
-`make deps` is `uv run repomod deps render --status` followed by `srv`. The render is the part
+`make deps` is `uv run repomod sync` and `uv run repomod deps snapshot` (committing any
+inventory changes), then `uv run repomod deps render --status` followed by `srv`. The render is the part
 that varies: it reads the tracked inventory, collects live repository status, and writes the
 dashboard. `bench/deps_perf.py` separates warm-cache behavior from an isolated cold run.
 
