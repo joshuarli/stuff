@@ -35,7 +35,7 @@ Run everything from the repository root.
 | Cargo formats and shared catalog schema | [docs/mycrates-contracts.md](docs/mycrates-contracts.md) |
 | Legacy Cargo state migration | [docs/mycrates-migration.md](docs/mycrates-migration.md) |
 | npm inventory and publication | [crates/mynpm/README.md](crates/mynpm/README.md) |
-| Wheel acquisition and validation | [crates/mypypi/README.md](crates/mypypi/README.md) |
+| Wheel acquisition, validation, and the Python execution boundary | [crates/mypypi/README.md](crates/mypypi/README.md) |
 | OCI protocol and storage | [docs/oci-design.md](docs/oci-design.md); [protocol API](crates/stuff-oci/README.md) |
 | OCI CLI, server, writer, benchmarks | [crates/myoci/README.md](crates/myoci/README.md) |
 | OCI benchmark results and the direct blob origin (A11) | [docs/oci-benchmarks.md](docs/oci-benchmarks.md), [docs/oci-a11.md](docs/oci-a11.md) |
@@ -57,7 +57,7 @@ Run everything from the repository root.
 | Checkout removal contract | [docs/rfc/RPMD-74-checkout-removal.md](docs/rfc/RPMD-74-checkout-removal.md) |
 | Campaign records | [docs/campaigns/](docs/campaigns/) |
 | Deferred fixes | [TODO.md](TODO.md) |
-| Draft designs | [STUF-45](docs/rfc/STUF-45-python-execution.md), [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md) |
+| Draft designs | [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md) |
 
 ## Invariants
 

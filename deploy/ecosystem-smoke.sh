@@ -95,6 +95,7 @@ uv venv -q --python 3.15 "$PYPI_WORK/.venv" || fail "uv venv"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv pip install -q --python 3.15 --index-url "file://$PYPI_WORK/out/current/simple/" --only-binary :all: "six==1.16.0" || fail "uv pip install from published index"
 VIRTUAL_ENV="$PYPI_WORK/.venv" uv run -q --python 3.15 --no-sync --project "$PYPI_WORK" python -c "import six, sys; assert six.__version__ == '1.16.0', six.__version__; print('six', six.__version__)" || fail "import six"
 (cd "$ROOT" && cargo test -q -p mypypi --lib rust_sdist_build_finds_the_host_toolchain -- --ignored) || fail "mypypi Rust sdist build"
+(cd "$ROOT" && cargo test -q -p mypypi --lib an_sdist_fetches_its_build_requirements_inside_the_boundary -- --ignored) || fail "mypypi sandboxed sdist build with fetched requirements"
 if [ "$(uname -s)" = "Darwin" ] \
   || [ "$(ldd --version 2>/dev/null | head -1 | awk '{print $NF}')" = "2.28" ]; then
   "$ROOT/deploy/test-mypypi-native.sh" "$WORK/mypypi-native" || fail "mypypi native wheel conformance"

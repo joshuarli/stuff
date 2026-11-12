@@ -7,7 +7,10 @@ use crate::acquire::{
 use crate::error::{Error, Kind, Result, Stage};
 use crate::models::{PackageVersion, Target};
 use crate::platforms::{MACOS_DEPLOYMENT_TARGET, native_architectures_from_bytes, target_python_version};
-use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment, seed_toolchain_home};
+use crate::process_policy::{
+    redacted_diagnostic, run_capture, scratch_environment, seed_toolchain_home, toolchain_read_roots,
+};
+use crate::sandbox::{Boundary, Network, confine, interpreter};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -485,7 +488,7 @@ fn build_source_file(
             if args.is_empty() || !command.contains("{prefix}") {
                 return Err(ctx(Error::build("custom prebuild must use {prefix}", Stage::Build)));
             }
-            run_checked(&args, stage, &build_env, 300, package, target, Stage::Build)?;
+            run_checked(&args, &Run { cwd: stage, env: &build_env, timeout: 300, boundary: None }, package, target, Stage::Build)?;
         }
         let bin = prefix.join("bin").display().to_string();
         let old_path = build_env.get("PATH").cloned().unwrap_or_default();
@@ -502,14 +505,21 @@ fn build_source_file(
             if old.is_empty() { prefix.join("lib").display().to_string() } else { format!("{}:{old}", prefix.join("lib").display()) }
         });
     }
-    let python = crate::platforms::python_binary();
+    let build_path = build_env.get("PATH").cloned().unwrap_or_default();
+    let python = interpreter(&crate::platforms::python_binary(), &build_path, Stage::Build).map_err(ctx)?;
+    let mut readable = python.roots.clone();
+    readable.extend(toolchain_read_roots(&base_env));
+    if let Some(constraints) = opts.build_constraints {
+        readable.push(constraints.to_path_buf());
+    }
+    let boundary = Boundary { writable: vec![stage.to_path_buf()], readable, network: Network::Online };
     let mut command: Vec<String> = vec![
         "uv".to_string(),
         "build".to_string(),
         "--no-config".to_string(),
         "--quiet".to_string(),
         "--wheel".to_string(),
-        format!("--python={python}"),
+        format!("--python={}", python.executable.display()),
         format!("--default-index={}", opts.index_url),
         "--index-strategy=first-index".to_string(),
         format!("--out-dir={}", output.display()),
@@ -522,7 +532,7 @@ fn build_source_file(
         command.push("--require-build-hashes".to_string());
     }
     command.push(source_path.display().to_string());
-    run_checked(&command, stage, &build_env, 1800, package, target, Stage::Build)?;
+    run_checked(&command, &Run { cwd: stage, env: &build_env, timeout: 1800, boundary: Some(&boundary) }, package, target, Stage::Build)?;
     let mut wheels: Vec<PathBuf> = std::fs::read_dir(&output)
         .map_err(|e| ctx(Error::build(format!("could not build {package}: {e}"), Stage::Build)))?
         .filter_map(|e| e.ok().map(|x| x.path()))
@@ -553,7 +563,7 @@ fn build_source_file(
         let repair_output = stage.join("repaired");
         std::fs::create_dir(&repair_output).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Repair)))?;
         let repair = crate::platforms::repair_command(target, &wheel, &repair_output, opts.linux_repair_policy).map_err(ctx)?;
-        run_checked(&repair, stage, &build_env, 600, package, target, Stage::Repair)?;
+        run_checked(&repair, &Run { cwd: stage, env: &build_env, timeout: 600, boundary: None }, package, target, Stage::Repair)?;
         let mut repaired: Vec<PathBuf> = std::fs::read_dir(&repair_output)
             .map_err(|e| ctx(Error::build(format!("could not repair {package}: {e}"), Stage::Repair)))?
             .filter_map(|e| e.ok().map(|x| x.path()))
@@ -611,17 +621,30 @@ fn is_same_bytes(a: &Path, b: &Path) -> Result<bool> {
     Ok(ha == hb)
 }
 
+struct Run<'a> {
+    cwd: &'a Path,
+    env: &'a FxHashMap<String, String>,
+    timeout: u64,
+    boundary: Option<&'a Boundary>,
+}
+
 fn run_checked(
     command: &[String],
-    cwd: &Path,
-    env: &FxHashMap<String, String>,
-    timeout: u64,
+    run: &Run<'_>,
     package: &PackageVersion,
     target: &Target,
     stage: Stage,
 ) -> Result<()> {
     let ctx = |e: Error| e.with_package(package).with_target(&target.python_version.to_string(), &target.platform);
-    match run_capture(command, Some(cwd), env, None, timeout) {
+    let confined;
+    let argv = match run.boundary {
+        Some(boundary) => {
+            confined = confine(command, run.env, boundary, stage).map_err(ctx)?;
+            &confined[..]
+        }
+        None => command,
+    };
+    match run_capture(argv, Some(run.cwd), run.env, None, run.timeout) {
         Ok(out) if out.success() => Ok(()),
         Ok(out) => {
             let mut detail = format!("could not {} {package}: {}", stage.as_str(), command.join(" "));
@@ -886,6 +909,179 @@ mod tests {
         builder.into_inner().unwrap().finish().unwrap();
     }
 
+    const PURE_BACKEND: &str = r#"
+import base64, hashlib, zipfile
+from pathlib import Path
+
+def _row(name, data):
+    digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+    return f"{name},sha256={digest},{len(data)}"
+
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    _probe()
+    dist = "pure_probe-0.1.0.dist-info"
+    files = {
+        "pure_probe/__init__.py": b"VALUE = 1\n",
+        f"{dist}/METADATA": b"Metadata-Version: 2.1\nName: pure-probe\nVersion: 0.1.0\nRequires-Python: >=3.9\n",
+        f"{dist}/WHEEL": b"Wheel-Version: 1.0\nGenerator: probe\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+    }
+    rows = [_row(name, data) for name, data in sorted(files.items())]
+    rows.append(f"{dist}/RECORD,,")
+    files[f"{dist}/RECORD"] = ("\n".join(rows) + "\n").encode()
+    name = "pure_probe-0.1.0-py3-none-any.whl"
+    with zipfile.ZipFile(Path(wheel_directory) / name, "w") as wheel:
+        for member, data in files.items():
+            wheel.writestr(member, data)
+    return name
+"#;
+
+    fn probe_function(action: &str, path: &Path) -> String {
+        let attempt = match action {
+            "read" => format!("open({:?}).read()", path.to_str().unwrap()),
+            "write" => format!("open({:?}, 'w').write('x')", path.to_str().unwrap()),
+            _ => return "def _probe():\n    pass\n".to_string(),
+        };
+        format!(
+            "import os\n\n\ndef _evidence(text):\n    open(os.path.join(os.environ['TMPDIR'], 'evidence'), 'w').write(text)\n\n\ndef _probe():\n    try:\n        {attempt}\n    except OSError as error:\n        _evidence('boundary held: {action}: ' + type(error).__name__)\n        raise RuntimeError('boundary held') from None\n    _evidence('BREACH {action}')\n    raise RuntimeError('BREACH {action}')\n"
+        )
+    }
+
+    fn pure_sdist(dir: &Path, action: &str, path: &Path) -> PathBuf {
+        let backend = format!("{}\n{PURE_BACKEND}", probe_function(action, path));
+        let sdist = dir.join("pure_probe-0.1.0.tar.gz");
+        let pyproject: &[u8] = b"[build-system]\nrequires = []\nbuild-backend = \"backend\"\nbackend-path = [\".\"]\n\n[project]\nname = \"pure-probe\"\nversion = \"0.1.0\"\n";
+        write_sdist(
+            &sdist,
+            &[
+                ("pure_probe-0.1.0/pyproject.toml", pyproject),
+                ("pure_probe-0.1.0/PKG-INFO", b"Metadata-Version: 2.1\nName: pure-probe\nVersion: 0.1.0\n"),
+                ("pure_probe-0.1.0/backend.py", backend.as_bytes()),
+            ],
+        );
+        sdist
+    }
+
+    fn host_target() -> Option<Target> {
+        let output = std::process::Command::new(crate::platforms::python_binary())
+            .args(["-c", "import sys; print(sys.implementation.name, sys.version_info.major, sys.version_info.minor)"])
+            .output()
+            .ok()?;
+        let text = String::from_utf8_lossy(&output.stdout).into_owned();
+        let mut parts = text.split_whitespace();
+        let (implementation, major, minor) = (parts.next()?, parts.next()?, parts.next()?);
+        if implementation != "cpython" {
+            return None;
+        }
+        Target::new(&format!("{major}.{minor}"), &crate::platforms::current_platform()?).ok()
+    }
+
+    fn build_pure(dir: &Path, action: &str, path: &Path) -> Option<Result<PathBuf>> {
+        let target = host_target()?;
+        let uv_path = std::env::var("PATH").unwrap_or_default();
+        crate::sandbox::resolve_program("uv", &uv_path)?;
+        let sdist = pure_sdist(dir, action, path);
+        let destination = tempfile::tempdir().unwrap();
+        let wheels = destination.path().join("wheels");
+        std::fs::create_dir(&wheels).unwrap();
+        let package = PackageVersion::parse("pure-probe", "0.1.0").unwrap();
+        let options = BuildOptions {
+            index_url: "https://pypi.org/simple",
+            likely_binary_ignore: &[],
+            custom_prebuild: &[],
+            linux_repair_policy: "manylinux_2_28",
+            build_constraints: None,
+            require_build_hashes: false,
+            env: None,
+            prebuild_cwd: Some(dir),
+        };
+        let built = build_source_file(&package, &target, &sdist, &wheels, dir, dir, &options);
+        Some(built.map(|wheel| {
+            let kept = dir.join(wheel.file_name().unwrap());
+            std::fs::copy(&wheel, &kept).unwrap();
+            kept
+        }))
+    }
+
+    #[test]
+    fn a_build_backend_cannot_read_publisher_files_or_write_outside_scratch() {
+        if host_target().is_none() {
+            eprintln!("skipping: needs a CPython interpreter on PATH");
+            return;
+        }
+        let publisher = tempfile::tempdir().unwrap();
+        let sentinel = publisher.path().join("sentinel");
+        std::fs::write(&sentinel, "publisher secret").unwrap();
+        let escape = publisher.path().join("escaped");
+        for (action, probe) in [("read", &sentinel), ("write", &escape)] {
+            let dir = tempfile::tempdir().unwrap();
+            let control_dir = tempfile::tempdir().unwrap();
+            std::fs::write(control_dir.path().join("backend.py"), format!("{}\n{PURE_BACKEND}", probe_function(action, probe))).unwrap();
+            let control = std::process::Command::new(crate::platforms::python_binary())
+                .env("TMPDIR", control_dir.path())
+                .args(["-I", "-c", &format!("import sys; sys.path.insert(0, {:?}); import backend; backend.build_wheel({:?})", control_dir.path().to_str().unwrap(), control_dir.path().to_str().unwrap())])
+                .output()
+                .unwrap();
+            assert!(!control.status.success(), "{control:?}");
+            assert_eq!(std::fs::read_to_string(control_dir.path().join("evidence")).unwrap(), format!("BREACH {action}"));
+            let _ = std::fs::remove_file(&escape);
+
+            let Some(result) = build_pure(dir.path(), action, probe) else {
+                eprintln!("skipping: needs uv on PATH");
+                return;
+            };
+
+            assert!(result.is_err());
+            let evidence = std::fs::read_to_string(dir.path().join("tmp/evidence")).unwrap();
+            let denied = ["PermissionError", "FileNotFoundError"].iter().any(|kind| evidence == format!("boundary held: {action}: {kind}"));
+            assert!(denied, "{evidence}");
+        }
+        assert_eq!(std::fs::read_to_string(&sentinel).unwrap(), "publisher secret");
+        assert!(!escape.exists());
+    }
+
+    #[test]
+    fn a_benign_sdist_builds_inside_the_boundary() {
+        let dir = tempfile::tempdir().unwrap();
+        let Some(result) = build_pure(dir.path(), "none", dir.path()) else {
+            eprintln!("skipping: needs uv and a CPython interpreter on PATH");
+            return;
+        };
+        let wheel = result.unwrap();
+        assert_eq!(wheel.file_name().and_then(|name| name.to_str()), Some("pure_probe-0.1.0-py3-none-any.whl"));
+    }
+
+    #[test]
+    #[ignore = "requires uv, CPython, and network access to the build index; run by deploy/ecosystem-smoke.sh"]
+    fn an_sdist_fetches_its_build_requirements_inside_the_boundary() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("fetched_probe-0.1.0.tar.gz");
+        write_sdist(
+            &sdist,
+            &[
+                ("fetched_probe-0.1.0/pyproject.toml", b"[build-system]\nrequires = [\"flit_core>=3.9,<4\"]\nbuild-backend = \"flit_core.buildapi\"\n\n[project]\nname = \"fetched-probe\"\nversion = \"0.1.0\"\ndescription = \"probe\"\n"),
+                ("fetched_probe-0.1.0/PKG-INFO", b"Metadata-Version: 2.1\nName: fetched-probe\nVersion: 0.1.0\n"),
+                ("fetched_probe-0.1.0/fetched_probe.py", b"VALUE = 1\n"),
+            ],
+        );
+        let destination = tempfile::tempdir().unwrap();
+        let target = host_target().expect("a CPython interpreter on PATH");
+        let package = PackageVersion::parse("fetched-probe", "0.1.0").unwrap();
+        let options = BuildOptions {
+            index_url: "https://pypi.org/simple",
+            likely_binary_ignore: &[],
+            custom_prebuild: &[],
+            linux_repair_policy: "manylinux_2_28",
+            build_constraints: None,
+            require_build_hashes: false,
+            env: None,
+            prebuild_cwd: Some(dir.path()),
+        };
+
+        let wheel = build_source_file(&package, &target, &sdist, destination.path(), dir.path(), dir.path(), &options).unwrap();
+
+        assert_eq!(wheel.file_name().and_then(|name| name.to_str()), Some("fetched_probe-0.1.0-py2.py3-none-any.whl"));
+    }
+
     #[test]
     fn validates_build_index_forms() {
         assert!(validate_build_index("https://pypi.org/simple", false).is_ok());
@@ -1068,6 +1264,15 @@ mod tests {
         let members: Vec<String> = archive.names().map(str::to_string).collect();
         assert!(members.iter().any(|member| member.starts_with("native_probe.cpython-315")), "{members:?}");
         assert!(members.iter().any(|member| member.starts_with("native_probe_cpp.cpython-315")), "{members:?}");
+        let validated = crate::validate::validate_wheel(
+            &wheel,
+            &target,
+            &wheels,
+            &crate::validate::ValidationPolicy::default(),
+            "manylinux_2_28",
+        )
+        .unwrap();
+        assert_eq!(validated.imports, ["native_probe", "native_probe_cpp"]);
     }
 
     #[test]
@@ -1099,17 +1304,23 @@ mod tests {
         );
         let out_dir = stage.join("wheels");
         std::fs::create_dir(&out_dir).unwrap();
-        let python = std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
+        let path = env.get("PATH").cloned().unwrap_or_default();
+        let python = interpreter(&crate::platforms::python_binary(), &path, Stage::Build).unwrap();
+        let mut readable = python.roots.clone();
+        readable.extend(toolchain_read_roots(&base));
+        let boundary = Boundary { writable: vec![dir.path().to_path_buf()], readable, network: Network::Online };
         let command = vec![
             "uv".to_string(),
             "build".to_string(),
+            "--no-config".to_string(),
             "--wheel".to_string(),
             "--quiet".to_string(),
-            format!("--python={python}"),
+            format!("--python={}", python.executable.display()),
             format!("--out-dir={}", out_dir.display()),
             sdist.display().to_string(),
         ];
-        let out = run_capture(&command, Some(&stage), &env, None, 300).unwrap();
+        let confined = confine(&command, &env, &boundary, Stage::Build).unwrap();
+        let out = run_capture(&confined, Some(&stage), &env, None, 300).unwrap();
         assert!(out.success(), "uv build failed: {}", out.stderr);
         let wheels: Vec<_> = std::fs::read_dir(&out_dir)
             .unwrap()

@@ -28,6 +28,11 @@ jobs:
           persist-credentials: false
       - name: setup rust
         run: rustup show
+      - name: install the Python execution boundary
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - name: clippy
         run: cargo clippy --locked --all-targets -- -D warnings
       - name: test
@@ -67,6 +72,11 @@ jobs:
       - run: uv python install 3.15
       - name: select the pinned interpreter
         run: echo "PYTHON=$(uv python find 3.15)" >> "$GITHUB_ENV"
+      - name: install the Python execution boundary
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - name: install native wheel repair tooling
         if: runner.os == 'macOS'
         run: deploy/provision-mypypi-repair.sh
@@ -96,6 +106,11 @@ jobs:
           persist-credentials: false
       - name: setup rust
         run: rustup show
+      - name: install the Python execution boundary
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - name: read the uv pin
         run: echo "UV_VERSION=$(cat deploy/uv-version)" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3

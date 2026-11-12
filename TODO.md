@@ -5,15 +5,14 @@ New tickets use STUF. RPMD tickets were filed in repomod before it moved into st
 
 Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b0278e8ae071`. Priorities are reviewer-assigned. Executed probes used local fixtures; source-only conclusions and unavailable runtime checks are identified below. The checked-in Worker configuration leaves network push disabled, so the push findings describe the optional capability, not observed production incidents.
 
-### STUF-45 · P2 · Python builds and wheel imports run with the publisher's filesystem access
+### STUF-45 · P3 · Python builds still reach the network and build hashes are unwired
 
 - **Area:** Security
-- **Where:** `crates/mypypi/src/validate.rs:666-719`, `crates/mypypi/src/process_policy.rs:62-71`, `crates/mypypi/src/publish.rs:391-416`, `crates/stuff/src/publish/pypi.rs:139-148`, `crates/stuff/src/publish/pypi.rs:240-246`
-- **Problem:** Sdist backends and default native-target wheel validation execute as the publisher. Validation installs a prebuilt wheel and runs `python -I -c '__import__(...)'` even without `--allow-sdist`. Scratch homes and an allowlisted environment do not isolate filesystem or network access. An offline probe installed a harmless wheel with real `uv` and the source-derived environment policy; its isolated-mode import read a test sentinel outside its scratch home. That proof used CPython 3.12.14, not the unavailable Rust dispatcher/CPython 3.15 gate. Exact pins and operator-selected inputs limit exposure; they do not contain package code. Build hashes remain a separate control, currently unwired in `stuff publish pypi`, requiring maintained hash-pinned constraints.
-- **Recommendation:** Apply one credential-free execution boundary to build backends and import validation, retaining native validation and artifact hash checks. Keep credentials with the publication process. Choose the host isolation mechanism in the linked RFC and prove that both an sdist and a prebuilt wheel cannot read a publisher-owned sentinel. Wire build constraints/hashes separately once their trusted input is available.
+- **Where:** `crates/mypypi/src/build.rs` (`build_source_file`), `crates/stuff/src/publish/pypi.rs:299-300`
+- **Problem:** Sdist backends and native wheel imports now run inside the sandbox described in the mypypi README. The remaining exposure is that the build keeps network access to resolve `build-system.requires`, so a hostile backend can send out what it can read (its scratch and the downloaded source), and that `stuff publish pypi` passes no build constraints or `--require-build-hashes`, so build dependency selection is not pinned. macOS uses `sandbox-exec` because a separate unprivileged account could not be provisioned unattended; a VM remains the stronger alternative if that contract is ever required.
+- **Recommendation:** Maintain a checked-in hash-pinned build-constraints file with a refresh procedure, wire it through `BuildOptions` before enabling `--require-build-hashes`, and then resolve build requirements in a separate network stage so the backend itself runs offline.
 - **Fix with:** security
 - **Effort:** M
-- **Design:** [STUF-45: Isolate Python package execution](docs/rfc/STUF-45-python-execution.md)
 
 ### STUF-62 · P3 · A one-crate publish rewrites unchanged index files under a new generation
 

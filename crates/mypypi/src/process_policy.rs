@@ -147,6 +147,17 @@ pub(crate) fn seed_toolchain_home(
     Ok(())
 }
 
+pub(crate) fn toolchain_read_roots(source: &FxHashMap<String, String>) -> Vec<PathBuf> {
+    let cargo_bin = source_toolchain_home(source, "CARGO_HOME", ".cargo").map(|home| home.join("bin"));
+    let rustup_toolchains =
+        source_toolchain_home(source, "RUSTUP_HOME", ".rustup").map(|home| home.join("toolchains"));
+    cargo_bin
+        .into_iter()
+        .chain(rustup_toolchains)
+        .filter(|path| path.is_dir())
+        .collect()
+}
+
 pub fn redacted_diagnostic(value: &str, limit: usize) -> String {
     let redacted = redact_credentials(value);
     if redacted.len() <= limit {

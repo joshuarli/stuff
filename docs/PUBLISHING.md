@@ -13,6 +13,7 @@
 | Node and npm | `mynpm` fetches npm packages | `node --version` |
 | uv and CPython 3.15 | `mypypi` resolves and builds wheels | `uv --version` |
 | `auditwheel` or `delocate` | `mypypi` repairs native wheels | `deploy/provision-mypypi-repair.sh` installs the pin |
+| `sandbox-exec` (macOS, built in) or `bwrap` (Linux) | Confine sdist build backends and wheel import checks | `bwrap --version`; the container needs the flags in the mypypi README |
 | Network | Fetch crates, npm tarballs, and Python wheels | |
 | R2 S3 token (optional) | Long-lived credentials, conditional promotion, and multipart uploads over 300 MB | `R2_S3_*` is set, or `cf` mints temporary credentials |
 | OCI writer host (optional) | Stream authenticated pushes through signed upload URLs | `deploy/myoci-writer.sh` runs with the shared secret and R2 credentials |
@@ -48,6 +49,8 @@ Every writer of a registry holds one lock file: `$STUFF_STATE_HOME/<registry>/pu
 `stuff publish pypi` mirrors wheels for six targets: `linux-x86_64`, `linux-aarch64`, `linux-musl-x86_64`, `linux-musl-aarch64`, `macos-x86_64`, and `macos-arm64`. The musl targets take `musllinux_1_0` through `musllinux_1_2` wheels only, so Alpine hosts install from the mirror; a package with no musllinux wheel and no source archive fails the publish, and one with only a source archive needs `--allow-sdist`. The publishing host's native target is `linux-musl-<arch>` when its Python interpreter links against musl, and `linux-<arch>` otherwise. Adding the musl targets adds wheels and manifest targets without changing existing simple pages, but a `stuff` binary from before this change fails planning against a live manifest that records a musl target (`manifest target is not configured`), so upgrade every publishing host before the first publish that includes them.
 
 PyPI publication inspects foreign-target wheels statically and executes native-target installation/import checks. Use matching runners or `deploy/mypypi-container.sh` for foreign-platform execution checks; see [crates/mypypi/README.md](../crates/mypypi/README.md).
+
+Package code runs only inside an execution boundary. Sdist build backends (`--allow-sdist`) and the import check of every new native wheel run under `sandbox-exec` on macOS or `bwrap` on Linux, with the publisher's home, state, and credentials unreadable and only a per-run scratch directory writable; imports have no network. If the sandbox tool is missing or cannot start, the publish fails with `execution boundary unavailable` (exit 1) before any package code runs, and nothing is promoted. R2 credentials never leave the `stuff` process. The grants, host requirements, and residual risks are in the [mypypi README](../crates/mypypi/README.md#execution-boundary).
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; publish through `stuff publish`.
 

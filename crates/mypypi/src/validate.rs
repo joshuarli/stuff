@@ -4,6 +4,7 @@ use crate::error::{Error, Result, Stage};
 use crate::models::{PackageVersion, Target, WheelIdentity, canonicalize_name};
 use crate::platforms::{current_platform, native_architectures_from_bytes, target_platform_tags};
 use crate::process_policy::{redacted_diagnostic, run_capture, scratch_environment};
+use crate::sandbox::{Boundary, Network, confine, interpreter};
 use sha2::{Digest, Sha384, Sha512, Sha256};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::{Path, PathBuf};
@@ -645,8 +646,21 @@ fn run_validation(
     let scratch = TempDirGuard { path: scratch_path };
     let neutral = scratch.path.canonicalize().unwrap_or_else(|_| scratch.path.clone());
     let env = scratch_environment(None, &neutral);
-    let run = |command: Vec<String>, stage: &str| -> Result<()> {
-        match run_capture(&command, Some(&neutral), &env, None, 300) {
+    let base_python = interpreter(&python_exe, env.get("PATH").map_or("", String::as_str), Stage::Validation)
+        .map_err(|e| e.with_package(&metadata.identity.package).with_target(&target.python_version.to_string(), &target.platform))?;
+    let import_boundary = Boundary {
+        writable: vec![neutral.clone()],
+        readable: base_python.roots.clone(),
+        network: Network::Offline,
+    };
+    let run = |command: Vec<String>, stage: &str, boundary: Option<&Boundary>| -> Result<()> {
+        let argv = match boundary {
+            Some(boundary) => confine(&command, &env, boundary, Stage::Validation).map_err(|e| {
+                e.with_package(&metadata.identity.package).with_target(&target.python_version.to_string(), &target.platform)
+            })?,
+            None => command,
+        };
+        match run_capture(&argv, Some(&neutral), &env, None, 300) {
             Ok(out) if out.success() => Ok(()),
             Ok(out) => {
                 let mut detail = format!("{stage} failed for {}", wheel.file_name().and_then(|s| s.to_str()).unwrap_or("?"));
@@ -673,13 +687,14 @@ fn run_validation(
             venv_dir.display().to_string(),
         ],
         "environment creation",
+        None,
     )?;
     let python = if cfg!(windows) {
         venv_dir.join("Scripts/python.exe")
     } else {
         venv_dir.join("bin/python")
     };
-    run(install_command(&python, wheel, wheel_set, policy), "dependency installation")?;
+    run(install_command(&python, wheel, wheel_set, policy), "dependency installation", None)?;
     let skipped = policy.skipped_imports();
     for import_name in &metadata.imports {
         if skipped.contains(import_name.as_str()) {
@@ -693,6 +708,7 @@ fn run_validation(
                 format!("__import__({import_name:?})"),
             ],
             &format!("import {import_name}"),
+            Some(&import_boundary),
         )?;
     }
     Ok(())
@@ -820,6 +836,109 @@ mod tests {
         let cmd = install_command(Path::new("/venv/bin/python"), Path::new("/ws/foo-1.0-py3-none-any.whl"), Path::new("/ws"), &policy);
         assert!(cmd.iter().any(|a| a.contains("[socks]")));
         assert!(cmd.iter().any(|a| a == "requests>=2"));
+    }
+
+    fn host_target() -> Option<Target> {
+        let (implementation, major, minor) = probe_running_python()?;
+        if implementation != "cpython" {
+            return None;
+        }
+        Target::new(&format!("{major}.{minor}"), &local_platform()?).ok()
+    }
+
+    fn uv_available() -> bool {
+        let path = std::env::var("PATH").unwrap_or_default();
+        crate::sandbox::resolve_program("uv", &path).is_some()
+    }
+
+    fn write_pure_wheel(path: &Path, package: &str, files: &[(&str, &str)]) {
+        use sha2::{Digest, Sha256};
+        let dist = format!("{package}-1.0.dist-info");
+        let metadata = format!("Metadata-Version: 2.1\nName: {package}\nVersion: 1.0\nRequires-Python: >=3.9\n");
+        let wheel = "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n";
+        let mut members: Vec<(String, Vec<u8>)> = files
+            .iter()
+            .map(|(name, body)| (name.to_string(), body.as_bytes().to_vec()))
+            .collect();
+        members.push((format!("{dist}/METADATA"), metadata.into_bytes()));
+        members.push((format!("{dist}/WHEEL"), wheel.as_bytes().to_vec()));
+        let mut record = String::new();
+        for (name, bytes) in &members {
+            let mut hash = Sha256::new();
+            hash.update(bytes);
+            record.push_str(&format!("{name},sha256={},{}\n", base64_url_nopad(&hash.finalize()), bytes.len()));
+        }
+        record.push_str(&format!("{dist}/RECORD,,\n"));
+        members.push((format!("{dist}/RECORD"), record.into_bytes()));
+        let borrowed: Vec<(&str, &[u8])> = members.iter().map(|(name, bytes)| (name.as_str(), bytes.as_slice())).collect();
+        crate::wheel_zip::testing::write_files(path, &borrowed);
+    }
+
+    fn hostile_module(action: &str, path: &Path) -> String {
+        let attempt = match action {
+            "read" => format!("open({:?}).read()", path.to_str().unwrap()),
+            _ => format!("open({:?}, 'w').write('x')", path.to_str().unwrap()),
+        };
+        format!(
+            "def _attempt():\n    try:\n        {attempt}\n    except OSError as error:\n        raise ImportError('boundary held: {action}: ' + type(error).__name__) from None\n    raise ImportError('BREACH {action}')\n\n\n_attempt()\n"
+        )
+    }
+
+    #[test]
+    fn importing_a_wheel_cannot_read_publisher_files_or_write_outside_scratch() {
+        let (Some(target), true) = (host_target(), uv_available()) else {
+            eprintln!("skipping: needs uv and a CPython interpreter on PATH");
+            return;
+        };
+        let publisher = tempfile::tempdir().unwrap();
+        let sentinel = publisher.path().join("sentinel");
+        std::fs::write(&sentinel, "publisher secret").unwrap();
+        let escape = publisher.path().join("escaped");
+        for (action, probe) in [("read", &sentinel), ("write", &escape)] {
+            let dir = tempfile::tempdir().unwrap();
+            let package = format!("hostile_{action}");
+            let wheel = dir.path().join(format!("{package}-1.0-py3-none-any.whl"));
+            let init = format!("{package}/__init__.py");
+            let source = hostile_module(action, probe);
+            write_pure_wheel(&wheel, &package, &[(init.as_str(), source.as_str())]);
+
+            let unpacked = dir.path().join("src");
+            std::fs::create_dir_all(unpacked.join(&package)).unwrap();
+            std::fs::write(unpacked.join(&init), &source).unwrap();
+            let control = std::process::Command::new(crate::platforms::python_binary())
+                .args(["-I", "-c", &format!("import sys; sys.path.insert(0, {:?}); import {package}", unpacked.to_str().unwrap())])
+                .output()
+                .unwrap();
+            assert!(String::from_utf8_lossy(&control.stderr).contains(&format!("BREACH {action}")), "{control:?}");
+            let _ = std::fs::remove_file(&escape);
+
+            let error = validate_wheel(&wheel, &target, dir.path(), &ValidationPolicy::default(), "manylinux_2_28").unwrap_err();
+
+            let denied = ["PermissionError", "FileNotFoundError"].iter().any(|kind| error.detail.contains(&format!("boundary held: {action}: {kind}")));
+            assert!(denied, "{}", error.detail);
+            assert!(!error.detail.contains("BREACH"), "{}", error.detail);
+        }
+        assert_eq!(std::fs::read_to_string(&sentinel).unwrap(), "publisher secret");
+        assert!(!escape.exists());
+    }
+
+    #[test]
+    fn importing_a_benign_wheel_succeeds_inside_the_boundary() {
+        let (Some(target), true) = (host_target(), uv_available()) else {
+            eprintln!("skipping: needs uv and a CPython interpreter on PATH");
+            return;
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let wheel = dir.path().join("benign_pkg-1.0-py3-none-any.whl");
+        write_pure_wheel(
+            &wheel,
+            "benign_pkg",
+            &[("benign_pkg/__init__.py", "import json, ssl, sqlite3\nVALUE = json.dumps([1])\n")],
+        );
+
+        let metadata = validate_wheel(&wheel, &target, dir.path(), &ValidationPolicy::default(), "manylinux_2_28").unwrap();
+
+        assert_eq!(metadata.imports, ["benign_pkg"]);
     }
 
     #[test]
