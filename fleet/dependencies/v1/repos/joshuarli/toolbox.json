@@ -159,132 +159,6 @@
  ],
  "edges": [
   {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.checks.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.checks.steps[1].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[0].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.1.0",
-   "evidence": [
-    {
-     "locator": "jobs.checks.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.2 [pin:v10.3.3]",
-   "evidence": [
-    {
-     "locator": "jobs.checks.steps[3].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.2 [pin:v10.3.3]",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[1].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
-  },
-  {
-   "condition": null,
-   "constraint": "3.15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".python-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3.15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/python@3.15#"
-  },
-  {
    "condition": "extra == 'browser'",
    "constraint": null,
    "evidence": [
@@ -572,6 +446,132 @@
   },
   {
    "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[1].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2 [pin:v10.3.3]",
+   "evidence": [
+    {
+     "locator": "jobs.checks.steps[3].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2 [pin:v10.3.3]",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "3.15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".python-version"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3.15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/python@3.15#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
@@ -813,7 +813,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "cc830f1902579179da07c683b82a2e3d72024aba7a0b9e16680e93034e740be2",
+ "inputs_fingerprint": "10a358232832daa9e7ee1f744b01b6bf37f908c1c5dabf4e3eea37329498e69b",
  "instances": [
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -1165,13 +1165,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "pypi",
+   "id": ".:pypi"
   },
   {
    "directory": ".",
-   "ecosystem": "pypi",
-   "id": ".:pypi"
+   "ecosystem": "generic",
+   "id": ".:repo"
   }
  ],
  "repository": "joshuarli/toolbox",

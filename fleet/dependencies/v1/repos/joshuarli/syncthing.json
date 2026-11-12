@@ -652,510 +652,6 @@
  "edges": [
   {
    "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L44",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/ca-certificates#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L31",
-     "path": "Dockerfile.stdiscosrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/ca-certificates#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L31",
-     "path": "Dockerfile.strelaysrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/ca-certificates#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L44",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/curl#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L44",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/libcap#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L44",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/su-exec#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L31",
-     "path": "Dockerfile.stdiscosrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/su-exec#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L31",
-     "path": "Dockerfile.strelaysrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/su-exec#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L44",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "system",
-   "source_kind": "registry",
-   "to": "pkg:apk/tzdata#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L29",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "Dockerfile.stcrashreceiver"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L16",
-     "path": "Dockerfile.stdiscosrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "Dockerfile.strelaypoolsrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L16",
-     "path": "Dockerfile.strelaysrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "Dockerfile.stupgrades"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "Dockerfile.ursrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": null,
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/alpine#"
-  },
-  {
-   "condition": null,
-   "constraint": "latest",
-   "evidence": [
-    {
-     "locator": "L10",
-     "path": "Dockerfile"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "latest",
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/golang@latest#"
-  },
-  {
-   "condition": null,
-   "constraint": "latest",
-   "evidence": [
-    {
-     "locator": "L2",
-     "path": "Dockerfile.builder"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "latest",
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/golang@latest#"
-  },
-  {
-   "condition": null,
-   "constraint": "latest",
-   "evidence": [
-    {
-     "locator": "L2",
-     "path": "Dockerfile.stdiscosrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "latest",
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/golang@latest#"
-  },
-  {
-   "condition": null,
-   "constraint": "latest",
-   "evidence": [
-    {
-     "locator": "L2",
-     "path": "Dockerfile.strelaysrv"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "latest",
-   "scope": "image",
-   "source_kind": "image",
-   "to": "pkg:docker/golang@latest#"
-  },
-  {
-   "condition": null,
-   "constraint": "v6.1.0",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[5].uses",
-     "path": ".github/workflows/android.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/android.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/prerelease.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v8.0.2",
-   "evidence": [
-    {
-     "locator": "jobs.release.steps[1].uses",
-     "path": ".github/workflows/prerelease.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.0",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[1].uses",
-     "path": ".github/workflows/android.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.0",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[1].uses",
-     "path": ".github/workflows/prerelease.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
-  },
-  {
-   "condition": null,
-   "constraint": "v6.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[2].uses",
-     "path": ".github/workflows/android.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "de7274f081f381c8f8158605e0321c36c376e2e6",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.2",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[6].uses",
-     "path": ".github/workflows/prerelease.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
-  },
-  {
-   "condition": null,
    "constraint": "v1.36.12-20260825204119-511051f7f437.2",
    "evidence": [
     {
@@ -2917,6 +2413,510 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:golang/sigs.k8s.io/yaml@v1.6.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/ca-certificates#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/curl#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/libcap#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L31",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/su-exec#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L44",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "system",
+   "source_kind": "registry",
+   "to": "pkg:apk/tzdata#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L29",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.stcrashreceiver"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L16",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.strelaypoolsrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L16",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.stupgrades"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "Dockerfile.ursrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L10",
+     "path": "Dockerfile"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.builder"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.stdiscosrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "latest",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": "Dockerfile.strelaysrv"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "latest",
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/golang@latest#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[5].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[1].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[2].uses",
+     "path": ".github/workflows/android.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "de7274f081f381c8f8158605e0321c36c376e2e6",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[6].uses",
+     "path": ".github/workflows/prerelease.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
   }
  ],
  "inputs": [
@@ -2989,7 +2989,7 @@
    "path": "gui/default/vendor/HumanizeDuration.js/Makefile"
   }
  ],
- "inputs_fingerprint": "02f3eb37df26cae17a1a1ffe2577fb794127b37489ac63215a0c62e1a646cc3d",
+ "inputs_fingerprint": "590c33f89e46c279d0e1723155030302cb8ae63ac49fd239085edd5d8ff157a0",
  "instances": [
   {
    "commit": null,
@@ -4443,13 +4443,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "golang",
+   "id": ".:golang"
   },
   {
    "directory": ".",
-   "ecosystem": "golang",
-   "id": ".:golang"
+   "ecosystem": "generic",
+   "id": ".:repo"
   }
  ],
  "repository": "joshuarli/syncthing",

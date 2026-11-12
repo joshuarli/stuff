@@ -757,7 +757,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -775,7 +775,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -793,7 +793,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -811,7 +811,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -829,7 +829,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -847,7 +847,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -865,7 +865,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -883,7 +883,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -901,7 +901,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -919,7 +919,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -937,7 +937,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -955,7 +955,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -973,7 +973,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -991,7 +991,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1009,7 +1009,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1027,7 +1027,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1045,7 +1045,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1063,7 +1063,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1081,7 +1081,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1099,7 +1099,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1117,7 +1117,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1135,7 +1135,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1153,7 +1153,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5355,7 +5355,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "7ba12cae1292af64cd6908a266bfea9238166b21998eb3219b0f79117e4072ae",
+ "inputs_fingerprint": "e5f01788eb179b55fc52fe6f05a6252cc9bc53ed1761d61f18581464d8f7b982",
  "instances": [
   {
    "commit": null,
@@ -6771,7 +6771,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   }
  ],
  "repository": "laputa-systems/vault",

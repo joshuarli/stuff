@@ -215,7 +215,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -233,7 +233,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -251,7 +251,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -269,7 +269,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -287,7 +287,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -305,7 +305,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1209,7 +1209,7 @@
    "path": "tests/install/fixture/meson.build"
   }
  ],
- "inputs_fingerprint": "90aa8c8d5349fe5fea3e66c7e3e844e53345fdfa08707334086fd58a084efb91",
+ "inputs_fingerprint": "a70e583d562d763ab0238e69fa045aaa7e24aea14bf6e42a5fb7eed6abe5cc0c",
  "instances": [
   {
    "commit": null,
@@ -1678,7 +1678,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "bins/build",

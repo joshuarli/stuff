@@ -21,6 +21,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
     redact_url,
 )
@@ -40,7 +41,7 @@ class SubmodulesAdapter:
         edges: list[Edge] = []
         for content in inputs:
             directory = posixpath.dirname(content.path) or "."
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             gitlinks = dict(content.gitlinks)
             for submodule in _parse(content.path, content.text, issues):

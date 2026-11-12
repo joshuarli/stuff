@@ -737,7 +737,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -755,7 +755,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -773,7 +773,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -791,7 +791,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -809,7 +809,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -827,7 +827,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -845,7 +845,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -863,7 +863,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -881,7 +881,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -899,7 +899,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -917,7 +917,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -935,7 +935,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -953,7 +953,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -971,7 +971,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -989,7 +989,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1007,7 +1007,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1025,7 +1025,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1043,7 +1043,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1061,7 +1061,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5117,7 +5117,7 @@
    "path": "soulseek-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "da6af30ab2983d0ebd91869233d593187c955643c346b1c0e5b11c3f906d8cb7",
+ "inputs_fingerprint": "07d52dea585d13e95cabecce05b46b2bdf036b8497266874e8d858833ceaa5be",
  "instances": [
   {
    "commit": null,
@@ -6834,7 +6834,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "soulseek-rs-lib",

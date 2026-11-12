@@ -317,7 +317,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -335,7 +335,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -353,7 +353,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -371,7 +371,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -389,7 +389,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -407,7 +407,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -425,7 +425,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -443,7 +443,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -461,7 +461,7 @@
      "path": "Dockerfile"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -479,7 +479,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -497,7 +497,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -515,7 +515,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -533,7 +533,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -551,7 +551,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -569,7 +569,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -587,7 +587,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -605,7 +605,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1267,7 +1267,7 @@
    "path": "scrl/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "88a01cbedaef3b3ed3ca52ae1b740f6acf86f6d08bd5dd0f8e4c0d9b6f609b8e",
+ "inputs_fingerprint": "eb9829c972df8c1412c55a28fece222e9b7f3a65ec3a2809c4349b3403573266",
  "instances": [
   {
    "commit": null,
@@ -1813,7 +1813,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "scrl",

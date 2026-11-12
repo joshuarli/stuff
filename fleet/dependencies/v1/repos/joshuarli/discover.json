@@ -2584,96 +2584,6 @@
  "edges": [
   {
    "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[0].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3.1.2",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[1].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
-  },
-  {
-   "condition": null,
-   "constraint": "26.12.1",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".tool-versions"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.12.1",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/nodejs@26.12.1#"
-  },
-  {
-   "condition": null,
-   "constraint": "12.15.0",
-   "evidence": [
-    {
-     "locator": "L2",
-     "path": ".tool-versions"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.15.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.15.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.15.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.15.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.15.0#"
-  },
-  {
-   "condition": null,
    "constraint": "4.1.0",
    "evidence": [
     {
@@ -3283,6 +3193,96 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:npm/vitest@5.0.5#(@types/node@26.6.6)(@vitest/browser-playwright@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2))"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.1.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "26.12.1",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".tool-versions"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.12.1",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/nodejs@26.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "12.15.0",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": ".tool-versions"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.15.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.15.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.15.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.15.0#"
   },
   {
    "condition": null,
@@ -16415,7 +16415,7 @@
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "fcd4f51ba578c55576ba9222d1f54989e1e0bc0af5ce61e05c8ecfb33f2050e0",
+ "inputs_fingerprint": "b004963a5da97ea3a6d2494b1325df141eea33acefb1082aca2e09097f7bc8cb",
  "instances": [
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -22669,13 +22669,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "npm",
+   "id": ".:npm"
   },
   {
    "directory": ".",
-   "ecosystem": "npm",
-   "id": ".:npm"
+   "ecosystem": "generic",
+   "id": ".:repo"
   },
   {
    "directory": "cloudflare",

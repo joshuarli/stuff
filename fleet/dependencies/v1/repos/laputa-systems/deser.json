@@ -471,384 +471,6 @@
  ],
  "edges": [
   {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[0].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/clippy.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.test-latest.steps[0].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.check-no-std.steps[0].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.test-msrv.steps[0].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.miri-test-latest.steps[0].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v4",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/docs.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v4",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v4#"
-  },
-  {
-   "condition": null,
-   "constraint": "v4",
-   "evidence": [
-    {
-     "locator": "jobs.publish.steps[0].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v4",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@v4#"
-  },
-  {
-   "condition": null,
-   "constraint": "v4",
-   "evidence": [
-    {
-     "locator": "jobs.deploy.steps[0].uses",
-     "path": ".github/workflows/docs.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v4",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/deploy-pages@v4#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[6].uses",
-     "path": ".github/workflows/docs.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v3",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/upload-pages-artifact@v3#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.2",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[2].uses",
-     "path": ".github/workflows/clippy.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.2",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[1].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[1].uses",
-     "path": ".github/workflows/clippy.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[1].uses",
-     "path": ".github/workflows/docs.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.publish.steps[1].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.test-latest.steps[1].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.check-no-std.steps[1].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.test-msrv.steps[1].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "master",
-   "evidence": [
-    {
-     "locator": "jobs.miri-test-latest.steps[1].uses",
-     "path": ".github/workflows/tests.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "master",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/dtolnay/rust-toolchain@master#"
-  },
-  {
-   "condition": null,
-   "constraint": "v1",
-   "evidence": [
-    {
-     "locator": "jobs.publish.steps[3].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "declared_only",
-   "resolved_version": "v1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/rust-lang/crates-io-auth-action@v1#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
-  },
-  {
    "condition": "group == 'dev'",
    "constraint": "==0.17.4",
    "evidence": [
@@ -913,6 +535,384 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:pypi/uv@0.13.7#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/clippy.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.test-latest.steps[0].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.check-no-std.steps[0].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.test-msrv.steps[0].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.miri-test-latest.steps[0].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/docs.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4",
+   "evidence": [
+    {
+     "locator": "jobs.deploy.steps[0].uses",
+     "path": ".github/workflows/docs.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v4",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/deploy-pages@v4#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[6].uses",
+     "path": ".github/workflows/docs.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v3",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-pages-artifact@v3#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[2].uses",
+     "path": ".github/workflows/clippy.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/clippy.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[1].uses",
+     "path": ".github/workflows/docs.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.test-latest.steps[1].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.check-no-std.steps[1].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.test-msrv.steps[1].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "master",
+   "evidence": [
+    {
+     "locator": "jobs.miri-test-latest.steps[1].uses",
+     "path": ".github/workflows/tests.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "master",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/dtolnay/rust-toolchain@master#"
+  },
+  {
+   "condition": null,
+   "constraint": "v1",
+   "evidence": [
+    {
+     "locator": "jobs.publish.steps[3].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "declared_only",
+   "resolved_version": "v1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/rust-lang/crates-io-auth-action@v1#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -8151,7 +8151,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "192276e5949986c187b7ffdc32bbfdbcb9276c6bcabc0b9f0ad058597cc5075e",
+ "inputs_fingerprint": "14d0cf7b4bf066954b1eaae6ba0cbd39cca37ab35b4947b344b4375549b60377",
  "instances": [
   {
    "commit": null,
@@ -9235,13 +9235,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "pypi",
+   "id": ".:pypi"
   },
   {
    "directory": ".",
-   "ecosystem": "pypi",
-   "id": ".:pypi"
+   "ecosystem": "generic",
+   "id": ".:repo"
   },
   {
    "directory": "benchmark",
@@ -9306,7 +9306,7 @@
   {
    "directory": "deser-ini/tests/data/suites/editorconfig/parser",
    "ecosystem": "generic",
-   "id": "deser-ini/tests/data/suites/editorconfig/parser:generic"
+   "id": "deser-ini/tests/data/suites/editorconfig/parser:repo"
   },
   {
    "directory": "deser-ini",

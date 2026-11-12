@@ -20,6 +20,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
     redact_url,
     redact_urls,
@@ -49,7 +50,7 @@ class ZigAdapter:
                 issues.append(Issue(CoverageKind.PARSE_ERROR, "ZON root is not a struct", path=path))
                 continue
             directory = posixpath.dirname(path) or "."
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             dependencies = root.value.get("dependencies")
             if dependencies is None:
@@ -187,7 +188,7 @@ def _dependency(
         constraint = local
         resolution = Resolution.CONDITIONAL if lazy else Resolution.RESOLVED
     edge = Edge(
-        from_id=f"{directory}:generic",
+        from_id=project_key(directory, Ecosystem.GENERIC),
         to_id=ref.instance_id,
         relation=Relation.DIRECT,
         scope=Scope.RUNTIME,

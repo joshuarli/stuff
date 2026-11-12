@@ -911,7 +911,7 @@
      "path": ".github/workflows/linux.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -929,7 +929,7 @@
      "path": ".github/workflows/macos.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -947,7 +947,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -965,7 +965,7 @@
      "path": ".github/workflows/linux.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -983,7 +983,7 @@
      "path": ".github/workflows/macos.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1001,7 +1001,7 @@
      "path": ".github/workflows/linux.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1019,7 +1019,7 @@
      "path": ".github/workflows/macos.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1037,7 +1037,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1055,7 +1055,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1073,7 +1073,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1993,7 +1993,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2011,7 +2011,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2029,7 +2029,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2047,7 +2047,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2065,7 +2065,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2083,7 +2083,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2101,7 +2101,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2119,7 +2119,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2137,7 +2137,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2155,7 +2155,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2173,7 +2173,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2191,7 +2191,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2209,7 +2209,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2227,7 +2227,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2245,7 +2245,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2263,7 +2263,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2281,7 +2281,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2299,7 +2299,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2317,7 +2317,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2335,7 +2335,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2353,7 +2353,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2371,7 +2371,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2389,7 +2389,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2407,7 +2407,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2425,7 +2425,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2443,7 +2443,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2461,7 +2461,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2479,7 +2479,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2497,7 +2497,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2515,7 +2515,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2533,7 +2533,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2551,7 +2551,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2569,7 +2569,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2587,7 +2587,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2605,7 +2605,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2623,7 +2623,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2641,7 +2641,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2659,7 +2659,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2677,7 +2677,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2695,7 +2695,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2713,7 +2713,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2731,7 +2731,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2749,7 +2749,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2767,7 +2767,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2785,7 +2785,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2803,7 +2803,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2821,7 +2821,7 @@
      "path": "docker/linux/Dockerfile"
     }
    ],
-   "from": "docker/linux:generic",
+   "from": "docker/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -6145,7 +6145,7 @@
      "path": "vendor/symphonia/rust-toolchain.toml"
     }
    ],
-   "from": "vendor/symphonia:generic",
+   "from": "vendor/symphonia:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -6345,7 +6345,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "62473f18b1eaa62aa10e1bf4a785826aa3aa06c1ee2ded9424fc8c9b34669611",
+ "inputs_fingerprint": "1ac20a015862be11382bc7809b2bb2fbb25af7c40e9adfcbd1fad456662dcba4",
  "instances": [
   {
    "commit": null,
@@ -8451,7 +8451,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "crates/player-app",
@@ -8516,7 +8516,7 @@
   {
    "directory": "docker/linux",
    "ecosystem": "generic",
-   "id": "docker/linux:generic"
+   "id": "docker/linux:repo"
   },
   {
    "directory": "vendor/ruopus",
@@ -8631,7 +8631,7 @@
   {
    "directory": "vendor/symphonia",
    "ecosystem": "generic",
-   "id": "vendor/symphonia:generic"
+   "id": "vendor/symphonia:repo"
   }
  ],
  "repository": "joshuarli/play",

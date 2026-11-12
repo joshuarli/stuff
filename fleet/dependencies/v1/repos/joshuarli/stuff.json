@@ -2427,402 +2427,6 @@
  ],
  "edges": [
   {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.worker-runtime.steps[4].run",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "url",
-   "to": "pkg:artifact/binaryen-version_133-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fbinaryen%2Freleases%2Fdownload%2Fversion_133%2Fbinaryen-version_133-x86_64-linux.tar.gz#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.rust.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.ecosystem-smoke.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.mypypi-linux-native.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.pipeline-independence.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.worker-runtime.steps[0].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[0].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[0].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v8.0.2",
-   "evidence": [
-    {
-     "locator": "jobs.release.steps[1].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.1.0",
-   "evidence": [
-    {
-     "locator": "jobs.ecosystem-smoke.steps[2].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "949feb2413d6458794dcd2491c4babbbce0c15c1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.1.0",
-   "evidence": [
-    {
-     "locator": "jobs.worker-runtime.steps[6].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "949feb2413d6458794dcd2491c4babbbce0c15c1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.2",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[9].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.3",
-   "evidence": [
-    {
-     "locator": "jobs.ecosystem-smoke.steps[6].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.3",
-   "evidence": [
-    {
-     "locator": "jobs.pipeline-independence.steps[3].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v10.3.3",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[1].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.4.0",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[4].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "c3c9e263c25d99ce0380d002d59b67737d91b0dc",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc#"
-  },
-  {
-   "condition": null,
-   "constraint": "v4.4.1",
-   "evidence": [
-    {
-     "locator": "jobs.build.steps[3].uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "f87e5991a6d7451dcb8d9637bfbc97413f497069",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069#"
-  },
-  {
-   "condition": null,
-   "constraint": "v6.1.1",
-   "evidence": [
-    {
-     "locator": "jobs.ecosystem-smoke.steps[4].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
-  },
-  {
-   "condition": null,
-   "constraint": "v6.1.1",
-   "evidence": [
-    {
-     "locator": "jobs.worker-runtime.steps[5].uses",
-     "path": ".github/workflows/ci.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3.1.2",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[3].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
-  },
-  {
-   "condition": null,
-   "constraint": "3.15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".python-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3.15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/python@3.15#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
-  },
-  {
    "condition": "group == 'dev'",
    "constraint": ">=0.4.0",
    "evidence": [
@@ -2997,6 +2601,402 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:pypi/uv@0.13.7#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.worker-runtime.steps[4].run",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "url",
+   "to": "pkg:artifact/binaryen-version_133-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fbinaryen%2Freleases%2Fdownload%2Fversion_133%2Fbinaryen-version_133-x86_64-linux.tar.gz#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.rust.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.ecosystem-smoke.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.mypypi-linux-native.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.pipeline-independence.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.worker-runtime.steps[0].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[0].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v8.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.release.steps[1].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.ecosystem-smoke.steps[2].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "949feb2413d6458794dcd2491c4babbbce0c15c1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.1.0",
+   "evidence": [
+    {
+     "locator": "jobs.worker-runtime.steps[6].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "949feb2413d6458794dcd2491c4babbbce0c15c1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.2",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[9].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.ecosystem-smoke.steps[6].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.pipeline-independence.steps[3].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v10.3.3",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.4.0",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[4].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc#"
+  },
+  {
+   "condition": null,
+   "constraint": "v4.4.1",
+   "evidence": [
+    {
+     "locator": "jobs.build.steps[3].uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "f87e5991a6d7451dcb8d9637bfbc97413f497069",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.1",
+   "evidence": [
+    {
+     "locator": "jobs.ecosystem-smoke.steps[4].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
+  },
+  {
+   "condition": null,
+   "constraint": "v6.1.1",
+   "evidence": [
+    {
+     "locator": "jobs.worker-runtime.steps[5].uses",
+     "path": ".github/workflows/ci.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "73e46992e05b19abd31f2f3c20e0e7370d762115",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.1.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[3].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "3.15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".python-version"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3.15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/python@3.15#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -4892,24 +4892,6 @@
   },
   {
    "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "crates/stuff-worker/package.json"
-    }
-   ],
-   "from": "crates/stuff-worker:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
    "constraint": "0.32.0",
    "evidence": [
     {
@@ -5051,6 +5033,24 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:npm/wrangler@4.160.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "crates/stuff-worker/package.json"
+    }
+   ],
+   "from": "crates/stuff-worker:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
   },
   {
    "condition": null,
@@ -5523,7 +5523,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5541,7 +5541,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5559,7 +5559,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5577,7 +5577,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5595,7 +5595,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5613,7 +5613,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5631,7 +5631,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5649,7 +5649,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5667,7 +5667,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5685,7 +5685,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5703,7 +5703,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5721,7 +5721,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5739,7 +5739,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5757,7 +5757,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5775,7 +5775,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5793,7 +5793,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5811,7 +5811,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5829,7 +5829,7 @@
      "path": "docker/musl/Dockerfile"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5847,7 +5847,7 @@
      "path": "docker/musl/rust-toolchain.toml"
     }
    ],
-   "from": "docker/musl:generic",
+   "from": "docker/musl:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -16370,24 +16370,6 @@
   },
   {
    "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "repomod/dependencies/dashboard_ts/package.json"
-    }
-   ],
-   "from": "repomod/dependencies/dashboard_ts:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
    "constraint": "0.9.1",
    "evidence": [
     {
@@ -16475,6 +16457,24 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "repomod/dependencies/dashboard_ts/package.json"
+    }
+   ],
+   "from": "repomod/dependencies/dashboard_ts:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
   }
  ],
  "inputs": [
@@ -16607,7 +16607,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "a8918a034ab5568be919e82c10549f4677c18df56234c8830aac3258846876c2",
+ "inputs_fingerprint": "eadafc8d41ec228571bfa27ff1cd7ed0baa4d4965e00cabb0077f511ca1653df",
  "instances": [
   {
    "commit": null,
@@ -22234,13 +22234,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "pypi",
+   "id": ".:pypi"
   },
   {
    "directory": ".",
-   "ecosystem": "pypi",
-   "id": ".:pypi"
+   "ecosystem": "generic",
+   "id": ".:repo"
   },
   {
    "directory": "crates/h12tiny-client-normalize",
@@ -22314,13 +22314,13 @@
   },
   {
    "directory": "crates/stuff-worker",
-   "ecosystem": "generic",
-   "id": "crates/stuff-worker:generic"
+   "ecosystem": "npm",
+   "id": "crates/stuff-worker:npm"
   },
   {
    "directory": "crates/stuff-worker",
-   "ecosystem": "npm",
-   "id": "crates/stuff-worker:npm"
+   "ecosystem": "generic",
+   "id": "crates/stuff-worker:repo"
   },
   {
    "directory": "crates/stuff",
@@ -22330,22 +22330,22 @@
   {
    "directory": "deploy",
    "ecosystem": "generic",
-   "id": "deploy:generic"
+   "id": "deploy:repo"
   },
   {
    "directory": "docker/musl",
    "ecosystem": "generic",
-   "id": "docker/musl:generic"
-  },
-  {
-   "directory": "repomod/dependencies/dashboard_ts",
-   "ecosystem": "generic",
-   "id": "repomod/dependencies/dashboard_ts:generic"
+   "id": "docker/musl:repo"
   },
   {
    "directory": "repomod/dependencies/dashboard_ts",
    "ecosystem": "npm",
    "id": "repomod/dependencies/dashboard_ts:npm"
+  },
+  {
+   "directory": "repomod/dependencies/dashboard_ts",
+   "ecosystem": "generic",
+   "id": "repomod/dependencies/dashboard_ts:repo"
   }
  ],
  "repository": "joshuarli/stuff",

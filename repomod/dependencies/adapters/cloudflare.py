@@ -22,6 +22,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
 )
 from repomod.io import strip_jsonc
@@ -50,7 +51,7 @@ class CloudflareAdapter:
             bindings = _bindings(document)
             if not bindings:
                 continue
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             for kind, binding, identifier, locator in bindings:
                 ref = _Ref(f"cloudflare-{kind}/{binding}", SourceKind.REGISTRY)

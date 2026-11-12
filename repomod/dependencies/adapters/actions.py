@@ -26,6 +26,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
     redact_url,
 )
@@ -45,7 +46,7 @@ class ActionsAdapter:
 
     def extract(self, inputs: Sequence[InputContent]) -> AdapterResult:
         issues: list[Issue] = []
-        project = Project(".:generic", Ecosystem.GENERIC, ".")
+        project = Project(project_key(".", Ecosystem.GENERIC), Ecosystem.GENERIC, ".")
         drafts: dict[str, _Ref] = {}
         edges: list[Edge] = []
         for content in inputs:

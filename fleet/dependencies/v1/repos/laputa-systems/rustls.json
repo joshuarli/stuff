@@ -1853,7 +1853,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1871,7 +1871,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1889,7 +1889,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1907,7 +1907,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1925,7 +1925,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1943,7 +1943,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1961,7 +1961,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1979,7 +1979,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1997,7 +1997,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2015,7 +2015,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2033,7 +2033,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2051,7 +2051,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2069,7 +2069,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2087,7 +2087,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2105,7 +2105,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2123,7 +2123,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2141,7 +2141,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2159,7 +2159,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2177,7 +2177,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2195,7 +2195,7 @@
      "path": ".github/workflows/cross.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2213,7 +2213,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2231,7 +2231,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2249,7 +2249,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2267,7 +2267,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2285,7 +2285,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2303,7 +2303,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2321,7 +2321,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2339,7 +2339,7 @@
      "path": ".github/workflows/cifuzz.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2357,7 +2357,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2375,7 +2375,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2393,7 +2393,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2411,7 +2411,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2429,7 +2429,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2447,7 +2447,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2465,7 +2465,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2483,7 +2483,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2501,7 +2501,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2519,7 +2519,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2537,7 +2537,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2555,7 +2555,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2573,7 +2573,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2591,7 +2591,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2609,7 +2609,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2627,7 +2627,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2645,7 +2645,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2663,7 +2663,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2681,7 +2681,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2699,7 +2699,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2717,7 +2717,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2735,7 +2735,7 @@
      "path": ".github/workflows/cross.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2753,7 +2753,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2771,7 +2771,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2789,7 +2789,7 @@
      "path": ".github/workflows/cifuzz.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2807,7 +2807,7 @@
      "path": ".github/workflows/cifuzz.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2825,7 +2825,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2843,7 +2843,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2861,7 +2861,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2879,7 +2879,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2897,7 +2897,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2915,7 +2915,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2933,7 +2933,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2951,7 +2951,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2969,7 +2969,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2987,7 +2987,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3005,7 +3005,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3023,7 +3023,7 @@
      "path": ".github/workflows/cross.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3041,7 +3041,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3059,7 +3059,7 @@
      "path": ".github/workflows/daily-tests.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3077,7 +3077,7 @@
      "path": ".github/workflows/build.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3095,7 +3095,7 @@
      "path": ".github/workflows/docs.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -3113,7 +3113,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -16495,7 +16495,7 @@
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "c2c2e40e4f8b62042e1e7d98d50d1e8d822397d7a540b21fa6369b9c06f532be",
+ "inputs_fingerprint": "81a9d057528af772a0fa8881a45e571670b9ee1daf16da60080ee7b84fc022de",
  "instances": [
   {
    "commit": null,
@@ -20774,7 +20774,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "bogo",

@@ -15,6 +15,7 @@ from repomod.dependencies.model import (
     Project,
     RepositoryData,
     SourceKind,
+    project_key,
     purl,
 )
 
@@ -58,7 +59,7 @@ def components(instances: Sequence[Instance]) -> tuple[Component, ...]:
 
 
 def project(directory: str, ecosystem: Ecosystem) -> Project:
-    return Project(f"{directory}:{ecosystem.value}", ecosystem, directory)
+    return Project(project_key(directory, ecosystem), ecosystem, directory)
 
 
 def issue(

@@ -401,7 +401,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -419,7 +419,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -437,7 +437,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -455,7 +455,7 @@
      "path": ".github/workflows/bench.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -473,7 +473,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -491,7 +491,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -509,7 +509,7 @@
      "path": ".github/workflows/bench.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -527,7 +527,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -545,7 +545,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -563,7 +563,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -581,7 +581,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -599,7 +599,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -617,7 +617,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -635,7 +635,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -653,7 +653,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -671,7 +671,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -689,7 +689,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -707,7 +707,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -725,7 +725,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -743,7 +743,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -761,7 +761,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -779,7 +779,7 @@
      "path": ".github/workflows/zizmor.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -797,7 +797,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -815,7 +815,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -833,7 +833,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -851,7 +851,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -869,7 +869,7 @@
      "path": ".github/workflows/bench.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -887,7 +887,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -905,7 +905,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -923,7 +923,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -941,7 +941,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -959,7 +959,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -977,7 +977,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -995,7 +995,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1013,7 +1013,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1031,7 +1031,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1049,7 +1049,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1067,7 +1067,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1085,7 +1085,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1103,7 +1103,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1121,7 +1121,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1139,7 +1139,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1157,7 +1157,7 @@
      "path": ".github/workflows/checks.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1175,7 +1175,7 @@
      "path": ".github/workflows/bench.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -1193,7 +1193,7 @@
      "path": ".github/workflows/zizmor.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1211,7 +1211,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2721,7 +2721,7 @@
    "path": "zlib-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "05ee205de886adfaf859368309a8d6ddc2c1fbb4abf86311efb6d64bc6a833ce",
+ "inputs_fingerprint": "82ad717639a385bd777d33337552155591928f1e2ea41e797a2c50ba86a00be1",
  "instances": [
   {
    "commit": null,
@@ -3665,7 +3665,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "fuzz",

@@ -35,7 +35,7 @@
      "path": ".github/workflows/ci.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -53,7 +53,7 @@
      "path": ".github/workflows/ci.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -71,7 +71,7 @@
      "path": ".github/workflows/ci.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -89,7 +89,7 @@
      "path": ".github/workflows/ci.yaml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -107,7 +107,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -171,7 +171,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "615a8718084d62b72a67dd1677890f7b856cecfd98c2432b941b710246bfaafe",
+ "inputs_fingerprint": "be5f11a098f8f0f8033c62014fd55e68572db2e88828837717fe88e8b7bdbcf3",
  "instances": [
   {
    "commit": null,
@@ -236,7 +236,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "fuzz",

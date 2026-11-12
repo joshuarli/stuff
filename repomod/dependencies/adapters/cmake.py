@@ -20,6 +20,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
     redact_url,
 )
@@ -89,7 +90,7 @@ class CmakeAdapter:
         edges: list[Edge] = []
         for content in inputs:
             directory = posixpath.dirname(content.path) or "."
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             for command in _commands(content.text):
                 for ref, scope, resolution, constraint in _resolve_command(

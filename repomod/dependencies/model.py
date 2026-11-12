@@ -250,6 +250,11 @@ class Adapter(Protocol):
     def extract(self, inputs: Sequence[InputContent]) -> AdapterResult: ...
 
 
+def project_key(directory: str, ecosystem: Ecosystem) -> str:
+    suffix = "repo" if ecosystem is Ecosystem.GENERIC else ecosystem.value
+    return f"{directory}:{suffix}"
+
+
 def purl(
     ecosystem: Ecosystem,
     name: str,

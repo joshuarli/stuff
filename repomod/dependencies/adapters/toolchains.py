@@ -22,6 +22,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
 )
 
@@ -47,7 +48,7 @@ class ToolchainsAdapter:
             entries = _entries(content.path, content.text, issues)
             if not entries:
                 continue
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             for entry in entries:
                 ref = _Ref(

@@ -21,6 +21,7 @@ from repomod.dependencies.model import (
     Resolution,
     Scope,
     SourceKind,
+    project_key,
     purl,
     redact_url,
 )
@@ -44,7 +45,7 @@ class ContainersAdapter:
         edges: list[Edge] = []
         for content in inputs:
             directory = posixpath.dirname(content.path) or "."
-            project = Project(f"{directory}:generic", Ecosystem.GENERIC, directory)
+            project = Project(project_key(directory, Ecosystem.GENERIC), Ecosystem.GENERIC, directory)
             projects.setdefault(project.id, project)
             _dockerfile(content.path, content.text, content.vendored, project.id, drafts, edges, issues)
         components: dict[str, Component] = {}

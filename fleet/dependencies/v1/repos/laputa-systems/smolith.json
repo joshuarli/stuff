@@ -1937,7 +1937,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1955,7 +1955,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1973,7 +1973,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -1991,7 +1991,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2009,7 +2009,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2027,7 +2027,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2045,7 +2045,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2063,7 +2063,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2081,7 +2081,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2099,7 +2099,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2117,7 +2117,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2135,7 +2135,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2153,7 +2153,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2171,7 +2171,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2189,7 +2189,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2207,7 +2207,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2225,7 +2225,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2243,7 +2243,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2261,7 +2261,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2279,7 +2279,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2297,7 +2297,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2315,7 +2315,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2707,7 +2707,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2725,7 +2725,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2743,7 +2743,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2761,7 +2761,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2779,7 +2779,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2797,7 +2797,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2815,7 +2815,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2833,7 +2833,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2851,7 +2851,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2869,7 +2869,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2887,7 +2887,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2905,7 +2905,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -2923,7 +2923,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -2941,7 +2941,7 @@
      "path": "benchmarks/twelve-dollar/linux/Dockerfile.box"
     }
    ],
-   "from": "benchmarks/twelve-dollar/linux:generic",
+   "from": "benchmarks/twelve-dollar/linux:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -8613,7 +8613,7 @@
      "path": "crates/laputa-fastwebsockets-futures-lite/rust-toolchain.toml"
     }
    ],
-   "from": "crates/laputa-fastwebsockets-futures-lite:generic",
+   "from": "crates/laputa-fastwebsockets-futures-lite:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -9693,7 +9693,7 @@
      "path": "crates/laputa-h2-futures-lite/rust-toolchain.toml"
     }
    ],
-   "from": "crates/laputa-h2-futures-lite:generic",
+   "from": "crates/laputa-h2-futures-lite:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -10393,7 +10393,7 @@
      "path": "crates/laputa-hyper-futures-lite/rust-toolchain.toml"
     }
    ],
-   "from": "crates/laputa-hyper-futures-lite:generic",
+   "from": "crates/laputa-hyper-futures-lite:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -23237,7 +23237,7 @@
    "path": "tests/qualify/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "b1af5316fbe159726d8ce68e80129f4704349579fc3f944c1e8a8d03577afefe",
+ "inputs_fingerprint": "1b45a88a3e1e0de39dbb53802a64cf208ce31261b1fdb359e727de42921df854",
  "instances": [
   {
    "commit": null,
@@ -27962,7 +27962,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "benchmarks/twelve-dollar/crates/app-core",
@@ -27977,7 +27977,7 @@
   {
    "directory": "benchmarks/twelve-dollar/linux",
    "ecosystem": "generic",
-   "id": "benchmarks/twelve-dollar/linux:generic"
+   "id": "benchmarks/twelve-dollar/linux:repo"
   },
   {
    "directory": "crates/async-broadcast",
@@ -28137,7 +28137,7 @@
   {
    "directory": "crates/laputa-fastwebsockets-futures-lite",
    "ecosystem": "generic",
-   "id": "crates/laputa-fastwebsockets-futures-lite:generic"
+   "id": "crates/laputa-fastwebsockets-futures-lite:repo"
   },
   {
    "directory": "crates/laputa-h2-futures-lite/fuzz",
@@ -28177,7 +28177,7 @@
   {
    "directory": "crates/laputa-h2-futures-lite",
    "ecosystem": "generic",
-   "id": "crates/laputa-h2-futures-lite:generic"
+   "id": "crates/laputa-h2-futures-lite:repo"
   },
   {
    "directory": "crates/laputa-hyper-futures-lite",
@@ -28187,7 +28187,7 @@
   {
    "directory": "crates/laputa-hyper-futures-lite",
    "ecosystem": "generic",
-   "id": "crates/laputa-hyper-futures-lite:generic"
+   "id": "crates/laputa-hyper-futures-lite:repo"
   },
   {
    "directory": "crates/laputa-protocol-test-support",

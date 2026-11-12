@@ -773,7 +773,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -791,7 +791,7 @@
      "path": ".github/workflows/lint.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -809,7 +809,7 @@
      "path": ".github/workflows/ci.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -827,7 +827,7 @@
      "path": "rust-toolchain.toml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -5139,7 +5139,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "8dc58681cd649d9a6a9e97e548628e8922bbc63b1a1f0d9d3edc1ed473ef2a76",
+ "inputs_fingerprint": "966128fe5b2c8d64d2531d8b734fd9e902a5e49d59945650c8e2a823b4ccb767",
  "instances": [
   {
    "commit": null,
@@ -6831,7 +6831,7 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "crates/defuddle-cli",

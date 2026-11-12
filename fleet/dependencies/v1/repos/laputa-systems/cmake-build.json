@@ -47,7 +47,7 @@
      "path": ".github/workflows/complete-tools-size.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -65,7 +65,7 @@
      "path": ".github/workflows/controller.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -83,7 +83,7 @@
      "path": ".github/workflows/memory-baseline.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -101,7 +101,7 @@
      "path": ".github/workflows/qualify.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -119,7 +119,7 @@
      "path": ".github/workflows/release.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -137,7 +137,7 @@
      "path": ".github/workflows/reproduce-arm.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -155,7 +155,7 @@
      "path": ".github/workflows/complete-tools-size.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -173,7 +173,7 @@
      "path": ".github/workflows/memory-baseline.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -191,7 +191,7 @@
      "path": ".github/workflows/qualify.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -209,7 +209,7 @@
      "path": ".github/workflows/qualify.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -227,7 +227,7 @@
      "path": ".github/workflows/reproduce-arm.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -245,7 +245,7 @@
      "path": ".github/workflows/complete-tools-size.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -263,7 +263,7 @@
      "path": ".github/workflows/controller.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -281,7 +281,7 @@
      "path": ".github/workflows/memory-baseline.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -299,7 +299,7 @@
      "path": ".github/workflows/qualify.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -317,7 +317,7 @@
      "path": ".github/workflows/reproduce-arm.yml"
     }
    ],
-   "from": ".:generic",
+   "from": ".:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -335,7 +335,7 @@
      "path": "docker/builder.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -353,7 +353,7 @@
      "path": "tests/acceptance/graph/downstream/CMakeLists.txt"
     }
    ],
-   "from": "tests/acceptance/graph/downstream:generic",
+   "from": "tests/acceptance/graph/downstream:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -371,7 +371,7 @@
      "path": "tests/acceptance/graph/CMakeLists.txt"
     }
    ],
-   "from": "tests/acceptance/graph:generic",
+   "from": "tests/acceptance/graph:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "declared_only",
@@ -423,7 +423,7 @@
    "path": "tests/acceptance/network/internet/CMakeLists.txt"
   }
  ],
- "inputs_fingerprint": "1d03fc7bd32837877ffd94e8c0c7a4bc5694e0d62c4b42252441874a79b9e9b2",
+ "inputs_fingerprint": "3eaaa3ae77cc7c087d1767e0256dda3dd52de52de3cda69d7555180e2e2b0181",
  "instances": [
   {
    "commit": null,
@@ -516,27 +516,27 @@
   {
    "directory": ".",
    "ecosystem": "generic",
-   "id": ".:generic"
+   "id": ".:repo"
   },
   {
    "directory": "docker",
    "ecosystem": "generic",
-   "id": "docker:generic"
+   "id": "docker:repo"
   },
   {
    "directory": "tests/acceptance/graph/downstream",
    "ecosystem": "generic",
-   "id": "tests/acceptance/graph/downstream:generic"
+   "id": "tests/acceptance/graph/downstream:repo"
   },
   {
    "directory": "tests/acceptance/graph",
    "ecosystem": "generic",
-   "id": "tests/acceptance/graph:generic"
+   "id": "tests/acceptance/graph:repo"
   },
   {
    "directory": "tests/acceptance/network/internet",
    "ecosystem": "generic",
-   "id": "tests/acceptance/network/internet:generic"
+   "id": "tests/acceptance/network/internet:repo"
   }
  ],
  "repository": "laputa-systems/cmake-build",

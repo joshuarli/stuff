@@ -67,7 +67,7 @@ def test_url_hash_and_lazy_dependencies() -> None:
     )
 
     assert result.issues == ()
-    assert [project.id for project in result.projects] == [".:generic"]
+    assert [project.id for project in result.projects] == [".:repo"]
     libxev = _instances(result, "libxev", Ecosystem.ARTIFACT)[0]
     assert libxev.component == (
         "pkg:artifact/libxev?download_url=https%3A%2F%2Fexample.com%2Flibxev.tar.gz"
@@ -189,7 +189,7 @@ def test_manifest_without_dependencies_is_valid() -> None:
     )
 
     assert result.issues == ()
-    assert [project.id for project in result.projects] == [".:generic"]
+    assert [project.id for project in result.projects] == [".:repo"]
     assert result.edges == ()
 
 

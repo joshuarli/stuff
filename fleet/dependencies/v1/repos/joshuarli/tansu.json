@@ -3318,150 +3318,6 @@
   },
   {
    "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.check.steps[0].uses",
-     "path": ".github/workflows/check.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.check.steps[3].uses",
-     "path": ".github/workflows/check.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v7.0.1",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[0].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3.1.2",
-   "evidence": [
-    {
-     "locator": "jobs.check.steps[2].uses",
-     "path": ".github/workflows/check.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
-  },
-  {
-   "condition": null,
-   "constraint": "v3.1.2",
-   "evidence": [
-    {
-     "locator": "jobs.lint.steps[1].uses",
-     "path": ".github/workflows/lint.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
-   "scope": "ci",
-   "source_kind": "git",
-   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
-  },
-  {
-   "condition": null,
-   "constraint": "26.13.0",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".node-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.13.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/node@26.13.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
-  },
-  {
-   "condition": null,
    "constraint": "6.20.4",
    "evidence": [
     {
@@ -3855,6 +3711,150 @@
    "scope": "dev",
    "source_kind": "url",
    "to": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(@types/node@26.6.6)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(happy-dom@21.0.4)(vite@8.3.8(@types/node@26.6.6))"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[0].uses",
+     "path": ".github/workflows/check.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[3].uses",
+     "path": ".github/workflows/check.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v7.0.1",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[0].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.1.2",
+   "evidence": [
+    {
+     "locator": "jobs.check.steps[2].uses",
+     "path": ".github/workflows/check.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "v3.1.2",
+   "evidence": [
+    {
+     "locator": "jobs.lint.steps[1].uses",
+     "path": ".github/workflows/lint.yml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e",
+   "scope": "ci",
+   "source_kind": "git",
+   "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "26.13.0",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".node-version"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.13.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/node@26.13.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -4327,7 +4327,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4345,7 +4345,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4363,7 +4363,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4381,7 +4381,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4399,7 +4399,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4417,7 +4417,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4435,7 +4435,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4453,7 +4453,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4471,7 +4471,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4489,7 +4489,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4507,7 +4507,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4525,7 +4525,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4543,7 +4543,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4561,7 +4561,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4579,7 +4579,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4597,7 +4597,7 @@
      "path": "docker/linux-musl.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4615,7 +4615,7 @@
      "path": "docker/rust-check.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -4633,7 +4633,7 @@
      "path": "docker/linux-e2e-baselines.Dockerfile"
     }
    ],
-   "from": "docker:generic",
+   "from": "docker:repo",
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
@@ -18075,7 +18075,7 @@
    "path": "vendor/tantivy/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "abb6bb2f598423ee5c110453646a7f912d24087725c39c15cfdbdd1c71dc6f9d",
+ "inputs_fingerprint": "9b9cb06a388c91e9b6191423f7f17d546587c37b479840b82fcd4792df3d67df",
  "instances": [
   {
    "commit": null,
@@ -23725,13 +23725,13 @@
   },
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "npm",
+   "id": ".:npm"
   },
   {
    "directory": ".",
-   "ecosystem": "npm",
-   "id": ".:npm"
+   "ecosystem": "generic",
+   "id": ".:repo"
   },
   {
    "directory": "crates/gen-api-types",
@@ -23766,7 +23766,7 @@
   {
    "directory": "docker",
    "ecosystem": "generic",
-   "id": "docker:generic"
+   "id": "docker:repo"
   },
   {
    "directory": "vendor/tantivy",

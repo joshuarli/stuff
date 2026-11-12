@@ -251,7 +251,7 @@ def test_packages_page_shows_specific_ecosystems(tmp_path: Path) -> None:
     )
     system = instance(Ecosystem.SYSTEM, "Graph", None)
     service_edge = Edge(
-        ".:generic",
+        ".:repo",
         service.id,
         Relation.DIRECT,
         Scope.SERVICE,

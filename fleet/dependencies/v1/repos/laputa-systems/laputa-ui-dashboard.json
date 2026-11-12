@@ -844,42 +844,6 @@
  "edges": [
   {
    "condition": null,
-   "constraint": "26.13.0",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".node-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.13.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/node@26.13.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
    "constraint": "1.65.0",
    "evidence": [
     {
@@ -1057,6 +1021,42 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:npm/vitest@5.1.0#(vite@8.3.8)"
+  },
+  {
+   "condition": null,
+   "constraint": "26.13.0",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".node-version"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.13.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/node@26.13.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:repo",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
   },
   {
    "condition": null,
@@ -3867,7 +3867,7 @@
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "8e68b4ab57ba489e2d92a09f917dddc8f2ae4d37a660265d93f97a62cba8fe25",
+ "inputs_fingerprint": "02da5cf75ded3eb12549256840b0da7f58a2530b346060fd2a275ea31b02a267",
  "instances": [
   {
    "commit": null,
@@ -5831,13 +5831,13 @@
  "projects": [
   {
    "directory": ".",
-   "ecosystem": "generic",
-   "id": ".:generic"
+   "ecosystem": "npm",
+   "id": ".:npm"
   },
   {
    "directory": ".",
-   "ecosystem": "npm",
-   "id": ".:npm"
+   "ecosystem": "generic",
+   "id": ".:repo"
   }
  ],
  "repository": "laputa-systems/laputa-ui-dashboard",

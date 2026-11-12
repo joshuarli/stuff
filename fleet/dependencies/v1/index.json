@@ -1,204 +1,204 @@
 {
- "parser_version": 6,
+ "parser_version": 7,
  "repositories": {
   "joshuarli/defuddle-rs": {
    "commit": "549539cd44781144245ec184b49c4726baf4f1ca",
-   "inputs_fingerprint": "8dc58681cd649d9a6a9e97e548628e8922bbc63b1a1f0d9d3edc1ed473ef2a76",
+   "inputs_fingerprint": "966128fe5b2c8d64d2531d8b734fd9e902a5e49d59945650c8e2a823b4ccb767",
    "state": "partial"
   },
   "joshuarli/discover": {
    "commit": "ba33789a9f16e1c42028a47e07afeeb76cede6fd",
-   "inputs_fingerprint": "fcd4f51ba578c55576ba9222d1f54989e1e0bc0af5ce61e05c8ecfb33f2050e0",
+   "inputs_fingerprint": "b004963a5da97ea3a6d2494b1325df141eea33acefb1082aca2e09097f7bc8cb",
    "state": "partial"
   },
   "joshuarli/gh": {
    "commit": "e6ff8fb8939ae00c32a07a0caae89cc0d20b3dde",
-   "inputs_fingerprint": "8a3c9af0fec17023811d3f2411cc9c0eedb78d06488c1222012ef057ef224113",
+   "inputs_fingerprint": "4bfc5760e663053996f760c8edd2eaf1401e84d2473fd6cc59be6f2636881a67",
    "state": "partial"
   },
   "joshuarli/ish": {
    "commit": "37d8628536c65f230a829172b29e85ee823e444b",
-   "inputs_fingerprint": "bc50864e1dbf29ba8cb6b8f8d1c6be7a25deb91912d7ddeed691f0791768c3b2",
+   "inputs_fingerprint": "f19696c50fed7b94bd10b23ea6ac8f88f5ef79aa966ea4f9c14bc537614c0cae",
    "state": "partial"
   },
   "joshuarli/kache": {
    "commit": "0f8dc9ea6458e9a9faf576c220529d758ea5406d",
-   "inputs_fingerprint": "94ea16e3a3d11abe0deae2842342df4a6aadf68327e4171a19e9435f88593a28",
+   "inputs_fingerprint": "0adcacfc2d9edaf0ad68d79327585b9a857ea2451a45a1e1c38ffaded043e435",
    "state": "partial"
   },
   "joshuarli/mactop": {
    "commit": "75f78d7cce4ead473f03717bf77a1c47347e33af",
-   "inputs_fingerprint": "803d6b7bee7988d660c9d173ac0f1e26d73c7c21eebd2d26de98e893a212581d",
+   "inputs_fingerprint": "59465cce8f9f426e77c4d0d2ddf3c1fa2d398c1112f60328e8ba030003ea364f",
    "state": "partial"
   },
   "joshuarli/play": {
    "commit": "6552f015199e2fac0a19cee651a8e5ff887ee771",
-   "inputs_fingerprint": "62473f18b1eaa62aa10e1bf4a785826aa3aa06c1ee2ded9424fc8c9b34669611",
+   "inputs_fingerprint": "1ac20a015862be11382bc7809b2bb2fbb25af7c40e9adfcbd1fad456662dcba4",
    "state": "partial"
   },
   "joshuarli/pytest-parallel": {
    "commit": "bde8faff34539f5db8ce84433b509cae82af781b",
-   "inputs_fingerprint": "284b97dcc21a8357a4ef096e220728411a799920080ff2148365c60f971dfaa3",
+   "inputs_fingerprint": "2e54133cb052d4911c09600b3f1b7deaf028ad5cabfb38628a1f1f5f3cbb976d",
    "state": "partial"
   },
   "joshuarli/soulseek-rs": {
    "commit": "53d32b11eefd407ce0211dcd5cc53edeabff0941",
-   "inputs_fingerprint": "da6af30ab2983d0ebd91869233d593187c955643c346b1c0e5b11c3f906d8cb7",
+   "inputs_fingerprint": "07d52dea585d13e95cabecce05b46b2bdf036b8497266874e8d858833ceaa5be",
    "state": "partial"
   },
   "joshuarli/stats": {
    "commit": "4f111c44938326440ab91b3d8b6831ee226a6179",
-   "inputs_fingerprint": "3c6fde4f8f5a3d717b4944745927569472f7af017f16e4cb51ee7fcb22254fb9",
+   "inputs_fingerprint": "87caf170603d19b9fd63998d13fd30db07a53cbde494996cd50b8f850a85cc14",
    "state": "partial"
   },
   "joshuarli/stuff": {
-   "commit": "570704ff366820fc8d0991b1d930f4c65124f203",
-   "inputs_fingerprint": "a8918a034ab5568be919e82c10549f4677c18df56234c8830aac3258846876c2",
+   "commit": "32d8a876de72642ab6dfedbc79f719a05b4e202a",
+   "inputs_fingerprint": "eadafc8d41ec228571bfa27ff1cd7ed0baa4d4965e00cabb0077f511ca1653df",
    "state": "partial"
   },
   "joshuarli/syncthing": {
    "commit": "21f5f231c49509102c79625a29863a15587d2b3f",
-   "inputs_fingerprint": "02f3eb37df26cae17a1a1ffe2577fb794127b37489ac63215a0c62e1a646cc3d",
+   "inputs_fingerprint": "590c33f89e46c279d0e1723155030302cb8ae63ac49fd239085edd5d8ff157a0",
    "state": "partial"
   },
   "joshuarli/tansu": {
    "commit": "2e2cb1d8683d07858af7bc93200a86c1411cb0d2",
-   "inputs_fingerprint": "abb6bb2f598423ee5c110453646a7f912d24087725c39c15cfdbdd1c71dc6f9d",
+   "inputs_fingerprint": "9b9cb06a388c91e9b6191423f7f17d546587c37b479840b82fcd4792df3d67df",
    "state": "partial"
   },
   "joshuarli/toolbox": {
    "commit": "c70e26156386025734cd70b9433e69aaa5d6520a",
-   "inputs_fingerprint": "cc830f1902579179da07c683b82a2e3d72024aba7a0b9e16680e93034e740be2",
+   "inputs_fingerprint": "10a358232832daa9e7ee1f744b01b6bf37f908c1c5dabf4e3eea37329498e69b",
    "state": "partial"
   },
   "laputa-systems/cmake-build": {
    "commit": "72bd14ab81688310a1c85f2e0b496909c7c85269",
-   "inputs_fingerprint": "1d03fc7bd32837877ffd94e8c0c7a4bc5694e0d62c4b42252441874a79b9e9b2",
+   "inputs_fingerprint": "3eaaa3ae77cc7c087d1767e0256dda3dd52de52de3cda69d7555180e2e2b0181",
    "state": "partial"
   },
   "laputa-systems/deser": {
    "commit": "5bdb3ee9745b85f7254cf0a93f889518d352fb49",
-   "inputs_fingerprint": "192276e5949986c187b7ffdc32bbfdbcb9276c6bcabc0b9f0ad058597cc5075e",
+   "inputs_fingerprint": "14d0cf7b4bf066954b1eaae6ba0cbd39cca37ab35b4947b344b4375549b60377",
    "state": "partial"
   },
   "laputa-systems/diff-pretty": {
    "commit": "55957445b0fb57ee8493120666b78e52db3110c1",
-   "inputs_fingerprint": "88a01cbedaef3b3ed3ca52ae1b740f6acf86f6d08bd5dd0f8e4c0d9b6f609b8e",
+   "inputs_fingerprint": "eb9829c972df8c1412c55a28fece222e9b7f3a65ec3a2809c4349b3403573266",
    "state": "partial"
   },
   "laputa-systems/e": {
    "commit": "0ac023b26e60a22385013f514f295ed6d59fc453",
-   "inputs_fingerprint": "7ccffb8883009e858fb12d21dbc16768f133341a50b57cf526391d66f250a0c0",
+   "inputs_fingerprint": "cb6dc8732d61ef0d283f5f982fc71b50f313d33087534d01ce44b53591b9f73b",
    "state": "partial"
   },
   "laputa-systems/fastermod": {
    "commit": "bd88c1155088a52ecde24df61b0b478aeb3476c9",
-   "inputs_fingerprint": "e6404bdcf01f42065376a010e2535323661b2b2ef10125bc6478c730921b7ea5",
+   "inputs_fingerprint": "f06a4dbc318d3c012066992921908af563641b9dda6869af46b85116237e8b46",
    "state": "partial"
   },
   "laputa-systems/fd": {
    "commit": "d91238230a33c06f9ef376b7bf74bfe0d727d964",
-   "inputs_fingerprint": "2a48997354e5b59a923a48c2d9b3157caeee2323649fdbbbeb3ce5b97113e6df",
+   "inputs_fingerprint": "8d2641ce0ac53bfb0de0b05ad3503af1ccdb88d8c04e64e258c340446bca9427",
    "state": "partial"
   },
   "laputa-systems/git-build": {
    "commit": "32ee5cc1eb60b6ba87fde9a32011205109b20403",
-   "inputs_fingerprint": "3b13ecde8a804bb84f23d8b7b43085dc4f86c5801834483643f7210bd20ad78f",
+   "inputs_fingerprint": "485b221382414b65c6c9ca40bfe59d3d7723d4f9f8199ced06b1604d26630451",
    "state": "partial"
   },
   "laputa-systems/gluon": {
    "commit": "0f54baa6e8609c75a36ae37b9b2e12131fd16b16",
-   "inputs_fingerprint": "90aa8c8d5349fe5fea3e66c7e3e844e53345fdfa08707334086fd58a084efb91",
+   "inputs_fingerprint": "a70e583d562d763ab0238e69fa045aaa7e24aea14bf6e42a5fb7eed6abe5cc0c",
    "state": "partial"
   },
   "laputa-systems/hi-lite": {
    "commit": "64e6630020dbeeb2945477f9689969d921bb1ab2",
-   "inputs_fingerprint": "c6f2c029f100d4ddcc5cc4fa6df74b4b345d3cc831bd97a01297d4e60651a0be",
+   "inputs_fingerprint": "d4532fd3ec27855d82a48cbee1a8da6131538ac9dfc7d8fef92a0064824b12a9",
    "state": "partial"
   },
   "laputa-systems/jaq": {
    "commit": "69e166f4d21396a7cab2fcf2a1c02570d3cfb452",
-   "inputs_fingerprint": "c91ed429e642d9e702c60eec23d8bafdc999278ac57e96bdc1797314e5ceede0",
+   "inputs_fingerprint": "6e7e93ce039b72da3251dd5e2a476c0addfd7f6d278c353b7ef96e7884322fca",
    "state": "partial"
   },
   "laputa-systems/laputa-ui-dashboard": {
    "commit": "070d2e577812fea4670604b99fb78ee1eb16fed6",
-   "inputs_fingerprint": "8e68b4ab57ba489e2d92a09f917dddc8f2ae4d37a660265d93f97a62cba8fe25",
+   "inputs_fingerprint": "02da5cf75ded3eb12549256840b0da7f58a2530b346060fd2a275ea31b02a267",
    "state": "partial"
   },
   "laputa-systems/lexopt": {
    "commit": "b0df27afaa38a50863d8f2720edeaaca6826ae67",
-   "inputs_fingerprint": "615a8718084d62b72a67dd1677890f7b856cecfd98c2432b941b710246bfaafe",
+   "inputs_fingerprint": "be5f11a098f8f0f8033c62014fd55e68572db2e88828837717fe88e8b7bdbcf3",
    "state": "complete"
   },
   "laputa-systems/oxish": {
    "commit": "fb45dade9bdf094c9c65607ab0f5879ae7e149c5",
-   "inputs_fingerprint": "e339888693ea127e058a6c38287df840659372306f41311fe70a0f96ae11cd83",
+   "inputs_fingerprint": "d8bd6da3e2680acbde63f45d0e9df44cc3949d5d463c8272c282a92168f94395",
    "state": "partial"
   },
   "laputa-systems/ptytest": {
    "commit": "2efca1cffe9f4f19bddb7208643c18de63bbbc41",
-   "inputs_fingerprint": "d6ba34065d47ee4b4c386ab00809de3ceb2b61b292d5703c9fd851a5efb5d181",
+   "inputs_fingerprint": "c5b72cd43d8487838e7b3156410f02acaa308acde5c14ae7bb5a27a532982c2e",
    "state": "partial"
   },
   "laputa-systems/rage": {
    "commit": "33c3e18889d60cdbfe468b26b7871cd5d76b81e9",
-   "inputs_fingerprint": "76915202624924bad96393a6c99ac722fd86cba42245c169f6203c2c972f0c60",
+   "inputs_fingerprint": "e64ebf7de5ae2714455f015a0f3e5a200204f0ae2dd11057aff10091ac3ee40b",
    "state": "partial"
   },
   "laputa-systems/rawzip": {
    "commit": "35162d1668a8b97cefc782143e506e2c087b0b91",
-   "inputs_fingerprint": "3f68dcbd561bab4847360454d9cc685d31bf258955160ca6fafbbbb72fe58e02",
+   "inputs_fingerprint": "516b4f0a6b7ae5c06ab7e17a815353c2bd81917f157b437a789536f1de2d919f",
    "state": "partial"
   },
   "laputa-systems/rg": {
    "commit": "381787d438852fefccb467d975221875b1d01636",
-   "inputs_fingerprint": "c47176155b0c8157100aeb250d35373c64ad2fe20efd100ee4e4b205ee5bc647",
+   "inputs_fingerprint": "a295d2a4fbc0fd476825c3c6d5f5a9b93d0b04406ab246ff35361a0b2d3156d3",
    "state": "partial"
   },
   "laputa-systems/rustls": {
    "commit": "9bfddfdc4622f9cc9a6eda3680e4554123043506",
-   "inputs_fingerprint": "c2c2e40e4f8b62042e1e7d98d50d1e8d822397d7a540b21fa6369b9c06f532be",
+   "inputs_fingerprint": "81a9d057528af772a0fa8881a45e571670b9ee1daf16da60080ee7b84fc022de",
    "state": "partial"
   },
   "laputa-systems/rustybench": {
-   "commit": "2f5965184bddc498987d61e8867598e1004338e4",
-   "inputs_fingerprint": "e538a82f9dcf36206cd5f40457ee1aac6c4d39b004dc5570971355bf16be742a",
+   "commit": "a5a1ddeb82639bd486fc1e06cccaccc66767f625",
+   "inputs_fingerprint": "f4ab82c7fa07669cacdd20610e93c26a3d7576908c670cc89775840f3720e15d",
    "state": "partial"
   },
   "laputa-systems/smolith": {
    "commit": "066bb8c9c609c66c271fc32f170181375e421551",
-   "inputs_fingerprint": "b1af5316fbe159726d8ce68e80129f4704349579fc3f944c1e8a8d03577afefe",
+   "inputs_fingerprint": "1b45a88a3e1e0de39dbb53802a64cf208ce31261b1fdb359e727de42921df854",
    "state": "partial"
   },
   "laputa-systems/srv": {
    "commit": "3e0ab3a0c81c35355c30419ecbdda2d0291158b0",
-   "inputs_fingerprint": "ffde237d5dad9d8cf2108482f5eb62d32690ae4123796c4fae0380168404719d",
+   "inputs_fingerprint": "52c374c4d0f5e3a032faa68ae02008fefe561863faf776806ab30b351fa8c9e2",
    "state": "partial"
   },
   "laputa-systems/tm": {
    "commit": "1fc0b23f720891a2409c1d19da1f25b233ae6187",
-   "inputs_fingerprint": "8a174c99fb2d023e4ef62e830269af61f20909297c3529937ac130ed6ef4a40c",
+   "inputs_fingerprint": "03edb1988b85c73d03d63c21ea82ac36f14c0267ccb2f83d2398d78f907c7b1d",
    "state": "partial"
   },
   "laputa-systems/vault": {
    "commit": "d52c5423fe033bbb745a4139f64a86031e1f561c",
-   "inputs_fingerprint": "7ba12cae1292af64cd6908a266bfea9238166b21998eb3219b0f79117e4072ae",
+   "inputs_fingerprint": "e5f01788eb179b55fc52fe6f05a6252cc9bc53ed1761d61f18581464d8f7b982",
    "state": "partial"
   },
   "laputa-systems/webpki": {
    "commit": "d2b5537d414e090edf807c0eb4d816b2caede659",
-   "inputs_fingerprint": "637fc2cbd8b64f3557f8c3b0368872c773e3d823e23ece6b4e3dde05124b63e5",
+   "inputs_fingerprint": "0f43520bc359756eb0aaf24cc80385727b1260885edd327cb25255011db67f40",
    "state": "partial"
   },
   "laputa-systems/zlib-rs": {
    "commit": "31a9badb3198ec413d45e07ce8e46d5f5f6ef1c5",
-   "inputs_fingerprint": "05ee205de886adfaf859368309a8d6ddc2c1fbb4abf86311efb6d64bc6a833ce",
+   "inputs_fingerprint": "82ad717639a385bd777d33337552155591928f1e2ea41e797a2c50ba86a00be1",
    "state": "complete"
   },
   "laputa-systems/zzz": {
    "commit": "b5fb66b4ccf71ab40f74929616367ae2b792c089",
-   "inputs_fingerprint": "73deffb0931c18359bb7307592566e66018055e2fa94a75b88497b46b2c9bcf1",
+   "inputs_fingerprint": "8f79b9bb1ff857add36ad216ac3e37ea347a6bbcf848d27411057a622b9730da",
    "state": "partial"
   }
  },
