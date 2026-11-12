@@ -3721,10 +3721,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.23.45",
+   "resolved_version": "0.23.46",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rustls@0.23.45#"
+   "to": "pkg:cargo/rustls@0.23.46#"
   },
   {
    "condition": "cfg(not(target_os = \"wasi\"))",
@@ -3743,10 +3743,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.23.45",
+   "resolved_version": "0.23.46",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rustls@0.23.45#"
+   "to": "pkg:cargo/rustls@0.23.46#"
   },
   {
    "condition": "cfg(target_os = \"wasi\")",
@@ -3765,10 +3765,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "conditional",
-   "resolved_version": "0.23.45",
+   "resolved_version": "0.23.46",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:cargo/rustls@0.23.45#"
+   "to": "pkg:cargo/rustls@0.23.46#"
   },
   {
    "condition": null,
@@ -14922,132 +14922,6 @@
    "evidence": [
     {
      "locator": "package[name=rustls,version=0.23.45].dependencies[0]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.18.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/aws-lc-rs@1.18.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[1]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.21.4",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/once_cell@1.21.4#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[2]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.17.14",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/ring@0.17.14#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[3]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.15.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[4]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.103.15",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/rustls-webpki@0.103.15#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[5]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "2.6.1",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/subtle@2.6.1#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[6]",
-     "path": "backend/vendor/rtls/rust/Cargo.lock"
-    }
-   ],
-   "from": "pkg:cargo/rustls@0.23.45#",
-   "optional": false,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "1.9.0",
-   "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:cargo/zeroize@1.9.0#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "package[name=rustls,version=0.23.45].dependencies[0]",
      "path": "rust-cpython/overlay/Cargo.lock"
     }
    ],
@@ -15131,6 +15005,132 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/zeroize@1.9.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[0]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.18.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/aws-lc-rs@1.18.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[1]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.21.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/once_cell@1.21.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[2]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.17.14",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/ring@0.17.14#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[3]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.15.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-pki-types@1.15.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[4]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.103.15",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/rustls-webpki@0.103.15#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[5]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.6.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/subtle@2.6.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=rustls,version=0.23.46].dependencies[6]",
+     "path": "backend/vendor/rtls/rust/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/rustls@0.23.46#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.9.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/zeroize@1.9.0#"
   },
   {
    "condition": null,
@@ -24271,7 +24271,7 @@
    "path": ".github/workflows/lint.yml"
   },
   {
-   "blob": "b747050f92039b91dd8f20abbe56af5d99e6b839",
+   "blob": "bda62793e3dd82068beb34d5c8a4929edbaaa5fe",
    "path": ".github/workflows/release.yml"
   },
   {
@@ -24299,7 +24299,7 @@
    "path": "backend/vendor/rtls/pyproject.toml"
   },
   {
-   "blob": "11272fb68faaf215a3f58ab37e8cfb695b35e8ba",
+   "blob": "faf6f969af9d7ce00f3ec1a2605344ba79e65fef",
    "path": "backend/vendor/rtls/rust/Cargo.lock"
   },
   {
@@ -24647,7 +24647,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "3039723e619c6c913f6df6f6b0bce23cda5e7f30838eb2fb0d0d0858449ffe8e",
+ "inputs_fingerprint": "b2ec00a5329606ab07e4b1ecce17d8e8b867f035f703356a8cfae5208d4b540d",
  "instances": [
   {
    "commit": null,
@@ -28017,19 +28017,6 @@
    "version": "0.103.15"
   },
   {
-   "commit": null,
-   "component": "pkg:cargo/rustls",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:cargo/rustls@0.23.45#",
-   "purl": "pkg:cargo/rustls@0.23.45",
-   "registry_url": "https://github.com/rust-lang/crates.io-index",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.23.45"
-  },
-  {
    "commit": "4610aea3ac06e966e2b05315a845c2fa51e69e2d",
    "component": "pkg:cargo/rustls?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frustls",
    "context": "",
@@ -28041,6 +28028,19 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/laputa-systems/rustls",
    "version": "0.23.45"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/rustls",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/rustls@0.23.46#",
+   "purl": "pkg:cargo/rustls@0.23.46",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.23.46"
   },
   {
    "commit": null,

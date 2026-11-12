@@ -37,8 +37,8 @@
    "state": "partial"
   },
   "joshuarli/play": {
-   "commit": "42beab16d971a83a12c6ca281417738ce8fb6100",
-   "inputs_fingerprint": "bb26c792ee18ef7e87f987640812768d4731dddaa9690f098c8fae9fcca5c4d4",
+   "commit": "940e8757e5dcc4f76f02223b7dbf30b11fa6be92",
+   "inputs_fingerprint": "22c9f21803d184e990d5c1cd8187e3e856d74f6e44d52dd434cc2944cdcc44d8",
    "state": "partial"
   },
   "joshuarli/pytest-parallel": {
@@ -57,8 +57,8 @@
    "state": "partial"
   },
   "joshuarli/stuff": {
-   "commit": "32d8a876de72642ab6dfedbc79f719a05b4e202a",
-   "inputs_fingerprint": "eadafc8d41ec228571bfa27ff1cd7ed0baa4d4965e00cabb0077f511ca1653df",
+   "commit": "123814dd31c892feced76c4cc2f02003f84852a8",
+   "inputs_fingerprint": "c8611d455274067532092fe51081d39e555e205b155833bb57d293adf36fa36a",
    "state": "partial"
   },
   "joshuarli/syncthing": {
@@ -72,8 +72,8 @@
    "state": "partial"
   },
   "joshuarli/toolbox": {
-   "commit": "c70e26156386025734cd70b9433e69aaa5d6520a",
-   "inputs_fingerprint": "10a358232832daa9e7ee1f744b01b6bf37f908c1c5dabf4e3eea37329498e69b",
+   "commit": "335b2a4b4fcfc333e221eeb398845497fe6a60e7",
+   "inputs_fingerprint": "e3b94a52a94044c08abfb00681611e2086c9c4943f27f7f99657ab6b7ce9550a",
    "state": "partial"
   },
   "laputa-systems/buildlib": {
@@ -172,8 +172,8 @@
    "state": "partial"
   },
   "laputa-systems/python-build": {
-   "commit": "98ee8f23a6f9936fe6ca9dc2e7d003f1ca10bd39",
-   "inputs_fingerprint": "3039723e619c6c913f6df6f6b0bce23cda5e7f30838eb2fb0d0d0858449ffe8e",
+   "commit": "6f7c0d46e2eda7f66c705022f1950034045f74d0",
+   "inputs_fingerprint": "b2ec00a5329606ab07e4b1ecce17d8e8b867f035f703356a8cfae5208d4b540d",
    "state": "partial"
   },
   "laputa-systems/rage": {

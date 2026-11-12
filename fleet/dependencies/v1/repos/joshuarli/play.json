@@ -6607,7 +6607,7 @@
    "path": "crates/player-tui/Cargo.toml"
   },
   {
-   "blob": "07d9d1f19d2cc9d35a1a4ed4cb914b11a8d91129",
+   "blob": "015ecc0eb658c89e48cdcb1b290f93b912bafed8",
    "path": "docker/linux/Dockerfile"
   },
   {
@@ -6727,7 +6727,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "bb26c792ee18ef7e87f987640812768d4731dddaa9690f098c8fae9fcca5c4d4",
+ "inputs_fingerprint": "22c9f21803d184e990d5c1cd8187e3e856d74f6e44d52dd434cc2944cdcc44d8",
  "instances": [
   {
    "commit": null,
@@ -9002,7 +9002,7 @@
   {
    "kind": "dynamic_value",
    "locator": "L16",
-   "message": "artifact URL 'https://github.com/laputa-systems/ffmpeg-build/releases/download/20261111/$archive' is not literal",
+   "message": "artifact URL 'https://github.com/laputa-systems/ffmpeg-build/releases/download/release-ac29c7720327f7dee4ed4677ce8421673fcc3563/$archive' is not literal",
    "path": "docker/linux/Dockerfile"
   },
   {

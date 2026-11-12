@@ -805,7 +805,7 @@
    "path": "Makefile"
   },
   {
-   "blob": "57839b48cce71f2c819b45d1bdb7845a13f3046c",
+   "blob": "d3c35995daa1fabb465aee1d339a9ce05e9ca88b",
    "path": "pyproject.toml"
   },
   {
@@ -813,7 +813,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "10a358232832daa9e7ee1f744b01b6bf37f908c1c5dabf4e3eea37329498e69b",
+ "inputs_fingerprint": "e3b94a52a94044c08abfb00681611e2086c9c4943f27f7f99657ab6b7ce9550a",
  "instances": [
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
