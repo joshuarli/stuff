@@ -259,6 +259,21 @@ def test_fork_repositories_and_repositories_without_lockfiles_are_skipped(tmp_pa
     assert messages(tmp_path) == []
 
 
+def test_optional_packages_for_unmirrored_systems_are_skipped(tmp_path: Path) -> None:
+    write(tmp_path, ".npmrc", f"registry={NPM}\n")
+    upstream = "https://registry.npmjs.org/@esbuild/{0}/-/{0}-0.25.12.tgz"
+    write(
+        tmp_path,
+        "package-lock.json",
+        '{"lockfileVersion": 3, "packages": {"": {}, '
+        f'"node_modules/@esbuild/win32-x64": {{"resolved": "{upstream.format("win32-x64")}", "optional": true, "os": ["win32"]}}, '
+        f'"node_modules/@esbuild/linux-x64": {{"resolved": "{upstream.format("linux-x64")}", "optional": true, "os": ["linux"]}}}}}}',
+    )
+    [(file, message)] = messages(tmp_path)
+    assert file == "package-lock.json"
+    assert "1 npm package(s)" in message and "@esbuild/linux-x64" in message
+
+
 def test_vendored_trees_are_skipped(tmp_path: Path) -> None:
     write(tmp_path, "vendor/upstream/Cargo.lock", cargo_lock(("serde", CRATES_IO)))
     assert messages(tmp_path) == []

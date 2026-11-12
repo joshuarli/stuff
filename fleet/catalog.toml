@@ -191,5 +191,5 @@ ignore = ["linux-musl-toolchain"]
 ignore_reason = "plan.md P2 prescribes an offline builder from the Alpine 3.25.0_alpha20260805 edge image that python-build pins, with each apk pinned by sha256 in bootstrap.lock.json and installed from local files, so it is not a stable-channel name=version builder."
 
 [overrides."joshuarli/pi-build"]
-ignore = ["language-tags"]
-ignore_reason = "sources/ holds preserved upstream TypeScript snapshots that the build packs unchanged; the first-party code is the Python build tooling in tools/, which detection does not reach because those snapshots carry npm manifests."
+ignore = ["language-tags", "make-lint-target"]
+ignore_reason = "sources/ holds preserved upstream TypeScript snapshots that the build packs unchanged; the first-party code is the Python build tooling in tools/, which detection does not reach because those snapshots carry npm manifests. The same detection asks make lint to run oxlint over those snapshots; make lint runs ruff and ty over the build tooling instead."

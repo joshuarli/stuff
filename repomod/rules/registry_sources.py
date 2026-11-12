@@ -28,6 +28,7 @@ _CRATES_IO_SOURCE_IDS = frozenset(
 )
 _PRUNED_DIRECTORIES = frozenset({".git", ".venv", ".work", "node_modules", "target"})
 _UNSCANNED_DIRECTORIES = _PRUNED_DIRECTORIES | {"vendor"}
+_MIRRORED_NPM_OS = frozenset({"darwin", "linux"})
 _LISTED_NAMES = 5
 _UV_ENVIRONMENTS = ("sys_platform == 'darwin'", "sys_platform == 'linux'")
 _ALLOWED_PATHS = (
@@ -386,6 +387,15 @@ def _pnpm_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
         )
 
 
+def _never_installed_on_mirrored_os(entry: dict[str, Any]) -> bool:
+    systems = entry.get("os")
+    if entry.get("optional") is not True or not isinstance(systems, list) or not systems:
+        return False
+    if any(not isinstance(system, str) or system.startswith("!") for system in systems):
+        return False
+    return not _MIRRORED_NPM_OS & set(systems)
+
+
 def _package_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
     try:
         document = json.loads(lock.read_text(encoding="utf-8"))
@@ -407,6 +417,8 @@ def _package_lock(report: _Report, policy: RegistryPolicy, lock: Path) -> None:
                 )
             continue
         if not isinstance(resolved, str) or resolved.startswith("file:") or _approved_npm_url(resolved, policy):
+            continue
+        if _never_installed_on_mirrored_os(entry):
             continue
         if _is_git_url(resolved):
             report.git_source(lock, "npm", name, resolved)
