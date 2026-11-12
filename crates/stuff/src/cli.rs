@@ -380,10 +380,7 @@ fn take_common_option(arg: &str, options: &mut Options) -> bool {
 fn parse_publish(args: &[String]) -> Result<Parsed> {
     let (registry, mut index) = publish_registry(args, "publish")?;
     let (request, options) = match registry {
-        Registry::Cargo => {
-            let (cargo, options) = parse_cargo_publish(args, &mut index)?;
-            (PublishRequest::Cargo(cargo), options)
-        }
+        Registry::Cargo => parse_cargo_publish(args, &mut index)?,
         Registry::Npm => {
             parse_npm_publish(args, &mut index)?
         }
@@ -399,8 +396,9 @@ fn parse_publish(args: &[String]) -> Result<Parsed> {
     Ok(request_parsed(Command::Publish, Request::Publish { request, options }))
 }
 
-fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPublish, Options)> {
+fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(PublishRequest, Options)> {
     let mut cargo = CargoPublish { packages: Vec::new(), manifest_path: None, registry: None };
+    let mut lockfiles = Vec::new();
     let mut options = Options::default();
     let mut seen_common: Vec<&str> = Vec::new();
     while *index < args.len() {
@@ -430,6 +428,13 @@ fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPubli
                 let value = next_value(args, index, "--registry")?;
                 assign_once(&mut cargo.registry, "--registry", value)?;
             }
+            "--lockfile" => {
+                let value = next_value(args, index, "--lockfile")?;
+                if value.is_empty() {
+                    return Err(usage_error("--lockfile requires a path"));
+                }
+                lockfiles.push(value.to_string());
+            }
             other if other.starts_with('-') => {
                 return Err(usage_error(format!("unknown option: {other}")));
             }
@@ -441,10 +446,18 @@ fn parse_cargo_publish(args: &[String], index: &mut usize) -> Result<(CargoPubli
         }
         *index += 1;
     }
-    if cargo.packages.is_empty() {
-        return Err(usage_error("publish cargo requires at least one -p NAME"));
+    if !lockfiles.is_empty() {
+        if !cargo.packages.is_empty() || cargo.manifest_path.is_some() || cargo.registry.is_some() {
+            return Err(usage_error(
+                "publish cargo takes either --lockfile PATH or -p NAME [--manifest-path PATH] [--registry NAME], not both",
+            ));
+        }
+        return Ok((PublishRequest::CargoLockfiles(lockfiles), options));
     }
-    Ok((cargo, options))
+    if cargo.packages.is_empty() {
+        return Err(usage_error("publish cargo requires at least one -p NAME or --lockfile PATH"));
+    }
+    Ok((PublishRequest::Cargo(cargo), options))
 }
 
 fn parse_npm_publish(args: &[String], index: &mut usize) -> Result<(PublishRequest, Options)> {

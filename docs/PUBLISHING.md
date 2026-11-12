@@ -28,6 +28,8 @@ Run `stuff publish` from the repository that owns the packages:
 ```sh
 stuff publish cargo -p crate-a -p crate-b
 
+stuff publish cargo --lockfile Cargo.lock
+
 stuff publish npm --lockfile pnpm-lock.yaml --project my-project
 
 stuff publish npm --tarball joshuarli-ui-0.1.0.tgz
@@ -44,6 +46,8 @@ Every writer of a registry holds one lock file: `$STUFF_STATE_HOME/<registry>/pu
 PyPI publication inspects foreign-target wheels statically and executes native-target installation/import checks. Use matching runners or `deploy/mypypi-container.sh` for foreign-platform execution checks; see [crates/mypypi/README.md](../crates/mypypi/README.md).
 
 To ingest a whole fleet locally, `deploy/fleet-ingest.sh OUT_DIR --cargo LIST --npm LIST --pypi LIST` (`make fleet-ingest`) runs each registry's import, fetch, verify or validate, and publish into `OUT_DIR/{mycrates,mynpm,mypypi}/site`. Lists hold Cargo.lock paths, pnpm-lock.yaml paths, and `name==version` requirements. It never writes to R2; publish through `stuff publish`.
+
+`stuff publish cargo --lockfile PATH` (repeatable) extends the crates.io mirror view (`current/crates-io/`) with every crates.io package the locks pin; it does not combine with `-p`, `--manifest-path`, or `--registry`. Git, path, and other-registry entries are skipped (`--verbose` lists them). A package neither the local state nor the live generation holds is taken from `https://index.crates.io/` with its exact index line; its archive comes through the index's `dl` template and must match both the lock checksum and the index `cksum` before it is scanned and stored, or the run fails with exit 4 and promotes nothing. Packages already mirrored are not downloaded again, and a run that adds nothing reports `unchanged`. `repomod deps mirror` drives this, `stuff publish npm --lockfile`, and `stuff publish pypi` for the fleet; see [fleet](fleet.md#dependency-upgrades).
 
 ## Publish a first-party npm package
 

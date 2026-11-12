@@ -99,6 +99,39 @@ mod tests {
     }
 
     #[test]
+    fn repeated_lockfiles_parse_into_the_mirror_request() {
+        let parsed = parse_args(&args(&[
+            "publish", "cargo", "--lockfile", "a/Cargo.lock", "--lockfile", "b/Cargo.lock", "--dry-run",
+        ]))
+        .unwrap()
+        .request
+        .unwrap();
+        match parsed {
+            Request::Publish {
+                request: PublishRequest::CargoLockfiles(lockfiles),
+                options,
+            } => {
+                assert_eq!(lockfiles, vec!["a/Cargo.lock", "b/Cargo.lock"]);
+                assert!(options.dry_run);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn lockfiles_do_not_combine_with_workspace_publishing() {
+        for values in [
+            &["publish", "cargo", "--lockfile", "Cargo.lock", "-p", "alpha"][..],
+            &["publish", "cargo", "--lockfile", "Cargo.lock", "--manifest-path", "Cargo.toml"][..],
+            &["publish", "cargo", "--lockfile", "Cargo.lock", "--registry", "stuff"][..],
+            &["publish", "cargo", "--lockfile"][..],
+            &["publish", "cargo", "--lockfile", ""][..],
+        ] {
+            assert_eq!(usage_exit(values), 2, "{values:?}");
+        }
+    }
+
+    #[test]
     fn a_missing_package_is_a_usage_error() {
         assert_eq!(usage_exit(&["publish", "cargo"]), 2);
         assert_eq!(usage_exit(&["publish", "cargo", "-p"]), 2);

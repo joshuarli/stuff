@@ -132,6 +132,7 @@ pub enum OciSource {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PublishRequest {
     Cargo(CargoPublish),
+    CargoLockfiles(Vec<String>),
     Npm(NpmPublish),
     NpmTarballs(Vec<String>),
     Pypi(PypiPublish),
@@ -141,7 +142,7 @@ pub enum PublishRequest {
 impl PublishRequest {
     pub fn registry(&self) -> Registry {
         match self {
-            PublishRequest::Cargo(_) => Registry::Cargo,
+            PublishRequest::Cargo(_) | PublishRequest::CargoLockfiles(_) => Registry::Cargo,
             PublishRequest::Npm(_) | PublishRequest::NpmTarballs(_) => Registry::Npm,
             PublishRequest::Pypi(_) => Registry::Pypi,
             PublishRequest::Oci(_) => Registry::Oci,
@@ -308,6 +309,10 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             options,
         } => cargo::run::publish(&cargo, options, environment),
         Request::Publish {
+            request: PublishRequest::CargoLockfiles(lockfiles),
+            options,
+        } => cargo::mirror::publish(&lockfiles, options, environment),
+        Request::Publish {
             request: PublishRequest::Npm(request),
             options,
         } => npm::publish(&request, options, environment),
@@ -350,8 +355,9 @@ pub fn help_text(command: &str) -> Option<String> {
         "publish" => concat!(
             "stuff publish\n\n",
             "Usage:\n",
-            "  stuff publish cargo -p NAME [-p NAME...] [--manifest-path PATH]\n",
-            "    [--registry NAME] [--dry-run] [--json] [--verbose]\n",
+            "  stuff publish cargo (-p NAME [-p NAME...] [--manifest-path PATH] [--registry NAME] |\n",
+            "    --lockfile PATH [--lockfile PATH...]) [--dry-run] [--json] [--verbose]\n",
+            "    --lockfile mirrors the crates.io packages a Cargo.lock pins\n",
             "  stuff publish npm (--lockfile PATH --project ID | --tarball PATH [--tarball PATH...])\n",
             "    [--dry-run] [--json] [--verbose]\n",
             "    --tarball publishes first-party packages packed by npm pack or pnpm pack\n",

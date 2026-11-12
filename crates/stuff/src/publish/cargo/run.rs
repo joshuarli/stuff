@@ -18,7 +18,8 @@ use crate::publish::r2::client::ObjectMeta;
 use crate::publish::r2::credentials::resolve;
 use crate::publish::staging::Staging;
 use crate::publish::state::CargoLayout;
-use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
+use crate::publish::snapshot::SharedStore;
+use crate::publish::transaction::{Pending, Staged, Transaction, TransactionOptions};
 use crate::publish::{CargoPublish, Environment, Options, Outcome, PublishError, Registry};
 
 pub const DEFAULT_REGISTRY: &str = "stuff";
@@ -37,60 +38,18 @@ pub fn publish(
     let registry = request.registry.as_deref().unwrap_or(DEFAULT_REGISTRY);
     validate_registry_name(registry)?;
 
-    let paths = Paths::from_environment(environment);
-    let config = Config::load(&paths.config_file())?;
-    let layout = CargoLayout::from_environment(environment);
-    layout.prepare(environment)?;
-    let credentials = resolve(environment, &config.cf_profile, &config.cargo.bucket)?;
-    let staging = if options.dry_run {
-        Some(Staging::create(&layout.cache_dir, "cargo-dry-run")?)
-    } else {
-        None
+    let Begun { config, layout, staging, work_state, site_dir, pending, live, shared } =
+        begin(options, environment)?;
+    let (server_site, cargo_home) = match &staging {
+        Some(staging) => (staging.join(SERVER_SITE_DIRECTORY), staging.join("cargo-home")),
+        None => (layout.cache_dir.join(SERVER_SITE_DIRECTORY), layout.cargo_home.clone()),
     };
-    let (work_state, site_dir, server_site, transaction_state, snapshot_cache, cargo_home) =
-        match &staging {
-            Some(staging) => (
-                staging.join("state"),
-                staging.join("site"),
-                staging.join(SERVER_SITE_DIRECTORY),
-                staging.join("transaction"),
-                staging.join("cache"),
-                staging.join("cargo-home"),
-            ),
-            None => (
-                layout.state_dir.clone(),
-                layout.site_dir.clone(),
-                layout.cache_dir.join(SERVER_SITE_DIRECTORY),
-                layout.state_dir.clone(),
-                layout.cache_dir.clone(),
-                layout.cargo_home.clone(),
-            ),
-        };
     fs::create_dir_all(&cargo_home).map_err(|error| {
         PublishError::Config(format!(
             "could not create {}: {error}",
             cargo_home.display()
         ))
     })?;
-
-    let pending = Transaction::begin(
-        credentials,
-        Registry::Cargo,
-        &config,
-        transaction_state,
-        snapshot_cache,
-        TransactionOptions {
-            dry_run: options.dry_run,
-            ..TransactionOptions::default()
-        },
-    )?;
-    let live = snapshot::load(pending.snapshot(), &config)?;
-    let shared = pending
-        .snapshot()
-        .shared_stores()
-        .first()
-        .cloned()
-        .ok_or_else(|| PublishError::Config("cargo has no shared blob store".to_string()))?;
     reset_directory(&server_site)?;
     let published_store = Store::new(&layout.state_dir);
     published_store
@@ -176,29 +135,119 @@ pub fn publish(
     let store = Store::new(&layout.state_dir);
     let work_store = (options.dry_run && work_state != layout.state_dir)
         .then(|| Store::new(&work_state));
+    publish_generation(
+        pending,
+        Generation {
+            config: &config,
+            shared: &shared,
+            site_dir: &site_dir,
+            store: &store,
+            work_store: work_store.as_ref(),
+        },
+        |native, _| package_ids(native, &request.packages),
+    )
+}
+
+/// A started cargo publication: the transaction against the live generation, and where this
+/// run writes. A dry run writes its state and site under `staging`, which is dropped afterwards.
+pub(super) struct Begun {
+    pub config: Config,
+    pub layout: CargoLayout,
+    pub staging: Option<Staging>,
+    pub work_state: PathBuf,
+    pub site_dir: PathBuf,
+    pub pending: Pending,
+    pub live: LiveSnapshot,
+    pub shared: SharedStore,
+}
+
+pub(super) fn begin(options: Options, environment: &Environment) -> Result<Begun, PublishError> {
+    let paths = Paths::from_environment(environment);
+    let config = Config::load(&paths.config_file())?;
+    let layout = CargoLayout::from_environment(environment);
+    layout.prepare(environment)?;
+    let credentials = resolve(environment, &config.cf_profile, &config.cargo.bucket)?;
+    let staging = if options.dry_run {
+        Some(Staging::create(&layout.cache_dir, "cargo-dry-run")?)
+    } else {
+        None
+    };
+    let (work_state, site_dir, transaction_state, snapshot_cache) = match &staging {
+        Some(staging) => (
+            staging.join("state"),
+            staging.join("site"),
+            staging.join("transaction"),
+            staging.join("cache"),
+        ),
+        None => (
+            layout.state_dir.clone(),
+            layout.site_dir.clone(),
+            layout.state_dir.clone(),
+            layout.cache_dir.clone(),
+        ),
+    };
+    let pending = Transaction::begin(
+        credentials,
+        Registry::Cargo,
+        &config,
+        transaction_state,
+        snapshot_cache,
+        TransactionOptions {
+            dry_run: options.dry_run,
+            ..TransactionOptions::default()
+        },
+    )?;
+    let live = snapshot::load(pending.snapshot(), &config)?;
+    let shared = pending
+        .snapshot()
+        .shared_stores()
+        .first()
+        .cloned()
+        .ok_or_else(|| PublishError::Config("cargo has no shared blob store".to_string()))?;
+    Ok(Begun { config, layout, staging, work_state, site_dir, pending, live, shared })
+}
+
+/// The stores and site a cargo publication renders from: the canonical state, plus the dry-run
+/// work store whose records and blobs never reach the canonical state.
+pub(super) struct Generation<'a> {
+    pub config: &'a Config,
+    pub shared: &'a SharedStore,
+    pub site_dir: &'a Path,
+    pub store: &'a Store,
+    pub work_store: Option<&'a Store>,
+}
+
+/// Render the merged local and live records into a generation and promote it through `pending`.
+pub(super) fn publish_generation(
+    pending: Pending,
+    generation: Generation<'_>,
+    packages: impl Fn(&[NativeRecord], &[UpstreamRecord]) -> Vec<String>,
+) -> Result<Outcome, PublishError> {
+    let Generation { config, shared, site_dir, store, work_store } = generation;
     let mut blob_stores = vec![store.clone()];
-    if let Some(work_store) = &work_store {
+    if let Some(work_store) = work_store {
         blob_stores.push(work_store.clone());
     }
-    let mut packages = Vec::new();
+    let mut published = Vec::new();
     let report = pending.publish(|pending| {
-        let live = snapshot::load(pending.snapshot(), &config)?;
+        let live = snapshot::load(pending.snapshot(), config)?;
         let known = store
             .with_lock(|| {
                 let mut local_native = store.load_native_records()?;
-                if let Some(work_store) = &work_store {
+                let mut local_upstream = store.load_upstream_records()?;
+                if let Some(work_store) = work_store {
                     local_native.extend(work_store.load_native_records()?);
+                    local_upstream.extend(work_store.load_upstream_records()?);
                 }
                 let native = merge_native(local_native, live.native().to_vec())
                     .map_err(publish_to_rejection)?;
-                let upstream =
-                    merge_upstream(store.load_upstream_records()?, live.upstream().to_vec())
-                        .map_err(publish_to_rejection)?;
-                packages = package_ids(&native, &request.packages);
+                let upstream = merge_upstream(local_upstream, live.upstream().to_vec())
+                    .map_err(publish_to_rejection)?;
+                published = packages(&native, &upstream);
                 SiteBuild {
                     snapshot: pending.snapshot(),
-                    shared: &shared,
-                    site_dir: &site_dir,
+                    shared,
+                    site_dir,
                     native: &native,
                     upstream: &upstream,
                     stores: &blob_stores,
@@ -211,12 +260,12 @@ pub fn publish(
             })
             .map_err(rejection_error)?;
         Ok(Staged {
-            site: site_dir.clone(),
+            site: site_dir.to_path_buf(),
             known,
         })
     })?;
     let mut outcome = report.outcome();
-    outcome.packages = packages;
+    outcome.packages = published;
     Ok(outcome)
 }
 
@@ -515,7 +564,7 @@ fn generate_token() -> String {
     crate::publish::lower_hex(Sha256::digest(seed.as_bytes()))
 }
 
-fn publish_to_rejection(error: PublishError) -> Rejection {
+pub(super) fn publish_to_rejection(error: PublishError) -> Rejection {
     match error {
         PublishError::Usage(detail) | PublishError::Config(detail) => {
             Rejection::new(RejectionKind::Input, detail)
@@ -529,7 +578,7 @@ fn publish_to_rejection(error: PublishError) -> Rejection {
     }
 }
 
-fn rejection_error(rejection: Rejection) -> PublishError {
+pub(super) fn rejection_error(rejection: Rejection) -> PublishError {
     let detail = message_of(&rejection);
     match rejection.kind {
         RejectionKind::Input | RejectionKind::Limit => PublishError::Usage(detail),

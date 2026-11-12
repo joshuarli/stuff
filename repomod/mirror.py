@@ -30,7 +30,7 @@ from repomod.rules.python_standard import load_approved_python_tool_versions
 from repomod.rules.registry_sources import RegistryPolicy, load_registry_policy
 from repomod.types import Catalog, Repository
 
-_CRATES_IO_SOURCES = ("registry+https://github.com/rust-lang/crates.io-index", "sparse+https://index.crates.io/")
+_CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 _LOCKFILE_ECOSYSTEM = {"Cargo.lock": Ecosystem.CARGO, "pnpm-lock.yaml": Ecosystem.NPM, "uv.lock": Ecosystem.PYPI}
 _SERVED_TIMEOUT_SECONDS = 300.0
 _SERVED_POLL_SECONDS = 15.0
@@ -90,7 +90,7 @@ def parse_cargo_lock(text: str) -> frozenset[Package]:
         if not isinstance(raw, dict):
             continue
         name, version, source = raw.get("name"), raw.get("version"), raw.get("source")
-        if isinstance(name, str) and isinstance(version, str) and source in _CRATES_IO_SOURCES:
+        if isinstance(name, str) and isinstance(version, str) and source == _CRATES_IO_SOURCE:
             found.add(Package(Ecosystem.CARGO, name, version))
     return frozenset(found)
 

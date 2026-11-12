@@ -34,8 +34,8 @@ from stuff (the registries in `crates/`), and repomod enforces it.
 - [x] npm delta ingest for tansu: fake-indexeddb 6.2.7; published npm generation 6ff4e614b6a80e53cc8d36f0e2fb5d88480b0e155fd15db2bccd8b53e223384f through `cf` and verified live
 - [ ] `make test-r2-live` multipart acceptance (needs R2 S3 credentials and a scratch bucket; no file is over 100 MB so nothing published needs multipart)
 - [ ] known gap: `mypypi add` appends unrestricted duplicate rows for hand-restricted `pyobjc-*` entries; do not re-run `add` against the catalog until fixed
-- [ ] known gap: `mycrates add` pins an empty checksum that `fetch` rejects; ingest through a lock instead
-- [ ] new repo locks must be ingested before they merge (a Cargo.lock or pnpm-lock.yaml version missing from stuff fails CI)
+- [ ] known gap: `mycrates add` pins an empty checksum that `fetch` rejects; ingest through a lock with `stuff publish cargo --lockfile` instead
+- [x] new repo locks must be ingested before they merge (a Cargo.lock or pnpm-lock.yaml version missing from stuff fails CI); `repomod deps mirror` does it, and `fix` runs it before upgrading
 
 ## Phase C: migrate repositories
 
@@ -51,4 +51,4 @@ from stuff (the registries in `crates/`), and repomod enforces it.
 ## Phase D: enforcement
 
 - [x] repomod `registry-sources` rule enforced (`enforce = true`); 0 findings fleet-wide
-- [ ] audit-upgrades and `fix` against a stuff-only world (upgrades need ingestion first)
+- [x] audit-upgrades and `fix` against a stuff-only world: `fix` mirrors upgrade targets onto stuff first

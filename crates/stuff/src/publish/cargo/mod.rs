@@ -4,6 +4,7 @@ pub mod adopt;
 mod cli;
 pub mod crate_file;
 pub mod index;
+pub mod mirror;
 pub mod model;
 pub mod names;
 pub mod publish;
