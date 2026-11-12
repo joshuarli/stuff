@@ -28,7 +28,7 @@ def _fixture_graph(tmp_path: Path):
                     instance(Ecosystem.PYPI, "requests", "2.0.0"),
                     instance(Ecosystem.NPM, "react", "18.0.0"),
                     instance(Ecosystem.GOLANG, "example.com/mod", "v1.0.0"),
-                    instance(Ecosystem.GENERIC, "rust", "1.90.0", source_kind=SourceKind.URL),
+                    instance(Ecosystem.TOOLCHAIN, "rust", "1.90.0", source_kind=SourceKind.URL),
                 ),
             )
         ],
@@ -73,7 +73,7 @@ def test_fetches_latest_versions_and_vulnerabilities(tmp_path: Path) -> None:
     assert serde["latest"] == "1.0.219"
     assert serde["vulns"] == [{"id": "OSV-serde"}]
     assert serde["fetched_at"] == 1000.0
-    assert "pkg:generic/rust@1.90.0" not in document["results"]
+    assert "pkg:toolchain/rust@1.90.0" not in document["results"]
 
 
 def test_enrichment_uses_upstream_releases_and_configured_registry_for_private_packages(

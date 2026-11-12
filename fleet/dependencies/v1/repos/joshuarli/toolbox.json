@@ -1,24 +1,6 @@
 {
  "components": [
   {
-   "display_name": "python",
-   "ecosystem": "generic",
-   "name": "python",
-   "purl": "pkg:generic/python"
-  },
-  {
-   "display_name": "shadowdriver",
-   "ecosystem": "generic",
-   "name": "shadowdriver",
-   "purl": "pkg:generic/shadowdriver"
-  },
-  {
-   "display_name": "tool",
-   "ecosystem": "generic",
-   "name": "tool",
-   "purl": "pkg:generic/tool"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -35,6 +17,18 @@
    "ecosystem": "github",
    "name": "astral-sh/setup-uv",
    "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
+   "display_name": "shadowdriver",
+   "ecosystem": "local",
+   "name": "shadowdriver",
+   "purl": "pkg:local/shadowdriver"
+  },
+  {
+   "display_name": "tool",
+   "ecosystem": "local",
+   "name": "tool",
+   "purl": "pkg:local/tool"
   },
   {
    "display_name": "blessed",
@@ -155,27 +149,15 @@
    "ecosystem": "pypi",
    "name": "wcwidth",
    "purl": "pkg:pypi/wcwidth"
+  },
+  {
+   "display_name": "python",
+   "ecosystem": "toolchain",
+   "name": "python",
+   "purl": "pkg:toolchain/python"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "3.15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".python-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "3.15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/python@3.15#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -285,6 +267,24 @@
    "to": "pkg:github/astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2#"
   },
   {
+   "condition": null,
+   "constraint": "3.15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".python-version"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "3.15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/python@3.15#"
+  },
+  {
    "condition": "extra == 'browser'",
    "constraint": null,
    "evidence": [
@@ -304,7 +304,7 @@
    "resolved_version": null,
    "scope": "optional",
    "source_kind": "path",
-   "to": "pkg:generic/shadowdriver#"
+   "to": "pkg:local/shadowdriver#"
   },
   {
    "condition": null,
@@ -813,47 +813,8 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "10debcc3a0edf5f839b3afb9db8b5740d5102a20edec63448ce9a514b29c7b45",
+ "inputs_fingerprint": "cc830f1902579179da07c683b82a2e3d72024aba7a0b9e16680e93034e740be2",
  "instances": [
-  {
-   "commit": null,
-   "component": "pkg:generic/python",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/python@3.15#",
-   "purl": "pkg:generic/python@3.15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "3.15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/shadowdriver",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/shadowdriver#",
-   "purl": "pkg:generic/shadowdriver",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tool",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tool@0.1.0#",
-   "purl": "pkg:generic/tool@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
@@ -892,6 +853,32 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
    "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/shadowdriver",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:local/shadowdriver#",
+   "purl": "pkg:local/shadowdriver",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tool",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tool@0.1.0#",
+   "purl": "pkg:local/tool@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
   },
   {
    "commit": null,
@@ -1152,6 +1139,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.8.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/python",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/python@3.15#",
+   "purl": "pkg:toolchain/python@3.15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "3.15"
   }
  ],
  "issues": [

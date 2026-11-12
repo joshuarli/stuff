@@ -221,35 +221,35 @@ def test_package_index_and_routing_markup(tmp_path: Path) -> None:
     assert "evil" in packages
 
 
-def test_packages_page_splits_generic_by_purpose(tmp_path: Path) -> None:
+def test_packages_page_shows_specific_ecosystems(tmp_path: Path) -> None:
     toolchain = Instance(
-        "pkg:generic/rust@nightly-2026-09-15#",
-        "pkg:generic/rust@nightly-2026-09-15",
-        "pkg:generic/rust",
+        "pkg:toolchain/rust@nightly-2026-09-15#",
+        "pkg:toolchain/rust@nightly-2026-09-15",
+        "pkg:toolchain/rust",
         "nightly-2026-09-15",
         SourceKind.URL,
     )
     download = Instance(
-        "pkg:generic/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz#",
-        "pkg:generic/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz",
-        "pkg:generic/musl-1.2.6.tar.gz",
+        "pkg:artifact/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz#",
+        "pkg:artifact/musl-1.2.6.tar.gz?download_url=https%3A%2F%2Fexample.invalid%2Fmusl.tar.gz",
+        "pkg:artifact/musl-1.2.6.tar.gz",
         None,
         SourceKind.URL,
     )
     local = instance(
-        Ecosystem.GENERIC,
+        Ecosystem.LOCAL,
         "local-thing",
         None,
         source_kind=SourceKind.PATH,
         first_party=True,
     )
     service = instance(
-        Ecosystem.GENERIC,
+        Ecosystem.SERVICE,
         "cloudflare-d1/DB",
         None,
         source_kind=SourceKind.REGISTRY,
     )
-    system = instance(Ecosystem.GENERIC, "Graph", None)
+    system = instance(Ecosystem.SYSTEM, "Graph", None)
     service_edge = Edge(
         ".:generic",
         service.id,
@@ -274,14 +274,8 @@ def test_packages_page_splits_generic_by_purpose(tmp_path: Path) -> None:
     inventory = graph.load_inventory(inventory_path)
     result = render.render(inventory, graph.build_graph(inventory), tmp_path / "dashboard")
     packages = (result.output / "packages.html").read_text(encoding="utf-8")
-    for bucket in (
-        "generic · first-party",
-        "generic · toolchains",
-        "generic · downloads",
-        "generic · services",
-        "generic · system",
-    ):
-        assert bucket in packages
+    for ecosystem in ("local", "toolchain", "artifact", "service", "system"):
+        assert f'<div class="bar-label"><span>{ecosystem}</span>' in packages
     assert "<span>generic</span>" not in packages
 
 
@@ -631,9 +625,9 @@ def test_coverage_shows_fixable_issues_and_only_counts_known_limits(tmp_path: Pa
 
 def test_coverage_lists_source_risk_items_and_leaves_out_forks(tmp_path: Path) -> None:
     artifact = Instance(
-        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz#",
-        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
-        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
+        "pkg:artifact/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz#",
+        "pkg:artifact/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
+        "pkg:artifact/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz",
         None,
         SourceKind.URL,
     )

@@ -139,18 +139,6 @@
    "purl": "pkg:cargo/zstd"
   },
   {
-   "display_name": "rawzip",
-   "ecosystem": "generic",
-   "name": "rawzip",
-   "purl": "pkg:generic/rawzip"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -167,6 +155,18 @@
    "ecosystem": "github",
    "name": "dtolnay/rust-toolchain",
    "purl": "pkg:github/dtolnay/rust-toolchain"
+  },
+  {
+   "display_name": "rawzip",
+   "ecosystem": "local",
+   "name": "rawzip",
+   "purl": "pkg:local/rawzip"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -403,24 +403,6 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:cargo/zstd#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -874,6 +856,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "0.8.2",
    "evidence": [
     {
@@ -924,7 +924,7 @@
    "resolved_version": "0.5.2",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/rawzip@0.5.2#"
+   "to": "pkg:local/rawzip@0.5.2#"
   },
   {
    "condition": null,
@@ -1086,7 +1086,7 @@
    "resolved_version": "0.5.2",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/rawzip@0.5.2#"
+   "to": "pkg:local/rawzip@0.5.2#"
   },
   {
    "condition": null,
@@ -1140,7 +1140,7 @@
    "resolved_version": "0.5.2",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/rawzip@0.5.2#"
+   "to": "pkg:local/rawzip@0.5.2#"
   }
  ],
  "inputs": [
@@ -1181,7 +1181,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "2b024b5492eb514a275c727d15b1557dd3221af61c45ba931ce2165641e37b23",
+ "inputs_fingerprint": "3f68dcbd561bab4847360454d9cc685d31bf258955160ca6fafbbbb72fe58e02",
  "instances": [
   {
    "commit": null,
@@ -1483,32 +1483,6 @@
    "version": null
   },
   {
-   "commit": null,
-   "component": "pkg:generic/rawzip",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rawzip@0.5.2#",
-   "purl": "pkg:generic/rawzip@0.5.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.5.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -1572,6 +1546,32 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/dtolnay/rust-toolchain",
    "version": "master"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rawzip",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rawzip@0.5.2#",
+   "purl": "pkg:local/rawzip@0.5.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.5.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

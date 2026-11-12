@@ -76,13 +76,13 @@
    "display_name": "age-core",
    "ecosystem": "cargo",
    "name": "age-core",
-   "purl": "pkg:cargo/age-core?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage"
+   "purl": "pkg:cargo/age-core?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F"
   },
   {
    "display_name": "age",
    "ecosystem": "cargo",
    "name": "age",
-   "purl": "pkg:cargo/age?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage"
+   "purl": "pkg:cargo/age?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F"
   },
   {
    "display_name": "autocfg",
@@ -589,18 +589,6 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "vault",
-   "ecosystem": "generic",
-   "name": "vault",
-   "purl": "pkg:generic/vault"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -635,12 +623,24 @@
    "ecosystem": "github",
    "name": "swatinem/rust-cache",
    "purl": "pkg:github/swatinem/rust-cache"
+  },
+  {
+   "display_name": "vault",
+   "ecosystem": "local",
+   "name": "vault",
+   "purl": "pkg:local/vault"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
   {
    "condition": null,
-   "constraint": "13c664f179455bbaff9b4c56a6418df2b93d6ec8",
+   "constraint": "0.13.0",
    "evidence": [
     {
      "locator": "dependencies.age",
@@ -655,10 +655,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.12.1",
+   "resolved_version": "0.13.0",
    "scope": "runtime",
-   "source_kind": "git",
-   "to": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#"
+   "source_kind": "registry",
+   "to": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
   },
   {
    "condition": "cfg(target_os = \"linux\")",
@@ -966,24 +966,6 @@
   },
   {
    "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
-  {
-   "condition": null,
    "constraint": "v7.0.1",
    "evidence": [
     {
@@ -1164,6 +1146,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
@@ -1207,7 +1207,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1225,7 +1225,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1243,7 +1243,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1261,7 +1261,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1279,7 +1279,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1297,7 +1297,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1315,7 +1315,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1333,7 +1333,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1351,7 +1351,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1369,7 +1369,7 @@
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1383,29 +1383,29 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[0]",
+     "locator": "package[name=age,version=0.13.0].dependencies[0]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "0.13.0",
    "scope": "runtime",
-   "source_kind": "git",
-   "to": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#"
+   "source_kind": "registry",
+   "to": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[1]",
+     "locator": "package[name=age,version=0.13.0].dependencies[1]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1419,11 +1419,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[2]",
+     "locator": "package[name=age,version=0.13.0].dependencies[2]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1437,11 +1437,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[3]",
+     "locator": "package[name=age,version=0.13.0].dependencies[3]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1455,11 +1455,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[4]",
+     "locator": "package[name=age,version=0.13.0].dependencies[4]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1473,11 +1473,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[5]",
+     "locator": "package[name=age,version=0.13.0].dependencies[5]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1491,11 +1491,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[6]",
+     "locator": "package[name=age,version=0.13.0].dependencies[6]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1509,11 +1509,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[7]",
+     "locator": "package[name=age,version=0.13.0].dependencies[7]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1527,11 +1527,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[8]",
+     "locator": "package[name=age,version=0.13.0].dependencies[8]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1545,11 +1545,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[9]",
+     "locator": "package[name=age,version=0.13.0].dependencies[9]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1563,11 +1563,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[10]",
+     "locator": "package[name=age,version=0.13.0].dependencies[10]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1581,11 +1581,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[11]",
+     "locator": "package[name=age,version=0.13.0].dependencies[11]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1599,11 +1599,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[12]",
+     "locator": "package[name=age,version=0.13.0].dependencies[12]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1617,11 +1617,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[13]",
+     "locator": "package[name=age,version=0.13.0].dependencies[13]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1635,11 +1635,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[14]",
+     "locator": "package[name=age,version=0.13.0].dependencies[14]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1653,11 +1653,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[15]",
+     "locator": "package[name=age,version=0.13.0].dependencies[15]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1671,11 +1671,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[16]",
+     "locator": "package[name=age,version=0.13.0].dependencies[16]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1689,11 +1689,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[17]",
+     "locator": "package[name=age,version=0.13.0].dependencies[17]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1707,11 +1707,11 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "package[name=age,version=0.12.1].dependencies[18]",
+     "locator": "package[name=age,version=0.13.0].dependencies[18]",
      "path": "Cargo.lock"
     }
    ],
-   "from": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
+   "from": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -5335,11 +5335,11 @@
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "086393549b6554d17cec42ad6cca6b760e70b75e",
+   "blob": "0b87fa1e3d22d3e2cb41e3099a64343f399bfeae",
    "path": "Cargo.lock"
   },
   {
-   "blob": "9b1253cbcd114530fe92995cb9e4ed7aef6a2360",
+   "blob": "da9a13ffc081f78ca2a766b897f6fb231db2a94a",
    "path": "Cargo.toml"
   },
   {
@@ -5355,7 +5355,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "ca79fc16f6714a65fd289a05827aeb1715076ade27ef6d61383dfd9be32d20ed",
+ "inputs_fingerprint": "7ba12cae1292af64cd6908a266bfea9238166b21998eb3219b0f79117e4072ae",
  "instances": [
   {
    "commit": null,
@@ -5514,30 +5514,30 @@
    "version": "0.6.1"
   },
   {
-   "commit": "13c664f179455bbaff9b4c56a6418df2b93d6ec8",
-   "component": "pkg:cargo/age-core?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage",
+   "commit": null,
+   "component": "pkg:cargo/age-core?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
-   "purl": "pkg:cargo/age-core@0.13.0?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/laputa-systems/rage",
+   "id": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "purl": "pkg:cargo/age-core@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
+   "registry_url": "https://crates.17166969.xyz/current/registry/",
+   "repository_url": "https://crates.17166969.xyz/current/registry/",
+   "source_kind": "registry",
+   "vcs_url": null,
    "version": "0.13.0"
   },
   {
-   "commit": "13c664f179455bbaff9b4c56a6418df2b93d6ec8",
-   "component": "pkg:cargo/age?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage",
+   "commit": null,
+   "component": "pkg:cargo/age?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
    "context": "",
    "first_party": false,
-   "id": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage#",
-   "purl": "pkg:cargo/age@0.12.1?vcs_url=https%3A%2F%2Fgithub.com%2Flaputa-systems%2Frage",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "git",
-   "vcs_url": "https://github.com/laputa-systems/rage",
-   "version": "0.12.1"
+   "id": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#",
+   "purl": "pkg:cargo/age@0.13.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F",
+   "registry_url": "https://crates.17166969.xyz/current/registry/",
+   "repository_url": "https://crates.17166969.xyz/current/registry/",
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.13.0"
   },
   {
    "commit": null,
@@ -6632,32 +6632,6 @@
    "version": "3.24.2"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/vault",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/vault@0.2.0#",
-   "purl": "pkg:generic/vault@0.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.2.0"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -6734,9 +6708,41 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/swatinem/rust-cache",
    "version": "d1527c8f67ef9af357290475d4af4b0fab8f12e0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/vault",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/vault@0.2.0#",
+   "purl": "pkg:local/vault@0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [
+  {
+   "kind": "dynamic_value",
+   "locator": "dependencies.age",
+   "message": "named registry 'mycrates' cannot be resolved statically",
+   "path": "Cargo.toml"
+  },
   {
    "kind": "dynamic_value",
    "locator": "L34",

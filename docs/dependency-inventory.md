@@ -193,6 +193,24 @@ Record useful sanitized source information instead of skipping the dependency.
 
 ### Identity and resolution
 
+Each package has an ecosystem, used as the `pkg:<ecosystem>` purl type. Registry-backed types
+(`cargo`, `pypi`, `npm`, `golang`, `swift`, `apk`, `docker`, `github`) mean the package exists
+in that registry or forge. The inventory also records identities that no registry owns, as
+unregistered purl types that exist only inside this inventory:
+
+- `local` — a package inside (or pointed at on) the local filesystem: workspace members and
+  path dependencies, first-party or not. The `first_party` flag records whether it is inside
+  the repository.
+- `toolchain` — a language or package-manager toolchain, such as `pkg:toolchain/node@22.14.0`
+  from `.nvmrc` or `pkg:toolchain/go@1.24.3` from a `go.mod` toolchain directive.
+- `artifact` — an arbitrary downloaded file, such as `pkg:artifact/musl-1.2.6.tar.xz?download_url=…`.
+- `git` — a git repository dependency that is not a tagged forge package, with `vcs_url` as identity.
+- `system` — a system library from CMake `find_package` or pkg-config, such as `pkg:system/ZLIB`.
+- `service` — a managed service binding from `wrangler.toml`, such as `pkg:service/cloudflare-d1/DB`.
+- `generic` — the residual bucket for components with no better identity. Anything new that
+  adapters emit must land in one of these types or carry explicit qualifiers; `generic` carries
+  no meaning beyond "some other dependency".
+
 Configured mirrors of public registries map to public package identities while retaining the
 observed registry URL. Native and distinct registries retain source qualifiers. Action subpaths
 and Docker registry qualifiers are identity fields; collapsing them loses dependencies.
@@ -263,7 +281,7 @@ the original render target.
 - Go dependency edges come from `go.mod`. `go.sum` and `go.work` are fingerprinted but add no
   edges, and `go.mod` exclusions are not modeled. Free-form vendored metadata such as
   `README.chromium` is not parsed.
-- Local workspace and path packages are `pkg:generic` first-party instances, not registry
+- Local workspace and path packages are `pkg:local` first-party instances, not registry
   packages. The audit rules still see their own notions; the inventory is a superset where the
   audit drops a second locked version.
 - The inventory reads the committed `origin/HEAD` tree. Ignored, untracked, or working-tree

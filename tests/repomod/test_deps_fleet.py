@@ -116,7 +116,7 @@ def test_fleet_matches_the_audit(tmp_path: Path) -> None:
 
     The inventory reads the committed tree and separates local packages:
     an ignored working-tree lock is invisible to it, and a local workspace
-    package is a generic first-party instance rather than a registry
+    package is a local first-party instance rather than a registry
     dependency. A nested lock is more precise than the audit's root lock,
     and a nested package without its own lock is declared-only. Replacements
     change the resolved identity. Anything else is a miss.
@@ -145,7 +145,7 @@ def test_fleet_matches_the_audit(tmp_path: Path) -> None:
                 instance.id
             )
             version_of[instance.id] = instance.version
-            if component.ecosystem is Ecosystem.GENERIC:
+            if component.ecosystem is Ecosystem.LOCAL:
                 for normalized in {
                     name.casefold(),
                     _normalize_name(Ecosystem.CARGO, component.name),

@@ -114,7 +114,7 @@ class CmakeAdapter:
         components: dict[str, Component] = {}
         instances: list[Instance] = []
         for ref in drafts.values():
-            component = Component(ref.component, Ecosystem.GENERIC, ref.name, ref.name)
+            component = Component(ref.component, ref.ecosystem, ref.name, ref.name)
             components.setdefault(component.purl, component)
             instances.append(
                 Instance(
@@ -141,13 +141,14 @@ class _Ref:
     name: str
     source_kind: SourceKind
     source_key: str
+    ecosystem: Ecosystem
     vcs_url: str | None = None
     commit: str | None = None
     qualifiers: tuple[tuple[str, str], ...] = ()
 
     @property
     def purl(self) -> str:
-        return purl(Ecosystem.GENERIC, self.name, qualifiers=dict(self.qualifiers))
+        return purl(self.ecosystem, self.name, qualifiers=dict(self.qualifiers))
 
     @property
     def component(self) -> str:
@@ -218,6 +219,7 @@ def _find_package(
         package,
         SourceKind.VENDORED if vendored else SourceKind.REGISTRY,
         f"cmake:{package}",
+        Ecosystem.SYSTEM,
     )
     return ref, Scope.SYSTEM, Resolution.DECLARED_ONLY, version
 
@@ -247,6 +249,7 @@ def _pkg_check_modules(
             package,
             SourceKind.VENDORED if vendored else SourceKind.REGISTRY,
             f"cmake:{package}",
+            Ecosystem.SYSTEM,
         )
         resolved.append((ref, Scope.SYSTEM, Resolution.DECLARED_ONLY, version))
     return tuple(resolved)
@@ -288,6 +291,7 @@ def _declare(
             name,
             SourceKind.VENDORED if vendored else SourceKind.URL,
             f"cmake:url:{target}",
+            Ecosystem.ARTIFACT,
             qualifiers=(("download_url", target),),
         )
         return ref, Scope.BUILD, Resolution.RESOLVED if checksum is not None else Resolution.DECLARED_ONLY, checksum
@@ -306,6 +310,7 @@ def _declare(
             name,
             SourceKind.VENDORED if vendored else SourceKind.GIT,
             f"cmake:git:{vcs_url}",
+            Ecosystem.GIT,
             vcs_url=vcs_url,
             commit=commit,
             qualifiers=(("vcs_url", vcs_url),),

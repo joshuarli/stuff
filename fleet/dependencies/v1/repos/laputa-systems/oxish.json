@@ -1,6 +1,18 @@
 {
  "components": [
   {
+   "display_name": "cargo-dist-installer.sh",
+   "ecosystem": "artifact",
+   "name": "cargo-dist-installer.sh",
+   "purl": "pkg:artifact/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh"
+  },
+  {
+   "display_name": "sh.rustup.rs",
+   "ecosystem": "artifact",
+   "name": "sh.rustup.rs",
+   "purl": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs"
+  },
+  {
    "display_name": "aho-corasick",
    "ecosystem": "cargo",
    "name": "aho-corasick",
@@ -643,54 +655,6 @@
    "purl": "pkg:cargo/zeroize"
   },
   {
-   "display_name": "cargo-dist-installer.sh",
-   "ecosystem": "generic",
-   "name": "cargo-dist-installer.sh",
-   "purl": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh"
-  },
-  {
-   "display_name": "graviola",
-   "ecosystem": "generic",
-   "name": "graviola",
-   "purl": "pkg:generic/graviola"
-  },
-  {
-   "display_name": "oxish",
-   "ecosystem": "generic",
-   "name": "oxish",
-   "purl": "pkg:generic/oxish"
-  },
-  {
-   "display_name": "oxish-fuzz",
-   "ecosystem": "generic",
-   "name": "oxish-fuzz",
-   "purl": "pkg:generic/oxish-fuzz"
-  },
-  {
-   "display_name": "oxish-graviola",
-   "ecosystem": "generic",
-   "name": "oxish-graviola",
-   "purl": "pkg:generic/oxish-graviola"
-  },
-  {
-   "display_name": "oxish-proto",
-   "ecosystem": "generic",
-   "name": "oxish-proto",
-   "purl": "pkg:generic/oxish-proto"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "sh.rustup.rs",
-   "ecosystem": "generic",
-   "name": "sh.rustup.rs",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -737,6 +701,42 @@
    "ecosystem": "github",
    "name": "taiki-e/install-action",
    "purl": "pkg:github/taiki-e/install-action"
+  },
+  {
+   "display_name": "graviola",
+   "ecosystem": "local",
+   "name": "graviola",
+   "purl": "pkg:local/graviola"
+  },
+  {
+   "display_name": "oxish",
+   "ecosystem": "local",
+   "name": "oxish",
+   "purl": "pkg:local/oxish"
+  },
+  {
+   "display_name": "oxish-fuzz",
+   "ecosystem": "local",
+   "name": "oxish-fuzz",
+   "purl": "pkg:local/oxish-fuzz"
+  },
+  {
+   "display_name": "oxish-graviola",
+   "ecosystem": "local",
+   "name": "oxish-graviola",
+   "purl": "pkg:local/oxish-graviola"
+  },
+  {
+   "display_name": "oxish-proto",
+   "ecosystem": "local",
+   "name": "oxish-proto",
+   "purl": "pkg:local/oxish-proto"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -756,25 +756,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:artifact/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh#"
   },
   {
    "condition": null,
@@ -792,7 +774,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#"
+   "to": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#"
   },
   {
    "condition": null,
@@ -1498,6 +1480,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "0.4",
    "evidence": [
     {
@@ -1538,7 +1538,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish-graviola@0.2.0#"
+   "to": "pkg:local/oxish-graviola@0.2.0#"
   },
   {
    "condition": null,
@@ -1560,7 +1560,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish-proto@0.2.0#"
+   "to": "pkg:local/oxish-proto@0.2.0#"
   },
   {
    "condition": null,
@@ -1582,7 +1582,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish@0.2.0#"
+   "to": "pkg:local/oxish@0.2.0#"
   },
   {
    "condition": null,
@@ -1626,7 +1626,7 @@
    "resolved_version": "0.4.1",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/graviola@0.4.1#"
+   "to": "pkg:local/graviola@0.4.1#"
   },
   {
    "condition": null,
@@ -1648,7 +1648,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish-proto@0.2.0#"
+   "to": "pkg:local/oxish-proto@0.2.0#"
   },
   {
    "condition": null,
@@ -2132,7 +2132,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish-graviola@0.2.0#"
+   "to": "pkg:local/oxish-graviola@0.2.0#"
   },
   {
    "condition": null,
@@ -2154,7 +2154,7 @@
    "resolved_version": "0.2.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/oxish-proto@0.2.0#"
+   "to": "pkg:local/oxish-proto@0.2.0#"
   },
   {
    "condition": null,
@@ -7779,8 +7779,34 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "914f77227a1c6a0de404e88bd2f9ccce4fefde3709bbb546af262f4f4e67df9f",
+ "inputs_fingerprint": "e339888693ea127e058a6c38287df840659372306f41311fe70a0f96ae11cd83",
  "instances": [
+  {
+   "commit": null,
+   "component": "pkg:artifact/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh#",
+   "purl": "pkg:artifact/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#",
+   "purl": "pkg:artifact/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
   {
    "commit": null,
    "component": "pkg:cargo/aho-corasick",
@@ -9317,110 +9343,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh#",
-   "purl": "pkg:generic/cargo-dist-installer.sh?download_url=https%3A%2F%2Fgithub.com%2Faxodotdev%2Fcargo-dist%2Freleases%2Fdownload%2Fv0.32.0%2Fcargo-dist-installer.sh",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/graviola",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/graviola@0.4.1#",
-   "purl": "pkg:generic/graviola@0.4.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.4.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/oxish-fuzz",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/oxish-fuzz@0.0.0#",
-   "purl": "pkg:generic/oxish-fuzz@0.0.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/oxish-graviola",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/oxish-graviola@0.2.0#",
-   "purl": "pkg:generic/oxish-graviola@0.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/oxish-proto",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/oxish-proto@0.2.0#",
-   "purl": "pkg:generic/oxish-proto@0.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/oxish",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/oxish@0.2.0#",
-   "purl": "pkg:generic/oxish@0.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs#",
-   "purl": "pkg:generic/sh.rustup.rs?download_url=https%3A%2F%2Fsh.rustup.rs",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
    "component": "pkg:github/actions/checkout",
    "context": "",
    "first_party": false,
@@ -9574,6 +9496,84 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/taiki-e/install-action",
    "version": "v2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/graviola",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/graviola@0.4.1#",
+   "purl": "pkg:local/graviola@0.4.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.4.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/oxish-fuzz",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/oxish-fuzz@0.0.0#",
+   "purl": "pkg:local/oxish-fuzz@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/oxish-graviola",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/oxish-graviola@0.2.0#",
+   "purl": "pkg:local/oxish-graviola@0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/oxish-proto",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/oxish-proto@0.2.0#",
+   "purl": "pkg:local/oxish-proto@0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/oxish",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/oxish@0.2.0#",
+   "purl": "pkg:local/oxish@0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

@@ -1,12 +1,6 @@
 {
  "components": [
   {
-   "display_name": "go",
-   "ecosystem": "generic",
-   "name": "go",
-   "purl": "pkg:generic/go"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -587,6 +581,12 @@
    "ecosystem": "golang",
    "name": "gopkg.in/yaml.v3",
    "purl": "pkg:golang/gopkg.in/yaml.v3"
+  },
+  {
+   "display_name": "go",
+   "ecosystem": "toolchain",
+   "name": "go",
+   "purl": "pkg:toolchain/go"
   }
  ],
  "edges": [
@@ -751,24 +751,6 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9#"
-  },
-  {
-   "condition": null,
-   "constraint": "1.27.3",
-   "evidence": [
-    {
-     "locator": "L5",
-     "path": "go.mod"
-    }
-   ],
-   "from": ".:golang",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "1.27.3",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/go@1.27.3#"
   },
   {
    "condition": null,
@@ -2443,6 +2425,24 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:golang/gopkg.in/yaml.v3@v3.0.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "1.27.3",
+   "evidence": [
+    {
+     "locator": "L5",
+     "path": "go.mod"
+    }
+   ],
+   "from": ".:golang",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "1.27.3",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/go@1.27.3#"
   }
  ],
  "inputs": [
@@ -2475,21 +2475,8 @@
    "path": "go.sum"
   }
  ],
- "inputs_fingerprint": "da9ca0572cf3b15f556844ba0125c1b452dce5b09f1839389621cfeeac70d75e",
+ "inputs_fingerprint": "8a3c9af0fec17023811d3f2411cc9c0eedb78d06488c1222012ef057ef224113",
  "instances": [
-  {
-   "commit": null,
-   "component": "pkg:generic/go",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/go@1.27.3#",
-   "purl": "pkg:generic/go@1.27.3",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "1.27.3"
-  },
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
@@ -3750,6 +3737,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "v3.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/go",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/go@1.27.3#",
+   "purl": "pkg:toolchain/go@1.27.3",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "1.27.3"
   }
  ],
  "issues": [

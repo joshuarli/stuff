@@ -518,7 +518,7 @@ def _risk_repository(
         Ecosystem.DOCKER, "python", "3.13-slim", source_kind=SourceKind.IMAGE
     )
     artifact = _instance(
-        Ecosystem.GENERIC, "tool.tar.gz", None, source_kind=SourceKind.URL
+        Ecosystem.ARTIFACT, "tool.tar.gz", None, source_kind=SourceKind.URL
     )
     return _repository(
         name,
@@ -591,7 +591,7 @@ def test_source_risk_locations_are_in_json_and_text(tmp_path: Path) -> None:
         {
             "repository": "acme/risk",
             "path": ".github/workflows/ci.yml",
-            "purl": "pkg:generic/tool.tar.gz",
+            "purl": "pkg:artifact/tool.tar.gz",
         }
     ]
 
@@ -599,7 +599,7 @@ def test_source_risk_locations_are_in_json_and_text(tmp_path: Path) -> None:
     assert "    acme/risk Cargo.lock pkg:cargo/libfuzzer-sys@0.1.0" in text
     assert "    acme/risk .github/workflows/ci.yml pkg:github/actions/checkout@" in text
     assert "    acme/risk .github/workflows/ci.yml pkg:docker/python@3.13-slim" in text
-    assert "    acme/risk .github/workflows/ci.yml pkg:generic/tool.tar.gz" in text
+    assert "    acme/risk .github/workflows/ci.yml pkg:artifact/tool.tar.gz" in text
 
 
 def test_fork_source_risk_is_reported_apart_from_the_fleet(tmp_path: Path) -> None:

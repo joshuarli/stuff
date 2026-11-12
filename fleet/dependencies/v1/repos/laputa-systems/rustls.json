@@ -1639,102 +1639,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "bogo",
-   "ecosystem": "generic",
-   "name": "bogo",
-   "purl": "pkg:generic/bogo"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "rustls",
-   "ecosystem": "generic",
-   "name": "rustls",
-   "purl": "pkg:generic/rustls"
-  },
-  {
-   "display_name": "rustls-aws-lc-rs",
-   "ecosystem": "generic",
-   "name": "rustls-aws-lc-rs",
-   "purl": "pkg:generic/rustls-aws-lc-rs"
-  },
-  {
-   "display_name": "rustls-bench",
-   "ecosystem": "generic",
-   "name": "rustls-bench",
-   "purl": "pkg:generic/rustls-bench"
-  },
-  {
-   "display_name": "rustls-ci-bench",
-   "ecosystem": "generic",
-   "name": "rustls-ci-bench",
-   "purl": "pkg:generic/rustls-ci-bench"
-  },
-  {
-   "display_name": "rustls-connect-tests",
-   "ecosystem": "generic",
-   "name": "rustls-connect-tests",
-   "purl": "pkg:generic/rustls-connect-tests"
-  },
-  {
-   "display_name": "rustls-examples",
-   "ecosystem": "generic",
-   "name": "rustls-examples",
-   "purl": "pkg:generic/rustls-examples"
-  },
-  {
-   "display_name": "rustls-fuzz",
-   "ecosystem": "generic",
-   "name": "rustls-fuzz",
-   "purl": "pkg:generic/rustls-fuzz"
-  },
-  {
-   "display_name": "rustls-fuzzing-provider",
-   "ecosystem": "generic",
-   "name": "rustls-fuzzing-provider",
-   "purl": "pkg:generic/rustls-fuzzing-provider"
-  },
-  {
-   "display_name": "rustls-openssl-tests",
-   "ecosystem": "generic",
-   "name": "rustls-openssl-tests",
-   "purl": "pkg:generic/rustls-openssl-tests"
-  },
-  {
-   "display_name": "rustls-post-quantum",
-   "ecosystem": "generic",
-   "name": "rustls-post-quantum",
-   "purl": "pkg:generic/rustls-post-quantum"
-  },
-  {
-   "display_name": "rustls-provider-test",
-   "ecosystem": "generic",
-   "name": "rustls-provider-test",
-   "purl": "pkg:generic/rustls-provider-test"
-  },
-  {
-   "display_name": "rustls-ring",
-   "ecosystem": "generic",
-   "name": "rustls-ring",
-   "purl": "pkg:generic/rustls-ring"
-  },
-  {
-   "display_name": "rustls-test",
-   "ecosystem": "generic",
-   "name": "rustls-test",
-   "purl": "pkg:generic/rustls-test"
-  },
-  {
-   "display_name": "rustls-util",
-   "ecosystem": "generic",
-   "name": "rustls-util",
-   "purl": "pkg:generic/rustls-util"
-  },
-  {
    "display_name": "actions/cache",
    "ecosystem": "github",
    "name": "actions/cache",
@@ -1841,27 +1745,105 @@
    "ecosystem": "github",
    "name": "taiki-e/install-action",
    "purl": "pkg:github/taiki-e/install-action"
+  },
+  {
+   "display_name": "bogo",
+   "ecosystem": "local",
+   "name": "bogo",
+   "purl": "pkg:local/bogo"
+  },
+  {
+   "display_name": "rustls",
+   "ecosystem": "local",
+   "name": "rustls",
+   "purl": "pkg:local/rustls"
+  },
+  {
+   "display_name": "rustls-aws-lc-rs",
+   "ecosystem": "local",
+   "name": "rustls-aws-lc-rs",
+   "purl": "pkg:local/rustls-aws-lc-rs"
+  },
+  {
+   "display_name": "rustls-bench",
+   "ecosystem": "local",
+   "name": "rustls-bench",
+   "purl": "pkg:local/rustls-bench"
+  },
+  {
+   "display_name": "rustls-ci-bench",
+   "ecosystem": "local",
+   "name": "rustls-ci-bench",
+   "purl": "pkg:local/rustls-ci-bench"
+  },
+  {
+   "display_name": "rustls-connect-tests",
+   "ecosystem": "local",
+   "name": "rustls-connect-tests",
+   "purl": "pkg:local/rustls-connect-tests"
+  },
+  {
+   "display_name": "rustls-examples",
+   "ecosystem": "local",
+   "name": "rustls-examples",
+   "purl": "pkg:local/rustls-examples"
+  },
+  {
+   "display_name": "rustls-fuzz",
+   "ecosystem": "local",
+   "name": "rustls-fuzz",
+   "purl": "pkg:local/rustls-fuzz"
+  },
+  {
+   "display_name": "rustls-fuzzing-provider",
+   "ecosystem": "local",
+   "name": "rustls-fuzzing-provider",
+   "purl": "pkg:local/rustls-fuzzing-provider"
+  },
+  {
+   "display_name": "rustls-openssl-tests",
+   "ecosystem": "local",
+   "name": "rustls-openssl-tests",
+   "purl": "pkg:local/rustls-openssl-tests"
+  },
+  {
+   "display_name": "rustls-post-quantum",
+   "ecosystem": "local",
+   "name": "rustls-post-quantum",
+   "purl": "pkg:local/rustls-post-quantum"
+  },
+  {
+   "display_name": "rustls-provider-test",
+   "ecosystem": "local",
+   "name": "rustls-provider-test",
+   "purl": "pkg:local/rustls-provider-test"
+  },
+  {
+   "display_name": "rustls-ring",
+   "ecosystem": "local",
+   "name": "rustls-ring",
+   "purl": "pkg:local/rustls-ring"
+  },
+  {
+   "display_name": "rustls-test",
+   "ecosystem": "local",
+   "name": "rustls-test",
+   "purl": "pkg:local/rustls-test"
+  },
+  {
+   "display_name": "rustls-util",
+   "ecosystem": "local",
+   "name": "rustls-util",
+   "purl": "pkg:local/rustls-util"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v6",
@@ -3124,6 +3106,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "0.23",
    "evidence": [
     {
@@ -3230,7 +3230,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3252,7 +3252,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3274,7 +3274,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3472,7 +3472,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3494,7 +3494,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-fuzzing-provider@0.1.0#"
+   "to": "pkg:local/rustls-fuzzing-provider@0.1.0#"
   },
   {
    "condition": null,
@@ -3516,7 +3516,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3538,7 +3538,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-test@0.1.0#"
+   "to": "pkg:local/rustls-test@0.1.0#"
   },
   {
    "condition": null,
@@ -3560,7 +3560,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3648,7 +3648,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3868,7 +3868,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3890,7 +3890,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3912,7 +3912,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -3956,7 +3956,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-fuzzing-provider@0.1.0#"
+   "to": "pkg:local/rustls-fuzzing-provider@0.1.0#"
   },
   {
    "condition": null,
@@ -3978,7 +3978,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -4088,7 +4088,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -4110,7 +4110,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -4132,7 +4132,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15272,7 +15272,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-test@0.1.0#"
+   "to": "pkg:local/rustls-test@0.1.0#"
   },
   {
    "condition": null,
@@ -15294,7 +15294,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15382,7 +15382,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": "feature:ring",
@@ -15404,7 +15404,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15426,7 +15426,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-test@0.1.0#"
+   "to": "pkg:local/rustls-test@0.1.0#"
   },
   {
    "condition": null,
@@ -15448,7 +15448,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15492,7 +15492,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15514,7 +15514,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15536,7 +15536,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15624,7 +15624,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15646,7 +15646,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15778,7 +15778,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-test@0.1.0#"
+   "to": "pkg:local/rustls-test@0.1.0#"
   },
   {
    "condition": null,
@@ -15800,7 +15800,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -15976,7 +15976,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#"
   },
   {
    "condition": "feature:ring",
@@ -15998,7 +15998,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-ring@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-ring@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -16020,7 +16020,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-util@0.24.0-dev.2#"
+   "to": "pkg:local/rustls-util@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -16042,7 +16042,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": "feature:tracing",
@@ -16086,7 +16086,7 @@
    "resolved_version": "0.24.0-dev.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls@0.24.0-dev.2#"
+   "to": "pkg:local/rustls@0.24.0-dev.2#"
   },
   {
    "condition": null,
@@ -16394,7 +16394,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/rustls-test@0.1.0#"
+   "to": "pkg:local/rustls-test@0.1.0#"
   }
  ],
  "inputs": [
@@ -16495,7 +16495,7 @@
    "path": "rustls/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "39b871d8a5fa7add5ef0734bfd9144267993427037decb90e136c20de3925518",
+ "inputs_fingerprint": "c2c2e40e4f8b62042e1e7d98d50d1e8d822397d7a540b21fa6369b9c06f532be",
  "instances": [
   {
    "commit": null,
@@ -20269,214 +20269,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/bogo",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/bogo@0.1.0#",
-   "purl": "pkg:generic/bogo@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-aws-lc-rs",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2#",
-   "purl": "pkg:generic/rustls-aws-lc-rs@0.24.0-dev.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.24.0-dev.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-bench",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-bench@0.1.0#",
-   "purl": "pkg:generic/rustls-bench@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-ci-bench",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-ci-bench@0.0.1#",
-   "purl": "pkg:generic/rustls-ci-bench@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-connect-tests",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-connect-tests@0.0.1#",
-   "purl": "pkg:generic/rustls-connect-tests@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-examples",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-examples@0.0.1#",
-   "purl": "pkg:generic/rustls-examples@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-fuzz",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-fuzz@0.0.1#",
-   "purl": "pkg:generic/rustls-fuzz@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-fuzzing-provider",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-fuzzing-provider@0.1.0#",
-   "purl": "pkg:generic/rustls-fuzzing-provider@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-openssl-tests",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-openssl-tests@0.0.1#",
-   "purl": "pkg:generic/rustls-openssl-tests@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-post-quantum",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-post-quantum@0.3.0-dev.2#",
-   "purl": "pkg:generic/rustls-post-quantum@0.3.0-dev.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0-dev.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-provider-test",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-provider-test@0.1.0#",
-   "purl": "pkg:generic/rustls-provider-test@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-ring",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-ring@0.24.0-dev.2#",
-   "purl": "pkg:generic/rustls-ring@0.24.0-dev.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.24.0-dev.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-test",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-test@0.1.0#",
-   "purl": "pkg:generic/rustls-test@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-util",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-util@0.24.0-dev.2#",
-   "purl": "pkg:generic/rustls-util@0.24.0-dev.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.24.0-dev.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls@0.24.0-dev.2#",
-   "purl": "pkg:generic/rustls@0.24.0-dev.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.24.0-dev.2"
-  },
-  {
-   "commit": null,
    "component": "pkg:github/actions/cache",
    "context": "",
    "first_party": false,
@@ -20760,6 +20552,214 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/taiki-e/install-action",
    "version": "v2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/bogo",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/bogo@0.1.0#",
+   "purl": "pkg:local/bogo@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-aws-lc-rs",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2#",
+   "purl": "pkg:local/rustls-aws-lc-rs@0.24.0-dev.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.24.0-dev.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-bench",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-bench@0.1.0#",
+   "purl": "pkg:local/rustls-bench@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-ci-bench",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-ci-bench@0.0.1#",
+   "purl": "pkg:local/rustls-ci-bench@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-connect-tests",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-connect-tests@0.0.1#",
+   "purl": "pkg:local/rustls-connect-tests@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-examples",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-examples@0.0.1#",
+   "purl": "pkg:local/rustls-examples@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-fuzz",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-fuzz@0.0.1#",
+   "purl": "pkg:local/rustls-fuzz@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-fuzzing-provider",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-fuzzing-provider@0.1.0#",
+   "purl": "pkg:local/rustls-fuzzing-provider@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-openssl-tests",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-openssl-tests@0.0.1#",
+   "purl": "pkg:local/rustls-openssl-tests@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-post-quantum",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-post-quantum@0.3.0-dev.2#",
+   "purl": "pkg:local/rustls-post-quantum@0.3.0-dev.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0-dev.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-provider-test",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-provider-test@0.1.0#",
+   "purl": "pkg:local/rustls-provider-test@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-ring",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-ring@0.24.0-dev.2#",
+   "purl": "pkg:local/rustls-ring@0.24.0-dev.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.24.0-dev.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-test",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-test@0.1.0#",
+   "purl": "pkg:local/rustls-test@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-util",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-util@0.24.0-dev.2#",
+   "purl": "pkg:local/rustls-util@0.24.0-dev.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.24.0-dev.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls@0.24.0-dev.2#",
+   "purl": "pkg:local/rustls@0.24.0-dev.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.24.0-dev.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

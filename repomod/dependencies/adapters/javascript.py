@@ -608,7 +608,7 @@ def _resolve_pnpm(
             None,
             SourceKind.WORKSPACE if _inside(target) else SourceKind.PATH,
             f"npm:path:{target}",
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             first_party=_inside(target),
             vendored=vendored,
         )
@@ -620,7 +620,7 @@ def _resolve_pnpm(
             None,
             SourceKind.WORKSPACE,
             f"npm:path:{target}",
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             first_party=_inside(target),
             vendored=vendored,
         )
@@ -730,7 +730,7 @@ def _parse_npm(
                 version_value,
                 SourceKind.WORKSPACE if inside else SourceKind.PATH,
                 f"npm:path:{target}",
-                ecosystem=Ecosystem.GENERIC,
+                ecosystem=Ecosystem.LOCAL,
                 first_party=inside,
                 vendored=vendored,
             )

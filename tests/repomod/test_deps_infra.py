@@ -49,9 +49,7 @@ def _extract(
     return adapter.extract(inputs)
 
 
-def _instances(
-    result: AdapterResult, name: str, ecosystem: Ecosystem = Ecosystem.GENERIC
-) -> list[Instance]:
+def _instances(result: AdapterResult, name: str, ecosystem: Ecosystem) -> list[Instance]:
     base = purl(ecosystem, name)
     return [
         instance
@@ -64,9 +62,7 @@ def _component(result: AdapterResult, component: str) -> Instance:
     return next(instance for instance in result.instances if instance.component == component)
 
 
-def _direct(
-    result: AdapterResult, name: str, ecosystem: Ecosystem = Ecosystem.GENERIC
-) -> list[Edge]:
+def _direct(result: AdapterResult, name: str, ecosystem: Ecosystem) -> list[Edge]:
     targets = {instance.id for instance in _instances(result, name, ecosystem)}
     return [
         edge for edge in result.edges if edge.relation is Relation.DIRECT and edge.to_id in targets
@@ -97,7 +93,7 @@ def test_workflow_actions_are_resolved_with_comments() -> None:
     assert floating.constraint == "stable"
     assert floating.resolution is Resolution.DECLARED_ONLY
 
-    local = _instances(result, ".github/actions/local")[0]
+    local = _instances(result, ".github/actions/local", Ecosystem.LOCAL)[0]
     assert local.source_kind is SourceKind.PATH
     assert local.first_party is True
 
@@ -176,9 +172,9 @@ def test_workflow_artifacts_pinned_and_unpinned() -> None:
     )
     result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
 
-    pinned = _direct(result, "tool.tar.gz", Ecosystem.GENERIC)[0]
+    pinned = _direct(result, "tool.tar.gz", Ecosystem.ARTIFACT)[0]
     assert pinned.resolution is Resolution.RESOLVED
-    unpinned = _direct(result, "data.zip", Ecosystem.GENERIC)[0]
+    unpinned = _direct(result, "data.zip", Ecosystem.ARTIFACT)[0]
     assert unpinned.resolution is Resolution.DECLARED_ONLY
     dynamic = [issue for issue in result.issues if issue.kind is CoverageKind.DYNAMIC_VALUE]
     assert len(dynamic) == 1
@@ -198,9 +194,9 @@ def test_checksum_on_a_later_line_pins_the_downloaded_file() -> None:
     )
     result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
 
-    pinned = _direct(result, "binaryen-version_133-x86_64-linux.tar.gz", Ecosystem.GENERIC)[0]
+    pinned = _direct(result, "binaryen-version_133-x86_64-linux.tar.gz", Ecosystem.ARTIFACT)[0]
     assert pinned.resolution is Resolution.RESOLVED
-    unpinned = _direct(result, "sh.rustup.rs", Ecosystem.GENERIC)[0]
+    unpinned = _direct(result, "sh.rustup.rs", Ecosystem.ARTIFACT)[0]
     assert unpinned.resolution is Resolution.DECLARED_ONLY
 
 
@@ -215,7 +211,7 @@ def test_shasum_check_on_a_later_line_pins_the_downloaded_file() -> None:
     )
     result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
 
-    pinned = _direct(result, "bylaws.zip", Ecosystem.GENERIC)[0]
+    pinned = _direct(result, "bylaws.zip", Ecosystem.ARTIFACT)[0]
     assert pinned.resolution is Resolution.RESOLVED
 
 
@@ -231,10 +227,10 @@ def test_regex_escaped_urls_are_not_artifacts() -> None:
     result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
 
     assert not any(
-        instance.component == purl(Ecosystem.GENERIC, "docs")
+        instance.component == purl(Ecosystem.ARTIFACT, "docs")
         for instance in result.instances
     )
-    rustup = _direct(result, "sh.rustup.rs", Ecosystem.GENERIC)[0]
+    rustup = _direct(result, "sh.rustup.rs", Ecosystem.ARTIFACT)[0]
     assert rustup.resolution is Resolution.DECLARED_ONLY
 
 
@@ -247,11 +243,11 @@ def test_artifact_userinfo_is_redacted() -> None:
     )
     result = _extract(ActionsAdapter(), {".github/workflows/ci.yml": workflow})
 
-    instance = _instances(result, "tool.tar.gz")[0]
+    instance = _instances(result, "tool.tar.gz", Ecosystem.ARTIFACT)[0]
     assert "secret" not in instance.purl
     assert "user" not in instance.purl
     assert instance.component == (
-        "pkg:generic/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz"
+        "pkg:artifact/tool.tar.gz?download_url=https%3A%2F%2Fexample.com%2Ftool.tar.gz"
     )
 
 
@@ -297,6 +293,22 @@ def test_dockerfile_apk_pins() -> None:
     assert curl.resolved_version is None
 
 
+def test_dockerfile_apk_value_flags_do_not_emit_packages() -> None:
+    dockerfile = (
+        "FROM alpine:3.24\n"
+        "RUN apk add --no-cache --repositories-file /dev/null bash=5.3.9-r1\n"
+    )
+    result = _extract(ContainersAdapter(), {"Dockerfile": dockerfile})
+
+    assert result.issues == ()
+    bash = _instances(result, "bash", Ecosystem.APK)[0]
+    assert bash.version == "5.3.9-r1"
+    apk_instances = [
+        instance for instance in result.instances if instance.source_kind is not SourceKind.IMAGE
+    ]
+    assert [instance.component for instance in apk_instances] == ["pkg:apk/bash"]
+
+
 def test_dockerfile_unresolved_from_is_dynamic() -> None:
     result = _extract(
         ContainersAdapter(), {"Dockerfile": "FROM alpine-${TARGETARCH}\n"}
@@ -315,10 +327,10 @@ def test_dockerfile_artifacts() -> None:
     )
     result = _extract(ContainersAdapter(), {"Dockerfile": dockerfile})
 
-    pinned = _direct(result, "tool.tar.gz")[0]
+    pinned = _direct(result, "tool.tar.gz", Ecosystem.ARTIFACT)[0]
     assert pinned.resolution is Resolution.RESOLVED
     assert pinned.scope is Scope.BUILD
-    unpinned = _direct(result, "other.tar.gz")[0]
+    unpinned = _direct(result, "other.tar.gz", Ecosystem.ARTIFACT)[0]
     assert unpinned.resolution is Resolution.DECLARED_ONLY
 
 
@@ -334,23 +346,23 @@ def test_toolchain_files() -> None:
         },
     )
 
-    rust = _instances(result, "rust")[0]
+    rust = _instances(result, "rust", Ecosystem.TOOLCHAIN)[0]
     assert rust.version == "nightly-2026-09-15"
-    node = _instances(result, "node")[0]
+    node = _instances(result, "node", Ecosystem.TOOLCHAIN)[0]
     assert node.version == "v22.14.0"
-    python = _instances(result, "python")
+    python = _instances(result, "python", Ecosystem.TOOLCHAIN)
     assert sorted(instance.version or "" for instance in python) == ["3.14.0", "3.15.1"]
-    assert _instances(result, "nodejs")[0].version == "22.14.0"
-    pnpm = _instances(result, "pnpm")[0]
+    assert _instances(result, "nodejs", Ecosystem.TOOLCHAIN)[0].version == "22.14.0"
+    pnpm = _instances(result, "pnpm", Ecosystem.TOOLCHAIN)[0]
     assert pnpm.version == "10.0.0"
-    assert _direct(result, "pnpm")[0].resolution is Resolution.RESOLVED
-    assert _direct(result, "pnpm")[0].scope is Scope.TOOLCHAIN
+    assert _direct(result, "pnpm", Ecosystem.TOOLCHAIN)[0].resolution is Resolution.RESOLVED
+    assert _direct(result, "pnpm", Ecosystem.TOOLCHAIN)[0].scope is Scope.TOOLCHAIN
 
 
 def test_toolchain_aliases_are_declared_only() -> None:
     result = _extract(ToolchainsAdapter(), {".nvmrc": "lts/*\n"})
 
-    node = _direct(result, "node")
+    node = _direct(result, "node", Ecosystem.TOOLCHAIN)
     assert len(node) == 1
     assert node[0].resolution is Resolution.DECLARED_ONLY
 
@@ -383,11 +395,11 @@ def test_gitmodules_edges_use_gitlink_commits() -> None:
     first_edge = _direct(result, "owner/a", Ecosystem.GITHUB)[0]
     assert first_edge.constraint == "main"
     assert first_edge.resolution is Resolution.RESOLVED
-    second = _instances(result, "b")[0]
+    second = _instances(result, "b", Ecosystem.GIT)[0]
     assert second.component == (
-        "pkg:generic/b?vcs_url=https%3A%2F%2Fgit.example.com%2Fowner%2Fb.git"
+        "pkg:git/b?vcs_url=https%3A%2F%2Fgit.example.com%2Fowner%2Fb.git"
     )
-    assert _direct(result, "b")[0].resolution is Resolution.DECLARED_ONLY
+    assert _direct(result, "b", Ecosystem.GIT)[0].resolution is Resolution.DECLARED_ONLY
 
 
 def test_submodule_userinfo_is_redacted() -> None:
@@ -398,7 +410,7 @@ def test_submodule_userinfo_is_redacted() -> None:
     )
     result = _extract(SubmodulesAdapter(), {".gitmodules": gitmodules})
 
-    instance = _instances(result, "a")[0]
+    instance = _instances(result, "a", Ecosystem.GIT)[0]
     assert "secret" not in instance.purl
     assert "user" not in instance.purl
     assert instance.vcs_url == "https://git.example.com/owner/a.git"
@@ -431,21 +443,21 @@ def test_cmake_literals_and_dynamic_declarations() -> None:
     )
     result = _extract(CmakeAdapter(), {"CMakeLists.txt": cmake})
 
-    zlib = _direct(result, "ZLIB")[0]
+    zlib = _direct(result, "ZLIB", Ecosystem.SYSTEM)[0]
     assert zlib.scope is Scope.SYSTEM
     assert zlib.constraint == "1.3"
     assert zlib.resolution is Resolution.DECLARED_ONLY
-    glib = _direct(result, "glib-2.0")[0]
+    glib = _direct(result, "glib-2.0", Ecosystem.SYSTEM)[0]
     assert glib.constraint == "2.80"
-    gio = _direct(result, "gio-2.0")[0]
+    gio = _direct(result, "gio-2.0", Ecosystem.SYSTEM)[0]
     assert gio.resolution is Resolution.DECLARED_ONLY
-    fmt = _direct(result, "fmt")[0]
+    fmt = _direct(result, "fmt", Ecosystem.ARTIFACT)[0]
     assert fmt.resolution is Resolution.RESOLVED
     assert fmt.scope is Scope.BUILD
     assert fmt.constraint == f"SHA256={SHA256}"
-    gitdep = _direct(result, "gitdep")[0]
+    gitdep = _direct(result, "gitdep", Ecosystem.GIT)[0]
     assert gitdep.resolution is Resolution.RESOLVED
-    assert _instances(result, "gitdep")[0].commit == SHA
+    assert _instances(result, "gitdep", Ecosystem.GIT)[0].commit == SHA
     dynamic = [issue for issue in result.issues if issue.kind is CoverageKind.DYNAMIC_VALUE]
     assert len(dynamic) == 1
     assert "dynamic" in dynamic[0].message
@@ -493,13 +505,13 @@ def test_wrangler_toml_bindings() -> None:
 
     assert result.issues == ()
     assert [edge.scope for edge in result.edges] == [Scope.SERVICE] * 7
-    assert _direct(result, "cloudflare-d1/DB")[0].constraint == "abc"
-    assert _direct(result, "cloudflare-kv/CACHE")[0].constraint == "xyz"
-    assert _direct(result, "cloudflare-r2/BUCKET")[0].constraint == "assets"
-    assert _direct(result, "cloudflare-durable-object/ROOM")[0].constraint == "Room"
-    assert _direct(result, "cloudflare-service/API")[0].constraint == "api-worker"
-    assert _direct(result, "cloudflare-queue/JOBS")[0].constraint == "jobs"
-    assert _direct(result, "cloudflare-queue/jobs")[0].constraint == "jobs"
+    assert _direct(result, "cloudflare-d1/DB", Ecosystem.SERVICE)[0].constraint == "abc"
+    assert _direct(result, "cloudflare-kv/CACHE", Ecosystem.SERVICE)[0].constraint == "xyz"
+    assert _direct(result, "cloudflare-r2/BUCKET", Ecosystem.SERVICE)[0].constraint == "assets"
+    assert _direct(result, "cloudflare-durable-object/ROOM", Ecosystem.SERVICE)[0].constraint == "Room"
+    assert _direct(result, "cloudflare-service/API", Ecosystem.SERVICE)[0].constraint == "api-worker"
+    assert _direct(result, "cloudflare-queue/JOBS", Ecosystem.SERVICE)[0].constraint == "jobs"
+    assert _direct(result, "cloudflare-queue/jobs", Ecosystem.SERVICE)[0].constraint == "jobs"
 
 
 def test_wrangler_jsonc_bindings() -> None:
@@ -518,7 +530,7 @@ def test_wrangler_jsonc_bindings() -> None:
     )
 
     assert result.issues == ()
-    edge = _direct(result, "cloudflare-durable-object/INSTALLATION")[0]
+    edge = _direct(result, "cloudflare-durable-object/INSTALLATION", Ecosystem.SERVICE)[0]
     assert edge.evidence[0].locator == "durable_objects.bindings[0].name"
 
 

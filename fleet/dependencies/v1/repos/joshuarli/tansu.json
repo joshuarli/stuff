@@ -1627,72 +1627,6 @@
    "purl": "pkg:docker/playwright?digest=sha256%3A06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f&repository_url=https%3A%2F%2Fmcr.microsoft.com%2F"
   },
   {
-   "display_name": "gen-api-types",
-   "ecosystem": "generic",
-   "name": "gen-api-types",
-   "purl": "pkg:generic/gen-api-types"
-  },
-  {
-   "display_name": "node",
-   "ecosystem": "generic",
-   "name": "node",
-   "purl": "pkg:generic/node"
-  },
-  {
-   "display_name": "pnpm",
-   "ecosystem": "generic",
-   "name": "pnpm",
-   "purl": "pkg:generic/pnpm"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "tansu",
-   "ecosystem": "generic",
-   "name": "tansu",
-   "purl": "pkg:generic/tansu"
-  },
-  {
-   "display_name": "tansu-api-types",
-   "ecosystem": "generic",
-   "name": "tansu-api-types",
-   "purl": "pkg:generic/tansu-api-types"
-  },
-  {
-   "display_name": "tansu-note-core",
-   "ecosystem": "generic",
-   "name": "tansu-note-core",
-   "purl": "pkg:generic/tansu-note-core"
-  },
-  {
-   "display_name": "tansu-search",
-   "ecosystem": "generic",
-   "name": "tansu-search",
-   "purl": "pkg:generic/tansu-search"
-  },
-  {
-   "display_name": "tansu-search-policy",
-   "ecosystem": "generic",
-   "name": "tansu-search-policy",
-   "purl": "pkg:generic/tansu-search-policy"
-  },
-  {
-   "display_name": "tansu-webauthn",
-   "ecosystem": "generic",
-   "name": "tansu-webauthn",
-   "purl": "pkg:generic/tansu-webauthn"
-  },
-  {
-   "display_name": "tantivy",
-   "ecosystem": "generic",
-   "name": "tantivy",
-   "purl": "pkg:generic/tantivy"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -1703,6 +1637,54 @@
    "ecosystem": "github",
    "name": "pnpm/setup",
    "purl": "pkg:github/pnpm/setup"
+  },
+  {
+   "display_name": "gen-api-types",
+   "ecosystem": "local",
+   "name": "gen-api-types",
+   "purl": "pkg:local/gen-api-types"
+  },
+  {
+   "display_name": "tansu",
+   "ecosystem": "local",
+   "name": "tansu",
+   "purl": "pkg:local/tansu"
+  },
+  {
+   "display_name": "tansu-api-types",
+   "ecosystem": "local",
+   "name": "tansu-api-types",
+   "purl": "pkg:local/tansu-api-types"
+  },
+  {
+   "display_name": "tansu-note-core",
+   "ecosystem": "local",
+   "name": "tansu-note-core",
+   "purl": "pkg:local/tansu-note-core"
+  },
+  {
+   "display_name": "tansu-search",
+   "ecosystem": "local",
+   "name": "tansu-search",
+   "purl": "pkg:local/tansu-search"
+  },
+  {
+   "display_name": "tansu-search-policy",
+   "ecosystem": "local",
+   "name": "tansu-search-policy",
+   "purl": "pkg:local/tansu-search-policy"
+  },
+  {
+   "display_name": "tansu-webauthn",
+   "ecosystem": "local",
+   "name": "tansu-webauthn",
+   "purl": "pkg:local/tansu-webauthn"
+  },
+  {
+   "display_name": "tantivy",
+   "ecosystem": "local",
+   "name": "tantivy",
+   "purl": "pkg:local/tantivy"
   },
   {
    "display_name": "@blazediff/core",
@@ -2477,6 +2459,24 @@
    "ecosystem": "npm",
    "name": "ws",
    "purl": "pkg:npm/ws?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F61d82073df3bf913b40275ad67fed6abd16d36f72b2f56ff44ed2e77d9968d43e00ebb00030412179d6c9b6866d57a1f6d4ff88e4a4612c2c5b1967153ed433a.tgz"
+  },
+  {
+   "display_name": "node",
+   "ecosystem": "toolchain",
+   "name": "node",
+   "purl": "pkg:toolchain/node"
+  },
+  {
+   "display_name": "pnpm",
+   "ecosystem": "toolchain",
+   "name": "pnpm",
+   "purl": "pkg:toolchain/pnpm"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -3248,7 +3248,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-api-types@0.1.0#"
+   "to": "pkg:local/tansu-api-types@0.1.0#"
   },
   {
    "condition": null,
@@ -3270,7 +3270,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-note-core@0.1.0#"
+   "to": "pkg:local/tansu-note-core@0.1.0#"
   },
   {
    "condition": null,
@@ -3292,7 +3292,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-search@0.1.0#"
+   "to": "pkg:local/tansu-search@0.1.0#"
   },
   {
    "condition": null,
@@ -3314,61 +3314,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-webauthn@0.1.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "26.13.0",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".node-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.13.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/node@26.13.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:local/tansu-webauthn@0.1.0#"
   },
   {
    "condition": null,
@@ -3459,6 +3405,60 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "26.13.0",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".node-version"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.13.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/node@26.13.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -3898,7 +3898,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-api-types@0.1.0#"
+   "to": "pkg:local/tansu-api-types@0.1.0#"
   },
   {
    "condition": null,
@@ -4008,7 +4008,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-search-policy@0.1.0#"
+   "to": "pkg:local/tansu-search-policy@0.1.0#"
   },
   {
    "condition": null,
@@ -4052,7 +4052,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-api-types@0.1.0#"
+   "to": "pkg:local/tansu-api-types@0.1.0#"
   },
   {
    "condition": null,
@@ -4162,7 +4162,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/tansu-search-policy@0.1.0#"
+   "to": "pkg:local/tansu-search-policy@0.1.0#"
   },
   {
    "condition": null,
@@ -4184,7 +4184,7 @@
    "resolved_version": "0.27.0",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/tantivy@0.27.0#"
+   "to": "pkg:local/tantivy@0.27.0#"
   },
   {
    "condition": null,
@@ -18075,7 +18075,7 @@
    "path": "vendor/tantivy/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "6185280c3d27243fc21bd32bb269dcc0cf746d5600caefd52aba77e826aed3ce",
+ "inputs_fingerprint": "abb6bb2f598423ee5c110453646a7f912d24087725c39c15cfdbdd1c71dc6f9d",
  "instances": [
   {
    "commit": null,
@@ -21718,149 +21718,6 @@
    "version": "v1.64.0-noble"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/gen-api-types",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/gen-api-types@0.1.0#",
-   "purl": "pkg:generic/gen-api-types@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/node",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/node@26.13.0#",
-   "purl": "pkg:generic/node@26.13.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "26.13.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/pnpm",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/pnpm@12.18.0#",
-   "purl": "pkg:generic/pnpm@12.18.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "12.18.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu-api-types",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu-api-types@0.1.0#",
-   "purl": "pkg:generic/tansu-api-types@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu-note-core",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu-note-core@0.1.0#",
-   "purl": "pkg:generic/tansu-note-core@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu-search-policy",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu-search-policy@0.1.0#",
-   "purl": "pkg:generic/tansu-search-policy@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu-search",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu-search@0.1.0#",
-   "purl": "pkg:generic/tansu-search@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu-webauthn",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu-webauthn@0.1.0#",
-   "purl": "pkg:generic/tansu-webauthn@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tansu",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tansu@0.1.0#",
-   "purl": "pkg:generic/tansu@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/tantivy",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/tantivy@0.27.0#",
-   "purl": "pkg:generic/tantivy@0.27.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.27.0"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -21885,6 +21742,110 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/pnpm/setup",
    "version": "fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/gen-api-types",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/gen-api-types@0.1.0#",
+   "purl": "pkg:local/gen-api-types@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu-api-types",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu-api-types@0.1.0#",
+   "purl": "pkg:local/tansu-api-types@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu-note-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu-note-core@0.1.0#",
+   "purl": "pkg:local/tansu-note-core@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu-search-policy",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu-search-policy@0.1.0#",
+   "purl": "pkg:local/tansu-search-policy@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu-search",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu-search@0.1.0#",
+   "purl": "pkg:local/tansu-search@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu-webauthn",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu-webauthn@0.1.0#",
+   "purl": "pkg:local/tansu-webauthn@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tansu",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tansu@0.1.0#",
+   "purl": "pkg:local/tansu@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/tantivy",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/tantivy@0.27.0#",
+   "purl": "pkg:local/tantivy@0.27.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.27.0"
   },
   {
    "commit": null,
@@ -23653,6 +23614,45 @@
    "source_kind": "url",
    "vcs_url": null,
    "version": "8.22.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/node",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/node@26.13.0#",
+   "purl": "pkg:toolchain/node@26.13.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "26.13.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/pnpm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/pnpm@12.18.0#",
+   "purl": "pkg:toolchain/pnpm@12.18.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "12.18.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

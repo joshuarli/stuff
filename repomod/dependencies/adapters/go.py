@@ -323,7 +323,7 @@ def _records(mod: _Mod, issues: list[Issue]) -> list[tuple[_Ref, Edge]]:
         ref = _Ref(
             "go",
             version,
-            Ecosystem.GENERIC,
+            Ecosystem.TOOLCHAIN,
             SourceKind.URL,
             f"toolchain:go:{version}",
         )
@@ -366,7 +366,7 @@ def _resolve(mod: _Mod, requirement: _Require, issues: list[Issue]) -> _Ref:
             return _Ref(
                 requirement.module,
                 None,
-                Ecosystem.GENERIC,
+                Ecosystem.LOCAL,
                 SourceKind.PATH,
                 f"path:{target}",
                 first_party=_inside(target),

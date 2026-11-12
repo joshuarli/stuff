@@ -635,7 +635,7 @@ def test_git_tree_reads_the_commit_tree(tmp_path: Path, git_environment: None) -
 def test_purl_encodes_names_and_qualifiers() -> None:
     assert purl(Ecosystem.CARGO, "serde", "1.0.219") == "pkg:cargo/serde@1.0.219"
     assert purl(Ecosystem.NPM, "@scope/pkg", "1.0.0") == "pkg:npm/%40scope/pkg@1.0.0"
-    assert purl(Ecosystem.GENERIC, "cloudflare-d1/binding") == "pkg:generic/cloudflare-d1/binding"
+    assert purl(Ecosystem.SERVICE, "cloudflare-d1/binding") == "pkg:service/cloudflare-d1/binding"
     assert (
         purl(Ecosystem.CARGO, "serde", "1.0.0", qualifiers={"zeta": "z", "alpha": "a b"})
         == "pkg:cargo/serde@1.0.0?alpha=a%20b&zeta=z"

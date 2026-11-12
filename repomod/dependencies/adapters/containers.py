@@ -319,7 +319,7 @@ def _run(
             token = words[probe]
             probe += 1
             if token.startswith("-"):
-                if token in {"--virtual", "-t"} and probe < len(words):
+                if token in {"--virtual", "-t", "--repository", "--repositories-file"} and probe < len(words):
                     probe += 1
                 continue
             if token.endswith(".apk"):
@@ -407,7 +407,7 @@ def artifact_ref(url: str, vendored: bool) -> _Ref:
     return _Ref(
         name,
         None,
-        Ecosystem.GENERIC,
+        Ecosystem.ARTIFACT,
         SourceKind.VENDORED if vendored else SourceKind.URL,
         qualifiers=(("download_url", target),),
     )

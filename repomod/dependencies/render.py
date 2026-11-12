@@ -94,7 +94,6 @@ class _Site:
     status: Mapping[str, Sequence[StatusItem]] | None
     hidden: frozenset[str]
     world: world.World
-    buckets: Mapping[str, str]
 
 
 def render(
@@ -162,14 +161,13 @@ def _site(
 ) -> _Site:
     cache = enrich.load_cache()
     report_value = analysis.report(graph)
-    buckets = _component_buckets(graph)
     index: list[dict[str, object]] = []
     for purl, component in sorted(graph.components.items()):
         index.append(
             {
                 "purl": purl,
                 "name": component.name,
-                "ecosystem": buckets[purl],
+                "ecosystem": component.ecosystem.value,
                 "label": component.display_name,
             }
         )
@@ -226,7 +224,6 @@ def _site(
         status,
         hidden,
         world.build(graph, [name for name in graph.repositories if name not in forks], cache.sources, cache.mirror),
-        buckets,
     )
 
 
@@ -395,7 +392,7 @@ def _package_section(site: _Site, purl: str) -> str:
     ]
     identity = (
         f'<div class="package-identity"><span class="mono">{_e(purl)}</span>'
-        f"{ui.copy_button(purl)}<span>{_e(site.buckets[purl])}</span></div>"
+        f"{ui.copy_button(purl)}<span>{_e(component.ecosystem.value)}</span></div>"
     )
     versions = ui.static_table(
         (Column("Version", mono=True), Column("Source", wrap=True), Column("Registry", wrap=True)),
@@ -1486,72 +1483,11 @@ def _role_bar(use: insights.RoleUse, option: str) -> Bar:
     return Bar(_e(option), (Segment("Repositories", len(repositories), mark),), note=note)
 
 
-def _component_buckets(graph: Graph) -> dict[str, str]:
-    instances: dict[str, list[Instance]] = defaultdict(list)
-    for item in graph.instances.values():
-        instances[item.component].append(item)
-    return {
-        component_purl: (
-            _generic_bucket(graph, instances.get(component_purl, ()))
-            if component.ecosystem is Ecosystem.GENERIC
-            else component.ecosystem.value
-        )
-        for component_purl, component in graph.components.items()
-    }
-
-
-def _generic_bucket(graph: Graph, instances: Sequence[Instance]) -> str:
-    kinds: set[str] = set()
-    for item in instances:
-        if item.first_party:
-            kinds.add("first-party")
-            continue
-        if item.source_kind is SourceKind.VENDORED:
-            kinds.add("vendored")
-        elif item.source_kind is SourceKind.GIT:
-            kinds.add("git")
-        elif item.source_kind in {SourceKind.PATH, SourceKind.WORKSPACE}:
-            kinds.add("paths")
-        elif item.source_kind is SourceKind.URL:
-            query = urlsplit(item.purl).query
-            if "download_url=" in query:
-                kinds.add("downloads")
-            elif "vcs_url=" in query:
-                kinds.add("git")
-            else:
-                kinds.add("toolchains")
-        elif item.source_kind is SourceKind.REGISTRY:
-            kinds.add("registry")
-    if "first-party" in kinds:
-        return "generic · first-party"
-    if "vendored" in kinds:
-        return "generic · vendored"
-    if "downloads" in kinds:
-        return "generic · downloads"
-    if "git" in kinds:
-        return "generic · git"
-    if "toolchains" in kinds:
-        return "generic · toolchains"
-    if "paths" in kinds:
-        return "generic · external paths"
-    if "registry" in kinds:
-        scopes = {
-            edge.scope
-            for item in instances
-            if item.source_kind is SourceKind.REGISTRY
-            for repository in graph.instance_repositories.get(item.id, ())
-            for edge in graph.incoming.get((repository, item.id), ())
-        }
-        return "generic · services" if Scope.SERVICE in scopes else "generic · system"
-    return "generic · other"
-
-
 def _packages(site: _Site) -> str:
-    buckets = site.buckets
-    ecosystems = Counter(buckets[component_purl] for component_purl in site.graph.components)
+    ecosystems = Counter(component.ecosystem for component in site.graph.components.values())
     bars = [
-        Bar(_e(bucket), (Segment("Packages", count, Mark.ACCENT),))
-        for bucket, count in ecosystems.most_common()
+        Bar(_e(ecosystem.value), (Segment("Packages", count, Mark.ACCENT),))
+        for ecosystem, count in ecosystems.most_common()
     ]
     mix = ui.panel(
         "Packages by ecosystem",
@@ -1559,7 +1495,7 @@ def _packages(site: _Site) -> str:
     )
     header = ui.page_header(
         "Packages",
-        f"{len(site.graph.components)} packages in {len(ecosystems)} kinds, split by purpose. "
+        f"{len(site.graph.components)} packages in {len(ecosystems)} ecosystems. "
         'Press <span class="mono">/</span> to find one.',
     )
     sections = "".join(
@@ -1947,7 +1883,7 @@ def _world(site: _Site) -> str:
         )
     body.extend(
         (
-            _ownership_panel(packages, site.buckets),
+            _ownership_panel(packages),
             _mirror_panel(value),
             _world_map(site),
             _yours_panel(packages),
@@ -1973,7 +1909,7 @@ def _origin_legend(caption: str = "") -> str:
     return ui.legend([(_ORIGIN_LABELS[origin], _ORIGIN_MARKS[origin]) for origin in world.Origin], caption)
 
 
-def _ownership_panel(packages: Sequence[world.Package], buckets: Mapping[str, str]) -> str:
+def _ownership_panel(packages: Sequence[world.Package]) -> str:
     def uses(package: world.Package) -> int:
         return len(package.repositories)
 
@@ -1988,12 +1924,12 @@ def _ownership_panel(packages: Sequence[world.Package], buckets: Mapping[str, st
             note="each package counted once per repository that reaches it",
         ),
     ]
-    by_ecosystem: dict[str, list[world.Package]] = defaultdict(list)
+    by_ecosystem: dict[Ecosystem, list[world.Package]] = defaultdict(list)
     for package in packages:
-        by_ecosystem[buckets[package.component.purl]].append(package)
+        by_ecosystem[package.component.ecosystem].append(package)
     ecosystems = [
-        Bar(_e(bucket), _origin_parts(rows, one))
-        for bucket, rows in sorted(by_ecosystem.items(), key=lambda item: (-len(item[1]), item[0]))
+        Bar(_e(ecosystem.value), _origin_parts(rows, one))
+        for ecosystem, rows in sorted(by_ecosystem.items(), key=lambda item: (-len(item[1]), item[0].value))
     ]
     body = (
         _origin_legend()

@@ -139,13 +139,13 @@ def test_replace_to_local_paths() -> None:
         }
     )
 
-    inside = _instances(result, "example.com/inside", Ecosystem.GENERIC)[0]
+    inside = _instances(result, "example.com/inside", Ecosystem.LOCAL)[0]
     assert inside.source_kind is SourceKind.PATH
     assert inside.first_party is True
-    inside_edge = _direct(result, "example.com/inside", Ecosystem.GENERIC)[0]
+    inside_edge = _direct(result, "example.com/inside", Ecosystem.LOCAL)[0]
     assert inside_edge.constraint == "v0.1.0"
     assert inside_edge.resolution is Resolution.RESOLVED
-    outside = _instances(result, "example.com/outside", Ecosystem.GENERIC)[0]
+    outside = _instances(result, "example.com/outside", Ecosystem.LOCAL)[0]
     assert outside.first_party is False
 
 
@@ -171,10 +171,10 @@ def test_tool_and_toolchain_scopes() -> None:
     assert {edge.to_id for edge in toolchain} == {
         "pkg:golang/example.com/mod@v1.0.0#",
         "pkg:golang/golang.org/x/tools@v0.51.0#",
-        "pkg:generic/go@1.24.3#",
+        "pkg:toolchain/go@1.24.3#",
     }
-    go = _instances(result, "go", Ecosystem.GENERIC)[0]
-    assert go.purl == "pkg:generic/go@1.24.3"
+    go = _instances(result, "go", Ecosystem.TOOLCHAIN)[0]
+    assert go.purl == "pkg:toolchain/go@1.24.3"
 
 
 def test_exclude_is_ignored() -> None:

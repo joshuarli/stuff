@@ -127,60 +127,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "engine",
-   "ecosystem": "generic",
-   "name": "engine",
-   "purl": "pkg:generic/engine"
-  },
-  {
-   "display_name": "gluon-build",
-   "ecosystem": "generic",
-   "name": "gluon-build",
-   "purl": "pkg:generic/gluon-build"
-  },
-  {
-   "display_name": "gluon-meson",
-   "ecosystem": "generic",
-   "name": "gluon-meson",
-   "purl": "pkg:generic/gluon-meson"
-  },
-  {
-   "display_name": "gluon-ninja",
-   "ecosystem": "generic",
-   "name": "gluon-ninja",
-   "purl": "pkg:generic/gluon-ninja"
-  },
-  {
-   "display_name": "graph",
-   "ecosystem": "generic",
-   "name": "graph",
-   "purl": "pkg:generic/graph"
-  },
-  {
-   "display_name": "meson",
-   "ecosystem": "generic",
-   "name": "meson",
-   "purl": "pkg:generic/meson"
-  },
-  {
-   "display_name": "ninja",
-   "ecosystem": "generic",
-   "name": "ninja",
-   "purl": "pkg:generic/ninja"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "state",
-   "ecosystem": "generic",
-   "name": "state",
-   "purl": "pkg:generic/state"
-  },
-  {
    "display_name": "actions/cache",
    "ecosystem": "github",
    "name": "actions/cache",
@@ -203,27 +149,63 @@
    "ecosystem": "github",
    "name": "actions/upload-artifact",
    "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": "engine",
+   "ecosystem": "local",
+   "name": "engine",
+   "purl": "pkg:local/engine"
+  },
+  {
+   "display_name": "gluon-build",
+   "ecosystem": "local",
+   "name": "gluon-build",
+   "purl": "pkg:local/gluon-build"
+  },
+  {
+   "display_name": "gluon-meson",
+   "ecosystem": "local",
+   "name": "gluon-meson",
+   "purl": "pkg:local/gluon-meson"
+  },
+  {
+   "display_name": "gluon-ninja",
+   "ecosystem": "local",
+   "name": "gluon-ninja",
+   "purl": "pkg:local/gluon-ninja"
+  },
+  {
+   "display_name": "graph",
+   "ecosystem": "local",
+   "name": "graph",
+   "purl": "pkg:local/graph"
+  },
+  {
+   "display_name": "meson",
+   "ecosystem": "local",
+   "name": "meson",
+   "purl": "pkg:local/meson"
+  },
+  {
+   "display_name": "ninja",
+   "ecosystem": "local",
+   "name": "ninja",
+   "purl": "pkg:local/ninja"
+  },
+  {
+   "display_name": "state",
+   "ecosystem": "local",
+   "name": "state",
+   "purl": "pkg:local/state"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v6.1.0",
@@ -316,6 +298,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": null,
    "evidence": [
     {
@@ -334,7 +334,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/meson@0.1.0#"
+   "to": "pkg:local/meson@0.1.0#"
   },
   {
    "condition": null,
@@ -356,7 +356,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/ninja@0.1.0#"
+   "to": "pkg:local/ninja@0.1.0#"
   },
   {
    "condition": null,
@@ -378,7 +378,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/meson@0.1.0#"
+   "to": "pkg:local/meson@0.1.0#"
   },
   {
    "condition": null,
@@ -400,7 +400,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/ninja@0.1.0#"
+   "to": "pkg:local/ninja@0.1.0#"
   },
   {
    "condition": null,
@@ -444,7 +444,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/meson@0.1.0#"
+   "to": "pkg:local/meson@0.1.0#"
   },
   {
    "condition": null,
@@ -466,7 +466,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/ninja@0.1.0#"
+   "to": "pkg:local/ninja@0.1.0#"
   },
   {
    "condition": null,
@@ -664,7 +664,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/graph@0.1.0#"
+   "to": "pkg:local/graph@0.1.0#"
   },
   {
    "condition": null,
@@ -686,7 +686,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/state@0.1.0#"
+   "to": "pkg:local/state@0.1.0#"
   },
   {
    "condition": null,
@@ -1209,7 +1209,7 @@
    "path": "tests/install/fixture/meson.build"
   }
  ],
- "inputs_fingerprint": "7987be8bba4769323755caba54e7b046cba0efff2b28a7bba7cdb705d4e8f803",
+ "inputs_fingerprint": "90aa8c8d5349fe5fea3e66c7e3e844e53345fdfa08707334086fd58a084efb91",
  "instances": [
   {
    "commit": null,
@@ -1485,123 +1485,6 @@
    "version": "1.0.23"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/engine",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/engine@0.1.0#",
-   "purl": "pkg:generic/engine@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/gluon-build",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/gluon-build@0.1.0#",
-   "purl": "pkg:generic/gluon-build@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/gluon-meson",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/gluon-meson@0.1.0#",
-   "purl": "pkg:generic/gluon-meson@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/gluon-ninja",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/gluon-ninja@0.1.0#",
-   "purl": "pkg:generic/gluon-ninja@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/graph",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/graph@0.1.0#",
-   "purl": "pkg:generic/graph@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/meson",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/meson@0.1.0#",
-   "purl": "pkg:generic/meson@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/ninja",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/ninja@0.1.0#",
-   "purl": "pkg:generic/ninja@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/state",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/state@0.1.0#",
-   "purl": "pkg:generic/state@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
    "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
    "component": "pkg:github/actions/cache",
    "context": "",
@@ -1652,6 +1535,123 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/actions/upload-artifact",
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/engine",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/engine@0.1.0#",
+   "purl": "pkg:local/engine@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/gluon-build",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/gluon-build@0.1.0#",
+   "purl": "pkg:local/gluon-build@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/gluon-meson",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/gluon-meson@0.1.0#",
+   "purl": "pkg:local/gluon-meson@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/gluon-ninja",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/gluon-ninja@0.1.0#",
+   "purl": "pkg:local/gluon-ninja@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/graph",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/graph@0.1.0#",
+   "purl": "pkg:local/graph@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/meson",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/meson@0.1.0#",
+   "purl": "pkg:local/meson@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/ninja",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/ninja@0.1.0#",
+   "purl": "pkg:local/ninja@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/state",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/state@0.1.0#",
+   "purl": "pkg:local/state@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

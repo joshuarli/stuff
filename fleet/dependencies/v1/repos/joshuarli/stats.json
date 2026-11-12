@@ -739,42 +739,6 @@
    "purl": "pkg:docker/node?digest=sha256%3A8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216"
   },
   {
-   "display_name": "cloudflare-durable-object/INSTALLATION",
-   "ecosystem": "generic",
-   "name": "cloudflare-durable-object/INSTALLATION",
-   "purl": "pkg:generic/cloudflare-durable-object/INSTALLATION"
-  },
-  {
-   "display_name": "node",
-   "ecosystem": "generic",
-   "name": "node",
-   "purl": "pkg:generic/node"
-  },
-  {
-   "display_name": "pnpm",
-   "ecosystem": "generic",
-   "name": "pnpm",
-   "purl": "pkg:generic/pnpm"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "stats",
-   "ecosystem": "generic",
-   "name": "stats",
-   "purl": "pkg:generic/stats"
-  },
-  {
-   "display_name": "stats-producer",
-   "ecosystem": "generic",
-   "name": "stats-producer",
-   "purl": "pkg:generic/stats-producer"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -815,6 +779,18 @@
    "ecosystem": "github",
    "name": "softprops/action-gh-release",
    "purl": "pkg:github/softprops/action-gh-release"
+  },
+  {
+   "display_name": "stats",
+   "ecosystem": "local",
+   "name": "stats",
+   "purl": "pkg:local/stats"
+  },
+  {
+   "display_name": "stats-producer",
+   "ecosystem": "local",
+   "name": "stats-producer",
+   "purl": "pkg:local/stats-producer"
   },
   {
    "display_name": "@ampproject/remapping",
@@ -2243,63 +2219,33 @@
    "ecosystem": "npm",
    "name": "zod",
    "purl": "pkg:npm/zod"
+  },
+  {
+   "display_name": "cloudflare-durable-object/INSTALLATION",
+   "ecosystem": "service",
+   "name": "cloudflare-durable-object/INSTALLATION",
+   "purl": "pkg:service/cloudflare-durable-object/INSTALLATION"
+  },
+  {
+   "display_name": "node",
+   "ecosystem": "toolchain",
+   "name": "node",
+   "purl": "pkg:toolchain/node"
+  },
+  {
+   "display_name": "pnpm",
+   "ecosystem": "toolchain",
+   "name": "pnpm",
+   "purl": "pkg:toolchain/pnpm"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "26.13.1",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".node-version"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.13.1",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/node@26.13.1#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.18.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.18.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.18.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -2572,6 +2518,60 @@
   },
   {
    "condition": null,
+   "constraint": "26.13.1",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".node-version"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.13.1",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/node@26.13.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.18.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.18.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.18.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "12.18.0",
    "evidence": [
     {
@@ -2808,7 +2808,7 @@
    "resolved_version": null,
    "scope": "service",
    "source_kind": "registry",
-   "to": "pkg:generic/cloudflare-durable-object/INSTALLATION#"
+   "to": "pkg:service/cloudflare-durable-object/INSTALLATION#"
   },
   {
    "condition": null,
@@ -2826,7 +2826,7 @@
    "resolved_version": "12.18.0",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.18.0#"
+   "to": "pkg:toolchain/pnpm@12.18.0#"
   },
   {
    "condition": null,
@@ -17761,7 +17761,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "ff9334d234acd9ebad90f330674b5dde46515a543237ab7fae834497fc09a27f",
+ "inputs_fingerprint": "3c6fde4f8f5a3d717b4944745927569472f7af017f16e4cb51ee7fcb22254fb9",
  "instances": [
   {
    "commit": null,
@@ -19636,84 +19636,6 @@
    "version": "26.13.0-alpine"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/cloudflare-durable-object/INSTALLATION",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/cloudflare-durable-object/INSTALLATION#",
-   "purl": "pkg:generic/cloudflare-durable-object/INSTALLATION",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/node",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/node@26.13.1#",
-   "purl": "pkg:generic/node@26.13.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "26.13.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/pnpm",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/pnpm@12.18.0#",
-   "purl": "pkg:generic/pnpm@12.18.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "12.18.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/stats-producer",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/stats-producer@0.2.0#",
-   "purl": "pkg:generic/stats-producer@0.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/stats",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/stats@0.1.0#",
-   "purl": "pkg:generic/stats@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -19803,6 +19725,32 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/softprops/action-gh-release",
    "version": "8a0cd651e5b2365bd640854a3fa5dfc70e4875f3"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/stats-producer",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/stats-producer@0.2.0#",
+   "purl": "pkg:local/stats-producer@0.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/stats",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/stats@0.1.0#",
+   "purl": "pkg:local/stats@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
   },
   {
    "commit": null,
@@ -23430,6 +23378,58 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "4.6.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:service/cloudflare-durable-object/INSTALLATION",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:service/cloudflare-durable-object/INSTALLATION#",
+   "purl": "pkg:service/cloudflare-durable-object/INSTALLATION",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/node",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/node@26.13.1#",
+   "purl": "pkg:toolchain/node@26.13.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "26.13.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/pnpm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/pnpm@12.18.0#",
+   "purl": "pkg:toolchain/pnpm@12.18.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "12.18.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

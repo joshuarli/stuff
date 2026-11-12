@@ -297,7 +297,7 @@ def test_git_and_path_sources() -> None:
         }
     )
 
-    local = _instances(result, "local", Ecosystem.GENERIC)
+    local = _instances(result, "local", Ecosystem.LOCAL)
     assert len(local) == 1
     assert local[0].source_kind is SourceKind.WORKSPACE
     assert local[0].first_party is True
@@ -331,11 +331,11 @@ def test_path_dependency_without_a_lock_is_declared_only() -> None:
     )
 
     assert [issue.kind for issue in result.issues] == [CoverageKind.MISSING_LOCK]
-    local = _instances(result, "local", Ecosystem.GENERIC)
+    local = _instances(result, "local", Ecosystem.LOCAL)
     assert len(local) == 1
     assert local[0].version == "0.4.0"
     assert local[0].source_kind is SourceKind.PATH
-    edges = _direct(result, "local", Ecosystem.GENERIC)
+    edges = _direct(result, "local", Ecosystem.LOCAL)
     assert len(edges) == 1
     assert edges[0].resolution is Resolution.RESOLVED
 

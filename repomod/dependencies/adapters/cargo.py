@@ -768,7 +768,7 @@ def _lock_draft(
         return _Draft(
             name=package.name,
             version=package.version,
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             source_kind=kind,
             source_key=f"{kind.value}:{directory}",
             first_party=True,
@@ -835,7 +835,7 @@ def _declaration_draft(
             return _Draft(
                 name=declaration.package,
                 version=version,
-                ecosystem=Ecosystem.GENERIC,
+                ecosystem=Ecosystem.LOCAL,
                 source_kind=SourceKind.VENDORED,
                 source_key=f"vendored:{_normalize(declaration.package)}",
                 first_party=True,
@@ -849,7 +849,7 @@ def _declaration_draft(
         return _Draft(
             name=declaration.package,
             version=version,
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             source_kind=kind,
             source_key=f"{kind.value}:{directory}",
             first_party=True,
@@ -983,7 +983,7 @@ def _draft_for_package(
     candidates = [
         draft
         for draft in drafts.values()
-        if draft.ecosystem is Ecosystem.GENERIC
+        if draft.ecosystem is Ecosystem.LOCAL
         and _normalize(draft.name) == _normalize(package.name)
         and draft.version == package.version
     ]

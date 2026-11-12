@@ -937,270 +937,6 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
-   "display_name": "app",
-   "ecosystem": "generic",
-   "name": "app",
-   "purl": "pkg:generic/app"
-  },
-  {
-   "display_name": "bypass-rules",
-   "ecosystem": "generic",
-   "name": "bypass-rules",
-   "purl": "pkg:generic/bypass-rules"
-  },
-  {
-   "display_name": "consumer",
-   "ecosystem": "generic",
-   "name": "consumer",
-   "purl": "pkg:generic/consumer"
-  },
-  {
-   "display_name": "custom-harness",
-   "ecosystem": "generic",
-   "name": "custom-harness",
-   "purl": "pkg:generic/custom-harness"
-  },
-  {
-   "display_name": "exclude-rust",
-   "ecosystem": "generic",
-   "name": "exclude-rust",
-   "purl": "pkg:generic/exclude-rust"
-  },
-  {
-   "display_name": "genlib",
-   "ecosystem": "generic",
-   "name": "genlib",
-   "purl": "pkg:generic/genlib"
-  },
-  {
-   "display_name": "heavy1",
-   "ecosystem": "generic",
-   "name": "heavy1",
-   "purl": "pkg:generic/heavy1"
-  },
-  {
-   "display_name": "heavy2",
-   "ecosystem": "generic",
-   "name": "heavy2",
-   "purl": "pkg:generic/heavy2"
-  },
-  {
-   "display_name": "heavy3",
-   "ecosystem": "generic",
-   "name": "heavy3",
-   "purl": "pkg:generic/heavy3"
-  },
-  {
-   "display_name": "hello-world",
-   "ecosystem": "generic",
-   "name": "hello-world",
-   "purl": "pkg:generic/hello-world"
-  },
-  {
-   "display_name": "helper",
-   "ecosystem": "generic",
-   "name": "helper",
-   "purl": "pkg:generic/helper"
-  },
-  {
-   "display_name": "kache",
-   "ecosystem": "generic",
-   "name": "kache",
-   "purl": "pkg:generic/kache"
-  },
-  {
-   "display_name": "kache-client",
-   "ecosystem": "generic",
-   "name": "kache-client",
-   "purl": "pkg:generic/kache-client"
-  },
-  {
-   "display_name": "kache-config",
-   "ecosystem": "generic",
-   "name": "kache-config",
-   "purl": "pkg:generic/kache-config"
-  },
-  {
-   "display_name": "kache-core",
-   "ecosystem": "generic",
-   "name": "kache-core",
-   "purl": "pkg:generic/kache-core"
-  },
-  {
-   "display_name": "kache-e2e",
-   "ecosystem": "generic",
-   "name": "kache-e2e",
-   "purl": "pkg:generic/kache-e2e"
-  },
-  {
-   "display_name": "kache-format",
-   "ecosystem": "generic",
-   "name": "kache-format",
-   "purl": "pkg:generic/kache-format"
-  },
-  {
-   "display_name": "kache-fs",
-   "ecosystem": "generic",
-   "name": "kache-fs",
-   "purl": "pkg:generic/kache-fs"
-  },
-  {
-   "display_name": "kache-ipc",
-   "ecosystem": "generic",
-   "name": "kache-ipc",
-   "purl": "pkg:generic/kache-ipc"
-  },
-  {
-   "display_name": "kache-log",
-   "ecosystem": "generic",
-   "name": "kache-log",
-   "purl": "pkg:generic/kache-log"
-  },
-  {
-   "display_name": "kache-proofs",
-   "ecosystem": "generic",
-   "name": "kache-proofs",
-   "purl": "pkg:generic/kache-proofs"
-  },
-  {
-   "display_name": "kache-protocol",
-   "ecosystem": "generic",
-   "name": "kache-protocol",
-   "purl": "pkg:generic/kache-protocol"
-  },
-  {
-   "display_name": "kache-shims",
-   "ecosystem": "generic",
-   "name": "kache-shims",
-   "purl": "pkg:generic/kache-shims"
-  },
-  {
-   "display_name": "kache-store",
-   "ecosystem": "generic",
-   "name": "kache-store",
-   "purl": "pkg:generic/kache-store"
-  },
-  {
-   "display_name": "leaf",
-   "ecosystem": "generic",
-   "name": "leaf",
-   "purl": "pkg:generic/leaf"
-  },
-  {
-   "display_name": "mid",
-   "ecosystem": "generic",
-   "name": "mid",
-   "purl": "pkg:generic/mid"
-  },
-  {
-   "display_name": "multi-dep",
-   "ecosystem": "generic",
-   "name": "multi-dep",
-   "purl": "pkg:generic/multi-dep"
-  },
-  {
-   "display_name": "native",
-   "ecosystem": "generic",
-   "name": "native",
-   "purl": "pkg:generic/native"
-  },
-  {
-   "display_name": "out-dir-dual-pattern",
-   "ecosystem": "generic",
-   "name": "out-dir-dual-pattern",
-   "purl": "pkg:generic/out-dir-dual-pattern"
-  },
-  {
-   "display_name": "out-dir-runtime",
-   "ecosystem": "generic",
-   "name": "out-dir-runtime",
-   "purl": "pkg:generic/out-dir-runtime"
-  },
-  {
-   "display_name": "out-of-tree-target",
-   "ecosystem": "generic",
-   "name": "out-of-tree-target",
-   "purl": "pkg:generic/out-of-tree-target"
-  },
-  {
-   "display_name": "pm",
-   "ecosystem": "generic",
-   "name": "pm",
-   "purl": "pkg:generic/pm"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "rust-c-ffi",
-   "ecosystem": "generic",
-   "name": "rust-c-ffi",
-   "purl": "pkg:generic/rust-c-ffi"
-  },
-  {
-   "display_name": "rust-check",
-   "ecosystem": "generic",
-   "name": "rust-check",
-   "purl": "pkg:generic/rust-check"
-  },
-  {
-   "display_name": "rust-check-all-targets",
-   "ecosystem": "generic",
-   "name": "rust-check-all-targets",
-   "purl": "pkg:generic/rust-check-all-targets"
-  },
-  {
-   "display_name": "rust-debug",
-   "ecosystem": "generic",
-   "name": "rust-debug",
-   "purl": "pkg:generic/rust-debug"
-  },
-  {
-   "display_name": "rust-debug-paths",
-   "ecosystem": "generic",
-   "name": "rust-debug-paths",
-   "purl": "pkg:generic/rust-debug-paths"
-  },
-  {
-   "display_name": "rust-dsym",
-   "ecosystem": "generic",
-   "name": "rust-dsym",
-   "purl": "pkg:generic/rust-dsym"
-  },
-  {
-   "display_name": "rust-flag-soup",
-   "ecosystem": "generic",
-   "name": "rust-flag-soup",
-   "purl": "pkg:generic/rust-flag-soup"
-  },
-  {
-   "display_name": "rust-remap-prefix",
-   "ecosystem": "generic",
-   "name": "rust-remap-prefix",
-   "purl": "pkg:generic/rust-remap-prefix"
-  },
-  {
-   "display_name": "rust-test-exec",
-   "ecosystem": "generic",
-   "name": "rust-test-exec",
-   "purl": "pkg:generic/rust-test-exec"
-  },
-  {
-   "display_name": "stale-check",
-   "ecosystem": "generic",
-   "name": "stale-check",
-   "purl": "pkg:generic/stale-check"
-  },
-  {
-   "display_name": "util",
-   "ecosystem": "generic",
-   "name": "util",
-   "purl": "pkg:generic/util"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -1235,6 +971,270 @@
    "ecosystem": "github",
    "name": "swatinem/rust-cache",
    "purl": "pkg:github/swatinem/rust-cache"
+  },
+  {
+   "display_name": "app",
+   "ecosystem": "local",
+   "name": "app",
+   "purl": "pkg:local/app"
+  },
+  {
+   "display_name": "bypass-rules",
+   "ecosystem": "local",
+   "name": "bypass-rules",
+   "purl": "pkg:local/bypass-rules"
+  },
+  {
+   "display_name": "consumer",
+   "ecosystem": "local",
+   "name": "consumer",
+   "purl": "pkg:local/consumer"
+  },
+  {
+   "display_name": "custom-harness",
+   "ecosystem": "local",
+   "name": "custom-harness",
+   "purl": "pkg:local/custom-harness"
+  },
+  {
+   "display_name": "exclude-rust",
+   "ecosystem": "local",
+   "name": "exclude-rust",
+   "purl": "pkg:local/exclude-rust"
+  },
+  {
+   "display_name": "genlib",
+   "ecosystem": "local",
+   "name": "genlib",
+   "purl": "pkg:local/genlib"
+  },
+  {
+   "display_name": "heavy1",
+   "ecosystem": "local",
+   "name": "heavy1",
+   "purl": "pkg:local/heavy1"
+  },
+  {
+   "display_name": "heavy2",
+   "ecosystem": "local",
+   "name": "heavy2",
+   "purl": "pkg:local/heavy2"
+  },
+  {
+   "display_name": "heavy3",
+   "ecosystem": "local",
+   "name": "heavy3",
+   "purl": "pkg:local/heavy3"
+  },
+  {
+   "display_name": "hello-world",
+   "ecosystem": "local",
+   "name": "hello-world",
+   "purl": "pkg:local/hello-world"
+  },
+  {
+   "display_name": "helper",
+   "ecosystem": "local",
+   "name": "helper",
+   "purl": "pkg:local/helper"
+  },
+  {
+   "display_name": "kache",
+   "ecosystem": "local",
+   "name": "kache",
+   "purl": "pkg:local/kache"
+  },
+  {
+   "display_name": "kache-client",
+   "ecosystem": "local",
+   "name": "kache-client",
+   "purl": "pkg:local/kache-client"
+  },
+  {
+   "display_name": "kache-config",
+   "ecosystem": "local",
+   "name": "kache-config",
+   "purl": "pkg:local/kache-config"
+  },
+  {
+   "display_name": "kache-core",
+   "ecosystem": "local",
+   "name": "kache-core",
+   "purl": "pkg:local/kache-core"
+  },
+  {
+   "display_name": "kache-e2e",
+   "ecosystem": "local",
+   "name": "kache-e2e",
+   "purl": "pkg:local/kache-e2e"
+  },
+  {
+   "display_name": "kache-format",
+   "ecosystem": "local",
+   "name": "kache-format",
+   "purl": "pkg:local/kache-format"
+  },
+  {
+   "display_name": "kache-fs",
+   "ecosystem": "local",
+   "name": "kache-fs",
+   "purl": "pkg:local/kache-fs"
+  },
+  {
+   "display_name": "kache-ipc",
+   "ecosystem": "local",
+   "name": "kache-ipc",
+   "purl": "pkg:local/kache-ipc"
+  },
+  {
+   "display_name": "kache-log",
+   "ecosystem": "local",
+   "name": "kache-log",
+   "purl": "pkg:local/kache-log"
+  },
+  {
+   "display_name": "kache-proofs",
+   "ecosystem": "local",
+   "name": "kache-proofs",
+   "purl": "pkg:local/kache-proofs"
+  },
+  {
+   "display_name": "kache-protocol",
+   "ecosystem": "local",
+   "name": "kache-protocol",
+   "purl": "pkg:local/kache-protocol"
+  },
+  {
+   "display_name": "kache-shims",
+   "ecosystem": "local",
+   "name": "kache-shims",
+   "purl": "pkg:local/kache-shims"
+  },
+  {
+   "display_name": "kache-store",
+   "ecosystem": "local",
+   "name": "kache-store",
+   "purl": "pkg:local/kache-store"
+  },
+  {
+   "display_name": "leaf",
+   "ecosystem": "local",
+   "name": "leaf",
+   "purl": "pkg:local/leaf"
+  },
+  {
+   "display_name": "mid",
+   "ecosystem": "local",
+   "name": "mid",
+   "purl": "pkg:local/mid"
+  },
+  {
+   "display_name": "multi-dep",
+   "ecosystem": "local",
+   "name": "multi-dep",
+   "purl": "pkg:local/multi-dep"
+  },
+  {
+   "display_name": "native",
+   "ecosystem": "local",
+   "name": "native",
+   "purl": "pkg:local/native"
+  },
+  {
+   "display_name": "out-dir-dual-pattern",
+   "ecosystem": "local",
+   "name": "out-dir-dual-pattern",
+   "purl": "pkg:local/out-dir-dual-pattern"
+  },
+  {
+   "display_name": "out-dir-runtime",
+   "ecosystem": "local",
+   "name": "out-dir-runtime",
+   "purl": "pkg:local/out-dir-runtime"
+  },
+  {
+   "display_name": "out-of-tree-target",
+   "ecosystem": "local",
+   "name": "out-of-tree-target",
+   "purl": "pkg:local/out-of-tree-target"
+  },
+  {
+   "display_name": "pm",
+   "ecosystem": "local",
+   "name": "pm",
+   "purl": "pkg:local/pm"
+  },
+  {
+   "display_name": "rust-c-ffi",
+   "ecosystem": "local",
+   "name": "rust-c-ffi",
+   "purl": "pkg:local/rust-c-ffi"
+  },
+  {
+   "display_name": "rust-check",
+   "ecosystem": "local",
+   "name": "rust-check",
+   "purl": "pkg:local/rust-check"
+  },
+  {
+   "display_name": "rust-check-all-targets",
+   "ecosystem": "local",
+   "name": "rust-check-all-targets",
+   "purl": "pkg:local/rust-check-all-targets"
+  },
+  {
+   "display_name": "rust-debug",
+   "ecosystem": "local",
+   "name": "rust-debug",
+   "purl": "pkg:local/rust-debug"
+  },
+  {
+   "display_name": "rust-debug-paths",
+   "ecosystem": "local",
+   "name": "rust-debug-paths",
+   "purl": "pkg:local/rust-debug-paths"
+  },
+  {
+   "display_name": "rust-dsym",
+   "ecosystem": "local",
+   "name": "rust-dsym",
+   "purl": "pkg:local/rust-dsym"
+  },
+  {
+   "display_name": "rust-flag-soup",
+   "ecosystem": "local",
+   "name": "rust-flag-soup",
+   "purl": "pkg:local/rust-flag-soup"
+  },
+  {
+   "display_name": "rust-remap-prefix",
+   "ecosystem": "local",
+   "name": "rust-remap-prefix",
+   "purl": "pkg:local/rust-remap-prefix"
+  },
+  {
+   "display_name": "rust-test-exec",
+   "ecosystem": "local",
+   "name": "rust-test-exec",
+   "purl": "pkg:local/rust-test-exec"
+  },
+  {
+   "display_name": "stale-check",
+   "ecosystem": "local",
+   "name": "stale-check",
+   "purl": "pkg:local/stale-check"
+  },
+  {
+   "display_name": "util",
+   "ecosystem": "local",
+   "name": "util",
+   "purl": "pkg:local/util"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -1786,7 +1786,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-client@2.0.0-rc.2#"
+   "to": "pkg:local/kache-client@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1808,7 +1808,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-config@2.0.0-rc.2#"
+   "to": "pkg:local/kache-config@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1830,7 +1830,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-config@2.0.0-rc.2#"
+   "to": "pkg:local/kache-config@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1852,7 +1852,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1874,7 +1874,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1896,7 +1896,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-format@2.0.0-rc.2#"
+   "to": "pkg:local/kache-format@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1918,7 +1918,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1940,7 +1940,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1962,7 +1962,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-ipc@2.0.0-rc.2#"
+   "to": "pkg:local/kache-ipc@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -1984,7 +1984,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-log@2.0.0-rc.2#"
+   "to": "pkg:local/kache-log@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2006,7 +2006,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-protocol@2.0.0-rc.2#"
+   "to": "pkg:local/kache-protocol@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2028,7 +2028,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-protocol@2.0.0-rc.2#"
+   "to": "pkg:local/kache-protocol@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2050,7 +2050,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-shims@2.0.0-rc.2#"
+   "to": "pkg:local/kache-shims@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2072,7 +2072,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-store@2.0.0-rc.2#"
+   "to": "pkg:local/kache-store@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2094,7 +2094,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-store@2.0.0-rc.2#"
+   "to": "pkg:local/kache-store@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2293,24 +2293,6 @@
    "scope": "image",
    "source_kind": "image",
    "to": "pkg:docker/alpine@3.24.2?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -2584,6 +2566,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "1",
    "evidence": [
     {
@@ -2822,7 +2822,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-config@2.0.0-rc.2#"
+   "to": "pkg:local/kache-config@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2844,7 +2844,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-ipc@2.0.0-rc.2#"
+   "to": "pkg:local/kache-ipc@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2866,7 +2866,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-protocol@2.0.0-rc.2#"
+   "to": "pkg:local/kache-protocol@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -2888,7 +2888,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-shims@2.0.0-rc.2#"
+   "to": "pkg:local/kache-shims@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3108,7 +3108,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3130,7 +3130,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3152,7 +3152,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3174,7 +3174,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-log@2.0.0-rc.2#"
+   "to": "pkg:local/kache-log@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3196,7 +3196,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-shims@2.0.0-rc.2#"
+   "to": "pkg:local/kache-shims@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3504,7 +3504,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3526,7 +3526,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3922,7 +3922,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -3944,7 +3944,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-protocol@2.0.0-rc.2#"
+   "to": "pkg:local/kache-protocol@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -4076,7 +4076,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -4098,7 +4098,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-format@2.0.0-rc.2#"
+   "to": "pkg:local/kache-format@2.0.0-rc.2#"
   },
   {
    "condition": "cfg(unix)",
@@ -4186,7 +4186,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -4450,7 +4450,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-core@2.0.0-rc.2#"
+   "to": "pkg:local/kache-core@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -4472,7 +4472,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-format@2.0.0-rc.2#"
+   "to": "pkg:local/kache-format@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -4494,7 +4494,7 @@
    "resolved_version": "2.0.0-rc.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/kache-fs@2.0.0-rc.2#"
+   "to": "pkg:local/kache-fs@2.0.0-rc.2#"
   },
   {
    "condition": null,
@@ -9844,7 +9844,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/helper@0.1.0#"
+   "to": "pkg:local/helper@0.1.0#"
   },
   {
    "condition": null,
@@ -9932,7 +9932,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/mid@0.1.0#"
+   "to": "pkg:local/mid@0.1.0#"
   },
   {
    "condition": null,
@@ -9954,7 +9954,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/leaf@0.1.0#"
+   "to": "pkg:local/leaf@0.1.0#"
   },
   {
    "condition": null,
@@ -9976,7 +9976,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/mid@0.1.0#"
+   "to": "pkg:local/mid@0.1.0#"
   },
   {
    "condition": null,
@@ -9998,7 +9998,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/leaf@0.1.0#"
+   "to": "pkg:local/leaf@0.1.0#"
   },
   {
    "condition": null,
@@ -10042,7 +10042,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/pm@0.1.0#"
+   "to": "pkg:local/pm@0.1.0#"
   },
   {
    "condition": null,
@@ -10064,7 +10064,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/util@0.1.0#"
+   "to": "pkg:local/util@0.1.0#"
   },
   {
    "condition": null,
@@ -10130,7 +10130,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/mid@0.1.0#"
+   "to": "pkg:local/mid@0.1.0#"
   },
   {
    "condition": null,
@@ -10152,7 +10152,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/leaf@0.1.0#"
+   "to": "pkg:local/leaf@0.1.0#"
   },
   {
    "condition": null,
@@ -10196,7 +10196,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/genlib@0.1.0#"
+   "to": "pkg:local/genlib@0.1.0#"
   },
   {
    "condition": null,
@@ -10218,7 +10218,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/pm@0.1.0#"
+   "to": "pkg:local/pm@0.1.0#"
   },
   {
    "condition": null,
@@ -10262,7 +10262,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/heavy1@0.1.0#"
+   "to": "pkg:local/heavy1@0.1.0#"
   },
   {
    "condition": null,
@@ -10284,7 +10284,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/heavy2@0.1.0#"
+   "to": "pkg:local/heavy2@0.1.0#"
   },
   {
    "condition": null,
@@ -10306,7 +10306,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/heavy3@0.1.0#"
+   "to": "pkg:local/heavy3@0.1.0#"
   },
   {
    "condition": null,
@@ -10328,7 +10328,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/mid@0.1.0#"
+   "to": "pkg:local/mid@0.1.0#"
   },
   {
    "condition": null,
@@ -10350,7 +10350,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/native@0.1.0#"
+   "to": "pkg:local/native@0.1.0#"
   },
   {
    "condition": null,
@@ -10394,7 +10394,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/pm@0.1.0#"
+   "to": "pkg:local/pm@0.1.0#"
   }
  ],
  "inputs": [
@@ -10923,7 +10923,7 @@
    "path": "test-projects/stale-check/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "c5dc270440a2623cb941223c566afad2dc29a4d40c12f4de4703f65925618a88",
+ "inputs_fingerprint": "94ea16e3a3d11abe0deae2842342df4a6aadf68327e4171a19e9435f88593a28",
  "instances": [
   {
    "commit": null,
@@ -13136,578 +13136,6 @@
    "version": "3.24.2"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/app",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/app@0.1.0#",
-   "purl": "pkg:generic/app@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/bypass-rules",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/bypass-rules@0.1.0#",
-   "purl": "pkg:generic/bypass-rules@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/consumer",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/consumer@0.1.0#",
-   "purl": "pkg:generic/consumer@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/custom-harness",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/custom-harness@0.1.0#",
-   "purl": "pkg:generic/custom-harness@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/exclude-rust",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/exclude-rust@0.1.0#",
-   "purl": "pkg:generic/exclude-rust@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/genlib",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/genlib@0.1.0#",
-   "purl": "pkg:generic/genlib@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/heavy1",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/heavy1@0.1.0#",
-   "purl": "pkg:generic/heavy1@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/heavy2",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/heavy2@0.1.0#",
-   "purl": "pkg:generic/heavy2@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/heavy3",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/heavy3@0.1.0#",
-   "purl": "pkg:generic/heavy3@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/hello-world",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/hello-world@0.1.0#",
-   "purl": "pkg:generic/hello-world@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/helper",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/helper@0.1.0#",
-   "purl": "pkg:generic/helper@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-client",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-client@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-client@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-config",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-config@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-config@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-core",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-core@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-core@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-e2e",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-e2e@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-e2e@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-format",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-format@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-format@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-fs",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-fs@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-fs@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-ipc",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-ipc@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-ipc@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-log",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-log@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-log@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-proofs",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-proofs@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-proofs@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-protocol",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-protocol@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-protocol@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-shims",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-shims@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-shims@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache-store",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache-store@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache-store@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/kache",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/kache@2.0.0-rc.2#",
-   "purl": "pkg:generic/kache@2.0.0-rc.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "2.0.0-rc.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/leaf",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/leaf@0.1.0#",
-   "purl": "pkg:generic/leaf@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/mid",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/mid@0.1.0#",
-   "purl": "pkg:generic/mid@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/multi-dep",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/multi-dep@0.1.0#",
-   "purl": "pkg:generic/multi-dep@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/native",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/native@0.1.0#",
-   "purl": "pkg:generic/native@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/out-dir-dual-pattern",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/out-dir-dual-pattern@0.1.0#",
-   "purl": "pkg:generic/out-dir-dual-pattern@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/out-dir-runtime",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/out-dir-runtime@0.1.0#",
-   "purl": "pkg:generic/out-dir-runtime@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/out-of-tree-target",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/out-of-tree-target@0.1.0#",
-   "purl": "pkg:generic/out-of-tree-target@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/pm",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/pm@0.1.0#",
-   "purl": "pkg:generic/pm@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-c-ffi",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-c-ffi@0.1.0#",
-   "purl": "pkg:generic/rust-c-ffi@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-check-all-targets",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-check-all-targets@0.1.0#",
-   "purl": "pkg:generic/rust-check-all-targets@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-check",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-check@0.1.0#",
-   "purl": "pkg:generic/rust-check@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-debug-paths",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-debug-paths@0.1.0#",
-   "purl": "pkg:generic/rust-debug-paths@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-debug",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-debug@0.1.0#",
-   "purl": "pkg:generic/rust-debug@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-dsym",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-dsym@0.1.0#",
-   "purl": "pkg:generic/rust-dsym@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-flag-soup",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-flag-soup@0.1.0#",
-   "purl": "pkg:generic/rust-flag-soup@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-remap-prefix",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-remap-prefix@0.1.0#",
-   "purl": "pkg:generic/rust-remap-prefix@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust-test-exec",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rust-test-exec@0.1.0#",
-   "purl": "pkg:generic/rust-test-exec@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/stale-check",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/stale-check@0.1.0#",
-   "purl": "pkg:generic/stale-check@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/util",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/util@0.1.0#",
-   "purl": "pkg:generic/util@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -13784,6 +13212,578 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/swatinem/rust-cache",
    "version": "d1527c8f67ef9af357290475d4af4b0fab8f12e0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/app",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/app@0.1.0#",
+   "purl": "pkg:local/app@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/bypass-rules",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/bypass-rules@0.1.0#",
+   "purl": "pkg:local/bypass-rules@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/consumer",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/consumer@0.1.0#",
+   "purl": "pkg:local/consumer@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/custom-harness",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/custom-harness@0.1.0#",
+   "purl": "pkg:local/custom-harness@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/exclude-rust",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/exclude-rust@0.1.0#",
+   "purl": "pkg:local/exclude-rust@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/genlib",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/genlib@0.1.0#",
+   "purl": "pkg:local/genlib@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/heavy1",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/heavy1@0.1.0#",
+   "purl": "pkg:local/heavy1@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/heavy2",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/heavy2@0.1.0#",
+   "purl": "pkg:local/heavy2@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/heavy3",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/heavy3@0.1.0#",
+   "purl": "pkg:local/heavy3@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/hello-world",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/hello-world@0.1.0#",
+   "purl": "pkg:local/hello-world@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/helper",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/helper@0.1.0#",
+   "purl": "pkg:local/helper@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-client",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-client@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-client@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-config",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-config@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-config@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-core@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-core@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-e2e",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-e2e@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-e2e@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-format",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-format@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-format@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-fs",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-fs@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-fs@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-ipc",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-ipc@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-ipc@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-log",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-log@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-log@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-proofs",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-proofs@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-proofs@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-protocol",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-protocol@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-protocol@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-shims",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-shims@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-shims@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache-store",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache-store@2.0.0-rc.2#",
+   "purl": "pkg:local/kache-store@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/kache",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/kache@2.0.0-rc.2#",
+   "purl": "pkg:local/kache@2.0.0-rc.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "2.0.0-rc.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/leaf",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/leaf@0.1.0#",
+   "purl": "pkg:local/leaf@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/mid",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/mid@0.1.0#",
+   "purl": "pkg:local/mid@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/multi-dep",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/multi-dep@0.1.0#",
+   "purl": "pkg:local/multi-dep@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/native",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/native@0.1.0#",
+   "purl": "pkg:local/native@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/out-dir-dual-pattern",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/out-dir-dual-pattern@0.1.0#",
+   "purl": "pkg:local/out-dir-dual-pattern@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/out-dir-runtime",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/out-dir-runtime@0.1.0#",
+   "purl": "pkg:local/out-dir-runtime@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/out-of-tree-target",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/out-of-tree-target@0.1.0#",
+   "purl": "pkg:local/out-of-tree-target@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/pm",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/pm@0.1.0#",
+   "purl": "pkg:local/pm@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-c-ffi",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-c-ffi@0.1.0#",
+   "purl": "pkg:local/rust-c-ffi@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-check-all-targets",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-check-all-targets@0.1.0#",
+   "purl": "pkg:local/rust-check-all-targets@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-check",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-check@0.1.0#",
+   "purl": "pkg:local/rust-check@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-debug-paths",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-debug-paths@0.1.0#",
+   "purl": "pkg:local/rust-debug-paths@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-debug",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-debug@0.1.0#",
+   "purl": "pkg:local/rust-debug@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-dsym",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-dsym@0.1.0#",
+   "purl": "pkg:local/rust-dsym@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-flag-soup",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-flag-soup@0.1.0#",
+   "purl": "pkg:local/rust-flag-soup@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-remap-prefix",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-remap-prefix@0.1.0#",
+   "purl": "pkg:local/rust-remap-prefix@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rust-test-exec",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rust-test-exec@0.1.0#",
+   "purl": "pkg:local/rust-test-exec@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/stale-check",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/stale-check@0.1.0#",
+   "purl": "pkg:local/stale-check@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/util",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/util@0.1.0#",
+   "purl": "pkg:local/util@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

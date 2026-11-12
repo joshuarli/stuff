@@ -218,8 +218,8 @@ def _component_owner(
             return _image_owner(name)
         case Ecosystem.APK:
             return _DISTRIBUTIONS[Ecosystem.APK]
-        case Ecosystem.GENERIC if name in _TOOLCHAINS:
-            return _TOOLCHAINS[name]
+        case Ecosystem.TOOLCHAIN:
+            return _TOOLCHAINS.get(name)
         case _:
             pass
     owners = [owner for url in urls if (owner := source_owner(url)) is not None]

@@ -1,18 +1,6 @@
 {
  "components": [
   {
-   "display_name": "node",
-   "ecosystem": "generic",
-   "name": "node",
-   "purl": "pkg:generic/node"
-  },
-  {
-   "display_name": "pnpm",
-   "ecosystem": "generic",
-   "name": "pnpm",
-   "purl": "pkg:generic/pnpm"
-  },
-  {
    "display_name": "@ampproject/remapping",
    "ecosystem": "npm",
    "name": "@ampproject/remapping",
@@ -839,6 +827,18 @@
    "ecosystem": "npm",
    "name": "why-is-node-running",
    "purl": "pkg:npm/why-is-node-running"
+  },
+  {
+   "display_name": "node",
+   "ecosystem": "toolchain",
+   "name": "node",
+   "purl": "pkg:toolchain/node"
+  },
+  {
+   "display_name": "pnpm",
+   "ecosystem": "toolchain",
+   "name": "pnpm",
+   "purl": "pkg:toolchain/pnpm"
   }
  ],
  "edges": [
@@ -858,7 +858,7 @@
    "resolved_version": "26.13.0",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/node@26.13.0#"
+   "to": "pkg:toolchain/node@26.13.0#"
   },
   {
    "condition": null,
@@ -876,7 +876,7 @@
    "resolved_version": "12.18.0",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.18.0#"
+   "to": "pkg:toolchain/pnpm@12.18.0#"
   },
   {
    "condition": null,
@@ -3867,34 +3867,8 @@
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "fca81619eccdeea48c187254012b3ad7e9bc735adae7295a7e3f05299ef77bab",
+ "inputs_fingerprint": "8e68b4ab57ba489e2d92a09f917dddc8f2ae4d37a660265d93f97a62cba8fe25",
  "instances": [
-  {
-   "commit": null,
-   "component": "pkg:generic/node",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/node@26.13.0#",
-   "purl": "pkg:generic/node@26.13.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "26.13.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/pnpm",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/pnpm@12.18.0#",
-   "purl": "pkg:generic/pnpm@12.18.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "12.18.0"
-  },
   {
    "commit": null,
    "component": "pkg:npm/%40ampproject/remapping",
@@ -5818,6 +5792,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "3.2.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/node",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/node@26.13.0#",
+   "purl": "pkg:toolchain/node@26.13.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "26.13.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/pnpm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/pnpm@12.18.0#",
+   "purl": "pkg:toolchain/pnpm@12.18.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "12.18.0"
   }
  ],
  "issues": [

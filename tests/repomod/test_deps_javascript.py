@@ -267,16 +267,16 @@ snapshots: {}
         }
     )
 
-    local = _instances(result, "local", Ecosystem.GENERIC)[0]
+    local = _instances(result, "local", Ecosystem.LOCAL)[0]
     assert local.source_kind is SourceKind.WORKSPACE
     assert local.first_party is True
-    assert local.purl == "pkg:generic/local"
-    shared = _instances(result, "shared", Ecosystem.GENERIC)[0]
+    assert local.purl == "pkg:local/local"
+    shared = _instances(result, "shared", Ecosystem.LOCAL)[0]
     assert shared.source_kind is SourceKind.WORKSPACE
-    external = _instances(result, "external", Ecosystem.GENERIC)[0]
+    external = _instances(result, "external", Ecosystem.LOCAL)[0]
     assert external.source_kind is SourceKind.PATH
     assert external.first_party is False
-    assert len(_direct(result, "local", Ecosystem.GENERIC)) == 1
+    assert len(_direct(result, "local", Ecosystem.LOCAL)) == 1
 
 
 def test_optional_dependencies_are_optional() -> None:
@@ -460,7 +460,7 @@ def test_npm_workspace_projects() -> None:
     edge = [item for item in _direct(result, "foo") if item.from_id == "packages/a:npm"]
     assert len(edge) == 1
     assert edge[0].resolution is Resolution.RESOLVED
-    linked = _instances(result, "a", Ecosystem.GENERIC)[0]
+    linked = _instances(result, "a", Ecosystem.LOCAL)[0]
     assert linked.source_kind is SourceKind.WORKSPACE
     assert linked.first_party is True
 

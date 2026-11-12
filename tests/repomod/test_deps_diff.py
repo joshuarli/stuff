@@ -83,7 +83,7 @@ def test_upgrade_downgrade_pep440_and_changed(
                     instance(Ecosystem.CARGO, "cargo-up", "1.0.0"),
                     instance(Ecosystem.CARGO, "cargo-down", "2.0.0"),
                     instance(Ecosystem.PYPI, "python-up", "1.0.0a1"),
-                    instance(Ecosystem.GENERIC, "floating", "nightly-2026-09"),
+                    instance(Ecosystem.TOOLCHAIN, "floating", "nightly-2026-09"),
                 ),
             )
         ],
@@ -98,7 +98,7 @@ def test_upgrade_downgrade_pep440_and_changed(
                     instance(Ecosystem.CARGO, "cargo-up", "1.1.0"),
                     instance(Ecosystem.CARGO, "cargo-down", "1.5"),
                     instance(Ecosystem.PYPI, "python-up", "1.0.0"),
-                    instance(Ecosystem.GENERIC, "floating", "stable"),
+                    instance(Ecosystem.TOOLCHAIN, "floating", "stable"),
                 ),
             )
         ],

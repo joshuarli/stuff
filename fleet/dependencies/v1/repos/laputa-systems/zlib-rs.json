@@ -1,6 +1,42 @@
 {
  "components": [
   {
+   "display_name": "flate2-rs.git",
+   "ecosystem": "artifact",
+   "name": "flate2-rs.git",
+   "purl": "pkg:artifact/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git"
+  },
+  {
+   "display_name": "gzip-files.zip",
+   "ecosystem": "artifact",
+   "name": "gzip-files.zip",
+   "purl": "pkg:artifact/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip"
+  },
+  {
+   "display_name": "install.sh",
+   "ecosystem": "artifact",
+   "name": "install.sh",
+   "purl": "pkg:artifact/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh"
+  },
+  {
+   "display_name": "libz-chromium-sys",
+   "ecosystem": "artifact",
+   "name": "libz-chromium-sys",
+   "purl": "pkg:artifact/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys"
+  },
+  {
+   "display_name": "wasi-sdk-24.0-x86_64-linux.tar.gz",
+   "ecosystem": "artifact",
+   "name": "wasi-sdk-24.0-x86_64-linux.tar.gz",
+   "purl": "pkg:artifact/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz"
+  },
+  {
+   "display_name": "zlib-ng.git",
+   "ecosystem": "artifact",
+   "name": "zlib-ng.git",
+   "purl": "pkg:artifact/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git"
+  },
+  {
    "display_name": "arbitrary",
    "ecosystem": "cargo",
    "name": "arbitrary",
@@ -277,72 +313,6 @@
    "purl": "pkg:cargo/wit-bindgen-rt"
   },
   {
-   "display_name": "flate2-rs.git",
-   "ecosystem": "generic",
-   "name": "flate2-rs.git",
-   "purl": "pkg:generic/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git"
-  },
-  {
-   "display_name": "gzip-files.zip",
-   "ecosystem": "generic",
-   "name": "gzip-files.zip",
-   "purl": "pkg:generic/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip"
-  },
-  {
-   "display_name": "install.sh",
-   "ecosystem": "generic",
-   "name": "install.sh",
-   "purl": "pkg:generic/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh"
-  },
-  {
-   "display_name": "libz-chromium-sys",
-   "ecosystem": "generic",
-   "name": "libz-chromium-sys",
-   "purl": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys"
-  },
-  {
-   "display_name": "libz-rs-sys",
-   "ecosystem": "generic",
-   "name": "libz-rs-sys",
-   "purl": "pkg:generic/libz-rs-sys"
-  },
-  {
-   "display_name": "libz-rs-sys-cdylib",
-   "ecosystem": "generic",
-   "name": "libz-rs-sys-cdylib",
-   "purl": "pkg:generic/libz-rs-sys-cdylib"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "test-libz-rs-sys",
-   "ecosystem": "generic",
-   "name": "test-libz-rs-sys",
-   "purl": "pkg:generic/test-libz-rs-sys"
-  },
-  {
-   "display_name": "wasi-sdk-24.0-x86_64-linux.tar.gz",
-   "ecosystem": "generic",
-   "name": "wasi-sdk-24.0-x86_64-linux.tar.gz",
-   "purl": "pkg:generic/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz"
-  },
-  {
-   "display_name": "zlib-ng.git",
-   "ecosystem": "generic",
-   "name": "zlib-ng.git",
-   "purl": "pkg:generic/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git"
-  },
-  {
-   "display_name": "zlib-rs",
-   "ecosystem": "generic",
-   "name": "zlib-rs",
-   "purl": "pkg:generic/zlib-rs"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -389,6 +359,36 @@
    "ecosystem": "github",
    "name": "zizmorcore/zizmor-action",
    "purl": "pkg:github/zizmorcore/zizmor-action"
+  },
+  {
+   "display_name": "libz-rs-sys",
+   "ecosystem": "local",
+   "name": "libz-rs-sys",
+   "purl": "pkg:local/libz-rs-sys"
+  },
+  {
+   "display_name": "libz-rs-sys-cdylib",
+   "ecosystem": "local",
+   "name": "libz-rs-sys-cdylib",
+   "purl": "pkg:local/libz-rs-sys-cdylib"
+  },
+  {
+   "display_name": "test-libz-rs-sys",
+   "ecosystem": "local",
+   "name": "test-libz-rs-sys",
+   "purl": "pkg:local/test-libz-rs-sys"
+  },
+  {
+   "display_name": "zlib-rs",
+   "ecosystem": "local",
+   "name": "zlib-rs",
+   "purl": "pkg:local/zlib-rs"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -408,7 +408,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git#"
+   "to": "pkg:artifact/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git#"
   },
   {
    "condition": null,
@@ -426,7 +426,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip#"
+   "to": "pkg:artifact/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip#"
   },
   {
    "condition": null,
@@ -444,7 +444,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh#"
+   "to": "pkg:artifact/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh#"
   },
   {
    "condition": null,
@@ -462,25 +462,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:artifact/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys#"
   },
   {
    "condition": null,
@@ -498,7 +480,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz#"
+   "to": "pkg:artifact/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz#"
   },
   {
    "condition": null,
@@ -516,7 +498,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git#"
+   "to": "pkg:artifact/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git#"
   },
   {
    "condition": null,
@@ -1222,6 +1204,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "1.3.2",
    "evidence": [
     {
@@ -1344,7 +1344,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/libz-rs-sys@0.6.8#"
+   "to": "pkg:local/libz-rs-sys@0.6.8#"
   },
   {
    "condition": null,
@@ -1362,7 +1362,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/test-libz-rs-sys@0.6.8#"
+   "to": "pkg:local/test-libz-rs-sys@0.6.8#"
   },
   {
    "condition": null,
@@ -1380,7 +1380,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/zlib-rs@0.6.8#"
+   "to": "pkg:local/zlib-rs@0.6.8#"
   },
   {
    "condition": null,
@@ -1402,7 +1402,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/libz-rs-sys@0.6.8#"
+   "to": "pkg:local/libz-rs-sys@0.6.8#"
   },
   {
    "condition": null,
@@ -1424,7 +1424,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/zlib-rs@0.6.8#"
+   "to": "pkg:local/zlib-rs@0.6.8#"
   },
   {
    "condition": "feature:gz",
@@ -1468,7 +1468,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/zlib-rs@0.6.8#"
+   "to": "pkg:local/zlib-rs@0.6.8#"
   },
   {
    "condition": null,
@@ -2536,7 +2536,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/libz-rs-sys@0.6.8#"
+   "to": "pkg:local/libz-rs-sys@0.6.8#"
   },
   {
    "condition": null,
@@ -2558,7 +2558,7 @@
    "resolved_version": "0.6.8",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/zlib-rs@0.6.8#"
+   "to": "pkg:local/zlib-rs@0.6.8#"
   },
   {
    "condition": "feature:arbitrary",
@@ -2721,8 +2721,86 @@
    "path": "zlib-rs/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "3801b01bd2fe7981d42dbc56fcdde7b47f238f5639eb42078794ab01d5d56f61",
+ "inputs_fingerprint": "05ee205de886adfaf859368309a8d6ddc2c1fbb4abf86311efb6d64bc6a833ce",
  "instances": [
+  {
+   "commit": null,
+   "component": "pkg:artifact/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git#",
+   "purl": "pkg:artifact/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip#",
+   "purl": "pkg:artifact/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh#",
+   "purl": "pkg:artifact/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys#",
+   "purl": "pkg:artifact/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz#",
+   "purl": "pkg:artifact/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:artifact/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:artifact/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git#",
+   "purl": "pkg:artifact/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": null
+  },
   {
    "commit": null,
    "component": "pkg:cargo/arbitrary",
@@ -3387,149 +3465,6 @@
    "version": "0.39.0"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git#",
-   "purl": "pkg:generic/flate2-rs.git?download_url=https%3A%2F%2Fgithub.com%2Frust-lang%2Fflate2-rs.git",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip#",
-   "purl": "pkg:generic/gzip-files.zip?download_url=https%3A%2F%2Fgithub.com%2Ftrifectatechfoundation%2Fcompression-corpus%2Freleases%2Fdownload%2F2025-04-14-103007%2Fgzip-files.zip",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh#",
-   "purl": "pkg:generic/install.sh?download_url=https%3A%2F%2Fwasmtime.dev%2Finstall.sh",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys#",
-   "purl": "pkg:generic/libz-chromium-sys?download_url=https%3A%2F%2Fgithub.com%2Ffolkertdev%2Flibz-chromium-sys",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/libz-rs-sys-cdylib",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/libz-rs-sys-cdylib@0.6.8#",
-   "purl": "pkg:generic/libz-rs-sys-cdylib@0.6.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.6.8"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/libz-rs-sys",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/libz-rs-sys@0.6.8#",
-   "purl": "pkg:generic/libz-rs-sys@0.6.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.8"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/test-libz-rs-sys",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/test-libz-rs-sys@0.6.8#",
-   "purl": "pkg:generic/test-libz-rs-sys@0.6.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.8"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz#",
-   "purl": "pkg:generic/wasi-sdk-24.0-x86_64-linux.tar.gz?download_url=https%3A%2F%2Fgithub.com%2FWebAssembly%2Fwasi-sdk%2Freleases%2Fdownload%2Fwasi-sdk-24%2Fwasi-sdk-24.0-x86_64-linux.tar.gz",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git#",
-   "purl": "pkg:generic/zlib-ng.git?download_url=https%3A%2F%2Fgithub.com%2Fzlib-ng%2Fzlib-ng.git",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/zlib-rs",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/zlib-rs@0.6.8#",
-   "purl": "pkg:generic/zlib-rs@0.6.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.8"
-  },
-  {
    "commit": "b4ffde65f46336ab88eb53be808477a3936bae11",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -3658,6 +3593,71 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/zizmorcore/zizmor-action",
    "version": "0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/libz-rs-sys-cdylib",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/libz-rs-sys-cdylib@0.6.8#",
+   "purl": "pkg:local/libz-rs-sys-cdylib@0.6.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/libz-rs-sys",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/libz-rs-sys@0.6.8#",
+   "purl": "pkg:local/libz-rs-sys@0.6.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/test-libz-rs-sys",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/test-libz-rs-sys@0.6.8#",
+   "purl": "pkg:local/test-libz-rs-sys@0.6.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/zlib-rs",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/zlib-rs@0.6.8#",
+   "purl": "pkg:local/zlib-rs@0.6.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [],

@@ -71,7 +71,7 @@ class ZigAdapter:
         components: dict[str, Component] = {}
         instances: list[Instance] = []
         for ref in drafts.values():
-            component = Component(ref.component, Ecosystem.GENERIC, ref.name, ref.name)
+            component = Component(ref.component, ref.ecosystem, ref.name, ref.name)
             components.setdefault(component.purl, component)
             instances.append(
                 Instance(
@@ -97,12 +97,13 @@ class _Ref:
     name: str
     source_kind: SourceKind
     source_key: str
+    ecosystem: Ecosystem
     first_party: bool = False
     qualifiers: tuple[tuple[str, str], ...] = ()
 
     @property
     def purl(self) -> str:
-        return purl(Ecosystem.GENERIC, self.name, qualifiers=dict(self.qualifiers))
+        return purl(self.ecosystem, self.name, qualifiers=dict(self.qualifiers))
 
     @property
     def component(self) -> str:
@@ -162,6 +163,7 @@ def _dependency(
             name,
             SourceKind.VENDORED if vendored else SourceKind.URL,
             f"url:{target}",
+            Ecosystem.ARTIFACT,
             qualifiers=(("download_url", target),),
         )
         constraint = checksum or target
@@ -179,6 +181,7 @@ def _dependency(
             name,
             SourceKind.VENDORED if vendored else SourceKind.PATH,
             f"path:{target}",
+            Ecosystem.LOCAL,
             first_party=_inside(target) and not vendored,
         )
         constraint = local

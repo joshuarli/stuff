@@ -337,78 +337,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "fuzz",
-   "ecosystem": "generic",
-   "name": "fuzz",
-   "purl": "pkg:generic/fuzz"
-  },
-  {
-   "display_name": "globset",
-   "ecosystem": "generic",
-   "name": "globset",
-   "purl": "pkg:generic/globset"
-  },
-  {
-   "display_name": "grep",
-   "ecosystem": "generic",
-   "name": "grep",
-   "purl": "pkg:generic/grep"
-  },
-  {
-   "display_name": "grep-cli",
-   "ecosystem": "generic",
-   "name": "grep-cli",
-   "purl": "pkg:generic/grep-cli"
-  },
-  {
-   "display_name": "grep-matcher",
-   "ecosystem": "generic",
-   "name": "grep-matcher",
-   "purl": "pkg:generic/grep-matcher"
-  },
-  {
-   "display_name": "grep-pcre2",
-   "ecosystem": "generic",
-   "name": "grep-pcre2",
-   "purl": "pkg:generic/grep-pcre2"
-  },
-  {
-   "display_name": "grep-printer",
-   "ecosystem": "generic",
-   "name": "grep-printer",
-   "purl": "pkg:generic/grep-printer"
-  },
-  {
-   "display_name": "grep-regex",
-   "ecosystem": "generic",
-   "name": "grep-regex",
-   "purl": "pkg:generic/grep-regex"
-  },
-  {
-   "display_name": "grep-searcher",
-   "ecosystem": "generic",
-   "name": "grep-searcher",
-   "purl": "pkg:generic/grep-searcher"
-  },
-  {
-   "display_name": "ignore",
-   "ecosystem": "generic",
-   "name": "ignore",
-   "purl": "pkg:generic/ignore"
-  },
-  {
-   "display_name": "ripgrep",
-   "ecosystem": "generic",
-   "name": "ripgrep",
-   "purl": "pkg:generic/ripgrep"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -431,6 +359,78 @@
    "ecosystem": "github",
    "name": "dtolnay/rust-toolchain",
    "purl": "pkg:github/dtolnay/rust-toolchain"
+  },
+  {
+   "display_name": "fuzz",
+   "ecosystem": "local",
+   "name": "fuzz",
+   "purl": "pkg:local/fuzz"
+  },
+  {
+   "display_name": "globset",
+   "ecosystem": "local",
+   "name": "globset",
+   "purl": "pkg:local/globset"
+  },
+  {
+   "display_name": "grep",
+   "ecosystem": "local",
+   "name": "grep",
+   "purl": "pkg:local/grep"
+  },
+  {
+   "display_name": "grep-cli",
+   "ecosystem": "local",
+   "name": "grep-cli",
+   "purl": "pkg:local/grep-cli"
+  },
+  {
+   "display_name": "grep-matcher",
+   "ecosystem": "local",
+   "name": "grep-matcher",
+   "purl": "pkg:local/grep-matcher"
+  },
+  {
+   "display_name": "grep-pcre2",
+   "ecosystem": "local",
+   "name": "grep-pcre2",
+   "purl": "pkg:local/grep-pcre2"
+  },
+  {
+   "display_name": "grep-printer",
+   "ecosystem": "local",
+   "name": "grep-printer",
+   "purl": "pkg:local/grep-printer"
+  },
+  {
+   "display_name": "grep-regex",
+   "ecosystem": "local",
+   "name": "grep-regex",
+   "purl": "pkg:local/grep-regex"
+  },
+  {
+   "display_name": "grep-searcher",
+   "ecosystem": "local",
+   "name": "grep-searcher",
+   "purl": "pkg:local/grep-searcher"
+  },
+  {
+   "display_name": "ignore",
+   "ecosystem": "local",
+   "name": "ignore",
+   "purl": "pkg:local/ignore"
+  },
+  {
+   "display_name": "ripgrep",
+   "ecosystem": "local",
+   "name": "ripgrep",
+   "purl": "pkg:local/ripgrep"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -696,7 +696,7 @@
    "resolved_version": "0.4.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep@0.4.1#"
+   "to": "pkg:local/grep@0.4.1#"
   },
   {
    "condition": null,
@@ -718,25 +718,7 @@
    "resolved_version": "0.4.33",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/ignore@0.4.33#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:local/ignore@0.4.33#"
   },
   {
    "condition": null,
@@ -827,6 +809,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -936,7 +936,7 @@
    "resolved_version": "0.4.20",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/globset@0.4.20#"
+   "to": "pkg:local/globset@0.4.20#"
   },
   {
    "condition": null,
@@ -1200,7 +1200,7 @@
    "resolved_version": "0.1.12",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-cli@0.1.12#"
+   "to": "pkg:local/grep-cli@0.1.12#"
   },
   {
    "condition": null,
@@ -1222,7 +1222,7 @@
    "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-matcher@0.1.9#"
+   "to": "pkg:local/grep-matcher@0.1.9#"
   },
   {
    "condition": "feature:grep-pcre2",
@@ -1244,7 +1244,7 @@
    "resolved_version": "0.1.10",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-pcre2@0.1.10#"
+   "to": "pkg:local/grep-pcre2@0.1.10#"
   },
   {
    "condition": null,
@@ -1266,7 +1266,7 @@
    "resolved_version": "0.3.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-printer@0.3.1#"
+   "to": "pkg:local/grep-printer@0.3.1#"
   },
   {
    "condition": null,
@@ -1288,7 +1288,7 @@
    "resolved_version": "0.1.14",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-regex@0.1.14#"
+   "to": "pkg:local/grep-regex@0.1.14#"
   },
   {
    "condition": null,
@@ -1310,7 +1310,7 @@
    "resolved_version": "0.1.17",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-searcher@0.1.17#"
+   "to": "pkg:local/grep-searcher@0.1.17#"
   },
   {
    "condition": null,
@@ -1508,7 +1508,7 @@
    "resolved_version": "0.4.20",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/globset@0.4.20#"
+   "to": "pkg:local/globset@0.4.20#"
   },
   {
    "condition": null,
@@ -1618,7 +1618,7 @@
    "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-matcher@0.1.9#"
+   "to": "pkg:local/grep-matcher@0.1.9#"
   },
   {
    "condition": null,
@@ -1750,7 +1750,7 @@
    "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-matcher@0.1.9#"
+   "to": "pkg:local/grep-matcher@0.1.9#"
   },
   {
    "condition": null,
@@ -1772,7 +1772,7 @@
    "resolved_version": "0.1.14",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-regex@0.1.14#"
+   "to": "pkg:local/grep-regex@0.1.14#"
   },
   {
    "condition": null,
@@ -1794,7 +1794,7 @@
    "resolved_version": "0.1.17",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-searcher@0.1.17#"
+   "to": "pkg:local/grep-searcher@0.1.17#"
   },
   {
    "condition": null,
@@ -1904,7 +1904,7 @@
    "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-matcher@0.1.9#"
+   "to": "pkg:local/grep-matcher@0.1.9#"
   },
   {
    "condition": null,
@@ -2080,7 +2080,7 @@
    "resolved_version": "0.1.9",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-matcher@0.1.9#"
+   "to": "pkg:local/grep-matcher@0.1.9#"
   },
   {
    "condition": null,
@@ -2102,7 +2102,7 @@
    "resolved_version": "0.1.14",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/grep-regex@0.1.14#"
+   "to": "pkg:local/grep-regex@0.1.14#"
   },
   {
    "condition": null,
@@ -2146,7 +2146,7 @@
    "resolved_version": "0.4.16",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/globset@0.4.16#"
+   "to": "pkg:local/globset@0.4.16#"
   },
   {
    "condition": null,
@@ -3875,7 +3875,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "2255515bacee604713ea98c8693093a58d79153ba2a65c00d88045318b66d8ae",
+ "inputs_fingerprint": "c47176155b0c8157100aeb250d35373c64ad2fe20efd100ee4e4b205ee5bc647",
  "instances": [
   {
    "commit": null,
@@ -4827,175 +4827,6 @@
    "version": "1.0.23"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/fuzz",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/fuzz@0.0.1#",
-   "purl": "pkg:generic/fuzz@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/globset",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/globset@0.4.16#",
-   "purl": "pkg:generic/globset@0.4.16",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.4.16"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/globset",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/globset@0.4.20#",
-   "purl": "pkg:generic/globset@0.4.20",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.4.20"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-cli",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-cli@0.1.12#",
-   "purl": "pkg:generic/grep-cli@0.1.12",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.12"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-matcher",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-matcher@0.1.9#",
-   "purl": "pkg:generic/grep-matcher@0.1.9",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.9"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-pcre2",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-pcre2@0.1.10#",
-   "purl": "pkg:generic/grep-pcre2@0.1.10",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.10"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-printer",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-printer@0.3.1#",
-   "purl": "pkg:generic/grep-printer@0.3.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-regex",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-regex@0.1.14#",
-   "purl": "pkg:generic/grep-regex@0.1.14",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.14"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep-searcher",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep-searcher@0.1.17#",
-   "purl": "pkg:generic/grep-searcher@0.1.17",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.17"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/grep",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/grep@0.4.1#",
-   "purl": "pkg:generic/grep@0.4.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.4.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/ignore",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/ignore@0.4.33#",
-   "purl": "pkg:generic/ignore@0.4.33",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.4.33"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/ripgrep",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/ripgrep@15.2.0#",
-   "purl": "pkg:generic/ripgrep@15.2.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "15.2.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -5059,6 +4890,175 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/dtolnay/rust-toolchain",
    "version": "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/fuzz",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/fuzz@0.0.1#",
+   "purl": "pkg:local/fuzz@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/globset",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/globset@0.4.16#",
+   "purl": "pkg:local/globset@0.4.16",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.4.16"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/globset",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/globset@0.4.20#",
+   "purl": "pkg:local/globset@0.4.20",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.4.20"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-cli",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-cli@0.1.12#",
+   "purl": "pkg:local/grep-cli@0.1.12",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.12"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-matcher",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-matcher@0.1.9#",
+   "purl": "pkg:local/grep-matcher@0.1.9",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-pcre2",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-pcre2@0.1.10#",
+   "purl": "pkg:local/grep-pcre2@0.1.10",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.10"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-printer",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-printer@0.3.1#",
+   "purl": "pkg:local/grep-printer@0.3.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-regex",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-regex@0.1.14#",
+   "purl": "pkg:local/grep-regex@0.1.14",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.14"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep-searcher",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep-searcher@0.1.17#",
+   "purl": "pkg:local/grep-searcher@0.1.17",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.17"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/grep",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/grep@0.4.1#",
+   "purl": "pkg:local/grep@0.4.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.4.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/ignore",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/ignore@0.4.33#",
+   "purl": "pkg:local/ignore@0.4.33",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.4.33"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/ripgrep",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/ripgrep@15.2.0#",
+   "purl": "pkg:local/ripgrep@15.2.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "15.2.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

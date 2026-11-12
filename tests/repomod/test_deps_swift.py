@@ -147,10 +147,10 @@ def test_manifest_literal_declarations() -> None:
     up = _direct(result, "up")[0]
     assert up.constraint == "3.0.0"
     assert up.resolution is Resolution.DECLARED_ONLY
-    local = _instances(result, "local", Ecosystem.GENERIC)[0]
+    local = _instances(result, "local", Ecosystem.LOCAL)[0]
     assert local.source_kind is SourceKind.PATH
     assert local.first_party is True
-    assert _direct(result, "local", Ecosystem.GENERIC)[0].resolution is Resolution.RESOLVED
+    assert _direct(result, "local", Ecosystem.LOCAL)[0].resolution is Resolution.RESOLVED
     assert all(edge.evidence[0].locator.startswith("L") for edge in result.edges)
 
 
@@ -230,7 +230,7 @@ def test_local_pin_is_a_path_package() -> None:
     )
     result = _extract({"Package.resolved": resolved})
 
-    local = _instances(result, "local", Ecosystem.GENERIC)[0]
+    local = _instances(result, "local", Ecosystem.LOCAL)[0]
     assert local.source_kind is SourceKind.PATH
     assert local.first_party is True
     assert local.version == "0.1.0"

@@ -2,9 +2,9 @@
  "components": [
   {
    "display_name": "bylaws-aarch64-apple-darwin.zip",
-   "ecosystem": "generic",
+   "ecosystem": "artifact",
    "name": "bylaws-aarch64-apple-darwin.zip",
-   "purl": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip"
+   "purl": "pkg:artifact/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip"
   },
   {
    "display_name": "actions/cache",
@@ -48,7 +48,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#"
+   "to": "pkg:artifact/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#"
   },
   {
    "condition": null,
@@ -181,15 +181,15 @@
    "path": "Package.swift"
   }
  ],
- "inputs_fingerprint": "e30ecd63ac8a21f70bbc0b0f0b46702f4a44853dfc28095d8929925f3224d900",
+ "inputs_fingerprint": "803d6b7bee7988d660c9d173ac0f1e26d73c7c21eebd2d26de98e893a212581d",
  "instances": [
   {
    "commit": null,
-   "component": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
+   "component": "pkg:artifact/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
    "context": "",
    "first_party": false,
-   "id": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#",
-   "purl": "pkg:generic/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
+   "id": "pkg:artifact/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip#",
+   "purl": "pkg:artifact/bylaws-aarch64-apple-darwin.zip?download_url=https%3A%2F%2Fgithub.com%2Fjoshuarli%2Fswift-bylaws%2Freleases%2Fdownload%2Frelease-a70d7a346b898f0e2ba376beb9d0a659c2984608%2Fbylaws-aarch64-apple-darwin.zip",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "url",

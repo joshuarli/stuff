@@ -2,9 +2,9 @@
  "components": [
   {
    "display_name": "zig-x86_64-linux-0.16.0.tar.xz",
-   "ecosystem": "generic",
+   "ecosystem": "artifact",
    "name": "zig-x86_64-linux-0.16.0.tar.xz",
-   "purl": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz"
+   "purl": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz"
   },
   {
    "display_name": "actions/cache",
@@ -48,7 +48,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#"
+   "to": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#"
   },
   {
    "condition": null,
@@ -66,7 +66,7 @@
    "resolved_version": null,
    "scope": "ci",
    "source_kind": "url",
-   "to": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#"
+   "to": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#"
   },
   {
    "condition": null,
@@ -195,15 +195,15 @@
    "path": "Makefile"
   }
  ],
- "inputs_fingerprint": "792f719f2369ed05f7c8357869756ce60c2dffb616199dfb27c665e52e79c699",
+ "inputs_fingerprint": "73deffb0931c18359bb7307592566e66018055e2fa94a75b88497b46b2c9bcf1",
  "instances": [
   {
    "commit": null,
-   "component": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz",
+   "component": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz",
    "context": "",
    "first_party": false,
-   "id": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#",
-   "purl": "pkg:generic/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz",
+   "id": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz#",
+   "purl": "pkg:artifact/zig-x86_64-linux-0.16.0.tar.xz?download_url=https%3A%2F%2Fziglang.org%2Fdownload%2F0.16.0%2Fzig-x86_64-linux-0.16.0.tar.xz",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "url",

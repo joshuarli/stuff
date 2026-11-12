@@ -446,7 +446,7 @@ def _source_risk(
             images.append(instance_id)
         elif (
             instance.source_kind is SourceKind.URL
-            and component.ecosystem is Ecosystem.GENERIC
+            and component.ecosystem is Ecosystem.ARTIFACT
         ):
             artifacts.append(instance_id)
     unpinned_actions = [

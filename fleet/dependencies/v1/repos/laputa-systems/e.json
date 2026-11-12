@@ -265,18 +265,6 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
-   "display_name": "e",
-   "ecosystem": "generic",
-   "name": "e",
-   "purl": "pkg:generic/e"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -311,6 +299,18 @@
    "ecosystem": "github",
    "name": "swatinem/rust-cache",
    "purl": "pkg:github/swatinem/rust-cache"
+  },
+  {
+   "display_name": "e",
+   "ecosystem": "local",
+   "name": "e",
+   "purl": "pkg:local/e"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -654,24 +654,6 @@
   },
   {
    "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
-  {
-   "condition": null,
    "constraint": "v7.0.1",
    "evidence": [
     {
@@ -813,6 +795,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -1605,7 +1605,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "1a1a6c6b147f4068d89e3707aba4b46622ea37c1fb229299dd1994c2622c5200",
+ "inputs_fingerprint": "7ccffb8883009e858fb12d21dbc16768f133341a50b57cf526391d66f250a0c0",
  "instances": [
   {
    "commit": null,
@@ -2180,32 +2180,6 @@
    "version": "3.24.2"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/e",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/e@0.1.13#",
-   "purl": "pkg:generic/e@0.1.13",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.1.13"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -2282,6 +2256,32 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/swatinem/rust-cache",
    "version": "d1527c8f67ef9af357290475d4af4b0fab8f12e0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/e",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/e@0.1.13#",
+   "purl": "pkg:local/e@0.1.13",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.13"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

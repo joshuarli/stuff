@@ -22,6 +22,12 @@ class Ecosystem(Enum):
     DOCKER = "docker"
     APK = "apk"
     GENERIC = "generic"
+    LOCAL = "local"
+    TOOLCHAIN = "toolchain"
+    SYSTEM = "system"
+    SERVICE = "service"
+    ARTIFACT = "artifact"
+    GIT = "git"
 
 
 class CoverageKind(Enum):

@@ -1,22 +1,10 @@
 {
  "components": [
   {
-   "display_name": ".github/actions/native-setup",
-   "ecosystem": "generic",
-   "name": ".github/actions/native-setup",
-   "purl": "pkg:generic/.github/actions/native-setup"
-  },
-  {
-   "display_name": "FixtureMath",
-   "ecosystem": "generic",
-   "name": "FixtureMath",
-   "purl": "pkg:generic/FixtureMath"
-  },
-  {
-   "display_name": "Graph",
-   "ecosystem": "generic",
-   "name": "Graph",
-   "purl": "pkg:generic/Graph"
+   "display_name": "alpine",
+   "ecosystem": "docker",
+   "name": "alpine",
+   "purl": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000"
   },
   {
    "display_name": "actions/checkout",
@@ -29,99 +17,27 @@
    "ecosystem": "github",
    "name": "actions/upload-artifact",
    "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": ".github/actions/native-setup",
+   "ecosystem": "local",
+   "name": ".github/actions/native-setup",
+   "purl": "pkg:local/.github/actions/native-setup"
+  },
+  {
+   "display_name": "FixtureMath",
+   "ecosystem": "system",
+   "name": "FixtureMath",
+   "purl": "pkg:system/FixtureMath"
+  },
+  {
+   "display_name": "Graph",
+   "ecosystem": "system",
+   "name": "Graph",
+   "purl": "pkg:system/Graph"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.package.steps[1].uses",
-     "path": ".github/workflows/complete-tools-size.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/actions/native-setup#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.controller.steps[1].uses",
-     "path": ".github/workflows/controller.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/actions/native-setup#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.baseline.steps[1].uses",
-     "path": ".github/workflows/memory-baseline.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/actions/native-setup#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.qualify.steps[1].uses",
-     "path": ".github/workflows/qualify.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/actions/native-setup#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.reproduce.steps[1].uses",
-     "path": ".github/workflows/reproduce-arm.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/actions/native-setup#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -325,6 +241,114 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "jobs.package.steps[1].uses",
+     "path": ".github/workflows/complete-tools-size.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.controller.steps[1].uses",
+     "path": ".github/workflows/controller.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.baseline.steps[1].uses",
+     "path": ".github/workflows/memory-baseline.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.qualify.steps[1].uses",
+     "path": ".github/workflows/qualify.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.reproduce.steps[1].uses",
+     "path": ".github/workflows/reproduce-arm.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/actions/native-setup#"
+  },
+  {
+   "condition": null,
+   "constraint": "sha256:020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "docker/builder.Dockerfile"
+    }
+   ],
+   "from": "docker:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "image",
+   "source_kind": "image",
+   "to": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "L3",
      "path": "tests/acceptance/graph/downstream/CMakeLists.txt"
     }
@@ -336,7 +360,7 @@
    "resolved_version": null,
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:generic/Graph#"
+   "to": "pkg:system/Graph#"
   },
   {
    "condition": null,
@@ -354,7 +378,7 @@
    "resolved_version": null,
    "scope": "system",
    "source_kind": "registry",
-   "to": "pkg:generic/FixtureMath#"
+   "to": "pkg:system/FixtureMath#"
   }
  ],
  "inputs": [
@@ -399,44 +423,18 @@
    "path": "tests/acceptance/network/internet/CMakeLists.txt"
   }
  ],
- "inputs_fingerprint": "f1000359413a36380891040ed4890bf7448020c73d58c517bdb17bc2932eed07",
+ "inputs_fingerprint": "1d03fc7bd32837877ffd94e8c0c7a4bc5694e0d62c4b42252441874a79b9e9b2",
  "instances": [
   {
    "commit": null,
-   "component": "pkg:generic/.github/actions/native-setup",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/.github/actions/native-setup#",
-   "purl": "pkg:generic/.github/actions/native-setup",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/FixtureMath",
+   "component": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
    "context": "",
    "first_party": false,
-   "id": "pkg:generic/FixtureMath#",
-   "purl": "pkg:generic/FixtureMath",
+   "id": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000#",
+   "purl": "pkg:docker/alpine?digest=sha256%3A020dfcbaaf4cc1078bf2d9c7ba31a8466e334061dcd2f248001d68f79e52c000",
    "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/Graph",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/Graph#",
-   "purl": "pkg:generic/Graph",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "image",
    "vcs_url": null,
    "version": null
   },
@@ -465,15 +463,48 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/actions/upload-artifact",
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/.github/actions/native-setup",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/.github/actions/native-setup#",
+   "purl": "pkg:local/.github/actions/native-setup",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:system/FixtureMath",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:system/FixtureMath#",
+   "purl": "pkg:system/FixtureMath",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:system/Graph",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:system/Graph#",
+   "purl": "pkg:system/Graph",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": null
   }
  ],
  "issues": [
-  {
-   "kind": "parse_error",
-   "locator": null,
-   "message": "containers: invalid package name: '/dev/null'",
-   "path": null
-  },
   {
    "kind": "dynamic_value",
    "locator": "L4",
@@ -486,6 +517,11 @@
    "directory": ".",
    "ecosystem": "generic",
    "id": ".:generic"
+  },
+  {
+   "directory": "docker",
+   "ecosystem": "generic",
+   "id": "docker:generic"
   },
   {
    "directory": "tests/acceptance/graph/downstream",

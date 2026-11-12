@@ -685,204 +685,6 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
-   "display_name": ".github/workflows/linux.yml",
-   "ecosystem": "generic",
-   "name": ".github/workflows/linux.yml",
-   "purl": "pkg:generic/.github/workflows/linux.yml"
-  },
-  {
-   "display_name": ".github/workflows/macos.yml",
-   "ecosystem": "generic",
-   "name": ".github/workflows/macos.yml",
-   "purl": "pkg:generic/.github/workflows/macos.yml"
-  },
-  {
-   "display_name": "player-app",
-   "ecosystem": "generic",
-   "name": "player-app",
-   "purl": "pkg:generic/player-app"
-  },
-  {
-   "display_name": "player-audio",
-   "ecosystem": "generic",
-   "name": "player-audio",
-   "purl": "pkg:generic/player-audio"
-  },
-  {
-   "display_name": "player-backend",
-   "ecosystem": "generic",
-   "name": "player-backend",
-   "purl": "pkg:generic/player-backend"
-  },
-  {
-   "display_name": "player-build",
-   "ecosystem": "generic",
-   "name": "player-build",
-   "purl": "pkg:generic/player-build"
-  },
-  {
-   "display_name": "player-core",
-   "ecosystem": "generic",
-   "name": "player-core",
-   "purl": "pkg:generic/player-core"
-  },
-  {
-   "display_name": "player-display",
-   "ecosystem": "generic",
-   "name": "player-display",
-   "purl": "pkg:generic/player-display"
-  },
-  {
-   "display_name": "player-engine",
-   "ecosystem": "generic",
-   "name": "player-engine",
-   "purl": "pkg:generic/player-engine"
-  },
-  {
-   "display_name": "player-gui",
-   "ecosystem": "generic",
-   "name": "player-gui",
-   "purl": "pkg:generic/player-gui"
-  },
-  {
-   "display_name": "player-media",
-   "ecosystem": "generic",
-   "name": "player-media",
-   "purl": "pkg:generic/player-media"
-  },
-  {
-   "display_name": "player-output",
-   "ecosystem": "generic",
-   "name": "player-output",
-   "purl": "pkg:generic/player-output"
-  },
-  {
-   "display_name": "player-overlay",
-   "ecosystem": "generic",
-   "name": "player-overlay",
-   "purl": "pkg:generic/player-overlay"
-  },
-  {
-   "display_name": "player-tui",
-   "ecosystem": "generic",
-   "name": "player-tui",
-   "purl": "pkg:generic/player-tui"
-  },
-  {
-   "display_name": "ruopus",
-   "ecosystem": "generic",
-   "name": "ruopus",
-   "purl": "pkg:generic/ruopus"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "symphonia",
-   "ecosystem": "generic",
-   "name": "symphonia",
-   "purl": "pkg:generic/symphonia"
-  },
-  {
-   "display_name": "symphonia-bundle-flac",
-   "ecosystem": "generic",
-   "name": "symphonia-bundle-flac",
-   "purl": "pkg:generic/symphonia-bundle-flac"
-  },
-  {
-   "display_name": "symphonia-bundle-mp3",
-   "ecosystem": "generic",
-   "name": "symphonia-bundle-mp3",
-   "purl": "pkg:generic/symphonia-bundle-mp3"
-  },
-  {
-   "display_name": "symphonia-codec-aac",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-aac",
-   "purl": "pkg:generic/symphonia-codec-aac"
-  },
-  {
-   "display_name": "symphonia-codec-adpcm",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-adpcm",
-   "purl": "pkg:generic/symphonia-codec-adpcm"
-  },
-  {
-   "display_name": "symphonia-codec-alac",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-alac",
-   "purl": "pkg:generic/symphonia-codec-alac"
-  },
-  {
-   "display_name": "symphonia-codec-opus",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-opus",
-   "purl": "pkg:generic/symphonia-codec-opus"
-  },
-  {
-   "display_name": "symphonia-codec-pcm",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-pcm",
-   "purl": "pkg:generic/symphonia-codec-pcm"
-  },
-  {
-   "display_name": "symphonia-codec-vorbis",
-   "ecosystem": "generic",
-   "name": "symphonia-codec-vorbis",
-   "purl": "pkg:generic/symphonia-codec-vorbis"
-  },
-  {
-   "display_name": "symphonia-common",
-   "ecosystem": "generic",
-   "name": "symphonia-common",
-   "purl": "pkg:generic/symphonia-common"
-  },
-  {
-   "display_name": "symphonia-core",
-   "ecosystem": "generic",
-   "name": "symphonia-core",
-   "purl": "pkg:generic/symphonia-core"
-  },
-  {
-   "display_name": "symphonia-format-caf",
-   "ecosystem": "generic",
-   "name": "symphonia-format-caf",
-   "purl": "pkg:generic/symphonia-format-caf"
-  },
-  {
-   "display_name": "symphonia-format-isomp4",
-   "ecosystem": "generic",
-   "name": "symphonia-format-isomp4",
-   "purl": "pkg:generic/symphonia-format-isomp4"
-  },
-  {
-   "display_name": "symphonia-format-mkv",
-   "ecosystem": "generic",
-   "name": "symphonia-format-mkv",
-   "purl": "pkg:generic/symphonia-format-mkv"
-  },
-  {
-   "display_name": "symphonia-format-ogg",
-   "ecosystem": "generic",
-   "name": "symphonia-format-ogg",
-   "purl": "pkg:generic/symphonia-format-ogg"
-  },
-  {
-   "display_name": "symphonia-format-riff",
-   "ecosystem": "generic",
-   "name": "symphonia-format-riff",
-   "purl": "pkg:generic/symphonia-format-riff"
-  },
-  {
-   "display_name": "symphonia-metadata",
-   "ecosystem": "generic",
-   "name": "symphonia-metadata",
-   "purl": "pkg:generic/symphonia-metadata"
-  },
-  {
    "display_name": "actions/cache",
    "ecosystem": "github",
    "name": "actions/cache",
@@ -899,63 +701,207 @@
    "ecosystem": "github",
    "name": "actions/upload-artifact",
    "purl": "pkg:github/actions/upload-artifact"
+  },
+  {
+   "display_name": ".github/workflows/linux.yml",
+   "ecosystem": "local",
+   "name": ".github/workflows/linux.yml",
+   "purl": "pkg:local/.github/workflows/linux.yml"
+  },
+  {
+   "display_name": ".github/workflows/macos.yml",
+   "ecosystem": "local",
+   "name": ".github/workflows/macos.yml",
+   "purl": "pkg:local/.github/workflows/macos.yml"
+  },
+  {
+   "display_name": "player-app",
+   "ecosystem": "local",
+   "name": "player-app",
+   "purl": "pkg:local/player-app"
+  },
+  {
+   "display_name": "player-audio",
+   "ecosystem": "local",
+   "name": "player-audio",
+   "purl": "pkg:local/player-audio"
+  },
+  {
+   "display_name": "player-backend",
+   "ecosystem": "local",
+   "name": "player-backend",
+   "purl": "pkg:local/player-backend"
+  },
+  {
+   "display_name": "player-build",
+   "ecosystem": "local",
+   "name": "player-build",
+   "purl": "pkg:local/player-build"
+  },
+  {
+   "display_name": "player-core",
+   "ecosystem": "local",
+   "name": "player-core",
+   "purl": "pkg:local/player-core"
+  },
+  {
+   "display_name": "player-display",
+   "ecosystem": "local",
+   "name": "player-display",
+   "purl": "pkg:local/player-display"
+  },
+  {
+   "display_name": "player-engine",
+   "ecosystem": "local",
+   "name": "player-engine",
+   "purl": "pkg:local/player-engine"
+  },
+  {
+   "display_name": "player-gui",
+   "ecosystem": "local",
+   "name": "player-gui",
+   "purl": "pkg:local/player-gui"
+  },
+  {
+   "display_name": "player-media",
+   "ecosystem": "local",
+   "name": "player-media",
+   "purl": "pkg:local/player-media"
+  },
+  {
+   "display_name": "player-output",
+   "ecosystem": "local",
+   "name": "player-output",
+   "purl": "pkg:local/player-output"
+  },
+  {
+   "display_name": "player-overlay",
+   "ecosystem": "local",
+   "name": "player-overlay",
+   "purl": "pkg:local/player-overlay"
+  },
+  {
+   "display_name": "player-tui",
+   "ecosystem": "local",
+   "name": "player-tui",
+   "purl": "pkg:local/player-tui"
+  },
+  {
+   "display_name": "ruopus",
+   "ecosystem": "local",
+   "name": "ruopus",
+   "purl": "pkg:local/ruopus"
+  },
+  {
+   "display_name": "symphonia",
+   "ecosystem": "local",
+   "name": "symphonia",
+   "purl": "pkg:local/symphonia"
+  },
+  {
+   "display_name": "symphonia-bundle-flac",
+   "ecosystem": "local",
+   "name": "symphonia-bundle-flac",
+   "purl": "pkg:local/symphonia-bundle-flac"
+  },
+  {
+   "display_name": "symphonia-bundle-mp3",
+   "ecosystem": "local",
+   "name": "symphonia-bundle-mp3",
+   "purl": "pkg:local/symphonia-bundle-mp3"
+  },
+  {
+   "display_name": "symphonia-codec-aac",
+   "ecosystem": "local",
+   "name": "symphonia-codec-aac",
+   "purl": "pkg:local/symphonia-codec-aac"
+  },
+  {
+   "display_name": "symphonia-codec-adpcm",
+   "ecosystem": "local",
+   "name": "symphonia-codec-adpcm",
+   "purl": "pkg:local/symphonia-codec-adpcm"
+  },
+  {
+   "display_name": "symphonia-codec-alac",
+   "ecosystem": "local",
+   "name": "symphonia-codec-alac",
+   "purl": "pkg:local/symphonia-codec-alac"
+  },
+  {
+   "display_name": "symphonia-codec-opus",
+   "ecosystem": "local",
+   "name": "symphonia-codec-opus",
+   "purl": "pkg:local/symphonia-codec-opus"
+  },
+  {
+   "display_name": "symphonia-codec-pcm",
+   "ecosystem": "local",
+   "name": "symphonia-codec-pcm",
+   "purl": "pkg:local/symphonia-codec-pcm"
+  },
+  {
+   "display_name": "symphonia-codec-vorbis",
+   "ecosystem": "local",
+   "name": "symphonia-codec-vorbis",
+   "purl": "pkg:local/symphonia-codec-vorbis"
+  },
+  {
+   "display_name": "symphonia-common",
+   "ecosystem": "local",
+   "name": "symphonia-common",
+   "purl": "pkg:local/symphonia-common"
+  },
+  {
+   "display_name": "symphonia-core",
+   "ecosystem": "local",
+   "name": "symphonia-core",
+   "purl": "pkg:local/symphonia-core"
+  },
+  {
+   "display_name": "symphonia-format-caf",
+   "ecosystem": "local",
+   "name": "symphonia-format-caf",
+   "purl": "pkg:local/symphonia-format-caf"
+  },
+  {
+   "display_name": "symphonia-format-isomp4",
+   "ecosystem": "local",
+   "name": "symphonia-format-isomp4",
+   "purl": "pkg:local/symphonia-format-isomp4"
+  },
+  {
+   "display_name": "symphonia-format-mkv",
+   "ecosystem": "local",
+   "name": "symphonia-format-mkv",
+   "purl": "pkg:local/symphonia-format-mkv"
+  },
+  {
+   "display_name": "symphonia-format-ogg",
+   "ecosystem": "local",
+   "name": "symphonia-format-ogg",
+   "purl": "pkg:local/symphonia-format-ogg"
+  },
+  {
+   "display_name": "symphonia-format-riff",
+   "ecosystem": "local",
+   "name": "symphonia-format-riff",
+   "purl": "pkg:local/symphonia-format-riff"
+  },
+  {
+   "display_name": "symphonia-metadata",
+   "ecosystem": "local",
+   "name": "symphonia-metadata",
+   "purl": "pkg:local/symphonia-metadata"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.linux.uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/workflows/linux.yml#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "jobs.macos.uses",
-     "path": ".github/workflows/release.yml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": null,
-   "scope": "ci",
-   "source_kind": "path",
-   "to": "pkg:generic/.github/workflows/macos.yml#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v6.1.0",
@@ -1087,6 +1033,60 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "jobs.linux.uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/workflows/linux.yml#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "jobs.macos.uses",
+     "path": ".github/workflows/release.yml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": null,
+   "scope": "ci",
+   "source_kind": "path",
+   "to": "pkg:local/.github/workflows/macos.yml#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "dependencies.player-audio",
      "path": "crates/player-app/Cargo.toml"
     },
@@ -1102,7 +1102,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
+   "to": "pkg:local/player-audio@0.1.0#"
   },
   {
    "condition": null,
@@ -1124,7 +1124,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-backend@0.1.0#"
+   "to": "pkg:local/player-backend@0.1.0#"
   },
   {
    "condition": null,
@@ -1146,7 +1146,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1168,7 +1168,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-core@0.1.0#"
+   "to": "pkg:local/player-core@0.1.0#"
   },
   {
    "condition": null,
@@ -1190,7 +1190,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-display@0.1.0#"
+   "to": "pkg:local/player-display@0.1.0#"
   },
   {
    "condition": null,
@@ -1212,7 +1212,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-engine@0.1.0#"
+   "to": "pkg:local/player-engine@0.1.0#"
   },
   {
    "condition": null,
@@ -1234,7 +1234,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
+   "to": "pkg:local/player-media@0.1.0#"
   },
   {
    "condition": null,
@@ -1256,7 +1256,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
+   "to": "pkg:local/player-output@0.1.0#"
   },
   {
    "condition": null,
@@ -1278,7 +1278,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-overlay@0.1.0#"
+   "to": "pkg:local/player-overlay@0.1.0#"
   },
   {
    "condition": null,
@@ -1300,7 +1300,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-tui@0.1.0#"
+   "to": "pkg:local/player-tui@0.1.0#"
   },
   {
    "condition": null,
@@ -1322,7 +1322,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1344,7 +1344,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
+   "to": "pkg:local/player-media@0.1.0#"
   },
   {
    "condition": null,
@@ -1366,7 +1366,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/symphonia@0.6.1#4d8d81e742a9adaa"
+   "to": "pkg:local/symphonia@0.6.1#db9f8063f70a855e"
   },
   {
    "condition": null,
@@ -1388,7 +1388,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
+   "to": "pkg:local/player-audio@0.1.0#"
   },
   {
    "condition": null,
@@ -1410,7 +1410,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1432,7 +1432,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-engine@0.1.0#"
+   "to": "pkg:local/player-engine@0.1.0#"
   },
   {
    "condition": null,
@@ -1454,7 +1454,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-overlay@0.1.0#"
+   "to": "pkg:local/player-overlay@0.1.0#"
   },
   {
    "condition": null,
@@ -1564,7 +1564,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": "cfg(target_os = \"linux\")",
@@ -1586,7 +1586,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
+   "to": "pkg:local/player-output@0.1.0#"
   },
   {
    "condition": "cfg(target_os = \"macos\")",
@@ -1608,7 +1608,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
+   "to": "pkg:local/player-output@0.1.0#"
   },
   {
    "condition": null,
@@ -1630,7 +1630,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-audio@0.1.0#"
+   "to": "pkg:local/player-audio@0.1.0#"
   },
   {
    "condition": null,
@@ -1652,7 +1652,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1674,7 +1674,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-media@0.1.0#"
+   "to": "pkg:local/player-media@0.1.0#"
   },
   {
    "condition": null,
@@ -1696,7 +1696,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-output@0.1.0#"
+   "to": "pkg:local/player-output@0.1.0#"
   },
   {
    "condition": null,
@@ -1718,7 +1718,7 @@
    "resolved_version": "0.43.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-app@0.43.2#"
+   "to": "pkg:local/player-app@0.43.2#"
   },
   {
    "condition": null,
@@ -1740,7 +1740,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1762,7 +1762,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": null,
@@ -1784,7 +1784,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-core@0.1.0#"
+   "to": "pkg:local/player-core@0.1.0#"
   },
   {
    "condition": null,
@@ -1806,7 +1806,7 @@
    "resolved_version": "0.1.0",
    "scope": "build",
    "source_kind": "workspace",
-   "to": "pkg:generic/player-build@0.1.0#"
+   "to": "pkg:local/player-build@0.1.0#"
   },
   {
    "condition": "cfg(target_os = \"linux\")",
@@ -4312,7 +4312,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
+   "to": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea"
   },
   {
    "condition": null,
@@ -4334,7 +4334,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4356,7 +4356,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
+   "to": "pkg:local/symphonia-metadata@0.6.1#133447919ef89a47"
   },
   {
    "condition": null,
@@ -4422,7 +4422,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4494,7 +4494,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia@0.6.1#95ded96f3e5cca64"
+   "to": "pkg:local/symphonia@0.6.1#474e18b89df11ec3"
   },
   {
    "condition": null,
@@ -4560,7 +4560,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
+   "to": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea"
   },
   {
    "condition": null,
@@ -4582,7 +4582,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4618,7 +4618,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -4662,7 +4662,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
+   "to": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea"
   },
   {
    "condition": null,
@@ -4684,7 +4684,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4728,7 +4728,7 @@
    "resolved_version": "0.1.2",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/ruopus@0.1.2#"
+   "to": "pkg:local/ruopus@0.1.2#"
   },
   {
    "condition": null,
@@ -4750,7 +4750,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
+   "to": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea"
   },
   {
    "condition": null,
@@ -4772,7 +4772,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4816,7 +4816,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4860,7 +4860,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5"
+   "to": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea"
   },
   {
    "condition": null,
@@ -4882,7 +4882,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4918,7 +4918,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -4962,7 +4962,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -4984,7 +4984,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
+   "to": "pkg:local/symphonia-metadata@0.6.1#133447919ef89a47"
   },
   {
    "condition": null,
@@ -5192,7 +5192,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:local/symphonia-common@0.6.1#56b90ecb4b7e17a6"
   },
   {
    "condition": null,
@@ -5210,7 +5210,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -5246,7 +5246,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:local/symphonia-common@0.6.1#56b90ecb4b7e17a6"
   },
   {
    "condition": null,
@@ -5264,7 +5264,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -5282,7 +5282,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:local/symphonia-metadata@0.6.1#8ad4ad9607439ff7"
   },
   {
    "condition": null,
@@ -5336,7 +5336,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:local/symphonia-common@0.6.1#56b90ecb4b7e17a6"
   },
   {
    "condition": null,
@@ -5354,7 +5354,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -5390,7 +5390,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2"
+   "to": "pkg:local/symphonia-common@0.6.1#56b90ecb4b7e17a6"
   },
   {
    "condition": null,
@@ -5408,7 +5408,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -5426,7 +5426,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:local/symphonia-metadata@0.6.1#8ad4ad9607439ff7"
   },
   {
    "condition": null,
@@ -5480,7 +5480,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867"
+   "to": "pkg:local/symphonia-core@0.6.1#9e656183033701ff"
   },
   {
    "condition": null,
@@ -5498,7 +5498,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513"
+   "to": "pkg:local/symphonia-metadata@0.6.1#8ad4ad9607439ff7"
   },
   {
    "condition": null,
@@ -5608,7 +5608,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": null,
@@ -5770,7 +5770,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia@0.6.1#95ded96f3e5cca64"
+   "to": "pkg:local/symphonia@0.6.1#474e18b89df11ec3"
   },
   {
    "condition": null,
@@ -5806,7 +5806,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia@0.6.1#95ded96f3e5cca64"
+   "to": "pkg:local/symphonia@0.6.1#474e18b89df11ec3"
   },
   {
    "condition": null,
@@ -5850,7 +5850,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-bundle-flac@0.6.1#"
+   "to": "pkg:local/symphonia-bundle-flac@0.6.1#"
   },
   {
    "condition": "feature:mp1",
@@ -5872,7 +5872,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-bundle-mp3@0.6.1#"
+   "to": "pkg:local/symphonia-bundle-mp3@0.6.1#"
   },
   {
    "condition": "feature:aac",
@@ -5894,7 +5894,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-aac@0.6.1#"
+   "to": "pkg:local/symphonia-codec-aac@0.6.1#"
   },
   {
    "condition": "feature:adpcm",
@@ -5912,7 +5912,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-adpcm@0.6.1#"
+   "to": "pkg:local/symphonia-codec-adpcm@0.6.1#"
   },
   {
    "condition": "feature:alac",
@@ -5934,7 +5934,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-alac@0.6.1#"
+   "to": "pkg:local/symphonia-codec-alac@0.6.1#"
   },
   {
    "condition": "feature:opus",
@@ -5956,7 +5956,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-opus@0.6.1#"
+   "to": "pkg:local/symphonia-codec-opus@0.6.1#"
   },
   {
    "condition": "feature:pcm",
@@ -5978,7 +5978,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-pcm@0.6.1#"
+   "to": "pkg:local/symphonia-codec-pcm@0.6.1#"
   },
   {
    "condition": "feature:vorbis",
@@ -6000,7 +6000,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-codec-vorbis@0.6.1#"
+   "to": "pkg:local/symphonia-codec-vorbis@0.6.1#"
   },
   {
    "condition": null,
@@ -6022,7 +6022,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241"
+   "to": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a"
   },
   {
    "condition": "feature:caf",
@@ -6040,7 +6040,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-format-caf@0.6.1#"
+   "to": "pkg:local/symphonia-format-caf@0.6.1#"
   },
   {
    "condition": "feature:isomp4",
@@ -6058,7 +6058,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-format-isomp4@0.6.1#"
+   "to": "pkg:local/symphonia-format-isomp4@0.6.1#"
   },
   {
    "condition": "feature:mkv",
@@ -6076,7 +6076,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-format-mkv@0.6.1#"
+   "to": "pkg:local/symphonia-format-mkv@0.6.1#"
   },
   {
    "condition": "feature:ogg",
@@ -6094,7 +6094,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-format-ogg@0.6.1#"
+   "to": "pkg:local/symphonia-format-ogg@0.6.1#"
   },
   {
    "condition": "feature:aiff",
@@ -6112,7 +6112,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-format-riff@0.6.1#"
+   "to": "pkg:local/symphonia-format-riff@0.6.1#"
   },
   {
    "condition": null,
@@ -6134,7 +6134,7 @@
    "resolved_version": "0.6.1",
    "scope": "runtime",
    "source_kind": "vendored",
-   "to": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906"
+   "to": "pkg:local/symphonia-metadata@0.6.1#133447919ef89a47"
   },
   {
    "condition": null,
@@ -6152,7 +6152,7 @@
    "resolved_version": "nightly-2026-09-15",
    "scope": "toolchain",
    "source_kind": "vendored",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   }
  ],
  "inputs": [
@@ -6345,7 +6345,7 @@
    "path": "vendor/symphonia/symphonia/fuzz/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "69974337fc8089ab31a7f00de7b9a1512a811fff18760976993faecf27ed1a95",
+ "inputs_fingerprint": "62473f18b1eaa62aa10e1bf4a785826aa3aa06c1ee2ded9424fc8c9b34669611",
  "instances": [
   {
    "commit": null,
@@ -7895,487 +7895,6 @@
    "version": null
   },
   {
-   "commit": null,
-   "component": "pkg:generic/.github/workflows/linux.yml",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/.github/workflows/linux.yml#",
-   "purl": "pkg:generic/.github/workflows/linux.yml",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/.github/workflows/macos.yml",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/.github/workflows/macos.yml#",
-   "purl": "pkg:generic/.github/workflows/macos.yml",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": null
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-app",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-app@0.43.2#",
-   "purl": "pkg:generic/player-app@0.43.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.43.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-audio",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-audio@0.1.0#",
-   "purl": "pkg:generic/player-audio@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-backend",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-backend@0.1.0#",
-   "purl": "pkg:generic/player-backend@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-build",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-build@0.1.0#",
-   "purl": "pkg:generic/player-build@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-core",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-core@0.1.0#",
-   "purl": "pkg:generic/player-core@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-display",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-display@0.1.0#",
-   "purl": "pkg:generic/player-display@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-engine",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-engine@0.1.0#",
-   "purl": "pkg:generic/player-engine@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-gui",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-gui@0.1.0#",
-   "purl": "pkg:generic/player-gui@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-media",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-media@0.1.0#",
-   "purl": "pkg:generic/player-media@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-output",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-output@0.1.0#",
-   "purl": "pkg:generic/player-output@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-overlay",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-overlay@0.1.0#",
-   "purl": "pkg:generic/player-overlay@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/player-tui",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/player-tui@0.1.0#",
-   "purl": "pkg:generic/player-tui@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/ruopus",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/ruopus@0.1.2#",
-   "purl": "pkg:generic/ruopus@0.1.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.1.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-bundle-flac",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-flac@0.6.1#",
-   "purl": "pkg:generic/symphonia-bundle-flac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-bundle-mp3",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-bundle-mp3@0.6.1#",
-   "purl": "pkg:generic/symphonia-bundle-mp3@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-aac",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-aac@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-aac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-adpcm",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-adpcm@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-adpcm@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-alac",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-alac@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-alac@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-opus",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-opus@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-opus@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-pcm",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-pcm@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-pcm@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-codec-vorbis",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-codec-vorbis@0.6.1#",
-   "purl": "pkg:generic/symphonia-codec-vorbis@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-common",
-   "context": "b8b8bf109924ddf2",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-common@0.6.1#b8b8bf109924ddf2",
-   "purl": "pkg:generic/symphonia-common@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-common",
-   "context": "dd967d1927d907c5",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-common@0.6.1#dd967d1927d907c5",
-   "purl": "pkg:generic/symphonia-common@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-core",
-   "context": "35bf51aceb3d6241",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-core@0.6.1#35bf51aceb3d6241",
-   "purl": "pkg:generic/symphonia-core@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-core",
-   "context": "6bea4afce3952867",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-core@0.6.1#6bea4afce3952867",
-   "purl": "pkg:generic/symphonia-core@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-format-caf",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-format-caf@0.6.1#",
-   "purl": "pkg:generic/symphonia-format-caf@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-format-isomp4",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-format-isomp4@0.6.1#",
-   "purl": "pkg:generic/symphonia-format-isomp4@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-format-mkv",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-format-mkv@0.6.1#",
-   "purl": "pkg:generic/symphonia-format-mkv@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-format-ogg",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-format-ogg@0.6.1#",
-   "purl": "pkg:generic/symphonia-format-ogg@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-format-riff",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-format-riff@0.6.1#",
-   "purl": "pkg:generic/symphonia-format-riff@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-metadata",
-   "context": "1bdf0f8a38246513",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-metadata@0.6.1#1bdf0f8a38246513",
-   "purl": "pkg:generic/symphonia-metadata@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia-metadata",
-   "context": "ef0d128aecaa8906",
-   "first_party": true,
-   "id": "pkg:generic/symphonia-metadata@0.6.1#ef0d128aecaa8906",
-   "purl": "pkg:generic/symphonia-metadata@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia",
-   "context": "4d8d81e742a9adaa",
-   "first_party": true,
-   "id": "pkg:generic/symphonia@0.6.1#4d8d81e742a9adaa",
-   "purl": "pkg:generic/symphonia@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/symphonia",
-   "context": "95ded96f3e5cca64",
-   "first_party": true,
-   "id": "pkg:generic/symphonia@0.6.1#95ded96f3e5cca64",
-   "purl": "pkg:generic/symphonia@0.6.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "vendored",
-   "vcs_url": null,
-   "version": "0.6.1"
-  },
-  {
    "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
    "component": "pkg:github/actions/cache",
    "context": "",
@@ -8413,6 +7932,487 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/actions/upload-artifact",
    "version": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/.github/workflows/linux.yml",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/.github/workflows/linux.yml#",
+   "purl": "pkg:local/.github/workflows/linux.yml",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/.github/workflows/macos.yml",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/.github/workflows/macos.yml#",
+   "purl": "pkg:local/.github/workflows/macos.yml",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-app",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-app@0.43.2#",
+   "purl": "pkg:local/player-app@0.43.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.43.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-audio",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-audio@0.1.0#",
+   "purl": "pkg:local/player-audio@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-backend",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-backend@0.1.0#",
+   "purl": "pkg:local/player-backend@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-build",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-build@0.1.0#",
+   "purl": "pkg:local/player-build@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-core@0.1.0#",
+   "purl": "pkg:local/player-core@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-display",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-display@0.1.0#",
+   "purl": "pkg:local/player-display@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-engine",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-engine@0.1.0#",
+   "purl": "pkg:local/player-engine@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-gui",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-gui@0.1.0#",
+   "purl": "pkg:local/player-gui@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-media",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-media@0.1.0#",
+   "purl": "pkg:local/player-media@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-output",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-output@0.1.0#",
+   "purl": "pkg:local/player-output@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-overlay",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-overlay@0.1.0#",
+   "purl": "pkg:local/player-overlay@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/player-tui",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/player-tui@0.1.0#",
+   "purl": "pkg:local/player-tui@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/ruopus",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/ruopus@0.1.2#",
+   "purl": "pkg:local/ruopus@0.1.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-bundle-flac",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-bundle-flac@0.6.1#",
+   "purl": "pkg:local/symphonia-bundle-flac@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-bundle-mp3",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-bundle-mp3@0.6.1#",
+   "purl": "pkg:local/symphonia-bundle-mp3@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-aac",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-aac@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-aac@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-adpcm",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-adpcm@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-adpcm@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-alac",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-alac@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-alac@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-opus",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-opus@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-opus@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-pcm",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-pcm@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-pcm@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-codec-vorbis",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-codec-vorbis@0.6.1#",
+   "purl": "pkg:local/symphonia-codec-vorbis@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-common",
+   "context": "56b90ecb4b7e17a6",
+   "first_party": true,
+   "id": "pkg:local/symphonia-common@0.6.1#56b90ecb4b7e17a6",
+   "purl": "pkg:local/symphonia-common@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-common",
+   "context": "fa681e98fe815bea",
+   "first_party": true,
+   "id": "pkg:local/symphonia-common@0.6.1#fa681e98fe815bea",
+   "purl": "pkg:local/symphonia-common@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-core",
+   "context": "756a8c3ff7abd97a",
+   "first_party": true,
+   "id": "pkg:local/symphonia-core@0.6.1#756a8c3ff7abd97a",
+   "purl": "pkg:local/symphonia-core@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-core",
+   "context": "9e656183033701ff",
+   "first_party": true,
+   "id": "pkg:local/symphonia-core@0.6.1#9e656183033701ff",
+   "purl": "pkg:local/symphonia-core@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-format-caf",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-format-caf@0.6.1#",
+   "purl": "pkg:local/symphonia-format-caf@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-format-isomp4",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-format-isomp4@0.6.1#",
+   "purl": "pkg:local/symphonia-format-isomp4@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-format-mkv",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-format-mkv@0.6.1#",
+   "purl": "pkg:local/symphonia-format-mkv@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-format-ogg",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-format-ogg@0.6.1#",
+   "purl": "pkg:local/symphonia-format-ogg@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-format-riff",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/symphonia-format-riff@0.6.1#",
+   "purl": "pkg:local/symphonia-format-riff@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-metadata",
+   "context": "133447919ef89a47",
+   "first_party": true,
+   "id": "pkg:local/symphonia-metadata@0.6.1#133447919ef89a47",
+   "purl": "pkg:local/symphonia-metadata@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia-metadata",
+   "context": "8ad4ad9607439ff7",
+   "first_party": true,
+   "id": "pkg:local/symphonia-metadata@0.6.1#8ad4ad9607439ff7",
+   "purl": "pkg:local/symphonia-metadata@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia",
+   "context": "474e18b89df11ec3",
+   "first_party": true,
+   "id": "pkg:local/symphonia@0.6.1#474e18b89df11ec3",
+   "purl": "pkg:local/symphonia@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "vendored",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/symphonia",
+   "context": "db9f8063f70a855e",
+   "first_party": true,
+   "id": "pkg:local/symphonia@0.6.1#db9f8063f70a855e",
+   "purl": "pkg:local/symphonia@0.6.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.6.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

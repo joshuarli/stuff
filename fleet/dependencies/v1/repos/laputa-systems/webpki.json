@@ -721,24 +721,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "rustls-webpki",
-   "ecosystem": "generic",
-   "name": "rustls-webpki",
-   "purl": "pkg:generic/rustls-webpki"
-  },
-  {
-   "display_name": "webpki-fuzz",
-   "ecosystem": "generic",
-   "name": "webpki-fuzz",
-   "purl": "pkg:generic/webpki-fuzz"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -799,6 +781,18 @@
    "purl": "pkg:github/taiki-e/install-action"
   },
   {
+   "display_name": "rustls-webpki",
+   "ecosystem": "local",
+   "name": "rustls-webpki",
+   "purl": "pkg:local/rustls-webpki"
+  },
+  {
+   "display_name": "webpki-fuzz",
+   "ecosystem": "local",
+   "name": "webpki-fuzz",
+   "purl": "pkg:local/webpki-fuzz"
+  },
+  {
    "display_name": "ast_serialize",
    "ecosystem": "pypi",
    "name": "ast-serialize",
@@ -851,6 +845,12 @@
    "ecosystem": "pypi",
    "name": "typing-extensions",
    "purl": "pkg:pypi/typing-extensions"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -1161,24 +1161,6 @@
    "scope": "dev",
    "source_kind": "registry",
    "to": "pkg:cargo/x509-parser@0.18.1#"
-  },
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -1848,6 +1830,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "==0.7.0",
    "evidence": [
     {
@@ -2072,7 +2072,7 @@
    "resolved_version": "0.104.0-alpha.7",
    "scope": "runtime",
    "source_kind": "path",
-   "to": "pkg:generic/rustls-webpki@0.104.0-alpha.7#"
+   "to": "pkg:local/rustls-webpki@0.104.0-alpha.7#"
   },
   {
    "condition": null,
@@ -6595,7 +6595,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "41250559a92741a5d930bf4c338eaf19b9974a9b66fc21a73024ed5feebb44d1",
+ "inputs_fingerprint": "637fc2cbd8b64f3557f8c3b0368872c773e3d823e23ece6b4e3dde05124b63e5",
  "instances": [
   {
    "commit": null,
@@ -8289,58 +8289,6 @@
   },
   {
    "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-webpki",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-webpki@0.104.0-alpha.7#",
-   "purl": "pkg:generic/rustls-webpki@0.104.0-alpha.7",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.104.0-alpha.7"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rustls-webpki",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/rustls-webpki@0.104.0-alpha.8#",
-   "purl": "pkg:generic/rustls-webpki@0.104.0-alpha.8",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.104.0-alpha.8"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/webpki-fuzz",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/webpki-fuzz@0.0.1#",
-   "purl": "pkg:generic/webpki-fuzz@0.0.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.1"
-  },
-  {
-   "commit": null,
    "component": "pkg:github/actions/checkout",
    "context": "",
    "first_party": false,
@@ -8523,6 +8471,45 @@
   },
   {
    "commit": null,
+   "component": "pkg:local/rustls-webpki",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-webpki@0.104.0-alpha.7#",
+   "purl": "pkg:local/rustls-webpki@0.104.0-alpha.7",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.104.0-alpha.7"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/rustls-webpki",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/rustls-webpki@0.104.0-alpha.8#",
+   "purl": "pkg:local/rustls-webpki@0.104.0-alpha.8",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.104.0-alpha.8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/webpki-fuzz",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/webpki-fuzz@0.0.1#",
+   "purl": "pkg:local/webpki-fuzz@0.0.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.1"
+  },
+  {
+   "commit": null,
    "component": "pkg:pypi/ast-serialize",
    "context": "",
    "first_party": false,
@@ -8637,6 +8624,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": null
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

@@ -721,36 +721,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "defuddle",
-   "ecosystem": "generic",
-   "name": "defuddle",
-   "purl": "pkg:generic/defuddle"
-  },
-  {
-   "display_name": "defuddle-cli",
-   "ecosystem": "generic",
-   "name": "defuddle-cli",
-   "purl": "pkg:generic/defuddle-cli"
-  },
-  {
-   "display_name": "defuddle-wasm",
-   "ecosystem": "generic",
-   "name": "defuddle-wasm",
-   "purl": "pkg:generic/defuddle-wasm"
-  },
-  {
-   "display_name": "htmd",
-   "ecosystem": "generic",
-   "name": "htmd",
-   "purl": "pkg:generic/htmd"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -761,27 +731,39 @@
    "ecosystem": "github",
    "name": "dtolnay/rust-toolchain",
    "purl": "pkg:github/dtolnay/rust-toolchain"
+  },
+  {
+   "display_name": "defuddle",
+   "ecosystem": "local",
+   "name": "defuddle",
+   "purl": "pkg:local/defuddle"
+  },
+  {
+   "display_name": "defuddle-cli",
+   "ecosystem": "local",
+   "name": "defuddle-cli",
+   "purl": "pkg:local/defuddle-cli"
+  },
+  {
+   "display_name": "defuddle-wasm",
+   "ecosystem": "local",
+   "name": "defuddle-wasm",
+   "purl": "pkg:local/defuddle-wasm"
+  },
+  {
+   "display_name": "htmd",
+   "ecosystem": "local",
+   "name": "htmd",
+   "purl": "pkg:local/htmd"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -835,6 +817,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -1032,7 +1032,7 @@
    "resolved_version": "0.0.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/defuddle@0.0.0#"
+   "to": "pkg:local/defuddle@0.0.0#"
   },
   {
    "condition": null,
@@ -1142,7 +1142,7 @@
    "resolved_version": "0.0.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/defuddle@0.0.0#"
+   "to": "pkg:local/defuddle@0.0.0#"
   },
   {
    "condition": null,
@@ -1428,7 +1428,7 @@
    "resolved_version": "0.5.6",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/htmd@0.5.6#"
+   "to": "pkg:local/htmd@0.5.6#"
   },
   {
    "condition": null,
@@ -5139,7 +5139,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "f7ff17f78cd7f4633db8c5ec90cf0cf7fe47f9f9bf67ddc64a05facd7ad565d7",
+ "inputs_fingerprint": "8dc58681cd649d9a6a9e97e548628e8922bbc63b1a1f0d9d3edc1ed473ef2a76",
  "instances": [
   {
    "commit": null,
@@ -6728,71 +6728,6 @@
    "version": "1.0.23"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/defuddle-cli",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/defuddle-cli@0.0.0#",
-   "purl": "pkg:generic/defuddle-cli@0.0.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/defuddle-wasm",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/defuddle-wasm@0.0.0#",
-   "purl": "pkg:generic/defuddle-wasm@0.0.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/defuddle",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/defuddle@0.0.0#",
-   "purl": "pkg:generic/defuddle@0.0.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/htmd",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/htmd@0.5.6#",
-   "purl": "pkg:generic/htmd@0.5.6",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.5.6"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -6817,6 +6752,71 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/dtolnay/rust-toolchain",
    "version": "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/defuddle-cli",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/defuddle-cli@0.0.0#",
+   "purl": "pkg:local/defuddle-cli@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/defuddle-wasm",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/defuddle-wasm@0.0.0#",
+   "purl": "pkg:local/defuddle-wasm@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/defuddle",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/defuddle@0.0.0#",
+   "purl": "pkg:local/defuddle@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/htmd",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/htmd@0.5.6#",
+   "purl": "pkg:local/htmd@0.5.6",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.5.6"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

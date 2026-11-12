@@ -388,7 +388,7 @@ def _resolve_declaration(declaration: _Declaration, pins: _Resolved | None) -> _
         return _Ref(
             declaration.name,
             None,
-            Ecosystem.GENERIC,
+            Ecosystem.LOCAL,
             SourceKind.VENDORED if declaration.vendored else SourceKind.PATH,
             f"path:{declaration.path}",
             Resolution.RESOLVED,
@@ -450,7 +450,7 @@ def _pin_ref(pin: _Pin, vendored: bool) -> _Ref:
         return _Ref(
             pin.name,
             pin.version,
-            Ecosystem.GENERIC,
+            Ecosystem.LOCAL,
             SourceKind.VENDORED if vendored else SourceKind.PATH,
             f"path:{pin.path}",
             Resolution.RESOLVED,

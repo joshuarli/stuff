@@ -203,7 +203,7 @@ def _ref(submodule: _Submodule, vendored: bool, commit: str | None) -> _Ref:
     name = url.rstrip("/").rsplit("/", 1)[-1].removesuffix(".git") or submodule.name
     return _Ref(
         name,
-        Ecosystem.GENERIC,
+        Ecosystem.GIT,
         SourceKind.VENDORED if vendored else SourceKind.GIT,
         f"git:{url}",
         url,

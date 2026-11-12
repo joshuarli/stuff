@@ -23,8 +23,10 @@ def _extract(files: dict[str, str], *, vendored: tuple[str, ...] = ()) -> Adapte
     return adapter.extract(inputs)
 
 
-def _instances(result: AdapterResult, name: str) -> list[Instance]:
-    base = purl(Ecosystem.GENERIC, name)
+def _instances(
+    result: AdapterResult, name: str, ecosystem: Ecosystem = Ecosystem.LOCAL
+) -> list[Instance]:
+    base = purl(ecosystem, name)
     return [
         instance
         for instance in result.instances
@@ -32,8 +34,10 @@ def _instances(result: AdapterResult, name: str) -> list[Instance]:
     ]
 
 
-def _direct(result: AdapterResult, name: str) -> list[Edge]:
-    targets = {instance.id for instance in _instances(result, name)}
+def _direct(
+    result: AdapterResult, name: str, ecosystem: Ecosystem = Ecosystem.LOCAL
+) -> list[Edge]:
+    targets = {instance.id for instance in _instances(result, name, ecosystem)}
     return [
         edge for edge in result.edges if edge.relation is Relation.DIRECT and edge.to_id in targets
     ]
@@ -64,17 +68,17 @@ def test_url_hash_and_lazy_dependencies() -> None:
 
     assert result.issues == ()
     assert [project.id for project in result.projects] == [".:generic"]
-    libxev = _instances(result, "libxev")[0]
+    libxev = _instances(result, "libxev", Ecosystem.ARTIFACT)[0]
     assert libxev.component == (
-        "pkg:generic/libxev?download_url=https%3A%2F%2Fexample.com%2Flibxev.tar.gz"
+        "pkg:artifact/libxev?download_url=https%3A%2F%2Fexample.com%2Flibxev.tar.gz"
     )
     assert libxev.source_kind is SourceKind.URL
-    edge = _direct(result, "libxev")[0]
+    edge = _direct(result, "libxev", Ecosystem.ARTIFACT)[0]
     assert edge.optional is True
     assert edge.condition == "lazy"
     assert edge.constraint == "libxev-0.0.0-abc"
     assert edge.resolution is Resolution.CONDITIONAL
-    z2d = _direct(result, "z2d")[0]
+    z2d = _direct(result, "z2d", Ecosystem.ARTIFACT)[0]
     assert z2d.optional is False
     assert z2d.condition is None
     assert z2d.resolution is Resolution.RESOLVED
@@ -119,7 +123,7 @@ def test_url_without_hash_is_declared_only() -> None:
         }
     )
 
-    edge = _direct(result, "thing")[0]
+    edge = _direct(result, "thing", Ecosystem.ARTIFACT)[0]
     assert edge.resolution is Resolution.DECLARED_ONLY
     assert edge.constraint == "https://example.com/thing.tar.gz"
 
@@ -162,7 +166,7 @@ def test_comments_hex_fingerprint_and_paths_are_tolerated() -> None:
     )
 
     assert result.issues == ()
-    assert [edge.to_id for edge in _direct(result, "translate_c")] == ["pkg:generic/translate_c#"]
+    assert [edge.to_id for edge in _direct(result, "translate_c")] == ["pkg:local/translate_c#"]
 
 
 def test_malformed_zon_is_a_parse_error() -> None:

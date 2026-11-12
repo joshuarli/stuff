@@ -73,7 +73,7 @@ class CloudflareAdapter:
         components: dict[str, Component] = {}
         instances: list[Instance] = []
         for ref in drafts.values():
-            component = Component(ref.component, Ecosystem.GENERIC, ref.name, ref.name)
+            component = Component(ref.component, Ecosystem.SERVICE, ref.name, ref.name)
             components.setdefault(component.purl, component)
             instances.append(
                 Instance(
@@ -100,7 +100,7 @@ class _Ref:
 
     @property
     def purl(self) -> str:
-        return purl(Ecosystem.GENERIC, self.name)
+        return purl(Ecosystem.SERVICE, self.name)
 
     @property
     def component(self) -> str:

@@ -7,12 +7,6 @@
    "purl": "pkg:docker/python?digest=sha256%3Ae48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90"
   },
   {
-   "display_name": "joshuarli-pytest-parallel",
-   "ecosystem": "generic",
-   "name": "joshuarli-pytest-parallel",
-   "purl": "pkg:generic/joshuarli-pytest-parallel"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -41,6 +35,12 @@
    "ecosystem": "github",
    "name": "astral-sh/setup-uv",
    "purl": "pkg:github/astral-sh/setup-uv"
+  },
+  {
+   "display_name": "joshuarli-pytest-parallel",
+   "ecosystem": "local",
+   "name": "joshuarli-pytest-parallel",
+   "purl": "pkg:local/joshuarli-pytest-parallel"
   },
   {
    "display_name": "iniconfig",
@@ -481,7 +481,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "a6334a78cf659006881b15312870dfb202f74939ab7399823ed5063b1d53609c",
+ "inputs_fingerprint": "284b97dcc21a8357a4ef096e220728411a799920080ff2148365c60f971dfaa3",
  "instances": [
   {
    "commit": null,
@@ -495,19 +495,6 @@
    "source_kind": "image",
    "vcs_url": null,
    "version": "3.13-slim"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/joshuarli-pytest-parallel",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/joshuarli-pytest-parallel@0.4.0#",
-   "purl": "pkg:generic/joshuarli-pytest-parallel@0.4.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.4.0"
   },
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -573,6 +560,19 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/astral-sh/setup-uv",
    "version": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/joshuarli-pytest-parallel",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/joshuarli-pytest-parallel@0.4.0#",
+   "purl": "pkg:local/joshuarli-pytest-parallel@0.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.4.0"
   },
   {
    "commit": null,

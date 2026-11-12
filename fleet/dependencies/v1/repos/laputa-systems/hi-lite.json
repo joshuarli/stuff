@@ -361,24 +361,6 @@
    "purl": "pkg:cargo/zmij"
   },
   {
-   "display_name": "hi-lite-syntect",
-   "ecosystem": "generic",
-   "name": "hi-lite-syntect",
-   "purl": "pkg:generic/hi-lite-syntect"
-  },
-  {
-   "display_name": "laputa-hi-lite",
-   "ecosystem": "generic",
-   "name": "laputa-hi-lite",
-   "purl": "pkg:generic/laputa-hi-lite"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -389,6 +371,24 @@
    "ecosystem": "github",
    "name": "swatinem/rust-cache",
    "purl": "pkg:github/swatinem/rust-cache"
+  },
+  {
+   "display_name": "hi-lite-syntect",
+   "ecosystem": "local",
+   "name": "hi-lite-syntect",
+   "purl": "pkg:local/hi-lite-syntect"
+  },
+  {
+   "display_name": "laputa-hi-lite",
+   "ecosystem": "local",
+   "name": "laputa-hi-lite",
+   "purl": "pkg:local/laputa-hi-lite"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
@@ -482,24 +482,6 @@
   },
   {
    "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
-  {
-   "condition": null,
    "constraint": "v7.0.1",
    "evidence": [
     {
@@ -551,6 +533,24 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0#"
+  },
+  {
+   "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -2193,7 +2193,7 @@
    "path": "tools/hi-lite-syntect/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "4a4ebdd05c5b344f931b8a374d0913226fa76cb9c3d5a1ad9314ab19ff197959",
+ "inputs_fingerprint": "c6f2c029f100d4ddcc5cc4fa6df74b4b345d3cc831bd97a01297d4e60651a0be",
  "instances": [
   {
    "commit": null,
@@ -3015,45 +3015,6 @@
    "version": "1.0.23"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/hi-lite-syntect",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/hi-lite-syntect@0.1.0#",
-   "purl": "pkg:generic/hi-lite-syntect@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-hi-lite",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-hi-lite@0.4.0#",
-   "purl": "pkg:generic/laputa-hi-lite@0.4.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "path",
-   "vcs_url": null,
-   "version": "0.4.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -3078,6 +3039,45 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/swatinem/rust-cache",
    "version": "d1527c8f67ef9af357290475d4af4b0fab8f12e0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/hi-lite-syntect",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/hi-lite-syntect@0.1.0#",
+   "purl": "pkg:local/hi-lite-syntect@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-hi-lite",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-hi-lite@0.4.0#",
+   "purl": "pkg:local/laputa-hi-lite@0.4.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "path",
+   "vcs_url": null,
+   "version": "0.4.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

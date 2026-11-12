@@ -273,7 +273,7 @@ def _uses_edge(
         ref = _Ref(
             text.removeprefix("./"),
             None,
-            Ecosystem.GENERIC,
+            Ecosystem.LOCAL,
             SourceKind.VENDORED if vendored else SourceKind.PATH,
             first_party=True,
         )
@@ -524,7 +524,7 @@ def _artifact_ref(url: str, vendored: bool) -> _Ref:
     return _Ref(
         name,
         None,
-        Ecosystem.GENERIC,
+        Ecosystem.ARTIFACT,
         SourceKind.VENDORED if vendored else SourceKind.URL,
         qualifiers=(("download_url", target),),
     )

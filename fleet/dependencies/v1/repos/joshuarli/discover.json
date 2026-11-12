@@ -1,18 +1,6 @@
 {
  "components": [
   {
-   "display_name": "nodejs",
-   "ecosystem": "generic",
-   "name": "nodejs",
-   "purl": "pkg:generic/nodejs"
-  },
-  {
-   "display_name": "pnpm",
-   "ecosystem": "generic",
-   "name": "pnpm",
-   "purl": "pkg:generic/pnpm"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -2579,63 +2567,21 @@
    "ecosystem": "npm",
    "name": "zwitch",
    "purl": "pkg:npm/zwitch"
+  },
+  {
+   "display_name": "nodejs",
+   "ecosystem": "toolchain",
+   "name": "nodejs",
+   "purl": "pkg:toolchain/nodejs"
+  },
+  {
+   "display_name": "pnpm",
+   "ecosystem": "toolchain",
+   "name": "pnpm",
+   "purl": "pkg:toolchain/pnpm"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "26.12.1",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": ".tool-versions"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "26.12.1",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/nodejs@26.12.1#"
-  },
-  {
-   "condition": null,
-   "constraint": "12.15.0",
-   "evidence": [
-    {
-     "locator": "L2",
-     "path": ".tool-versions"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.15.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.15.0#"
-  },
-  {
-   "condition": null,
-   "constraint": "pnpm@12.15.0",
-   "evidence": [
-    {
-     "locator": "packageManager",
-     "path": "package.json"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "12.15.0",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/pnpm@12.15.0#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -2671,6 +2617,60 @@
    "scope": "ci",
    "source_kind": "git",
    "to": "pkg:github/pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e#"
+  },
+  {
+   "condition": null,
+   "constraint": "26.12.1",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": ".tool-versions"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "26.12.1",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/nodejs@26.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": "12.15.0",
+   "evidence": [
+    {
+     "locator": "L2",
+     "path": ".tool-versions"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.15.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.15.0#"
+  },
+  {
+   "condition": null,
+   "constraint": "pnpm@12.15.0",
+   "evidence": [
+    {
+     "locator": "packageManager",
+     "path": "package.json"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "12.15.0",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/pnpm@12.15.0#"
   },
   {
    "condition": null,
@@ -16415,34 +16415,8 @@
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "f82ea608ed2983f63098281637e010c4c6df6b1860f6d7bad678fea3bc0c5588",
+ "inputs_fingerprint": "fcd4f51ba578c55576ba9222d1f54989e1e0bc0af5ce61e05c8ecfb33f2050e0",
  "instances": [
-  {
-   "commit": null,
-   "component": "pkg:generic/nodejs",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/nodejs@26.12.1#",
-   "purl": "pkg:generic/nodejs@26.12.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "26.12.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/pnpm",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/pnpm@12.15.0#",
-   "purl": "pkg:generic/pnpm@12.15.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "12.15.0"
-  },
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
@@ -22656,6 +22630,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "2.0.4"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/nodejs",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/nodejs@26.12.1#",
+   "purl": "pkg:toolchain/nodejs@26.12.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "26.12.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/pnpm",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/pnpm@12.15.0#",
+   "purl": "pkg:toolchain/pnpm@12.15.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "12.15.0"
   }
  ],
  "issues": [

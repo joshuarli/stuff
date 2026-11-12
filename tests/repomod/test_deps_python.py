@@ -195,12 +195,12 @@ def test_optional_dependencies_are_conditional() -> None:
         }
     )
 
-    shadowdriver = _instances(result, "shadowdriver", Ecosystem.GENERIC)
+    shadowdriver = _instances(result, "shadowdriver", Ecosystem.LOCAL)
     assert len(shadowdriver) == 1
     assert shadowdriver[0].source_kind is SourceKind.PATH
     assert shadowdriver[0].first_party is False
     assert shadowdriver[0].version is None
-    edge = _direct(result, "shadowdriver", Ecosystem.GENERIC)[0]
+    edge = _direct(result, "shadowdriver", Ecosystem.LOCAL)[0]
     assert edge.scope is Scope.OPTIONAL
     assert edge.optional is True
     assert edge.condition == "extra == 'browser'"
@@ -255,12 +255,12 @@ def test_workspace_members_and_path_dependencies() -> None:
 
     assert result.issues == ()
     assert [project.id for project in result.projects] == ["a:pypi", "b:pypi"]
-    b = _instances(result, "b", Ecosystem.GENERIC)
+    b = _instances(result, "b", Ecosystem.LOCAL)
     assert len(b) == 1
     assert b[0].source_kind is SourceKind.WORKSPACE
     assert b[0].first_party is True
     assert b[0].version == "0.2.0"
-    edge = _direct(result, "b", Ecosystem.GENERIC)[0]
+    edge = _direct(result, "b", Ecosystem.LOCAL)[0]
     assert edge.from_id == "a:pypi"
     assert edge.resolution is Resolution.RESOLVED
 
@@ -282,7 +282,7 @@ def test_workspace_source_inheritance_without_a_lock() -> None:
 
     assert [issue.kind for issue in result.issues] == [CoverageKind.MISSING_LOCK]
     assert not [issue for issue in result.issues if issue.kind is CoverageKind.DYNAMIC_VALUE]
-    edge = _direct(result, "b", Ecosystem.GENERIC)[0]
+    edge = _direct(result, "b", Ecosystem.LOCAL)[0]
     assert edge.from_id == "a:pypi"
     assert edge.resolution is Resolution.RESOLVED
     assert edge.resolved_version == "0.2.0"
@@ -314,13 +314,13 @@ def test_tool_uv_sources_git_path_url_and_editable_without_a_lock() -> None:
     assert git.purl == "pkg:pypi/gitdep?vcs_url=https%3A%2F%2Fgithub.com%2Facme%2Fgitdep"
     assert _direct(result, "gitdep")[0].resolution is Resolution.RESOLVED
 
-    path = _instances(result, "pathdep", Ecosystem.GENERIC)[0]
+    path = _instances(result, "pathdep", Ecosystem.LOCAL)[0]
     assert path.source_kind is SourceKind.PATH
     assert path.version == "0.3.0"
     assert path.first_party is True
-    assert _direct(result, "pathdep", Ecosystem.GENERIC)[0].resolution is Resolution.RESOLVED
+    assert _direct(result, "pathdep", Ecosystem.LOCAL)[0].resolution is Resolution.RESOLVED
 
-    editable = _instances(result, "editdep", Ecosystem.GENERIC)[0]
+    editable = _instances(result, "editdep", Ecosystem.LOCAL)[0]
     assert editable.source_kind is SourceKind.PATH
     assert editable.version == "0.4.0"
     assert editable.first_party is True

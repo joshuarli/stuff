@@ -1633,288 +1633,6 @@
    "purl": "pkg:docker/alpine?digest=sha256%3A294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6"
   },
   {
-   "display_name": "app-core",
-   "ecosystem": "generic",
-   "name": "app-core",
-   "purl": "pkg:generic/app-core"
-  },
-  {
-   "display_name": "fastwebsockets-fuzz",
-   "ecosystem": "generic",
-   "name": "fastwebsockets-fuzz",
-   "purl": "pkg:generic/fastwebsockets-fuzz"
-  },
-  {
-   "display_name": "h12tiny",
-   "ecosystem": "generic",
-   "name": "h12tiny",
-   "purl": "pkg:generic/h12tiny"
-  },
-  {
-   "display_name": "h12tiny-app",
-   "ecosystem": "generic",
-   "name": "h12tiny-app",
-   "purl": "pkg:generic/h12tiny-app"
-  },
-  {
-   "display_name": "h12tiny-client",
-   "ecosystem": "generic",
-   "name": "h12tiny-client",
-   "purl": "pkg:generic/h12tiny-client"
-  },
-  {
-   "display_name": "h12tiny-client-normalize",
-   "ecosystem": "generic",
-   "name": "h12tiny-client-normalize",
-   "purl": "pkg:generic/h12tiny-client-normalize"
-  },
-  {
-   "display_name": "h12tiny-client-sync",
-   "ecosystem": "generic",
-   "name": "h12tiny-client-sync",
-   "purl": "pkg:generic/h12tiny-client-sync"
-  },
-  {
-   "display_name": "h12tiny-core",
-   "ecosystem": "generic",
-   "name": "h12tiny-core",
-   "purl": "pkg:generic/h12tiny-core"
-  },
-  {
-   "display_name": "h12tiny-server",
-   "ecosystem": "generic",
-   "name": "h12tiny-server",
-   "purl": "pkg:generic/h12tiny-server"
-  },
-  {
-   "display_name": "h12tiny-tls-system",
-   "ecosystem": "generic",
-   "name": "h12tiny-tls-system",
-   "purl": "pkg:generic/h12tiny-tls-system"
-  },
-  {
-   "display_name": "h12tiny-util",
-   "ecosystem": "generic",
-   "name": "h12tiny-util",
-   "purl": "pkg:generic/h12tiny-util"
-  },
-  {
-   "display_name": "h12tiny-web",
-   "ecosystem": "generic",
-   "name": "h12tiny-web",
-   "purl": "pkg:generic/h12tiny-web"
-  },
-  {
-   "display_name": "h2-support",
-   "ecosystem": "generic",
-   "name": "h2-support",
-   "purl": "pkg:generic/h2-support"
-  },
-  {
-   "display_name": "h2-tests",
-   "ecosystem": "generic",
-   "name": "h2-tests",
-   "purl": "pkg:generic/h2-tests"
-  },
-  {
-   "display_name": "laputa-async-broadcast",
-   "ecosystem": "generic",
-   "name": "laputa-async-broadcast",
-   "purl": "pkg:generic/laputa-async-broadcast"
-  },
-  {
-   "display_name": "laputa-async-channel",
-   "ecosystem": "generic",
-   "name": "laputa-async-channel",
-   "purl": "pkg:generic/laputa-async-channel"
-  },
-  {
-   "display_name": "laputa-async-dup",
-   "ecosystem": "generic",
-   "name": "laputa-async-dup",
-   "purl": "pkg:generic/laputa-async-dup"
-  },
-  {
-   "display_name": "laputa-async-executor",
-   "ecosystem": "generic",
-   "name": "laputa-async-executor",
-   "purl": "pkg:generic/laputa-async-executor"
-  },
-  {
-   "display_name": "laputa-async-fs",
-   "ecosystem": "generic",
-   "name": "laputa-async-fs",
-   "purl": "pkg:generic/laputa-async-fs"
-  },
-  {
-   "display_name": "laputa-async-io",
-   "ecosystem": "generic",
-   "name": "laputa-async-io",
-   "purl": "pkg:generic/laputa-async-io"
-  },
-  {
-   "display_name": "laputa-async-lock",
-   "ecosystem": "generic",
-   "name": "laputa-async-lock",
-   "purl": "pkg:generic/laputa-async-lock"
-  },
-  {
-   "display_name": "laputa-async-net",
-   "ecosystem": "generic",
-   "name": "laputa-async-net",
-   "purl": "pkg:generic/laputa-async-net"
-  },
-  {
-   "display_name": "laputa-async-process",
-   "ecosystem": "generic",
-   "name": "laputa-async-process",
-   "purl": "pkg:generic/laputa-async-process"
-  },
-  {
-   "display_name": "laputa-async-signal",
-   "ecosystem": "generic",
-   "name": "laputa-async-signal",
-   "purl": "pkg:generic/laputa-async-signal"
-  },
-  {
-   "display_name": "laputa-async-task",
-   "ecosystem": "generic",
-   "name": "laputa-async-task",
-   "purl": "pkg:generic/laputa-async-task"
-  },
-  {
-   "display_name": "laputa-atomic-waker",
-   "ecosystem": "generic",
-   "name": "laputa-atomic-waker",
-   "purl": "pkg:generic/laputa-atomic-waker"
-  },
-  {
-   "display_name": "laputa-blocking",
-   "ecosystem": "generic",
-   "name": "laputa-blocking",
-   "purl": "pkg:generic/laputa-blocking"
-  },
-  {
-   "display_name": "laputa-concurrent-queue",
-   "ecosystem": "generic",
-   "name": "laputa-concurrent-queue",
-   "purl": "pkg:generic/laputa-concurrent-queue"
-  },
-  {
-   "display_name": "laputa-easy-parallel",
-   "ecosystem": "generic",
-   "name": "laputa-easy-parallel",
-   "purl": "pkg:generic/laputa-easy-parallel"
-  },
-  {
-   "display_name": "laputa-event-listener",
-   "ecosystem": "generic",
-   "name": "laputa-event-listener",
-   "purl": "pkg:generic/laputa-event-listener"
-  },
-  {
-   "display_name": "laputa-event-listener-strategy",
-   "ecosystem": "generic",
-   "name": "laputa-event-listener-strategy",
-   "purl": "pkg:generic/laputa-event-listener-strategy"
-  },
-  {
-   "display_name": "laputa-fastrand",
-   "ecosystem": "generic",
-   "name": "laputa-fastrand",
-   "purl": "pkg:generic/laputa-fastrand"
-  },
-  {
-   "display_name": "laputa-fastrand-contrib",
-   "ecosystem": "generic",
-   "name": "laputa-fastrand-contrib",
-   "purl": "pkg:generic/laputa-fastrand-contrib"
-  },
-  {
-   "display_name": "laputa-fastwebsockets-futures-lite",
-   "ecosystem": "generic",
-   "name": "laputa-fastwebsockets-futures-lite",
-   "purl": "pkg:generic/laputa-fastwebsockets-futures-lite"
-  },
-  {
-   "display_name": "laputa-futures-lite",
-   "ecosystem": "generic",
-   "name": "laputa-futures-lite",
-   "purl": "pkg:generic/laputa-futures-lite"
-  },
-  {
-   "display_name": "laputa-h2-futures-lite",
-   "ecosystem": "generic",
-   "name": "laputa-h2-futures-lite",
-   "purl": "pkg:generic/laputa-h2-futures-lite"
-  },
-  {
-   "display_name": "laputa-hyper-futures-lite",
-   "ecosystem": "generic",
-   "name": "laputa-hyper-futures-lite",
-   "purl": "pkg:generic/laputa-hyper-futures-lite"
-  },
-  {
-   "display_name": "laputa-parking",
-   "ecosystem": "generic",
-   "name": "laputa-parking",
-   "purl": "pkg:generic/laputa-parking"
-  },
-  {
-   "display_name": "laputa-piper",
-   "ecosystem": "generic",
-   "name": "laputa-piper",
-   "purl": "pkg:generic/laputa-piper"
-  },
-  {
-   "display_name": "laputa-polling",
-   "ecosystem": "generic",
-   "name": "laputa-polling",
-   "purl": "pkg:generic/laputa-polling"
-  },
-  {
-   "display_name": "laputa-protocol-test-support",
-   "ecosystem": "generic",
-   "name": "laputa-protocol-test-support",
-   "purl": "pkg:generic/laputa-protocol-test-support"
-  },
-  {
-   "display_name": "laputa-smol",
-   "ecosystem": "generic",
-   "name": "laputa-smol",
-   "purl": "pkg:generic/laputa-smol"
-  },
-  {
-   "display_name": "laputa-smol-macros",
-   "ecosystem": "generic",
-   "name": "laputa-smol-macros",
-   "purl": "pkg:generic/laputa-smol-macros"
-  },
-  {
-   "display_name": "laputa-waker-fn",
-   "ecosystem": "generic",
-   "name": "laputa-waker-fn",
-   "purl": "pkg:generic/laputa-waker-fn"
-  },
-  {
-   "display_name": "rust",
-   "ecosystem": "generic",
-   "name": "rust",
-   "purl": "pkg:generic/rust"
-  },
-  {
-   "display_name": "smolith-consumer",
-   "ecosystem": "generic",
-   "name": "smolith-consumer",
-   "purl": "pkg:generic/smolith-consumer"
-  },
-  {
-   "display_name": "smolith-qualify",
-   "ecosystem": "generic",
-   "name": "smolith-qualify",
-   "purl": "pkg:generic/smolith-qualify"
-  },
-  {
    "display_name": "actions/checkout",
    "ecosystem": "github",
    "name": "actions/checkout",
@@ -1925,27 +1643,291 @@
    "ecosystem": "github",
    "name": "dtolnay/rust-toolchain",
    "purl": "pkg:github/dtolnay/rust-toolchain"
+  },
+  {
+   "display_name": "app-core",
+   "ecosystem": "local",
+   "name": "app-core",
+   "purl": "pkg:local/app-core"
+  },
+  {
+   "display_name": "fastwebsockets-fuzz",
+   "ecosystem": "local",
+   "name": "fastwebsockets-fuzz",
+   "purl": "pkg:local/fastwebsockets-fuzz"
+  },
+  {
+   "display_name": "h12tiny",
+   "ecosystem": "local",
+   "name": "h12tiny",
+   "purl": "pkg:local/h12tiny"
+  },
+  {
+   "display_name": "h12tiny-app",
+   "ecosystem": "local",
+   "name": "h12tiny-app",
+   "purl": "pkg:local/h12tiny-app"
+  },
+  {
+   "display_name": "h12tiny-client",
+   "ecosystem": "local",
+   "name": "h12tiny-client",
+   "purl": "pkg:local/h12tiny-client"
+  },
+  {
+   "display_name": "h12tiny-client-normalize",
+   "ecosystem": "local",
+   "name": "h12tiny-client-normalize",
+   "purl": "pkg:local/h12tiny-client-normalize"
+  },
+  {
+   "display_name": "h12tiny-client-sync",
+   "ecosystem": "local",
+   "name": "h12tiny-client-sync",
+   "purl": "pkg:local/h12tiny-client-sync"
+  },
+  {
+   "display_name": "h12tiny-core",
+   "ecosystem": "local",
+   "name": "h12tiny-core",
+   "purl": "pkg:local/h12tiny-core"
+  },
+  {
+   "display_name": "h12tiny-server",
+   "ecosystem": "local",
+   "name": "h12tiny-server",
+   "purl": "pkg:local/h12tiny-server"
+  },
+  {
+   "display_name": "h12tiny-tls-system",
+   "ecosystem": "local",
+   "name": "h12tiny-tls-system",
+   "purl": "pkg:local/h12tiny-tls-system"
+  },
+  {
+   "display_name": "h12tiny-util",
+   "ecosystem": "local",
+   "name": "h12tiny-util",
+   "purl": "pkg:local/h12tiny-util"
+  },
+  {
+   "display_name": "h12tiny-web",
+   "ecosystem": "local",
+   "name": "h12tiny-web",
+   "purl": "pkg:local/h12tiny-web"
+  },
+  {
+   "display_name": "h2-support",
+   "ecosystem": "local",
+   "name": "h2-support",
+   "purl": "pkg:local/h2-support"
+  },
+  {
+   "display_name": "h2-tests",
+   "ecosystem": "local",
+   "name": "h2-tests",
+   "purl": "pkg:local/h2-tests"
+  },
+  {
+   "display_name": "laputa-async-broadcast",
+   "ecosystem": "local",
+   "name": "laputa-async-broadcast",
+   "purl": "pkg:local/laputa-async-broadcast"
+  },
+  {
+   "display_name": "laputa-async-channel",
+   "ecosystem": "local",
+   "name": "laputa-async-channel",
+   "purl": "pkg:local/laputa-async-channel"
+  },
+  {
+   "display_name": "laputa-async-dup",
+   "ecosystem": "local",
+   "name": "laputa-async-dup",
+   "purl": "pkg:local/laputa-async-dup"
+  },
+  {
+   "display_name": "laputa-async-executor",
+   "ecosystem": "local",
+   "name": "laputa-async-executor",
+   "purl": "pkg:local/laputa-async-executor"
+  },
+  {
+   "display_name": "laputa-async-fs",
+   "ecosystem": "local",
+   "name": "laputa-async-fs",
+   "purl": "pkg:local/laputa-async-fs"
+  },
+  {
+   "display_name": "laputa-async-io",
+   "ecosystem": "local",
+   "name": "laputa-async-io",
+   "purl": "pkg:local/laputa-async-io"
+  },
+  {
+   "display_name": "laputa-async-lock",
+   "ecosystem": "local",
+   "name": "laputa-async-lock",
+   "purl": "pkg:local/laputa-async-lock"
+  },
+  {
+   "display_name": "laputa-async-net",
+   "ecosystem": "local",
+   "name": "laputa-async-net",
+   "purl": "pkg:local/laputa-async-net"
+  },
+  {
+   "display_name": "laputa-async-process",
+   "ecosystem": "local",
+   "name": "laputa-async-process",
+   "purl": "pkg:local/laputa-async-process"
+  },
+  {
+   "display_name": "laputa-async-signal",
+   "ecosystem": "local",
+   "name": "laputa-async-signal",
+   "purl": "pkg:local/laputa-async-signal"
+  },
+  {
+   "display_name": "laputa-async-task",
+   "ecosystem": "local",
+   "name": "laputa-async-task",
+   "purl": "pkg:local/laputa-async-task"
+  },
+  {
+   "display_name": "laputa-atomic-waker",
+   "ecosystem": "local",
+   "name": "laputa-atomic-waker",
+   "purl": "pkg:local/laputa-atomic-waker"
+  },
+  {
+   "display_name": "laputa-blocking",
+   "ecosystem": "local",
+   "name": "laputa-blocking",
+   "purl": "pkg:local/laputa-blocking"
+  },
+  {
+   "display_name": "laputa-concurrent-queue",
+   "ecosystem": "local",
+   "name": "laputa-concurrent-queue",
+   "purl": "pkg:local/laputa-concurrent-queue"
+  },
+  {
+   "display_name": "laputa-easy-parallel",
+   "ecosystem": "local",
+   "name": "laputa-easy-parallel",
+   "purl": "pkg:local/laputa-easy-parallel"
+  },
+  {
+   "display_name": "laputa-event-listener",
+   "ecosystem": "local",
+   "name": "laputa-event-listener",
+   "purl": "pkg:local/laputa-event-listener"
+  },
+  {
+   "display_name": "laputa-event-listener-strategy",
+   "ecosystem": "local",
+   "name": "laputa-event-listener-strategy",
+   "purl": "pkg:local/laputa-event-listener-strategy"
+  },
+  {
+   "display_name": "laputa-fastrand",
+   "ecosystem": "local",
+   "name": "laputa-fastrand",
+   "purl": "pkg:local/laputa-fastrand"
+  },
+  {
+   "display_name": "laputa-fastrand-contrib",
+   "ecosystem": "local",
+   "name": "laputa-fastrand-contrib",
+   "purl": "pkg:local/laputa-fastrand-contrib"
+  },
+  {
+   "display_name": "laputa-fastwebsockets-futures-lite",
+   "ecosystem": "local",
+   "name": "laputa-fastwebsockets-futures-lite",
+   "purl": "pkg:local/laputa-fastwebsockets-futures-lite"
+  },
+  {
+   "display_name": "laputa-futures-lite",
+   "ecosystem": "local",
+   "name": "laputa-futures-lite",
+   "purl": "pkg:local/laputa-futures-lite"
+  },
+  {
+   "display_name": "laputa-h2-futures-lite",
+   "ecosystem": "local",
+   "name": "laputa-h2-futures-lite",
+   "purl": "pkg:local/laputa-h2-futures-lite"
+  },
+  {
+   "display_name": "laputa-hyper-futures-lite",
+   "ecosystem": "local",
+   "name": "laputa-hyper-futures-lite",
+   "purl": "pkg:local/laputa-hyper-futures-lite"
+  },
+  {
+   "display_name": "laputa-parking",
+   "ecosystem": "local",
+   "name": "laputa-parking",
+   "purl": "pkg:local/laputa-parking"
+  },
+  {
+   "display_name": "laputa-piper",
+   "ecosystem": "local",
+   "name": "laputa-piper",
+   "purl": "pkg:local/laputa-piper"
+  },
+  {
+   "display_name": "laputa-polling",
+   "ecosystem": "local",
+   "name": "laputa-polling",
+   "purl": "pkg:local/laputa-polling"
+  },
+  {
+   "display_name": "laputa-protocol-test-support",
+   "ecosystem": "local",
+   "name": "laputa-protocol-test-support",
+   "purl": "pkg:local/laputa-protocol-test-support"
+  },
+  {
+   "display_name": "laputa-smol",
+   "ecosystem": "local",
+   "name": "laputa-smol",
+   "purl": "pkg:local/laputa-smol"
+  },
+  {
+   "display_name": "laputa-smol-macros",
+   "ecosystem": "local",
+   "name": "laputa-smol-macros",
+   "purl": "pkg:local/laputa-smol-macros"
+  },
+  {
+   "display_name": "laputa-waker-fn",
+   "ecosystem": "local",
+   "name": "laputa-waker-fn",
+   "purl": "pkg:local/laputa-waker-fn"
+  },
+  {
+   "display_name": "smolith-consumer",
+   "ecosystem": "local",
+   "name": "smolith-consumer",
+   "purl": "pkg:local/smolith-consumer"
+  },
+  {
+   "display_name": "smolith-qualify",
+   "ecosystem": "local",
+   "name": "smolith-qualify",
+   "purl": "pkg:local/smolith-qualify"
+  },
+  {
+   "display_name": "rust",
+   "ecosystem": "toolchain",
+   "name": "rust",
+   "purl": "pkg:toolchain/rust"
   }
  ],
  "edges": [
-  {
-   "condition": null,
-   "constraint": "nightly-2026-09-15",
-   "evidence": [
-    {
-     "locator": "L1",
-     "path": "rust-toolchain.toml"
-    }
-   ],
-   "from": ".:generic",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "nightly-2026-09-15",
-   "scope": "toolchain",
-   "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
-  },
   {
    "condition": null,
    "constraint": "v7.0.1",
@@ -2326,6 +2308,24 @@
   },
   {
    "condition": null,
+   "constraint": "nightly-2026-09-15",
+   "evidence": [
+    {
+     "locator": "L1",
+     "path": "rust-toolchain.toml"
+    }
+   ],
+   "from": ".:generic",
+   "optional": false,
+   "relation": "direct",
+   "resolution": "resolved",
+   "resolved_version": "nightly-2026-09-15",
+   "scope": "toolchain",
+   "source_kind": "url",
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
+  },
+  {
+   "condition": null,
    "constraint": "0.23",
    "evidence": [
     {
@@ -2652,7 +2652,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/app-core@0.1.0#"
+   "to": "pkg:local/app-core@0.1.0#"
   },
   {
    "condition": null,
@@ -2674,7 +2674,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny@0.9.0#"
+   "to": "pkg:local/h12tiny@0.9.0#"
   },
   {
    "condition": null,
@@ -2696,7 +2696,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -3058,7 +3058,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -3080,7 +3080,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener-strategy@0.3.0#"
+   "to": "pkg:local/laputa-event-listener-strategy@0.3.0#"
   },
   {
    "condition": null,
@@ -3102,7 +3102,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -3124,7 +3124,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -3234,7 +3234,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-concurrent-queue@0.3.0#"
+   "to": "pkg:local/laputa-concurrent-queue@0.3.0#"
   },
   {
    "condition": null,
@@ -3256,7 +3256,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -3278,7 +3278,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener-strategy@0.3.0#"
+   "to": "pkg:local/laputa-event-listener-strategy@0.3.0#"
   },
   {
    "condition": null,
@@ -3300,7 +3300,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -3344,7 +3344,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -3366,7 +3366,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -3476,7 +3476,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -3498,7 +3498,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -3520,7 +3520,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -3542,7 +3542,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-task@0.3.0#"
+   "to": "pkg:local/laputa-async-task@0.3.0#"
   },
   {
    "condition": null,
@@ -3564,7 +3564,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-concurrent-queue@0.3.0#"
+   "to": "pkg:local/laputa-concurrent-queue@0.3.0#"
   },
   {
    "condition": null,
@@ -3586,7 +3586,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -3608,7 +3608,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -3630,7 +3630,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -3652,7 +3652,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -3674,7 +3674,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "cfg(target_family = \"wasm\")",
@@ -3696,7 +3696,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "cfg(unix)",
@@ -3740,7 +3740,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -3762,7 +3762,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-blocking@0.3.0#"
+   "to": "pkg:local/laputa-blocking@0.3.0#"
   },
   {
    "condition": null,
@@ -3784,7 +3784,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -4070,7 +4070,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -4092,7 +4092,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": null,
@@ -4114,7 +4114,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-blocking@0.3.0#"
+   "to": "pkg:local/laputa-blocking@0.3.0#"
   },
   {
    "condition": null,
@@ -4136,7 +4136,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-concurrent-queue@0.3.0#"
+   "to": "pkg:local/laputa-concurrent-queue@0.3.0#"
   },
   {
    "condition": null,
@@ -4158,7 +4158,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -4180,7 +4180,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-parking@0.3.0#"
+   "to": "pkg:local/laputa-parking@0.3.0#"
   },
   {
    "condition": null,
@@ -4202,7 +4202,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-polling@0.3.0#"
+   "to": "pkg:local/laputa-polling@0.3.0#"
   },
   {
    "condition": null,
@@ -4290,7 +4290,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener-strategy@0.3.0#"
+   "to": "pkg:local/laputa-event-listener-strategy@0.3.0#"
   },
   {
    "condition": null,
@@ -4312,7 +4312,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -4334,7 +4334,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -4356,7 +4356,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -4378,7 +4378,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-waker-fn@0.3.0#"
+   "to": "pkg:local/laputa-waker-fn@0.3.0#"
   },
   {
    "condition": null,
@@ -4400,7 +4400,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -4422,7 +4422,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-blocking@0.3.0#"
+   "to": "pkg:local/laputa-blocking@0.3.0#"
   },
   {
    "condition": null,
@@ -4444,7 +4444,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -4532,7 +4532,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -4554,7 +4554,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-executor@0.3.0#"
+   "to": "pkg:local/laputa-async-executor@0.3.0#"
   },
   {
    "condition": null,
@@ -4576,7 +4576,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": "cfg(unix)",
@@ -4598,7 +4598,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": "cfg(unix)",
@@ -4620,7 +4620,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-signal@0.3.0#"
+   "to": "pkg:local/laputa-async-signal@0.3.0#"
   },
   {
    "condition": "cfg(target_os = \"linux\")",
@@ -4642,7 +4642,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-task@0.3.0#"
+   "to": "pkg:local/laputa-async-task@0.3.0#"
   },
   {
    "condition": null,
@@ -4664,7 +4664,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -4686,7 +4686,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -4840,7 +4840,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": "cfg(unix)",
@@ -4862,7 +4862,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -4884,7 +4884,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -4906,7 +4906,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5038,7 +5038,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-atomic-waker@0.3.0#"
+   "to": "pkg:local/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -5060,7 +5060,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -5082,7 +5082,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5104,7 +5104,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": "feature:portable-atomic",
@@ -5192,7 +5192,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5258,7 +5258,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -5280,7 +5280,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-task@0.3.0#"
+   "to": "pkg:local/laputa-async-task@0.3.0#"
   },
   {
    "condition": null,
@@ -5302,7 +5302,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5324,7 +5324,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5346,7 +5346,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-piper@0.3.0#"
+   "to": "pkg:local/laputa-piper@0.3.0#"
   },
   {
    "condition": null,
@@ -5456,7 +5456,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -5478,7 +5478,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -5522,7 +5522,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -5544,7 +5544,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -5742,7 +5742,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "cfg(not(target_family = \"wasm\")); feature:parking",
@@ -5764,7 +5764,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-parking@0.3.0#"
+   "to": "pkg:local/laputa-parking@0.3.0#"
   },
   {
    "condition": null,
@@ -5786,7 +5786,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-waker-fn@0.3.0#"
+   "to": "pkg:local/laputa-waker-fn@0.3.0#"
   },
   {
    "condition": "feature:libm_dep",
@@ -5830,7 +5830,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -6028,7 +6028,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": "feature:parking",
@@ -6050,7 +6050,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-parking@0.3.0#"
+   "to": "pkg:local/laputa-parking@0.3.0#"
   },
   {
    "condition": null,
@@ -6072,7 +6072,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-waker-fn@0.3.0#"
+   "to": "pkg:local/laputa-waker-fn@0.3.0#"
   },
   {
    "condition": null,
@@ -6204,7 +6204,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-normalize@0.9.0#"
+   "to": "pkg:local/h12tiny-client-normalize@0.9.0#"
   },
   {
    "condition": "feature:tls",
@@ -6226,7 +6226,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-tls-system@0.9.0#"
+   "to": "pkg:local/h12tiny-tls-system@0.9.0#"
   },
   {
    "condition": null,
@@ -6446,7 +6446,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-normalize@0.9.0#"
+   "to": "pkg:local/h12tiny-client-normalize@0.9.0#"
   },
   {
    "condition": null,
@@ -6468,7 +6468,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.9.0#"
+   "to": "pkg:local/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:tls",
@@ -6490,7 +6490,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-tls-system@0.9.0#"
+   "to": "pkg:local/h12tiny-tls-system@0.9.0#"
   },
   {
    "condition": null,
@@ -6512,7 +6512,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": "feature:http1",
@@ -6534,7 +6534,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": "feature:http1",
@@ -6556,7 +6556,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": null,
@@ -6578,7 +6578,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -6600,7 +6600,7 @@
    "resolved_version": "1.12.0-beta.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#"
+   "to": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -6622,7 +6622,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -6688,7 +6688,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -6710,7 +6710,7 @@
    "resolved_version": "1.12.0-beta.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#"
+   "to": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -6930,7 +6930,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.9.0#"
+   "to": "pkg:local/h12tiny-core@0.9.0#"
   },
   {
    "condition": null,
@@ -6952,7 +6952,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": null,
@@ -6974,7 +6974,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -6996,7 +6996,7 @@
    "resolved_version": "1.12.0-beta.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#"
+   "to": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -7392,7 +7392,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -7414,7 +7414,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "feature:websocket",
@@ -7700,7 +7700,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.9.0#"
+   "to": "pkg:local/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:upgrade",
@@ -7722,7 +7722,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-server@0.9.0#"
+   "to": "pkg:local/h12tiny-server@0.9.0#"
   },
   {
    "condition": null,
@@ -7744,7 +7744,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-util@0.9.0#"
+   "to": "pkg:local/h12tiny-util@0.9.0#"
   },
   {
    "condition": null,
@@ -7766,7 +7766,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": "feature:websocket",
@@ -7788,7 +7788,7 @@
    "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2#"
+   "to": "pkg:local/laputa-fastwebsockets-futures-lite@0.10.2#"
   },
   {
    "condition": null,
@@ -7810,7 +7810,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "feature:websocket",
@@ -7832,7 +7832,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -7854,7 +7854,7 @@
    "resolved_version": "1.12.0-beta.1",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#"
+   "to": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -8140,7 +8140,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client-sync@0.9.0#"
+   "to": "pkg:local/h12tiny-client-sync@0.9.0#"
   },
   {
    "condition": "feature:client",
@@ -8162,7 +8162,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-client@0.9.0#"
+   "to": "pkg:local/h12tiny-client@0.9.0#"
   },
   {
    "condition": "feature:core",
@@ -8184,7 +8184,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-core@0.9.0#"
+   "to": "pkg:local/h12tiny-core@0.9.0#"
   },
   {
    "condition": "feature:server",
@@ -8206,7 +8206,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-server@0.9.0#"
+   "to": "pkg:local/h12tiny-server@0.9.0#"
   },
   {
    "condition": "feature:util",
@@ -8228,7 +8228,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-util@0.9.0#"
+   "to": "pkg:local/h12tiny-util@0.9.0#"
   },
   {
    "condition": "feature:web",
@@ -8250,7 +8250,7 @@
    "resolved_version": "0.9.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h12tiny-web@0.9.0#"
+   "to": "pkg:local/h12tiny-web@0.9.0#"
   },
   {
    "condition": null,
@@ -8272,7 +8272,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -8294,7 +8294,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": null,
@@ -8316,7 +8316,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -8338,7 +8338,7 @@
    "resolved_version": "1.12.0-beta.1",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#"
+   "to": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#"
   },
   {
    "condition": null,
@@ -8360,7 +8360,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -8404,7 +8404,7 @@
    "resolved_version": "0.10.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2#"
+   "to": "pkg:local/laputa-fastwebsockets-futures-lite@0.10.2#"
   },
   {
    "condition": null,
@@ -8426,7 +8426,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -8558,7 +8558,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -8580,7 +8580,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -8602,7 +8602,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -8620,7 +8620,7 @@
    "resolved_version": "nightly-2026-09-15",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -8710,7 +8710,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/h2-support@0.1.0#"
+   "to": "pkg:local/h2-support@0.1.0#"
   },
   {
    "condition": null,
@@ -8728,7 +8728,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -8746,7 +8746,7 @@
    "resolved_version": "0.4.20-beta.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2#"
+   "to": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2#"
   },
   {
    "condition": null,
@@ -8854,7 +8854,7 @@
    "resolved_version": "0.4.20-beta.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2#"
+   "to": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2#"
   },
   {
    "condition": null,
@@ -8872,7 +8872,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -9048,7 +9048,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -9070,7 +9070,7 @@
    "resolved_version": "0.4.20-beta.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2#"
+   "to": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2#"
   },
   {
    "condition": null,
@@ -9092,7 +9092,7 @@
    "resolved_version": "0.1.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-protocol-test-support@0.1.0#"
+   "to": "pkg:local/laputa-protocol-test-support@0.1.0#"
   },
   {
    "condition": null,
@@ -9114,7 +9114,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -9180,7 +9180,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/h2-support@0.1.0#"
+   "to": "pkg:local/h2-support@0.1.0#"
   },
   {
    "condition": null,
@@ -9202,7 +9202,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-protocol-test-support@0.1.0#"
+   "to": "pkg:local/laputa-protocol-test-support@0.1.0#"
   },
   {
    "condition": null,
@@ -9638,7 +9638,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-atomic-waker@0.3.0#"
+   "to": "pkg:local/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -9660,7 +9660,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -9682,7 +9682,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-protocol-test-support@0.1.0#"
+   "to": "pkg:local/laputa-protocol-test-support@0.1.0#"
   },
   {
    "condition": null,
@@ -9700,7 +9700,7 @@
    "resolved_version": "nightly-2026-09-15",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -10294,7 +10294,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-atomic-waker@0.3.0#"
+   "to": "pkg:local/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -10316,7 +10316,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "feature:http2",
@@ -10338,7 +10338,7 @@
    "resolved_version": "0.4.20-beta.2",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2#"
+   "to": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2#"
   },
   {
    "condition": null,
@@ -10360,7 +10360,7 @@
    "resolved_version": "0.1.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-protocol-test-support@0.1.0#"
+   "to": "pkg:local/laputa-protocol-test-support@0.1.0#"
   },
   {
    "condition": null,
@@ -10382,7 +10382,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -10400,7 +10400,7 @@
    "resolved_version": "nightly-2026-09-15",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:generic/rust@nightly-2026-09-15#"
+   "to": "pkg:toolchain/rust@nightly-2026-09-15#"
   },
   {
    "condition": null,
@@ -10444,7 +10444,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -10466,7 +10466,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": "cfg(loom); feature:loom",
@@ -10510,7 +10510,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": "feature:futures-io",
@@ -10620,7 +10620,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -10642,7 +10642,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-executor@0.3.0#"
+   "to": "pkg:local/laputa-async-executor@0.3.0#"
   },
   {
    "condition": null,
@@ -10664,7 +10664,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -10686,7 +10686,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-atomic-waker@0.3.0#"
+   "to": "pkg:local/laputa-atomic-waker@0.3.0#"
   },
   {
    "condition": null,
@@ -10708,7 +10708,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -10730,7 +10730,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -10752,7 +10752,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -10928,7 +10928,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-easy-parallel@0.3.0#"
+   "to": "pkg:local/laputa-easy-parallel@0.3.0#"
   },
   {
    "condition": null,
@@ -10950,7 +10950,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-fastrand@0.3.0#"
+   "to": "pkg:local/laputa-fastrand@0.3.0#"
   },
   {
    "condition": null,
@@ -10994,7 +10994,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-executor@0.3.0#"
+   "to": "pkg:local/laputa-async-executor@0.3.0#"
   },
   {
    "condition": null,
@@ -11016,7 +11016,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -11038,7 +11038,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -11060,7 +11060,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -11082,7 +11082,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -11214,7 +11214,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -11236,7 +11236,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-dup@0.3.0#"
+   "to": "pkg:local/laputa-async-dup@0.3.0#"
   },
   {
    "condition": null,
@@ -11258,7 +11258,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-executor@0.3.0#"
+   "to": "pkg:local/laputa-async-executor@0.3.0#"
   },
   {
    "condition": null,
@@ -11280,7 +11280,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-fs@0.3.0#"
+   "to": "pkg:local/laputa-async-fs@0.3.0#"
   },
   {
    "condition": null,
@@ -11302,7 +11302,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -11324,7 +11324,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -11346,7 +11346,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": "cfg(not(target_os = \"espidf\"))",
@@ -11368,7 +11368,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-process@0.3.0#"
+   "to": "pkg:local/laputa-async-process@0.3.0#"
   },
   {
    "condition": null,
@@ -11390,7 +11390,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-blocking@0.3.0#"
+   "to": "pkg:local/laputa-blocking@0.3.0#"
   },
   {
    "condition": null,
@@ -11412,7 +11412,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -11434,7 +11434,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol-macros@0.3.0#"
+   "to": "pkg:local/laputa-smol-macros@0.3.0#"
   },
   {
    "condition": "feature:portable-atomic-util",
@@ -22682,7 +22682,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   },
   {
    "condition": null,
@@ -22726,7 +22726,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-channel@0.3.0#"
+   "to": "pkg:local/laputa-async-channel@0.3.0#"
   },
   {
    "condition": null,
@@ -22748,7 +22748,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-executor@0.3.0#"
+   "to": "pkg:local/laputa-async-executor@0.3.0#"
   },
   {
    "condition": null,
@@ -22770,7 +22770,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-fs@0.3.0#"
+   "to": "pkg:local/laputa-async-fs@0.3.0#"
   },
   {
    "condition": null,
@@ -22792,7 +22792,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-io@0.3.0#"
+   "to": "pkg:local/laputa-async-io@0.3.0#"
   },
   {
    "condition": null,
@@ -22814,7 +22814,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-lock@0.3.0#"
+   "to": "pkg:local/laputa-async-lock@0.3.0#"
   },
   {
    "condition": null,
@@ -22836,7 +22836,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-async-net@0.3.0#"
+   "to": "pkg:local/laputa-async-net@0.3.0#"
   },
   {
    "condition": null,
@@ -22858,7 +22858,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-blocking@0.3.0#"
+   "to": "pkg:local/laputa-blocking@0.3.0#"
   },
   {
    "condition": null,
@@ -22880,7 +22880,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-concurrent-queue@0.3.0#"
+   "to": "pkg:local/laputa-concurrent-queue@0.3.0#"
   },
   {
    "condition": null,
@@ -22902,7 +22902,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-event-listener@0.3.0#"
+   "to": "pkg:local/laputa-event-listener@0.3.0#"
   },
   {
    "condition": null,
@@ -22924,7 +22924,7 @@
    "resolved_version": "0.3.0",
    "scope": "runtime",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-futures-lite@0.3.0#"
+   "to": "pkg:local/laputa-futures-lite@0.3.0#"
   },
   {
    "condition": null,
@@ -22946,7 +22946,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-polling@0.3.0#"
+   "to": "pkg:local/laputa-polling@0.3.0#"
   },
   {
    "condition": null,
@@ -22968,7 +22968,7 @@
    "resolved_version": "0.3.0",
    "scope": "dev",
    "source_kind": "workspace",
-   "to": "pkg:generic/laputa-smol@0.3.0#"
+   "to": "pkg:local/laputa-smol@0.3.0#"
   }
  ],
  "inputs": [
@@ -23237,7 +23237,7 @@
    "path": "tests/qualify/Cargo.toml"
   }
  ],
- "inputs_fingerprint": "2b90442c6fe038cc11995b56cf2c89e347c66795be770a05316709920d8b8676",
+ "inputs_fingerprint": "b1af5316fbe159726d8ce68e80129f4704349579fc3f944c1e8a8d03577afefe",
  "instances": [
   {
    "commit": null,
@@ -27283,617 +27283,6 @@
    "version": "3.24.2"
   },
   {
-   "commit": null,
-   "component": "pkg:generic/app-core",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/app-core@0.1.0#",
-   "purl": "pkg:generic/app-core@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/fastwebsockets-fuzz",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/fastwebsockets-fuzz@0.0.0#",
-   "purl": "pkg:generic/fastwebsockets-fuzz@0.0.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.0.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-app",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-app@0.1.0#",
-   "purl": "pkg:generic/h12tiny-app@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-client-normalize",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-client-normalize@0.9.0#",
-   "purl": "pkg:generic/h12tiny-client-normalize@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-client-sync",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-client-sync@0.9.0#",
-   "purl": "pkg:generic/h12tiny-client-sync@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-client",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-client@0.9.0#",
-   "purl": "pkg:generic/h12tiny-client@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-core",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-core@0.9.0#",
-   "purl": "pkg:generic/h12tiny-core@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-server",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-server@0.9.0#",
-   "purl": "pkg:generic/h12tiny-server@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-tls-system",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-tls-system@0.9.0#",
-   "purl": "pkg:generic/h12tiny-tls-system@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-util",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-util@0.9.0#",
-   "purl": "pkg:generic/h12tiny-util@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny-web",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny-web@0.9.0#",
-   "purl": "pkg:generic/h12tiny-web@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h12tiny",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h12tiny@0.9.0#",
-   "purl": "pkg:generic/h12tiny@0.9.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.9.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h2-support",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h2-support@0.1.0#",
-   "purl": "pkg:generic/h2-support@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/h2-tests",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/h2-tests@0.1.0#",
-   "purl": "pkg:generic/h2-tests@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-broadcast",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-broadcast@0.3.0#",
-   "purl": "pkg:generic/laputa-async-broadcast@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-channel",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-channel@0.3.0#",
-   "purl": "pkg:generic/laputa-async-channel@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-dup",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-dup@0.3.0#",
-   "purl": "pkg:generic/laputa-async-dup@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-executor",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-executor@0.3.0#",
-   "purl": "pkg:generic/laputa-async-executor@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-fs",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-fs@0.3.0#",
-   "purl": "pkg:generic/laputa-async-fs@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-io",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-io@0.3.0#",
-   "purl": "pkg:generic/laputa-async-io@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-lock",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-lock@0.3.0#",
-   "purl": "pkg:generic/laputa-async-lock@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-net",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-net@0.3.0#",
-   "purl": "pkg:generic/laputa-async-net@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-process",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-process@0.3.0#",
-   "purl": "pkg:generic/laputa-async-process@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-signal",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-signal@0.3.0#",
-   "purl": "pkg:generic/laputa-async-signal@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-async-task",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-async-task@0.3.0#",
-   "purl": "pkg:generic/laputa-async-task@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-atomic-waker",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-atomic-waker@0.3.0#",
-   "purl": "pkg:generic/laputa-atomic-waker@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-blocking",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-blocking@0.3.0#",
-   "purl": "pkg:generic/laputa-blocking@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-concurrent-queue",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-concurrent-queue@0.3.0#",
-   "purl": "pkg:generic/laputa-concurrent-queue@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-easy-parallel",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-easy-parallel@0.3.0#",
-   "purl": "pkg:generic/laputa-easy-parallel@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-event-listener-strategy",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-event-listener-strategy@0.3.0#",
-   "purl": "pkg:generic/laputa-event-listener-strategy@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-event-listener",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-event-listener@0.3.0#",
-   "purl": "pkg:generic/laputa-event-listener@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-fastrand-contrib",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-fastrand-contrib@0.3.0#",
-   "purl": "pkg:generic/laputa-fastrand-contrib@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-fastrand",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-fastrand@0.3.0#",
-   "purl": "pkg:generic/laputa-fastrand@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-fastwebsockets-futures-lite",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2#",
-   "purl": "pkg:generic/laputa-fastwebsockets-futures-lite@0.10.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.10.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-futures-lite",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-futures-lite@0.3.0#",
-   "purl": "pkg:generic/laputa-futures-lite@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-h2-futures-lite",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2#",
-   "purl": "pkg:generic/laputa-h2-futures-lite@0.4.20-beta.2",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.4.20-beta.2"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-hyper-futures-lite",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1#",
-   "purl": "pkg:generic/laputa-hyper-futures-lite@1.12.0-beta.1",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "1.12.0-beta.1"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-parking",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-parking@0.3.0#",
-   "purl": "pkg:generic/laputa-parking@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-piper",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-piper@0.3.0#",
-   "purl": "pkg:generic/laputa-piper@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-polling",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-polling@0.3.0#",
-   "purl": "pkg:generic/laputa-polling@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-protocol-test-support",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-protocol-test-support@0.1.0#",
-   "purl": "pkg:generic/laputa-protocol-test-support@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-smol-macros",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-smol-macros@0.3.0#",
-   "purl": "pkg:generic/laputa-smol-macros@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-smol",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-smol@0.3.0#",
-   "purl": "pkg:generic/laputa-smol@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/laputa-waker-fn",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/laputa-waker-fn@0.3.0#",
-   "purl": "pkg:generic/laputa-waker-fn@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/rust",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:generic/rust@nightly-2026-09-15#",
-   "purl": "pkg:generic/rust@nightly-2026-09-15",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "url",
-   "vcs_url": null,
-   "version": "nightly-2026-09-15"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/smolith-consumer",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/smolith-consumer@0.1.0#",
-   "purl": "pkg:generic/smolith-consumer@0.1.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.1.0"
-  },
-  {
-   "commit": null,
-   "component": "pkg:generic/smolith-qualify",
-   "context": "",
-   "first_party": true,
-   "id": "pkg:generic/smolith-qualify@0.3.0#",
-   "purl": "pkg:generic/smolith-qualify@0.3.0",
-   "registry_url": null,
-   "repository_url": null,
-   "source_kind": "workspace",
-   "vcs_url": null,
-   "version": "0.3.0"
-  },
-  {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
    "component": "pkg:github/actions/checkout",
    "context": "",
@@ -27918,6 +27307,617 @@
    "source_kind": "git",
    "vcs_url": "https://github.com/dtolnay/rust-toolchain",
    "version": "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/app-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/app-core@0.1.0#",
+   "purl": "pkg:local/app-core@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/fastwebsockets-fuzz",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/fastwebsockets-fuzz@0.0.0#",
+   "purl": "pkg:local/fastwebsockets-fuzz@0.0.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.0.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-app",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-app@0.1.0#",
+   "purl": "pkg:local/h12tiny-app@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-client-normalize",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-client-normalize@0.9.0#",
+   "purl": "pkg:local/h12tiny-client-normalize@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-client-sync",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-client-sync@0.9.0#",
+   "purl": "pkg:local/h12tiny-client-sync@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-client",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-client@0.9.0#",
+   "purl": "pkg:local/h12tiny-client@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-core",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-core@0.9.0#",
+   "purl": "pkg:local/h12tiny-core@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-server",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-server@0.9.0#",
+   "purl": "pkg:local/h12tiny-server@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-tls-system",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-tls-system@0.9.0#",
+   "purl": "pkg:local/h12tiny-tls-system@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-util",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-util@0.9.0#",
+   "purl": "pkg:local/h12tiny-util@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny-web",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny-web@0.9.0#",
+   "purl": "pkg:local/h12tiny-web@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h12tiny",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h12tiny@0.9.0#",
+   "purl": "pkg:local/h12tiny@0.9.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.9.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h2-support",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h2-support@0.1.0#",
+   "purl": "pkg:local/h2-support@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/h2-tests",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/h2-tests@0.1.0#",
+   "purl": "pkg:local/h2-tests@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-broadcast",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-broadcast@0.3.0#",
+   "purl": "pkg:local/laputa-async-broadcast@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-channel",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-channel@0.3.0#",
+   "purl": "pkg:local/laputa-async-channel@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-dup",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-dup@0.3.0#",
+   "purl": "pkg:local/laputa-async-dup@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-executor",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-executor@0.3.0#",
+   "purl": "pkg:local/laputa-async-executor@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-fs",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-fs@0.3.0#",
+   "purl": "pkg:local/laputa-async-fs@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-io",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-io@0.3.0#",
+   "purl": "pkg:local/laputa-async-io@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-lock",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-lock@0.3.0#",
+   "purl": "pkg:local/laputa-async-lock@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-net",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-net@0.3.0#",
+   "purl": "pkg:local/laputa-async-net@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-process",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-process@0.3.0#",
+   "purl": "pkg:local/laputa-async-process@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-signal",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-signal@0.3.0#",
+   "purl": "pkg:local/laputa-async-signal@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-async-task",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-async-task@0.3.0#",
+   "purl": "pkg:local/laputa-async-task@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-atomic-waker",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-atomic-waker@0.3.0#",
+   "purl": "pkg:local/laputa-atomic-waker@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-blocking",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-blocking@0.3.0#",
+   "purl": "pkg:local/laputa-blocking@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-concurrent-queue",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-concurrent-queue@0.3.0#",
+   "purl": "pkg:local/laputa-concurrent-queue@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-easy-parallel",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-easy-parallel@0.3.0#",
+   "purl": "pkg:local/laputa-easy-parallel@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-event-listener-strategy",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-event-listener-strategy@0.3.0#",
+   "purl": "pkg:local/laputa-event-listener-strategy@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-event-listener",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-event-listener@0.3.0#",
+   "purl": "pkg:local/laputa-event-listener@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-fastrand-contrib",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-fastrand-contrib@0.3.0#",
+   "purl": "pkg:local/laputa-fastrand-contrib@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-fastrand",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-fastrand@0.3.0#",
+   "purl": "pkg:local/laputa-fastrand@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-fastwebsockets-futures-lite",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-fastwebsockets-futures-lite@0.10.2#",
+   "purl": "pkg:local/laputa-fastwebsockets-futures-lite@0.10.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.10.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-futures-lite",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-futures-lite@0.3.0#",
+   "purl": "pkg:local/laputa-futures-lite@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-h2-futures-lite",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2#",
+   "purl": "pkg:local/laputa-h2-futures-lite@0.4.20-beta.2",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.4.20-beta.2"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-hyper-futures-lite",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1#",
+   "purl": "pkg:local/laputa-hyper-futures-lite@1.12.0-beta.1",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "1.12.0-beta.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-parking",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-parking@0.3.0#",
+   "purl": "pkg:local/laputa-parking@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-piper",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-piper@0.3.0#",
+   "purl": "pkg:local/laputa-piper@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-polling",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-polling@0.3.0#",
+   "purl": "pkg:local/laputa-polling@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-protocol-test-support",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-protocol-test-support@0.1.0#",
+   "purl": "pkg:local/laputa-protocol-test-support@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-smol-macros",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-smol-macros@0.3.0#",
+   "purl": "pkg:local/laputa-smol-macros@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-smol",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-smol@0.3.0#",
+   "purl": "pkg:local/laputa-smol@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/laputa-waker-fn",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/laputa-waker-fn@0.3.0#",
+   "purl": "pkg:local/laputa-waker-fn@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/smolith-consumer",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/smolith-consumer@0.1.0#",
+   "purl": "pkg:local/smolith-consumer@0.1.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.1.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:local/smolith-qualify",
+   "context": "",
+   "first_party": true,
+   "id": "pkg:local/smolith-qualify@0.3.0#",
+   "purl": "pkg:local/smolith-qualify@0.3.0",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "workspace",
+   "vcs_url": null,
+   "version": "0.3.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:toolchain/rust",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:toolchain/rust@nightly-2026-09-15#",
+   "purl": "pkg:toolchain/rust@nightly-2026-09-15",
+   "registry_url": null,
+   "repository_url": null,
+   "source_kind": "url",
+   "vcs_url": null,
+   "version": "nightly-2026-09-15"
   }
  ],
  "issues": [

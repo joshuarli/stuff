@@ -1057,7 +1057,7 @@ def _lock_draft(
             name=package.name,
             display=package.name,
             version=package.version,
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             source_kind=kind,
             source_key=source_key,
             directory=directory,
@@ -1165,7 +1165,7 @@ def _requirement_draft(
             name=display,
             display=display,
             version=target.version if target is not None else None,
-            ecosystem=Ecosystem.GENERIC,
+            ecosystem=Ecosystem.LOCAL,
             source_kind=SourceKind.VENDORED if requirement.vendored else kind,
             source_key=(
                 f"vendored:{_normalize(display)}"
