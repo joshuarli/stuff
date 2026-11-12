@@ -275,10 +275,30 @@ def _specifier_admits(specifier: str, version: str) -> bool:
     return True
 
 
-def _lowest_rust_version(root: Path) -> str | None:
-    declared: list[str] = []
+_CARGO_DEPENDENCY_TABLES = ("dependencies", "dev-dependencies", "build-dependencies")
+
+
+def _declared_crates(document: dict[str, Any]) -> set[str]:
+    tables = [document]
+    targets = document.get("target")
+    if isinstance(targets, dict):
+        tables.extend(table for table in targets.values() if isinstance(table, dict))
+    declared: set[str] = set()
+    for table in tables:
+        for key in _CARGO_DEPENDENCY_TABLES:
+            dependencies = table.get(key)
+            if not isinstance(dependencies, dict):
+                continue
+            for name, spec in dependencies.items():
+                package = spec.get("package") if isinstance(spec, dict) else None
+                declared.add(_normalize_rust_name(package if isinstance(package, str) else name))
+    return declared
+
+
+def _rust_versions(root: Path) -> list[tuple[str, set[str]]]:
+    """Each workspace member's declared rust-version with the crates it depends on directly."""
     workspace_version: str | None = None
-    members: list[dict[str, Any]] = []
+    members: list[tuple[dict[str, Any], set[str]]] = []
     for manifest in _cargo_manifests(root):
         document, _ = read_toml(manifest)
         if not isinstance(document, dict):
@@ -290,18 +310,28 @@ def _lowest_rust_version(root: Path) -> str | None:
             workspace_version = shared_version
         package = document.get("package")
         if isinstance(package, dict):
-            members.append(package)
-    for package in members:
+            members.append((package, _declared_crates(document)))
+    versions: list[tuple[str, set[str]]] = []
+    for package, declared in members:
         version = package.get("rust-version")
         if isinstance(version, str):
-            declared.append(version)
+            versions.append((version, declared))
         elif (
             isinstance(version, dict)
             and version.get("workspace") is True
             and workspace_version is not None
         ):
-            declared.append(workspace_version)
-    return min(declared, key=_parse_cargo_version, default=None)
+            versions.append((workspace_version, declared))
+    return versions
+
+
+def _lowest_rust_version(versions: list[tuple[str, set[str]]], crate: str) -> tuple[str, str] | None:
+    """The lowest rust-version among members that use the crate, or the workspace's when none declares it."""
+    users = [version for version, declared in versions if _normalize_rust_name(crate) in declared]
+    scope = "the crates that use it" if users else "the workspace"
+    candidates = users or [version for version, _ in versions]
+    lowest = min(candidates, key=_parse_cargo_version, default=None)
+    return (lowest, scope) if lowest is not None else None
 
 
 def _exact_version(requirement: str) -> str | None:
@@ -311,12 +341,13 @@ def _exact_version(requirement: str) -> str | None:
     return None
 
 
-def _msrv_conflict(release: dict[str, Any], lowest: str | None) -> str | None:
+def _msrv_conflict(release: dict[str, Any], lowest: tuple[str, str] | None) -> str | None:
     required = release["rust_version"]
     if lowest is None or required is None:
         return None
-    if _parse_cargo_version(required) > _parse_cargo_version(lowest):
-        return f"it needs Rust {required} but the lowest workspace rust-version is {lowest}"
+    version, scope = lowest
+    if _parse_cargo_version(required) > _parse_cargo_version(version):
+        return f"it needs Rust {required} but the lowest rust-version of {scope} is {version}"
     return None
 
 
@@ -377,7 +408,7 @@ def _outdated_findings(
     rust_reqs = _rust_version_reqs(root)
     rust_dependencies, _ = _rust_direct_dependencies(root)
     python_specifiers = _python_specifiers(root)
-    lowest_rust_version = _lowest_rust_version(root)
+    rust_versions = _rust_versions(root)
     findings: list[Finding] = []
     unresolved: set[str] = set()
     for item in sorted(direct, key=lambda entry: (entry.ecosystem, entry.name.casefold())):
@@ -407,7 +438,8 @@ def _outdated_findings(
                     )
                     reason = None
                     if release is not None:
-                        reason = _msrv_conflict(release, lowest_rust_version) or _pin_conflict(
+                        lowest = _lowest_rust_version(rust_versions, item.name)
+                        reason = _msrv_conflict(release, lowest) or _pin_conflict(
                             release, rust_reqs
                         )
                     if reason is not None:

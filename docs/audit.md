@@ -116,7 +116,8 @@ when the upgrader cannot reach the latest version:
   version that conflicts, named in the message (for example `wasm-bindgen-test` needing
   `wasm-bindgen =0.2.130` while the repository pins `=0.2.129`);
 - a Cargo release's `rust-version` exceeds the lowest `rust-version` declared
-  by the workspace members, so `cargo update` keeps the older release; the
+  by the workspace members that depend on the crate (or by all members, when
+  none declares it directly), so `cargo update` keeps the older release; the
   message names the Rust versions.
 
 Crate release metadata comes from the configured Cargo source and is cached

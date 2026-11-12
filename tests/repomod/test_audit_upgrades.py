@@ -841,8 +841,41 @@ def test_msrv_blocks_upgrades_beyond_lowest_workspace_rust_version(
     )
     by_name = {finding.message.split()[0]: finding for finding in findings}
     assert by_name["crates:rcgen"].fixable is False
-    assert "needs Rust 1.88 but the lowest workspace rust-version is 1.85" in by_name["crates:rcgen"].message
+    assert "needs Rust 1.88 but the lowest rust-version of the crates that use it is 1.85" in (
+        by_name["crates:rcgen"].message
+    )
     assert by_name["crates:rand"].fixable is True
+
+
+def test_msrv_ignores_members_that_do_not_use_the_crate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = repo_root(tmp_path)
+    (root / "Cargo.toml").write_text('[workspace]\nmembers = ["old", "new"]\n', encoding="utf-8")
+    manifests = {
+        "old": 'rust-version = "1.85"\n',
+        "new": (
+            'rust-version = "1.99"\n'
+            "[target.'cfg(unix)'.dependencies]\n"
+            'archive = { package = "zip", version = "9" }\n'
+        ),
+    }
+    for member, tail in manifests.items():
+        (root / member).mkdir()
+        (root / member / "Cargo.toml").write_text(
+            f'[package]\nname = "{member}"\nversion = "0.1.0"\n{tail}', encoding="utf-8"
+        )
+    (root / "Cargo.lock").write_text(
+        'version = 4\n[[package]]\nname = "old"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "new"\nversion = "0.1.0"\n'
+        '[[package]]\nname = "zip"\nversion = "9.4.2"\n',
+        encoding="utf-8",
+    )
+    fake_crates(monkeypatch, {"zip/9.5.1": crate_release("1.88")})
+
+    findings = _outdated_findings(root, repository("tool", "rust"), {}, NOW, lambda _e, _name: "9.5.1")
+
+    assert [(finding.message.split()[0], finding.fixable) for finding in findings] == [("crates:zip", True)]
 
 
 def test_msrv_blocks_breaking_manifest_upgrade(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
