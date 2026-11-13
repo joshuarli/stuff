@@ -5,15 +5,6 @@ New tickets use STUF. RPMD tickets were filed in repomod before it moved into st
 
 Evidence for the 2026-11-11 ultrareview refers to `5ab165462999f71c11788ea9a2c6b0278e8ae071`. Priorities are reviewer-assigned. Executed probes used local fixtures; source-only conclusions and unavailable runtime checks are identified below. The checked-in Worker configuration leaves network push disabled, so the push findings describe the optional capability, not observed production incidents.
 
-### STUF-45 · P3 · Python builds still reach the network and build hashes are unwired
-
-- **Area:** Security
-- **Where:** `crates/mypypi/src/build.rs` (`build_source_file`), `crates/stuff/src/publish/pypi.rs:299-300`
-- **Problem:** Sdist backends and native wheel imports now run inside the sandbox described in the mypypi README. The remaining exposure is that the build keeps network access to resolve `build-system.requires`, so a hostile backend can send out what it can read (its scratch and the downloaded source), and that `stuff publish pypi` passes no build constraints or `--require-build-hashes`, so build dependency selection is not pinned. macOS uses `sandbox-exec` because a separate unprivileged account could not be provisioned unattended; a VM remains the stronger alternative if that contract is ever required.
-- **Recommendation:** Maintain a checked-in hash-pinned build-constraints file with a refresh procedure, wire it through `BuildOptions` before enabling `--require-build-hashes`, and then resolve build requirements in a separate network stage so the backend itself runs offline.
-- **Fix with:** security
-- **Effort:** M
-
 ### STUF-62 · P3 · A one-crate publish rewrites unchanged index files under a new generation
 
 - **Area:** Performance

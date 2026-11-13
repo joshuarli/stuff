@@ -297,7 +297,7 @@ fn acquire_wheels(
                 custom_prebuild: &prebuild,
                 linux_repair_policy: &settings.linux_repair_policy,
                 build_constraints: None,
-                require_build_hashes: false,
+                require_build_hashes: true,
                 env: None,
                 prebuild_cwd: Some(&prebuild_cwd),
             },

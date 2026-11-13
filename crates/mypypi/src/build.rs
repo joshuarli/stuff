@@ -23,6 +23,11 @@ const HEAD_BYTES: usize = 1024 * 1024;
 
 pub const UV_VERSION: &str = include_str!("../../../deploy/uv-version").trim_ascii();
 
+pub const BUILD_CONSTRAINTS: &str = include_str!("../../../deploy/build-constraints.txt");
+
+const LEGACY_BUILD_REQUIRES: [&str; 2] = ["setuptools>=40.8.0", "wheel"];
+const SDIST_PYPROJECT_LIMIT: usize = 1024 * 1024;
+
 fn uv_version_in(output: &str) -> Option<&str> {
     output.split_whitespace().nth(1).filter(|version| !version.is_empty())
 }
@@ -50,6 +55,99 @@ pub(crate) fn require_uv_version() -> Result<()> {
         ));
     }
     Ok(())
+}
+
+fn is_sdist_pyproject(name: &str) -> bool {
+    let stripped = name.strip_suffix('/').unwrap_or(name);
+    let mut parts = stripped.split('/');
+    matches!(
+        (parts.next(), parts.next(), parts.next()),
+        (Some(dir), Some("pyproject.toml"), None) if !dir.is_empty()
+    )
+}
+
+fn read_sdist_pyproject(source_path: &Path) -> Result<Option<Vec<u8>>> {
+    if let Ok(archive) = crate::wheel_zip::Archive::open(source_path) {
+        for name in archive.names() {
+            if !is_sdist_pyproject(name) {
+                continue;
+            }
+            let bytes = archive
+                .read_prefix(name, SDIST_PYPROJECT_LIMIT as u64 + 1)
+                .map_err(|e| Error::build(format!("cannot inspect source archive pyproject.toml: {e}"), Stage::Build))?;
+            if bytes.len() > SDIST_PYPROJECT_LIMIT {
+                return Err(Error::build("sdist pyproject.toml exceeds 1 MiB", Stage::Build));
+            }
+            return Ok(Some(bytes));
+        }
+        return Ok(None);
+    }
+    let file = std::fs::File::open(source_path).map_err(|e| {
+        Error::build(format!("cannot inspect source archive {source_path}: {e}", source_path = source_path.display()), Stage::Build)
+    })?;
+    let decoder = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(decoder);
+    let entries = archive.entries().map_err(|e| Error::build(format!("cannot inspect source archive {source_path}: {e}", source_path = source_path.display()), Stage::Build))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| {
+            Error::build(format!("cannot inspect source archive {source_path}: {e}", source_path = source_path.display()), Stage::Build)
+        })?;
+        let name = std::str::from_utf8(&entry.path_bytes())
+            .map_err(|_| Error::build("cannot inspect source archive: sdist member is not valid UTF-8", Stage::Build))?
+            .to_string();
+        if !is_sdist_pyproject(&name) {
+            continue;
+        }
+        let mut bytes = Vec::new();
+        entry
+            .take(SDIST_PYPROJECT_LIMIT as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| Error::build(format!("cannot inspect source archive pyproject.toml: {e}"), Stage::Build))?;
+        if bytes.len() > SDIST_PYPROJECT_LIMIT {
+            return Err(Error::build("sdist pyproject.toml exceeds 1 MiB", Stage::Build));
+        }
+        return Ok(Some(bytes));
+    }
+    Ok(None)
+}
+
+/// The build requirements an sdist declares in its `pyproject.toml`, or the
+/// legacy setuptools fallback when the sdist has no `build-system` table.
+pub fn sdist_build_requires(source_path: &Path) -> Result<Vec<String>> {
+    let legacy = || LEGACY_BUILD_REQUIRES.iter().map(|value| value.to_string()).collect::<Vec<_>>();
+    let Some(bytes) = read_sdist_pyproject(source_path)? else {
+        return Ok(legacy());
+    };
+    let source = std::str::from_utf8(&bytes)
+        .map_err(|_| Error::build("sdist pyproject.toml is not valid UTF-8", Stage::Build))?;
+    let value: deser_value::Value = deser_toml::from_str(source)
+        .map_err(|e| Error::build(format!("sdist pyproject.toml is not valid TOML: {e}"), Stage::Build))?;
+    let Some(build_system) = value.as_map().and_then(|doc| doc.get("build-system")) else {
+        return Ok(legacy());
+    };
+    let Some(requires) = build_system.as_map().and_then(|table| table.get("requires")) else {
+        return Ok(legacy());
+    };
+    let entries = requires
+        .as_seq()
+        .ok_or_else(|| Error::build("sdist pyproject.toml build-system.requires must be an array of strings", Stage::Build))?;
+    let mut out = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let requirement = entry
+            .as_str()
+            .ok_or_else(|| Error::build("sdist pyproject.toml build-system.requires must be an array of strings", Stage::Build))?
+            .trim();
+        if requirement.is_empty() {
+            return Err(Error::build("sdist pyproject.toml build-system.requires contains an empty requirement", Stage::Build));
+        }
+        if requirement.contains('\n') || requirement.contains('\r') {
+            return Err(Error::build("sdist pyproject.toml build-system.requires contains a requirement spanning multiple lines", Stage::Build));
+        }
+        if !out.iter().any(|existing| existing == requirement) {
+            out.push(requirement.to_string());
+        }
+    }
+    Ok(out)
 }
 
 pub fn validate_build_index(url: &str, strict: bool) -> Result<String> {
@@ -431,6 +529,95 @@ fn build_environment(
     Ok(env)
 }
 
+fn prime_checked(
+    command: &[String],
+    run: &Run<'_>,
+    package: &PackageVersion,
+    target: &Target,
+) -> Result<()> {
+    let ctx = |e: Error| e.with_package(package).with_target(&target.python_version.to_string(), &target.platform);
+    let confined;
+    let argv = match run.boundary {
+        Some(boundary) => {
+            confined = confine(command, run.env, boundary, Stage::Build).map_err(ctx)?;
+            &confined[..]
+        }
+        None => command,
+    };
+    match run_capture(argv, Some(run.cwd), run.env, None, run.timeout) {
+        Ok(out) if out.success() => Ok(()),
+        Ok(out) => {
+            let mut detail = format!("could not resolve the build requirements for {package}: {}", command.join(" "));
+            let stderr = out.stderr.trim();
+            if !stderr.is_empty() {
+                detail = format!("{detail}: {}", redacted_diagnostic(stderr, 2000));
+            }
+            Err(ctx(Error::dependency(detail, Stage::Build)))
+        }
+        Err(crate::process_policy::RunError::Timeout { stderr, .. }) => {
+            let mut detail = format!("could not resolve the build requirements for {package}: timed out");
+            if !stderr.trim().is_empty() {
+                detail = format!("{detail}: {}", redacted_diagnostic(stderr.trim(), 2000));
+            }
+            Err(ctx(Error::dependency(detail, Stage::Build)))
+        }
+        Err(e) => Err(ctx(Error::dependency(format!("could not resolve the build requirements for {package}: {e}"), Stage::Build))),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prime_build_requirements(
+    requires: &[String],
+    constraints: &Path,
+    python_executable: &Path,
+    build_env: &FxHashMap<String, String>,
+    readable: &[PathBuf],
+    stage: &Path,
+    index_url: &str,
+    package: &PackageVersion,
+    target: &Target,
+) -> Result<()> {
+    if requires.is_empty() {
+        return Ok(());
+    }
+    let requirements = stage.join("build-requirements.in");
+    let mut body = requires.join("\n");
+    body.push('\n');
+    std::fs::write(&requirements, body).map_err(|e| {
+        Error::io(format!("could not stage the build requirements file {}: {e}", requirements.display()), Stage::Build)
+            .with_package(package)
+            .with_target(&target.python_version.to_string(), &target.platform)
+    })?;
+    let resolved = stage.join("build-requirements.txt");
+    let boundary = Boundary { writable: vec![stage.to_path_buf()], readable: readable.to_vec(), network: Network::Online };
+    let compile = vec![
+        "uv".to_string(),
+        "pip".to_string(),
+        "compile".to_string(),
+        requirements.display().to_string(),
+        "--universal".to_string(),
+        format!("--constraints={}", constraints.display()),
+        "--generate-hashes".to_string(),
+        "--no-config".to_string(),
+        format!("--default-index={index_url}"),
+        format!("-o={}", resolved.display()),
+    ];
+    prime_checked(&compile, &Run { cwd: stage, env: build_env, timeout: 600, boundary: Some(&boundary) }, package, target)?;
+    let warm = stage.join("build-requirements-target");
+    let install = vec![
+        "uv".to_string(),
+        "pip".to_string(),
+        "install".to_string(),
+        format!("--python={}", python_executable.display()),
+        format!("--target={}", warm.display()),
+        "--require-hashes".to_string(),
+        "--no-config".to_string(),
+        format!("--default-index={index_url}"),
+        format!("-r={}", resolved.display()),
+    ];
+    prime_checked(&install, &Run { cwd: stage, env: build_env, timeout: 600, boundary: Some(&boundary) }, package, target)
+}
+
 fn build_inner(
     package: &PackageVersion,
     target: &Target,
@@ -463,6 +650,18 @@ fn build_source_file(
     let suspicious = likely_binary(source_path, opts.likely_binary_ignore).map_err(ctx)?;
     let output = stage.join("wheels");
     std::fs::create_dir(&output).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
+    let default_constraints;
+    let constraints_path: &Path = match opts.build_constraints {
+        Some(path) => path,
+        None => {
+            default_constraints = stage.join("build-constraints.txt");
+            std::fs::write(&default_constraints, BUILD_CONSTRAINTS).map_err(|e| {
+                ctx(Error::io(format!("could not stage the embedded build constraints at {}: {e}", default_constraints.display()), Stage::Build))
+            })?;
+            &default_constraints
+        }
+    };
+    let build_requirements = sdist_build_requires(source_path).map_err(ctx)?;
     let build_temp = stage.join("tmp");
     std::fs::create_dir(&build_temp).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
     let base_env: FxHashMap<String, String> = match opts.env {
@@ -479,6 +678,7 @@ fn build_source_file(
             format!("{}.{}", MACOS_DEPLOYMENT_TARGET.0, MACOS_DEPLOYMENT_TARGET.1),
         );
     }
+    build_env.insert("UV_CACHE_DIR".to_string(), stage.join("uv-cache").display().to_string());
     if !opts.custom_prebuild.is_empty() {
         let prefix = stage.join("prefix");
         std::fs::create_dir(&prefix).map_err(|e| ctx(Error::io(format!("could not create build staging directory: {e}"), Stage::Build)))?;
@@ -509,10 +709,9 @@ fn build_source_file(
     let python = interpreter(&crate::platforms::python_binary(), &build_path, Stage::Build).map_err(ctx)?;
     let mut readable = python.roots.clone();
     readable.extend(toolchain_read_roots(&base_env));
-    if let Some(constraints) = opts.build_constraints {
-        readable.push(constraints.to_path_buf());
-    }
-    let boundary = Boundary { writable: vec![stage.to_path_buf()], readable, network: Network::Online };
+    readable.push(constraints_path.to_path_buf());
+    prime_build_requirements(&build_requirements, constraints_path, &python.executable, &build_env, &readable, stage, opts.index_url, package, target)?;
+    let boundary = Boundary { writable: vec![stage.to_path_buf()], readable, network: Network::Offline };
     let mut command: Vec<String> = vec![
         "uv".to_string(),
         "build".to_string(),
@@ -522,14 +721,15 @@ fn build_source_file(
         format!("--python={}", python.executable.display()),
         format!("--default-index={}", opts.index_url),
         "--index-strategy=first-index".to_string(),
+        "--offline".to_string(),
         format!("--out-dir={}", output.display()),
     ];
-    if let Some(constraints) = opts.build_constraints {
-        command.push("--build-constraints".to_string());
-        command.push(constraints.display().to_string());
-    }
+    command.push("--build-constraints".to_string());
+    command.push(constraints_path.display().to_string());
     if opts.require_build_hashes {
         command.push("--require-build-hashes".to_string());
+        command.push("--preview-features".to_string());
+        command.push("build-dependency-hashes".to_string());
     }
     command.push(source_path.display().to_string());
     run_checked(&command, &Run { cwd: stage, env: &build_env, timeout: 1800, boundary: Some(&boundary) }, package, target, Stage::Build)?;
@@ -1072,7 +1272,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
             custom_prebuild: &[],
             linux_repair_policy: "manylinux_2_28",
             build_constraints: None,
-            require_build_hashes: false,
+            require_build_hashes: true,
             env: None,
             prebuild_cwd: Some(dir.path()),
         };
@@ -1080,6 +1280,112 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         let wheel = build_source_file(&package, &target, &sdist, destination.path(), dir.path(), dir.path(), &options).unwrap();
 
         assert_eq!(wheel.file_name().and_then(|name| name.to_str()), Some("fetched_probe-0.1.0-py2.py3-none-any.whl"));
+    }
+
+    #[test]
+    fn build_requires_reads_the_sdist_build_system() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("probe-0.1.0.tar.gz");
+        write_sdist(
+            &sdist,
+            &[
+                ("probe-0.1.0/pyproject.toml", b"[build-system]\nrequires = [\"flit_core>=3.9,<4\", \"setuptools==80.0.0\"]\nbuild-backend = \"probe.backend\"\n"),
+                ("probe-0.1.0/backend.py", b""),
+            ],
+        );
+        assert_eq!(
+            sdist_build_requires(&sdist).unwrap(),
+            vec!["flit_core>=3.9,<4".to_string(), "setuptools==80.0.0".to_string()]
+        );
+    }
+
+    #[test]
+    fn build_requires_deduplicates_repeated_entries() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("probe-0.1.0.tar.gz");
+        write_sdist(
+            &sdist,
+            &[("probe-0.1.0/pyproject.toml", b"[build-system]\nrequires = [\"flit_core>=3.9,<4\", \"flit_core>=3.9,<4\"]\n")],
+        );
+        assert_eq!(sdist_build_requires(&sdist).unwrap(), vec!["flit_core>=3.9,<4".to_string()]);
+    }
+
+    #[test]
+    fn build_requires_falls_back_to_setuptools_without_a_build_system_table() {
+        let dir = tempfile::tempdir().unwrap();
+        let without_pyproject = dir.path().join("no-pyproject-0.1.0.tar.gz");
+        write_sdist(&without_pyproject, &[("no_pyproject-0.1.0/setup.py", b"from setuptools import setup\nsetup()\n")]);
+        let without_build_system = dir.path().join("no-build-system-0.1.0.tar.gz");
+        write_sdist(
+            &without_build_system,
+            &[("no-build-system-0.1.0/pyproject.toml", b"[project]\nname = \"no-build-system\"\nversion = \"0.1.0\"\n")],
+        );
+        let legacy = LEGACY_BUILD_REQUIRES.iter().map(|value| value.to_string()).collect::<Vec<_>>();
+        assert_eq!(sdist_build_requires(&without_pyproject).unwrap(), legacy);
+        assert_eq!(sdist_build_requires(&without_build_system).unwrap(), legacy);
+    }
+
+    #[test]
+    fn build_requires_honors_an_explicit_empty_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("empty-requires-0.1.0.tar.gz");
+        write_sdist(&sdist, &[("empty-requires-0.1.0/pyproject.toml", b"[build-system]\nrequires = []\nbuild-backend = \"backend\"\n")]);
+        assert_eq!(sdist_build_requires(&sdist).unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn build_requires_rejects_non_string_entries() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("non-string-0.1.0.tar.gz");
+        write_sdist(&sdist, &[("non-string-0.1.0/pyproject.toml", b"[build-system]\nrequires = [1]\n")]);
+        let error = sdist_build_requires(&sdist).unwrap_err();
+        assert!(format!("{error}").contains("array of strings"), "{error}");
+    }
+
+    #[test]
+    fn build_requires_rejects_a_multiline_requirement() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("injected-0.1.0.tar.gz");
+        write_sdist(&sdist, &[("injected-0.1.0/pyproject.toml", b"[build-system]\nrequires = [\"\"\"flit_core\nsetuptools\"\"\"]\n")]);
+        let error = sdist_build_requires(&sdist).unwrap_err();
+        assert!(format!("{error}").contains("multiple lines"), "{error}");
+    }
+
+    #[test]
+    fn build_requires_rejects_malformed_toml() {
+        let dir = tempfile::tempdir().unwrap();
+        let sdist = dir.path().join("malformed-0.1.0.tar.gz");
+        write_sdist(&sdist, &[("malformed-0.1.0/pyproject.toml", b"[build-system\nrequires = [1]\n")]);
+        let error = sdist_build_requires(&sdist).unwrap_err();
+        assert!(format!("{error}").contains("not valid TOML"), "{error}");
+    }
+
+    #[test]
+    fn embedded_build_constraints_pin_hashes_for_every_requirement() {
+        let mut pins = 0usize;
+        let mut current_hashes = 0usize;
+        let mut current_pin = String::new();
+        let mut unhashed = Vec::new();
+        for line in BUILD_CONSTRAINTS.lines() {
+            let token = line.split_whitespace().next().unwrap_or("");
+            if token.contains("==") {
+                if pins > 0 && current_hashes == 0 {
+                    unhashed.push(std::mem::take(&mut current_pin));
+                }
+                current_pin = token.to_string();
+                current_hashes = 0;
+                pins += 1;
+                continue;
+            }
+            if line.contains("--hash=sha256:") {
+                current_hashes += 1;
+            }
+        }
+        if pins > 0 && current_hashes == 0 {
+            unhashed.push(current_pin);
+        }
+        assert!(pins > 0, "deploy/build-constraints.txt contains no pins");
+        assert!(unhashed.is_empty(), "pins without a sha256 hash: {unhashed:?}");
     }
 
     #[test]

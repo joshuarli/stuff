@@ -116,13 +116,44 @@ toolchain without inheriting the publisher's Cargo cache or credential
 variables. The allowlist is defense in depth; the execution boundary below is
 what keeps package code away from the publisher's files.
 
+Build dependencies are pinned by `deploy/build-constraints.txt`, a
+hash-pinned `uv` universal constraints file that `mypypi` embeds in the
+binary and applies with `--build-constraints`. An sdist whose
+`build-system.requires` cannot be satisfied from that set fails instead of
+selecting anything else; when `--require-build-hashes` is on (the default, in
+`mypypi build` and in `stuff publish pypi`), a distribution whose bytes do not
+match the pinned hashes fails instead of installing.
+
+The pins are a policy, not a universal resolver: an sdist whose backend caps
+its requirement below or above a pin (for example `flit_core>=3.9,<4` against
+`flit-core==4.2.0`) fails loudly rather than selecting an unvetted version.
+Keep the pins compatible with the ranges the ecosystem actually declares.
+
+Refresh the file with:
+
+```sh
+$EDITOR deploy/build-constraints.in
+TMPDIR="$PWD/.work/tmp" uv pip compile deploy/build-constraints.in \
+  --universal --generate-hashes -o deploy/build-constraints.txt
+```
+
+`deploy/build-constraints.in` lists build backends and build tools by name
+(with version ranges where the ecosystem standard caps them, such as
+`flit-core<4`); the compile resolves the transitive closure pinned to exact
+versions with sha256 hashes for every supported platform and interpreter.
+Commit both files together, and keep `cargo test -p mypypi` green:
+`embedded_build_constraints_pin_hashes_for_every_requirement` fails when a
+pin loses its hashes. To admit a failed sdist, add the missing backend to the
+`.in` file and refresh rather than loosening anything.
+
 ## Execution boundary
 
 Package code never runs as the bare publisher. Two steps execute it, and both
 run inside an operating-system sandbox that `mypypi` builds around the child:
 
-- the sdist build backend, through `uv build` (reached only with
-  `--allow-sdist`), and
+- the sdist build backend, through `uv build --offline` (reached only with
+  `--allow-sdist`), after a separate network stage resolves the build
+  requirements, and
 - the import check of every new native-target wheel, `python -I -c
   __import__(...)`, which runs even without `--allow-sdist`.
 
@@ -134,18 +165,30 @@ commands run outside the sandbox. None of them executes package code, and
 A confined child can read the operating system's own files, the interpreter
 and its prefix, the `uv` executable, the Cargo `bin` and rustup `toolchains`
 directories named by `CARGO_HOME`/`RUSTUP_HOME` (default `~/.cargo`,
-`~/.rustup`), the selected Xcode bundle on macOS, and any
-`--build-constraints` file, and the certificate bundles named by `SSL_CERT_FILE` and its siblings. It can write only to its own scratch: the build
-staging directory, or the validation scratch directory. Every other path,
-including the publisher's home, the state directory, and other staging
-directories, is unreadable and unwritable. The build may reach the network
-because `uv build` resolves `build-system.requires` from the build index;
-import checks have no network.
+`~/.rustup`), the selected Xcode bundle on macOS, the `--build-constraints`
+file in effect (by default the embedded `deploy/build-constraints.txt`), and
+the certificate bundles named by `SSL_CERT_FILE` and its siblings. It can
+write only to its own scratch: the build staging directory, or the validation
+scratch directory. Every other path, including the publisher's home, the state
+directory, and other staging directories, is unreadable and unwritable.
+
+The sdist build backend itself never reaches the network. When an sdist
+declares `build-system.requires`, `mypypi` first runs a confined prime stage
+with the same boundary plus network access: it resolves those requirements
+against the default index with `uv pip compile --constraints` pinned by the
+effective constraints file and downloads them with hashes verified into a
+stage-local uv cache (`UV_CACHE_DIR` under the staging directory). The wheel
+then builds inside the boundary with `--offline`, so the resolution can only
+draw from that cache, and `--require-build-hashes` fails the build when a
+resolved distribution does not match the constraints file. Import checks have
+no network. The prime stage touches only the declared requirements;
+`custom_prebuild` commands still install whatever they fetch, outside the
+sandbox, as curated catalog configuration.
 
 | Host | Mechanism | Posture |
 | --- | --- | --- |
 | macOS | `/usr/bin/sandbox-exec` with a generated profile | `(deny default)` plus `system.sb`, then explicit allows. Credential directories under the home (`.ssh`, `.aws`, `.config`, `.gnupg`, `.cargo/credentials*`, `Library/Keychains`, and similar) are also denied last. Metadata (`stat`) stays readable because `uv` treats `EPERM` on an ancestor's `pyproject.toml` or `.venv` as fatal; contents and directory listings do not. The Keychain and process listing are unreachable from inside. |
-| Linux | `bwrap` (bubblewrap) | New user, PID, IPC, UTS and cgroup namespaces, `--cap-drop ALL`, `--die-with-parent`, and `--unshare-net` for imports. Only `/usr`, `/bin`, `/sbin`, `/lib*`, `/etc`, `/opt`, a tmpfs `/tmp`, and a tmpfs over the publisher's home are mounted, then the granted paths. An unmounted path does not exist, so a probe sees `FileNotFoundError` where macOS reports `PermissionError`. |
+| Linux | `bwrap` (bubblewrap) | New user, PID, IPC, UTS and cgroup namespaces, `--cap-drop ALL`, `--die-with-parent`, and `--unshare-net` for builds and imports (the prime stage keeps the network). Only `/usr`, `/bin`, `/sbin`, `/lib*`, `/etc`, `/opt`, a tmpfs `/tmp`, and a tmpfs over the publisher's home are mounted, then the granted paths. An unmounted path does not exist, so a probe sees `FileNotFoundError` where macOS reports `PermissionError`. |
 
 The boundary fails closed. When `sandbox-exec` or `bwrap` is missing, or the
 host cannot create the sandbox, the stage fails with `execution boundary
@@ -167,13 +210,13 @@ inspect the publisher's memory.
 The boundary does not make the built wheel trustworthy. A confined backend can
 still emit a malicious wheel, so `mypypi` treats it as untrusted: identity,
 metadata, RECORD hashes, tags, and architectures are checked, and a native
-wheel is imported inside the boundary before publication. A build that has
-network access can send out anything it can read, which is its scratch and the
-sources it downloaded. Hash-pinned build constraints
-(`--build-constraints`, `--require-build-hashes`) bound which dependencies a
-build selects, not what they do; `stuff publish pypi` does not wire them yet
-(see [TODO.md](../../TODO.md)). `sandbox-exec` is deprecated by Apple but is
-what the system tools use; its negative tests run with `cargo test -p mypypi`.
+wheel is imported inside the boundary before publication. A build backend can
+still read anything in its scratch, which is why the backend builds with no
+network; the prime stage is the only part of an sdist build with one.
+Hash-pinned build constraints bound which dependencies a build selects, not
+what they do; `--require-build-hashes` makes an unpinned or tampered
+distribution fail instead of install. `sandbox-exec` is deprecated by Apple
+but is what the system tools use; its negative tests run with `cargo test -p mypypi`.
 
 Tests: `cargo test -p mypypi` runs a hostile wheel (its import tries to read a
 sentinel outside scratch and to write outside scratch) and a hostile sdist
@@ -184,7 +227,8 @@ message when either is missing. On Linux the `sandbox` unit tests skip when
 `bwrap` cannot start, while every test that would run package code fails
 closed. Three ignored
 tests need more: `an_sdist_fetches_its_build_requirements_inside_the_boundary`
-reaches the network, `rust_sdist_build_finds_the_host_toolchain` needs Rust
+reaches the network and exercises the prime stage and the offline backend
+end to end, `rust_sdist_build_finds_the_host_toolchain` needs Rust
 (`deploy/ecosystem-smoke.sh`), and `native_sdist_builds_a_repaired_extension_wheel`
 (`deploy/test-mypypi-native.sh`) builds a C and C++ extension, repairs it, and
 imports it inside the boundary.

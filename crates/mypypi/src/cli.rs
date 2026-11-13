@@ -24,7 +24,7 @@ pub struct Parsed {
     pub build_index: Option<String>,
     pub strict_build_deps: bool,
     pub build_constraints: Option<String>,
-    pub require_build_hashes: bool,
+    pub require_build_hashes: Option<bool>,
     pub uv_locks: Vec<String>,
     pub requirements_files: Vec<String>,
     pub positionals: Vec<String>,
@@ -45,7 +45,7 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
     let mut build_index = None;
     let mut strict = false;
     let mut constraints = None;
-    let mut require_hashes = false;
+    let mut require_hashes = None;
     let mut uv_locks: Vec<String> = Vec::new();
     let mut requirements_files: Vec<String> = Vec::new();
     let mut positionals = Vec::new();
@@ -111,7 +111,11 @@ pub fn parse_args(argv: &[String]) -> Result<Parsed> {
                 i += 1;
             }
             "--require-build-hashes" => {
-                require_hashes = true;
+                require_hashes = Some(true);
+                i += 1;
+            }
+            "--no-require-build-hashes" => {
+                require_hashes = Some(false);
                 i += 1;
             }
             _ if arg.starts_with('-') => return Err(fail(format!("unknown option: {arg}"))),
@@ -161,7 +165,7 @@ pub fn print_help() {
     println!("Commands:");
     println!("  add [--uv-lock FILE]... [--requirements FILE]... [<requirement>...]");
     println!("  plan [--output DIR] [--platform P]...");
-    println!("  build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps]");
+    println!("  build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps] [--build-constraints PATH] [--no-require-build-hashes]");
     println!("  validate [--output DIR] [--platform P]...");
     println!("  publish [--output DIR] [--platform P]...");
     println!("  republish --output DIR --public-url URL");
@@ -178,8 +182,10 @@ pub fn print_command_help(command: &Command) {
             println!("show the wheel work required by the catalog");
         }
         Command::Build => {
-            println!("mypypi build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps] [--build-constraints PATH] [--require-build-hashes]");
-            println!("acquire or build missing wheels");
+            println!("mypypi build [--output DIR] [--platform P]... [--build-index URL] [--strict-build-deps] [--build-constraints PATH] [--require-build-hashes|--no-require-build-hashes]");
+            println!("acquire or build missing wheels; build dependencies are pinned to the embedded");
+            println!("hash-pinned set in deploy/build-constraints.txt by default and the build backend");
+            println!("runs without network access");
         }
         Command::Validate => {
             println!("mypypi validate [--output DIR] [--platform P]...");
@@ -555,7 +561,7 @@ pub fn resolve_paths(parsed: &Parsed) -> Result<ResolvedPaths> {
         && (parsed.build_index.is_some()
             || parsed.strict_build_deps
             || parsed.build_constraints.is_some()
-            || parsed.require_build_hashes)
+            || parsed.require_build_hashes.is_some())
     {
         return Err(Error::usage("unrecognized build dependency arguments for this command"));
     }
@@ -719,7 +725,7 @@ fn command_build(
             custom_prebuild: &prebuild,
             linux_repair_policy: &settings.linux_repair_policy,
             build_constraints: build_constraints.as_deref(),
-            require_build_hashes: parsed.require_build_hashes,
+            require_build_hashes: parsed.require_build_hashes.unwrap_or(true),
             env: None,
             prebuild_cwd: Some(&prebuild_cwd),
         };

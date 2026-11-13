@@ -1,0 +1,16 @@
+setuptools
+wheel
+flit-core<4
+poetry-core
+hatchling
+hatch-vcs
+setuptools-scm
+cython
+maturin
+scikit-build-core
+meson-python
+meson
+ninja
+cmake
+pdm-backend
+editables
