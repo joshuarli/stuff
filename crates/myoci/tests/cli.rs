@@ -51,6 +51,23 @@ struct Daemon {
     address: String,
 }
 
+static DAEMON_PIDS: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(Vec::new());
+
+fn register_daemon(pid: u32) {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        ctrlc::set_handler(|| {
+            let pids = DAEMON_PIDS.lock().map(|pids| pids.clone()).unwrap_or_default();
+            for pid in pids {
+                let _ = Command::new("/bin/kill").arg("-TERM").arg(pid.to_string()).status();
+            }
+            std::process::exit(130);
+        })
+        .expect("install the interrupt handler");
+    });
+    DAEMON_PIDS.lock().unwrap().push(pid);
+}
+
 impl Daemon {
     fn spawn(args: &[&str]) -> Daemon {
         let mut child = Command::new(env!("CARGO_BIN_EXE_myoci"))
@@ -59,6 +76,7 @@ impl Daemon {
             .stderr(Stdio::null())
             .spawn()
             .unwrap();
+        register_daemon(child.id());
         let stdout = child.stdout.take().unwrap();
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
@@ -90,6 +108,7 @@ impl Drop for Daemon {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+        DAEMON_PIDS.lock().unwrap().retain(|pid| *pid != self.child.id());
     }
 }
 

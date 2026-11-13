@@ -29,4 +29,5 @@ stuff-url = { version = "0.1.0", path = "../stuff-url" }
 toml_edit = { version = "0.25.19", default-features = false, features = ["parse"] }
 
 [dev-dependencies]
+ctrlc = "3.5.2"
 tempfile = "3.13"
