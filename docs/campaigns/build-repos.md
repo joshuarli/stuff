@@ -29,6 +29,9 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
   python #11, ffmpeg #3, chromium #6); plain-python3 and container contexts load the pinned wheel
   from `sources.lock.json`
 - [x] `repomod topics apply`
+- [x] llvm-prebuilt-musl (#3) meets the contract with the shell/jaq pattern rather than buildlib. It
+  also fixes #1 and #2: each package ships compiler-rt builtins and CRT objects for both
+  architectures, and the musl `-B`/`-L` paths moved from `clang.cfg` to the package triple's config
 
 ## Releases
 
@@ -40,17 +43,19 @@ enforces it, and the Python build repositories share `laputa-buildlib`.
 | ffmpeg-build | `release-ac29c7720327f7dee4ed4677ce8421673fcc3563` | play #6, usr |
 | python-build | `release-6f7c0d46e2eda7f66c705022f1950034045f74d0` (proves Alpine 3.24.2) | pi-build #2, usr #2 |
 | cmake-build | qualified at `281e9cd8`, released | none pin it |
-| node-build | building (#9 fixed `TARGET` leaking into gyp sub-makes; #10 sets jobs per core) | usr #3 waits for it |
+| node-build | `release-934b31ca1322638234fee6cfa8ee7ca5944f30cb` (#10 jobs per core, #11 g++ for the musl published smoke) | usr #3; budgets re-measured (xz + 15%, #12) |
+| llvm-prebuilt-musl | `release-10dbf21a8bc2ec9a7f60d2f15eed2307c52c290f` (Alpine 3.24.2, clang 22 host; legacy `clang+llvm-*` assets kept beside the shared names) | chromium-build #7; bctl and hydrogen stay on their pins |
 | chromium-build | none | nothing consumes the macOS release; usr's Helium installs local `helium-*` releases |
 
 ## Needs owner
 
 - chromium-build: hosted macOS runners have 56 GiB free against the 80 GiB build and have never
   completed a smoke build. Nothing consumes the macOS release, so it waits until one does.
-- node-build: after the first release, merge usr #3 and re-measure `release-budgets.json` on the
-  xz sizes.
+- llvm-prebuilt-musl: bctl (`3afbb74`) and hydrogen (`c4f9b08`) still pin older releases and have
+  uncommitted work, so their bumps are left to the owner. Nothing has yet built Helium against the
+  new toolchain.
 
 ## Status
 
-Every local deliverable landed and six of eight repositories released in the shared format; node-build
-and chromium-build remain as listed above.
+Every local deliverable landed. Seven of eight repositories, plus llvm-prebuilt-musl, have
+released in the shared format. chromium-build remains as listed above.
