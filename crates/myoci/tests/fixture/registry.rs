@@ -65,6 +65,9 @@ impl Fixture {
             }
             match listener.accept() {
                 Ok((stream, _)) => {
+                    if stream.set_nonblocking(false).is_err() {
+                        continue;
+                    }
                     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
                     let _ = stream.set_write_timeout(Some(Duration::from_secs(10)));
                     let state = Arc::clone(&thread_state);
