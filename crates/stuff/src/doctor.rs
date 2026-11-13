@@ -9,7 +9,8 @@ use crate::publish::snapshot;
 use crate::publish::{Environment, Registry};
 use crate::source::{fetch_bytes, LocalSite};
 use stuff_catalog::{
-    DEFAULT_CARGO_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_OCI_ORIGIN, DEFAULT_PYPI_ORIGIN,
+    DEFAULT_CARGO_ORIGIN, DEFAULT_MIRROR_ORIGIN, DEFAULT_NPM_ORIGIN, DEFAULT_OCI_ORIGIN,
+    DEFAULT_PYPI_ORIGIN,
 };
 
 pub struct RegistrySources {
@@ -17,11 +18,13 @@ pub struct RegistrySources {
     pub npm_base: String,
     pub pypi_base: String,
     pub oci_base: String,
+    pub mirror_base: String,
     explicit_base: Vec<&'static str>,
     pub cargo_local: Option<LocalSite>,
     pub npm_local: Option<LocalSite>,
     pub pypi_local: Option<LocalSite>,
     pub oci_local: Option<LocalSite>,
+    pub mirror_local: Option<LocalSite>,
 }
 
 impl RegistrySources {
@@ -34,11 +37,13 @@ impl RegistrySources {
         let npm_base = parsed.npm_base.clone().or_else(|| from_environment("STUFF_NPM_BASE"));
         let pypi_base = parsed.pypi_base.clone().or_else(|| from_environment("STUFF_PYPI_BASE"));
         let oci_base = parsed.oci_base.clone().or_else(|| from_environment("STUFF_OCI_BASE"));
+        let mirror_base = parsed.mirror_base.clone().or_else(|| from_environment("STUFF_MIRROR_BASE"));
         let explicit_base = [
             ("cargo", cargo_base.is_some()),
             ("npm", npm_base.is_some()),
             ("pypi", pypi_base.is_some()),
             ("oci", oci_base.is_some()),
+            ("mirror", mirror_base.is_some()),
         ]
         .into_iter()
         .filter_map(|(name, set)| set.then_some(name))
@@ -48,11 +53,13 @@ impl RegistrySources {
             npm_base: npm_base.unwrap_or_else(|| DEFAULT_NPM_ORIGIN.to_string()),
             pypi_base: pypi_base.unwrap_or_else(|| DEFAULT_PYPI_ORIGIN.to_string()),
             oci_base: oci_base.unwrap_or_else(|| DEFAULT_OCI_ORIGIN.to_string()),
+            mirror_base: mirror_base.unwrap_or_else(|| DEFAULT_MIRROR_ORIGIN.to_string()),
             explicit_base,
             cargo_local: resolve_local(parsed.cargo_dir.as_deref())?,
             npm_local: resolve_local(parsed.npm_dir.as_deref())?,
             pypi_local: resolve_local(parsed.pypi_dir.as_deref())?,
             oci_local: resolve_local(parsed.oci_dir.as_deref())?,
+            mirror_local: resolve_local(parsed.mirror_dir.as_deref())?,
         })
     }
 
@@ -62,6 +69,7 @@ impl RegistrySources {
             ("npm", self.npm_local.is_some()),
             ("pypi", self.pypi_local.is_some()),
             ("oci", self.oci_local.is_some()),
+            ("mirror", self.mirror_local.is_some()),
         ];
         match filter {
             Some(f) => all.into_iter().filter(|(name, _)| *name == f).collect(),
@@ -74,6 +82,7 @@ impl RegistrySources {
             || self.npm_local.is_some()
             || self.pypi_local.is_some()
             || self.oci_local.is_some()
+            || self.mirror_local.is_some()
     }
 
     fn local(&self, name: &str) -> Option<&LocalSite> {
@@ -81,6 +90,7 @@ impl RegistrySources {
             "cargo" => self.cargo_local.as_ref(),
             "npm" => self.npm_local.as_ref(),
             "oci" => self.oci_local.as_ref(),
+            "mirror" => self.mirror_local.as_ref(),
             _ => self.pypi_local.as_ref(),
         }
     }
@@ -110,16 +120,19 @@ pub fn load_catalogs(
             ("npm", Some(local)) => local.load_catalog()?,
             ("pypi", Some(local)) => local.load_catalog()?,
             ("oci", Some(local)) => local.load_catalog()?,
+            ("mirror", Some(local)) => local.load_catalog()?,
             ("cargo", None) => crate::source::fetch_catalog(&sources.cargo_base)?,
             ("npm", None) => crate::source::fetch_catalog(&sources.npm_base)?,
             ("oci", None) => crate::source::fetch_catalog(&sources.oci_base)?,
+            ("mirror", None) => crate::source::fetch_catalog(&sources.mirror_base)?,
             (_, None) => crate::source::fetch_catalog(&sources.pypi_base)?,
-            _ => unreachable!(),
+            (_, Some(_)) => unreachable!("every registry has a local arm"),
         };
         let expected = match name {
             "cargo" => stuff_catalog::Registry::Cargo,
             "npm" => stuff_catalog::Registry::Npm,
             "oci" => stuff_catalog::Registry::Oci,
+            "mirror" => stuff_catalog::Registry::Mirror,
             _ => stuff_catalog::Registry::Pypi,
         };
         if catalog.registry != expected {
@@ -293,9 +306,52 @@ fn origin_for(name: &str, sources: &RegistrySources) -> String {
         "cargo" => &sources.cargo_base,
         "npm" => &sources.npm_base,
         "oci" => &sources.oci_base,
+        "mirror" => &sources.mirror_base,
         _ => &sources.pypi_base,
     };
     base.trim_end_matches('/').to_string()
+}
+
+fn mirror_sums_lookup(sums: &str, want_file: &str) -> Option<String> {
+    sums.lines().find_map(|line| {
+        let mut parts = line.split_whitespace();
+        let hash = parts.next()?;
+        let name = parts.next()?;
+        if name != want_file || parts.next().is_some() || hash.len() != 64 {
+            return None;
+        }
+        hash.bytes().all(|byte| byte.is_ascii_hexdigit()).then(|| hash.to_string())
+    })
+}
+
+fn mirror_remote_sums_check(base: &str, catalog: &stuff_catalog::Catalog) -> Check {
+    let label = "mirror SHA256SUMS".to_string();
+    let first = &catalog.packages[0];
+    let want_file = format!("{}.zip", first.name);
+    match fetch_bytes(&format!("{base}/current/SHA256SUMS")) {
+        Ok((200, body)) => match String::from_utf8(body) {
+            Ok(text) => match mirror_sums_lookup(&text, &want_file) {
+                Some(hash) => Check::pass(label, format!("{want_file} sha256 {hash}")),
+                None => Check::fail(label, format!("SHA256SUMS has no entry for {want_file}")),
+            },
+            Err(_) => Check::fail(label, "SHA256SUMS is not UTF-8".to_string()),
+        },
+        Ok((status, _)) => Check::fail(label, format!("SHA256SUMS HTTP {status}")),
+        Err(e) => Check::fail(label, e),
+    }
+}
+
+fn mirror_sums_check(gen_dir: &std::path::Path, catalog: &stuff_catalog::Catalog) -> Check {
+    let label = "mirror SHA256SUMS".to_string();
+    let first = &catalog.packages[0];
+    let want_file = format!("{}.zip", first.name);
+    match std::fs::read_to_string(gen_dir.join("SHA256SUMS")) {
+        Ok(sums) => match mirror_sums_lookup(&sums, &want_file) {
+            Some(hash) => Check::pass(label, format!("{want_file} sha256 {hash}")),
+            None => Check::fail(label, format!("SHA256SUMS has no entry for {want_file}")),
+        },
+        Err(error) => Check::fail(label, format!("SHA256SUMS missing: {error}")),
+    }
 }
 
 fn run_local_checks(
@@ -312,13 +368,17 @@ fn run_local_checks(
         checks.push(Check::pass(format!("{name} endpoints"), "empty catalog: nothing further to check"));
         return;
     }
-    let expected_llms = stuff_catalog::render_llms_txt(catalog, origin);
-    match std::fs::read_to_string(gen_dir.join("llms.txt")) {
-        Ok(actual) if actual == expected_llms => {
-            checks.push(Check::pass(format!("{name} llms.txt"), "llms.txt matches catalog".to_string()));
+    if name == "mirror" {
+        checks.push(mirror_sums_check(gen_dir, catalog));
+    } else {
+        let expected_llms = stuff_catalog::render_llms_txt(catalog, origin);
+        match std::fs::read_to_string(gen_dir.join("llms.txt")) {
+            Ok(actual) if actual == expected_llms => {
+                checks.push(Check::pass(format!("{name} llms.txt"), "llms.txt matches catalog".to_string()));
+            }
+            Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "llms.txt does not match catalog".to_string())),
+            Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), format!("llms.txt missing: {e}"))),
         }
-        Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "llms.txt does not match catalog".to_string())),
-        Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), format!("llms.txt missing: {e}"))),
     }
     let first = &catalog.packages[0];
     match name {
@@ -352,6 +412,14 @@ fn run_local_checks(
         }
         "oci" => {
             checks.extend(oci_local_checks(catalog, local));
+        }
+        "mirror" => {
+            let file = format!("{}.zip", first.name);
+            if gen_dir.join(&file).is_file() {
+                checks.push(Check::pass(format!("{name} artifact"), format!("{file} present")));
+            } else {
+                checks.push(Check::fail(format!("{name} artifact"), format!("{file} missing")));
+            }
         }
         _ => {
             let page = gen_dir.join("simple").join(first.name.to_lowercase().replace(['_', '.'], "-").replace("--", "-")).join("index.html");
@@ -542,6 +610,7 @@ fn run_remote_checks(
         "cargo" => sources.cargo_base.trim_end_matches('/').to_string(),
         "npm" => sources.npm_base.trim_end_matches('/').to_string(),
         "oci" => sources.oci_base.trim_end_matches('/').to_string(),
+        "mirror" => sources.mirror_base.trim_end_matches('/').to_string(),
         _ => sources.pypi_base.trim_end_matches('/').to_string(),
     };
     let immutable = format!("{base}/generations/{}/catalog.json", catalog.generation);
@@ -558,23 +627,23 @@ fn run_remote_checks(
         Ok((status, _)) => checks.push(Check::fail(format!("{name} immutable catalog"), format!("HTTP {status}"))),
         Err(e) => checks.push(Check::fail(format!("{name} immutable catalog"), e)),
     }
-    if catalog.packages.is_empty() {
-        return;
-    }
-    match fetch_bytes(&format!("{base}/current/llms.txt")) {
-        Ok((200, body)) => match String::from_utf8(body) {
-            Ok(text) if text == stuff_catalog::render_llms_txt(catalog, &base) => {
-                checks.push(Check::pass(format!("{name} llms.txt"), "current/llms.txt matches".to_string()));
-            }
-            Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt does not match catalog".to_string())),
-            Err(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt is not UTF-8".to_string())),
-        },
-        Ok((status, _)) => checks.push(Check::fail(format!("{name} llms.txt"), format!("HTTP {status}"))),
-        Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), e)),
-    }
-    let first = &catalog.packages[0];
-    match name {
-        "cargo" => match cargo_shard(&first.name.to_lowercase()) {
+    if name == "mirror" {
+        checks.push(mirror_remote_sums_check(&base, catalog));
+    } else {
+        match fetch_bytes(&format!("{base}/current/llms.txt")) {
+            Ok((200, body)) => match String::from_utf8(body) {
+                Ok(text) if text == stuff_catalog::render_llms_txt(catalog, &base) => {
+                    checks.push(Check::pass(format!("{name} llms.txt"), "current/llms.txt matches".to_string()));
+                }
+                Ok(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt does not match catalog".to_string())),
+                Err(_) => checks.push(Check::fail(format!("{name} llms.txt"), "current/llms.txt is not UTF-8".to_string())),
+            },
+            Ok((status, _)) => checks.push(Check::fail(format!("{name} llms.txt"), format!("HTTP {status}"))),
+            Err(e) => checks.push(Check::fail(format!("{name} llms.txt"), e)),
+        }
+        let first = &catalog.packages[0];
+        match name {
+            "cargo" => match cargo_shard(&first.name.to_lowercase()) {
             Some(shard) => {
                 let url = format!("{base}/current/registry/{shard}");
                 let mirror_url = format!("{base}/current/crates-io/{shard}");
@@ -611,6 +680,7 @@ fn run_remote_checks(
                 Ok((status, _)) => checks.push(Check::fail(format!("{name} project page"), format!("HTTP {status}"))),
                 Err(e) => checks.push(Check::fail(format!("{name} project page"), e)),
             }
+        }
         }
     }
     if sample && !catalog.packages.is_empty() && name != "oci" {
@@ -877,6 +947,21 @@ fn sample_local(
                 Err(e) => Check::fail(label, e),
             }
         }
+        "mirror" => {
+            let want_file = format!("{}.zip", first.name);
+            let sums = match std::fs::read_to_string(gen_dir.join("SHA256SUMS")) {
+                Ok(text) => text,
+                Err(e) => return Check::fail(label, format!("could not read SHA256SUMS: {e}")),
+            };
+            let Some(want_sha) = mirror_sums_lookup(&sums, &want_file) else {
+                return Check::fail(label, format!("SHA256SUMS has no entry for {want_file}"));
+            };
+            match file_sha256_hex(&gen_dir.join(&want_file)) {
+                Ok(actual) if actual == want_sha => Check::pass(label, format!("{want_file} hash matches")),
+                Ok(actual) => Check::fail(label, format!("{want_file} hash mismatch: {actual}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
         _ => {
             let text = match std::fs::read_to_string(gen_dir.join("manifest.json")) {
                 Ok(t) => t,
@@ -1026,6 +1111,30 @@ fn sample_remote(name: &str, catalog: &stuff_catalog::Catalog, base: &str) -> Ch
                 Err(e) => Check::fail(label, e),
             }
         }
+        "mirror" => {
+            let sums_url = format!("{base}/current/SHA256SUMS");
+            let want_file = format!("{}.zip", first.name);
+            let want_sha = match crate::source::fetch_bytes(&sums_url) {
+                Ok((200, body)) => match String::from_utf8(body) {
+                    Ok(text) => match mirror_sums_lookup(&text, &want_file) {
+                        Some(hash) => hash,
+                        None => return Check::fail(label, format!("SHA256SUMS has no entry for {want_file}")),
+                    },
+                    Err(_) => return Check::fail(label, "SHA256SUMS is not UTF-8".to_string()),
+                },
+                Ok((status, _)) => return Check::fail(label, format!("SHA256SUMS HTTP {status}")),
+                Err(e) => return Check::fail(label, e),
+            };
+            let url = format!("{base}/current/{want_file}");
+            match crate::source::fetch_bytes_capped(&url, SAMPLE_CAP) {
+                Ok((200, bytes)) if sha256_hex(&bytes) == want_sha => {
+                    Check::pass(label, format!("{want_file} hash matches"))
+                }
+                Ok((200, _)) => Check::fail(label, format!("{want_file} hash mismatch")),
+                Ok((status, _)) => Check::fail(label, format!("artifact HTTP {status}")),
+                Err(e) => Check::fail(label, e),
+            }
+        }
         _ => {
             let project = first.name.to_lowercase();
             let url = format!("{base}/current/simple/{project}/");
@@ -1096,10 +1205,12 @@ mod tests {
             npm_base: None,
             pypi_base: None,
             oci_base: None,
+            mirror_base: None,
             cargo_dir: None,
             npm_dir: None,
             pypi_dir: None,
             oci_dir: None,
+            mirror_dir: None,
             output: None,
             expected_generation: None,
             positionals: Vec::new(),
@@ -1326,7 +1437,7 @@ mod tests {
             .map(|check| check.name.as_str())
             .filter(|name| name.ends_with(" registry"))
             .collect();
-        assert_eq!(skipped, vec!["npm registry", "pypi registry", "oci registry"]);
+        assert_eq!(skipped, vec!["npm registry", "pypi registry", "oci registry", "mirror registry"]);
         assert!(checks.iter().all(|check| check.state != CheckState::Fail));
 
         parsed.expected_generation = Some("gen1".to_string());
@@ -1384,6 +1495,58 @@ mod tests {
         let llms = mismatched.iter().find(|c| c.name == "cargo llms.txt").unwrap();
         assert_eq!(llms.state, CheckState::Fail, "doctor must detect an origin mismatch");
         assert!(llms.detail.contains("does not match catalog"), "{}", llms.detail);
+    }
+
+    fn mirror_fixture(dir: &std::path::Path, zip_bytes: &[u8]) -> (stuff_catalog::Catalog, std::path::PathBuf, std::path::PathBuf) {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(zip_bytes);
+        let sha = crate::publish::lower_hex(h.finalize());
+        let site = dir.to_path_buf();
+        let gen_dir = site.join("generations").join("gen1");
+        std::fs::create_dir_all(&gen_dir).unwrap();
+        std::fs::write(gen_dir.join("tool-1.0.zip"), zip_bytes).unwrap();
+        std::fs::write(gen_dir.join("SHA256SUMS"), format!("{sha}  tool-1.0.zip\n")).unwrap();
+        let catalog_text = format!(
+            r#"{{
+  "artifacts": [{{"bytes": 10, "file": "tool-1.0.zip", "files": ["bin/tool"], "id": "tool-1.0", "sha256": "{sha}", "stripComponents": 0, "upstream": {{"sha256": "{sha}", "url": "https://example.test/tool.tar.gz"}}, "version": "1.0"}}],
+  "baseUrl": "https://mirror.example.test/",
+  "generation": "gen1",
+  "packages": [{{"name": "tool-1.0", "source": "upstream", "versions": [{{"version": "1.0"}}]}}],
+  "registry": "mirror",
+  "renderer": 1,
+  "schemaVersion": 1
+}}"#
+        );
+        std::fs::write(gen_dir.join("catalog.json"), &catalog_text).unwrap();
+        std::os::unix::fs::symlink("generations/gen1", site.join("current")).unwrap();
+        let catalog = stuff_catalog::parse_catalog_json(&catalog_text).unwrap();
+        (catalog, site, gen_dir)
+    }
+
+    #[test]
+    fn local_mirror_checks_pass_and_sample_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        let (_, site, _) = mirror_fixture(dir.path(), b"tool-bytes");
+        let mut parsed = doctor_parsed();
+        parsed.mirror_dir = Some(site.to_string_lossy().to_string());
+        parsed.sample_artifacts = true;
+        let checks = doctor_checks(&parsed, &Environment::default()).unwrap();
+        for name in ["mirror catalog", "mirror SHA256SUMS", "mirror artifact", "mirror sample artifact"] {
+            let check = checks.iter().find(|check| check.name == name).unwrap();
+            assert_eq!(check.state, CheckState::Pass, "{}: {}", check.name, check.detail);
+        }
+        assert!(checks.iter().all(|check| check.state != CheckState::Fail));
+        assert!(run_doctor(&parsed, &Environment::default()).unwrap());
+    }
+
+    #[test]
+    fn local_mirror_sample_fails_on_tampered_artifact() {
+        let dir = tempfile::tempdir().unwrap();
+        let (catalog, site, gen_dir) = mirror_fixture(dir.path(), b"tool-bytes");
+        std::fs::write(gen_dir.join("tool-1.0.zip"), b"tampered").unwrap();
+        let check = sample_local("mirror", &catalog, &site, &gen_dir);
+        assert_eq!(check.state, CheckState::Fail, "{}", check.detail);
     }
 
     #[test]

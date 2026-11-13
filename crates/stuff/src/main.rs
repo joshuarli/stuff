@@ -319,6 +319,7 @@ fn run_render(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<
             &sources.npm_base,
             &sources.pypi_base,
             &sources.oci_base,
+            &sources.mirror_base,
             stuff_catalog::DEFAULT_UNIFIED_ORIGIN,
         );
         stuff_catalog::render_unified_llms_txt(&catalogs, &origins)

@@ -6,6 +6,7 @@ pub const DEFAULT_CARGO_ORIGIN: &str = "https://crates.17166969.xyz";
 pub const DEFAULT_NPM_ORIGIN: &str = "https://npm.17166969.xyz";
 pub const DEFAULT_PYPI_ORIGIN: &str = "https://pypi.17166969.xyz";
 pub const DEFAULT_OCI_ORIGIN: &str = "https://oci.17166969.xyz";
+pub const DEFAULT_MIRROR_ORIGIN: &str = "https://mirror.17166969.xyz";
 pub const DEFAULT_UNIFIED_ORIGIN: &str = "https://stuff.17166969.xyz";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +15,7 @@ pub struct CatalogOrigins {
     pub npm: String,
     pub pypi: String,
     pub oci: String,
+    pub mirror: String,
     pub unified: String,
 }
 
@@ -23,6 +25,7 @@ impl CatalogOrigins {
         npm: impl Into<String>,
         pypi: impl Into<String>,
         oci: impl Into<String>,
+        mirror: impl Into<String>,
         unified: impl Into<String>,
     ) -> Self {
         Self {
@@ -30,6 +33,7 @@ impl CatalogOrigins {
             npm: trim_origin(npm.into()),
             pypi: trim_origin(pypi.into()),
             oci: trim_origin(oci.into()),
+            mirror: trim_origin(mirror.into()),
             unified: trim_origin(unified.into()),
         }
     }
@@ -40,6 +44,7 @@ impl CatalogOrigins {
             Registry::Npm => &self.npm,
             Registry::Pypi => &self.pypi,
             Registry::Oci => &self.oci,
+            Registry::Mirror => &self.mirror,
         }
     }
 }
@@ -51,6 +56,7 @@ impl Default for CatalogOrigins {
             DEFAULT_NPM_ORIGIN,
             DEFAULT_PYPI_ORIGIN,
             DEFAULT_OCI_ORIGIN,
+            DEFAULT_MIRROR_ORIGIN,
             DEFAULT_UNIFIED_ORIGIN,
         )
     }
@@ -66,6 +72,7 @@ fn registry_title(registry: Registry) -> &'static str {
         Registry::Npm => "npm registry",
         Registry::Pypi => "PyPI registry",
         Registry::Oci => "OCI registry",
+        Registry::Mirror => "Static artifact mirror",
     }
 }
 
@@ -127,6 +134,22 @@ fn use_section(registry: Registry, generation: &str, origin: &str) -> String {
             Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`.",
             host = origin.trim_end_matches('/').trim_start_matches("https://").trim_start_matches("http://"),
         ),
+        Registry::Mirror => {
+            let sums = format!("/generations/{generation}/SHA256SUMS");
+            format!(
+                "Download `<id>.zip` artifacts from `current/` and verify them against `current/SHA256SUMS`:\n\
+                \n\
+                ```sh\n\
+                curl -fLO {origin}/current/SHA256SUMS\n\
+                curl -fLO {origin}/current/<id>.zip\n\
+                sha256sum --ignore-missing -c SHA256SUMS\n\
+                ```\n\
+                \n\
+                The pins (upstream URL + upstream SHA-256) live in `mirror/manifest.toml` in the stuff repo; the published zip SHA-256 values live in [SHA256SUMS]({sums}). \n\
+                Inventory: [catalog.json]({catalog}). \n\
+                Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+            )
+        }
     }
 }
 
@@ -216,7 +239,7 @@ pub fn render_unified_llms_txt_with_notices(catalogs: &[Catalog], origins: &Cata
     sorted.sort_by(|a, b| a.registry.as_str().cmp(b.registry.as_str()));
     let mut out = String::new();
     out.push_str("# stuff registries\n");
-    out.push_str("> Aggregate Cargo + npm + PyPI + OCI snapshot for LLMs. ");
+    out.push_str("> Aggregate registry snapshot for LLMs. ");
     out.push_str(&total_packages.to_string());
     out.push_str(if total_packages == 1 { " package, " } else { " packages, " });
     out.push_str(&total_versions.to_string());
@@ -255,6 +278,7 @@ pub fn render_unified_llms_txt_with_notices(catalogs: &[Catalog], origins: &Cata
             Registry::Npm => "npm",
             Registry::Pypi => "PyPI",
             Registry::Oci => "OCI",
+            Registry::Mirror => "Mirror",
         });
         out.push_str(": ");
         out.push_str(origins.for_registry(catalog.registry).trim_end_matches('/'));
@@ -381,6 +405,28 @@ mod tests {
     }
 
     #[test]
+    fn mirror_usage_explains_sums_verification() {
+        let catalog = Catalog {
+            schema_version: 1,
+            registry: Registry::Mirror,
+            generation: "gen1".to_string(),
+            packages: vec![crate::model::Package {
+                name: "node-v26.13.1-darwin-arm64".to_string(),
+                source: Some("upstream".to_string()),
+                latest: "26.13.1".to_string(),
+                versions: vec![crate::model::VersionEntry { version: "26.13.1".to_string(), yanked: false }],
+                dependencies: crate::model::Dependencies::default(),
+            }],
+        };
+        let text = render_llms_txt(&catalog, DEFAULT_MIRROR_ORIGIN);
+        assert!(text.starts_with("# Static artifact mirror\n"));
+        assert!(text.contains("curl -fLO https://mirror.17166969.xyz/current/SHA256SUMS"));
+        assert!(text.contains("sha256sum --ignore-missing -c SHA256SUMS"));
+        assert!(text.contains("`node-v26.13.1-darwin-arm64`"));
+        assert!(text.contains("mirror/manifest.toml"));
+    }
+
+    #[test]
     fn unified_llms_txt_aggregates_registries() {
         let cargo = cargo_fixture();
         let npm = npm_catalog(
@@ -413,6 +459,7 @@ mod tests {
             "https://npm.example.test",
             "https://pypi.example.test",
             "https://oci.example.test",
+            "https://mirror.example.test",
             "https://stuff.example.test",
         );
         let text = render_unified_llms_txt(&[npm, cargo], &origins);

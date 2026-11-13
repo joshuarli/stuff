@@ -408,11 +408,26 @@ fn unified_origins(
             }
         })
         .unwrap_or_else(|| stuff_catalog::DEFAULT_OCI_ORIGIN.to_string());
+    let mirror = config
+        .routes
+        .iter()
+        .find(|route| route.bucket_binding == "MIRROR")
+        .map(|route| {
+            let host = if route.host.is_empty() { request_host } else { route.host.as_str() };
+            let prefix = route.url_prefix.trim_matches('/');
+            if prefix.is_empty() {
+                format!("{scheme}://{host}")
+            } else {
+                format!("{scheme}://{host}/{prefix}")
+            }
+        })
+        .unwrap_or_else(|| stuff_catalog::DEFAULT_MIRROR_ORIGIN.to_string());
     Ok(stuff_catalog::CatalogOrigins::new(
         origin("MYCRATES")?,
         origin("MYNPM")?,
         origin("PYPI")?,
         oci,
+        mirror,
         request_origin,
     ))
 }
@@ -691,6 +706,15 @@ mod tests {
     #[test]
     fn routes_reject_missing_bucket_binding() {
         assert!(parse_routes(r#"[{"url_prefix":"x"}]"#).is_err());
+    }
+
+    #[test]
+    fn unified_origins_pick_up_the_mirror_binding() {
+        const MIRROR_ROUTES: &str = r#"[{"host":"crates.example.test","bucket_binding":"MYCRATES","key_prefix":""},{"host":"npm.example.test","bucket_binding":"MYNPM","key_prefix":""},{"host":"pypi.example.test","bucket_binding":"PYPI","key_prefix":""},{"host":"oci.example.test","bucket_binding":"OCI","key_prefix":""},{"host":"mirror.example.test","bucket_binding":"MIRROR","key_prefix":""}]"#;
+        let origins = unified_origins(MIRROR_ROUTES, "https://stuff.example.test").expect("origins parse");
+        assert_eq!(origins.mirror, "https://mirror.example.test");
+        let origins = unified_origins(ROUTES, "https://stuff.example.test").expect("origins parse");
+        assert_eq!(origins.mirror, stuff_catalog::DEFAULT_MIRROR_ORIGIN);
     }
 
     #[test]

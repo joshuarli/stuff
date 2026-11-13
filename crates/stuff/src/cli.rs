@@ -14,6 +14,7 @@ pub enum RegistryFilter {
     Npm,
     Pypi,
     Oci,
+    Mirror,
 }
 
 impl RegistryFilter {
@@ -23,6 +24,7 @@ impl RegistryFilter {
             RegistryFilter::Npm => "npm",
             RegistryFilter::Pypi => "pypi",
             RegistryFilter::Oci => "oci",
+            RegistryFilter::Mirror => "mirror",
         }
     }
 
@@ -32,6 +34,7 @@ impl RegistryFilter {
             "npm" => Some(RegistryFilter::Npm),
             "pypi" => Some(RegistryFilter::Pypi),
             "oci" => Some(RegistryFilter::Oci),
+            "mirror" => Some(RegistryFilter::Mirror),
             _ => None,
         }
     }
@@ -134,10 +137,12 @@ pub struct Parsed {
     pub npm_base: Option<String>,
     pub pypi_base: Option<String>,
     pub oci_base: Option<String>,
+    pub mirror_base: Option<String>,
     pub cargo_dir: Option<String>,
     pub npm_dir: Option<String>,
     pub pypi_dir: Option<String>,
     pub oci_dir: Option<String>,
+    pub mirror_dir: Option<String>,
     pub output: Option<String>,
     pub expected_generation: Option<String>,
     pub positionals: Vec<String>,
@@ -193,10 +198,12 @@ fn parse_read_only(argv: &[String]) -> Result<Parsed> {
         npm_base: None,
         pypi_base: None,
         oci_base: None,
+        mirror_base: None,
         cargo_dir: None,
         npm_dir: None,
         pypi_dir: None,
         oci_dir: None,
+        mirror_dir: None,
         output: None,
         expected_generation: None,
         positionals: Vec::new(),
@@ -218,18 +225,20 @@ fn parse_read_only(argv: &[String]) -> Result<Parsed> {
                     RegistryFilter::parse(value).ok_or_else(|| usage_error(format!("unsupported registry '{value}'")))?,
                 );
             }
-            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" | "--cargo-dir" | "--npm-dir"
-            | "--pypi-dir" | "--oci-dir" | "--output" | "--expected-generation" => {
+            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" | "--mirror-base" | "--cargo-dir" | "--npm-dir"
+            | "--pypi-dir" | "--oci-dir" | "--mirror-dir" | "--output" | "--expected-generation" => {
                 let value = args.next().ok_or_else(|| usage_error(format!("{arg} requires a value")))?;
                 let slot = match arg.as_str() {
                     "--cargo-base" => &mut parsed.cargo_base,
                     "--npm-base" => &mut parsed.npm_base,
                     "--pypi-base" => &mut parsed.pypi_base,
                     "--oci-base" => &mut parsed.oci_base,
+                    "--mirror-base" => &mut parsed.mirror_base,
                     "--cargo-dir" => &mut parsed.cargo_dir,
                     "--npm-dir" => &mut parsed.npm_dir,
                     "--pypi-dir" => &mut parsed.pypi_dir,
                     "--oci-dir" => &mut parsed.oci_dir,
+                    "--mirror-dir" => &mut parsed.mirror_dir,
                     "--output" => &mut parsed.output,
                     _ => &mut parsed.expected_generation,
                 };
@@ -252,10 +261,12 @@ fn parse_read_only(argv: &[String]) -> Result<Parsed> {
         ("--npm-base", parsed.npm_base.is_some(), allowed.base_urls),
         ("--pypi-base", parsed.pypi_base.is_some(), allowed.base_urls),
         ("--oci-base", parsed.oci_base.is_some(), allowed.base_urls),
+        ("--mirror-base", parsed.mirror_base.is_some(), allowed.base_urls),
         ("--cargo-dir", parsed.cargo_dir.is_some(), allowed.local_dirs),
         ("--npm-dir", parsed.npm_dir.is_some(), allowed.local_dirs),
         ("--pypi-dir", parsed.pypi_dir.is_some(), allowed.local_dirs),
         ("--oci-dir", parsed.oci_dir.is_some(), allowed.local_dirs),
+        ("--mirror-dir", parsed.mirror_dir.is_some(), allowed.local_dirs),
         ("--output", parsed.output.is_some(), allowed.output),
         (
             "--expected-generation",
@@ -328,10 +339,12 @@ fn request_parsed(command: Command, request: impl Into<Option<Request>>) -> Pars
         npm_base: None,
         pypi_base: None,
         oci_base: None,
+        mirror_base: None,
         cargo_dir: None,
         npm_dir: None,
         pypi_dir: None,
         oci_dir: None,
+        mirror_dir: None,
         output: None,
         expected_generation: None,
         positionals: Vec::new(),
@@ -756,28 +769,28 @@ stuff
 Usage: stuff <COMMAND> [OPTIONS]
 
 Commands:
-  ls [--registry cargo|npm|pypi|oci] [--versions] [--json]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
-  search <query> [--registry cargo|npm|pypi|oci] [--json]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
+  ls [--registry cargo|npm|pypi|oci|mirror] [--versions] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL] [--mirror-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR] [--mirror-dir DIR]
+  search <query> [--registry cargo|npm|pypi|oci|mirror] [--json]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL] [--mirror-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR] [--mirror-dir DIR]
   diff <before.json> <after.json> [--json]
-  doctor [--registry cargo|npm|pypi|oci] [--expected-generation ID] [--sample-artifacts]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
-  render --output FILE [--registry cargo|npm|pypi|oci]
-     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL]
-     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR]
+  doctor [--registry cargo|npm|pypi|oci|mirror] [--expected-generation ID] [--sample-artifacts]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL] [--mirror-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR] [--mirror-dir DIR]
+  render --output FILE [--registry cargo|npm|pypi|oci|mirror]
+     [--cargo-base URL] [--npm-base URL] [--pypi-base URL] [--oci-base URL] [--mirror-base URL]
+     [--cargo-dir DIR] [--npm-dir DIR] [--pypi-dir DIR] [--oci-dir DIR] [--mirror-dir DIR]
   credentials <bucket>
      print shell exports of short-lived R2 S3 credentials for one bucket,
      minted through the configured cf_profile; use with eval
-  lock-path <bucket> | lock-path --registry cargo|npm|pypi|oci
+  lock-path <bucket> | lock-path --registry cargo|npm|pypi|oci|mirror
      print the publish lock file of a registry, or of the registry that owns
      a configured bucket; maintenance helpers hold it while they write
 
 Sources default to the live registries (no credentials needed).
-Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir (site, generation, or
+Pass --cargo-dir/--npm-dir/--pypi-dir/--oci-dir/--mirror-dir (site, generation, or
 catalog.json) to inspect local published output offline. Registries without
 a local dir are skipped by doctor, which then refuses --expected-generation;
 naming one with --registry needs its --*-dir or --*-base, never the live default.
@@ -848,10 +861,12 @@ mod tests {
                 "--npm-base",
                 "--pypi-base",
                 "--oci-base",
+                "--mirror-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
                 "--oci-dir",
+                "--mirror-dir",
             ],
         ),
         (
@@ -863,10 +878,12 @@ mod tests {
                 "--npm-base",
                 "--pypi-base",
                 "--oci-base",
+                "--mirror-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
                 "--oci-dir",
+                "--mirror-dir",
             ],
         ),
         ("diff", &["--json"]),
@@ -880,10 +897,12 @@ mod tests {
                 "--npm-base",
                 "--pypi-base",
                 "--oci-base",
+                "--mirror-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
                 "--oci-dir",
+                "--mirror-dir",
             ],
         ),
         (
@@ -895,10 +914,12 @@ mod tests {
                 "--npm-base",
                 "--pypi-base",
                 "--oci-base",
+                "--mirror-base",
                 "--cargo-dir",
                 "--npm-dir",
                 "--pypi-dir",
                 "--oci-dir",
+                "--mirror-dir",
             ],
         ),
     ];
@@ -912,10 +933,12 @@ mod tests {
         "--npm-base",
         "--pypi-base",
         "--oci-base",
+        "--mirror-base",
         "--cargo-dir",
         "--npm-dir",
         "--pypi-dir",
         "--oci-dir",
+        "--mirror-dir",
         "--output",
         "--expected-generation",
         "--remote",
@@ -939,8 +962,8 @@ mod tests {
     fn flag_value(flag: &str) -> Option<&'static str> {
         match flag {
             "--registry" => Some("npm"),
-            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" => Some("https://example.com"),
-            "--cargo-dir" | "--npm-dir" | "--pypi-dir" | "--oci-dir" => Some("."),
+            "--cargo-base" | "--npm-base" | "--pypi-base" | "--oci-base" | "--mirror-base" => Some("https://example.com"),
+            "--cargo-dir" | "--npm-dir" | "--pypi-dir" | "--oci-dir" | "--mirror-dir" => Some("."),
             "--output" => Some("out.html"),
             "--expected-generation" => Some("gen1"),
             _ => None,

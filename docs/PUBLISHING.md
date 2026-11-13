@@ -1,6 +1,6 @@
 # Publish
 
-`stuff publish cargo|npm|pypi|oci` is the normal entry point. `stuff publish --help` is authoritative for its grammar, options, and exit codes. A publish reads the live generation and manifest, prepares the requested packages against them, validates the complete result, uploads only missing objects, promotes `current` with a conditional write, reads back, and reports; a request whose bytes are already published reports `unchanged` and promotes nothing.
+`stuff publish cargo|npm|pypi|oci|mirror` is the normal entry point. `stuff publish --help` is authoritative for its grammar, options, and exit codes. A publish reads the live generation and manifest, prepares the requested packages against them, validates the complete result, uploads only missing objects, promotes `current` with a conditional write, reads back, and reports; a request whose bytes are already published reports `unchanged` and promotes nothing.
 
 ## Check prerequisites
 
@@ -353,6 +353,8 @@ Each entry pins an upstream URL, an upstream SHA-256, and an optional keep list 
 
 Because bumping an artifact's pinned `version` removes the old row from `packages`, the shared drop guard treats a version bump as a removal: `stuff publish mirror` exits 3 and lists the dropped pins. Pass `--allow-drops` when the bump is intended — this is the one publish verb that accepts the flag; `stuff republish mirror` also rebuilds from the manifest (with `--allow-drops` like the other registries and `--manifest PATH` to use a non-default manifest), and `stuff rollback mirror GENERATION` restores a previous generation. The bucket is `stuff-mirror` (configurable as the `mirror` section in `config.json`, like `npm`), the publish is a normal transaction against it, and the Worker custom domain `mirror.17166969.xyz` serves it like the static registries. The OCI inventory mode is separate and unrelated: it re-hosts container images through `stuff publish oci --inventory`.
 
+The mirror's `catalog.json` carries the artifact manifest itself (`artifacts` with upstream URL and upstream SHA-256, `baseUrl`, `renderer`, `schemaVersion`, `registry: "mirror"`) alongside the standard `packages` list, so the drop guard only needs the packages section and `stuff doctor`, `stuff ls`, and `stuff render` all understand the mirror like any other registry: `stuff doctor --registry mirror --sample-artifacts` checks the immutable catalog, that `current/SHA256SUMS` lists the first artifact, and hashes that artifact against it.
+
 ## Republish without new packages
 
 A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. `stuff republish mirror` re-derives the mirror generation from the manifest instead — cached upstream downloads make that an unchanged no-op when the manifest did not change. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
@@ -365,7 +367,7 @@ stuff republish npm
 stuff republish pypi
 ```
 
-`make deploy` runs the whole rollout in order. It builds one Worker bundle, tests it, and deploys that bundle with `cf deploy --prebuilt`. It then runs the three republishes in parallel (and `republish-oci` with `OCI_DEPLOY=1`), then `make smoke-deployed`. Each publish mints its own temporary S3 credentials through `cf` when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failure stops the rollout before the live check.
+`make deploy` runs the whole rollout in order. It builds one Worker bundle, tests it, and deploys that bundle with `cf deploy --prebuilt`. It then runs the four republishes in parallel — `republish-mycrates`, `republish-mynpm`, `republish-mypypi`, and `republish-mirror` (plus `republish-oci` with `OCI_DEPLOY=1`). The mirror republish is an unchanged no-op unless the pinned manifest changed; then `make smoke-deployed`. Each publish mints its own temporary S3 credentials through `cf` when `R2_S3_*` is absent. Set `DEPLOY_JOBS=1` to serialize them. A failure stops the rollout before the live check.
 
 ## Shared stores
 
