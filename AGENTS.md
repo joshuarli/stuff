@@ -57,7 +57,6 @@ Run everything from the repository root.
 | Checkout removal contract | [docs/rfc/RPMD-74-checkout-removal.md](docs/rfc/RPMD-74-checkout-removal.md) |
 | Campaign records | [docs/campaigns/](docs/campaigns/) |
 | Deferred fixes | [TODO.md](TODO.md) |
-| Draft designs | [STUF-62](docs/rfc/STUF-62-shared-index-bytes.md) |
 
 ## Invariants
 
