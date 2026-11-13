@@ -3,8 +3,8 @@
 ## Status
 
 - Goal: mirror declared OCI roots reproducibly, apply managed aliases atomically, and publish through the existing generation and R2 pipeline.
-- Baseline revision: `cfc93c8` on 2026-11-03. Accepted slices: M1 (`38656ee`). Red or parked slices: none.
-- Next: M2. The seed lock in `deploy/oci-mirror.lock` was generated from quay.io descriptors verified on 2026-11-13; regenerate it with `myoci mirror resolve` once M2 lands and keep seeded bytes identical.
+- Baseline revision: `cfc93c8` on 2026-11-03. Accepted slices: M1 (`38656ee`), M2 (`f51e4e6`). Red or parked slices: none.
+- Next: M3. The seed lock in `deploy/oci-mirror.lock` regenerates byte-identically via `myoci mirror resolve --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock` (verified 2026-11-13); `resolve_snapshots` proves no layer-body reads, tag movement, targeted refresh, discovery failure versus empty results, and lock preservation on failure.
 - Note: the baseline `deploy/publish` and `deploy/publish-myoci.sh` named below were deleted in `a6619a2`; their successor is `stuff publish oci` in `crates/stuff`, and `deploy/test-oci-publish.sh` exercises it. M7 targets the Rust implementation. The inventory/lock formats landed in `38656ee`.
 
 ## Charter
